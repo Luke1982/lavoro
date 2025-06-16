@@ -34,5 +34,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+    'snelstart' => [
+        'client_key'       => env('SNELSTART_CLIENT_KEY'),
+        'subscription_key' => env('SNELSTART_SUBSCRIPTION_KEY'),
+        'auth_url'         => env('SNELSTART_AUTH_URL'),
+        'api_base'         => env('SNELSTART_API_BASE'),
+    ],
 ];
