@@ -43,4 +43,16 @@ class SnelStartClient
                     ->throw()
                     ->json();
     }
+
+    public function getCountry(string $uuid): array
+    {
+        return Cache::remember("snelstart.land.{$uuid}", now()->addDay(), function () use ($uuid) {
+            $response = Http::withToken($this->getAccessToken())
+                ->withHeader('Ocp-Apim-Subscription-Key', $this->subscriptionKey)
+                ->get("{$this->apiBase}/landen/{$uuid}")
+                ->throw();
+
+            return $response->json();
+        });
+    }
 }
