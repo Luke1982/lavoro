@@ -6,6 +6,7 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Asset;
 use App\Models\Product;
+use App\Models\Ticket;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 
@@ -26,5 +27,6 @@ class DatabaseSeeder extends Seeder
         Product::factory(30)->create();
         Artisan::call('snelstart:fetch-relaties');
         Asset::factory(100)->create();
+        Ticket::factory(100)->create();
     }
 }
