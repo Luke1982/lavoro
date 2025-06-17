@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\ProductTypes;
+use App\Models\ProductType;
 use App\Enums\ProductBrands;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -77,10 +77,7 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => $this->faker->randomElement(array_map(
-                fn($case) => $case->value,
-                ProductTypes::cases()
-            )),
+            'product_type_id' => ProductType::all()->random()->id,
             'brand' => $this->faker->randomElement(
                 array_map(
                     fn($case) => $case->value,

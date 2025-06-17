@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\ProductType;
-use App\Enums\ProductBrands;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -13,22 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('service_checks', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(ProductType::class)
                 ->constrained()
                 ->cascadeOnDelete();
+            $table->string('name')->required();
+            $table->integer('order')->default(0);
             $table->enum(
-                'brand',
-                array_map(
-                    fn($case) => $case->value,
-                    ProductBrands::cases()
-                )
-            );
-            $table->string('model');
-            $table->string('description')->nullable();
-            $table->date('start_sell')->nullable();
-            $table->date('end_sell')->nullable();
+                'type',
+                ['radio', 'checkgroup', 'boolean', 'number', 'text']
+            )->default('radio');
             $table->timestamps();
         });
     }
@@ -38,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('service_checks');
     }
 };

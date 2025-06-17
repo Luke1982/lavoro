@@ -1,7 +1,9 @@
 <?php
 
-use App\Models\ProductType;
-use App\Enums\ProductBrands;
+use App\Models\Asset;
+use App\Models\ServiceJob;
+use App\Models\ServiceOrder;
+use App\Enums\ServiceJobOutcomes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -13,22 +15,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('service_jobs', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(ProductType::class)
+            $table->foreignIdFor(Asset::class)
+                ->constrained()
+                ->cascadeOnDelete();
+            $table->foreignIdFor(ServiceOrder::class)
                 ->constrained()
                 ->cascadeOnDelete();
             $table->enum(
-                'brand',
+                'outcome',
                 array_map(
                     fn($case) => $case->value,
-                    ProductBrands::cases()
+                    ServiceJobOutcomes::cases()
                 )
             );
-            $table->string('model');
+            $table->integer('days_temporary_approval')->default(0);
             $table->string('description')->nullable();
-            $table->date('start_sell')->nullable();
-            $table->date('end_sell')->nullable();
+            $table->date('completed_on')->nullable();
             $table->timestamps();
         });
     }
@@ -38,6 +42,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('service_jobs');
     }
 };
