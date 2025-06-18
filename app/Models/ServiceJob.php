@@ -24,6 +24,20 @@ class ServiceJob extends Model
         'completed_on',
     ];
 
+    protected static function booted()
+    {
+        static::created(function (ServiceJob $job) {
+            $checks = $job->asset
+                          ->product
+                          ->productType
+                          ->checks;
+
+            $checks->each(fn($check) => $job->checkInstances()->create([
+                'service_check_id' => $check->id,
+            ]));
+        });
+    }
+
     /**
      * The asset associated with the service job.
      */
