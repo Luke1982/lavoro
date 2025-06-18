@@ -38,12 +38,12 @@
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
                                                 <li v-for="item in navigation" :key="item.name">
-                                                    <a :href="item.href"
+                                                    <Link :href="item.href"
                                                         :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
-                                                        <component :is="item.icon" class="size-6 shrink-0"
-                                                            aria-hidden="true" />
-                                                        {{ item.name }}
-                                                    </a>
+                                                    <component :is="item.icon" class="size-6 shrink-0"
+                                                        aria-hidden="true" />
+                                                    {{ item.name }}
+                                                    </Link>
                                                 </li>
                                             </ul>
                                         </li>
@@ -84,11 +84,11 @@
                         <li>
                             <ul role="list" class="-mx-2 space-y-1">
                                 <li v-for="item in navigation" :key="item.name">
-                                    <a :href="item.href"
+                                    <Link :href="item.href"
                                         :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
-                                        <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                        {{ item.name }}
-                                    </a>
+                                    <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
+                                    {{ item.name }}
+                                    </Link>
                                 </li>
                             </ul>
                         </li>
@@ -137,7 +137,7 @@
 
         <main class="py-10 lg:pl-72">
             <div class="px-4 sm:px-6 lg:px-8">
-                <!-- Your content -->
+                <slot></slot>
             </div>
         </main>
     </div>
@@ -158,9 +158,10 @@ import {
     UsersIcon,
     XMarkIcon,
 } from '@heroicons/vue/24/outline'
+import { Link } from '@inertiajs/vue3'
 
 const navigation = [
-    { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
+    { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
     { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
     { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
     { name: 'Product types', href: '/products', icon: Square3Stack3DIcon, current: false },
