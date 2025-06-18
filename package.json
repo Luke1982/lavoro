@@ -8,6 +8,7 @@
         "fix:eslint": "eslint --ext .js,.vue --fix resources/js --fix"
     },
     "devDependencies": {
+        "@tailwindcss/forms": "^0.5.10",
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-vue": "^5.2.4",
         "axios": "^1.8.2",
