@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
@@ -12,6 +13,7 @@ Route::get('/', function () {
 });
 Route::resource('customers', CustomerController::class)
     ->only(['index', 'show']);
+Route::resource('brands', BrandController::class);
 Route::resource('products', ProductController::class);
 Route::resource('assets', AssetController::class);
 Route::resource('tickets', TicketController::class);

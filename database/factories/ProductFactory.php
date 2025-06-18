@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Brand;
 use App\Models\ProductType;
 use App\Enums\ProductBrands;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -78,12 +79,7 @@ class ProductFactory extends Factory
     {
         return [
             'product_type_id' => ProductType::all()->random()->id,
-            'brand' => $this->faker->randomElement(
-                array_map(
-                    fn($case) => $case->value,
-                    ProductBrands::cases()
-                )
-            ),
+            'brand_id' => Brand::pluck('id')->random(),
             'model' => $this->faker->randomElement($this->fake_models),
             'description' => $this->faker->sentence(),
             'start_sell' => $this->faker->dateTimeBetween('-1 year', '+1 year'),

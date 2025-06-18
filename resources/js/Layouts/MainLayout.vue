@@ -151,6 +151,7 @@ import {
     CalendarIcon,
     CheckIcon,
     ExclamationCircleIcon,
+    FingerPrintIcon,
     HomeIcon,
     PuzzlePieceIcon,
     Square3Stack3DIcon,
@@ -161,6 +162,7 @@ import {
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
     { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
+    { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
     { name: 'Product types', href: '/products', icon: Square3Stack3DIcon, current: false },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },

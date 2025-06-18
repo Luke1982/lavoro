@@ -2,6 +2,7 @@
 
 use App\Models\ProductType;
 use App\Enums\ProductBrands;
+use App\Models\Brand;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -18,13 +19,9 @@ return new class extends Migration
             $table->foreignIdFor(ProductType::class)
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->enum(
-                'brand',
-                array_map(
-                    fn($case) => $case->value,
-                    ProductBrands::cases()
-                )
-            );
+            $table->foreignIdFor(Brand::class)
+                ->constrained()
+                ->cascadeOnDelete();
             $table->string('model');
             $table->string('description')->nullable();
             $table->date('start_sell')->nullable();
