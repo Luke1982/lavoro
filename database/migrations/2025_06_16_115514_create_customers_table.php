@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use App\Models\Customer;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -34,6 +35,8 @@ return new class extends Migration
             $table->string('chamber_of_commerce_number')->nullable();
             $table->string('contactname')->nullable();
             $table->string('location_code')->nullable();
+            $table->foreignIdFor(Customer::class, 'billing_customer_id')
+                ->nullable()->constrained('customers')->nullOnDelete();
             $table->timestamps();
         });
     }
