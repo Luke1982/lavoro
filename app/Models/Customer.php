@@ -33,4 +33,72 @@ class Customer extends Model
         'contactname',
         'location_code',
     ];
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
+    }
+
+    public function upcomingAssets()
+    {
+        return $this->hasMany(Asset::class)
+            ->where('next_service_date', '>=', now())
+            ->where('next_service_date', '<=', now()->addDays(30))
+            ->where('status', 'Actief')
+            ->orderBy('next_service_date');
+    }
+
+    public function tickets()
+    {
+        return $this->hasManyThrough(
+            Ticket::class,
+            Asset::class,
+            'customer_id',
+            'asset_id',
+            'id',
+            'id'
+        );
+    }
+
+    public function openTickets()
+    {
+        $relation = $this->hasManyThrough(
+            Ticket::class,
+            Asset::class,
+            'customer_id',
+            'asset_id',
+            'id',
+            'id'
+        );
+        $relation->getQuery()->where('tickets.status', 'Open');
+        return $relation;
+    }
+
+    public function pendingTickets()
+    {
+        $relation = $this->hasManyThrough(
+            Ticket::class,
+            Asset::class,
+            'customer_id',
+            'asset_id',
+            'id',
+            'id'
+        );
+        $relation->getQuery()->where('tickets.status', 'In behandeling');
+        return $relation;
+    }
+
+    public function closedTickets()
+    {
+        $relation = $this->hasManyThrough(
+            Ticket::class,
+            Asset::class,
+            'customer_id',
+            'asset_id',
+            'id',
+            'id'
+        );
+        $relation->getQuery()->where('tickets.status', 'Gesloten');
+        return $relation;
+    }
 }
