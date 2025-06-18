@@ -9,7 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ServiceCheckController;
 
 Route::get('/', function () {
-    return inertia('Index/Index');
+    return inertia('Index/DashBoard');
 });
 Route::resource('customers', CustomerController::class)
     ->only(['index', 'show']);
