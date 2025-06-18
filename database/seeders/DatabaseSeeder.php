@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Models\Asset;
 use App\Models\Ticket;
 use App\Models\Product;
+use App\Models\ServiceJob;
 use App\Models\ServiceCheck;
+use App\Models\ServiceOrder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 
@@ -34,5 +36,9 @@ class DatabaseSeeder extends Seeder
                 \App\Models\ServiceCheckValue::factory(5)->make()->toArray()
             );
         });
+        ServiceOrder::factory()
+        ->count(10)
+        ->has(ServiceJob::factory()->count(rand(0, 5)))
+        ->create();
     }
 }

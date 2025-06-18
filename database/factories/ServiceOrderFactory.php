@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Customer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +18,10 @@ class ServiceOrderFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'customer_id' => Customer::pluck('id')->random(),
+            'closed_on' => $this->faker->optional(0.5)->dateTimeBetween('-1 year', 'now'),
+            'description' => $this->faker->optional(0.5)->paragraph(),
+            'signed_by' => $this->faker->optional(0.5)->name(),
         ];
     }
 }

@@ -9,4 +9,22 @@ class ServiceOrder extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceOrderFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'description',
+        'customer_id',
+        'closed_on',
+        'signed_by',
+        'signature_base64',
+    ];
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function serviceJobs()
+    {
+        return $this->hasMany(ServiceJob::class);
+    }
 }

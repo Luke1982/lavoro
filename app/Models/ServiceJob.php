@@ -23,4 +23,17 @@ class ServiceJob extends Model
         'description',
         'completed_on',
     ];
+
+    /**
+     * The asset associated with the service job.
+     */
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
+    }
+
+    public function checkInstances()
+    {
+        return $this->hasMany(ServiceCheckInstance::class)->orderBy('order');
+    }
 }

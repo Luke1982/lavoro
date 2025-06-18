@@ -18,4 +18,9 @@ class ProductType extends Model
     protected $fillable = [
         'name',
     ];
+
+    public function checks()
+    {
+        return $this->hasMany(ServiceCheck::class)->orderBy('order');
+    }
 }
