@@ -1,12 +1,4 @@
 <template>
-    <!--
-      This example requires updating your template:
-  
-      ```
-      <html class="h-full bg-white">
-      <body class="h-full">
-      ```
-    -->
     <div>
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
@@ -63,7 +55,7 @@
                                                         :class="[team.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
                                                         <span
                                                             class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                            team.initial }}</span>
+                                                                team.initial }}</span>
                                                         <span class="truncate">{{ team.name }}</span>
                                                     </a>
                                                 </li>
@@ -101,15 +93,15 @@
                             </ul>
                         </li>
                         <li>
-                            <div class="text-xs/6 font-semibold text-gray-400">Your teams</div>
+                            <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                             <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                <li v-for="team in teams" :key="team.name">
-                                    <a :href="team.href"
-                                        :class="[team.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+                                <li v-for="list in lists" :key="list.name">
+                                    <a :href="list.href"
+                                        :class="[list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
                                         <span
                                             class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                            team.initial }}</span>
-                                        <span class="truncate">{{ team.name }}</span>
+                                                list.initial }}</span>
+                                        <span>{{ list.name }}</span>
                                     </a>
                                 </li>
                             </ul>
@@ -157,26 +149,26 @@ import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessu
 import {
     Bars3Icon,
     CalendarIcon,
-    ChartPieIcon,
-    DocumentDuplicateIcon,
-    FolderIcon,
+    CheckIcon,
+    ExclamationCircleIcon,
     HomeIcon,
+    PuzzlePieceIcon,
+    Square3Stack3DIcon,
     UsersIcon,
     XMarkIcon,
 } from '@heroicons/vue/24/outline'
 
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
-    { name: 'Team', href: '#', icon: UsersIcon, current: false },
-    { name: 'Projects', href: '#', icon: FolderIcon, current: false },
-    { name: 'Calendar', href: '#', icon: CalendarIcon, current: false },
-    { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
-    { name: 'Reports', href: '#', icon: ChartPieIcon, current: false },
+    { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
+    { name: 'Product types', href: '/products', icon: Square3Stack3DIcon, current: false },
+    { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
+    { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
+    { name: 'Keurpunten', href: '/servicechecks', icon: CheckIcon, current: false },
+    { name: 'Agenda', href: '/events', icon: CalendarIcon, current: false },
 ]
-const teams = [
-    { id: 1, name: 'Heroicons', href: '#', initial: 'H', current: false },
-    { id: 2, name: 'Tailwind Labs', href: '#', initial: 'T', current: false },
-    { id: 3, name: 'Workcation', href: '#', initial: 'W', current: false },
+const lists = [
+    { id: 1, name: 'Aankomende keuringen en storingen', href: '/workload/list', initial: 'A', current: false },
 ]
 
 const sidebarOpen = ref(false)
