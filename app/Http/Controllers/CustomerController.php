@@ -21,8 +21,21 @@ class CustomerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Customer $customer)
     {
-        //
+        $customer->load([
+            'upcomingAssets.product.brand',
+            'upcomingAssets.product.productType',
+            'upcomingAssets.tickets',
+            'assets.product.brand',
+            'assets.product.productType',
+            'assets.tickets',
+            'openTickets',
+            'pendingTickets',
+            'closedTickets'
+        ]);
+        return inertia('Customers/ShowPage', [
+            'customer' => $customer,
+        ]);
     }
 }
