@@ -38,7 +38,7 @@
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
                                                 <li v-for="item in navigation" :key="item.name">
-                                                    <Link :href="item.href"
+                                                    <Link :href="item.href" @click="updateCurrent(item)"
                                                         :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
                                                     <component :is="item.icon" class="size-6 shrink-0"
                                                         aria-hidden="true" />
@@ -84,7 +84,7 @@
                         <li>
                             <ul role="list" class="-mx-2 space-y-1">
                                 <li v-for="item in navigation" :key="item.name">
-                                    <Link :href="item.href"
+                                    <Link :href="item.href" @click="updateCurrent(item)"
                                         :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
                                     <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
                                     {{ item.name }}
@@ -173,6 +173,12 @@ const navigation = [
 const lists = [
     { id: 1, name: 'Aankomende keuringen en storingen', href: '/workload/list', initial: 'A', current: false },
 ]
+
+const updateCurrent = (item) => {
+    navigation.forEach(navItem => {
+        navItem.current = (navItem.name === item.name)
+    })
+}
 
 const sidebarOpen = ref(false)
 </script>
