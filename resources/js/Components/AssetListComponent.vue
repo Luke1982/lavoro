@@ -32,24 +32,30 @@
                             <svg class="size-1.5 fill-red-500" viewBox="0 0 6 6" aria-hidden="true">
                                 <circle cx="3" cy="3" r="3" />
                             </svg>
-                            {{ asset.open_tickets.length }} open storing<span
-                                v-if="asset.open_tickets.length > 1">en</span>
+                            <span>
+                                {{ asset.open_tickets.length }} open storing<span
+                                    v-if="asset.open_tickets.length > 1">en</span>
+                            </span>
                         </span>
                         <span v-if="asset.pending_tickets.length > 0"
                             :class="[asset.open_tickets.length > 0 ? 'ml-1' : '', 'inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-gray-200 ring-inset']">
                             <svg class="size-1.5 fill-yellow-500" viewBox="0 0 6 6" aria-hidden="true">
                                 <circle cx="3" cy="3" r="3" />
                             </svg>
-                            {{ asset.pending_tickets.length }} lopende storing<span
-                                v-if="asset.pending_tickets.length > 1">en</span>
+                            <span>
+                                {{ asset.pending_tickets.length }} lopende storing<span
+                                    v-if="asset.pending_tickets.length > 1">en</span>
+                            </span>
                         </span>
                         <span v-if="asset.closed_tickets.length > 0"
                             :class="[asset.open_tickets.length > 0 || asset.pending_tickets.length > 0 ? 'ml-1' : '', 'inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-gray-200 ring-inset']">
                             <svg class="size-1.5 fill-green-500" viewBox="0 0 6 6" aria-hidden="true">
                                 <circle cx="3" cy="3" r="3" />
                             </svg>
-                            {{ asset.closed_tickets.length }} gesloten storing<span
-                                v-if="asset.closed_tickets.length > 1">en</span>
+                            <span>
+                                {{ asset.closed_tickets.length }} gesloten storing<span
+                                    v-if="asset.closed_tickets.length > 1">en</span>
+                            </span>
                         </span>
                     </div>
                 </div>
