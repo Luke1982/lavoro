@@ -1,0 +1,82 @@
+<template>
+    <div>
+        <label :for="id" class="block text-sm font-medium leading-6 text-gray-900">{{ label }}</label>
+        <div class="relative mt-2 rounded-md">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400" aria-hidden="true" />
+            </div>
+            <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" :class="{
+                'block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
+                'block w-full rounded-md border-0 py-1.5 pr-10 text-red-900 ring-1 ring-inset ring-red-300 placeholder:text-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 border-red-500': hasError,
+                'pl-10': iconLeft,
+                'pl-2': !iconLeft
+            }" :aria-invalid="hasError" :aria-describedby="errorId" />
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <ExclamationCircleIcon v-if="hasError" class="h-5 w-5 text-red-500" aria-hidden="true" />
+            </div>
+        </div>
+        <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
+    </div>
+</template>
+
+<script setup>
+import ExclamationCircleIcon from '@heroicons/vue/20/solid/ExclamationCircleIcon';
+</script>
+
+<script>
+export default {
+    name: 'TextInput',
+    props: {
+        label: {
+            type: String,
+            required: true
+        },
+        modelValue: {
+            type: [String, Number],
+            required: true
+        },
+        errorMessage: {
+            type: String,
+            default: ''
+        },
+        hasError: {
+            type: Boolean,
+            default: false
+        },
+        type: {
+            type: String,
+            default: 'text'
+        },
+        name: {
+            type: String,
+            required: false
+        },
+        id: {
+            type: String,
+            required: false
+        },
+        autocomplete: {
+            type: String,
+            default: 'off'
+        },
+        errorId: {
+            type: String,
+            default: ''
+        },
+        iconLeft: {
+            type: [Object, Boolean, Function],
+            default: false
+        }
+    },
+    computed: {
+        internalValue: {
+            get() {
+                return this.modelValue;
+            },
+            set(value) {
+                this.$emit('update:modelValue', value);
+            }
+        }
+    }
+};
+</script>
