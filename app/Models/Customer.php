@@ -36,7 +36,7 @@ class Customer extends Model
 
     public function assets()
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(Asset::class)->orderBy('next_service_date');
     }
 
     public function upcomingAssets()
@@ -44,6 +44,14 @@ class Customer extends Model
         return $this->hasMany(Asset::class)
             ->where('next_service_date', '>=', now())
             ->where('next_service_date', '<=', now()->addDays(30))
+            ->where('status', 'Actief')
+            ->orderBy('next_service_date');
+    }
+
+    public function nonUpcomingAssets()
+    {
+        return $this->hasMany(Asset::class)
+            ->where('next_service_date', '>', now()->addDays(30))
             ->where('status', 'Actief')
             ->orderBy('next_service_date');
     }

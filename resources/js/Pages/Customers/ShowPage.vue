@@ -10,11 +10,11 @@
                         <div class="flex text-sm text-gray-500 gap-x-2">
                             <a target="_blank" class="underline" v-if="customer.website" :href="customer.website">{{
                                 customer.website
-                                }}</a>
+                            }}</a>
                             <span v-if="customer.website && customer.email">&bull;</span>
                             <a class="underline" :href="`mailto:${customer.email}`" v-if="customer.email">{{
                                 customer.email
-                                }}</a>
+                            }}</a>
                         </div>
                     </div>
                 </div>
@@ -30,15 +30,23 @@
                         <h3 class="text-xs font-bold mb-2">Postadres</h3>
                         <span class="text-sm text-gray-800">{{ customer.postal_address }}<br>{{
                             customer.postal_postal_code
-                            }}<span v-if="customer.postal_city">,</span> {{
+                        }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city
                             }}</span>
                     </div>
                 </div>
             </BoxComponent>
             <BoxComponent class="mt-6">
-                <h2 class="font-semibold mb-4 text-xl">Apparaten die binnen 30 dagen verlopen</h2>
-                <AssetListComponent :assets="customer.upcoming_assets" />
+                <div class="flex mb-4">
+                    <BellAlertIcon class="size-6 flex-none text-red-500 mr-2" />
+                    <h2 class="font-regular text-xl">Apparaten die binnen 30 dagen verlopen</h2>
+                </div>
+                <AssetListComponent :assetGroups="upcomingAssetsByType" />
+                <div class="flex mb-4">
+                    <BellSnoozeIcon class="size-6 flex-none text-yellow-500 mr-2" />
+                    <h2 class="font-regular text-xl">Apparaten die na 30 dagen verlopen</h2>
+                </div>
+                <AssetListComponent :assetGroups="nonUpcomingAssetsByType" />
             </BoxComponent>
         </template>
 
@@ -57,12 +65,20 @@
 import '@/Layouts/TwoThirdsOneThird.vue';
 import '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
+import { BellAlertIcon, BellSnoozeIcon, BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 
 defineProps({
     customer: {
+        type: Object,
+        required: true,
+    },
+    upcomingAssetsByType: {
+        type: Object,
+        required: true,
+    },
+    nonUpcomingAssetsByType: {
         type: Object,
         required: true,
     },

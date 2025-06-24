@@ -29,17 +29,23 @@ class CustomerController extends Controller
             'upcomingAssets.openTickets',
             'upcomingAssets.pendingTickets',
             'upcomingAssets.closedTickets',
-            'assets.product.brand',
-            'assets.product.productType',
-            'assets.openTickets',
-            'assets.pendingTickets',
-            'assets.closedTickets',
+            'nonUpcomingAssets.product.brand',
+            'nonUpcomingAssets.product.productType',
+            'nonUpcomingAssets.openTickets',
+            'nonUpcomingAssets.pendingTickets',
+            'nonUpcomingAssets.closedTickets',
             'openTickets',
             'pendingTickets',
             'closedTickets'
         ]);
+
+        $upcomingByType    = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
+        $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
+
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
+            'upcomingAssetsByType' => $upcomingByType,
+            'nonUpcomingAssetsByType' => $nonUpcomingByType,
         ]);
     }
 }
