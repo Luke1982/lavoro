@@ -13,7 +13,7 @@ Route::get('/', function () {
 });
 Route::resource('customers', CustomerController::class)
     ->only(['index', 'show']);
-Route::resource('brands', BrandController::class);
+Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
 Route::resource('products', ProductController::class);
 Route::resource('assets', AssetController::class);
 Route::resource('tickets', TicketController::class);
