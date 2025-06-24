@@ -32,4 +32,19 @@ class Asset extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    public function openTickets()
+    {
+        return $this->hasMany(Ticket::class)->where('status', 'Open');
+    }
+
+    public function pendingTickets()
+    {
+        return $this->hasMany(Ticket::class)->where('status', 'In behandeling');
+    }
+
+    public function closedTickets()
+    {
+        return $this->hasMany(Ticket::class)->where('status', 'Gesloten');
+    }
 }

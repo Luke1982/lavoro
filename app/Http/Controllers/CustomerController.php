@@ -26,10 +26,14 @@ class CustomerController extends Controller
         $customer->load([
             'upcomingAssets.product.brand',
             'upcomingAssets.product.productType',
-            'upcomingAssets.tickets',
+            'upcomingAssets.openTickets',
+            'upcomingAssets.pendingTickets',
+            'upcomingAssets.closedTickets',
             'assets.product.brand',
             'assets.product.productType',
-            'assets.tickets',
+            'assets.openTickets',
+            'assets.pendingTickets',
+            'assets.closedTickets',
             'openTickets',
             'pendingTickets',
             'closedTickets'
