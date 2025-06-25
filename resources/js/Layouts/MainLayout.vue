@@ -164,7 +164,7 @@ const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
     { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
     { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
-    { name: 'Product types', href: '/products', icon: Square3Stack3DIcon, current: false },
+    { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
     { name: 'Keurpunten', href: '/servicechecks', icon: CheckIcon, current: false },
