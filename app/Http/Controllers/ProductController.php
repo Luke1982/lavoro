@@ -2,63 +2,113 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brand;
+use App\Models\Product;
+use App\Models\ProductType;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductStoreUpdateRequest;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $products = Product::query();
+
+        if ($request->has('search')) {
+            $products = self::getByTerm($request->search);
+        }
+
+        return inertia(
+            'Products/IndexPage',
+            [
+                'products'     => $products
+                    ->with(['brand', 'productType'])
+                    ->orderBy('model')
+                    ->paginate(20),
+                'search'       => $request->search,
+                'brands'       => Brand::all(),
+                'productTypes' => ProductType::all(),
+            ]
+        );
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Build a query filtering by the given search terms.
      */
-    public function create()
+    private static function getByTerm($term)
     {
-        //
+        $query = Product::with(['brand', 'productType']);
+
+        $words = preg_split('/\s+/', trim($term));
+
+        foreach ($words as $word) {
+            $query->where(function ($q) use ($word) {
+                $q->where('model', 'like', '%' . $word . '%')
+                  ->orWhereHas('brand', function ($qb) use ($word) {
+                      $qb->where('name', 'like', '%' . $word . '%');
+                  })
+                  ->orWhereHas('productType', function ($qb) use ($word) {
+                      $qb->where('name', 'like', '%' . $word . '%');
+                  });
+            });
+        }
+
+        return $query;
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ProductStoreUpdateRequest $request)
     {
-        //
-    }
+        $product = Product::create([
+            'product_type_id' => $request->product_type_id,
+            'brand_id'        => $request->brand_id,
+            'model'           => $request->model,
+            'description'     => $request->description,
+            'start_sell'      => $request->start_sell,
+            'end_sell'        => $request->end_sell,
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+        return redirect()
+            ->route('products.index')
+            ->with('success', 'Product aangemaakt.')
+            ->with('extra', $product->load(['brand', 'productType']));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ProductStoreUpdateRequest $request, Product $product)
     {
-        //
+        $product->update([
+            'product_type_id' => $request->product_type_id,
+            'brand_id'        => $request->brand_id,
+            'model'           => $request->model,
+            'description'     => $request->description,
+            'start_sell'      => $request->start_sell,
+            'end_sell'        => $request->end_sell,
+        ]);
+
+        return redirect()
+            ->route('products.index')
+            ->with('success', 'Product bijgewerkt.')
+            ->with('extra', $product->load(['brand', 'productType']));
+        ;
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Product $product)
     {
-        //
+        $product->delete();
+
+        return redirect()
+            ->route('products.index')
+            ->with('success', 'Product verwijderd.');
     }
 }
