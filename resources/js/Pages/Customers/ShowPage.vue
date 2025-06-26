@@ -10,11 +10,11 @@
                         <div class="flex text-sm text-gray-500 gap-x-2">
                             <a target="_blank" class="underline" v-if="customer.website" :href="customer.website">{{
                                 customer.website
-                            }}</a>
+                                }}</a>
                             <span v-if="customer.website && customer.email">&bull;</span>
                             <a class="underline" :href="`mailto:${customer.email}`" v-if="customer.email">{{
                                 customer.email
-                            }}</a>
+                                }}</a>
                         </div>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                         <h3 class="text-xs font-bold mb-2">Postadres</h3>
                         <span class="text-sm text-gray-800">{{ customer.postal_address }}<br>{{
                             customer.postal_postal_code
-                        }}<span v-if="customer.postal_city">,</span> {{
+                            }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city
                             }}</span>
                     </div>

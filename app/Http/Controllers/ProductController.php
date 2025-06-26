@@ -59,6 +59,16 @@ class ProductController extends Controller
         return $query;
     }
 
+    public function show(Product $product)
+    {
+        return inertia(
+            'Products/ShowPage',
+            [
+                'product' => $product->load(['brand', 'productType']),
+            ]
+        );
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -94,7 +104,7 @@ class ProductController extends Controller
         ]);
 
         return redirect()
-            ->route('products.index')
+            ->route($request->origin === 'showPage' ? 'products.show' : 'products.index', $product->id)
             ->with('success', 'Product bijgewerkt.')
             ->with('extra', $product->load(['brand', 'productType']));
         ;

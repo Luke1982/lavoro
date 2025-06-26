@@ -16,6 +16,7 @@ use App\Models\Product;
  * @property string|null $description
  * @property string|null $start_sell
  * @property string|null $end_sell
+ * @property string|null $origin
  */
 class ProductStoreUpdateRequest extends FormRequest
 {
@@ -57,6 +58,10 @@ class ProductStoreUpdateRequest extends FormRequest
                         $fail('Er bestaat al een product met deze combinatie van merk, producttype en model dat valt binnen de opgegeven verkoopdatums.');
                     }
                 },
+            ],
+            'origin'       => [
+                'nullable',
+                'string',
             ],
         ];
     }
