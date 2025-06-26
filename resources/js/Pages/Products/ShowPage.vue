@@ -73,11 +73,7 @@ const form = useForm({
 
 watch(editing, (newValue) => {
     if (!newValue) {
-        form.patch(`/products/${props.product.id}`, {
-            onSuccess: () => {
-                // notification
-            }
-        });
+        form.patch(`/products/${props.product.id}`);
     }
 });
 
