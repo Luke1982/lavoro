@@ -39,8 +39,8 @@
             </BoxComponent>
         </template>
         <template #sidebar>
-            <h2 class="text-xl font-semibold mb-4">Related Products</h2>
-            <p>List of related products can go here.</p>
+            <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
+                imageable-type="\App\Models\Product" />
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -48,6 +48,7 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
+import ImageUploadComponent from '@/Components/UI/ImageUploadComponent.vue';
 import { CubeIcon, PencilSquareIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
