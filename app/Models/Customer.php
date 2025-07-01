@@ -32,6 +32,7 @@ class Customer extends Model
         'chamber_of_commerce_number',
         'contactname',
         'location_code',
+        'billing_customer_id',
     ];
 
     public function assets()

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -42,10 +43,32 @@ class CustomerController extends Controller
         $upcomingByType    = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
         $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
 
+        $allCustomers = Customer::select(
+            'id',
+            DB::raw("CONCAT_WS(' – ', name, city) as name")
+        )
+        ->orderBy('name')
+        ->get();
+
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
             'upcomingAssetsByType' => $upcomingByType,
             'nonUpcomingAssetsByType' => $nonUpcomingByType,
+            'allCustomers' => $allCustomers,
         ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Customer $customer)
+    {
+        $request->validate([
+            'billing_customer_id' => 'required|exists:customers,id',
+        ]);
+
+        $customer->update($request->only(['billing_customer_id']));
+
+        return redirect()->route('customers.show', $customer)->with('success', 'Facturatieklant ingesteld.');
     }
 }
