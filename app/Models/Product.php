@@ -45,4 +45,9 @@ class Product extends Model
         return $this->morphToMany(Image::class, 'imageable')
             ->withTimestamps();
     }
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
+    }
 }

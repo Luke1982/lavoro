@@ -64,7 +64,19 @@ class ProductController extends Controller
         return inertia(
             'Products/ShowPage',
             [
-                'product' => $product->load(['brand', 'productType', 'images']),
+                'product' => $product->load(
+                    [
+                        'brand',
+                        'productType',
+                        'images',
+                        'assets.customer',
+                        'assets.openTickets',
+                        'assets.pendingTickets',
+                        'assets.closedTickets',
+                        'assets.product.productType',
+                        'assets.product.brand',
+                    ]
+                ),
             ]
         );
     }

@@ -36,6 +36,11 @@
                     <p class="text-gray-600" v-if="!editing">{{ form.description }}</p>
                     <textarea v-if="editing" v-model="form.description" class="w-full p-2 border rounded"></textarea>
                 </div>
+                <div class="flex items-center py-3 border-t border-gray-200 mt-5">
+                    <PuzzlePieceIcon class="size-6 text-gray-500" />
+                    <h3 class="text-sm font-medium ml-2">Activa</h3>
+                </div>
+                <AssetListComponent :assets="product.assets" />
             </BoxComponent>
         </template>
         <template #sidebar>
@@ -49,9 +54,10 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
-import { CubeIcon, PencilSquareIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import AssetListComponent from '@/Components/AssetListComponent.vue';
 
 const props = defineProps({
     product: {

@@ -7,8 +7,14 @@
             <div
                 class="flex flex-1 items-start justify-between truncate rounded-r-md border-t border-r border-b border-gray-200 bg-white">
                 <div class="flex-1 truncate px-4 py-2 text-sm">
-                    <Link :href="`/assets/${asset.id}`" class="font-medium text-gray-900 hover:text-gray-600">{{
-                        asset.product.brand.name }} {{ asset.product.model }}</Link>
+                    <div class="flex flex-col">
+                        <Link :href="`/assets/${asset.id}`"
+                            class="not-odd:font-medium text-gray-900 hover:text-gray-600">{{
+                                asset.product.brand.name }} {{ asset.product.model }}</Link>
+                        <Link :href="`/customers/${asset.customer.id}`" v-if="asset.customer" class="text-gray-500">
+                        {{ asset.customer.name }}
+                        </Link>
+                    </div>
                     <div class="flex gap-x-4 mt-2">
                         <div class="flex items-center">
                             <CalendarDaysIcon class="h-5 w-5 text-gray-800 mr-1" title="Verloopdatum" />
