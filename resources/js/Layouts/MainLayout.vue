@@ -161,7 +161,7 @@ import {
     XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { Link } from '@inertiajs/vue3'
-import GlobalNotification from '@/Components/UI/GlobalNotification.vue'
+import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
