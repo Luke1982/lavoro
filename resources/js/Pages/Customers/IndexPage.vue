@@ -1,7 +1,8 @@
 <template>
     <ul role="list" class="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
-        <li v-for="customer in customers" :key="customer.id" class="overflow-hidden rounded-xl border border-gray-200">
-            <div class="flex items-center gap-x-4 border-b border-gray-900/5 bg-gray-50 p-6">
+        <li v-for="customer in customers" :key="customer.id"
+            class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div class="flex items-center gap-x-4 border-b border-gray-900/5 p-6">
                 <BuildingOfficeIcon
                     class="size-12 flex-none rounded-lg bg-white object-cover ring-1 ring-gray-900/10 p-2" />
                 <Link :href="`/customers/${customer.id}`" class="flex flex-col">
