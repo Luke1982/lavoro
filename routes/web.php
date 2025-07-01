@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
@@ -20,3 +21,5 @@ Route::resource('products', ProductController::class);
 Route::resource('assets', AssetController::class);
 Route::resource('tickets', TicketController::class);
 Route::resource('servicechecks', ServiceCheckController::class);
+Route::resource('images', ImageController::class)->except(['update']);
+Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
