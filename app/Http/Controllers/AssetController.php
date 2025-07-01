@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
 use Illuminate\Http\Request;
 
 class AssetController extends Controller
@@ -11,7 +12,18 @@ class AssetController extends Controller
      */
     public function index()
     {
-        //
+        return inertia('Assets/IndexPage', [
+            'assets' => Asset::with(
+                [
+                'product.brand',
+                'product.images',
+                'product.productType',
+                'customer'
+                ]
+            )->orderBy('next_service_date', 'ASC')
+             ->paginate(20)
+             ->appends(request()->all()),
+        ]);
     }
 
     /**
