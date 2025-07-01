@@ -48,7 +48,7 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import ImageUploadComponent from '@/Components/UI/ImageUploadComponent.vue';
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import { CubeIcon, PencilSquareIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
