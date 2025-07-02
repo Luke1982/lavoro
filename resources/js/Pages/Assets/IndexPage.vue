@@ -1,10 +1,10 @@
 <template>
     <BoxComponent class="mb-3">
-        <div class="flex">
-            <nav class="flex items-center justify-between px-4 pb-2 sm:px-0">
-                <div class="hidden md:flex space-x-1">
+        <div class="flex justify-between">
+            <nav class="flex justify-between px-4 pb-2 sm:px-0">
+                <div class="md:flex space-x-1">
                     <Link v-for="link in links" :key="link.url"
-                        :href="`${link.url}${searchTerm ? `&search=${searchTerm}` : ''}`"
+                        :href="`${link.url}${searchForm.search ? `&search=${searchForm.search}` : ''}`"
                         class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
                         :class="[link.active
                             ? 'border-indigo-500 text-indigo-600'
@@ -13,6 +13,15 @@
                     </Link>
                 </div>
             </nav>
+            <div class="relative flex-grow flex ml-4">
+                <TextInput v-model="searchForm.search" type="search" name="search" ref="searchInput"
+                    placeholder="Zoek op merk, model, soort of klant" class="w-full" :disabled="inAction"
+                    :iconLeft="inAction ? ArrowPathIcon : MagnifyingGlassIcon" :iconLeftProps="{
+                        class:
+                            (inAction ? 'animate-spin ' : '') +
+                            'h-5 w-5 text-gray-400'
+                    }" />
+            </div>
         </div>
     </BoxComponent>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
@@ -68,20 +77,58 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
-import { computed } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue';
+import debounce from 'lodash/debounce';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
-import { Link } from '@inertiajs/vue3';
+import { ArrowPathIcon, CalendarDateRangeIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import { Link, useForm } from '@inertiajs/vue3';
+import TextInput from '@/Components/UI/TextInput.vue';
 
 const props = defineProps({
     assets: {
         type: Object,
         required: true,
     },
+    initialSearch: { type: String, default: '' },
 });
 
-// const searchTerm = computed(() => usePage().props.value.search || '');
+const searchForm = useForm({
+    search: props.initialSearch,
+});
+
 const links = computed(() => props.assets.links);
+const inAction = ref(false)
+const searchInput = ref(null);
+
+const searchAssets = debounce(() => {
+    inAction.value = true
+    searchForm.get('/assets', { search: searchForm.search }, {
+        preserveScroll: true,
+        onStart: () => inAction.value = true,
+        onFinish: () => {
+            inAction.value = false
+            localStorage.removeItem('searchInitiated')
+            nextTick(() => {
+                searchInput.value.focus()
+            })
+        },
+    })
+}, 600)
+
+watch(() => searchForm.search, () => {
+    localStorage.setItem('searchInitiated', 'true')
+    searchAssets()
+})
+
+onMounted(() => {
+    if (localStorage.getItem('searchInitiated') === 'true') {
+        inAction.value = false
+        localStorage.removeItem('searchInitiated')
+        nextTick(() => {
+            searchInput.value?.focus()
+        })
+    }
+})
 
 function decodeEntities(str) {
     const txt = document.createElement('textarea')
