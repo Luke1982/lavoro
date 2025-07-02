@@ -1,16 +1,16 @@
 <template>
     <div>
         <label :for="id" class="block text-sm font-medium leading-6 text-gray-900">{{ label }}</label>
-        <div class="relative mt-2 rounded-md">
+        <div :class="[label === '' ? '' : 'mt-2', 'relative rounded-md']">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400" aria-hidden="true" />
+                <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400" aria-hidden="true" v-bind="iconLeftProps" />
             </div>
             <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" :class="{
                 'block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
                 'block w-full rounded-md border-0 py-1.5 pr-10 text-red-900 ring-1 ring-inset ring-red-300 placeholder:text-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 border-red-500': hasError,
                 'pl-10': iconLeft,
                 'pl-2': !iconLeft
-            }" :aria-invalid="hasError" :aria-describedby="errorId" />
+            }" :aria-invalid="hasError" :aria-describedby="errorId" ref="inputRef" :placeholder="placeholder" />
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <ExclamationCircleIcon v-if="hasError" class="h-5 w-5 text-red-500" aria-hidden="true" />
             </div>
@@ -21,6 +21,15 @@
 
 <script setup>
 import ExclamationCircleIcon from '@heroicons/vue/20/solid/ExclamationCircleIcon';
+
+import { ref } from 'vue'
+const inputRef = ref(null)
+
+defineExpose({
+    focus: () => {
+        inputRef.value?.focus()
+    }
+})
 </script>
 
 <script>
@@ -29,7 +38,8 @@ export default {
     props: {
         label: {
             type: String,
-            required: true
+            required: false,
+            default: ''
         },
         modelValue: {
             type: [String, Number],
@@ -66,6 +76,14 @@ export default {
         iconLeft: {
             type: [Object, Boolean, Function],
             default: false
+        },
+        iconLeftProps: {
+            type: Object,
+            default: () => ({})
+        },
+        placeholder: {
+            type: String,
+            default: ''
         }
     },
     computed: {
