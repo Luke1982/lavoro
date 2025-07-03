@@ -21,13 +21,15 @@
                             (inAction ? 'animate-spin ' : '') +
                             'h-5 w-5 text-gray-400'
                     }" />
+                <ComboBox class="ml-2" :options="statusOptions" v-model="selectedStatus"
+                    placeholder="Laat alleen status zien" />
             </div>
         </div>
     </BoxComponent>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <ul role="list"
             class="divide-y divide-gray-100 overflow-hidden bg-white shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
-            <li v-for="asset in props.assets.data" :key="asset.id"
+            <li v-for="asset in filteredAssets" :key="asset.id"
                 class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 sm:px-6">
                 <div class="flex min-w-0 gap-x-4">
                     <img class="size-12 flex-none rounded-full bg-gray-50"
@@ -83,6 +85,7 @@ import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { ArrowPathIcon, CalendarDateRangeIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import TextInput from '@/Components/UI/TextInput.vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
 
 const props = defineProps({
     assets: {
@@ -99,9 +102,25 @@ const searchForm = useForm({
 const links = computed(() => props.assets.links);
 const inAction = ref(false)
 const searchInput = ref(null);
+const selectedStatus = ref(Number(localStorage.getItem('selectedStatus')) || 1);
+const filteredAssets = computed(() => {
+    if (selectedStatus.value === 1) {
+        return props.assets.data;
+    }
+    return props.assets.data.filter(asset => {
+        return asset.status === (selectedStatus.value === 2 ? 'Actief' : 'Niet actief');
+    });
+});
+
+const statusOptions = [
+    { id: 1, name: 'Alle' },
+    { id: 2, name: 'Actief' },
+    { id: 3, name: 'Niet actief' },
+];
 
 const searchAssets = debounce(() => {
     inAction.value = true
+    localStorage.setItem('selectedStatus', selectedStatus.value)
     searchForm.get('/assets', { search: searchForm.search }, {
         preserveScroll: true,
         onStart: () => inAction.value = true,
