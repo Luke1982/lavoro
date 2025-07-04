@@ -47,4 +47,10 @@ class Asset extends Model
     {
         return $this->hasMany(Ticket::class)->where('status', 'Gesloten');
     }
+
+    public function images()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withTimestamps();
+    }
 }

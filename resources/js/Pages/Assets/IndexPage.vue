@@ -22,7 +22,8 @@
                             'h-5 w-5 text-gray-400'
                     }" />
                 <ComboBox class="ml-2" :options="statusOptions" v-model="selectedStatus"
-                    placeholder="Laat alleen status zien" />
+                    placeholder="Laat alleen status zien"
+                    @update:modelValue="val => { updateLocalStorageStatus(val) }" />
             </div>
         </div>
     </BoxComponent>
@@ -102,7 +103,7 @@ const searchForm = useForm({
 const links = computed(() => props.assets.links);
 const inAction = ref(false)
 const searchInput = ref(null);
-const selectedStatus = ref(Number(localStorage.getItem('selectedStatus')) || 1);
+const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const filteredAssets = computed(() => {
     if (selectedStatus.value === 1) {
         return props.assets.data;
@@ -120,7 +121,7 @@ const statusOptions = [
 
 const searchAssets = debounce(() => {
     inAction.value = true
-    localStorage.setItem('selectedStatus', selectedStatus.value)
+    localStorage.setItem('selectedAssetStatus', selectedStatus.value)
     searchForm.get('/assets', { search: searchForm.search }, {
         preserveScroll: true,
         onStart: () => inAction.value = true,
@@ -148,6 +149,10 @@ onMounted(() => {
         })
     }
 })
+
+function updateLocalStorageStatus(val) {
+    localStorage.setItem('selectedAssetStatus', val);
+}
 
 function decodeEntities(str) {
     const txt = document.createElement('textarea')

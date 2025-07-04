@@ -68,9 +68,18 @@ class AssetController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Asset $asset)
     {
-        //
+        return inertia('Assets/ShowPage', [
+            'asset' => $asset->load([
+                'images',
+                'tickets',
+                'product.brand',
+                'product.images',
+                'product.productType',
+                'customer',
+            ]),
+        ]);
     }
 
     /**
