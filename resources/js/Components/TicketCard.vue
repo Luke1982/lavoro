@@ -53,13 +53,13 @@ const getExclamationMarkClasses = (priority, status) => {
 const getWrapperClasses = status => {
     const lowerStatus = status.toLowerCase();
     if (lowerStatus === 'open') {
-        return 'bg-red-100 border-red-200 text-red-700';
+        return 'bg-red-50 border-red-200 text-red-700';
     } else if (lowerStatus === 'gesloten') {
-        return 'bg-green-100 border-green-200 text-green-700';
+        return 'bg-green-50 border-green-200 text-green-700';
     } else if (lowerStatus === 'in behandeling') {
-        return 'bg-yellow-100 border-yellow-200 text-yellow-700';
+        return 'bg-yellow-50 border-yellow-200 text-yellow-700';
     } else {
-        return 'bg-gray-100 border-gray-200 text-gray-700';
+        return 'bg-gray-50 border-gray-200 text-gray-700';
     }
 }
 </script>
