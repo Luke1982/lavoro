@@ -9,30 +9,73 @@
                 <div class="flex flex-wrap mt-4 gap-y-3">
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Merk en model</div>
-                        <div class="w-2/3">
-                            {{ asset.product.brand.name }} {{ asset.product.model }}
+                        <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-3']">
+                            <span v-if="!editing.product_id">{{ asset.product.brand.name }} {{ asset.product.model
+                            }}</span>
+                            <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
+                                @update:modelValue="updateAsset" />
+                            <PencilSquareIcon v-if="!editing.product_id"
+                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
+                                @click="edit('product_id')" />
                         </div>
                     </div>
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Serienummer</div>
-                        <div class="w-2/3">
-                            {{ asset.serial_number }}
+                        <div :class="[editing.serial_number ? '' : 'pr-5', 'w-2/3 relative']">
+                            <span v-if="!editing.serial_number">{{ asset.serial_number }} </span>
+                            <div class="flex" v-if="editing.serial_number">
+                                <TextInput v-model="form.serial_number" class="rounded-l" />
+                                <button @click="updateAsset"
+                                    class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-5 h-5"
+                                        fill="currentColor">
+                                        <path
+                                            d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <PencilSquareIcon v-if="!editing.serial_number"
+                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
+                                @click="edit('serial_number')" />
                         </div>
                     </div>
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Verloopdatum</div>
-                        <div class="w-2/3">
-                            {{ nlDate(asset.next_service_date) }}
+                        <div :class="[editing.next_service_date ? '' : 'pr-5', 'w-2/3 relative mr-3']">
+                            <span v-if="!editing.next_service_date">{{ nlDate(asset.next_service_date) }} </span>
+                            <div class="flex" v-if="editing.next_service_date">
+                                <input type="date" v-model="form.next_service_date"
+                                    class="rounded-md border-gray-300 border-1 p-2" />
+                                <button @click="updateAsset"
+                                    class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-5 h-5"
+                                        fill="currentColor">
+                                        <path
+                                            d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <PencilSquareIcon v-if="!editing.next_service_date"
+                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
+                                @click="edit('next_service_date')" />
                         </div>
                     </div>
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Status</div>
-                        <div class="w-2/3">
-                            <span v-if="asset.status === 'Actief'"
-                                class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                            <span v-else
-                                class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                                    asset.status }}</span>
+                        <div :class="[editing.status ? '' : 'pr-5', 'w-2/3 relative']">
+                            <div v-if="!editing.status">
+                                <span v-if="asset.status === 'Actief'"
+                                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                                <span v-else
+                                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                                        asset.status }}</span>
+                            </div>
+                            <ComboBox v-if="editing.status" :options="statusOptions"
+                                :initial-id="asset.status === 'Actief' ? 1 : 2"
+                                @update:modelValue="val => { form.status = statusOptions.find(status => status.id === Number(val)).name; updateAsset(); }" />
+                            <PencilSquareIcon v-if="!editing.status"
+                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
+                                @click="edit('status')" />
                         </div>
                     </div>
                     <div class="w-1/2 flex">
@@ -84,16 +127,61 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { CubeIcon, ExclamationCircleIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
-import { Link } from '@inertiajs/vue3';
+import { CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
+import { ref } from 'vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 
-defineProps({
+const editing = ref({
+    product: false,
+    serial_number: false,
+    next_service_date: false,
+    status: false,
+    customer: false,
+})
+
+const edit = (key) => {
+    for (const k in editing.value) {
+        editing.value[k] = false;
+    }
+    editing.value[key] = true;
+}
+
+const props = defineProps({
     asset: {
         type: Object,
         required: true,
     },
+    allProducts: {
+        type: Array,
+        required: true,
+    },
 });
+
+const statusOptions = [
+    { id: 1, name: 'Actief' },
+    { id: 2, name: 'Niet actief' },
+];
+
+const form = useForm({
+    product_id: props.asset.product.id,
+    serial_number: props.asset.serial_number,
+    next_service_date: props.asset.next_service_date,
+    status: props.asset.status,
+    customer_id: props.asset.customer.id,
+});
+
+const updateAsset = () => {
+    form.put(`/assets/${props.asset.id}`, {
+        onSuccess: () => {
+            for (const key in editing.value) {
+                editing.value[key] = false;
+            }
+        },
+    });
+};
 
 </script>

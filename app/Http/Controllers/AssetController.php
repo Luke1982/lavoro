@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class AssetController extends Controller
@@ -70,6 +72,17 @@ class AssetController extends Controller
      */
     public function show(Asset $asset)
     {
+        $all_products = Product::with(['brand', 'productType'])
+            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
+            ->orderBy('product_types.name', 'ASC')
+            ->select('products.*')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->brand->name . ' ' . $product->model . ' (' . $product->productType->name . ')',
+                ];
+            });
         return inertia('Assets/ShowPage', [
             'asset' => $asset->load([
                 'images',
@@ -79,6 +92,7 @@ class AssetController extends Controller
                 'product.productType',
                 'customer',
             ]),
+            'allProducts' => $all_products,
         ]);
     }
 
@@ -93,9 +107,12 @@ class AssetController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(AssetUpdateRequest $request, Asset $asset)
     {
-        //
+        $asset->update($request->validated());
+
+        return redirect()->route('assets.show', $asset->id)
+            ->with('success', 'Machine bijgewerkt.');
     }
 
     /**
