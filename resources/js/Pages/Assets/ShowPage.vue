@@ -89,10 +89,17 @@
                 </div>
             </BoxComponent>
             <BoxComponent class="mt-5">
-                <div class="flex">
-                    <ExclamationCircleIcon class="w-6 h-6 text-gray-500 mr-2" />
-                    <h1 class="text-l font-bold">Storingen</h1>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex">
+                        <ExclamationCircleIcon class="w-6 h-6 text-gray-500 mr-2" />
+                        <h1 class="text-l font-bold">Storingen</h1>
+                    </div>
+                    <button v-if="!openNewTicketForm" @click="openNewTicketForm = true"
+                        class="bg-emerald-600 rounded-md py-1.5 px-2 text-white hover:bg-emerald-700 cursor-pointer">
+                        Nieuwe storing
+                    </button>
                 </div>
+                <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
             <BoxComponent v-if="asset.servicejobs.length > 0" class="mt-5">
@@ -149,6 +156,7 @@ import { ref } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
+import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 
 const editing = ref({
     product: false,
@@ -157,6 +165,8 @@ const editing = ref({
     status: false,
     customer: false,
 })
+
+const openNewTicketForm = ref(false);
 
 const edit = (key) => {
     for (const k in editing.value) {

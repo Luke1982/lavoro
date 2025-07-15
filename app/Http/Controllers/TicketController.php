@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ticket;
 use Illuminate\Http\Request;
+use App\Http\Requests\TicketCreateRequest;
 
 class TicketController extends Controller
 {
@@ -25,9 +27,15 @@ class TicketController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TicketCreateRequest $request)
     {
-        //
+        $ticket = Ticket::create($request->validated());
+        return redirect()->back()->with([
+            'success' => 'Storing is aangemaakt.',
+            'extra' => [
+                'ticket' => $ticket,
+            ]
+        ]);
     }
 
     /**
