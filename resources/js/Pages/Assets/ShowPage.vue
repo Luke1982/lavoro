@@ -11,7 +11,7 @@
                         <div class="w-1/3 text-xs">Merk en model</div>
                         <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-3']">
                             <span v-if="!editing.product_id">{{ asset.product.brand.name }} {{ asset.product.model
-                            }}</span>
+                                }}</span>
                             <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
                                 @update:modelValue="updateAsset" />
                             <PencilSquareIcon v-if="!editing.product_id"
@@ -95,6 +95,20 @@
                 </div>
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
+            <BoxComponent v-if="asset.servicejobs.length > 0" class="mt-5">
+                <div class="flex">
+                    <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2" />
+                    <h1 class="text-l font-bold">Keuringen</h1>
+                </div>
+                <div class="grid-cols-5 grid mt-3 text-sm gap-4 font-bold">
+                    <div class="col-span-1">Uitkomst</div>
+                    <div class="col-span-1">Dagen tijdelijke goedkeur</div>
+                    <div class="col-span-1">Afgerond op</div>
+                    <div class="col-span-2">Omschrijving</div>
+                </div>
+                <ServiceJobRow v-for="servicejob in asset.servicejobs" :key="servicejob.id" :servicejob="servicejob"
+                    class="mt-4" />
+            </BoxComponent>
         </template>
 
         <template #sidebar>
@@ -127,13 +141,14 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
 import { ref } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
+import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 
 const editing = ref({
     product: false,

@@ -91,6 +91,7 @@ class AssetController extends Controller
                 'product.images',
                 'product.productType',
                 'customer',
+                'servicejobs',
             ]),
             'allProducts' => $all_products,
         ]);

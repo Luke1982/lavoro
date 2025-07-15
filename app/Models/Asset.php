@@ -53,4 +53,9 @@ class Asset extends Model
         return $this->morphToMany(Image::class, 'imageable')
             ->withTimestamps();
     }
+
+    public function servicejobs()
+    {
+        return $this->hasMany(ServiceJob::class);
+    }
 }
