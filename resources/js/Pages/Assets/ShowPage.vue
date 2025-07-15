@@ -11,7 +11,7 @@
                         <div class="w-1/3 text-xs">Merk en model</div>
                         <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-3']">
                             <span v-if="!editing.product_id">{{ asset.product.brand.name }} {{ asset.product.model
-                                }}</span>
+                            }}</span>
                             <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
                                 @update:modelValue="updateAsset" />
                             <PencilSquareIcon v-if="!editing.product_id"
@@ -95,7 +95,8 @@
                         <h1 class="text-l font-bold">Storingen</h1>
                     </div>
                     <button v-if="!openNewTicketForm" @click="openNewTicketForm = true"
-                        class="bg-emerald-600 rounded-md py-1.5 px-2 text-white hover:bg-emerald-700 cursor-pointer">
+                        class="bg-emerald-600 rounded-md py-1.5 px-2 text-white hover:bg-emerald-700 cursor-pointer text-sm">
+                        <PlusIcon class="w-5 h-5 inline-block mr-1" />
                         Nieuwe storing
                     </button>
                 </div>
@@ -148,7 +149,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
