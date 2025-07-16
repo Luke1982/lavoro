@@ -36,9 +36,7 @@
             </div>
             <div class="col-span-10 flex">
                 <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
-                <button @click="newServicejobForm.post(`/servicejobs`, {
-                    preserveScroll: true
-                })"
+                <button @click="addServiceJob"
                     class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                     Keuren
                 </button>
@@ -90,6 +88,13 @@ const newServicejobForm = useForm({
     asset_id: assetToCheck.value,
     outcome: 'Nog geen uitkomst',
 });
+
+const addServiceJob = () => {
+    newServicejobForm.asset_id = assetToCheck.value;
+    newServicejobForm.post(`/servicejobs`, {
+        preserveScroll: true
+    })
+};
 
 const updateServiceOrder = () => {
     form.put(`/serviceorders/${props.serviceOrder.id}`, {
