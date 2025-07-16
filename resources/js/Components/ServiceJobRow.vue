@@ -1,11 +1,13 @@
 <template>
-    <div class="grid-cols-5 grid gap-4 text-sm">
-        <div :class="[getOutcomeColor(servicejob.outcome), 'col-span-1 rounded-full p-1 text-center ring-2']">
+    <div class="grid-cols-5 grid gap-4 text-sm odd:bg-gray-50 py-2">
+        <div
+            :class="[getOutcomeColor(servicejob.outcome), 'col-span-1 rounded-full p-1 text-center ring-2 items-center flex justify-center ml-2']">
             {{
                 servicejob.outcome }}
         </div>
         <div class="col-span-1">
-            {{ servicejob.outcome.toLowerCase() === 'tijdelijke goedkeur' ? servicejob.days_temporary_approval :
+            {{ servicejob.outcome.toLowerCase() === 'tijdelijke goedkeur' ? `${servicejob.days_temporary_approval}
+            dag(en) ` :
                 'n.v.t.' }}
         </div>
         <div class="col-span-1">
