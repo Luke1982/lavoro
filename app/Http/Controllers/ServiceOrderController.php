@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
 
@@ -29,7 +30,8 @@ class ServiceOrderController extends Controller
     public function store(Request $request)
     {
         ServiceOrder::create($request->validate([
-            'customer_id' => 'required|exists:customers,id']));
+            'customer_id' => 'required|exists:customers,id'
+        ]));
         return redirect()->back()->with('success', 'Werkbon succesvol aangemaakt.');
     }
 
@@ -39,7 +41,9 @@ class ServiceOrderController extends Controller
     public function show(string $id)
     {
         return inertia('ServiceOrders/ShowPage', [
-            'serviceOrder' => ServiceOrder::findOrFail($id),
+            'serviceOrder' => ServiceOrder::with([
+                'customer',
+            ])->findOrFail($id),
         ]);
     }
 
@@ -54,10 +58,12 @@ class ServiceOrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ServiceOrderUpdateRequest $request, ServiceOrder $serviceorder)
     {
-        //
+        $serviceorder->update($request->validated());
+        return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
     }
+
 
     /**
      * Remove the specified resource from storage.

@@ -17,8 +17,8 @@
                 <div class="flex justify-between gap-x-4 py-3">
                     <dt class="text-gray-500">Adres</dt>
                     <dd class="flex items-start gap-x-2">
-                        <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address + ' ' + customer.postal_code + ' ' + customer.city)}`"
-                            class="font-medium text-blue-600 underline" target="_blank">{{ customer.address }}, {{
+                        <a :href="mapsLinkFromCustomer(customer)" class="font-medium text-blue-600 underline"
+                            target="_blank">{{ customer.address }}, {{
                                 customer.postal_code }}</a>
                     </dd>
                 </div>
@@ -52,6 +52,7 @@
 <script setup>
 import { BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 import { Link } from '@inertiajs/vue3';
+import { mapsLinkFromCustomer } from '@/Utilities/Utilities';
 
 defineProps({
     customers: {
