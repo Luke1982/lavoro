@@ -5,7 +5,7 @@ export const ticketStatusses = [
 ];
 
 export const ticketPriorities = [
-    { id: "Hoog", name: "Hoog" },
-    { id: "Normaal", name: "Normaal" },
     { id: "Laag", name: "Laag" },
+    { id: "Normaal", name: "Normaal" },
+    { id: "Hoog", name: "Hoog" },
 ];

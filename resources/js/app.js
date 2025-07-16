@@ -1,6 +1,8 @@
 import { createApp, h } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
 import MainLayout from "./Layouts/MainLayout.vue";
+import FloatingVue from "floating-vue";
+import "floating-vue/dist/style.css";
 
 createInertiaApp({
     resolve: async (name) => {
@@ -14,6 +16,7 @@ createInertiaApp({
             render: () => h(App, props),
         })
             .use(plugin)
+            .use(FloatingVue)
             .mount(el);
     },
 });

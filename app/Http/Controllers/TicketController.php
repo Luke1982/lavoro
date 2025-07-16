@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use App\Http\Requests\TicketCreateRequest;
+use App\Http\Requests\TicketUpdateRequest;
 
 class TicketController extends Controller
 {
@@ -57,9 +58,23 @@ class TicketController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(TicketUpdateRequest $request, Ticket $ticket)
     {
-        //
+        $ticket->update($request->validated());
+        $message = 'Storing is bijgewerkt, de status is nu \'' . $request->status . '\' en de prioriteit is ' . '\'' . $request->priority . '\'.';
+
+        if ($request->status && strtolower($request->status) === 'gesloten') {
+            $ticket->update(['closed_on' => now()]);
+        } elseif ($request->status && strtolower($request->status) !== 'gesloten') {
+            $ticket->update(['closed_on' => null]);
+        }
+
+        return redirect()->back()->with([
+            'success' => $message,
+            'extra' => [
+                'ticket' => $ticket,
+            ]
+        ]);
     }
 
     /**
@@ -69,7 +84,7 @@ class TicketController extends Controller
     {
         $ticket->delete();
         return redirect()->back()->with([
-            'success' => 'Ticket is verwijderd.',
+            'success' => 'Storing is verwijderd.',
             'extra' => [
                 'ticket' => $ticket,
             ]
