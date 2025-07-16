@@ -3,7 +3,7 @@
         <Link :href="`/tickets/${ticket.id}`"
             :class="[getWrapperClasses(ticket.status), 'rounded-md p-2 border-2 block']">
         <div class="flex">
-            <div class="flex flex-col items-center justify-start mr-2 w-20 pb-4">
+            <div class="flex flex-col items-center justify-start mr-2 min-w-20 pb-4 text-center">
                 <ExclamationCircleIcon
                     :class="[getExclamationMarkClasses(ticket.priority, ticket.status), 'w-6 h-6']" />
                 <span :class="[getExclamationMarkClasses(ticket.priority, ticket.status), 'text-xs']">Prio {{
