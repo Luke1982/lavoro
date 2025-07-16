@@ -10,11 +10,11 @@
                         <div class="flex text-sm text-gray-500 gap-x-2">
                             <a target="_blank" class="underline" v-if="customer.website" :href="customer.website">{{
                                 customer.website
-                                }}</a>
+                            }}</a>
                             <span v-if="customer.website && customer.email">&bull;</span>
                             <a class="underline" :href="`mailto:${customer.email}`" v-if="customer.email">{{
                                 customer.email
-                                }}</a>
+                            }}</a>
                         </div>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                         <h3 class="text-xs font-bold mb-2">Postadres</h3>
                         <span class="text-sm text-gray-800">{{ customer.postal_address }}<br>{{
                             customer.postal_postal_code
-                            }}<span v-if="customer.postal_city">,</span> {{
+                        }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city
                             }}</span>
                     </div>
@@ -54,12 +54,19 @@
         </template>
 
         <template #sidebar>
-            <h2 class="text-xl font-semibold mb-2">Actions</h2>
-            <ul>
-                <li><a href="#" class="text-blue-500 hover:underline">Edit Customer</a></li>
-                <li><a href="#" class="text-blue-500 hover:underline">Delete Customer</a></li>
-                <li><a href="#" class="text-blue-500 hover:underline">View Orders</a></li>
-            </ul>
+            <BoxComponent>
+                <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
+                    <div class="flex">
+                        <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
+                        <h2 class="font-regular text-xl">Werkbonnen</h2>
+                    </div>
+                    <PlusCircleIcon class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                        @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
+                        v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
+                </div>
+                <ServiceOrderRow v-for="serviceorder in customer.service_orders" v-bind:key="serviceorder.id"
+                    :serviceorder="serviceorder" />
+            </BoxComponent>
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -68,11 +75,12 @@
 import '@/Layouts/TwoThirdsOneThird.vue';
 import '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BellAlertIcon, BellSnoozeIcon, BuildingOffice2Icon } from '@heroicons/vue/24/outline';
+import { BellAlertIcon, BellSnoozeIcon, BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import { useForm } from '@inertiajs/vue3';
+import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 
 const props = defineProps({
     customer: {
@@ -96,6 +104,10 @@ const props = defineProps({
 const form = useForm({
     ...props.customer,
     billing_customer_id: props.customer.billing_customer_id || null,
+});
+
+const newServiceOrderForm = useForm({
+    customer_id: props.customer.id,
 });
 
 const updateCustomer = () => {

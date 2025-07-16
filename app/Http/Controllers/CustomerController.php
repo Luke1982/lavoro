@@ -37,7 +37,8 @@ class CustomerController extends Controller
             'nonUpcomingAssets.closedTickets',
             'openTickets',
             'pendingTickets',
-            'closedTickets'
+            'closedTickets',
+            'serviceOrders.serviceJobs.asset.tickets',
         ]);
 
         $upcomingByType    = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();

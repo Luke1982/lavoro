@@ -110,4 +110,9 @@ class Customer extends Model
         $relation->getQuery()->where('tickets.status', 'Gesloten');
         return $relation;
     }
+
+    public function serviceOrders()
+    {
+        return $this->hasMany(ServiceOrder::class);
+    }
 }
