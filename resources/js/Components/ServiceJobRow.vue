@@ -30,14 +30,20 @@
         <div class="col-span-2">
             {{ servicejob.description }}
         </div>
-        <TrashIcon class="absolute top-2 right-2 size-5 text-gray-400 hover:text-red-600 cursor-pointer"
-            @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
+        <div class="absolute top-2 right-2 flex space-x-2">
+            <Link :href="`/servicejobs/${servicejob.id}`">
+            <ArrowRightCircleIcon class="size-5 text-blue-400 hover:text-blue-600 cursor-pointer"
+                :href="`/servicejobs/${servicejob.id}`" v-tooltip="'Voer deze keuring uit'" />
+            </Link>
+            <TrashIcon class="size-5 text-gray-400 hover:text-red-600 cursor-pointer" @click="deleteServiceJob"
+                v-tooltip="'Verwijder deze keuring'" />
+        </div>
 
     </div>
 </template>
 
 <script setup>
-import { TrashIcon } from '@heroicons/vue/24/outline';
+import { ArrowRightCircleIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 

@@ -36,9 +36,11 @@ class ServiceJobController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(ServiceJob $servicejob)
     {
-        //
+        return inertia('ServiceJob/ShowPage', [
+            'servicejob' => $servicejob,
+        ]);
     }
 
     /**
