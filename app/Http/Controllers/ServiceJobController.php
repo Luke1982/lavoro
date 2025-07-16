@@ -60,8 +60,9 @@ class ServiceJobController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(ServiceJob $servicejob)
     {
-        //
+        $servicejob->delete();
+        return redirect()->back()->with('success', 'Keuring succesvol verwijderd.');
     }
 }

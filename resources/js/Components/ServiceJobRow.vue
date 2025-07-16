@@ -1,5 +1,5 @@
 <template>
-    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 py-2`">
+    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 py-2 relative`">
         <div class="col-span-1" v-if="asset">
             <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
                 v-tooltip="'Met deze link ga je naar het algemene product'">
@@ -30,12 +30,18 @@
         <div class="col-span-2">
             {{ servicejob.description }}
         </div>
+        <TrashIcon class="absolute top-2 right-2 size-5 text-gray-400 hover:text-red-600 cursor-pointer"
+            @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
+
     </div>
 </template>
 
 <script setup>
+import { TrashIcon } from '@heroicons/vue/24/outline';
 import { Link } from '@inertiajs/vue3';
-defineProps({
+import { useForm } from '@inertiajs/vue3';
+
+const props = defineProps({
     servicejob: {
         type: Object,
         required: true,
@@ -46,6 +52,18 @@ defineProps({
         default: null,
     },
 });
+
+const form = useForm({
+    id: props.servicejob.id,
+})
+
+const deleteServiceJob = () => {
+    if (confirm('Weet je zeker dat je deze keuring wilt verwijderen?')) {
+        form.delete('/servicejobs/' + props.servicejob.id, {
+            preserveScroll: true,
+        });
+    }
+};
 
 const getOutcomeColor = (outcome) => {
     switch (outcome.toLowerCase()) {
