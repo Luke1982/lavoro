@@ -5,3 +5,9 @@ export const nlDate = (date) => {
         day: "2-digit",
     });
 };
+
+export const mapsLinkFromCustomer = (customer) => {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        customer.address + " " + customer.postal_code + " " + customer.city
+    )}`;
+};
