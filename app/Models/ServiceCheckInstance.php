@@ -9,4 +9,16 @@ class ServiceCheckInstance extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceCheckInstanceFactory> */
     use HasFactory;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
+    protected $fillable = [
+        'service_check_id',
+        'service_job_id',
+        'service_check_value_id',
+        'description',
+    ];
 }

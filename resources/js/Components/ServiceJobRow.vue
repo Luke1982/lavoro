@@ -1,5 +1,15 @@
 <template>
-    <div class="grid-cols-5 grid gap-4 text-sm odd:bg-gray-50 py-2">
+    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 py-2`">
+        <div class="col-span-1" v-if="asset">
+            <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
+                v-tooltip="'Met deze link ga je naar het algemene product'">
+            {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
+            </Link>
+            met serienummer
+            <Link :href="`/assets/${servicejob.asset.id}`" class="text-blue-600 hover:underline"
+                v-tooltip="'Met deze link ga je naar de individuele machine'">{{
+                    servicejob.asset.serial_number }}</Link>
+        </div>
         <div
             :class="[getOutcomeColor(servicejob.outcome), 'col-span-1 rounded-full p-1 text-center ring-2 items-center flex justify-center ml-2']">
             {{
@@ -24,10 +34,16 @@
 </template>
 
 <script setup>
+import { Link } from '@inertiajs/vue3';
 defineProps({
     servicejob: {
         type: Object,
         required: true,
+    },
+    asset: {
+        type: Object,
+        required: false,
+        default: null,
     },
 });
 

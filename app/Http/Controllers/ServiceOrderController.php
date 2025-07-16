@@ -42,7 +42,8 @@ class ServiceOrderController extends Controller
     {
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => ServiceOrder::with([
-                'customer',
+                'customer.assets.product.brand',
+                'servicejobs.asset.product.brand',
             ])->findOrFail($id),
         ]);
     }
