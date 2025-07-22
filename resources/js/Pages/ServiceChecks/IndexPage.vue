@@ -156,8 +156,21 @@
                         </tr>
                         <tr v-if="item.openValue" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4 py-">
+                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
+                                    }}, of voeg een
+                                    nieuwe toe
+                                </h5>
                                 <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
                                     :scValue="value" class="w-full mb-2" @delete="id => removeSCValue(item.id, id)" />
+                                <div class="flex items-center">
+                                    <div class="flex flex-grow">
+                                        <TextInput v-model="newServiceCheckValueForm.value"
+                                            placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full" />
+                                    </div>
+                                    <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2"
+                                        @click="() => { addnewServiceCheckValue(item.id) }"
+                                        v-tooltip="`Voeg waarde '${newServiceCheckValueForm.value}' toe`" />
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -276,6 +289,34 @@ const newServiceCheckForm = useForm({
     product_type_id: '',
     type: '',
 })
+
+const newServiceCheckValueForm = useForm({
+    value: '',
+    service_check_id: '',
+})
+
+const addnewServiceCheckValue = (serviceCheckId) => {
+    if (!newServiceCheckValueForm.value.trim()) {
+        alert('Voer een waarde in.')
+        return
+    }
+    newServiceCheckValueForm.service_check_id = serviceCheckId
+    newServiceCheckValueForm.post('/servicecheckvalues', {
+        preserveScroll: true,
+        onSuccess: () => {
+            internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
+                if (sc.id === serviceCheckId) {
+                    sc.values.push({
+                        id: usePage().props.flash.extra.id,
+                        value: newServiceCheckValueForm.value,
+                    })
+                }
+                return sc
+            })
+            newServiceCheckValueForm.reset()
+        },
+    })
+}
 
 function onCreateSuccess() {
     const created = usePage().props.flash.extra
