@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ProductType;
+use App\Enums\ServiceCheckTypes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -21,7 +22,10 @@ return new class extends Migration
             $table->integer('order')->default(0);
             $table->enum(
                 'type',
-                ['radio', 'checkgroup', 'boolean', 'number', 'text']
+                array_map(
+                    fn($type) => $type->name,
+                    ServiceCheckTypes::cases()
+                )
             )->default('radio');
             $table->timestamps();
         });

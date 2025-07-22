@@ -19,10 +19,16 @@ class ServiceCheck extends Model
         'name',
         'type',
         'order',
+        'product_type_id',
     ];
 
     public function values()
     {
         return $this->hasMany(ServiceCheckValue::class)->orderBy('order');
+    }
+
+    public function productType()
+    {
+        return $this->belongsTo(ProductType::class);
     }
 }
