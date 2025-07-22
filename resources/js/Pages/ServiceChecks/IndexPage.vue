@@ -333,7 +333,7 @@ const deleteServiceCheck = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.filter(
         (sc) => sc.id !== id
     )
-    newServiceCheckForm.delete(`/ servicechecks / ${id} `, {
+    newServiceCheckForm.delete(`/servicechecks/${id}`, {
         preserveScroll: true,
     })
 }
@@ -342,7 +342,7 @@ const toggleRecord = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
         if (sc.open) {
             const updateForm = useForm({ ...sc })
-            updateForm.patch(`/ servicechecks / ${sc.id} `, {
+            updateForm.patch(`/servicechecks/${sc.id}`, {
                 preserveScroll: true,
             })
         }
@@ -352,7 +352,7 @@ const toggleRecord = (id) => {
 
 const saveRecord = (sc) => {
     const form = useForm({ ...sc })
-    form.patch(`/ servicechecks / ${sc.id} `, {
+    form.patch(`/servicechecks/${sc.id}`, {
         preserveScroll: true,
         onSuccess: () => {
             internalServiceChecks.value = internalServiceChecks.value.map((item) =>
