@@ -4,6 +4,13 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Class ServiceCheckValueStoreUpdateRequest
+ *
+ * This request handles the validation for storing and updating service check values.
+ * @property string $service_check_id The value of the service check ID.
+ * @method string merge() Merges.
+ */
 class ServiceCheckValueStoreUpdateRequest extends FormRequest
 {
     /**
@@ -24,6 +31,7 @@ class ServiceCheckValueStoreUpdateRequest extends FormRequest
         return [
             'value' => 'required|string|max:255',
             'service_check_id' => 'required|exists:service_checks,id',
+            'order' => 'nullable|integer|min:0',
         ];
     }
 }

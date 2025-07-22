@@ -13,7 +13,11 @@ class ServiceCheckValueController extends Controller
      */
     public function store(ServiceCheckValueStoreUpdateRequest $request)
     {
-        $newservicecheckvalue = ServiceCheckValue::create($request->validated());
+        $highestorder = ServiceCheckValue::where('service_check_id', $request->service_check_id)
+            ->max('order') ?? 0;
+            $data = $request->validated();
+        $data['order'] = $highestorder + 1;
+        $newservicecheckvalue = ServiceCheckValue::create($data);
 
         return redirect()->back()->with(['success' => 'Waarde is toegevoegd', 'extra' => $newservicecheckvalue]);
     }
