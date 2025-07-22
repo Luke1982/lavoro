@@ -136,7 +136,7 @@
                             <td class="px-4 py-2 relative">
                                 {{ getValuesCellContent(item) }}
                                 <AdjustmentsHorizontalIcon
-                                    v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type)"
+                                    v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type) && !item.open"
                                     class="inline h-5 w-5 text-blue-300 absolute right-0 top-1/2 transform -translate-y-1/2 cursor-pointer"
                                     @click.stop="toggleRecordValueEdit(item.id)"
                                     v-tooltip="`Bewerk waarden voor ${item.name}`" />
@@ -154,7 +154,7 @@
                                     @click.stop="deleteServiceCheck(item.id)" />
                             </td>
                         </tr>
-                        <tr v-if="item.openValue" :key="`${item.id}-values`">
+                        <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4 py-">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
                                     }}, of voeg een
