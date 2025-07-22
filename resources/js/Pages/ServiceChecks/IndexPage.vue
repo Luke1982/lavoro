@@ -257,6 +257,7 @@ const getValuesCellContent = item => {
 
 const toggleRecordValueEdit = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
+        sc.open = false
         if (sc.id === id) {
             sc.openValue = !sc.openValue
         } else {
@@ -340,6 +341,7 @@ const deleteServiceCheck = (id) => {
 
 const toggleRecord = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
+        sc.openValue = false
         if (sc.open) {
             const updateForm = useForm({ ...sc })
             updateForm.patch(`/servicechecks/${sc.id}`, {
