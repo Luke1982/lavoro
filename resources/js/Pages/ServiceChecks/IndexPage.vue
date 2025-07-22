@@ -157,7 +157,7 @@
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4 py-">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                    }}, of voeg een
+                                }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
@@ -165,7 +165,9 @@
                                 <div class="flex items-center">
                                     <div class="flex flex-grow">
                                         <TextInput v-model="newServiceCheckValueForm.value"
-                                            placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full" />
+                                            placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full"
+                                            :error-message="newServiceCheckValueForm.errors.value"
+                                            :has-error="newServiceCheckValueForm.errors.value" />
                                     </div>
                                     <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2"
                                         @click="() => { addnewServiceCheckValue(item.id) }"
@@ -297,10 +299,6 @@ const newServiceCheckValueForm = useForm({
 })
 
 const addnewServiceCheckValue = (serviceCheckId) => {
-    if (!newServiceCheckValueForm.value.trim()) {
-        alert('Voer een waarde in.')
-        return
-    }
     newServiceCheckValueForm.service_check_id = serviceCheckId
     newServiceCheckValueForm.post('/servicecheckvalues', {
         preserveScroll: true,

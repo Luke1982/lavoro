@@ -34,4 +34,11 @@ class ServiceCheckValueStoreUpdateRequest extends FormRequest
             'order' => 'nullable|integer|min:0',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'value.required' => 'De waarde is verplicht.',
+        ];
+    }
 }
