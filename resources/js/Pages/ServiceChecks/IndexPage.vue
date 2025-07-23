@@ -14,16 +14,23 @@
         </div>
 
         <!-- Search -->
-        <div class="mb-4" v-if="!addingServiceCheck">
-            <label class="block text-sm font-medium">Zoek binnen keurpunten</label>
-            <div class="mt-2 relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon v-if="!inAction" class="h-5 w-5 text-gray-400" />
-                    <ArrowPathIcon v-else class="h-5 w-5 text-gray-400 animate-spin" />
+        <div class="mb-4 flex" v-if="!addingServiceCheck">
+            <div class="w-2/3">
+                <label class="block text-sm font-medium">Zoek binnen keurpunten</label>
+                <div class="mt-2 relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MagnifyingGlassIcon v-if="!inAction" class="h-5 w-5 text-gray-400" />
+                        <ArrowPathIcon v-else class="h-5 w-5 text-gray-400 animate-spin" />
+                    </div>
+                    <input type="text" id="searchInput" v-model="searchTerm" :disabled="inAction"
+                        placeholder="bijv. 'Valt de speling binnen de tolerantie'"
+                        class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
                 </div>
-                <input type="text" id="searchInput" v-model="searchTerm" :disabled="inAction"
-                    placeholder="bijv. 'Valt de speling binnen de tolerantie'"
-                    class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
+            </div>
+            <div class="ml-4 flex-grow">
+                <label class="block text-xs font-medium">Filter op type</label>
+                <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
+                    class="w-full mt-3" />
             </div>
         </div>
 
@@ -157,7 +164,7 @@
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                }}, of voeg een
+                                    }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
@@ -250,6 +257,11 @@ for (const type in serviceCheckTypes) {
         name: serviceCheckTypes[type],
     })
 }
+
+const typeFromURL = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('onlyType')
+    : null
+const productTypeToShow = ref(Number(typeFromURL))
 
 const getValuesCellContent = item => {
     if (Object.keys(serviceCheckTypesWithOptions).includes(item.type)) {
@@ -352,6 +364,12 @@ const saveRecord = (sc) => {
         },
     })
 }
+
+watch(productTypeToShow, (val) => {
+    router.get('/servicechecks', { onlyType: val }, {
+        preserveScroll: true,
+    })
+})
 
 const searchServiceChecks = debounce((term) => {
     inAction.value = true

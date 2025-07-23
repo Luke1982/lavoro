@@ -16,10 +16,15 @@ class ServiceCheckController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search', '');
+        $productType = $request->get('onlyType', null);
         $query = ServiceCheck::with(['productType', 'values']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
+        }
+
+        if ($productType) {
+            $query->where('product_type_id', $productType);
         }
 
         return inertia('ServiceChecks/IndexPage', [
