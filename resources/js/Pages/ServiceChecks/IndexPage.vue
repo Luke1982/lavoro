@@ -155,9 +155,9 @@
                             </td>
                         </tr>
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
-                            <td colspan="5" class="px-4 py-">
+                            <td colspan="5" class="px-4 py-" v-auto-animate>
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                }}, of voeg een
+                                    }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
