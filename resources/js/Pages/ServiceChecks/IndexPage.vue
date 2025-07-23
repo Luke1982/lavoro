@@ -356,7 +356,7 @@ const saveRecord = (sc) => {
 const searchServiceChecks = debounce((term) => {
     inAction.value = true
     localStorage.setItem('searchInitiated', 'true')
-    router.get(`/ servicechecks ? search = ${term} `, {}, { preserveScroll: true })
+    router.get(`/servicechecks?search=${term}`, {}, { preserveScroll: true })
 }, 300)
 
 watch(searchTerm, searchServiceChecks)
