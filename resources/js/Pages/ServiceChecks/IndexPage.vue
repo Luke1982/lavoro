@@ -155,23 +155,27 @@
                             </td>
                         </tr>
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
-                            <td colspan="5" class="px-4 py-" v-auto-animate>
+                            <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                    }}, of voeg een
+                                }}, of voeg een
                                     nieuwe toe
                                 </h5>
-                                <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
-                                    :scValue="value" class="w-full mb-2" @delete="id => removeSCValue(item.id, id)" />
+                                <draggable class="" v-model="item.values" item-key="id" handle=".draghandle"
+                                    :animation="200" @change="e => { reorderValues(e) }">
+                                    <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
+                                        :scValue="value" class="w-full mb-2"
+                                        @delete="id => removeSCValue(item.id, id)" />
+                                </draggable>
                                 <div class="flex items-center">
                                     <div class="flex flex-grow">
-                                        <TextInput v-model="newServiceCheckValueForm.value"
+                                        <TextInput v-model="serviceCheckValueForm.value"
                                             placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full"
-                                            :error-message="newServiceCheckValueForm.errors.value"
-                                            :has-error="newServiceCheckValueForm.errors.value" />
+                                            :error-message="serviceCheckValueForm.errors.value"
+                                            :has-error="serviceCheckValueForm.errors.value" />
                                     </div>
                                     <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2"
                                         @click="() => { addnewServiceCheckValue(item.id) }"
-                                        v-tooltip="`Voeg waarde '${newServiceCheckValueForm.value}' toe`" />
+                                        v-tooltip="`Voeg waarde '${serviceCheckValueForm.value}' toe`" />
                                 </div>
                             </td>
                         </tr>
@@ -228,6 +232,7 @@ import debounce from 'lodash/debounce'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import ServiceCheckValueComponent from '@/Components/ServiceCheckValueComponent.vue'
+import { VueDraggableNext as draggable } from 'vue-draggable-next'
 
 const {
     serviceChecks,
@@ -269,6 +274,23 @@ const toggleRecordValueEdit = (id) => {
     })
 }
 
+const updateServiceCheckValueForm = useForm({
+    payload: []
+})
+
+const reorderValues = event => {
+    const scValueId = event.moved.element.id
+    const parentSC = internalServiceChecks.value.find(sc => sc.values.some(v => v.id === scValueId))
+    if (!parentSC) {
+        console.error('Error resorting values')
+        return
+    }
+    updateServiceCheckValueForm.payload = parentSC.values.map((v, i) => ({ id: v.id, order: i }))
+    updateServiceCheckValueForm.post(`/servicecheckvalues/reorder`, {
+        preserveScroll: true,
+    })
+}
+
 const searchTerm = ref(initialSearch)
 const internalServiceChecks = ref(serviceChecks.data)
 const links = serviceChecks.links.filter(
@@ -293,26 +315,26 @@ const newServiceCheckForm = useForm({
     type: '',
 })
 
-const newServiceCheckValueForm = useForm({
+const serviceCheckValueForm = useForm({
     value: '',
     service_check_id: '',
 })
 
 const addnewServiceCheckValue = (serviceCheckId) => {
-    newServiceCheckValueForm.service_check_id = serviceCheckId
-    newServiceCheckValueForm.post('/servicecheckvalues', {
+    serviceCheckValueForm.service_check_id = serviceCheckId
+    serviceCheckValueForm.post('/servicecheckvalues', {
         preserveScroll: true,
         onSuccess: () => {
             internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
                 if (sc.id === serviceCheckId) {
                     sc.values.push({
                         id: usePage().props.flash.extra.id,
-                        value: newServiceCheckValueForm.value,
+                        value: serviceCheckValueForm.value,
                     })
                 }
                 return sc
             })
-            newServiceCheckValueForm.reset()
+            serviceCheckValueForm.reset()
         },
     })
 }

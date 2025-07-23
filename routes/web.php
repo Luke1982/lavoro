@@ -27,6 +27,7 @@ Route::resource('tickets', TicketController::class);
 Route::resource('servicechecks', ServiceCheckController::class)->except(['show', 'edit', 'create']);
 Route::resource('servicecheckvalues', ServiceCheckValueController::class)
     ->only(['store', 'update', 'destroy']);
+Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
 Route::resource('serviceorders', ServiceOrderController::class);
 Route::resource('servicejobs', ServiceJobController::class);
 Route::resource('images', ImageController::class)->except(['update']);

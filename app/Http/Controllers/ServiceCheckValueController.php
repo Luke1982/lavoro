@@ -43,4 +43,16 @@ class ServiceCheckValueController extends Controller
 
         return redirect()->back()->with('success', 'Waarde is verwijderd');
     }
+
+    /**
+     * Update the order of service check values.
+     */
+    public function updateOrder(Request $request)
+    {
+        foreach ($request->payload as $value) {
+            ServiceCheckValue::where('id', $value['id'])->update(['order' => $value['order']]);
+        }
+
+        return redirect()->back()->with('success', 'Volgorde is bijgewerkt');
+    }
 }

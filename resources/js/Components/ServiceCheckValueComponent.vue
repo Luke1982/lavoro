@@ -11,9 +11,11 @@
             </svg>
         </button>
         <button @click="deleteValue" v-tooltip="'Verwijder de waarde'"
-            class="px-3 py-1 bg-red-600 text-white rounded-r cursor-pointer hover:bg-red-700">
+            class="px-3 py-1 bg-red-600 text-white cursor-pointer hover:bg-red-700 rounded-r-md">
             <TrashIcon class="w-5 h-5" />
         </button>
+        <Bars4Icon class="size-6 mt-1 ml-2 text-gray-500 cursor-move rounded-r draghandle"
+            v-tooltip="'Versleep deze waarde naar een andere volgorde'" />
     </div>
 </template>
 
@@ -21,7 +23,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { defineEmits } from 'vue';
 import TextInput from './UI/TextInput.vue';
-import { TrashIcon } from '@heroicons/vue/24/outline';
+import { Bars4Icon, TrashIcon } from '@heroicons/vue/24/outline';
 
 const emit = defineEmits(['delete']);
 
