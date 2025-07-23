@@ -160,12 +160,8 @@
                                 }}, of voeg een
                                     nieuwe toe
                                 </h5>
-                                <draggable class="" v-model="item.values" item-key="id" handle=".draghandle"
-                                    :animation="200" @change="e => { reorderValues(e) }">
-                                    <ServiceCheckValueComponent v-for="value in item.values" :key="value.id"
-                                        :scValue="value" class="w-full mb-2"
-                                        @delete="id => removeSCValue(item.id, id)" />
-                                </draggable>
+                                <ServiceCheckValueListComponent v-model="item.values"
+                                    :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
                                 <div class="flex items-center">
                                     <div class="flex flex-grow">
                                         <TextInput v-model="serviceCheckValueForm.value"
@@ -231,8 +227,7 @@ import { ref, watch, onMounted } from 'vue'
 import debounce from 'lodash/debounce'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
-import ServiceCheckValueComponent from '@/Components/ServiceCheckValueComponent.vue'
-import { VueDraggableNext as draggable } from 'vue-draggable-next'
+import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListComponent.vue'
 
 const {
     serviceChecks,
@@ -274,37 +269,11 @@ const toggleRecordValueEdit = (id) => {
     })
 }
 
-const updateServiceCheckValueForm = useForm({
-    payload: []
-})
-
-const reorderValues = event => {
-    const scValueId = event.moved.element.id
-    const parentSC = internalServiceChecks.value.find(sc => sc.values.some(v => v.id === scValueId))
-    if (!parentSC) {
-        console.error('Error resorting values')
-        return
-    }
-    updateServiceCheckValueForm.payload = parentSC.values.map((v, i) => ({ id: v.id, order: i }))
-    updateServiceCheckValueForm.post(`/servicecheckvalues/reorder`, {
-        preserveScroll: true,
-    })
-}
-
 const searchTerm = ref(initialSearch)
 const internalServiceChecks = ref(serviceChecks.data)
 const links = serviceChecks.links.filter(
     (link) => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;'
 )
-
-const removeSCValue = (serviceCheckId, valueId) => {
-    internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
-        if (sc.id === serviceCheckId) {
-            sc.values = sc.values.filter((v) => v.id !== valueId)
-        }
-        return sc
-    })
-}
 
 const inAction = ref(false)
 const addingServiceCheck = ref(false)

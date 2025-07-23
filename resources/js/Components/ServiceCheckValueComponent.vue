@@ -21,31 +21,29 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { defineEmits } from 'vue';
+import { defineModel, defineEmits } from 'vue';
 import TextInput from './UI/TextInput.vue';
 import { Bars4Icon, TrashIcon } from '@heroicons/vue/24/outline';
 
-const emit = defineEmits(['delete']);
+const emits = defineEmits(['delete']);
 
-const props = defineProps({
-    scValue: {
-        type: Object,
-        required: true
-    }
+const scValue = defineModel('scValue', {
+    type: Object,
+    required: true
 });
 
 const form = useForm({
-    value: props.scValue.value,
-    service_check_id: props.scValue.service_check_id
+    value: scValue.value.value,
+    service_check_id: scValue.value.service_check_id
 });
 
 const deleteValue = () => {
     if (confirm('Weet je zeker dat je deze waarde wilt verwijderen?')) {
-        form.delete(`/servicecheckvalues/${props.scValue.id}`,
+        form.delete(`/servicecheckvalues/${scValue.value.id}`,
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    emit('delete', props.scValue.id);
+                    emits('delete', scValue.value.id);
                 }
             }
         );
