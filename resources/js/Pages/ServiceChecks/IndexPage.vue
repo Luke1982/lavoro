@@ -27,10 +27,15 @@
                         class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
                 </div>
             </div>
-            <div class="ml-4 flex-grow">
-                <label class="block text-xs font-medium">Filter op type</label>
-                <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
-                    class="w-full mt-3" />
+            <div class="ml-4 flex-grow flex items-end">
+                <div class="flex-grow">
+                    <label class="block text-xs font-medium">Filter op type</label>
+                    <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
+                        class="w-full mt-3" />
+                </div>
+                <XCircleIcon class="h-8 w-8 text-gray-400 cursor-pointer ml-2 mb-1"
+                    @click="productTypeToShow = null; router.get('/servicechecks', {}, { preserveScroll: true })"
+                    v-tooltip="'Reset filter op producttype'" />
             </div>
         </div>
 
