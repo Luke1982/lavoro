@@ -119,7 +119,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" v-auto-animate>
                     <template v-for="item in internalServiceChecks" :key="item.id">
-                        <tr>
+                        <tr class="even:bg-gray-100">
                             <td class="px-4 py-2">
                                 <div v-if="item.open">
                                     <TextInput v-model="item.name" />
