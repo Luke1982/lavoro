@@ -48,6 +48,14 @@ class ServiceJob extends Model
 
     public function checkInstances()
     {
-        return $this->hasMany(ServiceCheckInstance::class)->orderBy('order');
+        return $this->hasMany(ServiceCheckInstance::class);
+    }
+
+    /**
+     * The service order associated with the service job.
+     */
+    public function serviceOrder()
+    {
+        return $this->belongsTo(ServiceOrder::class);
     }
 }

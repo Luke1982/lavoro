@@ -57,7 +57,7 @@ class ServiceCheckController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ServiceCheck $serviceCheck)
+    public function update(Request $request, ServiceCheck $servicecheck)
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
@@ -65,8 +65,10 @@ class ServiceCheckController extends Controller
             'type'            => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
         ]);
 
-        $serviceCheck->update($validated);
-        $serviceCheck->load('productType', 'values');
+        \Illuminate\Support\Facades\Log::debug(var_export($validated, true));
+
+        $servicecheck->update($validated);
+        $servicecheck->load('productType', 'values');
 
         return redirect()->route('servicechecks.index')->with('success', 'Controlepunt is aangepast');
     }

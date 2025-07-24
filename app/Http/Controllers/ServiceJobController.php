@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ServiceJobCreateRequest;
 use App\Models\ServiceJob;
 use Illuminate\Http\Request;
+use App\Enums\ServiceCheckTypes;
+use App\Http\Requests\ServiceJobCreateRequest;
 
 class ServiceJobController extends Controller
 {
@@ -39,7 +40,15 @@ class ServiceJobController extends Controller
     public function show(ServiceJob $servicejob)
     {
         return inertia('ServiceJob/ShowPage', [
-            'servicejob' => $servicejob,
+            'servicejob' => $servicejob->load([
+                'asset.product.productType.checks',
+                'checkInstances.serviceCheck.values',
+                'checkInstances.serviceCheckValue',
+                'asset.product.brand',
+                'asset.customer',
+                'serviceOrder',
+            ]),
+            'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
         ]);
     }
 

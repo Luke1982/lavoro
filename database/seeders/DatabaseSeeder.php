@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Asset;
 use App\Models\Ticket;
 use App\Models\Product;
@@ -12,6 +11,7 @@ use App\Models\ServiceCheck;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Database\Eloquent\Model;
 
 class DatabaseSeeder extends Seeder
 {
@@ -36,9 +36,11 @@ class DatabaseSeeder extends Seeder
                 \App\Models\ServiceCheckValue::factory(5)->make()->toArray()
             );
         });
-        ServiceOrder::factory()
-        ->count(10)
-        ->has(ServiceJob::factory()->count(rand(0, 5)))
-        ->create();
+        Model::withoutEvents(function () {
+            ServiceOrder::factory()
+            ->count(10)
+            ->has(ServiceJob::factory()->count(rand(0, 5)))
+            ->create();
+        });
     }
 }

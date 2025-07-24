@@ -21,4 +21,28 @@ class ServiceCheckInstance extends Model
         'service_check_value_id',
         'description',
     ];
+
+    /**
+     * The service check associated with the instance.
+     */
+    public function serviceCheck()
+    {
+        return $this->belongsTo(ServiceCheck::class);
+    }
+
+    /**
+     * The service job associated with the instance.
+     */
+    public function serviceJob()
+    {
+        return $this->belongsTo(ServiceJob::class);
+    }
+
+    /**
+     * The service check value associated with the instance.
+     */
+    public function serviceCheckValue()
+    {
+        return $this->belongsTo(ServiceCheckValue::class);
+    }
 }
