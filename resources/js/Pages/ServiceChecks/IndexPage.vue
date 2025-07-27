@@ -47,7 +47,7 @@
                     <label class="block text-sm font-medium">Producttype</label>
                     <div class="mt-1">
                         <ComboBox :options="productTypes" v-model="newServiceCheckForm.product_type_id"
-                            placeholder="Selecteer producttype" />
+                            placeholder="Selecteer producttype" :initialId="productTypes[0].id" />
                     </div>
                     <p v-if="newServiceCheckForm.errors.product_type_id" class="text-red-600 text-sm">
                         {{ newServiceCheckForm.errors.product_type_id }}
@@ -59,7 +59,7 @@
                     <label class="block text-sm font-medium">Type</label>
                     <div class="mt-1">
                         <ComboBox :options="serviceCheckTypesForComboBox" v-model="newServiceCheckForm.type"
-                            placeholder="Selecteer type" />
+                            placeholder="Selecteer type" :initial-id="serviceCheckTypesForComboBox[0].id" />
                     </div>
                     <p v-if="newServiceCheckForm.errors.type" class="text-red-600 text-sm">
                         {{ newServiceCheckForm.errors.type }}
@@ -169,7 +169,7 @@
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                    }}, of voeg een
+                                }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"

@@ -87,6 +87,10 @@ const internalValue = ref(
     props.options[0]
 )
 
+if (props.initialId !== undefined && props.initialId !== null) {
+    emit('update:modelValue', props.initialId)
+}
+
 // Check if modelValue is provided, otherwise set it to the first option's id
 if ((!props.modelValue && !internalValue.value) && props.options.length > 0) {
     emit('update:modelValue', props.options[0].id)

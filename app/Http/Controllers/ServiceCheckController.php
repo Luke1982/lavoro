@@ -51,7 +51,10 @@ class ServiceCheckController extends Controller
         $sc = ServiceCheck::create($validated)
             ->load('productType', 'values');
 
-            return redirect()->route('servicechecks.index')->with('success', 'Controlepunt is gemaakt');
+            return redirect()->route('servicechecks.index')->with([
+                'success' => 'Controlepunt is gemaakt',
+                'extra'   => $sc,
+            ]);
     }
 
     /**
@@ -64,8 +67,6 @@ class ServiceCheckController extends Controller
             'product_type_id' => 'required|exists:product_types,id',
             'type'            => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
         ]);
-
-        \Illuminate\Support\Facades\Log::debug(var_export($validated, true));
 
         $servicecheck->update($validated);
         $servicecheck->load('productType', 'values');
@@ -80,6 +81,6 @@ class ServiceCheckController extends Controller
     {
         $serviceCheck->delete();
 
-        return response()->noContent();
+        return redirect()->back();
     }
 }
