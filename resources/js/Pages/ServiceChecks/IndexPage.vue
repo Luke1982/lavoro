@@ -30,8 +30,8 @@
             <div class="ml-4 flex-grow flex items-end">
                 <div class="flex-grow">
                     <label class="block text-xs font-medium">Filter op type</label>
-                    <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
-                        class="w-full mt-3" />
+                    <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
+                        placeholder="Selecteer producttype" class="w-full mt-3" />
                 </div>
                 <XCircleIcon class="h-8 w-8 text-gray-400 cursor-pointer ml-2 mb-1"
                     @click="productTypeToShow = null; router.get('/servicechecks', {}, { preserveScroll: true })"
@@ -254,6 +254,17 @@ const {
     serviceCheckTypes: { type: Array, default: () => [] },
     serviceCheckTypesWithOptions: { type: Object, default: () => ({}) },
 })
+
+const productTypesForComboBox = ref([{
+    id: '0',
+    name: 'Selecteer type',
+}])
+for (const type of productTypes) {
+    productTypesForComboBox.value.push({
+        id: type.id,
+        name: type.name,
+    })
+}
 
 const serviceCheckTypesForComboBox = ref([])
 for (const type in serviceCheckTypes) {
