@@ -77,9 +77,9 @@ class ServiceCheckController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ServiceCheck $serviceCheck)
+    public function destroy(ServiceCheck $servicecheck)
     {
-        $serviceCheck->delete();
+        $servicecheck->delete();
 
         return redirect()->back();
     }
