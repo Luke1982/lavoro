@@ -13,6 +13,7 @@ use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ServiceCheckController;
 use App\Http\Controllers\ServiceOrderController;
 use App\Http\Controllers\ServiceCheckValueController;
+use App\Http\Controllers\ServiceCheckInstanceController;
 
 Route::get('/', function () {
     return inertia('Index/DashBoard');
@@ -28,6 +29,8 @@ Route::resource('servicechecks', ServiceCheckController::class)->except(['show',
 Route::resource('servicecheckvalues', ServiceCheckValueController::class)
     ->only(['store', 'update', 'destroy']);
 Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
+Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
+    ->only(['store', 'update', 'destroy']);
 Route::resource('serviceorders', ServiceOrderController::class);
 Route::resource('servicejobs', ServiceJobController::class);
 Route::resource('images', ImageController::class)->except(['update']);

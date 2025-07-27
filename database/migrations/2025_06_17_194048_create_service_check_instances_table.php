@@ -22,10 +22,6 @@ return new class extends Migration
             $table->foreignIdFor(ServiceJob::class)
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->foreignIdFor(ServiceCheckValue::class)
-                ->nullable()
-                ->constrained()
-                ->cascadeOnDelete();
             $table->text('description')->nullable();
             $table->timestamps();
         });

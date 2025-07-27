@@ -15,4 +15,10 @@ class ServiceCheckValue extends Model
         'order',
         'value',
     ];
+
+    public function instances()
+    {
+        return $this->belongsToMany(ServiceCheckInstance::class, 'check_instance_service_value')
+            ->withTimestamps();
+    }
 }

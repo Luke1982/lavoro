@@ -41,8 +41,9 @@ class ServiceCheckInstance extends Model
     /**
      * The service check value associated with the instance.
      */
-    public function serviceCheckValue()
+    public function values()
     {
-        return $this->belongsTo(ServiceCheckValue::class);
+        return $this->belongsToMany(ServiceCheckValue::class, 'check_instance_service_value')
+            ->withTimestamps();
     }
 }

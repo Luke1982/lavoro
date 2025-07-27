@@ -43,7 +43,7 @@ class ServiceJobController extends Controller
             'servicejob' => $servicejob->load([
                 'asset.product.productType.checks',
                 'checkInstances.serviceCheck.values',
-                'checkInstances.serviceCheckValue',
+                'checkInstances.values',
                 'asset.product.brand',
                 'asset.customer',
                 'serviceOrder',
