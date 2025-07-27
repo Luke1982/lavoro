@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ProductType;
 use App\Models\ServiceCheck;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use App\Enums\ServiceCheckTypes;
+use App\Http\Requests\ServiceCheckStoreUpdateRequest;
 
 class ServiceCheckController extends Controller
 {
@@ -28,7 +28,7 @@ class ServiceCheckController extends Controller
         }
 
         return inertia('ServiceChecks/IndexPage', [
-            'serviceChecks'                => $query->orderBy('id')->paginate(10),
+            'serviceChecks'                => $query->orderBy('order')->paginate(10),
             'productTypes'                 => ProductType::all(),
             'serviceCheckTypes'            => ServiceCheckTypes::assocArray(),
             'serviceCheckTypesWithOptions' => ServiceCheckTypes::getTypesWithOptions(),
@@ -40,15 +40,14 @@ class ServiceCheckController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ServiceCheckStoreUpdateRequest $request)
     {
-        $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'product_type_id' => 'required|exists:product_types,id',
-            'type'            => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
-        ]);
+        $highestorder = ServiceCheck::where('product_type_id', $request->product_type_id)
+        ->max('order') ?? 0;
+        $data = $request->validated();
+        $data['order'] = $highestorder + 1;
 
-        $sc = ServiceCheck::create($validated)
+        $sc = ServiceCheck::create($data)
             ->load('productType', 'values');
 
             return redirect()->route('servicechecks.index')->with([
@@ -60,18 +59,15 @@ class ServiceCheckController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ServiceCheck $servicecheck)
+    public function update(ServiceCheckStoreUpdateRequest $request, ServiceCheck $servicecheck)
     {
-        $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'product_type_id' => 'required|exists:product_types,id',
-            'type'            => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
-        ]);
-
-        $servicecheck->update($validated);
+        $servicecheck->update($request->validated());
         $servicecheck->load('productType', 'values');
 
-        return redirect()->route('servicechecks.index')->with('success', 'Controlepunt is aangepast');
+        return redirect()->route('servicechecks.index')->with([
+            'success' => 'Controlepunt is aangepast',
+            'extra'   => $servicecheck,
+        ]);
     }
 
     /**

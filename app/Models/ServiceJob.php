@@ -48,7 +48,11 @@ class ServiceJob extends Model
 
     public function checkInstances()
     {
-        return $this->hasMany(ServiceCheckInstance::class);
+        return $this
+            ->hasMany(ServiceCheckInstance::class)
+            ->join('service_checks', 'service_check_instances.service_check_id', '=', 'service_checks.id')
+            ->orderBy('service_checks.order')
+            ->select('service_check_instances.*');
     }
 
     /**

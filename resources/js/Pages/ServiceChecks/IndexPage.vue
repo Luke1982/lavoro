@@ -115,6 +115,8 @@
             <table class="min-w-full divide-y divide-gray-200 mb-4">
                 <thead>
                     <tr>
+                        <th class="px-4 py-2 text-left text-sm font-semibold" v-if="productTypeToShow !== 0">Volgorde
+                        </th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Naam</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Producttype</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Type</th>
@@ -125,6 +127,12 @@
                 <tbody class="bg-white divide-y divide-gray-200" v-auto-animate>
                     <template v-for="item in internalServiceChecks" :key="item.id">
                         <tr class="even:bg-gray-100">
+                            <td class="px-4 py-2" v-if="productTypeToShow !== 0">
+                                <div v-if="item.open">
+                                    <TextInput v-model="item.order" />
+                                </div>
+                                <span v-else>{{ item.order }}</span>
+                            </td>
                             <td class="px-4 py-2">
                                 <div v-if="item.open">
                                     <TextInput v-model="item.name" />
@@ -168,7 +176,8 @@
                         </tr>
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
                             <td colspan="5" class="px-4">
-                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
+                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
+                                    item.name
                                 }}, of voeg een
                                     nieuwe toe
                                 </h5>
@@ -339,9 +348,7 @@ const addnewServiceCheckValue = (serviceCheckId) => {
 function onCreateSuccess() {
     const created = usePage().props.flash.extra
     internalServiceChecks.value.push({ ...created, open: false })
-    internalServiceChecks.value.sort((a, b) =>
-        a.name.localeCompare(b.name)
-    )
+    internalServiceChecks.value.sort((a, b) => a.order - b.order);
     newServiceCheckForm.reset()
     addingServiceCheck.value = false
 }
@@ -377,6 +384,7 @@ const saveRecord = (sc) => {
             internalServiceChecks.value = internalServiceChecks.value.map((item) =>
                 item.id === sc.id ? { ...item, open: false } : item
             )
+            internalServiceChecks.value.sort((a, b) => a.order - b.order);
         },
     })
 }
