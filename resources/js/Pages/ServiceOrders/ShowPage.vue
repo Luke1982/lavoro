@@ -70,10 +70,12 @@ const props = defineProps({
     }
 });
 
-const internalAssets = props.serviceOrder.customer.assets.map((asset) => {
+const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
+    a.product.product_type.name.localeCompare(b.product.product_type.name)
+).map((asset) => {
     return {
         id: asset.id,
-        name: `${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
+        name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
     };
 });
 
