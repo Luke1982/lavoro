@@ -98,14 +98,17 @@ const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
     };
 });
-const internalTickets = props.serviceOrder.customer.tickets.slice().sort((a, b) =>
-    a.asset.product.product_type.name.localeCompare(b.asset.product.product_type.name)
-).map((ticket) => {
-    return {
-        id: ticket.id,
-        name: `${ticket.asset.product.product_type.name}: ${ticket.asset.product.brand.name} ${ticket.asset.product.model} (${ticket.asset.serial_number}), ${ticket.subject}`,
-    };
-});
+const internalTickets = props.serviceOrder.customer.tickets.slice()
+    .filter(ticket => ticket.status !== 'Gesloten' && props.serviceOrder.tickets.map(t => t.id).indexOf(ticket.id) === -1)
+    .sort((a, b) =>
+        a.asset.product.product_type.name.localeCompare(b.asset.product.product_type.name)
+    )
+    .map((ticket) => {
+        return {
+            id: ticket.id,
+            name: `${ticket.asset.product.product_type.name}: ${ticket.asset.product.brand.name} ${ticket.asset.product.model} (${ticket.asset.serial_number}), ${ticket.subject}`,
+        };
+    });
 
 const assetToCheck = ref(internalAssets[0]?.id || null);
 const ticketToSolve = ref(internalTickets[0]?.id || null);
@@ -137,6 +140,9 @@ const attachTicket = () => {
     if (!ticketToSolve.value) return;
     form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
         preserveScroll: true,
+        onSuccess: () => {
+            internalTickets.value = internalTickets.splice(internalTickets.findIndex(t => t.id === ticketToSolve.value), 1);
+        }
     });
 };
 </script>
