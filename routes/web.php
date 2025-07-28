@@ -34,6 +34,8 @@ Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
 Route::resource('serviceorders', ServiceOrderController::class);
 Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
     ->name('serviceorders.attachTicket');
+Route::delete('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'detachTicket'])
+    ->name('serviceorders.detachTicket');
 Route::resource('servicejobs', ServiceJobController::class);
 Route::resource('images', ImageController::class)->except(['update']);
 Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');

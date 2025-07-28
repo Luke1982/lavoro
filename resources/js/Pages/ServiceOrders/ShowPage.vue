@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -67,7 +67,7 @@
         </div>
         <div class="flex flex-wrap">
             <div class="w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets" :key="ticket.id">
-                <TicketCard :ticket="ticket" />
+                <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
             </div>
         </div>
     </BoxComponent>
