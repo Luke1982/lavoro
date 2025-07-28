@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Traits\EnumComboBoxArrayTrait;
+
 enum ServiceJobOutcomes: string
 {
+    use EnumComboBoxArrayTrait;
+
     case goedkeur           = 'Goedkeur';
     case afkeur             = 'Afkeur';
     case reparatie          = 'Goedkeur na reparatie';
