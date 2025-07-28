@@ -66,8 +66,6 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['detached']);
-
 const form = useForm({
     ticketId: props.ticket.id,
     status: props.ticket.status,
@@ -116,9 +114,6 @@ const removeTicketLink = () => {
     if (confirm('Weet je zeker dat je deze storing van de werkbon wilt verwijderen?')) {
         form.delete(`/serviceorders/${props.ticket.service_order_id}/tickets/${props.ticket.id}`, {
             preserveScroll: true,
-            onSuccess: () => {
-                emit('detached', props.ticket.id);
-            },
         });
     }
 }
