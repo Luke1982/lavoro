@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -42,7 +42,8 @@
                 </button>
             </div>
         </div>
-        <div class="grid-cols-6 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
+        <div v-if="serviceOrder.servicejobs.length > 0"
+            class="grid-cols-6 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
             <div class="col-span-1">Machine</div>
             <div class="col-span-1">Uitkomst</div>
             <div class="col-span-1">Tijdelijke goedkeur</div>
