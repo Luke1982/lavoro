@@ -16,9 +16,11 @@ return new class extends Migration
         Schema::create('check_instance_service_value', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(ServiceCheckValue::class)
-                ->constrained();
+                ->constrained()
+                ->cascadeOnDelete();
                 $table->foreignIdFor(ServiceCheckInstance::class)
-                ->constrained();
+                ->constrained()
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
