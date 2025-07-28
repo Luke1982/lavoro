@@ -29,29 +29,31 @@
                     @update="val => { form.signed_by = val; updateServiceOrder(); }" />
             </div>
         </div>
-        <h2 class="text-xl font-bold my-4 text-center uppercase">Keuringen</h2>
-        <div class="grid grid-cols-12 mt-4">
-            <div class="col-span-2 text-xs">
-                Kies een machine om te keuren
+        <div v-auto-animate class="my-4">
+            <h2 class="text-xl font-bold text-center uppercase">Keuringen</h2>
+            <div class="grid grid-cols-12 mt-4">
+                <div class="col-span-2 text-xs">
+                    Kies een machine om te keuren
+                </div>
+                <div class="col-span-10 flex">
+                    <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
+                    <button @click="addServiceJob"
+                        class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                        Keuren
+                    </button>
+                </div>
             </div>
-            <div class="col-span-10 flex">
-                <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
-                <button @click="addServiceJob"
-                    class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
-                    Keuren
-                </button>
+            <div v-if="serviceOrder.servicejobs.length > 0"
+                class="grid-cols-6 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
+                <div class="col-span-1">Machine</div>
+                <div class="col-span-1">Uitkomst</div>
+                <div class="col-span-1">Tijdelijke goedkeur</div>
+                <div class="col-span-1">Afgerond op</div>
+                <div class="col-span-2">Omschrijving</div>
             </div>
+            <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
+                :asset="job.asset" />
         </div>
-        <div v-if="serviceOrder.servicejobs.length > 0"
-            class="grid-cols-6 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
-            <div class="col-span-1">Machine</div>
-            <div class="col-span-1">Uitkomst</div>
-            <div class="col-span-1">Tijdelijke goedkeur</div>
-            <div class="col-span-1">Afgerond op</div>
-            <div class="col-span-2">Omschrijving</div>
-        </div>
-        <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
-            :asset="job.asset" />
         <h2 class="text-xl font-bold my-4 text-center uppercase">Storingen</h2>
         <div class="grid grid-cols-12 mt-4">
             <div class="col-span-2 text-xs">
