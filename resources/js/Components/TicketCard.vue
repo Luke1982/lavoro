@@ -31,8 +31,10 @@
                 v-tooltip="'Wijzig de status naar \'In behandeling\''" />
             <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open'" class="w-5 h-5 text-red-500 cursor-pointer"
                 @click.stop="setTicketStatusTo('Open')" v-tooltip="'Wijzig de status naar \'Open\''" />
-            <TrashIcon class="w-5 h-5 text-gray-500 cursor-pointer" @click.stop="deleteTicket"
-                v-tooltip="'Verwijder de storing'" />
+            <TrashIcon v-if="disconnect === null" class="w-5 h-5 text-gray-500 cursor-pointer"
+                @click.stop="deleteTicket" v-tooltip="'Verwijder de storing'" />
+            <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 cursor-pointer"
+                @click.stop="removeTicketLink" v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
         <div class="absolute bottom-2 left-2 w-20">
             <ChevronDownIcon v-if="ticket.priority.toLowerCase() !== ticketPriorities[0].id.toLowerCase()"
@@ -47,7 +49,7 @@
 </template>
 
 <script setup>
-import { CalendarDateRangeIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, ClockIcon, ExclamationCircleIcon, NoSymbolIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { CalendarDateRangeIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, ClockIcon, ExclamationCircleIcon, LinkSlashIcon, NoSymbolIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import { useForm } from '@inertiajs/vue3';
@@ -58,7 +60,13 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    disconnect: {
+        type: String,
+        default: null,
+    },
 });
+
+const emit = defineEmits(['detached']);
 
 const form = useForm({
     ticketId: props.ticket.id,
@@ -100,6 +108,17 @@ const deleteTicket = () => {
     if (confirm('Weet je zeker dat je deze storing wilt verwijderen?')) {
         form.delete(`/tickets/${props.ticket.id}`, {
             preserveScroll: true,
+        });
+    }
+}
+
+const removeTicketLink = () => {
+    if (confirm('Weet je zeker dat je deze storing van de werkbon wilt verwijderen?')) {
+        form.delete(`/serviceorders/${props.ticket.service_order_id}/tickets/${props.ticket.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                emit('detached', props.ticket.id);
+            },
         });
     }
 }
