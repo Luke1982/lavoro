@@ -89,4 +89,13 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => $serviceorder->id]);
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
     }
+
+    /**
+     * Detach a ticket from a service order.
+     */
+    public function detachTicket(ServiceOrder $serviceorder, Ticket $ticket)
+    {
+        $ticket->update(['service_order_id' => null]);
+        return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');
+    }
 }
