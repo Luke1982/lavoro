@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ServiceJob;
 use Illuminate\Http\Request;
 use App\Enums\ServiceCheckTypes;
+use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceJobCreateRequest;
+use App\Http\Requests\ServiceJobUpdateRequest;
 
 class ServiceJobController extends Controller
 {
@@ -49,6 +51,7 @@ class ServiceJobController extends Controller
                 'serviceOrder',
             ]),
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
+            'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),
         ]);
     }
 
@@ -63,9 +66,10 @@ class ServiceJobController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
     {
-        //
+        $servicejob->update($request->validated());
+        return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt.');
     }
 
     /**
