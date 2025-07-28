@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceOrder;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 
 class ServiceOrderController extends Controller
@@ -45,6 +46,10 @@ class ServiceOrderController extends Controller
                 'customer.assets.product.brand',
                 'customer.assets.product.productType',
                 'servicejobs.asset.product.brand',
+                'customer.tickets.asset.product.brand',
+                'customer.tickets.asset.product.productType',
+                'tickets.asset.product.brand',
+                'tickets.asset.product.productType',
             ])->findOrFail($id),
         ]);
     }
@@ -74,5 +79,14 @@ class ServiceOrderController extends Controller
     {
         $serviceorder->delete();
         return redirect()->back()->with('success', 'Werkbon succesvol verwijderd.');
+    }
+
+    /**
+     * Attach a ticket to a service order.
+     */
+    public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
+    {
+        $ticket->update(['service_order_id' => $serviceorder->id]);
+        return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
     }
 }

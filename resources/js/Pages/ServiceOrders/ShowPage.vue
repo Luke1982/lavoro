@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                    }}, {{
+                }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -29,7 +29,7 @@
                     @update="val => { form.signed_by = val; updateServiceOrder(); }" />
             </div>
         </div>
-        <h1 class="text-xl font-bold my-4 text-center uppercase">Keuringen</h1>
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Keuringen</h2>
         <div class="grid grid-cols-12 mt-4">
             <div class="col-span-2 text-xs">
                 Kies een machine om te keuren
@@ -52,12 +52,31 @@
         </div>
         <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
             :asset="job.asset" />
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Storingen</h2>
+        <div class="grid grid-cols-12 mt-4">
+            <div class="col-span-2 text-xs">
+                Welke storing(en) wil je oplossen op deze bon?
+            </div>
+            <div class="col-span-10 flex">
+                <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
+                <button @click="attachTicket"
+                    class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    Voeg storing aan werkbon toe
+                </button>
+            </div>
+        </div>
+        <div class="flex flex-wrap">
+            <div class="w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets" :key="ticket.id">
+                <TicketCard :ticket="ticket" />
+            </div>
+        </div>
     </BoxComponent>
 </template>
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
+import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
@@ -79,8 +98,17 @@ const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
     };
 });
+const internalTickets = props.serviceOrder.customer.tickets.slice().sort((a, b) =>
+    a.asset.product.product_type.name.localeCompare(b.asset.product.product_type.name)
+).map((ticket) => {
+    return {
+        id: ticket.id,
+        name: `${ticket.asset.product.product_type.name}: ${ticket.asset.product.brand.name} ${ticket.asset.product.model} (${ticket.asset.serial_number}), ${ticket.subject}`,
+    };
+});
 
 const assetToCheck = ref(internalAssets[0]?.id || null);
+const ticketToSolve = ref(internalTickets[0]?.id || null);
 
 const form = useForm({
     ...props.serviceOrder
@@ -101,6 +129,13 @@ const addServiceJob = () => {
 
 const updateServiceOrder = () => {
     form.put(`/serviceorders/${props.serviceOrder.id}`, {
+        preserveScroll: true,
+    });
+};
+
+const attachTicket = () => {
+    if (!ticketToSolve.value) return;
+    form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
         preserveScroll: true,
     });
 };

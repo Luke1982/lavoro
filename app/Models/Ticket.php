@@ -17,5 +17,11 @@ class Ticket extends Model
         'status',
         'priority',
         'closed_on',
+        'service_order_id',
     ];
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
+    }
 }

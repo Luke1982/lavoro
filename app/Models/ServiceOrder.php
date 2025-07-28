@@ -27,4 +27,9 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(ServiceJob::class);
     }
+
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

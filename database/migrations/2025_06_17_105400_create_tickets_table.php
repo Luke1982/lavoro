@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Asset;
+use App\Models\ServiceOrder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +18,10 @@ return new class extends Migration
             $table->foreignIdFor(Asset::class)
                 ->constrained()
                 ->cascadeOnDelete();
+            $table->foreignIdFor(ServiceOrder::class)
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
             $table->string('subject')->required();
             $table->text('description')->nullable();
             $table->enum('status', ['Open', 'In behandeling', 'Gesloten'])

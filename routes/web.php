@@ -32,6 +32,8 @@ Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, '
 Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
     ->only(['store', 'update', 'destroy']);
 Route::resource('serviceorders', ServiceOrderController::class);
+Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
+    ->name('serviceorders.attachTicket');
 Route::resource('servicejobs', ServiceJobController::class);
 Route::resource('images', ImageController::class)->except(['update']);
 Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
