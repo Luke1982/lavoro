@@ -2,8 +2,11 @@
     <div :class="[editing ? '' : 'pr-5', 'w-2/3 relative']">
         <span v-if="!editing">{{ value }} </span>
         <div class="flex" v-if="editing">
-            <TextInput :modelValue="internalValue" @update:modelValue="val => internalValue = val" :rightCorners="false"
-                class="flex-grow" />
+            <TextInput v-if="type === 'input'" :modelValue="internalValue"
+                @update:modelValue="val => internalValue = val" :rightCorners="false" class="flex-grow" />
+            <textarea v-else-if="type === 'textarea'" v-model="internalValue"
+                @update:modelValue="val => internalValue = val"
+                class="flex-grow p-2 border border-gray-300 rounded-l-md" rows="8"></textarea>
             <button @click="emit('update', internalValue); editing = false"
                 class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-5 h-5" fill="currentColor">
@@ -28,6 +31,10 @@ const props = defineProps({
         type: String,
         required: true
     },
+    type: {
+        type: String,
+        default: 'input'
+    }
 })
 
 const emit = defineEmits(['update']);
