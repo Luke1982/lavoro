@@ -45,7 +45,7 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket)
     {
-        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand']);
+        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand', 'images']);
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,
             'statusses' => TicketStatusses::comboBoxArray(),

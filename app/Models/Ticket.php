@@ -24,4 +24,10 @@ class Ticket extends Model
     {
         return $this->belongsTo(Asset::class);
     }
+
+    public function images()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withTimestamps();
+    }
 }

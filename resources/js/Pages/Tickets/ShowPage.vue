@@ -76,17 +76,28 @@
             </BoxComponent>
         </template>
         <template #sidebar>
-            <BoxComponent></BoxComponent>
+            <BoxComponent>
+                <div class="flex border-b-1 border-gray-200 pb-2 mb-4">
+                    <PhotoIcon class="size-6 mr-2" />
+                    <h1 class="text-l font-medium">Afbeeldingen van de storing</h1>
+                </div>
+                <span v-if="ticket.images.length === 0" class="text-gray-500 text-sm mb-4 block">
+                    Nog geen afbeeldingen, upload hieronder een afbeelding.
+                </span>
+                <ImageUploadComponent :existing="ticket.images" :imageable-id="ticket.id"
+                    imageable-type="\App\Models\Ticket" />
+            </BoxComponent>
         </template>
     </TwoThirdsOneThird>
 
 </template>
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { CheckIcon, ClockIcon, ExclamationCircleIcon, NoSymbolIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, ClockIcon, ExclamationCircleIcon, NoSymbolIcon, PhotoIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
