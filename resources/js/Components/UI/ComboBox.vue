@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 import {
     Combobox,
@@ -71,6 +71,59 @@ const props = defineProps({
     },
 })
 
+const inputRef = ref(null)
+const emit = defineEmits(['update:modelValue', 'change'])
+
+const internalSearching = ref(props.searching)
+watch(() => props.searching, (n) => {
+    internalSearching.value = n
+})
+
+// Determine the initial internalValue candidate
+const resolveOption = (id) => props.options.find(o => o.id === id) || null
+
+const internalValue = ref(
+    resolveOption(props.modelValue) ||
+    resolveOption(props.initialId) ||
+    props.options[0] ||
+    null
+)
+
+// If parent hasn’t supplied a modelValue, but we have an initialId, emit it once on mount
+onMounted(() => {
+    if ((props.modelValue === undefined || props.modelValue === null) && props.initialId != null) {
+        const initial = resolveOption(props.initialId)
+        if (initial) {
+            emit('update:modelValue', initial.id)
+        }
+    }
+})
+
+// Keep internalValue → modelValue in sync, but only emit when genuinely different
+watch(internalValue, (val) => {
+    if (val && val.id !== props.modelValue) {
+        emit('update:modelValue', val.id)
+    }
+})
+
+// Keep internalValue updated when external modelValue changes
+watch(() => props.modelValue, (newVal) => {
+    const option = resolveOption(newVal)
+    if (option) {
+        internalValue.value = option
+    }
+})
+
+const query = ref('')
+const filteredOptions = computed(() =>
+    query.value === ''
+        ? props.options
+        : props.options.filter((option) =>
+            option.name.toLowerCase().includes(query.value.toLowerCase())
+        )
+)
+
+// display logic
 const isFocused = ref(false)
 function onFocus() {
     isFocused.value = true
@@ -80,12 +133,22 @@ function onBlur() {
     isFocused.value = false
     query.value = ''
 }
-const displayValue = option => isFocused.value ? '' : option?.name;
+const displayValue = option => (isFocused.value ? '' : option?.name)
 
-const inputRef = ref(null)
+const debouncedEmitChange = debounce((value) => {
+    emit('change', value)
+}, 500)
 
-function onSelect(newId) {
-    emit('update:modelValue', newId)
+watch(() => query.value, (newVal) => {
+    if (newVal !== '') {
+        internalSearching.value = true
+        debouncedEmitChange(newVal)
+    }
+})
+
+function onSelect(newOption) {
+    internalValue.value = newOption
+    emit('update:modelValue', newOption.id)
     query.value = ''
     nextTick(() => {
         setTimeout(() => {
@@ -93,61 +156,4 @@ function onSelect(newId) {
         }, 100)
     })
 }
-
-const internalSearching = ref(props.searching)
-
-watch(() => props.searching, (newVal) => {
-    internalSearching.value = newVal;
-})
-
-// Emit the update event
-const emit = defineEmits(['update:modelValue', 'change'])
-
-// Initialize internalValue based on modelValue
-const internalValue = ref(
-    props.options.find(option => option.id === Number(props.initialId)) ||
-    props.options.find(option => option.id === props.modelValue) ||
-    props.options[0]
-)
-
-if (props.initialId !== undefined && props.initialId !== null) {
-    emit('update:modelValue', props.initialId)
-}
-
-// Check if modelValue is provided, otherwise set it to the first option's id
-if ((!props.modelValue && !internalValue.value) && props.options.length > 0) {
-    emit('update:modelValue', props.options[0].id)
-}
-
-// Watch internalValue for changes and emit the selected ID
-watch(internalValue, (value) => {
-    if (value && value.id !== props.modelValue) {
-        emit('update:modelValue', value.id)
-    }
-})
-
-// Watch props.modelValue for changes to keep internalValue in sync
-watch(() => props.modelValue, (newValue) => {
-    internalValue.value = props.options.find(option => option.id === newValue) || null
-})
-
-const query = ref('')
-const filteredOptions = computed(() =>
-    query.value === ''
-        ? props.options
-        : props.options.filter((option) => {
-            return option.name.toLowerCase().includes(query.value.toLowerCase())
-        }),
-)
-
-const debouncedEmitChange = debounce((value) => {
-    emit('change', value);
-}, 500);
-
-watch(() => query.value, (newVal) => {
-    if (newVal !== '') {
-        internalSearching.value = true;
-        debouncedEmitChange(newVal);
-    }
-})
 </script>
