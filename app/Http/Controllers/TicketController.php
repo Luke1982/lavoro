@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TicketPriorities;
+use App\Enums\TicketStatusses;
 use App\Models\Ticket;
-use Illuminate\Http\Request;
 use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketUpdateRequest;
 
@@ -42,9 +43,14 @@ class TicketController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Ticket $ticket)
     {
-        //
+        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand']);
+        return inertia('Tickets/ShowPage', [
+            'ticket' => $ticket,
+            'statusses' => TicketStatusses::comboBoxArray(),
+            'priorities' => TicketPriorities::comboBoxArray(),
+        ]);
     }
 
     /**
