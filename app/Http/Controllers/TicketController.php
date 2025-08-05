@@ -50,6 +50,7 @@ class TicketController extends Controller
             'ticket' => $ticket,
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
+            'remarks' => $ticket->remarks->load('user'),
         ]);
     }
 

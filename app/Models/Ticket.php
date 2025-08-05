@@ -30,4 +30,11 @@ class Ticket extends Model
         return $this->morphToMany(Image::class, 'imageable')
             ->withTimestamps();
     }
+
+    public function remarks()
+    {
+        return $this->morphToMany(Remark::class, 'remarkable')
+            ->orderBy('created_at', 'desc')
+            ->withTimestamps();
+    }
 }

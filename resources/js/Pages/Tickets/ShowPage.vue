@@ -74,6 +74,8 @@
                     </div>
                 </div>
             </BoxComponent>
+            <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
+                :comments="ticket.remarks" class="mt-8" />
         </template>
         <template #sidebar>
             <BoxComponent>
@@ -94,6 +96,7 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
+import RemarksComponent from '@/Components/RemarksComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
