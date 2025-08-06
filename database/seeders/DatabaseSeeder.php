@@ -4,17 +4,18 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Asset;
-use App\Models\Material;
-use App\Models\MaterialCategory;
-use App\Models\MaterialUsageUnit;
 use App\Models\Ticket;
 use App\Models\Product;
+use App\Models\Material;
 use App\Models\ServiceJob;
+use App\Models\MaterialRole;
 use App\Models\ServiceCheck;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\MaterialCategory;
+use App\Models\MaterialUsageUnit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -48,5 +49,6 @@ class DatabaseSeeder extends Seeder
         Artisan::call('snelstart:fetch-artikelen');
         MaterialCategory::factory(10)->create();
         MaterialUsageUnit::factory(10)->create();
+        MaterialRole::factory(4)->create();
     }
 }
