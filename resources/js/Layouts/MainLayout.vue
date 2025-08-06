@@ -44,6 +44,14 @@
                                                         aria-hidden="true" />
                                                     {{ item.name }}
                                                     </Link>
+                                                    <ul v-if="item.children">
+                                                        <li v-for="child in item.children" :key="child.name">
+                                                            <Link :href="child.href"
+                                                                :class="[child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11']">
+                                                            {{ child.name }}
+                                                            </Link>
+                                                        </li>
+                                                    </ul>
                                                 </li>
                                             </ul>
                                         </li>
@@ -89,6 +97,14 @@
                                     <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
                                     {{ item.name }}
                                     </Link>
+                                    <ul v-if="item.children">
+                                        <li v-for="child in item.children" :key="child.name">
+                                            <Link :href="child.href"
+                                                :class="[child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11']">
+                                            {{ child.name }}
+                                            </Link>
+                                        </li>
+                                    </ul>
                                 </li>
                             </ul>
                         </li>
@@ -159,6 +175,7 @@ import {
     Square3Stack3DIcon,
     UsersIcon,
     XMarkIcon,
+    SwatchIcon
 } from '@heroicons/vue/24/outline'
 import { Link } from '@inertiajs/vue3'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
@@ -172,6 +189,12 @@ const navigation = [
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
     { name: 'Keurpunten', href: '/servicechecks', icon: CheckIcon, current: false },
+    {
+        name: 'Materialen', href: '/materials', icon: SwatchIcon, current: false, children: [
+            { name: 'Categorieën', href: '/materialcategories', current: false },
+            { name: 'Gebruikseenheden', href: '/materialusageunits', current: false }
+        ]
+    },
     { name: 'Agenda', href: '/events', icon: CalendarIcon, current: false },
 ]
 const lists = [

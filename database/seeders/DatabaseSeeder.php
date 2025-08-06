@@ -4,6 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Asset;
+use App\Models\Material;
+use App\Models\MaterialCategory;
+use App\Models\MaterialUsageUnit;
 use App\Models\Ticket;
 use App\Models\Product;
 use App\Models\ServiceJob;
@@ -42,5 +45,8 @@ class DatabaseSeeder extends Seeder
             ->has(ServiceJob::factory()->count(rand(0, 5)))
             ->create();
         });
+        Artisan::call('snelstart:fetch-artikelen');
+        MaterialCategory::factory(10)->create();
+        MaterialUsageUnit::factory(10)->create();
     }
 }
