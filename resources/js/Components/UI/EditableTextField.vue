@@ -3,7 +3,8 @@
         <span v-if="!editing">{{ model }}</span>
 
         <div class="flex" v-if="editing">
-            <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow" />
+            <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow"
+                :type="inputType" />
             <textarea v-else-if="type === 'textarea'" v-model="local"
                 class="flex-grow p-2 border border-gray-300 rounded-l-md" rows="8"></textarea>
             <button @click="save" class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
@@ -25,9 +26,12 @@ import { ref, watchEffect } from 'vue';
 import { PencilSquareIcon } from '@heroicons/vue/24/outline';
 import TextInput from './TextInput.vue';
 
+const emit = defineEmits(['update']);
+
 const model = defineModel();
 defineProps({
     type: { type: String, default: 'input' },
+    inputType: { type: String, default: 'text' },
 });
 
 const editing = ref(false);
@@ -45,5 +49,6 @@ function startEdit() {
 function save() {
     model.value = local.value;
     editing.value = false;
+    emit('update', local.value);
 }
 </script>
