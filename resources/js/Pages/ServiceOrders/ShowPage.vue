@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                    }}, {{
+                }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -38,7 +38,7 @@
                 <div class="col-span-10 flex">
                     <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
                     <button @click="addServiceJob"
-                        class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                        class="w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                         Keuren
                     </button>
                 </div>
@@ -62,7 +62,7 @@
             <div class="col-span-10 flex">
                 <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
                 <button @click="attachTicket"
-                    class="ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    class="w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                     Voeg storing aan werkbon toe
                 </button>
             </div>
@@ -70,6 +70,64 @@
         <div class="flex flex-wrap" v-auto-animate>
             <div class="w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets" :key="ticket.id">
                 <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
+            </div>
+        </div>
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Materialen</h2>
+        <div class="grid grid-cols-12 mt-4">
+            <div class="col-span-2 text-xs">
+                Welke materialen heb je gebruikt?
+            </div>
+            <div class="col-span-10 flex">
+                <div class="flex flex-grow">
+                    <div class="flex flex-col flex-grow">
+                        <span class="text-sm mb-2">Kies een materiaal</span>
+                        <ComboBox :options="internalMaterials" class="flex-grow" v-model="materialToAdd" />
+                    </div>
+                    <div class="flex flex-col w-30 ml-2">
+                        <span class="text-sm mb-2">Aantal</span>
+                        <TextInput v-model="materialsForm.quantity" type="number" placeholder="Aantal" />
+                    </div>
+                </div>
+                <button @click="attachMaterial"
+                    class="self-end ml-2 px-4 py-2 w-70 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    Voeg materiaal aan werkbon toe
+                </button>
+            </div>
+            <div class="col-span-2 text-xs mt-5">
+                Deze materialen zijn toegevoegd
+            </div>
+            <div class="col-span-10 flex mt-5">
+                <div class="w-full">
+                    <div v-if="serviceOrder.materials.length > 0"
+                        class="grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 pb-3">
+                        <div class="col-span-5 pl-4">Materiaal</div>
+                        <div class="col-span-2">Aantal</div>
+                        <div class="col-span-2">Prijs per stuk</div>
+                        <div class="col-span-2">Totaal</div>
+                        <div class="col-span-1">Acties</div>
+                    </div>
+                    <div v-auto-animate>
+                        <div v-for="material in serviceOrder.materials" :key="material.id"
+                            class="grid grid-cols-12 py-2 items-center odd:bg-gray-50">
+                            <div class="col-span-5 pl-4">{{ material.name }}</div>
+                            <div class="col-span-2">
+                                <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full"
+                                    @update="val => {
+                                        materialsForm.quantity = val;
+                                        updateMaterialQuantity(material.pivot.id);
+                                    }" />
+                            </div>
+                            <div class="col-span-2">€ {{ Number(material.price).toFixed(2) }}</div>
+                            <div class="col-span-2">€ {{ (Number(material.pivot.quantity) *
+                                Number(material.price)).toFixed(2) }}</div>
+                            <div class="col-span-1">
+                                <TrashIcon class="w-5 h-5 text-red-500 cursor-pointer"
+                                    @click="detachMaterial(material.pivot.id)"
+                                    v-tooltip="'Verwijder dit materiaal van de werkbon'" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </BoxComponent>
@@ -81,7 +139,9 @@ import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
+import { TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
@@ -89,8 +149,22 @@ const props = defineProps({
     serviceOrder: {
         type: Object,
         required: true
+    },
+    allMaterials: {
+        type: Array,
+        required: true
     }
 });
+
+const internalMaterials = props.allMaterials.slice().sort((a, b) =>
+    a.name.localeCompare(b.name)
+).map((material) => {
+    return {
+        id: material.id,
+        name: `${material.name}, code ${material.code}, voorraad ${material.stock}, prijs € ${material.price}`,
+    };
+});
+const materialToAdd = ref(internalMaterials[0]?.id || null);
 
 const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     a.product.product_type.name.localeCompare(b.product.product_type.name)
@@ -127,6 +201,10 @@ const form = useForm({
     ...props.serviceOrder
 });
 
+const materialsForm = useForm({
+    quantity: 1,
+});
+
 const newServicejobForm = useForm({
     service_order_id: props.serviceOrder.id,
     asset_id: assetToCheck.value,
@@ -152,6 +230,29 @@ const attachTicket = () => {
         preserveScroll: true,
         onSuccess: () => {
             internalTickets.value = internalTickets.value.filter(ticket => ticket.id !== ticketToSolve.value);
+        }
+    });
+};
+
+const attachMaterial = () => {
+    if (!materialToAdd.value || materialsForm.quantity <= 0) return;
+
+    materialsForm.post(`/serviceorders/${props.serviceOrder.id}/materials/${materialToAdd.value}`, {
+        preserveScroll: true,
+    });
+};
+
+const detachMaterial = (materiableId) => {
+    materialsForm.delete(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
+        preserveScroll: true,
+    });
+};
+
+const updateMaterialQuantity = (materiableId) => {
+    materialsForm.put(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            materialsForm.reset()
         }
     });
 };

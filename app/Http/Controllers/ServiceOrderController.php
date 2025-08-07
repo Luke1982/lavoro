@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ServiceOrderUpdateRequest;
-use App\Models\ServiceOrder;
 use App\Models\Ticket;
+use App\Models\Material;
+use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
+use App\Http\Requests\ServiceOrderUpdateRequest;
 
 class ServiceOrderController extends Controller
 {
@@ -50,7 +51,12 @@ class ServiceOrderController extends Controller
                 'customer.tickets.asset.product.productType',
                 'tickets.asset.product.brand',
                 'tickets.asset.product.productType',
+                'materials',
             ])->findOrFail($id),
+            'allMaterials' => Material::all()->load([
+                'category',
+                'usageUnit',
+            ]),
         ]);
     }
 
@@ -97,5 +103,43 @@ class ServiceOrderController extends Controller
     {
         $ticket->update(['service_order_id' => null]);
         return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');
+    }
+
+    /**
+     * Attach a material to a service order.
+     */
+    public function attachMaterial(Request $request, ServiceOrder $serviceorder, Material $material)
+    {
+        $serviceorder->materials()->attach($material, [
+            'quantity' => $request->input('quantity', 1),
+        ]);
+        return redirect()->back()->with('success', 'Materiaal succesvol gekoppeld aan de werkbon.');
+    }
+
+    public function detachMaterial(ServiceOrder $serviceorder, string $materiable_id)
+    {
+        $serviceorder
+            ->materials()
+            ->newPivotQuery()
+            ->where('materiables.id', $materiable_id)
+            ->delete();
+
+        return redirect()->back()
+            ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
+    }
+
+    public function updateMateriable(Request $request, ServiceOrder $serviceorder, string $materiable_id)
+    {
+        $serviceorder
+            ->materials()
+            ->newPivotQuery()
+            ->where('materiables.id', $materiable_id)
+            ->update([
+                'quantity' => $request->input('quantity', 1),
+                'material_role_id' => $request->input('material_role_id', null),
+            ]);
+
+        return redirect()->back()
+            ->with('success', 'Materiaal succesvol bijgewerkt.');
     }
 }

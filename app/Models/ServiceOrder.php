@@ -32,4 +32,16 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    public function materials()
+    {
+        return $this->morphToMany(
+            Material::class,
+            'materiable',
+        )->withPivot(
+            'quantity',
+            'material_role_id',
+            'id'
+        )->withTimestamps();
+    }
 }

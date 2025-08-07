@@ -41,6 +41,12 @@ Route::group(
             ->name('serviceorders.attachTicket');
         Route::delete('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'detachTicket'])
             ->name('serviceorders.detachTicket');
+        Route::post('serviceorders/{serviceorder}/materials/{material}', [ServiceOrderController::class, 'attachMaterial'])
+            ->name('serviceorders.attachMaterial');
+        Route::delete('serviceorders/{serviceorder}/materials/{materiable_id}', [ServiceOrderController::class, 'detachMaterial'])
+            ->name('serviceorders.detachMaterial');
+        Route::put('serviceorders/{serviceorder}/materials/{materiable_id}', [ServiceOrderController::class, 'updateMateriable'])
+            ->name('serviceorders.updateMateriable');
         Route::resource('servicejobs', ServiceJobController::class);
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
