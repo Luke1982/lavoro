@@ -52,6 +52,7 @@ class ServiceOrderController extends Controller
                 'tickets.asset.product.brand',
                 'tickets.asset.product.productType',
                 'materials',
+                'remarks.user'
             ])->findOrFail($id),
             'allMaterials' => Material::all()->load([
                 'category',

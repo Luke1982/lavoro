@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -123,9 +123,9 @@
                 </div>
             </div>
         </div>
-        <h2 class="text-xl font-bold my-4 text-center uppercase">Afsluiting</h2>
-        <div class="flex justify-center">
-            <div class="w-150 flex flex-col">
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Afsluiting en opmerkingen</h2>
+        <div class="flex flex-wrap">
+            <div class="w-1/2 flex flex-col pr-3">
                 <EditableTextField v-model="form.signed_by" class="w-full mb-5"
                     @update="val => { form.signed_by = val; }"
                     placeholder="Voer de naam van degene in die de werkbon tekent" />
@@ -139,6 +139,10 @@
                     <XMarkIcon class="absolute top-2 right-2 transform w-5 h-5 text-red-600 cursor-pointer"
                         @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                 </div>
+            </div>
+            <div class="w-1/2 pl-3">
+                <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'" :remarkable-id="serviceOrder.id"
+                    :comments="serviceOrder.remarks" class="mt-8" />
             </div>
         </div>
     </BoxComponent>
@@ -156,6 +160,7 @@ import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outlin
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
+import RemarksComponent from '@/Components/RemarksComponent.vue';
 
 const props = defineProps({
     serviceOrder: {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\RemarkableTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,6 +10,7 @@ class ServiceOrder extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceOrderFactory> */
     use HasFactory;
+    use RemarkableTrait;
 
     protected $fillable = [
         'description',
