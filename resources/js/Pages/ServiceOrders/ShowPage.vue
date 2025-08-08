@@ -1,6 +1,6 @@
 <template>
     <BoxComponent>
-        <h1 class="text-2xl font-bold mb-4 text-center uppercase">Werkbon</h1>
+        <h1 class="text-2xl font-bold mb-4 text-center uppercase">Werkbon van {{ nlDate(serviceOrder.created_at) }}</h1>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
             <div class="col-span-2 text-xs">
                 Naam klant
@@ -16,17 +16,10 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
-            </div>
-            <div class="col-span-2 text-xs">
-                Naam contactpersoon
-            </div>
-            <div class="col-span-4">
-                <EditableTextField :value="form.signed_by" class="w-full"
-                    @update="val => { form.signed_by = val; updateServiceOrder(); }" />
             </div>
         </div>
         <div v-auto-animate class="my-4">
@@ -130,6 +123,14 @@
                 </div>
             </div>
         </div>
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Afsluiting</h2>
+        <div class="flex justify-center">
+            <div class="w-150 flex flex-col">
+                <EditableTextField v-model="form.signed_by" class="w-full mb-3"
+                    @update="val => { form.signed_by = val; }" />
+                <SignaturePad v-model="form.signature_base64" class="" />
+            </div>
+        </div>
     </BoxComponent>
 </template>
 
@@ -144,6 +145,7 @@ import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
 import { TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import SignaturePad from '@/Components/UI/SignaturePad.vue';
 
 const props = defineProps({
     serviceOrder: {
@@ -155,6 +157,7 @@ const props = defineProps({
         required: true
     }
 });
+
 
 const internalMaterials = props.allMaterials.slice().sort((a, b) =>
     a.name.localeCompare(b.name)
@@ -218,11 +221,17 @@ const addServiceJob = () => {
     })
 };
 
-const updateServiceOrder = () => {
-    form.put(`/serviceorders/${props.serviceOrder.id}`, {
-        preserveScroll: true,
-    });
-};
+watch(
+    [
+        () => form.signed_by,
+        () => form.signature_base64,
+    ],
+    () => {
+        form.put(`/serviceorders/${props.serviceOrder.id}`, {
+            preserveScroll: true,
+        });
+    }
+)
 
 const attachTicket = () => {
     if (!ticketToSolve.value) return;
