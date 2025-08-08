@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                    }}, {{
+                }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -137,7 +137,7 @@
                 <div class="relative" v-if="editingSignature">
                     <SignaturePad v-model="form.signature_base64" />
                     <XMarkIcon class="absolute top-2 right-2 transform w-5 h-5 text-red-600 cursor-pointer"
-                        @click="editingSignature = false" />
+                        @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                 </div>
             </div>
         </div>
