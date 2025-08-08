@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\RemarkableTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,6 +10,7 @@ class Ticket extends Model
 {
     /** @use HasFactory<\Database\Factories\TicketFactory> */
     use HasFactory;
+    use RemarkableTrait;
 
     protected $fillable = [
         'asset_id',
@@ -28,13 +30,6 @@ class Ticket extends Model
     public function images()
     {
         return $this->morphToMany(Image::class, 'imageable')
-            ->withTimestamps();
-    }
-
-    public function remarks()
-    {
-        return $this->morphToMany(Remark::class, 'remarkable')
-            ->orderBy('created_at', 'desc')
             ->withTimestamps();
     }
 }
