@@ -16,7 +16,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -127,7 +127,8 @@
         <div class="flex justify-center">
             <div class="w-150 flex flex-col">
                 <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                    @update="val => { form.signed_by = val; }" />
+                    @update="val => { form.signed_by = val; }"
+                    placeholder="Voer de naam van degene in die de werkbon tekent" />
                 <div class="relative" v-if="!editingSignature">
                     <img :src="serviceOrder.signature_base64" alt="">
                     <PencilSquareIcon class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 cursor-pointer"
