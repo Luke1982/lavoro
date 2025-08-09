@@ -1,10 +1,10 @@
 <template>
-    <div :class="[editing ? '' : 'pr-5', 'w-2/3 relative']">
+    <div :class="[editing ? '' : 'pr-5', 'relative']">
         <span v-if="!editing">{{ model ?? placeholder }}</span>
 
-        <div class="flex" v-if="editing">
-            <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow" :type="inputType"
-                :placeholder="placeholder" />
+        <div class="flex min-w-0" v-if="editing">
+            <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow min-w-0"
+                :type="inputType" :placeholder="placeholder" />
             <textarea v-else-if="type === 'textarea'" v-model="local"
                 class="flex-grow p-2 border border-gray-300 rounded-l-md" rows="8"></textarea>
             <button @click="save" class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
