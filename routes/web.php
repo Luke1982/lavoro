@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\ServiceJob;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
@@ -15,6 +14,7 @@ use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ServiceCheckController;
 use App\Http\Controllers\ServiceOrderController;
+use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceCheckInstanceController;
 
@@ -33,6 +33,8 @@ Route::group(
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);
+        Route::resource('materialcategories', MaterialCategoryController::class)
+            ->except(['show', 'edit', 'create']);
         Route::resource('servicechecks', ServiceCheckController::class)->except(['show', 'edit', 'create']);
         Route::resource('servicecheckvalues', ServiceCheckValueController::class)
             ->only(['store', 'update', 'destroy']);
