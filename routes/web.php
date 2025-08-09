@@ -10,6 +10,7 @@ use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ServiceCheckController;
@@ -30,6 +31,8 @@ Route::group(
         Route::resource('products', ProductController::class);
         Route::resource('assets', AssetController::class);
         Route::resource('tickets', TicketController::class);
+        Route::resource('materials', MaterialController::class)
+            ->except(['edit', 'create']);
         Route::resource('servicechecks', ServiceCheckController::class)->except(['show', 'edit', 'create']);
         Route::resource('servicecheckvalues', ServiceCheckValueController::class)
             ->only(['store', 'update', 'destroy']);
