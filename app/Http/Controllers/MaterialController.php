@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MaterialUpdateRequest;
 use App\Models\Material;
+use App\Models\MaterialCategory;
 use Illuminate\Http\Request;
 
 class MaterialController extends Controller
@@ -15,6 +16,7 @@ class MaterialController extends Controller
     {
         return inertia('Materials/IndexPage', [
             'materials' => Material::with(['category', 'usageUnit'])->get(),
+            'categories' => MaterialCategory::all(),
         ]);
     }
 

@@ -6,8 +6,12 @@ import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
-const { materials } = defineProps({
+const { materials, categories } = defineProps({
     materials: {
+        type: Array,
+        default: () => []
+    },
+    categories: {
         type: Array,
         default: () => []
     }
@@ -21,6 +25,7 @@ const headers = [
     { key: 'price', label: 'Prijs', fieldtype: 'number', width: 'w-1/9' },
     { key: 'divisable', label: 'Deelbaar', fieldtype: 'boolean', width: 'w-20' },
     { key: 'is_active', label: 'Actief', fieldtype: 'boolean', width: 'w-20' },
+    { key: 'material_category_id', label: 'Categorie', fieldtype: 'combobox', width: 'w-full', combovalues: categories },
 ];
 
 const form = useForm({
