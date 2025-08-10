@@ -9,4 +9,8 @@ class MaterialUsageUnit extends Model
 {
     /** @use HasFactory<\Database\Factories\MaterialUsageUnitFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'name',
+    ];
 }
