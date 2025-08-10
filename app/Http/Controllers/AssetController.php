@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
 use App\Models\Product;
+use App\Models\Customer;
 use Illuminate\Http\Request;
+use App\Http\Requests\AssetUpdateRequest;
 
 class AssetController extends Controller
 {
@@ -94,6 +95,7 @@ class AssetController extends Controller
                 'servicejobs',
             ]),
             'allProducts' => $all_products,
+            'allCustomers'  => Customer::all(),
         ]);
     }
 

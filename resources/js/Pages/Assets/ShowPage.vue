@@ -78,10 +78,15 @@
                     </div>
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Klant</div>
-                        <div class="w-2/3">
-                            <Link :href="`/customers/${asset.customer.id}`" class="text-blue-600 underline">
+                        <div class="w-2/3 relative">
+                            <Link :href="`/customers/${asset.customer.id}`" v-if="!editingCustomer"
+                                class="text-blue-600 underline">
                             {{ asset.customer.name }}
                             </Link>
+                            <PencilSquareIcon v-if="!editingCustomer"
+                                class="w-5 h-5 text-gray-500 absolute right-3 top-2 transform -translate-y-1/2 cursor-pointer"
+                                @click="editingCustomer = true" />
+                            <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id" />
                         </div>
                     </div>
                 </div>
@@ -165,6 +170,7 @@ const editing = ref({
 })
 
 const openNewTicketForm = ref(false);
+const editingCustomer = ref(false);
 
 const edit = (key) => {
     for (const k in editing.value) {
@@ -179,6 +185,10 @@ const props = defineProps({
         required: true,
     },
     allProducts: {
+        type: Array,
+        required: true,
+    },
+    allCustomers: {
         type: Array,
         required: true,
     },
@@ -203,13 +213,15 @@ const updateAsset = () => {
             for (const key in editing.value) {
                 editing.value[key] = false;
             }
+            editingCustomer.value = false;
         },
     });
 };
 
 watch(
     [
-        () => form.status
+        () => form.status,
+        () => form.customer_id,
     ],
     updateAsset
 )
