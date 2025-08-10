@@ -152,6 +152,7 @@ function onSelect(newOption) {
     query.value = ''
     nextTick(() => {
         setTimeout(() => {
+            if (!inputRef.value) return
             inputRef.value.el.blur()
         }, 100)
     })
