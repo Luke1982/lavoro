@@ -3,11 +3,14 @@
         <table class="min-w-full table-fixed border-separate border-spacing-0">
             <thead>
                 <tr>
-                    <th v-for="header in headers" :key="header.key"
-                        :class="[header.width, 'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md']">
+                    <th v-for="header in headers" :key="header.key" :class="[
+                        header.width,
+                        'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md',
+                        (!hasDetailPages ? 'last:rounded-tr-md' : '')
+                    ]">
                         {{
                             header.label }}</th>
-                    <th class="px-4 py-2 bg-gray-600 rounded-tr-md"></th>
+                    <th v-if="hasDetailPages" class="px-4 py-2 bg-gray-600 rounded-tr-md"></th>
                 </tr>
             </thead>
             <tbody class="bg-white">
@@ -23,7 +26,7 @@
                             :initialId="column.combovalues.find(c => c.id === item[column.key]?.id)?.id"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
                     </td>
-                    <td class="px-4 py-2 text-right">
+                    <td class="px-4 py-2 text-right" v-if="hasDetailPages">
                         <Link v-if="urlBase" :href="`/${urlBase}/${item.id}`" class="text-blue-600 hover:text-blue-900">
                         Details
                         </Link>
@@ -55,6 +58,7 @@ const { headers, items } = defineProps<{
     headers: Header[];
     items: Item[];
     urlBase?: string;
+    hasDetailPages?: boolean;
 }>();
 
 const emit = defineEmits(['update']);
