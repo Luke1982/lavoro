@@ -70,9 +70,7 @@
                                     class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
                                         asset.status }}</span>
                             </div>
-                            <ComboBox v-if="editing.status" :options="statusOptions"
-                                :initial-id="asset.status === 'Actief' ? 1 : 2"
-                                @update:modelValue="val => { form.status = statusOptions.find(status => status.id === Number(val)).name; updateAsset(); }" />
+                            <ComboBox v-if="editing.status" :options="statusOptions" v-model="form.status" />
                             <PencilSquareIcon v-if="!editing.status"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('status')" />
@@ -152,7 +150,7 @@ import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSqua
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
@@ -187,8 +185,8 @@ const props = defineProps({
 });
 
 const statusOptions = [
-    { id: 1, name: 'Actief' },
-    { id: 2, name: 'Niet actief' },
+    { id: 'Actief', name: 'Actief' },
+    { id: 'Niet actief', name: 'Niet actief' },
 ];
 
 const form = useForm({
@@ -208,5 +206,12 @@ const updateAsset = () => {
         },
     });
 };
+
+watch(
+    [
+        () => form.status
+    ],
+    updateAsset
+)
 
 </script>
