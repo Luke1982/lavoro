@@ -1,15 +1,16 @@
 <template>
-    <div v-if="items.length" class="-mx-4 mt-3 sm:-mx-0 border border-gray-300 rounded-md">
-        <table class="min-w-full divide-y divide-gray-200 table-fixed bg-gray-600">
+    <div v-if="items.length" class="-mx-4 mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px">
+        <table class="min-w-full table-fixed border-separate border-spacing-0">
             <thead>
                 <tr>
                     <th v-for="header in headers" :key="header.key"
-                        :class="[header.width, 'px-4 py-2 text-left text-sm font-semibold text-white']">{{
+                        :class="[header.width, 'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md']">
+                        {{
                             header.label }}</th>
-                    <th class="px-4 py-2"></th>
+                    <th class="px-4 py-2 bg-gray-600 rounded-tr-md"></th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white">
                 <tr v-for="item in items" :key="item.id" class="even:bg-gray-50">
                     <td v-for="column in headers" :key="column.key" class="px-4 py-2">
                         <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
