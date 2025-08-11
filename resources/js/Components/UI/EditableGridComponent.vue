@@ -25,6 +25,8 @@
                             :options="column.combovalues"
                             :initialId="column.combovalues.find(c => c.id === item[column.key]?.id)?.id"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
+                        <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
+                            @update:modelValue="onCellChange(item.id, column.key, $event)" />
                     </td>
                     <td class="px-4 py-2 text-right" v-if="hasDetailPages">
                         <Link v-if="urlBase" :href="`/${urlBase}/${item.id}`" class="text-blue-600 hover:text-blue-900">
@@ -41,6 +43,7 @@ import { Link } from '@inertiajs/vue3';
 import EditableTextField from './EditableTextField.vue';
 import SwitchComponent from './SwitchComponent.vue';
 import ComboBox from './ComboBox.vue';
+import ColorPickerComponent from './ColorPickerComponent.vue';
 
 type Item = {
     id: number;
