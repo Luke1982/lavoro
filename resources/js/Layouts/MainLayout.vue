@@ -195,7 +195,11 @@ const navigation = [
             { name: 'Gebruikseenheden', href: '/materialusageunits', current: false }
         ]
     },
-    { name: 'Agenda', href: '/events', icon: CalendarIcon, current: false },
+    {
+        name: 'Agenda', href: '/events', icon: CalendarIcon, current: false, children: [
+            { name: 'Afspraaktypes', href: '/eventtypes', current: false },
+        ]
+    },
 ]
 const lists = [
     { id: 1, name: 'Aankomende keuringen en storingen', href: '/workload/list', initial: 'A', current: false },

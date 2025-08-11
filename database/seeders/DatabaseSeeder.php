@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\Ticket;
 use App\Models\Product;
 use App\Models\Material;
+use App\Models\EventType;
 use App\Models\ServiceJob;
 use App\Models\MaterialRole;
 use App\Models\ServiceCheck;
@@ -50,5 +51,6 @@ class DatabaseSeeder extends Seeder
         MaterialCategory::factory(10)->create();
         MaterialUsageUnit::factory(10)->create();
         MaterialRole::factory(4)->create();
+        EventType::factory(5)->create();
     }
 }

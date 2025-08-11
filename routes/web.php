@@ -1,15 +1,18 @@
 <?php
 
+use App\Models\EventType;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ServiceCheckController;
@@ -60,6 +63,10 @@ Route::group(
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::resource('remarks', RemarkController::class)
             ->only(['store', 'destroy']);
+        Route::resource('events', EventController::class)
+            ->only(['index']);
+        Route::resource('eventtypes', EventTypeController::class)
+            ->except(['show', 'edit', 'create']);
     }
 );
 
