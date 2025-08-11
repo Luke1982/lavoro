@@ -13,7 +13,6 @@ const { modelValue } = defineProps<{
 }>();
 
 function onColorChange(event: { colors: { hex } }) {
-    console.log('Color changed:', event.colors.hex);
     emit('update:modelValue', event.colors.hex);
 }
 </script>
