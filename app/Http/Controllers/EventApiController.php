@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\EventStoreRequest;
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Requests\EventStoreRequest;
 
 class EventApiController extends Controller
 {
@@ -24,7 +25,7 @@ class EventApiController extends Controller
                 $q->where('start', '<', $request->start)
                     ->where('end', '>', $request->end);
             });
-        })->with('eventType')
+        })->with(['eventType', 'serviceOrders'])
             ->orderBy('start')
             ->get();
 
@@ -46,6 +47,20 @@ class EventApiController extends Controller
     public function update(Request $request, Event $event)
     {
         $event->update($request->all());
+
+        if ($request->has('eventable_type') && $request->has('eventable_id')) {
+            $class = $request->eventable_type;
+            $model = $class::findOrFail($request->eventable_id);
+
+            DB::table('eventables')
+                ->where('event_id', $event->id)
+                ->where('eventable_type', [
+                    substr($request->eventable_type, 1),
+                ])
+                ->delete();
+
+            $model->events()->attach($event->id);
+        }
 
         return response()->json($event);
     }

@@ -1,12 +1,30 @@
 <template>
     <div :class="{ 'relative': modalOpen, 'p-3': true }" v-auto-animate>
         <FullCalendar :options="calendarOptions" ref="calendar">
+            <template #eventContent="{ event }">
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold">{{ event.title }}</span>
+                    <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
+                    <div class="m-2" v-if="event.extendedProps.eventable_id">
+                        <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`" class="text-xs underline">
+                        Werkbon {{ event.extendedProps.eventable_id }}
+                        </Link>&nbsp;bij&nbsp;
+                        <Link :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
+                            class="text-xs underline">
+                        {{ getCustomerById(event.extendedProps.customer_id).name }}
+                        </Link>
+                    </div>
+                </div>
+            </template>
         </FullCalendar>
         <div v-if="modalOpen"
             class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-center justify-center">
             <div class="w-1/2 bg-white rounded-2xl h-[96vh] shadow-2xl overflow-y-scroll relative">
                 <div class="flex p-4 border-b-gray-200 border-b-1 items-center">
-                    <div class="w-10/12 text-gray-600">Maak een nieuwe afspraak</div>
+                    <div class="w-10/12 text-gray-600">
+                        <span v-if="!editingExistingEvent">Maak een nieuwe afspraak</span>
+                        <span v-else>Wijzig afspraak</span>
+                    </div>
                     <div class="w-2/12 flex justify-end">
                         <XMarkIcon class="h-6 w-6 cursor-pointer text-red-600" @click="modalOpen = false" />
                     </div>
@@ -45,7 +63,7 @@
                         class="w-full" :initial-id="form.eventable_id" />
                 </div>
                 <div class="absolute bottom-0 w-full flex justify-end ">
-                    <button @click="modalOpen = false"
+                    <button @click="modalOpen = false; editingExistingEvent = false; form.reset()"
                         class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 flex-grow">
                         Annuleren
                     </button>
@@ -66,7 +84,7 @@ import listPlugin from '@fullcalendar/list'
 import nlLocale from '@fullcalendar/core/locales/nl'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import { onMounted, ref, watch } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -110,7 +128,12 @@ const page = usePage()
 
 const calendar = ref(null)
 const modalOpen = ref(false)
+const editingExistingEvent = ref(false)
 const selectedCustomer = ref(allCustomers[0].id || null)
+
+const getCustomerById = (id) => {
+    return allCustomers.find(customer => customer.id === id)
+}
 
 const getInternalServiceOrders = () => {
     return allServiceOrders.filter(order => order.customer_id === selectedCustomer.value).map(order => ({
@@ -122,7 +145,9 @@ const internalServiceOrders = ref(getInternalServiceOrders())
 
 watch(selectedCustomer, () => {
     internalServiceOrders.value = getInternalServiceOrders()
-    form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
+    if (modalOpen.value) {
+        form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
+    }
 })
 
 onMounted(() => {
@@ -147,11 +172,21 @@ const finalizeSaveOrUpdate = () => {
     form.reset()
     form.event_type_id = eventTypes[0].id || ''
     form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
+    selectedCustomer.value = allCustomers[0].id || null
     calendar.value.getApi().refetchEvents()
 }
 
 const saveEvent = async () => {
     await axios.get('sanctum/csrf-cookie')
+    if (editingExistingEvent.value) {
+        await updateEvent()
+    } else {
+        await createEvent()
+    }
+    finalizeSaveOrUpdate()
+}
+
+const createEvent = async () => {
     const response = await axios.post('/api/events', {
         ...form,
         start: form.start_date + ' ' + form.start_time,
@@ -163,7 +198,21 @@ const saveEvent = async () => {
         return
     }
     page.props.flash.success = 'Afspraak succesvol opgeslagen'
-    finalizeSaveOrUpdate()
+}
+
+const updateEvent = async () => {
+    const response = await axios.put(`/api/events/${form.id}`, {
+        ...form,
+        start: form.start_date + ' ' + form.start_time,
+        end: form.end_date + ' ' + form.end_time,
+    })
+    if (response.status !== 200) {
+        page.props.flash.error = 'Kon de afspraak niet bijwerken'
+        console.error('Error updating event:', response.data)
+        return
+    }
+    page.props.flash.success = 'Afspraak succesvol bijgewerkt'
+    editingExistingEvent.value = false
 }
 
 const onSelect = (selectInfo) => {
@@ -190,8 +239,16 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
             title: event.event_type.name,
             start: event.start,
             end: event.end,
-            description: event.description ?? '',
-            color: event.event_type.color
+            color: event.event_type.color,
+            extendedProps: {
+                id: event.id,
+                name: event.name,
+                event_type_id: event.event_type.id,
+                eventable_id: event.service_orders[0]?.id,
+                eventable_type: '\\App\\Models\\ServiceOrder',
+                description: event.description ?? '',
+                customer_id: event.service_orders[0]?.customer_id,
+            },
         }
     })
     successCallback(events)
@@ -207,7 +264,10 @@ const updateTimes = async (event) => {
     })
     if (response.status !== 200) {
         console.error('Error updating event times:', response.data)
+        page.props.flash.error = 'Kon de tijden van de afspraak niet bijwerken'
+        return
     }
+    page.props.flash.success = 'Tijden van de afspraak succesvol bijgewerkt'
 }
 
 const onDrop = async dropInfo => {
@@ -218,6 +278,24 @@ const onDrop = async dropInfo => {
 const onResize = async resizeInfo => {
     const { event } = resizeInfo
     await updateTimes(event)
+}
+
+const onEventClick = (clickInfo) => {
+    editingExistingEvent.value = true
+    const event = clickInfo.event
+    form.id = event.extendedProps.id
+    form.name = event.extendedProps.name
+    form.start_date = formatLocalDateAsISO(event.start)
+    form.end_date = formatLocalDateAsISO(event.end)
+    form.start_time = nlTime(event.start)
+    form.end_time = nlTime(event.end)
+    form.description = event.extendedProps.description || ''
+    form.event_type_id = event.extendedProps.event_type_id
+    form.eventable_id = event.extendedProps.eventable_id || ''
+    const serviceOrder = allServiceOrders.find(order => order.id === form.eventable_id)
+    selectedCustomer.value = serviceOrder ? serviceOrder.customer_id : null
+    form.eventable_id = event.extendedProps.eventable_id || ''
+    modalOpen.value = true
 }
 
 const calendarOptions = ref({
@@ -232,6 +310,7 @@ const calendarOptions = ref({
     editable: true,
     eventDrop: onDrop,
     eventResize: onResize,
+    eventClick: onEventClick,
     height: '96vh',
     locale: nlLocale,
     businessHours: {
@@ -243,7 +322,7 @@ const calendarOptions = ref({
     eventMaxStack: 2,
     dayMaxEventRows: 2,
     eventMouseEnter: (arg) => {
-        console.log(arg)
+        // console.log(arg)
         // const height = arg.el.getBoundingClientRect().height
         // if (height < 50) {
         //     arg.el.querySelector('.overflow-helper').classList.remove('md:hidden')
@@ -253,7 +332,7 @@ const calendarOptions = ref({
         // arg.el.querySelector('.tools').classList.add('flex')
     },
     eventMouseLeave: (arg) => {
-        console.log(arg)
+        // console.log(arg)
         // arg.el.querySelector('.overflow-helper').classList.add('md:hidden')
         // arg.el.querySelector('.tools').classList.add('hidden')
         // arg.el.querySelector('.tools').classList.remove('flex')
