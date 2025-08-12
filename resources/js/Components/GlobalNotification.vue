@@ -9,7 +9,7 @@
                 leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
                 leave-to-class="opacity-0">
                 <div v-if="localFlashMessage"
-                    class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-green-700 shadow-lg ring-opacity-5">
+                    :class="[type === 'error' ? 'bg-red-600' : 'bg-green-600', 'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-opacity-5']">
                     <div class="p-4">
                         <div class="flex items-start">
                             <div class="flex-shrink-0">

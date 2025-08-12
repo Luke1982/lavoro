@@ -66,7 +66,7 @@ import listPlugin from '@fullcalendar/list'
 import nlLocale from '@fullcalendar/core/locales/nl'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import { onMounted, ref, watch } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -106,6 +106,9 @@ const form = useForm({
     status: 'Gepland',
 })
 
+const page = usePage()
+
+const calendar = ref(null)
 const modalOpen = ref(false)
 const selectedCustomer = ref(allCustomers[0].id || null)
 
@@ -139,6 +142,14 @@ const getHeaderToolbar = () => {
     }
 }
 
+const finalizeSaveOrUpdate = () => {
+    modalOpen.value = false
+    form.reset()
+    form.event_type_id = eventTypes[0].id || ''
+    form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
+    calendar.value.getApi().refetchEvents()
+}
+
 const saveEvent = async () => {
     await axios.get('sanctum/csrf-cookie')
     const response = await axios.post('/api/events', {
@@ -146,7 +157,13 @@ const saveEvent = async () => {
         start: form.start_date + ' ' + form.start_time,
         end: form.end_date + ' ' + form.end_time,
     })
-    console.log(response)
+    if (response.status !== 201) {
+        page.props.flash.error = 'Kon de afspraak niet opslaan'
+        console.error('Error saving event:', response.data)
+        return
+    }
+    page.props.flash.success = 'Afspraak succesvol opgeslagen'
+    finalizeSaveOrUpdate()
 }
 
 const onSelect = (selectInfo) => {
