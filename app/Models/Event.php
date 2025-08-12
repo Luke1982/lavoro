@@ -10,13 +10,19 @@ class Event extends Model
         'name',
         'description',
         'event_type_id',
-        'start_time',
-        'end_time',
+        'start',
+        'end',
+        'status',
         'location',
     ];
 
-    public function type()
+    public function eventType()
     {
         return $this->belongsTo(EventType::class);
+    }
+
+    public function serviceOrders()
+    {
+        return $this->morphedByMany(ServiceOrder::class, 'eventable');
     }
 }

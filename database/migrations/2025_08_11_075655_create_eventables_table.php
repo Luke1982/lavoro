@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('eventable', function (Blueprint $table) {
+        Schema::create('eventables', function (Blueprint $table) {
             $table->id();
             $table->morphs('eventable');
             $table->foreignIdFor(Event::class)

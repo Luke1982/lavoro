@@ -14,15 +14,15 @@ return new class extends Migration
     {
         Schema::create('events', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->nullable();
             $table->text('description')->nullable();
             $table->foreignIdFor(EventType::class)
                 ->constrained()
                 ->onDelete('cascade');
             $table->enum('status', ['Gepland', 'Gaande', 'Afgerond', 'Geannuleerd'])
-                ->default('scheduled');
-            $table->dateTime('start_time');
-            $table->dateTime('end_time');
+                ->default('Gepland');
+            $table->dateTime('start');
+            $table->dateTime('end');
             $table->timestamps();
         });
     }

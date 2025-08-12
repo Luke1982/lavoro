@@ -46,4 +46,9 @@ class ServiceOrder extends Model
             'id'
         )->withTimestamps();
     }
+
+    public function events()
+    {
+        return $this->morphToMany(Event::class, 'eventable');
+    }
 }

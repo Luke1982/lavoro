@@ -6,6 +6,13 @@ export const nlDate = (date) => {
     });
 };
 
+export const formatLocalDateAsISO = (date) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+        date.getDate()
+    )}`;
+};
+
 export const nlTime = (date) => {
     return new Date(date).toLocaleTimeString("nl-NL", {
         hour: "2-digit",

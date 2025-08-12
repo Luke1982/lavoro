@@ -151,8 +151,8 @@
             </a>
         </div>
 
-        <main class="py-10 lg:pl-72">
-            <div class="px-4 sm:px-6 lg:px-8">
+        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72']">
+            <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8']">
                 <slot></slot>
             </div>
         </main>
@@ -177,8 +177,10 @@ import {
     XMarkIcon,
     SwatchIcon
 } from '@heroicons/vue/24/outline'
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
+
+const page = usePage()
 
 const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
