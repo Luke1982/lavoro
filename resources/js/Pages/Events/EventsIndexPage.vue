@@ -2,7 +2,7 @@
     <div :class="{ 'relative': modalOpen, 'p-3': true }" v-auto-animate>
         <FullCalendar :options="calendarOptions" ref="calendar">
             <template #eventContent="{ event }">
-                <div class="flex flex-col">
+                <div class="flex flex-col relative">
                     <span class="text-sm font-semibold">{{ event.title }}</span>
                     <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
                     <div class="m-2" v-if="event.extendedProps.eventable_id">
@@ -14,6 +14,8 @@
                         {{ getCustomerById(event.extendedProps.customer_id).name }}
                         </Link>
                     </div>
+                    <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
+                        class="absolute top-0 right-0 size-6 text-red-500 bg-white rounded-bl-md p-1 cursor-pointer" />
                 </div>
             </template>
         </FullCalendar>
@@ -86,7 +88,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import { onMounted, ref, watch } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, nlDate, nlTime } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -298,6 +300,25 @@ const onEventClick = (clickInfo) => {
     modalOpen.value = true
 }
 
+const deleteEvent = async (eventId) => {
+    if (!confirm('Weet je zeker dat je deze afspraak wilt verwijderen?')) {
+        return
+    }
+    await axios.get('sanctum/csrf-cookie')
+    try {
+        const response = await axios.delete(`/api/events/${eventId}`)
+        if (response.status === 204) {
+            page.props.flash.success = 'Afspraak succesvol verwijderd'
+            calendar.value.getApi().refetchEvents()
+        } else {
+            page.props.flash.error = 'Kon de afspraak niet verwijderen'
+        }
+    } catch (error) {
+        console.error('Error deleting event:', error)
+        page.props.flash.error = 'Er is een fout opgetreden bij het verwijderen van de afspraak'
+    }
+}
+
 const calendarOptions = ref({
     plugins: [timeGridPlugin, interactionPlugin, listPlugin],
     initialView: getView(),
@@ -321,21 +342,5 @@ const calendarOptions = ref({
     },
     eventMaxStack: 2,
     dayMaxEventRows: 2,
-    eventMouseEnter: (arg) => {
-        // console.log(arg)
-        // const height = arg.el.getBoundingClientRect().height
-        // if (height < 50) {
-        //     arg.el.querySelector('.overflow-helper').classList.remove('md:hidden')
-        //     return
-        // }
-        // arg.el.querySelector('.tools').classList.remove('hidden')
-        // arg.el.querySelector('.tools').classList.add('flex')
-    },
-    eventMouseLeave: (arg) => {
-        // console.log(arg)
-        // arg.el.querySelector('.overflow-helper').classList.add('md:hidden')
-        // arg.el.querySelector('.tools').classList.add('hidden')
-        // arg.el.querySelector('.tools').classList.remove('flex')
-    }
 })
 </script>

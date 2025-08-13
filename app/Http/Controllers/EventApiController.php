@@ -64,4 +64,11 @@ class EventApiController extends Controller
 
         return response()->json($event);
     }
+
+    public function destroy(Event $event)
+    {
+        $event->delete();
+
+        return response()->json(null, 204);
+    }
 }
