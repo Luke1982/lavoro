@@ -105,7 +105,6 @@ import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/ou
 import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, nlDate, nlTime } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
-import { status } from 'nprogress'
 
 const { eventTypes, allCustomers, allServiceOrders, eventStatusses } = defineProps({
     eventTypes: {
