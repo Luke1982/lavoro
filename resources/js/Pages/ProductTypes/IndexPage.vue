@@ -33,6 +33,9 @@
             v-if="addingType">
             <TextInput v-model="newTypeForm.name" label="Naam" class="flex-grow" :hasError="newTypeForm.errors.name"
                 :errorMessage="newTypeForm.errors.name" />
+            <TextInput v-model="newTypeForm.typical_certificate_days" label="Keuringsduur (dagen)" class="w-80"
+                type="number" :hasError="newTypeForm.errors.typical_certificate_days"
+                :errorMessage="newTypeForm.errors.typical_certificate_days" />
             <div class="absolute bottom-2 right-6">
                 <button @click="addNewType"
                     class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -81,14 +84,23 @@
                         <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">
                             Naam
                         </th>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                            Keuringsduur
+                            <InformationCircleIcon class="inline h-5 w-5 text-gray-400 ml-1" v-tooltip="{
+                                html: true,
+                                content: `<span class='block w-80'>Het standaard aantal dagen waarmee de keuringsdatum van
+                                een machine vooruitgeschoven wordt bij een succesvolle keuring. Dit kan overschreven
+                                worden binnen het product en door een tijdelijke goedkeur.</span>`
+                            }" />
+                        </th>
                         <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
                             <span class="sr-only">Wijzig</span>
                         </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
-                    <tr v-for="type in internalTypes" :key="type.id">
-                        <td class="w-10/12 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:max-w-none sm:pl-0">
+                    <tr v-for="type in internalTypes" :key="type.id" class="text-sm">
+                        <td class="w-8/12 py-4 pl-4 pr-3 font-medium text-gray-900 sm:max-w-none sm:pl-0">
                             <div v-if="type.open" class="relative flex flex-grow items-stretch focus-within:z-10">
                                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                     <FingerPrintIcon class="h-5 w-5 text-gray-400" />
@@ -98,6 +110,11 @@
                                     v-model="type.name" />
                             </div>
                             <span v-else>{{ type.name }}</span>
+                        </td>
+                        <td>
+                            <TextInput v-if="type.open" v-model="type.typical_certificate_days" class="w-24"
+                                type="number" :hasError="false" />
+                            <span v-else>{{ type.typical_certificate_days }} dagen</span>
                         </td>
                         <td class="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                             <a @click="toggleRecord(type.id)"
@@ -154,7 +171,7 @@
 
 <script setup>
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from '@heroicons/vue/20/solid'
-import { ArrowPathIcon, FingerPrintIcon, MagnifyingGlassIcon, PlusCircleIcon, TrashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import { ArrowPathIcon, FingerPrintIcon, InformationCircleIcon, MagnifyingGlassIcon, PlusCircleIcon, TrashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, onMounted } from 'vue';
 import debounce from 'lodash/debounce';
@@ -176,6 +193,7 @@ const inAction = ref(false);
 
 const newTypeForm = useForm({
     name: '',
+    typical_certificate_days: 0,
 });
 
 const addNewType = () => {
@@ -212,7 +230,7 @@ const links = props.productTypes.links.filter(link => link.label !== '&laquo; Pr
 const toggleRecord = (id) => {
     internalTypes.value = internalTypes.value.map(type => {
         if (type.open) {
-            const updateForm = useForm({ name: type.name });
+            const updateForm = useForm({ name: type.name, typical_certificate_days: type.typical_certificate_days });
             updateForm.patch(`/producttypes/${type.id}`, {
                 preserveScroll: true,
             });

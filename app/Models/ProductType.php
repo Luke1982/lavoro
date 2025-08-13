@@ -17,6 +17,7 @@ class ProductType extends Model
      */
     protected $fillable = [
         'name',
+        'typical_certificate_days',
     ];
 
     public function checks()

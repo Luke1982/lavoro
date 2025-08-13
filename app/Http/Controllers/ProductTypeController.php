@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductType;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductTypeStoreUpdateRequest;
 
 class ProductTypeController extends Controller
 {
@@ -49,15 +50,9 @@ class ProductTypeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ProductTypeStoreUpdateRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        $type = ProductType::create([
-            'name' => $request->name,
-        ]);
+        $type = ProductType::create($request->validated());
 
         return redirect()
             ->route('producttypes.index')
@@ -68,15 +63,9 @@ class ProductTypeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ProductType $producttype)
+    public function update(ProductTypeStoreUpdateRequest $request, ProductType $producttype)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        $producttype->update([
-            'name' => $request->name,
-        ]);
+        $producttype->update($request->validated());
 
         return redirect()
             ->route('producttypes.index')
