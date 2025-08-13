@@ -139,7 +139,7 @@ const form = useForm({
     eventable_id: '',
     id: '',
     description: '',
-    status: '',
+    status: eventStatusses[0]?.name,
 })
 
 const page = usePage()
