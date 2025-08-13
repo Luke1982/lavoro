@@ -26,15 +26,31 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <div class="flex">
-                        <h3 class="text-sm font-semibold mb-3">Beschrijving</h3>
-                        <component :is="currentIcon"
-                            :class="[editing ? 'text-green-700' : 'text-gray-600', 'ml-2 inline h-5 w-5 mr-2 cursor-pointer']"
-                            @click="editing = !editing" />
+                <div class="mt-4 flex">
+                    <div class="flex flex-col w-1/2">
+                        <div class="flex">
+                            <h3 class="text-sm font-semibold mb-3">Beschrijving</h3>
+                            <component :is="currentIcon"
+                                :class="[editing ? 'text-green-700' : 'text-gray-600', 'ml-2 inline h-5 w-5 mr-2 cursor-pointer']"
+                                @click="editing = !editing" />
+                        </div>
+                        <p class="text-gray-600" v-if="!editing">{{ form.description }}</p>
+                        <textarea v-if="editing" v-model="form.description"
+                            class="w-full p-2 border rounded"></textarea>
                     </div>
-                    <p class="text-gray-600" v-if="!editing">{{ form.description }}</p>
-                    <textarea v-if="editing" v-model="form.description" class="w-full p-2 border rounded"></textarea>
+                    <div class="w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">
+                            Typische certificeringstermijn (dagen)
+                            <InformationCircleIcon class="inline h-5 w-5 text-gray-400 ml-1 cursor-pointer" v-tooltip="{
+                                html: true,
+                                content: `<span class='block w-80'>Het standaard aantal dagen waarmee de keuringsdatum van
+                                een machine vooruitgeschoven wordt bij een succesvolle keuring. Laat dit leeg om de termijn
+                                van het type (${product.product_type.name}, ${product.product_type.typical_certificate_days ?? 0} dagen) te
+                                gebruiken. Als je hier iets invult overschrijft dat de waarde die op het type is ingesteld.</span>`
+                            }" />
+                        </h3>
+                        <EditableTextField v-model="form.typical_certificate_days" type="input" input-type="number" />
+                    </div>
                 </div>
                 <div class="flex items-center py-3 border-t border-gray-200 mt-5">
                     <PuzzlePieceIcon class="size-6 text-gray-500" />
@@ -54,10 +70,11 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
-import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
 
 const props = defineProps({
     product: {
@@ -75,13 +92,15 @@ const form = useForm({
     product_type_id: props.product.product_type.id,
     start_sell: props.product.start_sell,
     end_sell: props.product.end_sell,
+    typical_certificate_days: props.product.typical_certificate_days,
     origin: 'showPage'
 });
 
-watch(editing, (newValue) => {
-    if (!newValue) {
-        form.patch(`/products/${props.product.id}`);
-    }
+watch([
+    () => form.description,
+    () => form.typical_certificate_days
+], () => {
+    form.patch(`/products/${props.product.id}`);
 });
 
 const currentIcon = computed(() =>

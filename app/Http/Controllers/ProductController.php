@@ -93,6 +93,7 @@ class ProductController extends Controller
             'description'     => $request->description,
             'start_sell'      => $request->start_sell,
             'end_sell'        => $request->end_sell,
+            'typical_certificate_days' => $request->typical_certificate_days ?? 0,
         ]);
 
         return redirect()
@@ -113,6 +114,7 @@ class ProductController extends Controller
             'description'     => $request->description,
             'start_sell'      => $request->start_sell,
             'end_sell'        => $request->end_sell,
+            'typical_certificate_days' => $request->typical_certificate_days ?? 0,
         ]);
 
         return redirect()

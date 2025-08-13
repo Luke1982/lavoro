@@ -26,6 +26,7 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->date('start_sell')->nullable();
             $table->date('end_sell')->nullable();
+            $table->integer('typical_certificate_days')->nullable()->default(null);
             $table->timestamps();
         });
     }

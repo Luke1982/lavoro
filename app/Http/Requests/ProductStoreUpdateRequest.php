@@ -63,6 +63,11 @@ class ProductStoreUpdateRequest extends FormRequest
                 'nullable',
                 'string',
             ],
+            'typical_certificate_days' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
         ];
     }
 

@@ -22,6 +22,7 @@ class Product extends Model
         'description',
         'start_sell',
         'end_sell',
+        'typical_certificate_days',
     ];
 
     /**
