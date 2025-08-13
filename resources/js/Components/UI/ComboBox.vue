@@ -69,6 +69,10 @@ const props = defineProps({
         type: String,
         default: 'Type om te zoeken...',
     },
+    emitValue: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const inputRef = ref(null)
@@ -94,7 +98,7 @@ onMounted(() => {
     if ((props.modelValue === undefined || props.modelValue === null) && props.initialId != null) {
         const initial = resolveOption(props.initialId)
         if (initial) {
-            emit('update:modelValue', initial.id)
+            emit('update:modelValue', props.emitValue ? initial.name : initial.id)
         }
     }
 })
@@ -102,7 +106,7 @@ onMounted(() => {
 // Keep internalValue → modelValue in sync, but only emit when genuinely different
 watch(internalValue, (val) => {
     if (val && val.id !== props.modelValue) {
-        emit('update:modelValue', val.id)
+        emit('update:modelValue', props.emitValue ? val.name : val.id)
     }
 })
 
@@ -148,7 +152,7 @@ watch(() => query.value, (newVal) => {
 
 function onSelect(newOption) {
     internalValue.value = newOption
-    emit('update:modelValue', newOption.id)
+    emit('update:modelValue', props.emitValue ? newOption.name : newOption.id)
     query.value = ''
     nextTick(() => {
         setTimeout(() => {

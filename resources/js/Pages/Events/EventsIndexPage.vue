@@ -3,8 +3,10 @@
         <FullCalendar :options="calendarOptions" ref="calendar">
             <template #eventContent="{ event }">
                 <div class="flex flex-col relative">
-                    <span class="text-sm font-semibold">{{ event.title }}</span>
-                    <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
+                    <div class="pr-10 flex flex-col">
+                        <span class="text-sm font-semibold">{{ event.title }}</span>
+                        <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
+                    </div>
                     <div class="m-2" v-if="event.extendedProps.eventable_id">
                         <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`" class="text-xs underline">
                         Werkbon {{ event.extendedProps.eventable_id }}
@@ -14,8 +16,15 @@
                         {{ getCustomerById(event.extendedProps.customer_id).name }}
                         </Link>
                     </div>
-                    <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
-                        class="absolute top-0 right-0 size-6 text-red-500 bg-white rounded-bl-md p-1 cursor-pointer" />
+                    <div class="flex flex-col absolute top-0 right-0 rounded-bl-md p-1 bg-white">
+                        <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
+                            class="size-6 text-red-500 cursor-pointer" />
+                        <ClockIcon @click.stop="updateStatus(event.id, 'Afgerond')" v-tooltip="'Rond afspraak af'"
+                            class="size-6 text-blue-500 cursor-pointer pt-1"
+                            v-if="event.extendedProps.status !== 'Afgerond'" />
+                        <CheckIcon @click.stop="updateStatus(event.id, 'Gepland')" v-tooltip="'Markeer als \'Gepland\''"
+                            class="size-6 text-green-500 cursor-pointer pt-1" v-else />
+                    </div>
                 </div>
             </template>
         </FullCalendar>
@@ -32,35 +41,39 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap">
-                    <div class="w-1/2 flex p-4">
+                    <div class="w-1/2 flex px-4 py-2">
                         <TextInput v-model="form.start_date" label="Startdatum" type="date" class="w-1/2" />
                         <TextInput v-model="form.start_time" label="Starttijd" type="time" class="w-1/2 ml-2" />
                     </div>
-                    <div class="w-1/2 flex p-4">
+                    <div class="w-1/2 flex px-4 py-2">
                         <TextInput v-model="form.end_date" label="Einddatum" type="date" class="w-1/2" />
                         <TextInput v-model="form.end_time" label="Eindtijd" type="time" class="w-1/2 ml-2" />
                     </div>
                 </div>
                 <div class="flex flex-wrap">
-                    <div class="w-1/2 flex p-4">
+                    <div class="w-1/2 flex px-4 py-2">
                         <ComboBox v-model="form.event_type_id" :options="eventTypes" label="Type" class="w-full"
                             :initial-id="eventTypes[0].id" />
                     </div>
-                    <div class="w-1/2 flex p-4">
-                        <TextInput v-model="form.name" label="Titel" type="text" class="w-full" />
+                    <div class="w-1/2 flex px-4 py-2">
+                        <ComboBox v-model="form.status" :options="eventStatusses" label="Status" class="w-full"
+                            :initial-id="getInitialEventStatusId()" :emitValue="true" />
                     </div>
                 </div>
-                <div class="w-full p-4">
+                <div class="w-full px-4 py-2">
+                    <TextInput v-model="form.name" label="Titel" type="text" class="w-full" />
+                </div>
+                <div class="w-full px-4 py-2">
                     <label class="block text-sm font-medium leading-6 text-gray-900">Omschrijving</label>
                     <textarea v-model="form.description" label="Omschrijving" type="textarea"
                         class="w-full ring-1 ring-inset ring-gray-300 rounded-md p-2 text-sm" rows="4"
                         placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
                 </div>
-                <div class="w-full p-4">
+                <div class="w-full px-4 py-2">
                     <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
                         :initial-id="allCustomers[0].id" />
                 </div>
-                <div class="w-full p-4">
+                <div class="w-full px-4 py-2">
                     <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
                         class="w-full" :initial-id="form.eventable_id" />
                 </div>
@@ -88,12 +101,13 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import { onMounted, ref, watch } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
-import { TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, nlDate, nlTime } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import { status } from 'nprogress'
 
-const { eventTypes, allCustomers, allServiceOrders } = defineProps({
+const { eventTypes, allCustomers, allServiceOrders, eventStatusses } = defineProps({
     eventTypes: {
         type: Array,
         required: true
@@ -103,6 +117,10 @@ const { eventTypes, allCustomers, allServiceOrders } = defineProps({
         required: true
     },
     allServiceOrders: {
+        type: Array,
+        required: true
+    },
+    eventStatusses: {
         type: Array,
         required: true
     }
@@ -121,9 +139,7 @@ const form = useForm({
     eventable_id: '',
     id: '',
     description: '',
-    users: [],
-    materials: [],
-    status: 'Gepland',
+    status: '',
 })
 
 const page = usePage()
@@ -144,6 +160,12 @@ const getInternalServiceOrders = () => {
     }))
 }
 const internalServiceOrders = ref(getInternalServiceOrders())
+
+const getInitialEventStatusId = () => {
+    return editingExistingEvent.value ?
+        (eventStatusses.find(status => status.name === form.status)?.id || '') :
+        (eventStatusses[0]?.id || '')
+}
 
 watch(selectedCustomer, () => {
     internalServiceOrders.value = getInternalServiceOrders()
@@ -250,6 +272,7 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
                 eventable_type: '\\App\\Models\\ServiceOrder',
                 description: event.description ?? '',
                 customer_id: event.service_orders[0]?.customer_id,
+                status: event.status,
             },
         }
     })
@@ -270,6 +293,20 @@ const updateTimes = async (event) => {
         return
     }
     page.props.flash.success = 'Tijden van de afspraak succesvol bijgewerkt'
+}
+
+const updateStatus = async (eventId, newStatus) => {
+    await axios.get('sanctum/csrf-cookie')
+    const response = await axios.put(`/api/events/${eventId}`, {
+        status: newStatus,
+    })
+    if (response.status !== 200) {
+        console.error('Error updating event status:', response.data)
+        page.props.flash.error = 'Kon de status van de afspraak niet bijwerken'
+        return
+    }
+    page.props.flash.success = 'Status van de afspraak succesvol bijgewerkt'
+    calendar.value.getApi().refetchEvents()
 }
 
 const onDrop = async dropInfo => {
@@ -294,6 +331,7 @@ const onEventClick = (clickInfo) => {
     form.description = event.extendedProps.description || ''
     form.event_type_id = event.extendedProps.event_type_id
     form.eventable_id = event.extendedProps.eventable_id || ''
+    form.status = event.extendedProps.status || ''
     const serviceOrder = allServiceOrders.find(order => order.id === form.eventable_id)
     selectedCustomer.value = serviceOrder ? serviceOrder.customer_id : null
     form.eventable_id = event.extendedProps.eventable_id || ''

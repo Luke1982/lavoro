@@ -13,6 +13,7 @@ class EventController extends Controller
     {
         return inertia('Events/EventsIndexPage', [
             'eventTypes' => EventType::all(),
+            'eventStatusses' => Event::statusses(),
             'noPadding' => true,
             'allCustomers' => Customer::all(),
             'allServiceOrders' => ServiceOrder::with('customer')->get(),

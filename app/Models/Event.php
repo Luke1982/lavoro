@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EventStatusses;
 use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
@@ -15,6 +16,11 @@ class Event extends Model
         'status',
         'location',
     ];
+
+    public static function statusses()
+    {
+        return EventStatusses::comboBoxArray();
+    }
 
     public function eventType()
     {
