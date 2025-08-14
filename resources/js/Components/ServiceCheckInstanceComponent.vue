@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="p-2 h-full relative">
+        <div class="p-2 h-full relative" v-auto-animate>
             <div class="ring-gray-200 ring bg-[#fdfdfd] rounded-md p-4 h-full">
                 <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                     <legend class="text-sm/6 font-semibold text-gray-900">{{ serviceCheckInstance.service_check.name }}
@@ -39,7 +39,7 @@
                             </div>
                             <div class="text-sm/6">
                                 <label :for="`value-${value.id}`" class="font-medium text-gray-900">{{ value.value
-                                }}</label>
+                                    }}</label>
                             </div>
                         </div>
                     </div>
@@ -77,6 +77,11 @@
             </div>
             <Cog6ToothIcon v-if="updating" class="absolute top-4 right-4 h-6 w-6 text-gray-500 animate-spin" />
             <CheckIcon v-if="!updating" class="absolute top-4 right-4 h-6 w-6 text-green-500" />
+            <div v-if="readonly"
+                class="absolute top-2 left-2 right-2 bottom-2 bg-[#2c2c2c0e] flex items-center justify-center">
+                <LockClosedIcon class="h-6 w-6"
+                    v-tooltip="'Deze keuring is gesloten, je kunt de keurpunten daarom alleen nog maar bekijken.'" />
+            </div>
         </div>
     </div>
 </template>
@@ -85,13 +90,17 @@
 import { useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import { debounce } from 'lodash';
-import { CheckIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, Cog6ToothIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 
 const { serviceCheckInstance } = defineProps({
     serviceCheckInstance: {
         type: Object,
         required: true
     },
+    readonly: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const updating = ref(false);

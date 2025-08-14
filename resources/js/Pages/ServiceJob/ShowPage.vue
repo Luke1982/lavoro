@@ -42,7 +42,8 @@
         </h2>
         <div class="flex flex-wrap">
             <ServiceCheckInstanceComponent v-for="check in servicejob.check_instances" :key="check.id"
-                :service-check-instance="check" :check-types-with-options="checkTypesWithOptions" class="w-1/3" />
+                :service-check-instance="check" :check-types-with-options="checkTypesWithOptions" class="w-1/3"
+                :readonly="servicejob.completed_on !== null" />
         </div>
         <div class="border-t-1 border-gray-200">
             <h2 class="text-xl font-bold my-4 text-center">
