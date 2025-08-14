@@ -17,6 +17,7 @@ use App\Models\Product;
  * @property string|null $start_sell
  * @property string|null $end_sell
  * @property string|null $origin
+ * @property int|null $typical_certificate_days
  */
 class ProductStoreUpdateRequest extends FormRequest
 {

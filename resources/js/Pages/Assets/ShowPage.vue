@@ -10,8 +10,11 @@
                     <div class="w-1/2 flex">
                         <div class="w-1/3 text-xs">Merk en model</div>
                         <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-3']">
-                            <span v-if="!editing.product_id">{{ asset.product.brand.name }} {{ asset.product.model
-                                }}</span>
+                            <span v-if="!editing.product_id">
+                                {{ asset.product.brand.name }}
+                                <Link class="underline" :href="`/products/${asset.product.id}`">{{ asset.product.model
+                                }}</Link>
+                            </span>
                             <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
                                 @update:modelValue="updateAsset" />
                             <PencilSquareIcon v-if="!editing.product_id"

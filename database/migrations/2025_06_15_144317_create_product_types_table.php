@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('product_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique()->required();
-            $table->integer('typical_certificate_days')->default(0);
+            $table->integer('typical_certificate_days')->nullable()->default(null);
             $table->timestamps();
         });
 

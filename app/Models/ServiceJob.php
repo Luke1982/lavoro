@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\ServiceJobOutcomes;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ServiceJob extends Model
 {
@@ -61,5 +62,26 @@ class ServiceJob extends Model
     public function serviceOrder()
     {
         return $this->belongsTo(ServiceOrder::class);
+    }
+
+    /**
+     * Get the number of days to advance the next service date,
+     * based on the outcome of the service job.
+     *
+     * @param int|null $tmp_days The number of days for temporary approval, if applicable.
+     */
+    public function getDaysToAdvanceNextServiceDate($tmp_days): ?int
+    {
+        $days = null;
+
+        if ($this->outcome === ServiceJobOutcomes::goedkeur->value) {
+            $this->load('asset.product.productType');
+            $days = $this->asset->product->typical_certificate_days ??
+                $this->asset->product->productType->typical_certificate_days;
+        } elseif ($this->outcome === ServiceJobOutcomes::tijdelijk_goedkeur->value) {
+            $days = $tmp_days;
+        }
+
+        return $days;
     }
 }

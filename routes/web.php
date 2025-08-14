@@ -59,6 +59,8 @@ Route::group(
         Route::put('serviceorders/{serviceorder}/materials/{materiable_id}', [ServiceOrderController::class, 'updateMateriable'])
             ->name('serviceorders.updateMateriable');
         Route::resource('servicejobs', ServiceJobController::class);
+        Route::post('servicejobs/{servicejob}/clearcompletedon', [ServiceJobController::class, 'clearCompletedOn'])
+            ->name('servicejobs.clearCompletedOn');
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::resource('remarks', RemarkController::class)

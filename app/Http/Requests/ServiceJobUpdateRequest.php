@@ -5,6 +5,17 @@ namespace App\Http\Requests;
 use App\Enums\ServiceJobOutcomes;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Class ServiceJobUpdateRequest
+ * @package App\Http\Requests
+ *
+ * This class handles the validation for updating a service job.
+ *
+ * @property string|null $description
+ * @property string $outcome
+ * @property int|null $days_temporary_approval
+ * @property string|null $completed_on
+ */
 class ServiceJobUpdateRequest extends FormRequest
 {
     /**
@@ -26,7 +37,7 @@ class ServiceJobUpdateRequest extends FormRequest
             'description' => 'nullable|string|max:1000',
             'outcome' => 'required|in:' . implode(',', array_map(fn($oc) => $oc->value, ServiceJobOutcomes::cases())),
             'days_temporary_approval' => 'nullable|integer|min:0|max:365',
-            'completed_on' => 'nullable|date',
+            'completed_on' => 'required|date',
         ];
     }
 
@@ -44,6 +55,7 @@ class ServiceJobUpdateRequest extends FormRequest
             'days_temporary_approval.integer' => 'Tijdelijke goedkeuring moet een geheel getal zijn.',
             'days_temporary_approval.min' => 'Tijdelijke goedkeuring moet minimaal 0 dagen zijn.',
             'days_temporary_approval.max' => 'Tijdelijke goedkeuring mag maximaal 365 dagen zijn.',
+            'completed_on.required' => 'Voltooid op datum is verplicht.',
             'completed_on.date' => 'Voltooid op moet een geldige datum zijn.',
         ];
     }

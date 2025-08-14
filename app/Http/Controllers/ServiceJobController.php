@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\ServiceJob;
 use Illuminate\Http\Request;
 use App\Enums\ServiceCheckTypes;
@@ -69,7 +70,55 @@ class ServiceJobController extends Controller
     public function update(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
     {
         $servicejob->update($request->validated());
-        return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt.');
+        $message = '';
+        $days = $servicejob->getDaysToAdvanceNextServiceDate(
+            $request->days_temporary_approval
+        );
+
+        if ($days !== null) {
+            $servicejob->asset->update([
+                'next_service_date' => Carbon::parse($servicejob->asset->next_service_date)
+                    ->addDays($days),
+            ]);
+            $message = sprintf(
+                'De verloopdatum is met %d dagen verlengd naar %s.',
+                $days,
+                Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
+            );
+        }
+
+        return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt. ' . $message);
+    }
+
+    public function clearCompletedOn(ServiceJob $servicejob)
+    {
+        $days = $servicejob->getDaysToAdvanceNextServiceDate(
+            $servicejob->days_temporary_approval
+        );
+        $message = '';
+        $servicejob->update([
+            'completed_on' => null,
+        ]);
+        if ($days !== null) {
+            $servicejob->asset->update([
+                'next_service_date' => Carbon::parse($servicejob->asset->next_service_date)
+                    ->subDays($days),
+            ]);
+            $message = sprintf(
+                ' De verloopdatum is met %d dagen verkort naar %s.',
+                $days,
+                Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
+            );
+        }
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                sprintf(
+                    'Datum van afronding succesvol verwijderd.%s Nu kan de keuring opnieuw worden uitgevoerd.',
+                    $message
+                )
+            );
     }
 
     /**
