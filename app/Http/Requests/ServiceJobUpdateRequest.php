@@ -36,7 +36,9 @@ class ServiceJobUpdateRequest extends FormRequest
         return [
             'description' => 'nullable|string|max:1000',
             'outcome' => 'required|in:' . implode(',', array_map(fn($oc) => $oc->value, ServiceJobOutcomes::cases())),
-            'days_temporary_approval' => 'nullable|integer|min:0|max:365',
+            'days_temporary_approval' =>
+                $this->outcome === ServiceJobOutcomes::tijdelijk_goedkeur->value ? 'required' : 'nullable' .
+                '|integer|min:0|max:365',
             'completed_on' => 'required|date',
         ];
     }
@@ -55,8 +57,9 @@ class ServiceJobUpdateRequest extends FormRequest
             'days_temporary_approval.integer' => 'Tijdelijke goedkeuring moet een geheel getal zijn.',
             'days_temporary_approval.min' => 'Tijdelijke goedkeuring moet minimaal 0 dagen zijn.',
             'days_temporary_approval.max' => 'Tijdelijke goedkeuring mag maximaal 365 dagen zijn.',
-            'completed_on.required' => 'Voltooid op datum is verplicht.',
-            'completed_on.date' => 'Voltooid op moet een geldige datum zijn.',
+            'days_temporary_approval.required' => 'Aantal dagen is verplicht wanneer het resultaat \'tijdelijk goedkeur\' is.',
+            'completed_on.required' => '\'Voltooid op\' datum is verplicht.',
+            'completed_on.date' => '\'Voltooid op\' moet een geldige datum zijn.',
         ];
     }
 }
