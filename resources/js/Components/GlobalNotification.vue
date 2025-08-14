@@ -66,7 +66,11 @@ watch([flashSuccess, flashError], ([newSuccess, newError]) => {
         title.value = 'Gelukt'
         startAutoClear()
     } else if (newError) {
-        localFlashMessage.value = newError
+        if (typeof newError === 'object') {
+            localFlashMessage.value = Object.values(newError).join(' ')
+        } else {
+            localFlashMessage.value = newError
+        }
         type.value = 'error'
         title.value = 'Er ging iets mis'
         startAutoClear()
