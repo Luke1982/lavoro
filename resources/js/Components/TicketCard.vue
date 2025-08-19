@@ -1,7 +1,7 @@
 <template>
     <div class="relative">
         <Link :href="`/tickets/${ticket.id}`"
-            :class="[getWrapperClasses(ticket.status), 'rounded-md p-2 border-2 block']">
+            :class="[getWrapperClasses(ticket.status), 'rounded-md p-2 border-2 block cursor-pointer']">
         <div class="flex">
             <div class="flex flex-col items-center justify-start mr-2 min-w-20 pb-4 text-center">
                 <ExclamationCircleIcon
@@ -19,7 +19,8 @@
                             nlDate(ticket.closed_on) }}</span>
                     </div>
                 </div>
-                <p class="text-sm text-gray-500 mt-1">{{ ticket.description }}</p>
+                <p class="text-sm text-gray-500 mt-1" v-if="modes.find(m => m === 'simple') === undefined">{{
+                    ticket.description }}</p>
             </div>
         </div>
         </Link>
@@ -31,8 +32,9 @@
                 v-tooltip="'Wijzig de status naar \'In behandeling\''" />
             <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open'" class="w-5 h-5 text-red-500 cursor-pointer"
                 @click.stop="setTicketStatusTo('Open')" v-tooltip="'Wijzig de status naar \'Open\''" />
-            <TrashIcon v-if="disconnect === null" class="w-5 h-5 text-gray-500 cursor-pointer"
-                @click.stop="deleteTicket" v-tooltip="'Verwijder de storing'" />
+            <TrashIcon v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined"
+                class="w-5 h-5 text-gray-500 cursor-pointer" @click.stop="deleteTicket"
+                v-tooltip="'Verwijder de storing'" />
             <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 cursor-pointer"
                 @click.stop="removeTicketLink" v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
@@ -63,6 +65,10 @@ const props = defineProps({
     disconnect: {
         type: String,
         default: null,
+    },
+    modes: {
+        type: Array,
+        default: () => [],
     },
 });
 

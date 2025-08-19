@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityListController;
 use App\Models\EventType;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -69,6 +70,8 @@ Route::group(
             ->only(['index']);
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
+        Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
+            ->name('upcomingactivities');
     }
 );
 

@@ -35,6 +35,8 @@ class Customer extends Model
         'billing_customer_id',
     ];
 
+    public int|null $upcoming_asset_days = null;
+
     public function assets()
     {
         return $this->hasMany(Asset::class)->orderBy('next_service_date');
@@ -44,7 +46,7 @@ class Customer extends Model
     {
         return $this->hasMany(Asset::class)
             ->where('next_service_date', '>=', now())
-            ->where('next_service_date', '<=', now()->addDays(30))
+            ->where('next_service_date', '<=', now()->addDays($this->upcoming_asset_days ?? 30))
             ->where('status', 'Actief')
             ->orderBy('next_service_date');
     }
@@ -52,7 +54,7 @@ class Customer extends Model
     public function nonUpcomingAssets()
     {
         return $this->hasMany(Asset::class)
-            ->where('next_service_date', '>', now()->addDays(30))
+            ->where('next_service_date', '>', now()->addDays($this->upcoming_asset_days ?? 30))
             ->where('status', 'Actief')
             ->orderBy('next_service_date');
     }

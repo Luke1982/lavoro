@@ -1,10 +1,11 @@
 <?php
 
-use App\Models\Customer;
 use App\Models\Product;
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use App\Models\Customer;
+use App\Enums\AssetStatusses;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -23,8 +24,8 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->string('serial_number')->required();
             $table->date('next_service_date')->nullable();
-            $table->enum('status', ['Actief', 'Niet actief'])
-                ->default('Actief');
+            $table->enum('status', AssetStatusses::valueArray())
+                ->default(AssetStatusses::valueArray()[0]);
             $table->timestamps();
         });
     }

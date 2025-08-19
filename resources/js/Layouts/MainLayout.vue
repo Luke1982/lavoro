@@ -204,7 +204,7 @@ const navigation = [
     },
 ]
 const lists = [
-    { id: 1, name: 'Aankomende keuringen en storingen', href: '/workload/list', initial: 'A', current: false },
+    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false },
 ]
 
 const updateCurrent = (item) => {
