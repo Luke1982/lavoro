@@ -16,7 +16,7 @@
                 <div class="col-span-1">
                     <input type="checkbox" :checked="customerState(mainAsset.customer.id).all"
                         v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
-                        @change="selectAllFor(mainAsset.customer.id)" class="cursor-pointer" />
+                        @change="selectAllFor(mainAsset.customer.id)" class="cursor-pointer size-4" />
                 </div>
                 <div class="col-span-3">
                     Merk en model
@@ -38,7 +38,7 @@
                 class="grid grid-cols-12 even:bg-gray-50 px-2 py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 border-r last:border-b">
                 <div class="col-span-1">
                     <input type="checkbox" :id="`assetcheckbox-${asset.id}`" v-model="form.selectedAssets"
-                        :value="{ id: asset.id, customer_id: mainAsset.customer.id }" class="cursor-pointer">
+                        :value="{ id: asset.id, customer_id: mainAsset.customer.id }" class="cursor-pointer size-4">
                 </div>
                 <div class="col-span-3 pr-5">
                     <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
