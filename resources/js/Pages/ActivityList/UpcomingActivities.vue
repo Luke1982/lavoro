@@ -99,15 +99,23 @@
             </div>
         </div>
     </BoxComponent>
-    <div v-auto-animate>
-        <button v-if="canCreateWorkOrder !== 'no'" :disabled="canCreateWorkOrder === 'diffCustomers'"
-            @click="createServiceOrder" v-auto-animate
-            class="cursor-pointer fixed right-4 bottom-4 bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
-            <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
-            <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan</span>
-            <span v-else-if="canCreateWorkOrder === 'diffCustomers'">Selecteer storingen en keuringen van één
-                klant</span>
-        </button>
+    <div class="fixed right-4 bottom-4">
+        <div v-auto-animate class="flex gap-x-2">
+            <button v-if="canCreateWorkOrder === 'yes'" :disabled="canCreateWorkOrder === 'diffCustomers'"
+                @click="createServiceOrder(false)" v-auto-animate
+                class="cursor-pointer  bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
+                <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
+                <span>Maak een werkbon aan en blijf hier</span>
+            </button>
+            <button v-if="canCreateWorkOrder !== 'no'" :disabled="canCreateWorkOrder === 'diffCustomers'"
+                @click="createServiceOrder(true)" v-auto-animate
+                class="cursor-pointer bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
+                <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
+                <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan en open die</span>
+                <span v-else-if="canCreateWorkOrder === 'diffCustomers'">Selecteer storingen en keuringen van één
+                    klant</span>
+            </button>
+        </div>
     </div>
 </template>
 
@@ -159,7 +167,7 @@ watch(
     { deep: true }
 );
 
-const createServiceOrder = () => {
+const createServiceOrder = (redirect) => {
     if (canCreateWorkOrder.value !== 'yes') return;
     form.transform(data => {
         return {
@@ -169,8 +177,13 @@ const createServiceOrder = () => {
                 : data.selectedAssets[0].customer_id,
             tickets: data.selectedTickets.map(ticket => ticket.id),
             assets: data.selectedAssets.map(asset => asset.id),
+            redirect
         };
-    }).post('/serviceorders', { preserveScroll: true });
+    }).post('/serviceorders', {
+        preserveScroll: true, onSuccess: () => {
+            form.reset()
+        }
+    });
 };
 
 const getNonPlannedTickets = tickets => {

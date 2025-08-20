@@ -56,7 +56,7 @@ class ServiceOrderController extends Controller
             $redirect = 'serviceorders.show';
         }
 
-        if ($redirect === 'back') {
+        if ($redirect === 'back' || $request->redirect === false) {
             return redirect()->back()->with('success', 'Werkbon succesvol aangemaakt.');
         } else {
             return redirect()->route($redirect, $serviceorder->id)
