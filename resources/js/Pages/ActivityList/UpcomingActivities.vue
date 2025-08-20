@@ -1,13 +1,13 @@
 <template>
     <BoxComponent>
-        <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
-            <div class="flex">
+        <div class="flex flex-wrap mb-4 border-b-1 border-gray-200 pb-2 justify-between">
+            <div class="flex w-full lg:w-auto justify-center mb-2 lg:mb-0">
                 <CalendarDateRangeIcon class="size-6 flex-none text-gray-500 mr-2" />
                 <h2 class="font-regular text-xl">Aankomende activiteiten</h2>
             </div>
             <ComboBox
                 :options="[{ id: '60', name: 'Aankomende 60 dagen' }, { id: '90', name: 'Aankomende 90 dagen' }, { id: '180', name: 'Aankomende 180 dagen' }, { id: '365', name: 'Aankomende 365 dagen' }]"
-                class="w-64" placeholder="Filter op periode" v-model="form.days" :initial-id="form.days" />
+                class="w-full lg:w-64" placeholder="Filter op periode" v-model="form.days" :initial-id="form.days" />
         </div>
         <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`" class="my-8">
             <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal" />
@@ -18,20 +18,23 @@
                         v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
                         @change="selectAllFor(mainAsset.customer.id)" class="cursor-pointer size-4" />
                 </div>
-                <div class="col-span-3">
+                <div class="hidden xl:block col-span-3">
                     Merk en model
                 </div>
-                <div class="col-span-1">
+                <div class="hidden xl:block col-span-1">
                     Serienummer
                 </div>
-                <div class="col-span-1">
+                <div class="hidden xl:block col-span-1">
                     Verloopdatum
                 </div>
-                <div class="col-span-2">
+                <div class="hidden xl:block col-span-2">
                     Soort product
                 </div>
-                <div class="col-span-4">
+                <div class="hidden xl:block col-span-4">
                     Storingen
+                </div>
+                <div class="col-span-11 xl:hidden">
+                    Activa en storingen, klik links om alles van deze klant te selecteren
                 </div>
             </div>
             <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id"
@@ -40,7 +43,7 @@
                     <input type="checkbox" :id="`assetcheckbox-${asset.id}`" v-model="form.selectedAssets"
                         :value="{ id: asset.id, customer_id: mainAsset.customer.id }" class="cursor-pointer size-4">
                 </div>
-                <div class="col-span-3 pr-5">
+                <div class="col-span-11 xl:col-span-3 pr-5">
                     <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
                         {{ asset.product.brand.name }} {{ asset.product.model }}
                     </label>
@@ -57,20 +60,25 @@
                         </span>
                     </div>
                 </div>
-                <div class="col-span-1">
+                <div class="col-span-1 xl:hidden"></div>
+                <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
+                    <span class="text-xs font-bold xl:hidden">Serienummer</span>
                     <Link :href="`/assets/${asset.id}`" class="cursor-pointer underline">
                     {{ asset.serial_number }}
                     </Link>
                 </div>
-                <div class="col-span-1">
+                <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
+                    <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
                     <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
                         {{ nlDate(asset.next_service_date) }}
                     </label>
                 </div>
-                <div class="col-span-2">
+                <div class="col-span-5 xl:col-span-2 flex flex-col mt-5 xl:mt-0">
+                    <span class="text-xs font-bold xl:hidden">Soort product</span>
                     {{ asset.product.product_type.name }}
                 </div>
-                <div class="col-span-4">
+                <div class="col-span-1 xl:hidden"></div>
+                <div class="col-span-11 xl:col-span-4 flex flex-col mt-5 xl:mt-0">
                     <div v-if="getNonPlannedTickets(asset.pending_tickets).length > 0">
                         <span class="text-xs font-bold">Lopende storingen</span>
                         <div v-for="ticket in getNonPlannedTickets(asset.pending_tickets)" :key="ticket.id">
@@ -111,8 +119,8 @@
             </div>
         </div>
     </BoxComponent>
-    <div class="fixed right-4 bottom-4">
-        <div v-auto-animate class="flex gap-x-2">
+    <div class="fixed right-4 bottom-4 left-4">
+        <div v-auto-animate class="flex gap-2 flex-col lg:flex-row justify-end">
             <button v-if="canCreateWorkOrder === 'yes'" :disabled="canCreateWorkOrder === 'diffCustomers'"
                 @click="createServiceOrder(false)" v-auto-animate
                 class="cursor-pointer  bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
