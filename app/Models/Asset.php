@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ServiceJobOutcomes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -57,5 +58,10 @@ class Asset extends Model
     public function servicejobs()
     {
         return $this->hasMany(ServiceJob::class);
+    }
+
+    public function pendingServiceJobs()
+    {
+        return $this->hasMany(ServiceJob::class)->where('outcome', ServiceJobOutcomes::nog_geen_uitkomst->value);
     }
 }

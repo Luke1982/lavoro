@@ -35,7 +35,7 @@
                 </div>
             </div>
             <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id"
-                class="grid grid-cols-12 even:bg-gray-50 px-2 py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 border-r last:border-b">
+                class="grid grid-cols-12 even:bg-gray-50 dark:bg-gray-900 dark:text-white even:dark:bg-gray-800 px-2 py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 border-r last:border-b">
                 <div class="col-span-1">
                     <input type="checkbox" :id="`assetcheckbox-${asset.id}`" v-model="form.selectedAssets"
                         :value="{ id: asset.id, customer_id: mainAsset.customer.id }" class="cursor-pointer size-4">
@@ -44,6 +44,18 @@
                     <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
                         {{ asset.product.brand.name }} {{ asset.product.model }}
                     </label>
+                    <div v-if="asset.pending_service_jobs.length > 0">
+                        <span class="text-xs">Er zijn nog openstaande keuringen voor deze machine:</span>
+                        <span v-for="job in asset.pending_service_jobs" :key="job.id">
+                            <BadgeComponent :text="`Keuring ${job.id}`" color="orange" :url="`/servicejobs/${job.id}`"
+                                :tooltip="`Ga direct naar keuring ${job.id}`" />
+                            <span class="text-xs">op</span>
+                            <BadgeComponent
+                                :text="`Werkbon ${job.service_order.id} ${job.service_order.events.length > 0 ? ' gepland op ' + nlDate(job.service_order.events[0]?.start) : ''}`"
+                                color="blue" :url="`/serviceorders/${job.service_order.id}`"
+                                :tooltip="`Ga direct naar werkbon ${job.service_order.id}`" />
+                        </span>
+                    </div>
                 </div>
                 <div class="col-span-1">
                     <Link :href="`/assets/${asset.id}`" class="cursor-pointer underline">
@@ -128,6 +140,7 @@ import { nlDate } from '@/Utilities/Utilities';
 import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch, ref } from 'vue';
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 
 const { upcomingAssets } = defineProps({
     upcomingAssets: {

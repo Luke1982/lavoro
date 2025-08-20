@@ -28,7 +28,8 @@ class ActivityListController extends Controller
                         'product.brand',
                         'openTickets',
                         'pendingTickets',
-                        'product.productType'
+                        'product.productType',
+                        'pendingServiceJobs.serviceOrder.events'
                     ])->get()
                 );
             }
