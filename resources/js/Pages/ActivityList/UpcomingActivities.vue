@@ -61,18 +61,9 @@
                 <div class="col-span-4">
                     <div v-if="getNonPlannedTickets(asset.pending_tickets).length > 0">
                         <span class="text-xs font-bold">Lopende storingen</span>
-                        <div v-for="ticket in asset.pending_tickets" :key="ticket.id" class="relative">
-                            <TicketCard :ticket="ticket" v-if="ticket.service_order_id === null" class="mt-1 mb-1"
-                                :modes="['simple', 'nodelete']" />
-                            <input type="checkbox" :id="`ticketcheckbox-${ticket.id}`" v-model="form.selectedTickets"
-                                :value="{ id: ticket.id, customer_id: mainAsset.customer.id }"
-                                class="absolute top-2 left-2 size-5 cursor-pointer hidden">
-                            <label :for="`ticketcheckbox-${ticket.id}`"
-                                class="absolute left-0 top-0 w-full h-full cursor-pointer">
-                                <CheckIcon v-if="form.selectedTickets.find(t => t.id === ticket.id)"
-                                    class="size-6 ml-1 mt-1 text-blue-500"
-                                    v-tooltip="'Deze storing is geselecteerd voor de werkbon'" />
-                            </label>
+                        <div v-for="ticket in getNonPlannedTickets(asset.pending_tickets)" :key="ticket.id">
+                            <TicketSelectCard :ticket="ticket" :customer-id="mainAsset.customer.id"
+                                v-model="form.selectedTickets" />
                         </div>
                     </div>
                     <div v-if="getPlannedTickets(asset.pending_tickets).length > 0">
@@ -85,18 +76,9 @@
                     </div>
                     <div v-if="getNonPlannedTickets(asset.open_tickets).length > 0">
                         <span class="text-xs font-bold">Openstaande storingen</span>
-                        <div v-for="ticket in asset.open_tickets" :key="ticket.id" class="relative">
-                            <TicketCard :ticket="ticket" v-if="ticket.service_order_id === null" class="mt-1 mb-1"
-                                :modes="['simple', 'nodelete']" />
-                            <input type="checkbox" :id="`ticketcheckbox-${ticket.id}`" v-model="form.selectedTickets"
-                                :value="{ id: ticket.id, customer_id: mainAsset.customer.id }"
-                                class="absolute top-2 left-2 size-5 cursor-pointer hidden">
-                            <label :for="`ticketcheckbox-${ticket.id}`"
-                                class="absolute left-0 top-0 w-full h-full cursor-pointer">
-                                <CheckIcon v-if="form.selectedTickets.find(t => t.id === ticket.id)"
-                                    class="size-6 ml-1 mt-1 text-blue-500"
-                                    v-tooltip="'Deze storing is geselecteerd voor de werkbon'" />
-                            </label>
+                        <div v-for="ticket in getNonPlannedTickets(asset.open_tickets)" :key="ticket.id">
+                            <TicketSelectCard :ticket="ticket" :customer-id="mainAsset.customer.id"
+                                v-model="form.selectedTickets" />
                         </div>
                     </div>
                     <div v-if="getPlannedTickets(asset.open_tickets).length > 0">
@@ -126,10 +108,10 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
-import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
-import { CalendarDateRangeIcon, CheckIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline';
+import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch, ref } from 'vue';
 
