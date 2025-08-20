@@ -51,7 +51,7 @@ Route::group(
         Route::resource('serviceorders', ServiceOrderController::class);
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
-        Route::delete('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'detachTicket'])
+        Route::get('serviceorders/{serviceorder}/tickets/{ticket}/detach', [ServiceOrderController::class, 'detachTicket'])
             ->name('serviceorders.detachTicket');
         Route::post('serviceorders/{serviceorder}/materials/{material}', [ServiceOrderController::class, 'attachMaterial'])
             ->name('serviceorders.attachMaterial');

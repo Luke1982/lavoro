@@ -71,7 +71,10 @@
                         <div v-for="ticket in getPlannedTickets(asset.pending_tickets)" :key="ticket.id">
                             Storing {{ ticket.id }} is gepland op
                             <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
-                                ticket.service_order_id }}</Link>
+                                ticket.service_order_id }}</Link>, klik
+                            <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
+                                class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
+                            kunt koppelen aan een nieuwe.
                         </div>
                     </div>
                     <div v-if="getNonPlannedTickets(asset.open_tickets).length > 0">
@@ -86,7 +89,10 @@
                         <div v-for="ticket in getPlannedTickets(asset.open_tickets)" :key="ticket.id">
                             Storing {{ ticket.id }} is gepland op
                             <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
-                                ticket.service_order_id }}</Link>
+                                ticket.service_order_id }}</Link>, klik
+                            <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
+                                class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
+                            kunt koppelen aan een nieuwe.
                         </div>
                     </div>
                 </div>
