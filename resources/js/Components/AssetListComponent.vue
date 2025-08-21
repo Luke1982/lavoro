@@ -1,5 +1,5 @@
 <template>
-    <ul role="list" class="mt-2 grid grid-cols-2 gap-4">
+    <ul role="list" class="mt-2 grid grid-cols-1 2xl:grid-cols-2 gap-4">
         <li class="col-span-1 flex rounded-md shadow-xs" v-for="asset in assets" :key="asset.id">
             <span :title="asset.product.product_type.name"
                 class="flex w-16 shrink-0 items-center justify-center rounded-l-md bg-pink-600 text-sm font-medium text-white">
