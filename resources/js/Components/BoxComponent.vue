@@ -9,7 +9,7 @@
 defineProps({
     padding: {
         type: String,
-        default: 'px-4 py-8 xl:px-8 xl:pt-8 xl:pb-8 sm:px-8 sm:pb-14 px-4 py-8',
+        default: 'px-4 py-8 xl:px-8 xl:pt-8 xl:pb-8 sm:px-4 sm:pb-4 px-4 py-4',
     },
 });
 </script>
