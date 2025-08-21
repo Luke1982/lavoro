@@ -8,12 +8,14 @@
                     @update:modelValue="updateCustomer" />
             </BoxComponent>
             <BoxComponent class="mt-6">
-                <div class="flex mb-4">
+                <div class="flex mb-4"
+                    v-if="upcomingAssetsByType.length > 0 || upcomingAssetsByType.constructor !== Array">
                     <BellAlertIcon class="size-6 flex-none text-red-500 mr-2" />
                     <h2 class="font-regular text-xl">Apparaten die binnen 30 dagen verlopen</h2>
                 </div>
                 <AssetListGroupComponent :assetGroups="upcomingAssetsByType" />
-                <div class="flex mb-4">
+                <div class="flex mb-4"
+                    v-if="nonUpcomingAssetsByType.length > 0 || nonUpcomingAssetsByType.constructor !== Array">
                     <BellSnoozeIcon class="size-6 flex-none text-yellow-500 mr-2" />
                     <h2 class="font-regular text-xl">Apparaten die na 30 dagen verlopen</h2>
                 </div>
