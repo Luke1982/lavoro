@@ -1,5 +1,5 @@
 <template>
-    <ul role="list" class="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
+    <ul role="list" class="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3 xl:gap-x-8">
         <li v-for="customer in customers" :key="customer.id"
             class="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div class="flex items-center gap-x-4 border-b border-gray-900/5 p-6">
