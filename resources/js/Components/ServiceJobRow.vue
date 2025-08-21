@@ -1,6 +1,7 @@
 <template>
     <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 py-2 relative`">
-        <div class="col-span-1" v-if="asset">
+        <div class="col-span-3 lg:col-span-1 flex flex-col" v-if="asset">
+            <span class="font-bold block lg:hidden">Machine</span>
             <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
                 v-tooltip="'Met deze link ga je naar het algemene product'">
             {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
@@ -11,32 +12,35 @@
                     servicejob.asset.serial_number }}</Link>
         </div>
         <div
-            :class="[getOutcomeColor(servicejob.outcome), 'col-span-1 rounded-full p-1 text-center ring-2 items-center flex justify-center ml-2']">
-            {{
+            :class="[getOutcomeColor(servicejob.outcome), 'col-span-3 lg:col-span-1 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center ml-2']">
+            <span class="font-bold block lg:hidden mr-2">Uitkomst:</span>{{
                 servicejob.outcome }}
         </div>
-        <div class="col-span-1">
+        <div class="col-span-3 lg:col-span-1 flex flex-col">
+            <span class="font-bold block lg:hidden">Dagen tijdelijke goedkeur</span>
             {{ servicejob.outcome.toLowerCase() === 'tijdelijke goedkeur' ? `${servicejob.days_temporary_approval}
             dag(en) ` :
                 'n.v.t.' }}
         </div>
-        <div class="col-span-1">
+        <div class="col-span-3 lg:col-span-1 flex flex-col">
+            <span class="font-bold block lg:hidden">Keuring afgerond op</span>
             {{ servicejob.completed_on ? new Date(servicejob.completed_on).toLocaleDateString('nl-NL', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
             }) : 'Nog niet afgerond' }}
         </div>
-        <div class="col-span-2">
+        <div class="col-span-6 lg:col-span-1 flex flex-col">
+            <span class="font-bold block lg:hidden">Opmerkingen</span>
             {{ servicejob.description }}
         </div>
-        <div class="absolute top-2 right-2 flex space-x-2">
+        <div class="absolute top-2 right-2 flex space-x-1 lg:space-x-2 items-center">
             <Link :href="`/servicejobs/${servicejob.id}`">
-            <ArrowRightCircleIcon class="size-5 text-blue-400 hover:text-blue-600 cursor-pointer"
+            <ArrowRightCircleIcon class="size-7 lg:size-5 text-blue-400 hover:text-blue-600 cursor-pointer"
                 :href="`/servicejobs/${servicejob.id}`" v-tooltip="'Voer deze keuring uit'" />
             </Link>
-            <TrashIcon class="size-5 text-gray-400 hover:text-red-600 cursor-pointer" @click="deleteServiceJob"
-                v-tooltip="'Verwijder deze keuring'" />
+            <TrashIcon class="size-7 lg:size-5 text-gray-400 hover:text-red-600 cursor-pointer"
+                @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
         </div>
 
     </div>
