@@ -1,6 +1,6 @@
 <template>
     <div
-        :class="[padding, 'bg-white -mx-4 shadow-xs ring-1 ring-gray-900/5 sm:mx-0 sm:rounded-lg lg:col-span-2 lg:row-span-2 lg:row-end-2']">
+        :class="[padding, 'bg-white shadow-xs ring-1 ring-gray-900/5 sm:rounded-lg lg:col-span-2 lg:row-span-2 lg:row-end-2']">
         <slot></slot>
     </div>
 </template>

@@ -24,7 +24,7 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent>
+            <BoxComponent class="md:ml-5 md:mt-0 ml-0 mt-5">
                 <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
                     <div class="flex">
                         <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
