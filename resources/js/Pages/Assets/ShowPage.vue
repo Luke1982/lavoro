@@ -7,9 +7,9 @@
                     <h1 class="text-l font-bold">Details van de machine</h1>
                 </div>
                 <div class="flex flex-wrap mt-4 gap-y-3">
-                    <div class="w-1/2 flex">
+                    <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Merk en model</div>
-                        <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-3']">
+                        <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-0 md:mr-3']">
                             <span v-if="!editing.product_id">
                                 {{ asset.product.brand.name }}
                                 <Link class="underline" :href="`/products/${asset.product.id}`">{{ asset.product.model
@@ -22,7 +22,7 @@
                                 @click="edit('product_id')" />
                         </div>
                     </div>
-                    <div class="w-1/2 flex">
+                    <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Serienummer</div>
                         <div :class="[editing.serial_number ? '' : 'pr-5', 'w-2/3 relative']">
                             <span v-if="!editing.serial_number">{{ asset.serial_number }} </span>
@@ -42,9 +42,9 @@
                                 @click="edit('serial_number')" />
                         </div>
                     </div>
-                    <div class="w-1/2 flex">
+                    <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Verloopdatum</div>
-                        <div :class="[editing.next_service_date ? '' : 'pr-5', 'w-2/3 relative mr-3']">
+                        <div :class="[editing.next_service_date ? '' : 'pr-5', 'w-2/3 relative mr-0 md:mr-3']">
                             <span v-if="!editing.next_service_date">{{ nlDate(asset.next_service_date) }} </span>
                             <div class="flex" v-if="editing.next_service_date">
                                 <input type="date" v-model="form.next_service_date"
@@ -63,7 +63,7 @@
                                 @click="edit('next_service_date')" />
                         </div>
                     </div>
-                    <div class="w-1/2 flex">
+                    <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Status</div>
                         <div :class="[editing.status ? '' : 'pr-5', 'w-2/3 relative']">
                             <div v-if="!editing.status">
@@ -79,7 +79,7 @@
                                 @click="edit('status')" />
                         </div>
                     </div>
-                    <div class="w-1/2 flex">
+                    <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Klant</div>
                         <div class="w-2/3 relative">
                             <Link :href="`/customers/${asset.customer.id}`" v-if="!editingCustomer"
@@ -87,7 +87,7 @@
                             {{ asset.customer.name }}
                             </Link>
                             <PencilSquareIcon v-if="!editingCustomer"
-                                class="w-5 h-5 text-gray-500 absolute right-3 top-2 transform -translate-y-1/2 cursor-pointer"
+                                class="w-5 h-5 text-gray-500 absolute right-0 md:right-3 top-2 transform -translate-y-1/2 cursor-pointer"
                                 @click="editingCustomer = true" />
                             <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id" />
                         </div>

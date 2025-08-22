@@ -1,7 +1,8 @@
 <template>
     <BoxComponent class="mb-3">
-        <div class="flex justify-between">
-            <nav class="flex justify-between px-4 pb-2 sm:px-0">
+        <div class="flex justify-between flex-wrap md:flex-nowrap">
+            <nav class="flex justify-around md:justify-between px-4 pb-2 sm:px-0 w-full md:w-1/2"
+                v-if="links.length > 3">
                 <div class="md:flex space-x-1">
                     <Link v-for="link in links" :key="link.url"
                         :href="`${link.url}${searchForm.search ? `&search=${searchForm.search}` : ''}`"
@@ -13,7 +14,7 @@
                     </Link>
                 </div>
             </nav>
-            <div class="relative flex-grow flex ml-4">
+            <div class="w-1/2 relative flex-grow flex flex-wrap md:flex-nowrap ml-0 md:ml-4 mt-3 md:mt-0">
                 <TextInput v-model="searchForm.search" type="search" name="search" ref="searchInput"
                     placeholder="Zoek op merk, model, soort of klant" class="w-full" :disabled="inAction"
                     :iconLeft="inAction ? ArrowPathIcon : MagnifyingGlassIcon" :iconLeftProps="{
@@ -21,7 +22,7 @@
                             (inAction ? 'animate-spin ' : '') +
                             'h-5 w-5 text-gray-400'
                     }" />
-                <ComboBox class="ml-2" :options="statusOptions" v-model="selectedStatus"
+                <ComboBox class="ml-0 md:ml-2 w-full mt-3 md:mt-0" :options="statusOptions" v-model="selectedStatus"
                     placeholder="Laat alleen status zien"
                     @update:modelValue="val => { updateLocalStorageStatus(val) }" />
             </div>
@@ -31,7 +32,7 @@
         <ul role="list"
             class="divide-y divide-gray-100 overflow-hidden bg-white shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
             <li v-for="asset in filteredAssets" :key="asset.id"
-                class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 sm:px-6">
+                class="relative flex flex-col md:flex-row justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 sm:px-6">
                 <div class="flex min-w-0 gap-x-4">
                     <img class="size-12 flex-none rounded-full bg-gray-50"
                         :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : ''"
@@ -54,14 +55,15 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex shrink-0 items-center gap-x-4">
-                    <div class="hidden sm:flex sm:flex-col sm:items-end">
+                <div class="flex shrink-0 items-center gap-x-4 pl-15 md:pl-0 mt-3 md:mt-0">
+                    <div class="flex md:flex-col md:items-end">
                         <span v-if="asset.status === 'Actief'"
                             class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
                         <span v-else
                             class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
                                 asset.status }}</span>
-                        <p v-if="asset.next_service_date" class="mt-1 text-xs/5 text-gray-500 flex items-center">
+                        <p v-if="asset.next_service_date"
+                            class="mt-1 text-xs/5 text-gray-500 flex items-center ml-3 md:ml-0">
                             <CalendarDateRangeIcon class="inline-block size-5 text-gray-400 mr-2" aria-hidden="true" />
                             <time :datetime="asset.next_service_date">{{ new
                                 Date(asset.next_service_date).toLocaleDateString('nl-NL', {
@@ -71,7 +73,9 @@
                                 }) }}</time>
                         </p>
                     </div>
-                    <ChevronRightIcon class="size-5 flex-none text-gray-400" aria-hidden="true" />
+                    <ChevronRightIcon
+                        class="size-5 flex-none text-gray-400 absolute md:relative right-6 top-1/2 -translate-y-1/2 md:translate-y-0 md:top-auto md:right-auto md:ml-3"
+                        aria-hidden="true" />
                 </div>
             </li>
         </ul>
