@@ -4,34 +4,34 @@
             Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
         </h1>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
-            <div class="col-span-2 text-xs">
+            <div class="col-span-4 md:col-span-2 text-xs">
                 Naam klant
             </div>
-            <div class="col-span-4">
+            <div class="col-span-8 md:col-span-4">
                 <Link :href="`/customers/${servicejob.asset.customer.id}`" class="underline">
                 {{ servicejob.asset.customer.name }}
                 </Link>
             </div>
-            <div class="col-span-2 text-xs">
+            <div class="col-span-4 md:col-span-2 text-xs">
                 Werkbon
             </div>
-            <div class="col-span-4">
+            <div class="col-span-8 md:col-span-4">
                 <Link :href="`/serviceorders/${servicejob.service_order.id}`" class="underline">
                 Nummer {{ servicejob.service_order.id }} gemaakt op {{ nlDate(servicejob.service_order.created_at) }}
                 </Link>
             </div>
-            <div class="col-span-2 text-xs">
+            <div class="col-span-4 md:col-span-2 text-xs">
                 Serienummer
             </div>
-            <div class="col-span-4">
+            <div class="col-span-8 md:col-span-4">
                 <Link :href="`/assets/${servicejob.asset.id}`" class="underline">
                 {{ servicejob.asset.serial_number }}
                 </Link>
             </div>
-            <div class="col-span-2 text-xs">
+            <div class="col-span-4 md:col-span-2 text-xs">
                 Soort product
             </div>
-            <div class="col-span-4">
+            <div class="col-span-8 md:col-span-4">
                 <Link :href="`/producttypes?search=${servicejob.asset.product.product_type.name}`" class="underline">
                 {{ servicejob.asset.product.product_type.name }}
                 </Link>
@@ -42,8 +42,8 @@
         </h2>
         <div class="flex flex-wrap">
             <ServiceCheckInstanceComponent v-for="check in servicejob.check_instances" :key="check.id"
-                :service-check-instance="check" :check-types-with-options="checkTypesWithOptions" class="w-1/3"
-                :readonly="servicejob.completed_on !== null" />
+                :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
+                class="w-full md:w-1/2 xl:w-1/3" :readonly="servicejob.completed_on !== null" />
         </div>
         <div class="border-t-1 border-gray-200">
             <h2 class="text-xl font-bold my-4 text-center">
