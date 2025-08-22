@@ -128,7 +128,9 @@
                     <template v-for="(item, index) in internalServiceChecks" :key="item.id">
                         <tr class="grid md:table-row grid-cols-12 relative pt-5 md:pt-0"
                             :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
-                            <td class="block col-span-12 md:table-cell px-4 py-2" v-if="productTypeToShow !== 0">
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2"
+                                v-if="productTypeToShow !== 0">
+                                <span class="block md:hidden font-semibold text-xs">Volgorde</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.order" />
                                 </div>
@@ -187,7 +189,7 @@
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
-                                }}, of voeg een
+                                    }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
