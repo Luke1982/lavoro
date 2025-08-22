@@ -94,7 +94,7 @@
                     </div>
                 </div>
             </BoxComponent>
-            <BoxComponent class="mt-5">
+            <BoxComponent class="mt-5" v-auto-animate>
                 <div class="flex justify-between items-center mb-2">
                     <div class="flex">
                         <ExclamationCircleIcon class="w-6 h-6 text-gray-500 mr-2" />
