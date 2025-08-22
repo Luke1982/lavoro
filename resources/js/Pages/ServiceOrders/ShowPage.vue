@@ -25,19 +25,19 @@
         <div v-auto-animate class="my-4">
             <h2 class="text-xl font-bold text-center uppercase">Keuringen</h2>
             <div class="grid grid-cols-12 mt-4">
-                <div class="col-span-2 text-xs">
+                <div class="col-span-12 md:col-span-2 text-sm md:text-xs mb-2 md:mb-0">
                     Kies een machine om te keuren
                 </div>
-                <div class="col-span-10 flex">
+                <div class="col-span-12 md:col-span-10 flex">
                     <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
                     <button @click="addServiceJob"
-                        class="w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                        class="w-auto md:w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                         Keuren
                     </button>
                 </div>
             </div>
             <div v-if="serviceOrder.servicejobs.length > 0"
-                class="grid-cols-6 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
+                class="grid-cols-6 lg:grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3 hidden">
                 <div class="col-span-1">Machine</div>
                 <div class="col-span-1">Uitkomst</div>
                 <div class="col-span-1">Tijdelijke goedkeur</div>
@@ -49,29 +49,30 @@
         </div>
         <h2 class="text-xl font-bold my-4 text-center uppercase">Storingen</h2>
         <div class="grid grid-cols-12 mt-4">
-            <div class="col-span-2 text-xs">
+            <div class="col-span-12 md:col-span-2 text-sm md:text-xs mb-2 md:mb-0">
                 Welke storing(en) wil je oplossen op deze bon?
             </div>
-            <div class="col-span-10 flex">
+            <div class="col-span-12 md:col-span-10 flex flex-col md:flex-row">
                 <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
                 <button @click="attachTicket"
-                    class="w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    class="w-full md:w-70 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                     Voeg storing aan werkbon toe
                 </button>
             </div>
         </div>
         <div class="flex flex-wrap" v-auto-animate>
-            <div class="w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets" :key="ticket.id">
+            <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
+                :key="ticket.id">
                 <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
             </div>
         </div>
         <h2 class="text-xl font-bold my-4 text-center uppercase">Materialen</h2>
         <div class="grid grid-cols-12 mt-4">
-            <div class="col-span-2 text-xs">
+            <div class="col-span-12 md:col-span-2 text-sm md:text-xs mb-2 md:mb-0">
                 Welke materialen heb je gebruikt?
             </div>
-            <div class="col-span-10 flex">
-                <div class="flex flex-grow">
+            <div class="col-span-12 md:col-span-10 flex flex-col md:flex-row items-start">
+                <div class="flex flex-grow w-full">
                     <div class="flex flex-col flex-grow">
                         <span class="text-sm mb-2">Kies een materiaal</span>
                         <ComboBox :options="internalMaterials" class="flex-grow" v-model="materialToAdd" />
@@ -82,17 +83,17 @@
                     </div>
                 </div>
                 <button @click="attachMaterial"
-                    class="self-end ml-2 px-4 py-2 w-70 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    class="self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-70 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
                     Voeg materiaal aan werkbon toe
                 </button>
             </div>
-            <div class="col-span-2 text-xs mt-5">
+            <div class="col-span-12 md:col-span-2 text-sm md:text-xs mb-0 mt-4 md:mt-0">
                 Deze materialen zijn toegevoegd
             </div>
-            <div class="col-span-10 flex mt-5">
+            <div class="col-span-12 md:col-span-10 flex mt-5">
                 <div class="w-full">
                     <div v-if="serviceOrder.materials.length > 0"
-                        class="grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 pb-3">
+                        class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 pb-3">
                         <div class="col-span-5 pl-4">Materiaal</div>
                         <div class="col-span-2">Aantal</div>
                         <div class="col-span-2">Prijs per stuk</div>
@@ -101,20 +102,30 @@
                     </div>
                     <div v-auto-animate>
                         <div v-for="material in serviceOrder.materials" :key="material.id"
-                            class="grid grid-cols-12 py-2 items-center odd:bg-gray-50">
-                            <div class="col-span-5 pl-4">{{ material.name }}</div>
-                            <div class="col-span-2">
+                            class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 px-4 md:px-0 relative">
+                            <div class="col-span-12 md:col-span-5 pl-0 md:pl-4 flex flex-col">
+                                <span class="font-bold text-xs block lg:hidden">Materiaal</span>
+                                {{ material.name }}
+                            </div>
+                            <div class="col-span-12 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                <span class="font-bold text-xs block lg:hidden">Aantal</span>
                                 <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full"
                                     @update="val => {
                                         materialsForm.quantity = val;
                                         updateMaterialQuantity(material.pivot.id);
                                     }" />
                             </div>
-                            <div class="col-span-2">€ {{ Number(material.price).toFixed(2) }}</div>
-                            <div class="col-span-2">€ {{ (Number(material.pivot.quantity) *
-                                Number(material.price)).toFixed(2) }}</div>
-                            <div class="col-span-1">
-                                <TrashIcon class="w-5 h-5 text-red-500 cursor-pointer"
+                            <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                <span class="font-bold text-xs block lg:hidden">Prijs pst.</span>
+                                € {{ Number(material.price).toFixed(2) }}
+                            </div>
+                            <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
+                                    (Number(material.pivot.quantity) *
+                                        Number(material.price)).toFixed(2) }}
+                            </div>
+                            <div class="absolute md:relative top-3 right-3 col-span-1">
+                                <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
                                     @click="detachMaterial(material.pivot.id)"
                                     v-tooltip="'Verwijder dit materiaal van de werkbon'" />
                             </div>
@@ -125,7 +136,7 @@
         </div>
         <h2 class="text-xl font-bold my-4 text-center uppercase">Afsluiting en opmerkingen</h2>
         <div class="flex flex-wrap">
-            <div class="w-1/2 flex flex-col pr-3">
+            <div class="w-full md:w-1/2 flex flex-col pr-0 md:pr-3">
                 <EditableTextField v-model="form.signed_by" class="w-full mb-5"
                     @update="val => { form.signed_by = val; }"
                     placeholder="Voer de naam van degene in die de werkbon tekent" />
@@ -140,7 +151,7 @@
                         @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                 </div>
             </div>
-            <div class="w-1/2 pl-3">
+            <div class="w-full md:w-1/2 pl-0 md:pl-3 mt-4 md:mt-0">
                 <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'" :remarkable-id="serviceOrder.id"
                     :comments="serviceOrder.remarks" class="mt-8" />
             </div>
