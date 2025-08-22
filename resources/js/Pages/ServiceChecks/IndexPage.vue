@@ -14,8 +14,8 @@
         </div>
 
         <!-- Search -->
-        <div class="mb-4 flex" v-if="!addingServiceCheck">
-            <div class="w-2/3">
+        <div class="mb-4 flex flex-wrap" v-if="!addingServiceCheck">
+            <div class="w-full md:w-2/3">
                 <label class="block text-sm font-medium">Zoek binnen keurpunten</label>
                 <div class="mt-2 relative rounded-md shadow-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -27,7 +27,7 @@
                         class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
                 </div>
             </div>
-            <div class="ml-4 flex-grow flex items-end">
+            <div class="ml-0 md:ml-4 mt-4 md:mt-0 flex-grow flex items-end">
                 <div class="flex-grow">
                     <label class="block text-xs font-medium">Filter op type</label>
                     <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
@@ -113,7 +113,7 @@
         <!-- Table -->
         <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
-                <thead>
+                <thead class="hidden md:table-header-group">
                     <tr>
                         <th class="px-4 py-2 text-left text-sm font-semibold" v-if="productTypeToShow !== 0">Volgorde
                         </th>
@@ -125,56 +125,65 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" v-auto-animate>
-                    <template v-for="item in internalServiceChecks" :key="item.id">
-                        <tr class="even:bg-gray-100">
-                            <td class="px-4 py-2" v-if="productTypeToShow !== 0">
+                    <template v-for="(item, index) in internalServiceChecks" :key="item.id">
+                        <tr class="grid md:table-row grid-cols-12 relative pt-5 md:pt-0"
+                            :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
+                            <td class="block col-span-12 md:table-cell px-4 py-2" v-if="productTypeToShow !== 0">
                                 <div v-if="item.open">
                                     <TextInput v-model="item.order" />
                                 </div>
                                 <span v-else>{{ item.order }}</span>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Naam</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.name" />
                                 </div>
                                 <span v-else>{{ item.name }}</span>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Producttype</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="productTypes" v-model="item.product_type_id"
                                         :initialId="item.product_type.id" />
                                 </div>
                                 <span v-else>{{ item.product_type.name }}</span>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="serviceCheckTypesForComboBox" v-model="item.type"
                                         :initialId="item.type.name" />
                                 </div>
                                 <span v-else>{{ serviceCheckTypes[item.type] }}</span>
                             </td>
-                            <td class="px-4 py-2 relative">
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2 relative pr-8 md:pr-4">
+                                <span class="block md:hidden font-semibold text-xs">Opties</span>
                                 {{ getValuesCellContent(item) }}
                                 <AdjustmentsHorizontalIcon
                                     v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type) && !item.open"
-                                    class="inline h-5 w-5 text-blue-300 absolute right-0 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                                    class="inline size-7 md:size-5 text-blue-300 absolute right-4 md:right-0 top-1/2 transform -translate-y-1/2 cursor-pointer"
                                     @click.stop="toggleRecordValueEdit(item.id)"
                                     v-tooltip="`Bewerk waarden voor ${item.name}`" />
                             </td>
-                            <td class="px-4 py-2 text-right text-sm font-medium">
+                            <td
+                                class="px-4 py-2 text-right text-sm font-medium absolute md:relative right-0 top-0 min-w-20">
                                 <button v-if="!item.open" @click="toggleRecord(item.id)">
-                                    <PencilSquareIcon class="inline h-5 w-5 text-gray-600 mr-2 cursor-pointer"
+                                    <PencilSquareIcon
+                                        class="inline size-7 md:size-5 text-gray-600 mr-2 mb-0 sm:mb-0 cursor-pointer"
                                         v-tooltip="'Bewerk dit keurpunt'" />
                                 </button>
                                 <button v-else @click="saveRecord(item)"
                                     class="text-green-600 hover:text-green-900 mr-2">
                                     Opslaan
                                 </button>
-                                <TrashIcon class="inline h-5 w-5 text-red-400 hover:text-red-600 cursor-pointer"
+                                <TrashIcon
+                                    class="inline size-7 md:size-5 text-red-400 hover:text-red-600 cursor-pointer"
                                     @click.stop="deleteServiceCheck(item.id)" />
                             </td>
                         </tr>
-                        <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`">
+                        <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`"
+                            :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
