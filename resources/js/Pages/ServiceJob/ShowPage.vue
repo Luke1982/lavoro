@@ -43,7 +43,7 @@
         <div class="flex flex-wrap">
             <ServiceCheckInstanceComponent v-for="check in servicejob.check_instances" :key="check.id"
                 :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
-                class="w-full md:w-1/2 xl:w-1/3" :readonly="servicejob.completed_on !== null" />
+                class="w-full md:w-1/2 xle:w-1/3" :readonly="servicejob.completed_on !== null" />
         </div>
         <div class="border-t-1 border-gray-200">
             <h2 class="text-xl font-bold my-4 text-center">
@@ -77,9 +77,15 @@
             </div>
             <div class="mt-4">
                 <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Opmerkingen:</label>
-                <textarea v-model="form.description" rows="3" class="w-full border border-gray-300 rounded-md p-2"
-                    placeholder="Eventuele opmerkingen over de keuring..."></textarea>
+                <textarea v-model="form.description" rows="3"
+                    class="w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
+                    placeholder="Eventuele opmerkingen over de keuring..."
+                    :disabled="servicejob.completed_on !== null"></textarea>
             </div>
+            <Link :href="`/serviceorders/${servicejob.service_order.id}`"
+                class="block w-full text-white text-center py-4 bg-blue-500 hover:bg-blue-600 transition-colors rounded-md mt-4">
+            Terug naar de werkbon
+            </Link>
         </div>
     </BoxComponent>
 </template>
