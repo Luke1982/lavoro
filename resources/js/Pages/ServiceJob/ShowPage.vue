@@ -49,23 +49,25 @@
             <h2 class="text-xl font-bold my-4 text-center">
                 Afronding
             </h2>
-            <div class="flex mt-4 justify-center" v-auto-animate>
+            <div class="grid grid-cols-12 md:flex mt-4 justify-center" v-auto-animate>
                 <ComboBox :label="'Uitkomst van de keuring'" :options="possibleOutcomes" v-model="currentOutcomeId"
-                    class=""></ComboBox>
+                    class="col-span-6 mr-2 md:mr-0 flex flex-col justify-between"></ComboBox>
                 <TextInput v-model="form.days_temporary_approval" :label="'Aantal dagen tijdelijk goedgekeurd'"
-                    class="ml-4" type="number" v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
-                <div class="ml-4">
+                    class="col-span-6 ml-2 md:ml-4 flex flex-col justify-between" type="number"
+                    v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
+                <div class="col-span-6 ml-0 md:ml-4 mr-2 md:mr-0 flex flex-col justify-between mt-4 md:mt-0">
                     <label class="block text-sm font-medium leading-6 text-gray-900">Afgerond op:</label>
                     <input type="date" v-model="form.completed_on" lang="nl"
-                        class="border border-gray-300 rounded-md text-sm p-1.5 mt-2" />
+                        class="w-full border border-gray-300 rounded-md text-sm p-1.5 mt-2" />
                 </div>
                 <button @click="updating = true; updateJob()" :disabled="updating" v-auto-animate
                     v-if="servicejob.completed_on === null"
-                    class="flex ml-4 bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
+                    class="flex ml-2 md:ml-4 col-span-6 justify-around bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
                     <span> Opslaan </span>
-                    <Cog6ToothIcon v-if="updating" class="inline size-5 mt-1 ml-1 text-white animate-spin" />
+                    <Cog6ToothIcon v-if="updating"
+                        class="inline size-5 mt-o md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
                 </button>
-                <div v-else class="flex">
+                <div v-else class="flex col-span-6">
                     <InformationCircleIcon class="inline size-6 ml-2 text-gray-500 self-end mb-2 cursor-pointer"
                         v-tooltip="{
                             html: true,
