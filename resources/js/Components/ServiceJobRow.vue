@@ -1,5 +1,5 @@
 <template>
-    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 py-2 relative`">
+    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 md:py-2 relative p-5`">
         <div class="col-span-3 lg:col-span-1 flex flex-col" v-if="asset">
             <span class="font-bold block lg:hidden">Machine</span>
             <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
