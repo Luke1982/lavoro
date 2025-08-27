@@ -1,7 +1,7 @@
 <template>
-    <div v-if="items.length" class="-mx-4 mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px">
+    <div v-if="items.length" class="lg:-mx-4 mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px mx-2">
         <table class="min-w-full table-fixed border-separate border-spacing-0">
-            <thead>
+            <thead class="hidden lg:table-header-group">
                 <tr>
                     <th v-for="header in headers" :key="header.key" :class="[
                         header.width,
@@ -14,8 +14,11 @@
                 </tr>
             </thead>
             <tbody class="bg-white">
-                <tr v-for="item in items" :key="item.id" class="even:bg-gray-50">
-                    <td v-for="column in headers" :key="column.key" class="px-4 py-2">
+                <tr v-for="item in items" :key="item.id"
+                    class="even:bg-gray-50 grid grid-cols-12 lg:table-row py-3 lg:py-0">
+                    <td v-for="column in headers" :key="column.key"
+                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:table-cell">
+                        <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600">{{ column.label }}</span>
                         <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
                             @update:modelValue="onCellChange(item.id, column.key, $event)"
                             v-if="column.fieldtype === 'text' || column.fieldtype === 'number'" />
