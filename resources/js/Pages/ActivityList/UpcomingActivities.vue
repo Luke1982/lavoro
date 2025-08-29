@@ -7,10 +7,14 @@
             </div>
             <ComboBox
                 :options="[{ id: '60', name: 'Aankomende 60 dagen' }, { id: '90', name: 'Aankomende 90 dagen' }, { id: '180', name: 'Aankomende 180 dagen' }, { id: '365', name: 'Aankomende 365 dagen' }]"
-                class="w-full lg:w-64" placeholder="Filter op periode" v-model="form.days" :initial-id="form.days" />
+                class="w-full lg:w-64 z-20" placeholder="Filter op periode" v-model="form.days"
+                :initial-id="form.days" />
         </div>
         <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`" class="my-8">
-            <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal" />
+            <div class="sticky top-16 lg:top-0 z-2 bg-white">
+                <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal"
+                    class="bg-white py-4 lg:py-2" />
+            </div>
             <div
                 class="grid grid-cols-12 text-sm bg-gray-200 p-2 rounded-tl-md rounded-tr-md mt-3 border border-gray-300 border-b-0">
                 <div class="col-span-1">
@@ -119,7 +123,7 @@
             </div>
         </div>
     </BoxComponent>
-    <div class="fixed right-4 bottom-4 left-4">
+    <div class="fixed right-4 bottom-4 left-4 z-3">
         <div v-auto-animate class="flex gap-2 flex-col lg:flex-row justify-end">
             <button v-if="canCreateWorkOrder === 'yes'" :disabled="canCreateWorkOrder === 'diffCustomers'"
                 @click="createServiceOrder(false)" v-auto-animate
