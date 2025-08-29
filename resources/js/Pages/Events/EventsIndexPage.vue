@@ -29,8 +29,9 @@
             </template>
         </FullCalendar>
         <div v-if="modalOpen"
-            class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-center justify-center">
-            <div class="w-1/2 bg-white rounded-2xl h-[96vh] shadow-2xl overflow-y-scroll relative">
+            class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-start lg:items-center justify-center px-5 lg:px-0">
+            <div
+                class="w-full lg:w-2/3 xl:w-1/2 bg-white rounded-2xl mt-3 lg:mt-0 h-[90vh] lg:h-[96vh] shadow-2xl relative">
                 <div class="flex p-4 border-b-gray-200 border-b-1 items-center">
                     <div class="w-10/12 text-gray-600">
                         <span v-if="!editingExistingEvent">Maak een nieuwe afspraak</span>
@@ -40,44 +41,46 @@
                         <XMarkIcon class="h-6 w-6 cursor-pointer text-red-600" @click="modalOpen = false" />
                     </div>
                 </div>
-                <div class="flex flex-wrap">
-                    <div class="w-1/2 flex px-4 py-2">
-                        <TextInput v-model="form.start_date" label="Startdatum" type="date" class="w-1/2" />
-                        <TextInput v-model="form.start_time" label="Starttijd" type="time" class="w-1/2 ml-2" />
+                <div class="overflow-y-scroll h-[77vh]">
+                    <div class="flex flex-wrap">
+                        <div class="w-full lg:w-1/2 flex px-4 py-2">
+                            <TextInput v-model="form.start_date" label="Startdatum" type="date" class="w-1/2" />
+                            <TextInput v-model="form.start_time" label="Starttijd" type="time" class="w-1/2 ml-2" />
+                        </div>
+                        <div class="w-full lg:w-1/2 flex px-4 py-2">
+                            <TextInput v-model="form.end_date" label="Einddatum" type="date" class="w-1/2" />
+                            <TextInput v-model="form.end_time" label="Eindtijd" type="time" class="w-1/2 ml-2" />
+                        </div>
                     </div>
-                    <div class="w-1/2 flex px-4 py-2">
-                        <TextInput v-model="form.end_date" label="Einddatum" type="date" class="w-1/2" />
-                        <TextInput v-model="form.end_time" label="Eindtijd" type="time" class="w-1/2 ml-2" />
+                    <div class="flex flex-wrap">
+                        <div class="w-1/2 flex px-4 py-2">
+                            <ComboBox v-model="form.event_type_id" :options="eventTypes" label="Type" class="w-full"
+                                :initial-id="eventTypes[0].id" />
+                        </div>
+                        <div class="w-1/2 flex px-4 py-2">
+                            <ComboBox v-model="form.status" :options="eventStatusses" label="Status" class="w-full"
+                                :initial-id="getInitialEventStatusId()" :emitValue="true" />
+                        </div>
+                    </div>
+                    <div class="w-full px-4 py-2">
+                        <TextInput v-model="form.name" label="Titel" type="text" class="w-full" />
+                    </div>
+                    <div class="w-full px-4 py-2">
+                        <label class="block text-sm font-medium leading-6 text-gray-900">Omschrijving</label>
+                        <textarea v-model="form.description" label="Omschrijving" type="textarea"
+                            class="w-full ring-1 ring-inset ring-gray-300 rounded-md p-2 text-sm" rows="4"
+                            placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
+                    </div>
+                    <div class="w-full px-4 py-2">
+                        <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
+                            :initial-id="allCustomers[0].id" />
+                    </div>
+                    <div class="w-full px-4 py-2">
+                        <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
+                            class="w-full" :initial-id="form.eventable_id" />
                     </div>
                 </div>
-                <div class="flex flex-wrap">
-                    <div class="w-1/2 flex px-4 py-2">
-                        <ComboBox v-model="form.event_type_id" :options="eventTypes" label="Type" class="w-full"
-                            :initial-id="eventTypes[0].id" />
-                    </div>
-                    <div class="w-1/2 flex px-4 py-2">
-                        <ComboBox v-model="form.status" :options="eventStatusses" label="Status" class="w-full"
-                            :initial-id="getInitialEventStatusId()" :emitValue="true" />
-                    </div>
-                </div>
-                <div class="w-full px-4 py-2">
-                    <TextInput v-model="form.name" label="Titel" type="text" class="w-full" />
-                </div>
-                <div class="w-full px-4 py-2">
-                    <label class="block text-sm font-medium leading-6 text-gray-900">Omschrijving</label>
-                    <textarea v-model="form.description" label="Omschrijving" type="textarea"
-                        class="w-full ring-1 ring-inset ring-gray-300 rounded-md p-2 text-sm" rows="4"
-                        placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
-                </div>
-                <div class="w-full px-4 py-2">
-                    <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
-                        :initial-id="allCustomers[0].id" />
-                </div>
-                <div class="w-full px-4 py-2">
-                    <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
-                        class="w-full" :initial-id="form.eventable_id" />
-                </div>
-                <div class="absolute bottom-0 w-full flex justify-end ">
+                <div class="absolute bottom-0 w-full flex justify-end rounded-b-2xl overflow-hidden">
                     <button @click="modalOpen = false; editingExistingEvent = false; form.reset()"
                         class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 flex-grow">
                         Annuleren
@@ -89,6 +92,14 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="fixed lg:hidden right-3 bottom-3">
+        <button @click="modalOpen = true" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+        </button>
     </div>
 </template>
 
@@ -381,3 +392,10 @@ const calendarOptions = ref({
     dayMaxEventRows: 2,
 })
 </script>
+<style scoped>
+@media screen and (max-width: 1024px) {
+    .fc {
+        height: 92vh !important;
+    }
+}
+</style>
