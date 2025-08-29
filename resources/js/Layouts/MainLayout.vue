@@ -25,7 +25,6 @@
                                 </div>
                             </TransitionChild>
 
-                            <!-- Sidebar component, swap this element with another sidebar if you like -->
                             <div
                                 class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
                                 <div class="flex h-16 shrink-0 items-center">
@@ -33,21 +32,30 @@
                                         src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
                                         alt="Your Company" />
                                 </div>
+
                                 <nav class="flex flex-1 flex-col">
                                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
                                                 <li v-for="item in navigation" :key="item.name">
-                                                    <Link :href="item.href" @click="updateCurrent(item)"
-                                                        :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+                                                    <Link :href="item.href" @click="handleNavClick(item)" :class="[
+                                                        item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                    ]">
                                                     <component :is="item.icon" class="size-6 shrink-0"
                                                         aria-hidden="true" />
                                                     {{ item.name }}
                                                     </Link>
+
                                                     <ul v-if="item.children">
                                                         <li v-for="child in item.children" :key="child.name">
-                                                            <Link :href="child.href"
-                                                                :class="[child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11']">
+                                                            <Link :href="child.href" @click="sidebarOpen = false"
+                                                                :class="[
+                                                                    child.current
+                                                                        ? 'bg-gray-800 text-white'
+                                                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                                    'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
+                                                                ]">
                                                             {{ child.name }}
                                                             </Link>
                                                         </li>
@@ -55,19 +63,33 @@
                                                 </li>
                                             </ul>
                                         </li>
+
                                         <li>
-                                            <div class="text-xs/6 font-semibold text-gray-400">Your teams</div>
+                                            <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                                             <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                                <li v-for="team in teams" :key="team.name">
-                                                    <a :href="team.href"
-                                                        :class="[team.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+                                                <li v-for="list in lists" :key="list.name">
+                                                    <a :href="list.href" @click="sidebarOpen = false" :class="[
+                                                        list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                    ]">
                                                         <span
                                                             class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                                team.initial }}</span>
-                                                        <span class="truncate">{{ team.name }}</span>
+                                                                list.initial }}</span>
+                                                        <span>{{ list.name }}</span>
                                                     </a>
                                                 </li>
                                             </ul>
+                                        </li>
+
+                                        <li class="-mx-6 mt-auto">
+                                            <a href="#" @click="sidebarOpen = false"
+                                                class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
+                                                <img class="size-8 rounded-full bg-gray-800"
+                                                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                                                    alt="" />
+                                                <span class="sr-only">Your profile</span>
+                                                <span aria-hidden="true">Tom Cook</span>
+                                            </a>
                                         </li>
                                     </ul>
                                 </nav>
@@ -78,9 +100,7 @@
             </Dialog>
         </TransitionRoot>
 
-        <!-- Static sidebar for desktop -->
         <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-            <!-- Sidebar component, swap this element with another sidebar if you like -->
             <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6">
                 <div class="flex h-16 shrink-0 items-center">
                     <img class="h-8 w-auto"
@@ -92,15 +112,19 @@
                         <li>
                             <ul role="list" class="-mx-2 space-y-1">
                                 <li v-for="item in navigation" :key="item.name">
-                                    <Link :href="item.href" @click="updateCurrent(item)"
-                                        :class="[item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+                                    <Link :href="item.href" @click="updateCurrent(item)" :class="[
+                                        item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                    ]">
                                     <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
                                     {{ item.name }}
                                     </Link>
                                     <ul v-if="item.children">
                                         <li v-for="child in item.children" :key="child.name">
-                                            <Link :href="child.href"
-                                                :class="[child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11']">
+                                            <Link :href="child.href" :class="[
+                                                child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
+                                            ]">
                                             {{ child.name }}
                                             </Link>
                                         </li>
@@ -108,12 +132,15 @@
                                 </li>
                             </ul>
                         </li>
+
                         <li>
                             <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                             <ul role="list" class="-mx-2 mt-2 space-y-1">
                                 <li v-for="list in lists" :key="list.name">
-                                    <a :href="list.href"
-                                        :class="[list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+                                    <a :href="list.href" :class="[
+                                        list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                    ]">
                                         <span
                                             class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
                                                 list.initial }}</span>
@@ -122,6 +149,7 @@
                                 </li>
                             </ul>
                         </li>
+
                         <li class="-mx-6 mt-auto">
                             <a href="#"
                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
@@ -192,25 +220,45 @@ const navigation = [
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
     { name: 'Keurpunten', href: '/servicechecks', icon: CheckIcon, current: false },
     {
-        name: 'Materialen', href: '/materials', icon: SwatchIcon, current: false, children: [
+        name: 'Materialen',
+        href: '/materials',
+        icon: SwatchIcon,
+        current: false,
+        children: [
             { name: 'Categorieën', href: '/materialcategories', current: false },
             { name: 'Gebruikseenheden', href: '/materialusageunits', current: false }
         ]
     },
     {
-        name: 'Agenda', href: '/events', icon: CalendarIcon, current: false, children: [
-            { name: 'Afspraaktypes', href: '/eventtypes', current: false },
-        ]
-    },
-]
-const lists = [
-    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false },
+        name: 'Agenda',
+        href: '/events',
+        icon: CalendarIcon,
+        current: false,
+        children: [{ name: 'Afspraaktypes', href: '/eventtypes', current: false }]
+    }
 ]
 
+const lists = [
+    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false }
+]
+
+/**
+ * Set the active top-level navigation item.
+ * @param {{name:string}} item
+ */
 const updateCurrent = (item) => {
-    navigation.forEach(navItem => {
-        navItem.current = (navItem.name === item.name)
+    navigation.forEach((navItem) => {
+        navItem.current = navItem.name === item.name
     })
+}
+
+/**
+ * Handle a mobile navigation click: update active item and close the sidebar.
+ * @param {{name:string}} item
+ */
+const handleNavClick = (item) => {
+    updateCurrent(item)
+    sidebarOpen.value = false
 }
 
 const sidebarOpen = ref(false)
