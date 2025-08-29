@@ -23,22 +23,13 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
-        $user = Auth::user();
-
-        // $existingToken = $user->tokens()->where('name', 'api')->first();
-
-        // $token = $existingToken ? $existingToken->plainTextToken : $user->createToken('api')->plainTextToken;
-        // $request->session()->put('token', $token);
-
         return redirect()->intended();
     }
 
     public function destroy(Request $request)
     {
-        // Auth::user()->tokens()->delete();
         Auth::logout();
         $request->session()->invalidate();
-        // $request->session()->regenerateToken();
-        return redirect()->route('index');
+        return redirect()->route('login');
     }
 }
