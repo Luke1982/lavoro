@@ -17,6 +17,9 @@
                 placeholder="bijv. 'Model X'" input-id="searchInput" />
         </div>
 
+        <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm }"
+            class="border-b border-gray-200 pb-2" />
+
         <div v-if="addingProduct" class="mb-6 p-4 ring ring-gray-300 rounded-md relative">
             <div class="space-y-4">
                 <div>
@@ -82,34 +85,6 @@
                     @click="newProductForm.reset(); addingProduct = false" />
             </div>
         </div>
-
-        <nav v-if="internalProducts.length"
-            class="flex items-center justify-between border-b border-gray-200 px-4 pb-2 sm:px-0">
-            <div class="flex-1">
-                <Link v-if="products.prev_page_url"
-                    :href="`${products.prev_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                &laquo; Vorige
-                </Link>
-            </div>
-            <div class="hidden md:flex space-x-1">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
-                    :class="link.active
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500'" preserve-scroll>
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="flex-1 text-right">
-                <Link v-if="products.next_page_url"
-                    :href="`${products.next_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                Volgende &raquo;
-                </Link>
-            </div>
-        </nav>
 
         <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
@@ -180,33 +155,8 @@
             </table>
         </div>
 
-        <nav v-if="internalProducts.length"
-            class="flex items-center justify-between border-t border-gray-200 px-4 pt-2 sm:px-0">
-            <div class="flex-1">
-                <Link v-if="products.prev_page_url"
-                    :href="`${products.prev_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                &laquo; Vorige
-                </Link>
-            </div>
-            <div class="hidden md:flex space-x-1">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
-                    :class="link.active
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500'" preserve-scroll>
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="flex-1 text-right">
-                <Link v-if="products.next_page_url"
-                    :href="`${products.next_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                Volgende &raquo;
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm }"
+            class="border-t border-gray-200 pt-2" />
 
         <p v-else class="text-center text-gray-500">Geen producten gevonden.</p>
     </div>
@@ -224,6 +174,9 @@ import { ref } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import SearchComponent from '@/Components/UI/SearchComponent.vue'
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+
+// pagination handled by PaginationComponent
 
 const { products, search: initialSearch } = defineProps({
     products: { type: Object, required: true },
@@ -234,9 +187,7 @@ const { products, search: initialSearch } = defineProps({
 
 const searchTerm = ref(initialSearch)
 const internalProducts = ref(products.data)
-const links = products.links.filter(
-    link => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;'
-)
+// links filtering moved to PaginationComponent
 
 const addingProduct = ref(false)
 
