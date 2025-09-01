@@ -37,12 +37,12 @@ class Material extends Model
 
     public function category()
     {
-        return $this->belongsTo(MaterialCategory::class);
+        return $this->belongsTo(MaterialCategory::class, 'material_category_id');
     }
 
     public function usageUnit()
     {
-        return $this->belongsTo(MaterialUsageUnit::class);
+        return $this->belongsTo(MaterialUsageUnit::class, 'material_usage_unit_id');
     }
 
     public function images()

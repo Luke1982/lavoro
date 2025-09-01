@@ -13,12 +13,30 @@ class MaterialController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->query('search', ''));
+
+        $query = Material::with(['category', 'usageUnit']);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhereHas('category', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('usageUnit', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         return inertia('Materials/IndexPage', [
-            'materials' => Material::with(['category', 'usageUnit'])->get(),
-            'categories' => MaterialCategory::all(),
-            'usageUnits' => MaterialUsageUnit::all(),
+            'materials' => $query->orderBy('name')->get(),
+            'categories' => MaterialCategory::orderBy('name')->get(),
+            'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
+            'search' => $search,
         ]);
     }
 

@@ -1,12 +1,17 @@
 <template>
+    <div class="mb-4 lg:-mx-4 sm:-mx-0 mx-2">
+        <SearchComponent v-model="searchTerm" url="/materials" label="Zoek binnen materialen"
+            placeholder="Zoek op naam, code of categorie" input-id="searchInput" />
+    </div>
     <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate" urlBase="materials" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import SearchComponent from '@/Components/UI/SearchComponent.vue';
 
-const { materials, categories, usageUnits } = defineProps({
+const { materials, categories, usageUnits, search: initialSearch } = defineProps({
     materials: {
         type: Array,
         default: () => []
@@ -18,10 +23,12 @@ const { materials, categories, usageUnits } = defineProps({
     usageUnits: {
         type: Array,
         default: () => []
-    }
+    },
+    search: { type: String, default: '' }
 })
 
 const innerMaterials = ref(materials);
+const searchTerm = ref(initialSearch)
 
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/3' },
