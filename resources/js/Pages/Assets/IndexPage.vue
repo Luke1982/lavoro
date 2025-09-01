@@ -15,13 +15,8 @@
                 </div>
             </nav>
             <div class="w-1/2 relative flex-grow flex flex-wrap md:flex-nowrap ml-0 md:ml-4 mt-3 md:mt-0">
-                <TextInput v-model="searchForm.search" type="search" name="search" ref="searchInput"
-                    placeholder="Zoek op merk, model, soort of klant" class="w-full" :disabled="inAction"
-                    :iconLeft="inAction ? ArrowPathIcon : MagnifyingGlassIcon" :iconLeftProps="{
-                        class:
-                            (inAction ? 'animate-spin ' : '') +
-                            'h-5 w-5 text-gray-400'
-                    }" />
+                <SearchComponent v-model="searchForm.search" url="/assets" label=""
+                    placeholder="Zoek op merk, model, soort of klant" input-id="searchInput" />
                 <ComboBox class="ml-0 md:ml-2 w-full mt-3 md:mt-0" :options="statusOptions" v-model="selectedStatus"
                     placeholder="Laat alleen status zien"
                     @update:modelValue="val => { updateLocalStorageStatus(val) }" />
@@ -84,13 +79,12 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
-import { computed, ref, watch, onMounted, nextTick } from 'vue';
-import debounce from 'lodash/debounce';
+import { computed, ref } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { ArrowPathIcon, CalendarDateRangeIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
-import TextInput from '@/Components/UI/TextInput.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import SearchComponent from '@/Components/UI/SearchComponent.vue';
 
 const props = defineProps({
     assets: {
@@ -105,8 +99,6 @@ const searchForm = useForm({
 });
 
 const links = computed(() => props.assets.links);
-const inAction = ref(false)
-const searchInput = ref(null);
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const filteredAssets = computed(() => {
     if (selectedStatus.value === 1) {
@@ -122,37 +114,6 @@ const statusOptions = [
     { id: 2, name: 'Actief' },
     { id: 3, name: 'Niet actief' },
 ];
-
-const searchAssets = debounce(() => {
-    inAction.value = true
-    localStorage.setItem('selectedAssetStatus', selectedStatus.value)
-    searchForm.get('/assets', { search: searchForm.search }, {
-        preserveScroll: true,
-        onStart: () => inAction.value = true,
-        onFinish: () => {
-            inAction.value = false
-            localStorage.removeItem('searchInitiated')
-            nextTick(() => {
-                searchInput.value.focus()
-            })
-        },
-    })
-}, 600)
-
-watch(() => searchForm.search, () => {
-    localStorage.setItem('searchInitiated', 'true')
-    searchAssets()
-})
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        nextTick(() => {
-            searchInput.value?.focus()
-        })
-    }
-})
 
 function updateLocalStorageStatus(val) {
     localStorage.setItem('selectedAssetStatus', val);

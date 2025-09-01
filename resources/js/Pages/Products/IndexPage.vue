@@ -1,6 +1,5 @@
 <template>
     <div class="p-4 bg-white rounded-md">
-        <!-- Header & Add Button -->
         <div class="sm:flex justify-between items-center flex-wrap mb-4">
             <div>
                 <h1 class="text-base font-semibold">Producten</h1>
@@ -13,24 +12,13 @@
             </button>
         </div>
 
-        <!-- Search -->
         <div class="mb-4" v-if="!addingProduct">
-            <label class="block text-sm font-medium text-gray-900">Zoek binnen producten</label>
-            <div class="mt-2 relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon v-if="!inAction" class="h-5 w-5 text-gray-400" />
-                    <ArrowPathIcon v-else class="h-5 w-5 text-gray-400 animate-spin" />
-                </div>
-                <input type="text" id="searchInput" v-model="searchTerm" :disabled="inAction"
-                    placeholder="bijv. 'Model X'"
-                    class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
-            </div>
+            <SearchComponent v-model="searchTerm" url="/products" label="Zoek binnen producten"
+                placeholder="bijv. 'Model X'" input-id="searchInput" />
         </div>
 
-        <!-- New Product Form -->
         <div v-if="addingProduct" class="mb-6 p-4 ring ring-gray-300 rounded-md relative">
             <div class="space-y-4">
-                <!-- Product Type Select Placeholder -->
                 <div>
                     <label class="block text-sm font-medium">Producttype</label>
                     <div class="mt-1">
@@ -42,7 +30,6 @@
                     </p>
                 </div>
 
-                <!-- Brand Select Placeholder -->
                 <div>
                     <label class="block text-sm font-medium">Merk</label>
                     <div class="mt-1">
@@ -53,11 +40,9 @@
                     </p>
                 </div>
 
-                <!-- Model -->
                 <TextInput v-model="newProductForm.model" label="Model" :hasError="newProductForm.errors.model"
                     :errorMessage="newProductForm.errors.model" />
 
-                <!-- Description -->
                 <div>
                     <label class="block text-sm font-medium">Beschrijving</label>
                     <textarea v-model="newProductForm.description" rows="3"
@@ -68,7 +53,6 @@
                     </p>
                 </div>
 
-                <!-- Dates -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium">Start verkoop</label>
@@ -99,7 +83,6 @@
             </div>
         </div>
 
-        <!-- Top Pagination -->
         <nav v-if="internalProducts.length"
             class="flex items-center justify-between border-b border-gray-200 px-4 pb-2 sm:px-0">
             <div class="flex-1">
@@ -128,7 +111,6 @@
             </div>
         </nav>
 
-        <!-- Table -->
         <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
                 <thead>
@@ -198,7 +180,6 @@
             </table>
         </div>
 
-        <!-- Bottom Pagination -->
         <nav v-if="internalProducts.length"
             class="flex items-center justify-between border-t border-gray-200 px-4 pt-2 sm:px-0">
             <div class="flex-1">
@@ -233,18 +214,16 @@
 
 <script setup>
 import {
-    ArrowPathIcon,
-    MagnifyingGlassIcon,
     PencilSquareIcon,
     PlusCircleIcon,
     TrashIcon,
     XCircleIcon
 } from '@heroicons/vue/24/outline'
-import { Link, router, useForm, usePage } from '@inertiajs/vue3'
-import { ref, watch, onMounted } from 'vue'
-import debounce from 'lodash/debounce'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import SearchComponent from '@/Components/UI/SearchComponent.vue'
 
 const { products, search: initialSearch } = defineProps({
     products: { type: Object, required: true },
@@ -259,7 +238,6 @@ const links = products.links.filter(
     link => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;'
 )
 
-const inAction = ref(false)
 const addingProduct = ref(false)
 
 const newProductForm = useForm({
@@ -314,19 +292,4 @@ const saveRecord = (product) => {
     })
 }
 
-const searchProducts = debounce((term) => {
-    inAction.value = true
-    localStorage.setItem('searchInitiated', 'true')
-    router.get(`/products?search=${term}`, {}, { preserveScroll: true })
-}, 300)
-
-watch(searchTerm, searchProducts)
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        document.getElementById('searchInput')?.focus()
-    }
-})
 </script>
