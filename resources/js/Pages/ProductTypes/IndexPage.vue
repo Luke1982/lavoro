@@ -46,36 +46,8 @@
                 @click="newTypeForm.reset(); addingType = false;" />
         </div>
 
-        <nav class="flex items-center justify-between border-b border-gray-200 px-4 pb-2 sm:px-0"
-            v-if="internalTypes.length">
-            <div class="-mt-px flex w-0 flex-1">
-                <Link v-if="productTypes.prev_page_url"
-                    :href="`${productTypes.prev_page_url}${searchTerm ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                <ArrowLongLeftIcon class="mr-3 h-5 w-5 text-gray-400" />
-                Vorige pagina
-                </Link>
-            </div>
-            <div class="hidden md:-mt-px md:flex">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? '&search=' + searchTerm : ''}`" :preserve-scroll="true" :class="[
-                        link.active ? 'border-indigo-500 text-indigo-600' : '',
-                        'inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    ]">
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="-mt-px flex w-0 flex-1 justify-end">
-                <Link v-if="productTypes.next_page_url"
-                    :href="`${productTypes.next_page_url}${searchTerm ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                Volgende pagina
-                <ArrowLongRightIcon class="ml-3 h-5 w-5 text-gray-400" />
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalTypes.length" :paginator="productTypes" :params="{ search: searchTerm }"
+            class="border-b border-gray-200 pb-2" />
 
         <div class="-mx-4 mt-3 sm:-mx-0 max-w-full overflow-x-scroll" v-if="internalTypes.length">
             <table class="min-w-full divide-y divide-gray-300">
@@ -131,36 +103,8 @@
             </table>
         </div>
 
-        <nav class="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0"
-            v-if="internalTypes.length">
-            <div class="-mt-px flex w-0 flex-1">
-                <Link v-if="productTypes.prev_page_url"
-                    :href="`${productTypes.prev_page_url}${searchTerm ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                <ArrowLongLeftIcon class="mr-3 h-5 w-5 text-gray-400" />
-                Vorige pagina
-                </Link>
-            </div>
-            <div class="hidden md:-mt-px md:flex">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? '&search=' + searchTerm : ''}`" :preserve-scroll="true" :class="[
-                        link.active ? 'border-indigo-500 text-indigo-600' : '',
-                        'inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    ]">
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="-mt-px flex w-0 flex-1 justify-end">
-                <Link v-if="productTypes.next_page_url"
-                    :href="`${productTypes.next_page_url}${searchTerm ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                Volgende pagina
-                <ArrowLongRightIcon class="ml-3 h-5 w-5 text-gray-400" />
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalTypes.length" :paginator="productTypes" :params="{ search: searchTerm }"
+            class="border-t border-gray-200 pt-2" />
 
         <div v-else class="text-center text-gray-500 mt-4">
             <p>Geen producttypen gevonden.</p>
@@ -170,12 +114,12 @@
 </template>
 
 <script setup>
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from '@heroicons/vue/20/solid'
 import { ArrowPathIcon, FingerPrintIcon, InformationCircleIcon, MagnifyingGlassIcon, PlusCircleIcon, TrashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
-import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, onMounted } from 'vue';
 import debounce from 'lodash/debounce';
 import TextInput from '@/Components/UI/TextInput.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 
 const props = defineProps({
     productTypes: {
@@ -225,7 +169,6 @@ const deleteType = (id) => {
 
 const internalTypes = ref(props.productTypes.data);
 const searchTerm = ref(props.search);
-const links = props.productTypes.links.filter(link => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;');
 
 const toggleRecord = (id) => {
     internalTypes.value = internalTypes.value.map(type => {

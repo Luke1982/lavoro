@@ -82,33 +82,8 @@
             </div>
         </div>
 
-        <!-- Top Pagination -->
-        <nav v-if="internalServiceChecks.length"
-            class="flex items-center justify-between border-b border-gray-200 px-4 pb-2 sm:px-0">
-            <div class="flex-1">
-                <Link v-if="serviceChecks.prev_page_url"
-                    :href="`${serviceChecks.prev_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                &laquo; Vorige
-                </Link>
-            </div>
-            <div class="hidden md:flex space-x-1">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
-                    :class="link.active ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'"
-                    preserve-scroll>
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="flex-1 text-right">
-                <Link v-if="serviceChecks.next_page_url"
-                    :href="`${serviceChecks.next_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                Volgende &raquo;
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
+            :params="{ search: searchTerm }" class="border-b border-gray-200 pb-2" />
 
         <!-- Table -->
         <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
@@ -189,7 +164,7 @@
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
-                                    }}, of voeg een
+                                }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
@@ -212,33 +187,8 @@
             </table>
         </div>
 
-        <!-- Bottom Pagination -->
-        <nav v-if="internalServiceChecks.length"
-            class="flex items-center justify-between border-t border-gray-200 px-4 pt-2 sm:px-0">
-            <div class="flex-1">
-                <Link v-if="serviceChecks.prev_page_url"
-                    :href="`${serviceChecks.prev_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                &laquo; Vorige
-                </Link>
-            </div>
-            <div class="hidden md:flex space-x-1">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
-                    :class="link.active ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500'"
-                    preserve-scroll>
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="flex-1 text-right">
-                <Link v-if="serviceChecks.next_page_url"
-                    :href="`${serviceChecks.next_page_url}${searchTerm ? `&search=${searchTerm}` : ''}`"
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
-                Volgende &raquo;
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
+            :params="{ search: searchTerm }" class="border-t border-gray-200 pt-2" />
 
         <p v-else class="text-center text-gray-500">Geen service checks gevonden.</p>
     </div>
@@ -254,12 +204,13 @@ import {
     TrashIcon,
     XCircleIcon,
 } from '@heroicons/vue/24/outline'
-import { Link, router, useForm, usePage } from '@inertiajs/vue3'
+import { router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, watch, onMounted } from 'vue'
 import debounce from 'lodash/debounce'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListComponent.vue'
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
 const {
     serviceChecks,
@@ -319,9 +270,7 @@ const toggleRecordValueEdit = (id) => {
 
 const searchTerm = ref(initialSearch)
 const internalServiceChecks = ref(serviceChecks.data)
-const links = serviceChecks.links.filter(
-    (link) => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;'
-)
+// pagination handled by PaginationComponent
 
 const inAction = ref(false)
 const addingServiceCheck = ref(false)

@@ -33,7 +33,7 @@ class MaterialController extends Controller
         }
 
         return inertia('Materials/IndexPage', [
-            'materials' => $query->orderBy('name')->get(),
+            'materials' => $query->orderBy('name')->paginate(20)->appends(['search' => $search]),
             'categories' => MaterialCategory::orderBy('name')->get(),
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
             'search' => $search,

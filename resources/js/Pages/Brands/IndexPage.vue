@@ -44,36 +44,8 @@
             <XCircleIcon class="absolute top-2 right-2 h-8 w-8 text-gray-400 cursor-pointer"
                 @click="newBrandForm.reset(); addingBrand = false;" />
         </div>
-        <nav class="flex items-center justify-between border-b border-gray-200 px-4 pb-2 sm:px-0"
-            v-if="internalBrands.length > 0">
-            <div class="-mt-px flex w-0 flex-1">
-                <Link v-if="brands.prev_page_url"
-                    :href="`${brands.prev_page_url}${searchTerm !== null ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                <ArrowLongLeftIcon class="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                Vorige pagina
-                </Link>
-            </div>
-            <div class="hidden md:-mt-px md:flex">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm !== null ? '&search=' + searchTerm : ''}`" :preserve-scroll="true"
-                    :class="[
-                        link.active ? 'border-indigo-500 text-indigo-600' : '',
-                        'inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700']">
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="-mt-px flex w-0 flex-1 justify-end">
-                <Link v-if="brands.next_page_url"
-                    :href="`${brands.next_page_url}${searchTerm !== null ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                Volgende pagina
-                <ArrowLongRightIcon class="ml-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalBrands.length > 0" :paginator="brands" :params="{ search: searchTerm }"
+            class="border-b border-gray-200 pb-2" />
         <div class="-mx-4 mt-3 sm:-mx-0 max-w-full overflow-x-scroll" v-if="internalBrands.length > 0">
             <table class="min-w-full divide-y divide-gray-300">
                 <thead>
@@ -113,36 +85,8 @@
                 </tbody>
             </table>
         </div>
-        <nav class="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0"
-            v-if="internalBrands.length > 0">
-            <div class="-mt-px flex w-0 flex-1">
-                <Link v-if="brands.prev_page_url"
-                    :href="`${brands.prev_page_url}${searchTerm !== null ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                <ArrowLongLeftIcon class="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                Vorige pagina
-                </Link>
-            </div>
-            <div class="hidden md:-mt-px md:flex">
-                <Link v-for="link in links" :key="link.url"
-                    :href="`${link.url}${searchTerm !== null ? '&search=' + searchTerm : ''}`" :preserve-scroll="true"
-                    :class="[
-                        link.active ? 'border-indigo-500 text-indigo-600' : '',
-                        'inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700']">
-                {{ link.label }}
-                </Link>
-            </div>
-            <div class="-mt-px flex w-0 flex-1 justify-end">
-                <Link v-if="brands.next_page_url"
-                    :href="`${brands.next_page_url}${searchTerm !== null ? '&search=' + searchTerm : ''}`"
-                    :preserve-scroll="true"
-                    class="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                Volgende pagina
-                <ArrowLongRightIcon class="ml-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                </Link>
-            </div>
-        </nav>
+        <PaginationComponent v-if="internalBrands.length > 0" :paginator="brands" :params="{ search: searchTerm }"
+            class="border-t border-gray-200 pt-2" />
         <div v-else class="text-center text-gray-500 mt-4">
             <p>Geen merken gevonden.</p>
             <p>Probeer een andere zoekterm of voeg een nieuw merk toe.</p>
@@ -150,12 +94,12 @@
     </div>
 </template>
 <script setup>
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from '@heroicons/vue/20/solid'
 import { ArrowPathIcon, FingerPrintIcon, MagnifyingGlassIcon, PlusCircleIcon, TrashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
-import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, onMounted } from 'vue';
 import debounce from 'lodash/debounce';
 import TextInput from '@/Components/UI/TextInput.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 
 const props = defineProps({
     brands: {
@@ -207,7 +151,7 @@ const deleteBrand = (id) => {
 
 const internalBrands = ref(props.brands.data);
 const searchTerm = ref(props.search);
-const links = props.brands.links.filter(link => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;');
+// pagination handled by PaginationComponent
 
 const toggleRecord = (id) => {
     const newInternalbrands = internalBrands.value.map((brand) => {

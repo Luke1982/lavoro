@@ -1,19 +1,8 @@
 <template>
     <BoxComponent class="mb-3">
         <div class="flex justify-between flex-wrap md:flex-nowrap">
-            <nav class="flex justify-around md:justify-between px-4 pb-2 sm:px-0 w-full md:w-1/2"
-                v-if="links.length > 3">
-                <div class="md:flex space-x-1">
-                    <Link v-for="link in links" :key="link.url"
-                        :href="`${link.url}${searchForm.search ? `&search=${searchForm.search}` : ''}`"
-                        class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700"
-                        :class="[link.active
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500', link.url ? '' : 'hidden']" preserve-scroll>
-                    <span v-html="decodeEntities(link.label)"></span>
-                    </Link>
-                </div>
-            </nav>
+            <PaginationComponent :paginator="assets" :params="{ search: searchForm.search }"
+                class="px-4 pb-2 sm:px-0 w-full md:w-1/2" />
             <div class="w-1/2 relative flex-grow flex flex-wrap md:flex-nowrap ml-0 md:ml-4 mt-3 md:mt-0">
                 <SearchComponent v-model="searchForm.search" url="/assets" label=""
                     placeholder="Zoek op merk, model, soort of klant" input-id="searchInput" />
@@ -85,6 +74,7 @@ import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import SearchComponent from '@/Components/UI/SearchComponent.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 
 const props = defineProps({
     assets: {
@@ -98,7 +88,6 @@ const searchForm = useForm({
     search: props.initialSearch,
 });
 
-const links = computed(() => props.assets.links);
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const filteredAssets = computed(() => {
     if (selectedStatus.value === 1) {
@@ -119,9 +108,5 @@ function updateLocalStorageStatus(val) {
     localStorage.setItem('selectedAssetStatus', val);
 }
 
-function decodeEntities(str) {
-    const txt = document.createElement('textarea')
-    txt.innerHTML = str
-    return txt.value
-}
+// pagination handled by PaginationComponent
 </script>

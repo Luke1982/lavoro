@@ -3,18 +3,23 @@
         <SearchComponent v-model="searchTerm" url="/materials" label="Zoek binnen materialen"
             placeholder="Zoek op naam, code of categorie" input-id="searchInput" />
     </div>
+    <PaginationComponent v-if="innerMaterials.length" :paginator="materials" :params="{ search: searchTerm }"
+        class="border-b border-gray-200 pb-2" />
     <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate" urlBase="materials" />
+    <PaginationComponent v-if="innerMaterials.length" :paginator="materials" :params="{ search: searchTerm }"
+        class="border-t border-gray-200 pt-2 mt-2" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SearchComponent from '@/Components/UI/SearchComponent.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 
 const { materials, categories, usageUnits, search: initialSearch } = defineProps({
     materials: {
-        type: Array,
-        default: () => []
+        type: Object,
+        required: true,
     },
     categories: {
         type: Array,
@@ -27,7 +32,7 @@ const { materials, categories, usageUnits, search: initialSearch } = defineProps
     search: { type: String, default: '' }
 })
 
-const innerMaterials = ref(materials);
+const innerMaterials = ref(materials.data);
 const searchTerm = ref(initialSearch)
 
 const headers = [

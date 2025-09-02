@@ -176,8 +176,6 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import SearchComponent from '@/Components/UI/SearchComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
-// pagination handled by PaginationComponent
-
 const { products, search: initialSearch } = defineProps({
     products: { type: Object, required: true },
     search: { type: String, default: '' },
@@ -187,7 +185,6 @@ const { products, search: initialSearch } = defineProps({
 
 const searchTerm = ref(initialSearch)
 const internalProducts = ref(products.data)
-// links filtering moved to PaginationComponent
 
 const addingProduct = ref(false)
 
