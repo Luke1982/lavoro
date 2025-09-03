@@ -10,7 +10,7 @@
     <!-- Form box -->
     <div class="mt-0 mb-4" v-auto-animate>
         <CreateRecordForm ref="typeFormRef" external-trigger action="/producttypes" :fields="typeFields"
-            add-button-label="Voeg producttype toe" submit-label="Toevoegen" @created="onTypeCreated" />
+            add-button-label="Voeg producttype toe" submit-label="Toevoegen" />
     </div>
 
     <!-- Content box -->
@@ -107,17 +107,12 @@ const typeFields = [
     { key: 'typical_certificate_days', label: 'Keuringsduur (dagen)', type: 'number', default: 0 },
 ]
 
-function onTypeCreated(newType) {
-    if (!newType) return
-    internalTypes.value.push({ id: newType.id, name: newType.name, typical_certificate_days: newType.typical_certificate_days, open: false })
-    internalTypes.value.sort((a, b) => a.name.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 const deleteType = (id) => {
     if (!confirm('Weet je zeker dat je dit producttype wilt verwijderen?')) {
         return;
     }
-    internalTypes.value = internalTypes.value.filter(t => t.id !== id);
     useForm({}).delete(`/producttypes/${id}`, {
         preserveScroll: true,
     });
@@ -137,7 +132,6 @@ const toggleRecord = (id) => {
         type.open = type.id === id ? !type.open : false;
         return type;
     });
-    internalTypes.value.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 // Debounced search function

@@ -10,7 +10,7 @@
     <!-- Form box -->
     <div v-auto-animate class="mb-4">
         <CreateRecordForm ref="brandFormRef" external-trigger action="/brands" :fields="brandFields"
-            add-button-label="Voeg merk toe" submit-label="Toevoegen" @created="onBrandCreated" />
+            add-button-label="Voeg merk toe" submit-label="Toevoegen" />
     </div>
 
     <!-- Content box -->
@@ -90,18 +90,12 @@ const brandFields = [
     { key: 'name', label: 'Naam', type: 'text' },
 ]
 
-function onBrandCreated(newBrand) {
-    if (!newBrand) return
-    internalBrands.value.push({ id: newBrand.id, name: newBrand.name, open: false })
-    internalBrands.value.sort((a, b) => a.name.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 const deleteBrand = (id) => {
     if (!confirm('Weet je zeker dat je dit merk wilt verwijderen?')) {
         return;
     }
-
-    internalBrands.value = internalBrands.value.filter(b => b.id !== id);
 
     useForm({}).delete(`brands/${id}`, {
         preserveScroll: true,
@@ -126,7 +120,6 @@ const toggleRecord = (id) => {
         return brand;
     });
     internalBrands.value = newInternalbrands;
-    internalBrands.value.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 // Debounced search function

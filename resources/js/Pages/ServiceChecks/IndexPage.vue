@@ -23,8 +23,7 @@
     <!-- Form box -->
     <div class="mb-6" v-auto-animate>
         <CreateRecordForm ref="serviceCheckFormRef" external-trigger action="/servicechecks"
-            :fields="serviceCheckFields" add-button-label="Voeg keurpunt toe" submit-label="Opslaan"
-            @created="onCreateSuccess" />
+            :fields="serviceCheckFields" add-button-label="Voeg keurpunt toe" submit-label="Opslaan" />
     </div>
 
     <!-- Content box -->
@@ -118,7 +117,7 @@
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
-                                    }}, of voeg een
+                                }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
@@ -155,7 +154,7 @@ import {
     TrashIcon,
     XCircleIcon,
 } from '@heroicons/vue/24/outline'
-import { router, useForm, usePage } from '@inertiajs/vue3'
+import { router, useForm } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -262,33 +261,13 @@ const addnewServiceCheckValue = (serviceCheckId) => {
     serviceCheckValueForm.service_check_id = serviceCheckId
     serviceCheckValueForm.post('/servicecheckvalues', {
         preserveScroll: true,
-        onSuccess: () => {
-            internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
-                if (sc.id === serviceCheckId) {
-                    sc.values.push({
-                        id: usePage().props.flash.extra.id,
-                        value: serviceCheckValueForm.value,
-                    })
-                }
-                return sc
-            })
-            serviceCheckValueForm.reset()
-        },
     })
 }
 
-function onCreateSuccess() {
-    const created = usePage().props.flash.extra
-    if (!created) return
-    internalServiceChecks.value.push({ ...created, open: false })
-    internalServiceChecks.value.sort((a, b) => a.order - b.order)
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 const deleteServiceCheck = (id) => {
     if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return
-    internalServiceChecks.value = internalServiceChecks.value.filter(
-        (sc) => sc.id !== id
-    )
     useForm({}).delete(`/servicechecks/${id}`, {
         preserveScroll: true,
     })
@@ -301,14 +280,6 @@ const toggleRecord = (id) => {
             const updateForm = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
             updateForm.patch(`/servicechecks/${sc.id}`, {
                 preserveScroll: true,
-                onSuccess: () => {
-                    // refresh the group's display object based on current selection
-                    const list = groupsByProductType.value[sc.product_type_id] || []
-                    const opt = list.find(o => o.id === sc.service_check_group_id) || null
-                    internalServiceChecks.value = internalServiceChecks.value.map((it) =>
-                        it.id === sc.id ? { ...it, group: opt ? { id: opt.id, name: opt.name } : null } : it
-                    )
-                }
             })
         }
         return { ...sc, open: sc.id === id ? !sc.open : false }
@@ -319,14 +290,6 @@ const saveRecord = (sc) => {
     const form = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
     form.patch(`/servicechecks/${sc.id}`, {
         preserveScroll: true,
-        onSuccess: () => {
-            const list = groupsByProductType.value[sc.product_type_id] || []
-            const opt = list.find(o => o.id === sc.service_check_group_id) || null
-            internalServiceChecks.value = internalServiceChecks.value.map((item) =>
-                item.id === sc.id ? { ...item, open: false, group: opt ? { id: opt.id, name: opt.name } : null } : item
-            )
-            internalServiceChecks.value.sort((a, b) => a.order - b.order);
-        },
     })
 }
 

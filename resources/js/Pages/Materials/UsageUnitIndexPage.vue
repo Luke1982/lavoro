@@ -5,7 +5,7 @@
     </div>
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="unitFormRef" external-trigger action="/materialusageunits" :fields="unitFields"
-            add-button-label="Voeg gebruikseenheid toe" submit-label="Toevoegen" @created="onUnitCreated" />
+            add-button-label="Voeg gebruikseenheid toe" submit-label="Toevoegen" />
     </div>
     <EditableGridComponent :headers="headers" :items="innerUnits" @update="onCellUpdate" :urlBase="urlBase" />
 </template>
@@ -49,9 +49,5 @@ function onCellUpdate({ item }) {
     });
 }
 
-function onUnitCreated(newUnit) {
-    if (!newUnit) return
-    innerUnits.value.push(newUnit)
-    innerUnits.value.sort((a, b) => a.name.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 </script>

@@ -182,7 +182,7 @@
     </table>
 
     @php($__desc = trim((string) ($serviceOrder->description ?? '')))
-    @if($__desc !== '')
+    @if ($__desc !== '')
         <div class="hr"></div>
         <h2>Uitgevoerde werkzaamheden</h2>
         <div class="section small">

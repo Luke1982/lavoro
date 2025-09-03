@@ -138,7 +138,7 @@
                             <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                 <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
                                     (Number(material.pivot.quantity) *
-                                        Number(material.price)).toFixed(2) }}
+                                Number(material.price)).toFixed(2) }}
                             </div>
                             <div class="absolute md:relative top-3 right-3 col-span-1">
                                 <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
@@ -266,7 +266,7 @@ const addServiceJob = () => {
 
 watch(
     [
-    () => form.description,
+        () => form.description,
         () => form.signed_by,
         () => form.signature_base64,
     ],

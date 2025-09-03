@@ -21,14 +21,14 @@
     <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="groupFormRef" external-trigger action="/servicecheckgroups" :fields="groupFields"
-            add-button-label="Voeg groep toe" submit-label="Opslaan" @created="onCreateSuccess" />
+            add-button-label="Voeg groep toe" submit-label="Opslaan" />
     </div>
 
     <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="" :hasDetailPages="false"
+        <EditableGridComponent :headers="headers" :items="groups.data" urlBase="" :hasDetailPages="false"
             @update="onCellUpdate" />
-        <PaginationComponent v-if="internalGroups.length" :paginator="groups"
+        <PaginationComponent v-if="groups.data.length" :paginator="groups"
             :params="{ search: searchTerm, onlyType: productTypeToShow }" class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen groepen gevonden.</p>
     </BoxComponent>
@@ -52,7 +52,6 @@ const { groups, productTypes, search } = defineProps({
 })
 
 const searchTerm = ref(search)
-const internalGroups = ref(groups.data)
 const groupFormRef = ref(null)
 
 const productTypesForComboBox = ref([{ id: '0', name: 'Selecteer type' }, ...productTypes])
@@ -78,15 +77,12 @@ function resetFilter() {
     router.get('/servicecheckgroups', { search: searchTerm.value }, { preserveScroll: true })
 }
 
-function onCreateSuccess(newGroup) {
-    if (!newGroup) return
-    internalGroups.value.push({ ...newGroup })
-    internalGroups.value.sort((a, b) => a.order - b.order)
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 // Optional: add delete column to headers if removal is required later
 
 function onCellUpdate({ item }) {
+    // Let the backend handle sorting and return a redirect to refresh the page.
     useForm({ ...item }).put(`/servicecheckgroups/${item.id}`, {
         preserveScroll: true,
     })

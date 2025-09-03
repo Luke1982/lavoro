@@ -9,7 +9,7 @@
     <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="materialFormRef" external-trigger action="/materials" :fields="materialFields"
-            add-button-label="Voeg materiaal toe" submit-label="Toevoegen" @created="onMaterialCreated" />
+            add-button-label="Voeg materiaal toe" submit-label="Toevoegen" />
     </div>
     <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
@@ -59,11 +59,7 @@ const materialFields = [
     { key: 'is_active', label: 'Actief', type: 'boolean', class: 'w-auto', default: true },
 ]
 
-function onMaterialCreated(newMaterial) {
-    if (!newMaterial) return
-    innerMaterials.value.push({ ...newMaterial })
-    innerMaterials.value.sort((a, b) => a.name.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/3' },

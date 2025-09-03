@@ -5,7 +5,7 @@
     </div>
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="categoryFormRef" external-trigger action="/materialcategories" :fields="categoryFields"
-            add-button-label="Voeg categorie toe" submit-label="Toevoegen" @created="onCategoryCreated" />
+            add-button-label="Voeg categorie toe" submit-label="Toevoegen" />
     </div>
     <EditableGridComponent :headers="headers" :items="innerCategories" @update="onCellUpdate" :urlBase="urlBase" />
 </template>
@@ -49,9 +49,5 @@ function onCellUpdate({ item }) {
     });
 }
 
-function onCategoryCreated(newCategory) {
-    if (!newCategory) return
-    innerCategories.value.push(newCategory)
-    innerCategories.value.sort((a, b) => a.name.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 </script>

@@ -51,13 +51,13 @@ const form = useForm({
     status: 'Open',
 });
 
-const emit = defineEmits(['close', 'created']);
+const emit = defineEmits(['close']);
 
 const addTicket = () => {
     form.post(`/tickets`, {
         onSuccess: () => {
-            emit('created', form);
             form.reset();
+            emit('close');
         },
     });
 };

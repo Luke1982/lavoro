@@ -50,7 +50,7 @@
 </template>
 <script setup>
 import { PlusCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3'
 import { ref, watchEffect, computed } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -64,7 +64,7 @@ const props = defineProps({
     externalTrigger: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['created', 'closed'])
+const emit = defineEmits(['closed'])
 
 const open = ref(false)
 
@@ -94,8 +94,7 @@ function submit() {
     form.post(props.action, {
         preserveScroll: true,
         onSuccess: () => {
-            const created = usePage().props.flash?.extra
-            emit('created', created)
+            // Backend will redirect or flash as needed. Close the form; list refresh is handled by Inertia.
             close()
         },
     })

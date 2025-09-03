@@ -10,7 +10,7 @@
     <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="productFormRef" external-trigger action="/products" :fields="productFields"
-            add-button-label="Voeg product toe" submit-label="Opslaan" @created="onProductCreated" />
+            add-button-label="Voeg product toe" submit-label="Opslaan" />
     </div>
 
     <!-- Content box -->
@@ -119,15 +119,10 @@ const productFields = [
     { key: 'end_sell', label: 'Einde verkoop', type: 'date' },
 ]
 
-function onProductCreated(newProduct) {
-    if (!newProduct) return
-    internalProducts.value.push({ ...newProduct, open: false })
-    internalProducts.value.sort((a, b) => a.model.localeCompare(b.name))
-}
+// Creation handled by backend redirect; no client-side mutations needed.
 
 const deleteProduct = (id) => {
     if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return
-    internalProducts.value = internalProducts.value.filter(p => p.id !== id)
     useForm({}).delete(`/products/${id}`, { preserveScroll: true })
 }
 
@@ -140,7 +135,7 @@ const toggleRecord = (id) => {
         product.open = product.id === id ? !product.open : false
         return product
     })
-    internalProducts.value.sort((a, b) => a.model.localeCompare(b.model))
+    // ordering handled by backend
 }
 
 
