@@ -75,8 +75,7 @@
                                 <span class="block md:hidden font-semibold text-xs">Groep</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="groupsByProductType[item.product_type_id] || []"
-                                        v-model="item.service_check_group_id"
-                                        :initialId="item.group?.id || null"
+                                        v-model="item.service_check_group_id" :initialId="item.group?.id || null"
                                         placeholder="Geen groep" />
                                 </div>
                                 <span v-else>{{ item.group?.name || '—' }}</span>
@@ -119,7 +118,7 @@
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
-                                }}, of voeg een
+                                    }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"

@@ -38,28 +38,35 @@
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
                                                 <li v-for="item in navigation" :key="item.name">
-                                                    <Link :href="item.href" @click="handleNavClick(item)" :class="[
-                                                        item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                    ]">
-                                                    <component :is="item.icon" class="size-6 shrink-0"
-                                                        aria-hidden="true" />
-                                                    {{ item.name }}
-                                                    </Link>
+                                                    <div class="flex items-center justify-between">
+                                                        <Link :href="item.href" @click="handleNavClick(item)" :class="[
+                                                            item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
+                                                        ]">
+                                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
+                                                            {{ item.name }}
+                                                        </Link>
+                                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white" @click.stop="item.open = !item.open">
+                                                            <ChevronDownIcon class="size-4 transition-transform duration-200" :class="item.open ? 'rotate-180' : ''" />
+                                                        </button>
+                                                    </div>
 
-                                                    <ul v-if="item.children">
-                                                        <li v-for="child in item.children" :key="child.name">
-                                                            <Link :href="child.href" @click="sidebarOpen = false"
-                                                                :class="[
-                                                                    child.current
-                                                                        ? 'bg-gray-800 text-white'
-                                                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                                    'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
-                                                                ]">
-                                                            {{ child.name }}
-                                                            </Link>
-                                                        </li>
-                                                    </ul>
+                                                    <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
+                                                        <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
+                                                            <li v-for="child in item.children" :key="child.name">
+                                                                <Link :href="child.href" @click="sidebarOpen = false"
+                                                                    :class="[
+                                                                        child.current
+                                                                            ? 'bg-gray-800 text-white'
+                                                                            : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                                        'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
+                                                                    ]">
+                                                                    <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0" aria-hidden="true" />
+                                                                    <span>{{ child.name }}</span>
+                                                                </Link>
+                                                            </li>
+                                                        </ul>
+                                                    </transition>
                                                 </li>
                                             </ul>
                                         </li>
@@ -112,23 +119,31 @@
                         <li>
                             <ul role="list" class="-mx-2 space-y-1">
                                 <li v-for="item in navigation" :key="item.name">
-                                    <Link :href="item.href" @click="updateCurrent(item)" :class="[
-                                        item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                    ]">
-                                    <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                    {{ item.name }}
-                                    </Link>
-                                    <ul v-if="item.children">
-                                        <li v-for="child in item.children" :key="child.name">
-                                            <Link :href="child.href" :class="[
-                                                child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
-                                            ]">
-                                            {{ child.name }}
-                                            </Link>
-                                        </li>
-                                    </ul>
+                                    <div class="flex items-center justify-between">
+                                        <Link :href="item.href" @click="updateCurrent(item)" :class="[
+                                            item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
+                                        ]">
+                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
+                                            {{ item.name }}
+                                        </Link>
+                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white" @click.stop="item.open = !item.open">
+                                            <ChevronDownIcon class="size-4 transition-transform duration-200" :class="item.open ? 'rotate-180' : ''" />
+                                        </button>
+                                    </div>
+                                    <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
+                                        <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
+                                            <li v-for="child in item.children" :key="child.name">
+                                                <Link :href="child.href" :class="[
+                                                    child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
+                                                ]">
+                                                    <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0" aria-hidden="true" />
+                                                    <span>{{ child.name }}</span>
+                                                </Link>
+                                            </li>
+                                        </ul>
+                                    </transition>
                                 </li>
                             </ul>
                         </li>
@@ -189,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import {
     Bars3Icon,
@@ -203,19 +218,32 @@ import {
     Square3Stack3DIcon,
     UsersIcon,
     XMarkIcon,
-    SwatchIcon
+    SwatchIcon,
+    ChevronDownIcon,
+    Squares2X2Icon,
+    FolderIcon,
+    ScaleIcon,
+    AdjustmentsHorizontalIcon
 } from '@heroicons/vue/24/outline'
 import { Link, usePage } from '@inertiajs/vue3'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
 
-const navigation = [
+const navigation = ref([
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
     { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
-    { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
-    { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false },
-    { name: 'Producten', href: '/products', icon: CubeIcon, current: false },
+    {
+        name: 'Producten',
+        href: '/products',
+        icon: CubeIcon,
+        current: false,
+        children: [
+            { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false },
+            { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
+        ],
+    open: false,
+    },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
     {
@@ -224,8 +252,9 @@ const navigation = [
         icon: CheckIcon,
         current: false,
         children: [
-            { name: 'Groepen', href: '/servicecheckgroups', current: false }
-        ]
+            { name: 'Groepen', href: '/servicecheckgroups', icon: Squares2X2Icon, current: false }
+    ],
+    open: false,
     },
     {
         name: 'Materialen',
@@ -233,18 +262,49 @@ const navigation = [
         icon: SwatchIcon,
         current: false,
         children: [
-            { name: 'Categorieën', href: '/materialcategories', current: false },
-            { name: 'Gebruikseenheden', href: '/materialusageunits', current: false }
-        ]
+            { name: 'Categorieën', href: '/materialcategories', icon: FolderIcon, current: false },
+            { name: 'Gebruikseenheden', href: '/materialusageunits', icon: ScaleIcon, current: false }
+    ],
+    open: false,
     },
     {
         name: 'Agenda',
         href: '/events',
         icon: CalendarIcon,
         current: false,
-        children: [{ name: 'Afspraaktypes', href: '/eventtypes', current: false }]
+        children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false }],
+    open: false,
     }
-]
+])
+
+// Open the submenu if current route is within its children
+const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+
+// Load persisted open state
+const savedOpenState = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('navOpenState') || '{}') : {}
+
+navigation.value.forEach((item) => {
+    if (item.children) {
+        if (Object.prototype.hasOwnProperty.call(savedOpenState, item.name)) {
+            item.open = !!savedOpenState[item.name]
+        } else if (item.children.some(c => c.href === currentPath)) {
+            item.open = true
+            item.current = true
+        }
+    } else if (item.href === currentPath) {
+        item.current = true
+    }
+})
+
+// Persist open state on changes
+watch(navigation, (val) => {
+    if (typeof window === 'undefined') return
+    const state = {}
+    val.forEach((item) => {
+        if (item.children) state[item.name] = !!item.open
+    })
+    localStorage.setItem('navOpenState', JSON.stringify(state))
+}, { deep: true })
 
 const lists = [
     { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false }
@@ -255,7 +315,7 @@ const lists = [
  * @param {{name:string}} item
  */
 const updateCurrent = (item) => {
-    navigation.forEach((navItem) => {
+    navigation.value.forEach((navItem) => {
         navItem.current = navItem.name === item.name
     })
 }

@@ -18,7 +18,7 @@ class ServiceCheckController extends Controller
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);
-    $query = ServiceCheck::with(['productType', 'values', 'group']);
+        $query = ServiceCheck::with(['productType', 'values', 'group']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
@@ -67,7 +67,7 @@ class ServiceCheckController extends Controller
     public function update(ServiceCheckStoreUpdateRequest $request, ServiceCheck $servicecheck)
     {
         $servicecheck->update($request->validated());
-    $servicecheck->load('productType', 'values', 'group');
+        $servicecheck->load('productType', 'values', 'group');
 
         return redirect()->route('servicechecks.index')->with([
             'success' => 'Controlepunt is aangepast',
