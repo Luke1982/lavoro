@@ -1,91 +1,20 @@
 <template>
-    <div class="p-4 bg-white rounded-md">
-        <div class="sm:flex justify-between items-center flex-wrap mb-4">
-            <div>
-                <h1 class="text-base font-semibold">Producten</h1>
-                <p class="text-sm text-gray-700">Hieronder een lijst van alle producten</p>
-            </div>
-            <button v-if="addingProduct === false" @click="addingProduct = true"
-                class="inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm">
-                <PlusCircleIcon class="h-5 w-5 mr-1" />
-                Voeg product toe
-            </button>
-        </div>
+    <!-- Header box -->
+    <div class="p-4 bg-white rounded-md mb-3">
+        <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" v-model="searchTerm"
+            search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'" :in-action="inAction"
+            :paginator="products" :pagination-params="{ search: searchTerm }" add-label="Voeg product toe"
+            @add="() => productFormRef?.show()" />
+    </div>
 
-        <div class="mb-4" v-if="!addingProduct">
-            <SearchComponent v-model="searchTerm" url="/products" label="Zoek binnen producten"
-                placeholder="bijv. 'Model X'" input-id="searchInput" />
-        </div>
+    <!-- Form box -->
+    <div class="mb-4" v-auto-animate>
+        <CreateRecordForm ref="productFormRef" external-trigger action="/products" :fields="productFields"
+            add-button-label="Voeg product toe" submit-label="Opslaan" @created="onProductCreated" />
+    </div>
 
-        <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm }"
-            class="border-b border-gray-200 pb-2" />
-
-        <div v-if="addingProduct" class="mb-6 p-4 ring ring-gray-300 rounded-md relative">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium">Producttype</label>
-                    <div class="mt-1">
-                        <ComboBox :options="productTypes" v-model="newProductForm.product_type_id"
-                            placeholder="Selecteer producttype" />
-                    </div>
-                    <p v-if="newProductForm.errors.product_type_id" class="text-red-600 text-sm">
-                        {{ newProductForm.errors.product_type_id }}
-                    </p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium">Merk</label>
-                    <div class="mt-1">
-                        <ComboBox :options="brands" v-model="newProductForm.brand_id" placeholder="Selecteer merk" />
-                    </div>
-                    <p v-if="newProductForm.errors.brand_id" class="text-red-600 text-sm">
-                        {{ newProductForm.errors.brand_id }}
-                    </p>
-                </div>
-
-                <TextInput v-model="newProductForm.model" label="Model" :hasError="newProductForm.errors.model"
-                    :errorMessage="newProductForm.errors.model" />
-
-                <div>
-                    <label class="block text-sm font-medium">Beschrijving</label>
-                    <textarea v-model="newProductForm.description" rows="3"
-                        class="mt-1 block w-full rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm ring ring-gray-300 p-2"
-                        placeholder="Optioneel"></textarea>
-                    <p v-if="newProductForm.errors.description" class="text-red-600 text-sm">
-                        {{ newProductForm.errors.description }}
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium">Start verkoop</label>
-                        <input type="date" v-model="newProductForm.start_sell"
-                            class="mt-1 block w-full ring ring-gray-300 p-2 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
-                        <p v-if="newProductForm.errors.start_sell" class="text-red-600 text-sm">
-                            {{ newProductForm.errors.start_sell }}
-                        </p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium">Einde verkoop</label>
-                        <input type="date" v-model="newProductForm.end_sell"
-                            class="mt-1 block w-full ring ring-gray-300 p-2 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
-                        <p v-if="newProductForm.errors.end_sell" class="text-red-600 text-sm">
-                            {{ newProductForm.errors.end_sell }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="absolute top-2 right-2 flex space-x-2">
-                <button @click="newProductForm.post('/products', { preserveScroll: true, onSuccess: onCreateSuccess })"
-                    class="px-3 py-1 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
-                    Opslaan
-                </button>
-                <XCircleIcon class="h-6 w-6 text-gray-400 cursor-pointer"
-                    @click="newProductForm.reset(); addingProduct = false" />
-            </div>
-        </div>
-
+    <!-- Content box -->
+    <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
                 <thead>
@@ -154,29 +83,22 @@
                 </tbody>
             </table>
         </div>
-
         <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm }"
             class="border-t border-gray-200 pt-2" />
-
-        <p v-else class="text-center text-gray-500">Geen producten gevonden.</p>
-    </div>
+        <p v-else class="text-center text-gray-500 p-4">Geen producten gevonden.</p>
+    </BoxComponent>
 </template>
 
 <script setup>
-import {
-    PencilSquareIcon,
-    PlusCircleIcon,
-    TrashIcon,
-    XCircleIcon
-} from '@heroicons/vue/24/outline'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
+import { ref, watch, onMounted } from 'vue'
+import debounce from 'lodash/debounce'
 import TextInput from '@/Components/UI/TextInput.vue'
-import ComboBox from '@/Components/UI/ComboBox.vue'
-import SearchComponent from '@/Components/UI/SearchComponent.vue'
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
 
-const { products, search: initialSearch } = defineProps({
+const { products, search: initialSearch, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
     search: { type: String, default: '' },
     brands: { type: Array, default: () => [] },
@@ -184,31 +106,29 @@ const { products, search: initialSearch } = defineProps({
 })
 
 const searchTerm = ref(initialSearch)
+const inAction = ref(false)
+const productFormRef = ref(null)
 const internalProducts = ref(products.data)
 
-const addingProduct = ref(false)
+const productFields = [
+    { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
+    { key: 'brand_id', label: 'Merk', type: 'combobox', options: brands, initialId: brands[0]?.id },
+    { key: 'model', label: 'Model', type: 'text' },
+    { key: 'description', label: 'Beschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
+    { key: 'start_sell', label: 'Start verkoop', type: 'date' },
+    { key: 'end_sell', label: 'Einde verkoop', type: 'date' },
+]
 
-const newProductForm = useForm({
-    product_type_id: '',
-    brand_id: '',
-    model: '',
-    description: '',
-    start_sell: '',
-    end_sell: '',
-})
-
-function onCreateSuccess() {
-    const created = usePage().props.flash.extra
-    internalProducts.value.push({ ...created, open: false })
-    internalProducts.value.sort((a, b) => a.model.localeCompare(b.model))
-    newProductForm.reset()
-    addingProduct.value = false
+function onProductCreated(newProduct) {
+    if (!newProduct) return
+    internalProducts.value.push({ ...newProduct, open: false })
+    internalProducts.value.sort((a, b) => a.model.localeCompare(b.name))
 }
 
 const deleteProduct = (id) => {
     if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return
     internalProducts.value = internalProducts.value.filter(p => p.id !== id)
-    newProductForm.delete(`/products/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/products/${id}`, { preserveScroll: true })
 }
 
 const toggleRecord = (id) => {
@@ -239,5 +159,24 @@ const saveRecord = (product) => {
         }
     })
 }
+
+// Debounced search
+const searchProducts = debounce((term) => {
+    inAction.value = true
+    localStorage.setItem('searchInitiated', 'true')
+    router.get(`/products?search=${term}`, {}, { preserveScroll: true })
+}, 300)
+
+watch(searchTerm, newTerm => {
+    searchProducts(newTerm)
+})
+
+onMounted(() => {
+    if (localStorage.getItem('searchInitiated') === 'true') {
+        inAction.value = false
+        localStorage.removeItem('searchInitiated')
+        document.getElementById('searchInput')?.focus()
+    }
+})
 
 </script>

@@ -46,9 +46,29 @@ class AssetController extends Controller
             ->paginate(20)
             ->appends(['search' => $search]);
 
+        $all_products = Product::with(['brand', 'productType'])
+            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
+            ->orderBy('product_types.name', 'ASC')
+            ->select('products.*')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->brand->name . ' ' . $product->model . ' (' . $product->productType->name . ')',
+                ];
+            });
+
+        $all_customers = Customer::orderBy('name', 'ASC')
+            ->get(['id', 'name'])
+            ->map(function ($c) {
+                return ['id' => $c->id, 'name' => $c->name];
+            });
+
         return inertia('Assets/IndexPage', [
             'assets'        => $assets,
             'initialSearch' => $search,
+            'allProducts'   => $all_products,
+            'allCustomers'  => $all_customers,
         ]);
     }
 
@@ -65,7 +85,31 @@ class AssetController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'product_id'    => ['required', 'exists:products,id'],
+            'customer_id'   => ['required', 'exists:customers,id'],
+            'serial_number' => ['nullable', 'string', 'max:255'],
+            'is_active'     => ['nullable', 'boolean'],
+        ]);
+
+        $asset = Asset::create([
+            'product_id'       => $validated['product_id'],
+            'customer_id'      => $validated['customer_id'],
+            'serial_number'    => $validated['serial_number'] ?? null,
+            'next_service_date' => null,
+            'status'           => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
+        ]);
+
+        $created = $asset->load([
+            'product.brand',
+            'product.images',
+            'product.productType',
+            'customer',
+        ]);
+
+        return redirect()->route('assets.index')
+            ->with('success', 'Asset toegevoegd.')
+            ->with('extra', $created);
     }
 
     /**

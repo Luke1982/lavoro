@@ -1,1 +1,0 @@
-This folder should only contain PaginationComponent.vue for pagination. Remove Pagination.vue and PaginationNav.vue if they reappear during merges.

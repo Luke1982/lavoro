@@ -1,5 +1,5 @@
 <template>
-    <div v-if="items.length" class="lg:-mx-4 mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px mx-2">
+    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px mx-2">
         <table class="min-w-full table-fixed border-separate border-spacing-0">
             <thead class="hidden lg:table-header-group">
                 <tr>

@@ -1,10 +1,21 @@
 <template>
+    <div class="p-4 bg-white rounded-md mb-3">
+        <IndexHeaderComponent title="Gebruikseenheden" subtitle="Beheer van gebruikseenheden" :show-search="false"
+            add-label="Voeg gebruikseenheid toe" @add="() => unitFormRef?.show()" />
+    </div>
+    <div class="mb-4" v-auto-animate>
+        <CreateRecordForm ref="unitFormRef" external-trigger action="/materialusageunits" :fields="unitFields"
+            add-button-label="Voeg gebruikseenheid toe" submit-label="Toevoegen" @created="onUnitCreated" />
+    </div>
     <EditableGridComponent :headers="headers" :items="innerUnits" @update="onCellUpdate" :urlBase="urlBase" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+const unitFormRef = ref(null)
 
 const { usageUnits } = defineProps({
     usageUnits: {
@@ -15,6 +26,10 @@ const { usageUnits } = defineProps({
 
 const innerUnits = ref(usageUnits);
 const urlBase = 'materialusageunits';
+
+const unitFields = [
+    { key: 'name', label: 'Naam', type: 'text', class: 'w-full' },
+]
 
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-full' },
@@ -32,5 +47,11 @@ function onCellUpdate({ item }) {
     }).put(`/${urlBase}/${item.id}`, {
         preserveScroll: true,
     });
+}
+
+function onUnitCreated(newUnit) {
+    if (!newUnit) return
+    innerUnits.value.push(newUnit)
+    innerUnits.value.sort((a, b) => a.name.localeCompare(b.name))
 }
 </script>

@@ -1,91 +1,34 @@
 <template>
-    <div class="p-4 bg-white rounded-md" v-auto-animate>
-        <!-- Header & Add Button -->
-        <div class="sm:flex justify-between items-center flex-wrap mb-4">
-            <div>
-                <h1 class="text-base font-semibold">Keurpunten</h1>
-                <p class="text-sm text-gray-700">Overzicht van alle keurpunten</p>
-            </div>
-            <button v-if="addingServiceCheck === false" @click="addingServiceCheck = true"
-                class="cursor-pointer inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm">
-                <PlusCircleIcon class="h-5 w-5 mr-1" />
-                Voeg keurpunt toe
-            </button>
-        </div>
-
-        <!-- Search -->
-        <div class="mb-4 flex flex-wrap" v-if="!addingServiceCheck">
-            <div class="w-full md:w-2/3">
-                <label class="block text-sm font-medium">Zoek binnen keurpunten</label>
-                <div class="mt-2 relative rounded-md shadow-sm">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MagnifyingGlassIcon v-if="!inAction" class="h-5 w-5 text-gray-400" />
-                        <ArrowPathIcon v-else class="h-5 w-5 text-gray-400 animate-spin" />
-                    </div>
-                    <input type="text" id="searchInput" v-model="searchTerm" :disabled="inAction"
-                        placeholder="bijv. 'Valt de speling binnen de tolerantie'"
-                        class="block w-full pl-10 pr-3 py-2 ring ring-gray-300 rounded-md focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm" />
-                </div>
-            </div>
-            <div class="ml-0 md:ml-4 mt-4 md:mt-0 flex-grow flex items-end">
-                <div class="flex-grow">
+    <!-- Header box -->
+    <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
+        <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten" v-model="searchTerm"
+            search-url="/servicechecks" search-label="Zoek binnen keurpunten"
+            search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
+            :search-other-params="{ onlyType: productTypeToShow }" add-label="Voeg keurpunt toe"
+            :paginator="serviceChecks" :pagination-params="{ search: searchTerm }"
+            @add="() => serviceCheckFormRef?.show()">
+            <template #right>
+                <div class="flex-grow mt-1">
                     <label class="block text-xs font-medium">Filter op type</label>
                     <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
-                        placeholder="Selecteer producttype" class="w-full mt-3" />
+                        placeholder="Selecteer producttype" class="w-full mt-2" />
                 </div>
                 <XCircleIcon class="h-8 w-8 text-gray-400 cursor-pointer ml-2 mb-1"
-                    @click="productTypeToShow = null; router.get('/servicechecks', {}, { preserveScroll: true })"
+                    @click="productTypeToShow = null; router.get('/servicechecks', { search: searchTerm }, { preserveScroll: true })"
                     v-tooltip="'Reset filter op producttype'" />
-            </div>
-        </div>
+            </template>
+        </IndexHeaderComponent>
+    </div>
 
-        <!-- New ServiceCheck Form -->
-        <div v-if="addingServiceCheck" class="mb-6 p-4 ring ring-gray-300 rounded-md relative">
-            <div class="space-y-4">
-                <!-- Product Type -->
-                <div>
-                    <label class="block text-sm font-medium">Producttype</label>
-                    <div class="mt-1">
-                        <ComboBox :options="productTypes" v-model="newServiceCheckForm.product_type_id"
-                            placeholder="Selecteer producttype" :initialId="productTypes[0].id" />
-                    </div>
-                    <p v-if="newServiceCheckForm.errors.product_type_id" class="text-red-600 text-sm">
-                        {{ newServiceCheckForm.errors.product_type_id }}
-                    </p>
-                </div>
+    <!-- Form box -->
+    <div class="mb-6" v-auto-animate>
+        <CreateRecordForm ref="serviceCheckFormRef" external-trigger action="/servicechecks"
+            :fields="serviceCheckFields" add-button-label="Voeg keurpunt toe" submit-label="Opslaan"
+            @created="onCreateSuccess" />
+    </div>
 
-                <!-- ServiceCheck Type -->
-                <div>
-                    <label class="block text-sm font-medium">Type</label>
-                    <div class="mt-1">
-                        <ComboBox :options="serviceCheckTypesForComboBox" v-model="newServiceCheckForm.type"
-                            placeholder="Selecteer type" :initial-id="serviceCheckTypesForComboBox[0].id" />
-                    </div>
-                    <p v-if="newServiceCheckForm.errors.type" class="text-red-600 text-sm">
-                        {{ newServiceCheckForm.errors.type }}
-                    </p>
-                </div>
-
-                <!-- Name -->
-                <TextInput v-model="newServiceCheckForm.name" label="Naam" :hasError="newServiceCheckForm.errors.name"
-                    :errorMessage="newServiceCheckForm.errors.name" />
-            </div>
-
-            <div class="absolute top-2 right-2 flex space-x-2">
-                <button
-                    @click="newServiceCheckForm.post('/servicechecks', { preserveScroll: true, onSuccess: onCreateSuccess })"
-                    class="px-3 py-1 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
-                    Opslaan
-                </button>
-                <XCircleIcon class="h-6 w-6 text-gray-400 cursor-pointer"
-                    @click="newServiceCheckForm.reset(); addingServiceCheck = false" />
-            </div>
-        </div>
-
-        <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
-            :params="{ search: searchTerm }" class="border-b border-gray-200 pb-2" />
-
-        <!-- Table -->
+    <!-- Content box -->
+    <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
                 <thead class="hidden md:table-header-group">
@@ -190,27 +133,26 @@
         <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
             :params="{ search: searchTerm }" class="border-t border-gray-200 pt-2" />
 
-        <p v-else class="text-center text-gray-500">Geen service checks gevonden.</p>
-    </div>
+        <p v-else class="text-center text-gray-500 p-4">Geen service checks gevonden.</p>
+    </BoxComponent>
 </template>
 
 <script setup>
 import {
     AdjustmentsHorizontalIcon,
-    ArrowPathIcon,
-    MagnifyingGlassIcon,
     PencilSquareIcon,
-    PlusCircleIcon,
     TrashIcon,
     XCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { ref, watch, onMounted } from 'vue'
-import debounce from 'lodash/debounce'
+import { ref, watch } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
 
 const {
     serviceChecks,
@@ -272,14 +214,12 @@ const searchTerm = ref(initialSearch)
 const internalServiceChecks = ref(serviceChecks.data)
 // pagination handled by PaginationComponent
 
-const inAction = ref(false)
-const addingServiceCheck = ref(false)
-
-const newServiceCheckForm = useForm({
-    name: '',
-    product_type_id: '',
-    type: '',
-})
+const serviceCheckFormRef = ref(null)
+const serviceCheckFields = [
+    { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
+    { key: 'type', label: 'Type', type: 'combobox', options: serviceCheckTypesForComboBox.value, initialId: serviceCheckTypesForComboBox.value[0]?.id },
+    { key: 'name', label: 'Naam', type: 'text' },
+]
 
 const serviceCheckValueForm = useForm({
     value: '',
@@ -307,10 +247,9 @@ const addnewServiceCheckValue = (serviceCheckId) => {
 
 function onCreateSuccess() {
     const created = usePage().props.flash.extra
+    if (!created) return
     internalServiceChecks.value.push({ ...created, open: false })
-    internalServiceChecks.value.sort((a, b) => a.order - b.order);
-    newServiceCheckForm.reset()
-    addingServiceCheck.value = false
+    internalServiceChecks.value.sort((a, b) => a.order - b.order)
 }
 
 const deleteServiceCheck = (id) => {
@@ -318,7 +257,7 @@ const deleteServiceCheck = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.filter(
         (sc) => sc.id !== id
     )
-    newServiceCheckForm.delete(`/servicechecks/${id}`, {
+    useForm({}).delete(`/servicechecks/${id}`, {
         preserveScroll: true,
     })
 }
@@ -350,24 +289,7 @@ const saveRecord = (sc) => {
 }
 
 watch(productTypeToShow, (val) => {
-    router.get('/servicechecks', { onlyType: val }, {
-        preserveScroll: true,
-    })
+    router.get('/servicechecks', { onlyType: val, search: searchTerm.value }, { preserveScroll: true })
 })
 
-const searchServiceChecks = debounce((term) => {
-    inAction.value = true
-    localStorage.setItem('searchInitiated', 'true')
-    router.get(`/servicechecks?search=${term}`, {}, { preserveScroll: true })
-}, 300)
-
-watch(searchTerm, searchServiceChecks)
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        document.getElementById('searchInput')?.focus()
-    }
-})
 </script>

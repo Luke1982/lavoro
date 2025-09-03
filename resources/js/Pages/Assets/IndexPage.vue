@@ -1,17 +1,23 @@
 <template>
-    <BoxComponent class="mb-3">
-        <div class="flex justify-between flex-wrap md:flex-nowrap">
-            <PaginationComponent :paginator="assets" :params="{ search: searchForm.search }"
-                class="px-4 pb-2 sm:px-0 w-full md:w-1/2" />
-            <div class="w-1/2 relative flex-grow flex flex-wrap md:flex-nowrap ml-0 md:ml-4 mt-3 md:mt-0">
-                <SearchComponent v-model="searchForm.search" url="/assets" label=""
-                    placeholder="Zoek op merk, model, soort of klant" input-id="searchInput" />
-                <ComboBox class="ml-0 md:ml-2 w-full mt-3 md:mt-0" :options="statusOptions" v-model="selectedStatus"
-                    placeholder="Laat alleen status zien"
-                    @update:modelValue="val => { updateLocalStorageStatus(val) }" />
-            </div>
-        </div>
-    </BoxComponent>
+    <div class="p-4 bg-white rounded-md mb-3">
+        <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets" v-model="searchForm.search"
+            search-placeholder="Zoek op merk, model, soort of klant" :in-action="inAction" add-label="Voeg asset toe"
+            :paginator="assets" :pagination-params="{ search: searchForm.search }" @add="() => assetFormRef?.show()">
+            <template #right>
+                <div class="flex items-end w-full">
+                    <div class="flex-grow">
+                        <ComboBox :options="statusOptions" v-model="selectedStatus"
+                            placeholder="Laat alleen status zien"
+                            @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+                    </div>
+                </div>
+            </template>
+        </IndexHeaderComponent>
+    </div>
+    <div class="mb-4" v-auto-animate>
+        <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
+            add-button-label="Voeg asset toe" submit-label="Toevoegen" />
+    </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <ul role="list"
             class="divide-y divide-gray-100 overflow-hidden bg-white shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
@@ -67,14 +73,16 @@
 </template>
 
 <script setup>
-import BoxComponent from '@/Components/BoxComponent.vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
-import SearchComponent from '@/Components/UI/SearchComponent.vue';
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
+import BoxComponent from '@/Components/BoxComponent.vue';
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import debounce from 'lodash/debounce';
+const assetFormRef = ref(null)
 
 const props = defineProps({
     assets: {
@@ -82,11 +90,32 @@ const props = defineProps({
         required: true,
     },
     initialSearch: { type: String, default: '' },
+    allProducts: { type: Array, default: () => [] },
+    allCustomers: { type: Array, default: () => [] },
 });
 
 const searchForm = useForm({
     search: props.initialSearch,
 });
+
+const inAction = ref(false)
+const searchAssets = debounce((term) => {
+    inAction.value = true
+    localStorage.setItem('searchInitiated', 'true')
+    router.get(`/assets?search=${term}`, {}, { preserveScroll: true })
+}, 300)
+
+watch(() => searchForm.search, (newTerm) => {
+    searchAssets(newTerm)
+})
+
+onMounted(() => {
+    if (localStorage.getItem('searchInitiated') === 'true') {
+        inAction.value = false
+        localStorage.removeItem('searchInitiated')
+        document.getElementById('searchInput')?.focus()
+    }
+})
 
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const filteredAssets = computed(() => {
@@ -108,5 +137,12 @@ function updateLocalStorageStatus(val) {
     localStorage.setItem('selectedAssetStatus', val);
 }
 
-// pagination handled by PaginationComponent
+const assetFields = [
+    { key: 'product_id', label: 'Product', type: 'combobox', options: props.allProducts, initialId: props.allProducts[0]?.id },
+    { key: 'customer_id', label: 'Klant', type: 'combobox', options: props.allCustomers, initialId: props.allCustomers[0]?.id },
+    { key: 'serial_number', label: 'Serie nr.', type: 'text' },
+    { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
+]
+
+// pagination handled by IndexHeaderComponent
 </script>

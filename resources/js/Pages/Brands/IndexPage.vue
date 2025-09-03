@@ -1,51 +1,20 @@
 <template>
-    <div class="p-4 sm:px-6 lg:px-8 bg-white rounded-md">
-        <div class="sm:flex justify-between text-gray-900 flex-wrap">
-            <div class="sm:flex-auto lg:min-w-[32rem]">
-                <h1 class="text-base font-semibold">Merken</h1>
-                <p class="mt-2 text-sm text-gray-700">Hieronder een lijst van alle merken</p>
-                <div class="flex items-center flex-wrap gap-x-2 gap-y-2">
-                    <div v-if="addingBrand === false" @click="addingBrand = true;"
-                        class="border border-green-900 text-green-900 bg-green-100 text-sm p-2 rounded-md cursor-pointer">
-                        <PlusCircleIcon class="h-6 w-6 cursor-pointer inline" />
-                        Voeg merk toe
-                    </div>
-                </div>
-            </div>
-            <div class="mt-4 sm:mt-0 sm:flex-none w-full lg:w-7/12 flex-grow">
-                <div>
-                    <label class="block text-sm/6 font-medium text-gray-900">Zoek binnen merken</label>
-                    <div class="mt-2 flex rounded-md">
-                        <div class="relative flex flex-grow items-stretch focus-within:z-10">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <MagnifyingGlassIcon v-if="!inAction" class="h-5 w-5 text-gray-400"
-                                    aria-hidden="true" />
-                                <ArrowPathIcon v-else class="h-5 w-5 text-gray-400 animate-spin" aria-hidden="true" />
-                            </div>
-                            <input type="text"
-                                :class="[inAction ? 'bg-gray-100' : '', 'block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm/6']"
-                                placeholder="bijv. 'Verloop'" v-model="searchTerm" id="searchInput"
-                                :disabled="inAction" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="flex-wrap flex justify-between gap-4 my-4 rounded-md p-6 ring-gray-300 ring relative items-top pb-14"
-            v-if="addingBrand">
-            <TextInput v-model="newBrandForm.name" label="Naam" class="flex-grow" :hasError="newBrandForm.errors.name"
-                :errorMessage="newBrandForm.errors.name" />
-            <div class="absolute bottom-2 right-6">
-                <button @click="addNewBrand"
-                    class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Toevoegen
-                </button>
-            </div>
-            <XCircleIcon class="absolute top-2 right-2 h-8 w-8 text-gray-400 cursor-pointer"
-                @click="newBrandForm.reset(); addingBrand = false;" />
-        </div>
-        <PaginationComponent v-if="internalBrands.length > 0" :paginator="brands" :params="{ search: searchTerm }"
-            class="border-b border-gray-200 pb-2" />
+    <!-- Header box -->
+    <div class="p-4 bg-white rounded-md mb-3">
+        <IndexHeaderComponent title="Merken" subtitle="Hieronder een lijst van alle merken" v-model="searchTerm"
+            :in-action="inAction" search-label="Zoek binnen merken" search-placeholder="bijv. 'Verloop'"
+            add-label="Voeg merk toe" :paginator="brands" :pagination-params="{ search: searchTerm }"
+            @add="() => brandFormRef?.show()" />
+    </div>
+
+    <!-- Form box -->
+    <div v-auto-animate class="mb-4">
+        <CreateRecordForm ref="brandFormRef" external-trigger action="/brands" :fields="brandFields"
+            add-button-label="Voeg merk toe" submit-label="Toevoegen" @created="onBrandCreated" />
+    </div>
+
+    <!-- Content box -->
+    <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div class="-mx-4 mt-3 sm:-mx-0 max-w-full overflow-x-scroll" v-if="internalBrands.length > 0">
             <table class="min-w-full divide-y divide-gray-300">
                 <thead>
@@ -87,19 +56,23 @@
         </div>
         <PaginationComponent v-if="internalBrands.length > 0" :paginator="brands" :params="{ search: searchTerm }"
             class="border-t border-gray-200 pt-2" />
-        <div v-else class="text-center text-gray-500 mt-4">
+        <div v-else class="text-center text-gray-500 p-4">
             <p>Geen merken gevonden.</p>
             <p>Probeer een andere zoekterm of voeg een nieuw merk toe.</p>
         </div>
-    </div>
+    </BoxComponent>
 </template>
 <script setup>
-import { ArrowPathIcon, FingerPrintIcon, MagnifyingGlassIcon, PlusCircleIcon, TrashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { FingerPrintIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { router, useForm } from '@inertiajs/vue3';
 import { ref, watch, onMounted } from 'vue';
 import debounce from 'lodash/debounce';
-import TextInput from '@/Components/UI/TextInput.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import BoxComponent from '@/Components/BoxComponent.vue';
+
+const brandFormRef = ref(null)
 
 const props = defineProps({
     brands: {
@@ -112,30 +85,16 @@ const props = defineProps({
     },
 });
 
-const addingBrand = ref(false);
 const inAction = ref(false);
-const newBrandForm = useForm(
-    {
-        name: '',
-    }
-)
+const brandFields = [
+    { key: 'name', label: 'Naam', type: 'text' },
+]
 
-const addNewBrand = () => {
-    newBrandForm.post('brands', {
-        preserveScroll: true,
-        onSuccess: () => {
-            const newBrand = usePage().props.flash.extra;
-            internalBrands.value.push({
-                id: newBrand.id,
-                name: newBrand.name,
-                open: false,
-            });
-            internalBrands.value.sort((a, b) => a.name.localeCompare(b.name));
-            newBrandForm.reset();
-            addingBrand.value = false;
-        },
-    });
-};
+function onBrandCreated(newBrand) {
+    if (!newBrand) return
+    internalBrands.value.push({ id: newBrand.id, name: newBrand.name, open: false })
+    internalBrands.value.sort((a, b) => a.name.localeCompare(b.name))
+}
 
 const deleteBrand = (id) => {
     if (!confirm('Weet je zeker dat je dit merk wilt verwijderen?')) {
@@ -144,7 +103,7 @@ const deleteBrand = (id) => {
 
     internalBrands.value = internalBrands.value.filter(b => b.id !== id);
 
-    newBrandForm.delete(`brands/${id}`, {
+    useForm({}).delete(`brands/${id}`, {
         preserveScroll: true,
     });
 };

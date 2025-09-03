@@ -30,7 +30,15 @@ class MaterialUsageUnitController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $unit = MaterialUsageUnit::create($data);
+
+        return redirect()->back()
+            ->with('success', 'Materiaal gebruikseenheid is aangemaakt.')
+            ->with('extra', $unit);
     }
 
     /**

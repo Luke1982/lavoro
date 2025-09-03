@@ -31,7 +31,15 @@ class MaterialCategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $category = MaterialCategory::create($data);
+
+        return redirect()->back()
+            ->with('success', 'Materiaal categorie is aangemaakt.')
+            ->with('extra', $category);
     }
 
     /**

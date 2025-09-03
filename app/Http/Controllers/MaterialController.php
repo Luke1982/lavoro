@@ -53,7 +53,40 @@ class MaterialController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'material_category_id' => 'required|exists:material_categories,id',
+            'code' => 'nullable|string|max:255',
+            'vendor_code' => 'nullable|string|max:255',
+            'price' => 'nullable|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
+            'material_usage_unit_id' => 'required|exists:material_usage_units,id',
+            'divisable' => 'boolean',
+            'is_active' => 'boolean',
+            'is_service' => 'boolean',
+            'stock' => 'nullable|numeric|min:0',
+            'min_stock' => 'nullable|numeric|min:0',
+            'max_stock' => 'nullable|numeric|min:0',
+        ]);
+
+        $material = Material::create(array_merge([
+            'description' => null,
+            'code' => null,
+            'vendor_code' => null,
+            'price' => 0,
+            'cost_price' => null,
+            'divisable' => false,
+            'is_active' => true,
+            'is_service' => false,
+            'stock' => 0,
+            'min_stock' => 0,
+            'max_stock' => 0,
+        ], $data));
+
+        return redirect()->route('materials.index')
+            ->with('success', 'Materiaal aangemaakt.')
+            ->with('extra', $material);
     }
 
     /**
