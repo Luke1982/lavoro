@@ -43,16 +43,28 @@
                                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
                                                         ]">
-                                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                                            {{ item.name }}
+                                                        <component :is="item.icon" class="size-6 shrink-0"
+                                                            aria-hidden="true" />
+                                                        {{ item.name }}
                                                         </Link>
-                                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white" @click.stop="item.open = !item.open">
-                                                            <ChevronDownIcon class="size-4 transition-transform duration-200" :class="item.open ? 'rotate-180' : ''" />
+                                                        <button v-if="item.children"
+                                                            class="p-2 text-gray-400 hover:text-white"
+                                                            @click.stop="item.open = !item.open">
+                                                            <ChevronDownIcon
+                                                                class="size-4 transition-transform duration-200"
+                                                                :class="item.open ? 'rotate-180' : ''" />
                                                         </button>
                                                     </div>
 
-                                                    <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
-                                                        <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
+                                                    <transition
+                                                        enter-active-class="transition-all duration-200 ease-out"
+                                                        enter-from-class="max-h-0 opacity-0"
+                                                        enter-to-class="max-h-96 opacity-100"
+                                                        leave-active-class="transition-all duration-200 ease-in"
+                                                        leave-from-class="max-h-96 opacity-100"
+                                                        leave-to-class="max-h-0 opacity-0">
+                                                        <ul v-if="item.children" v-show="item.open"
+                                                            class="overflow-hidden">
                                                             <li v-for="child in item.children" :key="child.name">
                                                                 <Link :href="child.href" @click="sidebarOpen = false"
                                                                     :class="[
@@ -61,8 +73,9 @@
                                                                             : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                                         'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
                                                                     ]">
-                                                                    <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0" aria-hidden="true" />
-                                                                    <span>{{ child.name }}</span>
+                                                                <component v-if="child.icon" :is="child.icon"
+                                                                    class="size-5 shrink-0" aria-hidden="true" />
+                                                                <span>{{ child.name }}</span>
                                                                 </Link>
                                                             </li>
                                                         </ul>
@@ -124,22 +137,28 @@
                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
                                         ]">
-                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                            {{ item.name }}
+                                        <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
+                                        {{ item.name }}
                                         </Link>
-                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white" @click.stop="item.open = !item.open">
-                                            <ChevronDownIcon class="size-4 transition-transform duration-200" :class="item.open ? 'rotate-180' : ''" />
+                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white"
+                                            @click.stop="item.open = !item.open">
+                                            <ChevronDownIcon class="size-4 transition-transform duration-200"
+                                                :class="item.open ? 'rotate-180' : ''" />
                                         </button>
                                     </div>
-                                    <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
+                                    <transition enter-active-class="transition-all duration-200 ease-out"
+                                        enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100"
+                                        leave-active-class="transition-all duration-200 ease-in"
+                                        leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
                                         <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
                                             <li v-for="child in item.children" :key="child.name">
                                                 <Link :href="child.href" :class="[
                                                     child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
                                                 ]">
-                                                    <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0" aria-hidden="true" />
-                                                    <span>{{ child.name }}</span>
+                                                <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0"
+                                                    aria-hidden="true" />
+                                                <span>{{ child.name }}</span>
                                                 </Link>
                                             </li>
                                         </ul>
@@ -242,7 +261,7 @@ const navigation = ref([
             { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false },
             { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
         ],
-    open: false,
+        open: false,
     },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
@@ -253,8 +272,8 @@ const navigation = ref([
         current: false,
         children: [
             { name: 'Groepen', href: '/servicecheckgroups', icon: Squares2X2Icon, current: false }
-    ],
-    open: false,
+        ],
+        open: false,
     },
     {
         name: 'Materialen',
@@ -264,8 +283,8 @@ const navigation = ref([
         children: [
             { name: 'Categorieën', href: '/materialcategories', icon: FolderIcon, current: false },
             { name: 'Gebruikseenheden', href: '/materialusageunits', icon: ScaleIcon, current: false }
-    ],
-    open: false,
+        ],
+        open: false,
     },
     {
         name: 'Agenda',
@@ -273,7 +292,7 @@ const navigation = ref([
         icon: CalendarIcon,
         current: false,
         children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false }],
-    open: false,
+        open: false,
     }
 ])
 

@@ -25,6 +25,16 @@ class ServiceJob extends Model
         'completed_on',
     ];
 
+    /**
+     * Attribute casting.
+     * Ensure completed_on is treated as a date for formatting in views.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'completed_on' => 'date',
+    ];
+
     protected static function booted()
     {
         static::created(function (ServiceJob $job) {

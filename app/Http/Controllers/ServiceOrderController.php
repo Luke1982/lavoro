@@ -9,6 +9,7 @@ use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceJob;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ServiceOrderController extends Controller
 {
@@ -106,6 +107,27 @@ class ServiceOrderController extends Controller
     {
         $serviceorder->update($request->validated());
         return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
+    }
+
+    /**
+     * Export a PDF of the service order.
+     */
+    public function exportPdf(ServiceOrder $serviceorder)
+    {
+        $serviceorder->load([
+            'customer',
+            'serviceJobs.asset.product.brand',
+            'serviceJobs.asset.product.productType',
+            'tickets.asset.product.brand',
+            'tickets.asset.product.productType',
+            'materials',
+        ]);
+
+        $pdf = Pdf::loadView('pdf.serviceorder', [
+            'serviceOrder' => $serviceorder,
+        ])->setPaper('a4');
+
+        return $pdf->download('werkbon-' . $serviceorder->id . '.pdf');
     }
 
 

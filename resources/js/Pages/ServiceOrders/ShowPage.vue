@@ -1,6 +1,11 @@
 <template>
     <BoxComponent>
-        <h1 class="text-2xl font-bold mb-4 text-center uppercase">Werkbon van {{ nlDate(serviceOrder.created_at) }}</h1>
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-bold text-center flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at) }}</h1>
+            <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm" target="_blank" rel="noopener">
+                Exporteer PDF
+            </a>
+        </div>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
             <div class="col-span-2 text-xs">
                 Naam klant

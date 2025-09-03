@@ -52,16 +52,26 @@ Route::group(
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);
         Route::resource('serviceorders', ServiceOrderController::class);
+        Route::get('serviceorders/{serviceorder}/export/pdf', [ServiceOrderController::class, 'exportPdf'])
+            ->name('serviceorders.exportPdf');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
-        Route::get('serviceorders/{serviceorder}/tickets/{ticket}/detach', [ServiceOrderController::class, 'detachTicket'])
-            ->name('serviceorders.detachTicket');
-        Route::post('serviceorders/{serviceorder}/materials/{material}', [ServiceOrderController::class, 'attachMaterial'])
-            ->name('serviceorders.attachMaterial');
-        Route::delete('serviceorders/{serviceorder}/materials/{materiable_id}', [ServiceOrderController::class, 'detachMaterial'])
-            ->name('serviceorders.detachMaterial');
-        Route::put('serviceorders/{serviceorder}/materials/{materiable_id}', [ServiceOrderController::class, 'updateMateriable'])
-            ->name('serviceorders.updateMateriable');
+        Route::get(
+            'serviceorders/{serviceorder}/tickets/{ticket}/detach',
+            [ServiceOrderController::class, 'detachTicket']
+        )->name('serviceorders.detachTicket');
+        Route::post(
+            'serviceorders/{serviceorder}/materials/{material}',
+            [ServiceOrderController::class, 'attachMaterial']
+        )->name('serviceorders.attachMaterial');
+        Route::delete(
+            'serviceorders/{serviceorder}/materials/{materiable_id}',
+            [ServiceOrderController::class, 'detachMaterial']
+        )->name('serviceorders.detachMaterial');
+        Route::put(
+            'serviceorders/{serviceorder}/materials/{materiable_id}',
+            [ServiceOrderController::class, 'updateMateriable']
+        )->name('serviceorders.updateMateriable');
         Route::resource('servicejobs', ServiceJobController::class);
         Route::post('servicejobs/{servicejob}/clearcompletedon', [ServiceJobController::class, 'clearCompletedOn'])
             ->name('servicejobs.clearCompletedOn');
