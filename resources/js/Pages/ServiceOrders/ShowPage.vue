@@ -1,8 +1,11 @@
 <template>
     <BoxComponent>
         <div class="flex items-center justify-between mb-4">
-            <h1 class="text-2xl font-bold text-center flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at) }}</h1>
-            <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm" target="_blank" rel="noopener">
+            <h1 class="text-2xl font-bold text-center flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
+                }}</h1>
+            <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
+                class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
+                target="_blank" rel="noopener">
                 Exporteer PDF
             </a>
         </div>
@@ -21,10 +24,18 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                    }}, {{
+                }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
+            </div>
+        </div>
+        <h2 class="text-xl font-bold my-4 text-center uppercase">Uitgevoerde werkzaamheden</h2>
+        <div class="grid grid-cols-12 mt-2">
+            <div class="col-span-12">
+                <EditableTextField type="textarea" v-model="form.description"
+                    @update="val => { form.description = val; }"
+                    placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
             </div>
         </div>
         <div v-auto-animate class="my-4">
@@ -255,6 +266,7 @@ const addServiceJob = () => {
 
 watch(
     [
+    () => form.description,
         () => form.signed_by,
         () => form.signature_base64,
     ],
