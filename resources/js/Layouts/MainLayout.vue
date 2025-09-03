@@ -218,7 +218,15 @@ const navigation = [
     { name: 'Producten', href: '/products', icon: CubeIcon, current: false },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
-    { name: 'Keurpunten', href: '/servicechecks', icon: CheckIcon, current: false },
+    {
+        name: 'Keurpunten',
+        href: '/servicechecks',
+        icon: CheckIcon,
+        current: false,
+        children: [
+            { name: 'Groepen', href: '/servicecheckgroups', current: false }
+        ]
+    },
     {
         name: 'Materialen',
         href: '/materials',

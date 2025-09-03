@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductType;
 use App\Models\ServiceCheck;
+use App\Models\ServiceCheckGroup;
 use Illuminate\Http\Request;
 use App\Enums\ServiceCheckTypes;
 use App\Http\Requests\ServiceCheckStoreUpdateRequest;
@@ -17,7 +18,7 @@ class ServiceCheckController extends Controller
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);
-        $query = ServiceCheck::with(['productType', 'values']);
+    $query = ServiceCheck::with(['productType', 'values', 'group']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
@@ -30,6 +31,10 @@ class ServiceCheckController extends Controller
         return inertia('ServiceChecks/IndexPage', [
             'serviceChecks'                => $query->orderBy('order')->paginate(10),
             'productTypes'                 => ProductType::all(),
+            'groups'                       => ServiceCheckGroup::select('id', 'name', 'product_type_id')
+                ->orderBy('product_type_id')
+                ->orderBy('order')
+                ->get(),
             'serviceCheckTypes'            => ServiceCheckTypes::assocArray(),
             'serviceCheckTypesWithOptions' => ServiceCheckTypes::getTypesWithOptions(),
             'search'                       => $search,
@@ -48,7 +53,7 @@ class ServiceCheckController extends Controller
         $data['order'] = $highestorder + 1;
 
         $sc = ServiceCheck::create($data)
-            ->load('productType', 'values');
+            ->load('productType', 'values', 'group');
 
             return redirect()->route('servicechecks.index')->with([
                 'success' => 'Controlepunt is gemaakt',
@@ -62,7 +67,7 @@ class ServiceCheckController extends Controller
     public function update(ServiceCheckStoreUpdateRequest $request, ServiceCheck $servicecheck)
     {
         $servicecheck->update($request->validated());
-        $servicecheck->load('productType', 'values');
+    $servicecheck->load('productType', 'values', 'group');
 
         return redirect()->route('servicechecks.index')->with([
             'success' => 'Controlepunt is aangepast',

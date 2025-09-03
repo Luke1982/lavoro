@@ -20,6 +20,7 @@ class ServiceCheck extends Model
         'type',
         'order',
         'product_type_id',
+        'service_check_group_id',
     ];
 
     public function values()
@@ -30,5 +31,10 @@ class ServiceCheck extends Model
     public function productType()
     {
         return $this->belongsTo(ProductType::class);
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(ServiceCheckGroup::class, 'service_check_group_id');
     }
 }

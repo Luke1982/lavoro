@@ -22,6 +22,7 @@ use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialUsageUnitController;
 use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceCheckInstanceController;
+use App\Http\Controllers\ServiceCheckGroupController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -45,6 +46,8 @@ Route::group(
         Route::resource('servicechecks', ServiceCheckController::class)->except(['show', 'edit', 'create']);
         Route::resource('servicecheckvalues', ServiceCheckValueController::class)
             ->only(['store', 'update', 'destroy']);
+        Route::resource('servicecheckgroups', ServiceCheckGroupController::class)
+            ->except(['show', 'edit', 'create']);
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

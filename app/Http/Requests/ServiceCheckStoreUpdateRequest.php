@@ -27,10 +27,11 @@ class ServiceCheckStoreUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'            => 'required|string|max:255',
-            'product_type_id' => 'required|exists:product_types,id',
-            'type'            => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
-            'order'           => 'nullable|integer|min:0',
+            'name'                   => 'required|string|max:255',
+            'product_type_id'        => 'required|exists:product_types,id',
+            'service_check_group_id' => 'nullable|exists:service_check_groups,id',
+            'type'                   => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
+            'order'                  => 'nullable|integer|min:0',
         ];
     }
 }

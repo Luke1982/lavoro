@@ -37,6 +37,7 @@
                         </th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Naam</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Producttype</th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold">Groep</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Type</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Waarden</th>
                         <th class="px-4 py-2"></th>
@@ -65,9 +66,20 @@
                                 <span class="block md:hidden font-semibold text-xs">Producttype</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="productTypes" v-model="item.product_type_id"
-                                        :initialId="item.product_type.id" />
+                                        :initialId="item.product_type.id"
+                                        @update:modelValue="() => { item.service_check_group_id = null }" />
                                 </div>
                                 <span v-else>{{ item.product_type.name }}</span>
+                            </td>
+                            <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Groep</span>
+                                <div v-if="item.open">
+                                    <ComboBox :options="groupsByProductType[item.product_type_id] || []"
+                                        v-model="item.service_check_group_id"
+                                        :initialId="item.group?.id || null"
+                                        placeholder="Geen groep" />
+                                </div>
+                                <span v-else>{{ item.group?.name || '—' }}</span>
                             </td>
                             <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
                                 <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
@@ -159,14 +171,34 @@ const {
     search: initialSearch,
     productTypes,
     serviceCheckTypes,
-    serviceCheckTypesWithOptions
+    serviceCheckTypesWithOptions,
+    groups
 } = defineProps({
     serviceChecks: { type: Object, required: true },
     search: { type: String, default: '' },
     productTypes: { type: Array, default: () => [] },
     serviceCheckTypes: { type: Array, default: () => [] },
     serviceCheckTypesWithOptions: { type: Object, default: () => ({}) },
+    groups: { type: Array, default: () => [] },
 })
+
+// Map groups per product type for filtered comboboxes
+const groupsByProductType = ref({})
+for (const g of groups) {
+    if (!groupsByProductType.value[g.product_type_id]) groupsByProductType.value[g.product_type_id] = []
+    groupsByProductType.value[g.product_type_id].push({ id: g.id, name: g.name })
+}
+// Prepend a null option per product type for 'Geen groep'
+for (const ptId in groupsByProductType.value) {
+    const list = groupsByProductType.value[ptId]
+    if (!list.find(o => o.id === null)) list.unshift({ id: null, name: 'Geen groep' })
+}
+// Ensure all product types have at least the null option
+for (const pt of productTypes) {
+    if (!groupsByProductType.value[pt.id]) {
+        groupsByProductType.value[pt.id] = [{ id: null, name: 'Geen groep' }]
+    }
+}
 
 const productTypesForComboBox = ref([{
     id: '0',
@@ -215,6 +247,7 @@ const internalServiceChecks = ref(serviceChecks.data)
 // pagination handled by PaginationComponent
 
 const serviceCheckFormRef = ref(null)
+// Build dynamic group options for the create form based on selected product type
 const serviceCheckFields = [
     { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
     { key: 'type', label: 'Type', type: 'combobox', options: serviceCheckTypesForComboBox.value, initialId: serviceCheckTypesForComboBox.value[0]?.id },
@@ -266,9 +299,17 @@ const toggleRecord = (id) => {
     internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
         sc.openValue = false
         if (sc.open) {
-            const updateForm = useForm({ ...sc })
+            const updateForm = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
             updateForm.patch(`/servicechecks/${sc.id}`, {
                 preserveScroll: true,
+                onSuccess: () => {
+                    // refresh the group's display object based on current selection
+                    const list = groupsByProductType.value[sc.product_type_id] || []
+                    const opt = list.find(o => o.id === sc.service_check_group_id) || null
+                    internalServiceChecks.value = internalServiceChecks.value.map((it) =>
+                        it.id === sc.id ? { ...it, group: opt ? { id: opt.id, name: opt.name } : null } : it
+                    )
+                }
             })
         }
         return { ...sc, open: sc.id === id ? !sc.open : false }
@@ -276,12 +317,14 @@ const toggleRecord = (id) => {
 }
 
 const saveRecord = (sc) => {
-    const form = useForm({ ...sc })
+    const form = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
     form.patch(`/servicechecks/${sc.id}`, {
         preserveScroll: true,
         onSuccess: () => {
+            const list = groupsByProductType.value[sc.product_type_id] || []
+            const opt = list.find(o => o.id === sc.service_check_group_id) || null
             internalServiceChecks.value = internalServiceChecks.value.map((item) =>
-                item.id === sc.id ? { ...item, open: false } : item
+                item.id === sc.id ? { ...item, open: false, group: opt ? { id: opt.id, name: opt.name } : null } : item
             )
             internalServiceChecks.value.sort((a, b) => a.order - b.order);
         },
