@@ -181,7 +181,9 @@
         </tbody>
     </table>
 
-    @php($__desc = trim((string) ($serviceOrder->description ?? '')))
+    @php
+        $__desc = trim((string) ($serviceOrder->description ?? ''));
+    @endphp
     @if ($__desc !== '')
         <div class="hr"></div>
         <h2>Uitgevoerde werkzaamheden</h2>
