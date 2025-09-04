@@ -2,7 +2,7 @@
     <BoxComponent>
         <div class="flex items-center justify-between mb-4">
             <h1 class="text-2xl font-bold text-center flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                }}</h1>
+            }}</h1>
             <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
                 class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
                 target="_blank" rel="noopener">
@@ -24,7 +24,7 @@
             <div class="col-span-4">
                 <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                     serviceOrder.customer.address
-                }}, {{
+                    }}, {{
                         serviceOrder.customer.postal_code }} {{
                         serviceOrder.customer.city }}
                 </a>
@@ -138,9 +138,9 @@
                             <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                 <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
                                     (Number(material.pivot.quantity) *
-                                Number(material.price)).toFixed(2) }}
+                                        Number(material.price)).toFixed(2) }}
                             </div>
-                            <div class="absolute md:relative top-3 right-3 col-span-1">
+                            <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1">
                                 <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
                                     @click="detachMaterial(material.pivot.id)"
                                     v-tooltip="'Verwijder dit materiaal van de werkbon'" />
