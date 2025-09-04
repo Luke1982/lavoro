@@ -8,14 +8,18 @@
             :paginator="serviceChecks" :pagination-params="{ search: searchTerm }"
             @add="() => serviceCheckFormRef?.show()">
             <template #right>
-                <div class="flex-grow mt-1">
-                    <label class="block text-xs font-medium">Filter op type</label>
-                    <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
-                        placeholder="Selecteer producttype" class="w-full mt-2" />
+                <div class="w-full flex items-end gap-2">
+                    <div class="flex-grow mt-1">
+                        <label class="block text-xs font-medium">Filter op type</label>
+                        <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
+                            placeholder="Selecteer producttype" class="w-full mt-2" />
+                    </div>
+                    <button type="button" class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
+                        @click="productTypeToShow = null; router.get('/servicechecks', { search: searchTerm }, { preserveScroll: true })"
+                        v-tooltip="'Reset filter op producttype'">
+                        <XCircleIcon class="h-5 w-5" />
+                    </button>
                 </div>
-                <XCircleIcon class="h-8 w-8 text-gray-400 cursor-pointer ml-2 mb-1"
-                    @click="productTypeToShow = null; router.get('/servicechecks', { search: searchTerm }, { preserveScroll: true })"
-                    v-tooltip="'Reset filter op producttype'" />
             </template>
         </IndexHeaderComponent>
     </div>
