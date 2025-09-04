@@ -3,8 +3,8 @@
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" v-model="searchTerm"
             search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'" :in-action="inAction"
-            :paginator="products" :pagination-params="{ search: searchTerm, onlyType: productTypeToShow }" add-label="Voeg product toe"
-            @add="() => productFormRef?.show()">
+            :paginator="products" :pagination-params="{ search: searchTerm, onlyType: productTypeToShow }"
+            add-label="Voeg product toe" @add="() => productFormRef?.show()">
             <template #right>
                 <div class="w-full">
                     <label class="block text-sm font-medium mb-2">Filter op type</label>
@@ -98,8 +98,8 @@
                 </tbody>
             </table>
         </div>
-    <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm, onlyType: productTypeToShow }"
-            class="border-t border-gray-200 pt-2" />
+        <PaginationComponent v-if="internalProducts.length" :paginator="products"
+            :params="{ search: searchTerm, onlyType: productTypeToShow }" class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen producten gevonden.</p>
     </BoxComponent>
 </template>

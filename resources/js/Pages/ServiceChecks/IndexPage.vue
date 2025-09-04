@@ -14,7 +14,8 @@
                         <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
                             placeholder="Selecteer producttype" class="w-full mt-2" />
                     </div>
-                    <button type="button" class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
+                    <button type="button"
+                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
                         @click="productTypeToShow = null; router.get('/servicechecks', { search: searchTerm }, { preserveScroll: true })"
                         v-tooltip="'Reset filter op producttype'">
                         <XCircleIcon class="h-5 w-5" />
@@ -121,7 +122,7 @@
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
                                     item.name
-                                }}, of voeg een
+                                    }}, of voeg een
                                     nieuwe toe
                                 </h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
