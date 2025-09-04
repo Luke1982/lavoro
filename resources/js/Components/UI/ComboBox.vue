@@ -89,7 +89,6 @@ const resolveOption = (id) => props.options.find(o => o.id === id) || null
 const internalValue = ref(
     resolveOption(props.modelValue) ||
     resolveOption(props.initialId) ||
-    props.options[0] ||
     null
 )
 
@@ -115,6 +114,8 @@ watch(() => props.modelValue, (newVal) => {
     const option = resolveOption(newVal)
     if (option) {
         internalValue.value = option
+    } else {
+        internalValue.value = null
     }
 })
 

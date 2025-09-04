@@ -3,8 +3,23 @@
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" v-model="searchTerm"
             search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'" :in-action="inAction"
-            :paginator="products" :pagination-params="{ search: searchTerm }" add-label="Voeg product toe"
-            @add="() => productFormRef?.show()" />
+            :paginator="products" :pagination-params="{ search: searchTerm, onlyType: productTypeToShow }" add-label="Voeg product toe"
+            @add="() => productFormRef?.show()">
+            <template #right>
+                <div class="w-full">
+                    <label class="block text-sm font-medium mb-2">Filter op type</label>
+                    <div class="flex items-center gap-2">
+                        <ComboBox :options="productTypes" v-model="productTypeToShow"
+                            placeholder="Selecteer producttype" class="w-full" />
+                        <button type="button" @click="resetFilter"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            v-tooltip="'Reset filter op producttype'">
+                            <XCircleIcon class="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </IndexHeaderComponent>
     </div>
 
     <!-- Form box -->
@@ -83,7 +98,7 @@
                 </tbody>
             </table>
         </div>
-        <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm }"
+    <PaginationComponent v-if="internalProducts.length" :paginator="products" :params="{ search: searchTerm, onlyType: productTypeToShow }"
             class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen producten gevonden.</p>
     </BoxComponent>
@@ -97,6 +112,8 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
+import { XCircleIcon } from '@heroicons/vue/24/outline'
 
 const { products, search: initialSearch, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
@@ -109,6 +126,11 @@ const searchTerm = ref(initialSearch)
 const inAction = ref(false)
 const productFormRef = ref(null)
 const internalProducts = ref(products.data)
+// product type filter
+const typeFromURL = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('onlyType')
+    : null
+const productTypeToShow = ref(typeFromURL ? Number(typeFromURL) : null)
 
 const productFields = [
     { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
@@ -159,11 +181,20 @@ const saveRecord = (product) => {
 const searchProducts = debounce((term) => {
     inAction.value = true
     localStorage.setItem('searchInitiated', 'true')
-    router.get(`/products?search=${term}`, {}, { preserveScroll: true })
+    router.get('/products', { search: term, onlyType: productTypeToShow.value }, { preserveScroll: true })
 }, 300)
 
 watch(searchTerm, newTerm => {
     searchProducts(newTerm)
+})
+
+function resetFilter() {
+    productTypeToShow.value = null
+    router.get('/products', { search: searchTerm.value }, { preserveScroll: true })
+}
+
+watch(productTypeToShow, (val) => {
+    router.get('/products', { search: searchTerm.value, onlyType: val }, { preserveScroll: true })
 })
 
 onMounted(() => {

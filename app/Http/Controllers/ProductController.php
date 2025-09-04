@@ -21,6 +21,11 @@ class ProductController extends Controller
             $products = self::getByTerm($request->search);
         }
 
+        // Optional filter by product type
+        if ($request->filled('onlyType')) {
+            $products->where('product_type_id', $request->onlyType);
+        }
+
         return inertia(
             'Products/IndexPage',
             [
@@ -31,6 +36,7 @@ class ProductController extends Controller
                 'search'       => $request->search,
                 'brands'       => Brand::all(),
                 'productTypes' => ProductType::all(),
+                'onlyType'     => $request->onlyType,
             ]
         );
     }
