@@ -21,7 +21,6 @@
             </li>
         </ul>
 
-        <!-- Dropzone -->
         <div @click="openFilePicker" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg cursor-pointer',
@@ -33,7 +32,6 @@
             <input ref="fileInput" type="file" class="hidden" @change="handleFiles" multiple />
         </div>
 
-        <!-- Selected Files with Image Previews -->
         <div class="mt-4" v-if="selectedFiles.length > 0">
             <h3 class="text-lg font-semibold">Deze foto's wil je uploaden</h3>
             <div class="grid grid-cols-4 gap-4 mt-2">

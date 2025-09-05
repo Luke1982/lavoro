@@ -28,8 +28,6 @@
                         @click="deleteComment(comment.id)" />
                 </li>
             </ul>
-
-            <!-- New comment form -->
             <div class="mt-6 flex gap-x-3">
                 <div class="relative flex-auto">
                     <div

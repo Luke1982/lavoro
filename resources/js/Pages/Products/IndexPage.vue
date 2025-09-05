@@ -1,10 +1,9 @@
 <template>
-    <!-- Header box -->
     <div class="p-4 bg-white rounded-md mb-3">
-        <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" v-model="searchTerm"
-            search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'" :in-action="inAction"
-            :paginator="products" :pagination-params="{ search: searchTerm, onlyType: productTypeToShow }"
-            add-label="Voeg product toe" @add="() => productFormRef?.show()">
+        <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
+            search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'"
+            :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
+            @add="() => productFormRef?.show()">
             <template #right>
                 <div class="w-full">
                     <label class="block text-sm font-medium mb-2">Filter op type</label>
@@ -21,14 +20,10 @@
             </template>
         </IndexHeaderComponent>
     </div>
-
-    <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="productFormRef" external-trigger action="/products" :fields="productFields"
             add-button-label="Voeg product toe" submit-label="Opslaan" />
     </div>
-
-    <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
@@ -48,7 +43,7 @@
                                 <TextInput v-model="product.model" />
                             </div>
                             <Link :href="`/products/${product.id}`" class="text-blue-500 underline" v-else>{{
-                                product.model }}</Link>
+                            product.model }}</Link>
                         </td>
                         <td class="px-4 py-2">
                             <div v-if="product.open">
@@ -76,12 +71,12 @@
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric'
-                            }) }} – {{
-                                    new Date(product.end_sell).toLocaleDateString('nl-NL', {
-                                        day: '2-digit', month:
-                                            '2-digit',
-                                        year: 'numeric'
-                                    }) }}</span>
+                                }) }} – {{
+                                new Date(product.end_sell).toLocaleDateString('nl-NL', {
+                                day: '2-digit', month:
+                                '2-digit',
+                                year: 'numeric'
+                                }) }}</span>
                         </td>
                         <td class="px-4 py-2 text-right text-sm font-medium">
                             <button v-if="!product.open" @click="toggleRecord(product.id)">
@@ -99,15 +94,14 @@
             </table>
         </div>
         <PaginationComponent v-if="internalProducts.length" :paginator="products"
-            :params="{ search: searchTerm, onlyType: productTypeToShow }" class="border-t border-gray-200 pt-2" />
+            class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen producten gevonden.</p>
     </BoxComponent>
 </template>
 
 <script setup>
-import { Link, router, useForm, usePage } from '@inertiajs/vue3'
-import { ref, watch, onMounted } from 'vue'
-import debounce from 'lodash/debounce'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
@@ -115,15 +109,12 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon } from '@heroicons/vue/24/outline'
 
-const { products, search: initialSearch, brands, productTypes } = defineProps({
+const { products, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
-    search: { type: String, default: '' },
     brands: { type: Array, default: () => [] },
     productTypes: { type: Array, default: () => [] }
 })
 
-const searchTerm = ref(initialSearch)
-const inAction = ref(false)
 const productFormRef = ref(null)
 const internalProducts = ref(products.data)
 // product type filter
@@ -141,8 +132,6 @@ const productFields = [
     { key: 'end_sell', label: 'Einde verkoop', type: 'date' },
 ]
 
-// Creation handled by backend redirect; no client-side mutations needed.
-
 const deleteProduct = (id) => {
     if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return
     useForm({}).delete(`/products/${id}`, { preserveScroll: true })
@@ -157,7 +146,6 @@ const toggleRecord = (id) => {
         product.open = product.id === id ? !product.open : false
         return product
     })
-    // ordering handled by backend
 }
 
 
@@ -177,32 +165,8 @@ const saveRecord = (product) => {
     })
 }
 
-// Debounced search
-const searchProducts = debounce((term) => {
-    inAction.value = true
-    localStorage.setItem('searchInitiated', 'true')
-    router.get('/products', { search: term, onlyType: productTypeToShow.value }, { preserveScroll: true })
-}, 300)
-
-watch(searchTerm, newTerm => {
-    searchProducts(newTerm)
-})
-
 function resetFilter() {
     productTypeToShow.value = null
-    router.get('/products', { search: searchTerm.value }, { preserveScroll: true })
 }
-
-watch(productTypeToShow, (val) => {
-    router.get('/products', { search: searchTerm.value, onlyType: val }, { preserveScroll: true })
-})
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        document.getElementById('searchInput')?.focus()
-    }
-})
 
 </script>

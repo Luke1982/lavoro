@@ -1,6 +1,5 @@
 <template>
     <div class="mb-4">
-        <!-- Top row: title/subtitle + Add button -->
         <div class="sm:flex justify-between items-center flex-wrap mb-4">
             <div>
                 <h1 class="text-base font-semibold">{{ title }}</h1>
@@ -12,20 +11,17 @@
                 {{ addLabel }}
             </button>
         </div>
-
-        <!-- Search row -->
-        <div v-if="showSearch" class="flex flex-wrap items-start">
+        
+    <div v-if="showSearch" class="flex flex-wrap items-start">
             <div class="w-full md:w-2/3">
-                <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
-                    :placeholder="searchPlaceholder" :other-params="searchOtherParams"
-                    :local-storage-key="localStorageKey" :input-id="inputId" :model-value="modelValue"
-                    @update:modelValue="$emit('update:modelValue', $event)" />
+        <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
+            :placeholder="searchPlaceholder" :other-params="searchOtherParams"
+            :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
             <div class="w-full md:w-1/3 md:pl-4 mt-4 md:mt-0 flex items-start">
                 <slot name="right" />
             </div>
         </div>
-        <!-- Optional pagination in header -->
         <PaginationComponent v-if="paginator" :paginator="paginator" :params="paginationParams"
             class="border-b border-gray-200 pb-2 mt-2" />
     </div>
@@ -41,7 +37,6 @@ defineProps({
     title: { type: String, required: true },
     subtitle: { type: String, default: '' },
     addLabel: { type: String, default: '' },
-    modelValue: { type: String, default: '' },
     inAction: { type: Boolean, default: false },
     searchLabel: { type: String, default: '' },
     searchPlaceholder: { type: String, default: '' },
@@ -57,5 +52,5 @@ defineProps({
     paginationParams: { type: Object, default: () => ({}) },
 })
 
-defineEmits(['update:modelValue', 'add'])
+defineEmits(['add'])
 </script>

@@ -1,10 +1,10 @@
 <template>
     <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
-        <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten" v-model="searchTerm"
+        <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
             search-url="/servicechecks" search-label="Zoek binnen keurpunten"
             search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
             :search-other-params="{ onlyType: productTypeToShow }" add-label="Voeg keurpunt toe"
-            :paginator="serviceChecks" :pagination-params="{ search: searchTerm }"
+            :paginator="serviceChecks"
             @add="() => serviceCheckFormRef?.show()">
             <template #right>
                 <div class="w-full flex items-end gap-2">
@@ -15,7 +15,7 @@
                     </div>
                     <button type="button"
                         class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
-                        @click="productTypeToShow = null; router.get('/servicechecks', { search: searchTerm }, { preserveScroll: true })"
+                        @click="productTypeToShow = null"
                         v-tooltip="'Reset filter op producttype'">
                         <XCircleIcon class="h-5 w-5" />
                     </button>
@@ -140,7 +140,7 @@
         </div>
 
         <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
-            :params="{ search: searchTerm }" class="border-t border-gray-200 pt-2" />
+            class="border-t border-gray-200 pt-2" />
 
         <p v-else class="text-center text-gray-500 p-4">Geen service checks gevonden.</p>
     </BoxComponent>
@@ -153,8 +153,8 @@ import {
     TrashIcon,
     XCircleIcon,
 } from '@heroicons/vue/24/outline'
-import { router, useForm } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
+import { useForm } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListComponent.vue'
@@ -165,7 +165,6 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 
 const {
     serviceChecks,
-    search: initialSearch,
     productTypes,
     serviceCheckTypes,
     serviceCheckTypesWithOptions,
@@ -214,7 +213,6 @@ const getValuesCellContent = item => {
     }
 }
 
-const searchTerm = ref(initialSearch)
 const internalServiceChecks = ref(
     (serviceChecks.data || []).map(sc => ({
         ...sc,
@@ -294,7 +292,5 @@ const validateGroupSelection = (item) => {
     }
 }
 
-watch(productTypeToShow, (val) => {
-    router.get('/servicechecks', { onlyType: val, search: searchTerm.value }, { preserveScroll: true })
-})
+// Navigation on filter changes is handled by SearchComponent via search-other-params.
 </script>

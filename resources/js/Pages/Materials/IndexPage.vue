@@ -1,35 +1,30 @@
 <template>
-    <!-- Header box -->
     <div class="p-4 bg-white rounded-md mb-3">
-        <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" v-model="searchTerm"
+        <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
             search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
-            :in-action="inAction" add-label="Voeg materiaal toe" :paginator="materials"
-            :pagination-params="{ search: searchTerm }" @add="() => materialFormRef?.show()" />
+            add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()" />
     </div>
-    <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="materialFormRef" external-trigger action="/materials" :fields="materialFields"
             add-button-label="Voeg materiaal toe" submit-label="Toevoegen" />
     </div>
-    <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate" urlBase="materials" />
-        <PaginationComponent v-if="innerMaterials.length" :paginator="materials" :params="{ search: searchTerm }"
+        <PaginationComponent v-if="innerMaterials.length" :paginator="materials"
             class="border-t border-gray-200 pt-2 mt-2" />
     </BoxComponent>
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
-import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch, onMounted, computed } from 'vue';
-import debounce from 'lodash/debounce';
+import { useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 const materialFormRef = ref(null)
 
-const { materials, categories, usageUnits, search: initialSearch } = defineProps({
+const { materials, categories, usageUnits } = defineProps({
     materials: {
         type: Object,
         required: true,
@@ -46,8 +41,6 @@ const { materials, categories, usageUnits, search: initialSearch } = defineProps
 })
 
 const innerMaterials = computed(() => materials?.data || [])
-const searchTerm = ref(initialSearch)
-const inAction = ref(false)
 
 const materialFields = [
     { key: 'name', label: 'Naam', type: 'text' },
@@ -58,9 +51,6 @@ const materialFields = [
     { key: 'divisable', label: 'Deelbaar', type: 'boolean', class: 'w-auto' },
     { key: 'is_active', label: 'Actief', type: 'boolean', class: 'w-auto', default: true },
 ]
-
-// Creation handled by backend redirect; no client-side mutations needed.
-
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 22 },
     { key: 'code', label: 'Code', fieldtype: 'text', width: 12 },
@@ -97,23 +87,4 @@ function onCellUpdate({ item }) {
         preserveScroll: true,
     });
 }
-
-// Debounced search
-const searchMaterials = debounce((term) => {
-    inAction.value = true
-    localStorage.setItem('searchInitiated', 'true')
-    router.get(`/materials?search=${term}`, {}, { preserveScroll: true })
-}, 300)
-
-watch(searchTerm, newTerm => {
-    searchMaterials(newTerm)
-})
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        document.getElementById('searchInput')?.focus()
-    }
-})
 </script>

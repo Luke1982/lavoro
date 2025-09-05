@@ -65,11 +65,27 @@ const prevUrl = computed(() => props.paginator.links?.[0]?.url || props.paginato
 const nextUrl = computed(() => props.paginator.links?.[props.paginator.links.length - 1]?.url || props.paginator.next_page_url || null)
 
 function appendParams(url) {
-    const entries = Object.entries(props.params || {}).filter((pair) => {
-        const v = pair[1]
-        return v !== undefined && v !== null && String(v) !== ''
-    })
-    if (!url || entries.length === 0) return url
+    if (!url) {
+        return url
+    }
+    // Determine effective params: prefer explicit props.params; otherwise use current URL query
+    let effectiveParams = props.params || {}
+    const hasExplicitParams = Object.values(effectiveParams).some((v) => v !== undefined && v !== null && String(v) !== '')
+    if (!hasExplicitParams && typeof window !== 'undefined') {
+        const current = new URLSearchParams(window.location.search)
+        const obj = {}
+        current.forEach((value, key) => {
+            if (String(value) !== '') {
+                obj[key] = value
+            }
+        })
+        effectiveParams = obj
+    }
+
+    const entries = Object.entries(effectiveParams).filter(([, v]) => v !== undefined && v !== null && String(v) !== '')
+    if (entries.length === 0) {
+        return url
+    }
     const hasQuery = url.includes('?')
     const [base, existing] = hasQuery ? url.split('?') : [url, '']
     const usp = new URLSearchParams(existing)

@@ -2,7 +2,6 @@
     <div aria-live="assertive"
         class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 lg:items-start sm:p-6 z-50">
         <div class="flex w-full flex-col items-center space-y-4 lg:items-end">
-            <!-- Notification panel, dynamically inserted when needed -->
             <transition enter-active-class="transform ease-out duration-300 transition"
                 enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
                 enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"

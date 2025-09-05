@@ -26,23 +26,33 @@ const props = defineProps({
     otherParams: { type: Object, default: () => ({}) },
     localStorageKey: { type: String, default: 'searchInitiated' },
     inputId: { type: String, default: 'searchInput' },
-    modelValue: { type: [String, Number], default: '' },
 })
-
-const emit = defineEmits(['update:modelValue'])
 
 const inAction = ref(false)
 
 const internalValue = ref('')
 
-watch(() => props.modelValue, (v) => {
-    if (v !== internalValue.value) internalValue.value = v ?? ''
-}, { immediate: true })
+function isSameAsCurrent(params) {
+    if (typeof window === 'undefined') {
+        return false
+    }
+    const url = new URL(window.location.href)
+    for (const [k, v] of Object.entries(params)) {
+        const cur = url.searchParams.get(k) ?? ''
+        if (String(cur) !== String(v ?? '')) {
+            return false
+        }
+    }
+    return true
+}
 
 const doSearch = debounce((term) => {
+    const params = { ...props.otherParams, [props.param]: term }
+    if (isSameAsCurrent(params)) {
+        return
+    }
     inAction.value = true
     localStorage.setItem(props.localStorageKey, 'true')
-    const params = { ...props.otherParams, [props.param]: term }
     router.get(props.url, params, {
         preserveScroll: true,
         onStart: () => { inAction.value = true },
@@ -57,11 +67,20 @@ const doSearch = debounce((term) => {
 }, 500)
 
 watch(internalValue, (val) => {
-    emit('update:modelValue', val)
     doSearch(val)
 })
 
+// React to changes in additional params (e.g., filters) and rerun the search with the current term
+watch(() => JSON.stringify(props.otherParams ?? {}), () => {
+    doSearch(internalValue.value)
+})
+
 onMounted(() => {
+    if (typeof window !== 'undefined') {
+        const current = new URL(window.location.href)
+        const term = current.searchParams.get(props.param) ?? ''
+        internalValue.value = term
+    }
     if (localStorage.getItem(props.localStorageKey) === 'true') {
         localStorage.removeItem(props.localStorageKey)
         nextTick(() => document.getElementById(props.inputId)?.focus())

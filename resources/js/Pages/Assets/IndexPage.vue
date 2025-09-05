@@ -1,8 +1,9 @@
 <template>
     <div class="p-4 bg-white rounded-md mb-3">
-        <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets" v-model="searchForm.search"
-            search-placeholder="Zoek op merk, model, soort of klant" :in-action="inAction" add-label="Voeg asset toe"
-            :paginator="assets" :pagination-params="{ search: searchForm.search }" @add="() => assetFormRef?.show()">
+        <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
+            search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets"
+            :paginator="assets" add-label="Voeg asset toe"
+            @add="() => assetFormRef?.show()">
             <template #right>
                 <div class="flex items-end w-full">
                     <div class="flex-grow">
@@ -73,15 +74,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import debounce from 'lodash/debounce';
 const assetFormRef = ref(null)
 
 const props = defineProps({
@@ -89,33 +89,11 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    initialSearch: { type: String, default: '' },
     allProducts: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
 });
 
-const searchForm = useForm({
-    search: props.initialSearch,
-});
-
-const inAction = ref(false)
-const searchAssets = debounce((term) => {
-    inAction.value = true
-    localStorage.setItem('searchInitiated', 'true')
-    router.get(`/assets?search=${term}`, {}, { preserveScroll: true })
-}, 300)
-
-watch(() => searchForm.search, (newTerm) => {
-    searchAssets(newTerm)
-})
-
-onMounted(() => {
-    if (localStorage.getItem('searchInitiated') === 'true') {
-        inAction.value = false
-        localStorage.removeItem('searchInitiated')
-        document.getElementById('searchInput')?.focus()
-    }
-})
+// no per-page search state needed; SearchComponent handles it
 
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const filteredAssets = computed(() => {
@@ -144,5 +122,5 @@ const assetFields = [
     { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
 ]
 
-// pagination handled by IndexHeaderComponent
+ 
 </script>

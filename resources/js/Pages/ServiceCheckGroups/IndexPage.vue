@@ -1,10 +1,8 @@
 <template>
-    <!-- Header box -->
     <div class="p-4 bg-white rounded-md mb-3">
-        <IndexHeaderComponent title="Keurpuntgroepen" subtitle="Overzicht van alle keurpuntgroepen" v-model="searchTerm"
+        <IndexHeaderComponent title="Keurpuntgroepen" subtitle="Overzicht van alle keurpuntgroepen"
             search-url="/servicecheckgroups" search-label="Zoek binnen groepen" search-placeholder="bijv. 'Inspectie'"
-            :search-other-params="{ onlyType: productTypeToShow }" :paginator="groups"
-            :pagination-params="{ search: searchTerm, onlyType: productTypeToShow }" add-label="Voeg groep toe"
+            :search-other-params="{ onlyType: productTypeToShow }" :paginator="groups" add-label="Voeg groep toe"
             @add="() => groupFormRef?.show()">
             <template #right>
                 <div class="flex-grow mt-1">
@@ -18,25 +16,21 @@
         </IndexHeaderComponent>
     </div>
 
-    <!-- Form box -->
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="groupFormRef" external-trigger action="/servicecheckgroups" :fields="groupFields"
             add-button-label="Voeg groep toe" submit-label="Opslaan" />
     </div>
-
-    <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="" :hasDetailPages="false"
             @update="onCellUpdate" />
-        <PaginationComponent v-if="groups.data.length" :paginator="groups"
-            :params="{ search: searchTerm, onlyType: productTypeToShow }" class="border-t border-gray-200 pt-2" />
+        <PaginationComponent v-if="groups.data.length" :paginator="groups" class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen groepen gevonden.</p>
     </BoxComponent>
 </template>
 
 <script setup>
 import { XCircleIcon } from '@heroicons/vue/24/outline'
-import { router, useForm } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
@@ -45,13 +39,12 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue'
 
-const { groups, productTypes, search } = defineProps({
+const { groups, productTypes } = defineProps({
     groups: { type: Object, required: true },
     productTypes: { type: Array, default: () => [] },
     search: { type: String, default: '' },
 })
 
-const searchTerm = ref(search)
 const groupFormRef = ref(null)
 
 const productTypesForComboBox = ref([{ id: '0', name: 'Selecteer type' }, ...productTypes])
@@ -80,7 +73,6 @@ const internalGroups = computed(() => (groups.data || []).map(g => ({
 
 function resetFilter() {
     productTypeToShow.value = null
-    router.get('/servicecheckgroups', { search: searchTerm.value }, { preserveScroll: true })
 }
 
 function onCellUpdate({ item }) {
