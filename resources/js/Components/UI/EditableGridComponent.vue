@@ -6,11 +6,11 @@
                     <th v-for="header in headers" :key="header.key" :class="[
                         header.width,
                         'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md',
-                        (!hasDetailPages ? 'last:rounded-tr-md' : '')
+                        (!(hasDetailPages || urlBase) ? 'last:rounded-tr-md' : '')
                     ]">
                         {{
                             header.label }}</th>
-                    <th v-if="hasDetailPages" class="px-4 py-2 bg-gray-600 rounded-tr-md"></th>
+                    <th v-if="hasDetailPages || urlBase" class="px-4 py-2 bg-gray-600 rounded-tr-md"></th>
                 </tr>
             </thead>
             <tbody class="bg-white">
@@ -32,10 +32,11 @@
                         <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
                     </td>
-                    <td class="px-4 py-2 text-right" v-if="hasDetailPages">
-                        <Link v-if="urlBase" :href="`/${urlBase}/${item.id}`" class="text-blue-600 hover:text-blue-900">
-                        Details
+                    <td class="px-4 py-2 text-right flex items-center justify-end gap-3" v-if="hasDetailPages || urlBase">
+                        <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`" class="text-blue-600 hover:text-blue-900">
+                            Details
                         </Link>
+                        <TrashIcon v-if="urlBase" class="size-5 text-red-400 hover:text-red-600 cursor-pointer" @click.stop="onDelete(item.id)" />
                     </td>
                 </tr>
             </tbody>
@@ -43,11 +44,12 @@
     </div>
 </template>
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import EditableTextField from './EditableTextField.vue';
 import SwitchComponent from './SwitchComponent.vue';
 import ComboBox from './ComboBox.vue';
 import ColorPickerComponent from './ColorPickerComponent.vue';
+import { TrashIcon } from '@heroicons/vue/24/outline'
 
 type Item = {
     id: number;
@@ -62,7 +64,7 @@ type Header = {
     multiple?: boolean;
 };
 
-const { headers, items } = defineProps<{
+const { headers, items, urlBase, hasDetailPages } = defineProps<{
     headers: Header[];
     items: Item[];
     urlBase?: string;
@@ -73,6 +75,12 @@ const emit = defineEmits(['update']);
 
 function onCellChange(id: number, key: string, value: unknown) {
     emit('update', { item: items.find(item => item.id === id), key, value });
+}
+
+function onDelete(id: number) {
+    if (!urlBase) return
+    if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return
+    useForm({}).delete(`/${urlBase}/${id}`, { preserveScroll: true })
 }
 
 </script>
