@@ -32,11 +32,14 @@
                         <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
                     </td>
-                    <td class="px-4 py-2 text-right flex items-center justify-end gap-3" v-if="hasDetailPages || urlBase">
-                        <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`" class="text-blue-600 hover:text-blue-900">
-                            Details
+                    <td class="px-4 py-2 text-right flex items-center justify-end gap-3"
+                        v-if="hasDetailPages || urlBase">
+                        <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`"
+                            class="text-blue-600 hover:text-blue-900">
+                        Details
                         </Link>
-                        <TrashIcon v-if="urlBase" class="size-5 text-red-400 hover:text-red-600 cursor-pointer" @click.stop="onDelete(item.id)" />
+                        <TrashIcon v-if="urlBase" class="size-5 text-red-400 hover:text-red-600 cursor-pointer"
+                            @click.stop="onDelete(item.id)" />
                     </td>
                 </tr>
             </tbody>

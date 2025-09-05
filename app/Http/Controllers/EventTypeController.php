@@ -69,8 +69,9 @@ class EventTypeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(EventType $eventtype)
     {
-        //
+        $eventtype->delete();
+        return redirect()->back();
     }
 }
