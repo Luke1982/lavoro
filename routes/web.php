@@ -31,7 +31,7 @@ Route::group(
             return inertia('Index/DashBoard');
         });
         Route::resource('customers', CustomerController::class)
-            ->only(['index', 'show', 'update']);
+            ->only(['index', 'show', 'update', 'store']);
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::resource('products', ProductController::class);

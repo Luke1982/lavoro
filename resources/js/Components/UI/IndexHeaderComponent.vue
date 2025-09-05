@@ -11,12 +11,12 @@
                 {{ addLabel }}
             </button>
         </div>
-        
-    <div v-if="showSearch" class="flex flex-wrap items-start">
+
+        <div v-if="showSearch" class="flex flex-wrap items-start">
             <div class="w-full md:w-2/3">
-        <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
-            :placeholder="searchPlaceholder" :other-params="searchOtherParams"
-            :local-storage-key="localStorageKey" :input-id="inputId" />
+                <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
+                    :placeholder="searchPlaceholder" :other-params="searchOtherParams"
+                    :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
             <div class="w-full md:w-1/3 md:pl-4 mt-4 md:mt-0 flex items-start">
                 <slot name="right" />

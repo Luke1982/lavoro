@@ -1,4 +1,11 @@
 <template>
+    <IndexHeaderComponent title="Klanten" addLabel="Nieuwe klant" search-placeholder="Zoek klant... "
+        search-url="/customers" @add="() => customerFormRef?.show()" />
+
+    <div class="mb-4" v-auto-animate>
+        <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
+            add-button-label="Nieuwe klant" submit-label="Opslaan" />
+    </div>
     <ul role="list" class="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3 xl:gap-x-8">
         <li v-for="customer in customers" :key="customer.id"
             class="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -8,7 +15,7 @@
             <div class="flex flex-col">
                 <h3 class="text-sm/6 font-medium text-gray-900">{{
                     customer.name
-                }}
+                    }}
                 </h3>
                 <span class="text-gray-500 text-xs">{{ customer.city }}</span>
             </div>
@@ -53,6 +60,22 @@
 import { BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 import { Link } from '@inertiajs/vue3';
 import { mapsLinkFromCustomer } from '@/Utilities/Utilities';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import { ref } from 'vue';
+
+const customerFormRef = ref(null)
+
+const customerFields = [
+    { key: 'name', label: 'Naam', type: 'text' },
+    { key: 'email', label: 'E-mail', type: 'text' },
+    { key: 'phone', label: 'Telefoon', type: 'text' },
+    { key: 'address', label: 'Adres', type: 'text' },
+    { key: 'postal_code', label: 'Postcode', type: 'text' },
+    { key: 'city', label: 'Plaats', type: 'text' },
+    { key: 'country', label: 'Land', type: 'text' },
+    { key: 'location_code', label: 'Locatiecode', type: 'text' },
+]
 
 defineProps({
     customers: {
