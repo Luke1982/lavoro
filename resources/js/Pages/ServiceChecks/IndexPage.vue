@@ -1,11 +1,9 @@
 <template>
     <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
-        <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
-            search-url="/servicechecks" search-label="Zoek binnen keurpunten"
-            search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
+        <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten" search-url="/servicechecks"
+            search-label="Zoek binnen keurpunten" search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
             :search-other-params="{ onlyType: productTypeToShow }" add-label="Voeg keurpunt toe"
-            :paginator="serviceChecks"
-            @add="() => serviceCheckFormRef?.show()">
+            :paginator="serviceChecks" @add="() => serviceCheckFormRef?.show()">
             <template #right>
                 <div class="w-full flex items-end gap-2">
                     <div class="flex-grow mt-1">
@@ -15,8 +13,7 @@
                     </div>
                     <button type="button"
                         class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
-                        @click="productTypeToShow = null"
-                        v-tooltip="'Reset filter op producttype'">
+                        @click="productTypeToShow = null" v-tooltip="'Reset filter op producttype'">
                         <XCircleIcon class="h-5 w-5" />
                     </button>
                 </div>
@@ -118,7 +115,7 @@
                             :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                }}, of voeg een nieuwe toe</h5>
+                                    }}, of voeg een nieuwe toe</h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
                                     :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
                                 <div class="flex items-center">

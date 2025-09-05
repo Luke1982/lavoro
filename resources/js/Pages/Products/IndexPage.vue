@@ -43,7 +43,7 @@
                                 <TextInput v-model="product.model" />
                             </div>
                             <Link :href="`/products/${product.id}`" class="text-blue-500 underline" v-else>{{
-                            product.model }}</Link>
+                                product.model }}</Link>
                         </td>
                         <td class="px-4 py-2">
                             <div v-if="product.open">
@@ -71,12 +71,12 @@
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric'
-                                }) }} – {{
-                                new Date(product.end_sell).toLocaleDateString('nl-NL', {
-                                day: '2-digit', month:
-                                '2-digit',
-                                year: 'numeric'
-                                }) }}</span>
+                            }) }} – {{
+                                    new Date(product.end_sell).toLocaleDateString('nl-NL', {
+                                        day: '2-digit', month:
+                                            '2-digit',
+                                        year: 'numeric'
+                                    }) }}</span>
                         </td>
                         <td class="px-4 py-2 text-right text-sm font-medium">
                             <button v-if="!product.open" @click="toggleRecord(product.id)">

@@ -1,9 +1,8 @@
 <template>
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
-            search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets"
-            :paginator="assets" add-label="Voeg asset toe"
-            @add="() => assetFormRef?.show()">
+            search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
+            add-label="Voeg asset toe" @add="() => assetFormRef?.show()">
             <template #right>
                 <div class="flex items-end w-full">
                     <div class="flex-grow">
@@ -122,5 +121,5 @@ const assetFields = [
     { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
 ]
 
- 
+
 </script>
