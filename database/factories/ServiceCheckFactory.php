@@ -17,23 +17,67 @@ class ServiceCheckFactory extends Factory
      */
     public function definition(): array
     {
+        $type = $this->faker->randomElement(['radio', 'checkgroup', 'boolean', 'number', 'text']);
+
         return [
-            'name' => $this->faker->word(),
+            'name' => $this->believableNameForType($type),
             'order' => $this->faker->numberBetween(0, 100),
-            'type' => $this->faker->randomElement(['radio', 'checkgroup', 'boolean', 'number', 'text']),
+            'type' => $type,
         ];
     }
 
-    public function configure()
+    // Seeder controls associations; factory does not auto-link product types.
+
+    private function believableNameForType(string $type): string
     {
-        return $this->afterCreating(function ($serviceCheck) {
-            try {
-                $ids = ProductType::inRandomOrder()->limit(1)->pluck('id')->all();
-                if ($ids) {
-                    $serviceCheck->productTypes()->sync($ids);
-                }
-            } catch (\Throwable $e) {
-            }
-        });
+        switch ($type) {
+            case 'boolean':
+                return $this->faker->randomElement([
+                    'Noodstop werkt',
+                    'CE-markering zichtbaar',
+                    'Beveiligingskap aanwezig',
+                    'Kabels onbeschadigd',
+                    'Lekvrij',
+                    'Aarding in orde',
+                    'Stroomloos vóór onderhoud uitgevoerd',
+                ]);
+            case 'number':
+                return $this->faker->randomElement([
+                    'Bandenspanning (bar)',
+                    'Stroom (A)',
+                    'Spanning (V)',
+                    'Temperatuur (°C)',
+                    'Geluidsniveau (dB)',
+                    'Speling (mm)',
+                    'Toerental (rpm)',
+                    'Smeringsniveau (%)',
+                ]);
+            case 'text':
+                return $this->faker->randomElement([
+                    'Opmerkingen monteur',
+                    'Beschrijving defect',
+                    'Locatie opmerking',
+                    'Aanvullende instructies',
+                    'Serienummer notitie',
+                ]);
+            case 'radio':
+                return $this->faker->randomElement([
+                    'Status keuringssticker',
+                    'Visuele staat',
+                    'Algemene beoordeling',
+                    'Smering beoordeling',
+                    'Remtest resultaat',
+                ]);
+            case 'checkgroup':
+                return $this->faker->randomElement([
+                    'Aanwezige veiligheidsvoorzieningen',
+                    'Meegeleverde accessoires',
+                    'Benodigde PBM\'s',
+                    'Uitgevoerde controles',
+                    'Gereedschap aanwezig',
+                ]);
+            default:
+                return 'Controle';
+        }
     }
 }
