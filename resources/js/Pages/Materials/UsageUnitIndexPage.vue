@@ -12,7 +12,7 @@
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 const unitFormRef = ref(null)
@@ -24,7 +24,7 @@ const { usageUnits } = defineProps({
     }
 })
 
-const innerUnits = ref(usageUnits);
+const innerUnits = computed(() => usageUnits)
 const urlBase = 'materialusageunits';
 
 const unitFields = [

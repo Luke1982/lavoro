@@ -4,7 +4,7 @@
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed } from 'vue';
 
 const { eventTypes } = defineProps({
     eventTypes: {
@@ -13,7 +13,7 @@ const { eventTypes } = defineProps({
     }
 })
 
-const innerTypes = ref(eventTypes);
+const innerTypes = computed(() => eventTypes)
 const urlBase = 'eventtypes';
 
 const headers = [

@@ -37,7 +37,7 @@
 <script setup>
 import { XCircleIcon } from '@heroicons/vue/24/outline'
 import { router, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
@@ -73,7 +73,7 @@ const headers = [
 ]
 
 // Map product_types to product_type_ids for editable grid initial selection
-const internalGroups = ref((groups.data || []).map(g => ({
+const internalGroups = computed(() => (groups.data || []).map(g => ({
     ...g,
     product_type_ids: (g.product_types || []).map(pt => pt.id),
 })))

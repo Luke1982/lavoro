@@ -12,7 +12,7 @@
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 const categoryFormRef = ref(null)
@@ -24,7 +24,7 @@ const { categories } = defineProps({
     }
 })
 
-const innerCategories = ref(categories);
+const innerCategories = computed(() => categories)
 const urlBase = 'materialcategories';
 
 const categoryFields = [

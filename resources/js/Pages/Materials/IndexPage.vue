@@ -21,7 +21,7 @@
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import debounce from 'lodash/debounce';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
@@ -45,7 +45,7 @@ const { materials, categories, usageUnits, search: initialSearch } = defineProps
     search: { type: String, default: '' }
 })
 
-const innerMaterials = ref(materials.data);
+const innerMaterials = computed(() => materials?.data || [])
 const searchTerm = ref(initialSearch)
 const inAction = ref(false)
 

@@ -26,7 +26,7 @@
 </template>
 <script setup>
 import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import debounce from 'lodash/debounce';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
@@ -54,7 +54,7 @@ const brandFields = [
 
 // Creation handled by backend redirect; no client-side mutations needed.
 
-const innerBrands = ref(props.brands.data);
+const innerBrands = computed(() => props.brands?.data || [])
 const searchTerm = ref(props.search);
 // pagination handled by PaginationComponent
 

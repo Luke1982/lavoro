@@ -27,7 +27,7 @@
 
 <script setup>
 import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import debounce from 'lodash/debounce';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
@@ -56,7 +56,7 @@ const typeFields = [
 
 // Creation handled by backend redirect; no client-side mutations needed.
 
-const innerTypes = ref(props.productTypes.data);
+const innerTypes = computed(() => props.productTypes?.data || [])
 const searchTerm = ref(props.search);
 
 const headers = [
