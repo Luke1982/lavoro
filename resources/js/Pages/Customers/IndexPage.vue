@@ -15,7 +15,7 @@
             <div class="flex flex-col">
                 <h3 class="text-sm/6 font-medium text-gray-900">{{
                     customer.name
-                    }}
+                }}
                 </h3>
                 <span class="text-gray-500 text-xs">{{ customer.city }}</span>
             </div>
