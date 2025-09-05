@@ -27,7 +27,7 @@ class MaterialUpdateRequest extends FormRequest
             'material_category_id'   => 'nullable|exists:material_categories,id',
             'material_usage_unit_id' => 'nullable|exists:material_usage_units,id',
             'price'         => 'nullable|numeric|min:0',
-            'snelstart_id'  => 'required|uuid',
+            'snelstart_id'  => 'nullable|uuid',
             'code'          => 'nullable|string|max:255',
             'vendor_code'   => 'nullable|string|max:255',
             'cost_price'    => 'nullable|numeric|min:0',

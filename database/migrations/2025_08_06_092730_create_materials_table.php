@@ -15,14 +15,14 @@ return new class extends Migration
     {
         Schema::create('materials', function (Blueprint $table) {
             $table->id();
-            $table->uuid('snelstart_id')->unique();
+            $table->uuid('snelstart_id')->nullable()->unique();
             $table->string('name');
             $table->string('description')->nullable();
             $table->foreignIdFor(MaterialCategory::class)
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete();
-            $table->string('code')->nullable();
+            $table->string('code')->nullable()->unique();
             $table->string('vendor_code')->nullable();
             $table->decimal('price', 10, 2)->default(0.00)->nullable();
             $table->decimal('cost_price', 10, 2)->default(0.00)->nullable();
