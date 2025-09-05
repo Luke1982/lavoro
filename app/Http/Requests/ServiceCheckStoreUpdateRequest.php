@@ -7,7 +7,7 @@ use App\Enums\ServiceCheckTypes;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * @property int    $product_type_id
+ * @property array<int> $product_type_ids
  */
 class ServiceCheckStoreUpdateRequest extends FormRequest
 {
@@ -28,7 +28,8 @@ class ServiceCheckStoreUpdateRequest extends FormRequest
     {
         return [
             'name'                   => 'required|string|max:255',
-            'product_type_id'        => 'required|exists:product_types,id',
+            'product_type_ids'       => ['required', 'array', 'min:1'],
+            'product_type_ids.*'     => ['integer', 'exists:product_types,id'],
             'service_check_group_id' => 'nullable|exists:service_check_groups,id',
             'type'                   => ['required', Rule::in(array_column(ServiceCheckTypes::cases(), 'name'))],
             'order'                  => 'nullable|integer|min:0',

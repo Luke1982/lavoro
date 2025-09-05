@@ -20,8 +20,13 @@ class ProductType extends Model
         'typical_certificate_days',
     ];
 
-    public function checks()
+    public function serviceChecks()
     {
-        return $this->hasMany(ServiceCheck::class)->orderBy('order');
+        return $this->morphedByMany(ServiceCheck::class, 'producttypeable');
+    }
+
+    public function serviceCheckGroups()
+    {
+        return $this->morphedByMany(ServiceCheckGroup::class, 'producttypeable');
     }
 }

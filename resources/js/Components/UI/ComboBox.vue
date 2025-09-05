@@ -1,5 +1,5 @@
 <template>
-    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect">
+    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple">
         <ComboboxLabel v-if="label" class="block text-sm font-medium leading-6 text-gray-900">{{ label }}
         </ComboboxLabel>
         <div :class="[label ? 'mt-2' : '', 'relative']">
@@ -50,12 +50,13 @@ import { debounce } from 'lodash';
 import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
-    modelValue: [String, Number],
+    modelValue: [String, Number, Array],
     options: {
         type: Array,
         required: true,
     },
     initialId: [String, Number],
+    initialIds: { type: Array, default: () => [] },
     label: String,
     searching: {
         type: Boolean,
@@ -73,6 +74,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    multiple: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const inputRef = ref(null)
@@ -85,37 +90,48 @@ watch(() => props.searching, (n) => {
 
 // Determine the initial internalValue candidate
 const resolveOption = (id) => props.options.find(o => o.id === id) || null
+const resolveOptions = (ids) => Array.isArray(ids) ? ids.map(resolveOption).filter(Boolean) : []
 
 const internalValue = ref(
-    resolveOption(props.modelValue) ||
-    resolveOption(props.initialId) ||
-    null
+    props.multiple
+        ? (Array.isArray(props.modelValue) && props.modelValue.length
+            ? resolveOptions(props.modelValue)
+            : (props.initialIds?.length ? resolveOptions(props.initialIds) : []))
+        : (resolveOption(props.modelValue) || resolveOption(props.initialId) || null)
 )
 
 // If parent hasn’t supplied a modelValue, but we have an initialId, emit it once on mount
 onMounted(() => {
-    if ((props.modelValue === undefined || props.modelValue === null) && props.initialId != null) {
-        const initial = resolveOption(props.initialId)
-        if (initial) {
-            emit('update:modelValue', props.emitValue ? initial.name : initial.id)
+    if (!props.multiple) {
+        if ((props.modelValue === undefined || props.modelValue === null) && props.initialId != null) {
+            const initial = resolveOption(props.initialId)
+            if (initial) emit('update:modelValue', props.emitValue ? initial.name : initial.id)
+        }
+    } else {
+        if ((!Array.isArray(props.modelValue) || props.modelValue.length === 0) && props.initialIds?.length) {
+            const selected = resolveOptions(props.initialIds)
+            if (selected.length) emit('update:modelValue', props.emitValue ? selected.map(o => o.name) : selected.map(o => o.id))
         }
     }
 })
 
 // Keep internalValue → modelValue in sync, but only emit when genuinely different
 watch(internalValue, (val) => {
-    if (val && val.id !== props.modelValue) {
-        emit('update:modelValue', props.emitValue ? val.name : val.id)
+    if (!props.multiple) {
+        if (val && val.id !== props.modelValue) emit('update:modelValue', props.emitValue ? val.name : val.id)
+    } else {
+        const ids = Array.isArray(val) ? val.map(v => v.id) : []
+        if (JSON.stringify(ids) !== JSON.stringify(props.modelValue)) emit('update:modelValue', props.emitValue ? (Array.isArray(val) ? val.map(v => v.name) : []) : ids)
     }
 })
 
 // Keep internalValue updated when external modelValue changes
 watch(() => props.modelValue, (newVal) => {
-    const option = resolveOption(newVal)
-    if (option) {
-        internalValue.value = option
+    if (!props.multiple) {
+        const option = resolveOption(newVal)
+        internalValue.value = option || null
     } else {
-        internalValue.value = null
+        internalValue.value = resolveOptions(newVal)
     }
 })
 
@@ -138,7 +154,14 @@ function onBlur() {
     isFocused.value = false
     query.value = ''
 }
-const displayValue = option => (isFocused.value ? '' : option?.name)
+const displayValue = option => {
+    if (props.multiple) {
+        if (isFocused.value) return ''
+        const arr = Array.isArray(option) ? option : internalValue.value
+        return Array.isArray(arr) ? arr.map(o => o?.name).filter(Boolean).join(', ') : ''
+    }
+    return isFocused.value ? '' : option?.name
+}
 
 const debouncedEmitChange = debounce((value) => {
     emit('change', value)
@@ -153,13 +176,20 @@ watch(() => query.value, (newVal) => {
 
 function onSelect(newOption) {
     internalValue.value = newOption
-    emit('update:modelValue', props.emitValue ? newOption.name : newOption.id)
-    query.value = ''
-    nextTick(() => {
-        setTimeout(() => {
-            if (!inputRef.value) return
-            inputRef.value.el.blur()
-        }, 100)
-    })
+    if (!props.multiple) {
+        emit('update:modelValue', props.emitValue ? newOption.name : newOption.id)
+        query.value = ''
+        nextTick(() => {
+            setTimeout(() => {
+                if (!inputRef.value) return
+                inputRef.value.el.blur()
+            }, 100)
+        })
+    } else {
+        const arr = Array.isArray(newOption) ? newOption : internalValue.value
+        const payload = props.emitValue ? arr.map(o => o.name) : arr.map(o => o.id)
+        emit('update:modelValue', payload)
+        query.value = ''
+    }
 }
 </script>

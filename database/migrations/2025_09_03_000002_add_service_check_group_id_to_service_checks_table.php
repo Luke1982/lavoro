@@ -15,7 +15,6 @@ return new class extends Migration
         Schema::table('service_checks', function (Blueprint $table) {
             $table->foreignIdFor(ServiceCheckGroup::class)
                 ->nullable()
-                ->after('product_type_id')
                 ->constrained()
                 ->nullOnDelete();
         });

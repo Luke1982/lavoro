@@ -13,14 +13,15 @@ class ServiceCheckGroupController extends Controller
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);
-
-        $query = ServiceCheckGroup::with(['productType']);
+        $query = ServiceCheckGroup::with(['productTypes']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
         }
         if ($productType) {
-            $query->where('product_type_id', $productType);
+            $query->whereHas('productTypes', function ($q) use ($productType) {
+                $q->where('product_types.id', $productType);
+            });
         }
 
         return inertia('ServiceCheckGroups/IndexPage', [
@@ -32,11 +33,17 @@ class ServiceCheckGroupController extends Controller
 
     public function store(ServiceCheckGroupStoreUpdateRequest $request)
     {
-        $highest = ServiceCheckGroup::where('product_type_id', $request->product_type_id)->max('order') ?? 0;
         $data = $request->validated();
+        $productTypeIds = $data['product_type_ids'] ?? [];
+        unset($data['product_type_ids']);
+        $highest = ServiceCheckGroup::max('order') ?? 0;
         $data['order'] = $highest + 1;
 
-        $group = ServiceCheckGroup::create($data)->load('productType');
+        $group = ServiceCheckGroup::create($data);
+        if (count($productTypeIds)) {
+            $group->productTypes()->sync($productTypeIds);
+        }
+        $group->load('productTypes');
 
         return redirect()->route('servicecheckgroups.index')->with([
             'success' => 'Groep is aangemaakt',
@@ -46,8 +53,14 @@ class ServiceCheckGroupController extends Controller
 
     public function update(ServiceCheckGroupStoreUpdateRequest $request, ServiceCheckGroup $servicecheckgroup)
     {
-        $servicecheckgroup->update($request->validated());
-        $servicecheckgroup->load('productType');
+        $data = $request->validated();
+        $productTypeIds = $data['product_type_ids'] ?? [];
+        unset($data['product_type_ids']);
+        $servicecheckgroup->update($data);
+        if (!is_null($productTypeIds)) {
+            $servicecheckgroup->productTypes()->sync($productTypeIds);
+        }
+        $servicecheckgroup->load('productTypes');
 
         return redirect()->route('servicecheckgroups.index')->with([
             'success' => 'Groep is bijgewerkt',

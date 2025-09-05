@@ -26,7 +26,7 @@
 
     <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="groups.data" urlBase="" :hasDetailPages="false"
+        <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="" :hasDetailPages="false"
             @update="onCellUpdate" />
         <PaginationComponent v-if="groups.data.length" :paginator="groups"
             :params="{ search: searchTerm, onlyType: productTypeToShow }" class="border-t border-gray-200 pt-2" />
@@ -62,28 +62,33 @@ const typeFromURL = typeof window !== 'undefined'
 const productTypeToShow = ref(typeFromURL ? Number(typeFromURL) : null)
 
 const groupFields = [
-    { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
+    { key: 'product_type_ids', label: 'Producttypes', type: 'combobox', options: productTypes, multiple: true, initialIds: productTypes.length ? [productTypes[0].id] : [] },
     { key: 'name', label: 'Naam', type: 'text' },
 ]
 
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/3' },
-    { key: 'product_type_id', label: 'Producttype', fieldtype: 'combobox', width: 'w-1/3', combovalues: productTypes },
+    { key: 'product_type_ids', label: 'Producttypes', fieldtype: 'combobox', width: 'w-1/3', combovalues: productTypes, multiple: true },
     { key: 'order', label: 'Volgorde', fieldtype: 'number', width: 'w-24' },
 ]
+
+// Map product_types to product_type_ids for editable grid initial selection
+const internalGroups = ref((groups.data || []).map(g => ({
+    ...g,
+    product_type_ids: (g.product_types || []).map(pt => pt.id),
+})))
 
 function resetFilter() {
     productTypeToShow.value = null
     router.get('/servicecheckgroups', { search: searchTerm.value }, { preserveScroll: true })
 }
 
-// Creation handled by backend redirect; no client-side mutations needed.
-
-// Optional: add delete column to headers if removal is required later
-
 function onCellUpdate({ item }) {
-    // Let the backend handle sorting and return a redirect to refresh the page.
-    useForm({ ...item }).put(`/servicecheckgroups/${item.id}`, {
+    const payload = { ...item }
+    payload.product_type_ids = Array.isArray(item.product_type_ids)
+        ? item.product_type_ids
+        : (Array.isArray(item.product_types) ? item.product_types.map(pt => pt.id) : [])
+    useForm(payload).put(`/servicecheckgroups/${item.id}`, {
         preserveScroll: true,
     })
 }

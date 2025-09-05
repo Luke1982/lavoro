@@ -18,10 +18,22 @@ class ServiceCheckFactory extends Factory
     public function definition(): array
     {
         return [
-            'product_type_id' => ProductType::pluck('id')->random(),
             'name' => $this->faker->word(),
             'order' => $this->faker->numberBetween(0, 100),
             'type' => $this->faker->randomElement(['radio', 'checkgroup', 'boolean', 'number', 'text']),
         ];
+    }
+
+    public function configure()
+    {
+        return $this->afterCreating(function ($serviceCheck) {
+            try {
+                $ids = ProductType::inRandomOrder()->limit(1)->pluck('id')->all();
+                if ($ids) {
+                    $serviceCheck->productTypes()->sync($ids);
+                }
+            } catch (\Throwable $e) {
+            }
+        });
     }
 }

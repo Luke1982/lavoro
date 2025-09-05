@@ -1,5 +1,4 @@
 <template>
-    <!-- Header box -->
     <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
         <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten" v-model="searchTerm"
             search-url="/servicechecks" search-label="Zoek binnen keurpunten"
@@ -25,13 +24,11 @@
         </IndexHeaderComponent>
     </div>
 
-    <!-- Form box -->
     <div class="mb-6" v-auto-animate>
         <CreateRecordForm ref="serviceCheckFormRef" external-trigger action="/servicechecks"
             :fields="serviceCheckFields" add-button-label="Voeg keurpunt toe" submit-label="Opslaan" />
     </div>
 
-    <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4">
@@ -40,7 +37,7 @@
                         <th class="px-4 py-2 text-left text-sm font-semibold" v-if="productTypeToShow !== 0">Volgorde
                         </th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Naam</th>
-                        <th class="px-4 py-2 text-left text-sm font-semibold">Producttype</th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold">Producttypes</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Groep</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Type</th>
                         <th class="px-4 py-2 text-left text-sm font-semibold">Waarden</th>
@@ -67,20 +64,20 @@
                                 <span v-else>{{ item.name }}</span>
                             </td>
                             <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
-                                <span class="block md:hidden font-semibold text-xs">Producttype</span>
+                                <span class="block md:hidden font-semibold text-xs">Producttypes</span>
                                 <div v-if="item.open">
-                                    <ComboBox :options="productTypes" v-model="item.product_type_id"
-                                        :initialId="item.product_type.id"
-                                        @update:modelValue="() => { item.service_check_group_id = null }" />
+                                    <ComboBox :options="productTypes" v-model="item.product_type_ids" multiple
+                                        :initialIds="(item.product_types || []).map(pt => pt.id)"
+                                        @update:modelValue="() => validateGroupSelection(item)" />
                                 </div>
-                                <span v-else>{{ item.product_type.name }}</span>
+                                <span v-else>{{(item.product_types || []).map(pt => pt.name).join(', ')}}</span>
                             </td>
                             <td class="flex flex-col col-span-12 md:table-cell px-4 py-2">
                                 <span class="block md:hidden font-semibold text-xs">Groep</span>
                                 <div v-if="item.open">
-                                    <ComboBox :options="groupsByProductType[item.product_type_id] || []"
-                                        v-model="item.service_check_group_id" :initialId="item.group?.id || null"
-                                        placeholder="Geen groep" />
+                                    <ComboBox :options="getGroupsFor(item)" v-model="item.service_check_group_id"
+                                        :initialId="item.service_check_group_id ?? null" placeholder="Geen groep"
+                                        :key="`grp-${item.id}-${(item.product_type_ids || []).join(',')}`" />
                                 </div>
                                 <span v-else>{{ item.group?.name || '—' }}</span>
                             </td>
@@ -120,11 +117,8 @@
                         <tr v-if="item.openValue && !item.open" :key="`${item.id}-values`"
                             :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
                             <td colspan="5" class="px-4">
-                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{
-                                    item.name
-                                    }}, of voeg een
-                                    nieuwe toe
-                                </h5>
+                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
+                                }}, of voeg een nieuwe toe</h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
                                     :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
                                 <div class="flex items-center">
@@ -185,52 +179,82 @@ const {
     groups: { type: Array, default: () => [] },
 })
 
-// Map groups per product type for filtered comboboxes
 const groupsByProductType = ref({})
 for (const g of groups) {
-    if (!groupsByProductType.value[g.product_type_id]) groupsByProductType.value[g.product_type_id] = []
-    groupsByProductType.value[g.product_type_id].push({ id: g.id, name: g.name })
+    const pts = (g.product_types || []).map(pt => pt.id)
+    for (const ptId of pts) {
+        if (!groupsByProductType.value[ptId]) groupsByProductType.value[ptId] = []
+        groupsByProductType.value[ptId].push({ id: g.id, name: g.name })
+    }
 }
-// Prepend a null option per product type for 'Geen groep'
-for (const ptId in groupsByProductType.value) {
-    const list = groupsByProductType.value[ptId]
-    if (!list.find(o => o.id === null)) list.unshift({ id: null, name: 'Geen groep' })
-}
-// Ensure all product types have at least the null option
 for (const pt of productTypes) {
     if (!groupsByProductType.value[pt.id]) {
         groupsByProductType.value[pt.id] = [{ id: null, name: 'Geen groep' }]
+    } else if (!groupsByProductType.value[pt.id].find(o => o.id === null)) {
+        groupsByProductType.value[pt.id].unshift({ id: null, name: 'Geen groep' })
     }
 }
 
-const productTypesForComboBox = ref([{
-    id: '0',
-    name: 'Selecteer type',
-}])
+const productTypesForComboBox = ref([{ id: '0', name: 'Selecteer type' }])
 for (const type of productTypes) {
-    productTypesForComboBox.value.push({
-        id: type.id,
-        name: type.name,
-    })
+    productTypesForComboBox.value.push({ id: type.id, name: type.name })
 }
 
 const serviceCheckTypesForComboBox = ref([])
 for (const type in serviceCheckTypes) {
-    serviceCheckTypesForComboBox.value.push({
-        id: type,
-        name: serviceCheckTypes[type],
-    })
+    serviceCheckTypesForComboBox.value.push({ id: type, name: serviceCheckTypes[type] })
 }
 
-const typeFromURL = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('onlyType')
-    : null
+const typeFromURL = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('onlyType') : null
 const productTypeToShow = ref(Number(typeFromURL))
 
 const getValuesCellContent = item => {
     if (Object.keys(serviceCheckTypesWithOptions).includes(item.type)) {
         return item.values.map(val => val.value).join(', ')
     }
+}
+
+const searchTerm = ref(initialSearch)
+const internalServiceChecks = ref(
+    (serviceChecks.data || []).map(sc => ({
+        ...sc,
+        product_type_ids: (sc.product_types || []).map(pt => pt.id),
+    }))
+)
+
+const serviceCheckFormRef = ref(null)
+const serviceCheckFields = [
+    { key: 'product_type_ids', label: 'Producttypes', type: 'combobox', options: productTypes, multiple: true, initialIds: productTypes.length ? [productTypes[0].id] : [] },
+    { key: 'type', label: 'Type', type: 'combobox', options: serviceCheckTypesForComboBox.value, initialId: serviceCheckTypesForComboBox.value[0]?.id },
+    { key: 'name', label: 'Naam', type: 'text' },
+]
+
+const serviceCheckValueForm = useForm({ value: '', service_check_id: '' })
+
+const addnewServiceCheckValue = (serviceCheckId) => {
+    serviceCheckValueForm.service_check_id = serviceCheckId
+    serviceCheckValueForm.post('/servicecheckvalues', { preserveScroll: true })
+}
+
+const deleteServiceCheck = (id) => {
+    if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return
+    useForm({}).delete(`/servicechecks/${id}`, { preserveScroll: true })
+}
+
+const toggleRecord = (id) => {
+    internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
+        sc.openValue = false
+        if (sc.open) {
+            const updateForm = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
+            updateForm.patch(`/servicechecks/${sc.id}`, { preserveScroll: true })
+        }
+        return { ...sc, open: sc.id === id ? !sc.open : false }
+    })
+}
+
+const saveRecord = (sc) => {
+    const form = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
+    form.patch(`/servicechecks/${sc.id}`, { preserveScroll: true, preserveState: false })
 }
 
 const toggleRecordValueEdit = (id) => {
@@ -245,61 +269,32 @@ const toggleRecordValueEdit = (id) => {
     })
 }
 
-const searchTerm = ref(initialSearch)
-const internalServiceChecks = ref(serviceChecks.data)
-// pagination handled by PaginationComponent
-
-const serviceCheckFormRef = ref(null)
-// Build dynamic group options for the create form based on selected product type
-const serviceCheckFields = [
-    { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
-    { key: 'type', label: 'Type', type: 'combobox', options: serviceCheckTypesForComboBox.value, initialId: serviceCheckTypesForComboBox.value[0]?.id },
-    { key: 'name', label: 'Naam', type: 'text' },
-]
-
-const serviceCheckValueForm = useForm({
-    value: '',
-    service_check_id: '',
-})
-
-const addnewServiceCheckValue = (serviceCheckId) => {
-    serviceCheckValueForm.service_check_id = serviceCheckId
-    serviceCheckValueForm.post('/servicecheckvalues', {
-        preserveScroll: true,
-    })
-}
-
-// Creation handled by backend redirect; no client-side mutations needed.
-
-const deleteServiceCheck = (id) => {
-    if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return
-    useForm({}).delete(`/servicechecks/${id}`, {
-        preserveScroll: true,
-    })
-}
-
-const toggleRecord = (id) => {
-    internalServiceChecks.value = internalServiceChecks.value.map((sc) => {
-        sc.openValue = false
-        if (sc.open) {
-            const updateForm = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
-            updateForm.patch(`/servicechecks/${sc.id}`, {
-                preserveScroll: true,
-            })
+const getGroupsFor = (item) => {
+    const selected = new Set(item?.product_type_ids || [])
+    const list = []
+    const seen = new Set()
+    for (const g of groups) {
+        const pts = (g.product_types || []).map(pt => pt.id)
+        if (pts.some(id => selected.has(id))) {
+            if (!seen.has(g.id)) {
+                seen.add(g.id)
+                list.push({ id: g.id, name: g.name })
+            }
         }
-        return { ...sc, open: sc.id === id ? !sc.open : false }
-    })
+    }
+    list.unshift({ id: null, name: 'Geen groep' })
+    return list
 }
 
-const saveRecord = (sc) => {
-    const form = useForm({ ...sc, service_check_group_id: sc.service_check_group_id ?? null })
-    form.patch(`/servicechecks/${sc.id}`, {
-        preserveScroll: true,
-    })
+const validateGroupSelection = (item) => {
+    const options = getGroupsFor(item)
+    if (!options.find(o => o.id === item.service_check_group_id)) {
+        item.service_check_group_id = null
+        item.group = null
+    }
 }
 
 watch(productTypeToShow, (val) => {
     router.get('/servicechecks', { onlyType: val, search: searchTerm.value }, { preserveScroll: true })
 })
-
 </script>

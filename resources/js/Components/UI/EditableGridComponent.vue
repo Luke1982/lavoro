@@ -25,8 +25,9 @@
                         <SwitchComponent v-model="item[column.key]" v-else-if="column.fieldtype === 'boolean'"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
                         <ComboBox v-else-if="column.fieldtype === 'combobox'" v-model="item[column.key]"
-                            :options="column.combovalues"
-                            :initialId="column.combovalues.find(c => c.id === item[column.key]?.id)?.id"
+                            :options="column.combovalues || []" :multiple="column.multiple === true"
+                            :initialId="Array.isArray(item[column.key]) ? null : (item[column.key]?.id ?? item[column.key] ?? null)"
+                            :initialIds="Array.isArray(item[column.key]) ? item[column.key] : []"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
                         <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
@@ -58,6 +59,7 @@ type Header = {
     fieldtype: string;
     width?: string;
     combovalues?: { id: number | string; name: string }[];
+    multiple?: boolean;
 };
 
 const { headers, items } = defineProps<{

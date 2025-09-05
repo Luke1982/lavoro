@@ -26,7 +26,8 @@
                 <div v-else-if="field.type === 'combobox'" :class="['col-span-1', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900">{{ field.label }}</label>
                     <ComboBox class="mt-2" :options="field.options || []" v-model="form[field.key]"
-                        :placeholder="field.placeholder || ''" :initialId="field.initialId" />
+                        :placeholder="field.placeholder || ''" :initialId="field.initialId"
+                        :initialIds="field.initialIds" :multiple="field.multiple === true" />
                     <p v-if="form.errors[field.key]" class="text-red-600 text-sm">{{ form.errors[field.key] }}</p>
                 </div>
 
@@ -71,10 +72,20 @@ const open = ref(false)
 const initialState = () => {
     const state = {}
     for (const f of props.fields) {
-        if (f.type === 'boolean') state[f.key] = Boolean(f.default ?? false)
-        else if (f.type === 'number') state[f.key] = Number(f.default ?? 0)
-        else if (f.type === 'combobox') state[f.key] = f.initialId ?? null
-        else state[f.key] = f.default ?? ''
+        switch (f.type) {
+            case 'boolean':
+                state[f.key] = Boolean(f.default ?? false)
+                break
+            case 'number':
+                state[f.key] = Number(f.default ?? 0)
+                break
+            case 'combobox':
+                state[f.key] = f.multiple ? (f.initialIds || []) : (f.initialId ?? null)
+                break
+            default:
+                state[f.key] = f.default ?? ''
+                break
+        }
     }
     return state
 }

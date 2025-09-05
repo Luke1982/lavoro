@@ -38,10 +38,7 @@ class ServiceJob extends Model
     protected static function booted()
     {
         static::created(function (ServiceJob $job) {
-            $checks = $job->asset
-                          ->product
-                          ->productType
-                          ->checks;
+            $checks = $job->asset?->product?->productType?->serviceChecks()->get() ?? collect();
 
             $checks->each(fn($check) => $job->checkInstances()->create([
                 'service_check_id' => $check->id,

@@ -15,9 +15,6 @@ return new class extends Migration
     {
         Schema::create('service_checks', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(ProductType::class)
-                ->constrained()
-                ->cascadeOnDelete();
             $table->string('name')->required();
             $table->integer('order')->default(0);
             $table->enum(

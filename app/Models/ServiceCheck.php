@@ -19,7 +19,6 @@ class ServiceCheck extends Model
         'name',
         'type',
         'order',
-        'product_type_id',
         'service_check_group_id',
     ];
 
@@ -28,9 +27,9 @@ class ServiceCheck extends Model
         return $this->hasMany(ServiceCheckValue::class)->orderBy('order');
     }
 
-    public function productType()
+    public function productTypes()
     {
-        return $this->belongsTo(ProductType::class);
+        return $this->morphToMany(ProductType::class, 'producttypeable');
     }
 
     public function group()

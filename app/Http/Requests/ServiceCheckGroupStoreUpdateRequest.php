@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * @property int $product_type_id
+ * @property array<int> $product_type_ids
  */
 class ServiceCheckGroupStoreUpdateRequest extends FormRequest
 {
@@ -17,9 +17,10 @@ class ServiceCheckGroupStoreUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'            => ['required', 'string', 'max:255'],
-            'order'           => ['nullable', 'integer', 'min:0'],
-            'product_type_id' => ['required', 'exists:product_types,id'],
+            'name'              => ['required', 'string', 'max:255'],
+            'order'             => ['nullable', 'integer', 'min:0'],
+            'product_type_ids'  => ['required', 'array', 'min:1'],
+            'product_type_ids.*' => ['integer', 'exists:product_types,id'],
         ];
     }
 }

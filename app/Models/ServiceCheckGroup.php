@@ -12,11 +12,10 @@ class ServiceCheckGroup extends Model
     protected $fillable = [
         'name',
         'order',
-        'product_type_id',
     ];
 
-    public function productType()
+    public function productTypes()
     {
-        return $this->belongsTo(ProductType::class);
+        return $this->morphToMany(ProductType::class, 'producttypeable');
     }
 }

@@ -18,23 +18,22 @@ class ServiceCheckController extends Controller
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);
-        $query = ServiceCheck::with(['productType', 'values', 'group']);
+        $query = ServiceCheck::with(['productTypes', 'values', 'group']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
         }
 
         if ($productType) {
-            $query->where('product_type_id', $productType);
+            $query->whereHas('productTypes', function ($q) use ($productType) {
+                $q->where('product_types.id', $productType);
+            });
         }
 
         return inertia('ServiceChecks/IndexPage', [
             'serviceChecks'                => $query->orderBy('order')->paginate(10),
             'productTypes'                 => ProductType::all(),
-            'groups'                       => ServiceCheckGroup::select('id', 'name', 'product_type_id')
-                ->orderBy('product_type_id')
-                ->orderBy('order')
-                ->get(),
+            'groups'                       => ServiceCheckGroup::with('productTypes:id,name')->orderBy('order')->get(),
             'serviceCheckTypes'            => ServiceCheckTypes::assocArray(),
             'serviceCheckTypesWithOptions' => ServiceCheckTypes::getTypesWithOptions(),
             'search'                       => $search,
@@ -47,18 +46,23 @@ class ServiceCheckController extends Controller
      */
     public function store(ServiceCheckStoreUpdateRequest $request)
     {
-        $highestorder = ServiceCheck::where('product_type_id', $request->product_type_id)
-        ->max('order') ?? 0;
         $data = $request->validated();
+        $productTypeIds = $data['product_type_ids'] ?? [];
+        unset($data['product_type_ids']);
+        $highestorder = ServiceCheck::whereHas('productTypes', function ($q) use ($productTypeIds) {
+            if (count($productTypeIds)) {
+                $q->whereIn('product_types.id', $productTypeIds);
+            }
+        })->max('order') ?? 0;
         $data['order'] = $highestorder + 1;
 
-        $sc = ServiceCheck::create($data)
-            ->load('productType', 'values', 'group');
+        $sc = ServiceCheck::create($data);
+        if (count($productTypeIds)) {
+            $sc->productTypes()->sync($productTypeIds);
+        }
+        $sc->load('productTypes', 'values', 'group');
 
-            return redirect()->route('servicechecks.index')->with([
-                'success' => 'Controlepunt is gemaakt',
-                'extra'   => $sc,
-            ]);
+        return redirect()->back()->with('success', 'Controlepunt is gemaakt');
     }
 
     /**
@@ -66,13 +70,16 @@ class ServiceCheckController extends Controller
      */
     public function update(ServiceCheckStoreUpdateRequest $request, ServiceCheck $servicecheck)
     {
-        $servicecheck->update($request->validated());
-        $servicecheck->load('productType', 'values', 'group');
+        $data = $request->validated();
+        $productTypeIds = $data['product_type_ids'] ?? [];
+        unset($data['product_type_ids']);
+        $servicecheck->update($data);
+        if (!is_null($productTypeIds)) {
+            $servicecheck->productTypes()->sync($productTypeIds);
+        }
+        $servicecheck->load('productTypes', 'values', 'group');
 
-        return redirect()->route('servicechecks.index')->with([
-            'success' => 'Controlepunt is aangepast',
-            'extra'   => $servicecheck,
-        ]);
+        return redirect()->back()->with('success', 'Controlepunt is aangepast');
     }
 
     /**

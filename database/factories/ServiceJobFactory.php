@@ -35,7 +35,7 @@ class ServiceJobFactory extends Factory
     {
         return $this->afterCreating(function (ServiceJob $service_job) {
             \Illuminate\Support\Facades\Log::info('test');
-            $checks = $service_job->asset->product->productType->checks;
+            $checks = $service_job->asset?->product?->productType?->serviceChecks()->get() ?? collect();
             $checks->each(function ($check) use ($service_job) {
                 $service_job->checkInstances()->create([
                     'service_check_id' => $check->id,

@@ -11,7 +11,6 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->unsignedInteger('order')->default(0);
-            $table->foreignId('product_type_id')->constrained('product_types')->cascadeOnDelete();
             $table->timestamps();
         });
     }
