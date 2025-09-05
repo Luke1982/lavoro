@@ -44,7 +44,7 @@ class ServiceJobController extends Controller
     {
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob->load([
-                'asset.product.productType.checks',
+                'asset.product.productType.serviceChecks',
                 'checkInstances.serviceCheck.values',
                 'checkInstances.values',
                 'asset.product.brand',
