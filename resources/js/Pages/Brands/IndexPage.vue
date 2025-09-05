@@ -15,7 +15,7 @@
 
     <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="innerBrands" @update="onCellUpdate" />
+        <EditableGridComponent :headers="headers" :items="innerBrands" @update="onCellUpdate" urlBase="brands" />
         <PaginationComponent v-if="innerBrands.length > 0" :paginator="brands" :params="{ search: searchTerm }"
             class="border-t border-gray-200 pt-2" />
         <div v-else class="text-center text-gray-500 p-4">
@@ -59,7 +59,7 @@ const searchTerm = ref(props.search);
 // pagination handled by PaginationComponent
 
 const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-full' },
+    { key: 'name', label: 'Naam', fieldtype: 'text', width: 70 },
 ];
 
 const form = useForm({ name: null });

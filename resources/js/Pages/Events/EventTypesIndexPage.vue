@@ -17,9 +17,9 @@ const innerTypes = computed(() => eventTypes)
 const urlBase = 'eventtypes';
 
 const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-100' },
-    { key: 'description', label: 'Beschrijving', fieldtype: 'text', width: 'w-100' },
-    { key: 'color', label: 'Kleur', fieldtype: 'colorpicker', width: 'w-40' },
+    { key: 'name', label: 'Naam', fieldtype: 'text', width: 22 },
+    { key: 'color', label: 'Kleur', fieldtype: 'colorpicker', width: 25 },
+    { key: 'description', label: 'Beschrijving', fieldtype: 'text' },
 ];
 
 const form = useForm({

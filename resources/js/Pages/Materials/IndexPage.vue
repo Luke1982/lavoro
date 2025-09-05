@@ -62,13 +62,13 @@ const materialFields = [
 // Creation handled by backend redirect; no client-side mutations needed.
 
 const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/3' },
-    { key: 'code', label: 'Code', fieldtype: 'text', width: 'w-1/9' },
-    { key: 'price', label: 'Prijs', fieldtype: 'number', width: 'w-1/9' },
-    { key: 'divisable', label: 'Deelbaar', fieldtype: 'boolean', width: 'w-20' },
-    { key: 'is_active', label: 'Actief', fieldtype: 'boolean', width: 'w-20' },
-    { key: 'material_category_id', label: 'Categorie', fieldtype: 'combobox', width: 'w-full', combovalues: categories },
-    { key: 'material_usage_unit_id', label: 'Gebruikseenheid', fieldtype: 'combobox', width: 'w-full', combovalues: usageUnits },
+    { key: 'name', label: 'Naam', fieldtype: 'text', width: 22 },
+    { key: 'code', label: 'Code', fieldtype: 'text', width: 12 },
+    { key: 'price', label: 'Prijs', fieldtype: 'number', width: 12 },
+    { key: 'divisable', label: 'Deelbaar', fieldtype: 'boolean', width: 8 },
+    { key: 'is_active', label: 'Actief', fieldtype: 'boolean', width: 8 },
+    { key: 'material_category_id', label: 'Categorie', fieldtype: 'combobox', width: 20, combovalues: categories },
+    { key: 'material_usage_unit_id', label: 'Gebruikseenheid', fieldtype: 'combobox', combovalues: usageUnits },
 ];
 
 const form = useForm({

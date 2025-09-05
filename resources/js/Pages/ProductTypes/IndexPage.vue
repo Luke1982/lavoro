@@ -15,7 +15,7 @@
 
     <!-- Content box -->
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="innerTypes" @update="onCellUpdate" />
+        <EditableGridComponent :headers="headers" :items="innerTypes" @update="onCellUpdate" urlBase="producttypes" />
         <PaginationComponent v-if="innerTypes.length" :paginator="productTypes" :params="{ search: searchTerm }"
             class="border-t border-gray-200 pt-2" />
         <div v-else class="text-center text-gray-500 p-4">
@@ -60,8 +60,8 @@ const innerTypes = computed(() => props.productTypes?.data || [])
 const searchTerm = ref(props.search);
 
 const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/2' },
-    { key: 'typical_certificate_days', label: 'Keuringsduur (dagen)', fieldtype: 'number', width: 'w-48' },
+    { key: 'name', label: 'Naam', fieldtype: 'text', width: 70 },
+    { key: 'typical_certificate_days', label: 'Keuringsduur (dagen)', fieldtype: 'number' },
 ]
 
 const form = useForm({ name: null, typical_certificate_days: null });
