@@ -1,5 +1,8 @@
 <template>
     <BoxComponent>
+        <div v-if="serviceOrder.sent" class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 text-amber-800 text-sm font-semibold">
+            Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
+        </div>
         <div class="flex items-center justify-between mb-4">
             <h1 class="text-2xl font-bold text-center flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
             }}</h1>
@@ -8,6 +11,14 @@
                 target="_blank" rel="noopener">
                 Exporteer PDF
             </a>
+            <template v-if="!serviceOrder.sent">
+                <button @click="sendToSnelStart"
+                    class="ml-2 inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                    Verstuur naar SnelStart
+                </button>
+            </template>
+            <span v-else
+                class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">Verzonden</span>
         </div>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
             <div class="col-span-2 text-xs">
@@ -47,7 +58,7 @@
                 <div class="col-span-12 md:col-span-10 flex">
                     <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
                     <button @click="addServiceJob"
-                        class="w-auto md:w-70 ml-2 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                        class="w-auto md:w-70 ml-2 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
                         Keuren
                     </button>
                 </div>
@@ -71,7 +82,7 @@
             <div class="col-span-12 md:col-span-10 flex flex-col md:flex-row">
                 <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
                 <button @click="attachTicket"
-                    class="w-full md:w-70 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                    class="w-full md:w-70 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
                     Voeg storing aan werkbon toe
                 </button>
             </div>
@@ -98,8 +109,8 @@
                         <TextInput v-model="materialsForm.quantity" type="number" placeholder="Aantal" />
                     </div>
                 </div>
-                <button @click="attachMaterial"
-                    class="self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-70 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer text-sm">
+                <button @click="attachMaterial" :disabled="serviceOrder.sent"
+                    :class="'self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-70 rounded text-sm ' + (serviceOrder.sent ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer')">
                     Voeg materiaal aan werkbon toe
                 </button>
             </div>
@@ -125,11 +136,14 @@
                             </div>
                             <div class="col-span-12 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                 <span class="font-bold text-xs block lg:hidden">Aantal</span>
-                                <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full"
-                                    @update="val => {
-                                        materialsForm.quantity = val;
-                                        updateMaterialQuantity(material.pivot.id);
-                                    }" />
+                                <template v-if="!serviceOrder.sent">
+                                    <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full"
+                                        @update="val => {
+                                            materialsForm.quantity = val;
+                                            updateMaterialQuantity(material.pivot.id);
+                                        }" />
+                                </template>
+                                <span v-else class="text-sm">{{ material.pivot.quantity }}</span>
                             </div>
                             <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                 <span class="font-bold text-xs block lg:hidden">Prijs pst.</span>
@@ -140,7 +154,7 @@
                                     (Number(material.pivot.quantity) *
                                         Number(material.price)).toFixed(2) }}
                             </div>
-                            <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1">
+                            <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1" v-if="!serviceOrder.sent">
                                 <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
                                     @click="detachMaterial(material.pivot.id)"
                                     v-tooltip="'Verwijder dit materiaal van de werkbon'" />
@@ -310,6 +324,16 @@ const updateMaterialQuantity = (materiableId) => {
         onSuccess: () => {
             materialsForm.reset()
         }
+    });
+};
+
+const sendForm = useForm({});
+const sendToSnelStart = () => {
+    if (props.serviceOrder.sent) {
+        return;
+    }
+    sendForm.post(`/serviceorders/${props.serviceOrder.id}/send-snelstart`, {
+        preserveScroll: true,
     });
 };
 </script>

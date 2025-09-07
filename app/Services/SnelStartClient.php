@@ -44,6 +44,17 @@ class SnelStartClient
                     ->json();
     }
 
+    public function post(string $uri, array $payload = [])
+    {
+        return Http::withToken($this->getAccessToken())
+            ->withHeaders([
+                'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
+            ])
+            ->post($this->apiBase . $uri, $payload)
+            ->throw()
+            ->json();
+    }
+
     public function getCountry(string $uuid): array
     {
         return Cache::remember("snelstart.land.{$uuid}", now()->addDay(), function () use ($uuid) {
@@ -53,6 +64,26 @@ class SnelStartClient
                 ->throw();
 
             return $response->json();
+        });
+    }
+
+    public function getCountryByIso(string $iso): ?array
+    {
+        $iso = strtoupper(trim($iso));
+        return Cache::remember("snelstart.land.iso.{$iso}", now()->addDay(), function () use ($iso) {
+            $response = Http::withToken($this->getAccessToken())
+                ->withHeaders([
+                    'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
+                ])
+                ->get($this->apiBase . '/landen')
+                ->throw()
+                ->json();
+            foreach ($response as $item) {
+                if (isset($item['landcodeISO']) && strtoupper($item['landcodeISO']) === $iso) {
+                    return $item;
+                }
+            }
+            return null;
         });
     }
 }

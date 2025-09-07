@@ -54,6 +54,8 @@ Route::group(
         Route::resource('serviceorders', ServiceOrderController::class);
         Route::get('serviceorders/{serviceorder}/export/pdf', [ServiceOrderController::class, 'exportPdf'])
             ->name('serviceorders.exportPdf');
+        Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
+            ->name('serviceorders.sendToSnelStart');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
         Route::get(

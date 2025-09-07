@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceJob;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\SnelStartClient;
 
 class ServiceOrderController extends Controller
 {
@@ -138,6 +139,161 @@ class ServiceOrderController extends Controller
     {
         $serviceorder->delete();
         return redirect()->back()->with('success', 'Werkbon succesvol verwijderd.');
+    }
+
+    /**
+     * Stuur een serviceorder naar SnelStart als verkooporder.
+     */
+    public function sendToSnelStart(ServiceOrder $serviceorder, SnelStartClient $client)
+    {
+        if ($serviceorder->sent) {
+            return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
+        }
+        $serviceorder->load(['customer', 'materials']);
+
+        $customer = $serviceorder->customer;
+        if (!$customer || !$customer->snelstart_id) {
+            return redirect()->back()->with('error', 'Klant heeft geen gekoppeld SnelStart ID.');
+        }
+
+        $lines = [];
+        $total_excl = 0;
+        $skipped_null_quantity = [];
+        $skipped_no_snelstart = [];
+        foreach ($serviceorder->materials as $idx => $material) {
+            if (!$material->snelstart_id) {
+                $skipped_no_snelstart[] = $material->name;
+                continue;
+            }
+            if (is_null($material->pivot->quantity)) {
+                $skipped_null_quantity[] = $material->name;
+                continue;
+            }
+            $quantity = (float) $material->pivot->quantity;
+            $unit_price = (float) ($material->price ?? 0);
+            $line_total = $unit_price * $quantity;
+            $total_excl += $line_total;
+            $lines[] = [
+                'artikel' => [
+                    'id' => $material->snelstart_id,
+                    'uri' => '/v2/artikelen/' . $material->snelstart_id,
+                ],
+                'omschrijving' => (string) $material->name,
+                'stuksprijs' => (float) $unit_price,
+                'aantal' => (float) $quantity,
+                'kortingsPercentage' => 0,
+                'totaal' => (float) $line_total,
+                'extraRegelVelden' => [],
+            ];
+        }
+
+        if (empty($lines)) {
+            return redirect()->back()->with(
+                'error',
+                'Geen materialen met SnelStart koppeling gevonden voor deze werkbon.'
+            );
+        }
+
+        $vat_factor = 1.21;
+        $delivery_country = $customer->country ? $client->getCountryByIso($customer->country) : null;
+        $invoice_country = $customer->postal_country ? $client->getCountryByIso($customer->postal_country) : null;
+
+        $delivery_address = [
+            'contactpersoon' => $customer->contactname ?? $customer->name,
+            'straat' => $customer->address,
+            'postcode' => $customer->postal_code,
+            'plaats' => $customer->city,
+        ];
+        if ($delivery_country) {
+            $delivery_address['land'] = [
+                'id' => $delivery_country['id'],
+                'uri' => '/v2/landen/' . $delivery_country['id'],
+            ];
+        }
+
+        $invoice_address = [
+            'contactpersoon' => $customer->contactname ?? $customer->name,
+            'straat' => $customer->postal_address ?: $customer->address,
+            'postcode' => $customer->postal_postal_code ?: $customer->postal_code,
+            'plaats' => $customer->postal_city ?: $customer->city,
+        ];
+        if ($invoice_country) {
+            $invoice_address['land'] = [
+                'id' => $invoice_country['id'],
+                'uri' => '/v2/landen/' . $invoice_country['id'],
+            ];
+        }
+        $desc = 'Werkbon ' . $serviceorder->id;
+        $payload = [
+            'relatie' => [
+                'id' => $customer->snelstart_id,
+                'uri' => '/v2/relaties/' . $customer->snelstart_id,
+            ],
+            'procesStatus' => 'Order',
+            'datum' => now()->toDateString(),
+            'omschrijving' => $desc,
+            'orderreferentie' => 'Werkbon ' . $serviceorder->id,
+            'verkooporderBtwIngaveModel' => 'Inclusief',
+            'verkoopOrderStatus' => 'InBehandeling',
+            'regels' => $lines,
+            'totaalExclusiefBtw' => round($total_excl, 2),
+            'totaalInclusiefBtw' => round($total_excl * $vat_factor, 2),
+            'afleveradres' => $delivery_address,
+            'factuuradres' => $invoice_address,
+            'extraHoofdVelden' => [],
+        ];
+
+        try {
+            \Illuminate\Support\Facades\Log::info('SnelStart verkooporder payload prepared', [
+                'omschrijving' => $desc,
+                'omschrijving_length' => mb_strlen($desc),
+                'regels_count' => count($lines),
+            ]);
+            $response = $client->post('/verkooporders', $payload);
+            $serviceorder->sent = true;
+            $serviceorder->save();
+            $redirect = redirect()->back()->with(
+                'success',
+                'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
+            );
+            $skip_messages = [];
+            if (!empty($skipped_null_quantity)) {
+                $skip_messages[] = 'Materialen zonder hoeveelheid: ' . implode(', ', $skipped_null_quantity);
+            }
+            if (!empty($skipped_no_snelstart)) {
+                $skip_messages[] = 'Materialen zonder SnelStart ID: ' . implode(', ', $skipped_no_snelstart);
+            }
+            if (!empty($skip_messages)) {
+                $redirect = $redirect->with('error', implode(' | ', $skip_messages));
+            }
+            return $redirect;
+        } catch (\Throwable $e) {
+            $model_state_messages = [];
+            if (method_exists($e, 'response') && $e->response) {
+                try {
+                    $json = $e->response->json();
+                    if (is_array($json) && isset($json['modelState']) && is_array($json['modelState'])) {
+                        foreach ($json['modelState'] as $field => $problems) {
+                            if (is_array($problems)) {
+                                foreach ($problems as $p) {
+                                    $model_state_messages[] = $field . ': ' . $p;
+                                }
+                            }
+                        }
+                    }
+                } catch (\Throwable $ignore) {
+                }
+            }
+            $combined = $e->getMessage();
+            if ($model_state_messages) {
+                $combined .= ' | ' . implode(' | ', $model_state_messages);
+            }
+            \Illuminate\Support\Facades\Log::error('Fout bij versturen naar SnelStart', [
+                'error' => $e->getMessage(),
+                'modelState' => $model_state_messages,
+            ]);
+            return redirect()->back()->with('error', 'Fout bij versturen naar SnelStart: ' . $combined);
+        }
     }
 
     /**

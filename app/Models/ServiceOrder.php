@@ -18,6 +18,11 @@ class ServiceOrder extends Model
         'closed_on',
         'signed_by',
         'signature_base64',
+        'sent',
+    ];
+
+    protected $casts = [
+        'sent' => 'boolean',
     ];
 
     public function customer()
