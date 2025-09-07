@@ -24,7 +24,7 @@
             </div>
         </div>
         </Link>
-    <div class="absolute top-2 right-2 flex items-center space-x-2">
+        <div class="absolute top-2 right-2 flex items-center space-x-2">
             <CheckIcon v-if="ticket.status.toLowerCase() !== 'gesloten'" class="w-5 h-5 text-green-500 cursor-pointer"
                 @click.stop="setTicketStatusTo('Gesloten')" v-tooltip="'Wijzig de status naar \'Gesloten\''" />
             <ClockIcon v-if="ticket.status.toLowerCase() !== 'in behandeling'"
@@ -38,7 +38,7 @@
             <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 cursor-pointer"
                 @click.stop="removeTicketLink" v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
-    <div class="absolute bottom-2 left-2 w-20">
+        <div class="absolute bottom-2 left-2 w-20">
             <ChevronDownIcon v-if="ticket.priority.toLowerCase() !== ticketPriorities[0].id.toLowerCase()"
                 class="w-5 h-5 text-gray-500 cursor-pointer absolute left-0 bottom-0"
                 v-tooltip="'Verlaag de prioriteit'" @click.stop="alterTicketPrio('down')" />
