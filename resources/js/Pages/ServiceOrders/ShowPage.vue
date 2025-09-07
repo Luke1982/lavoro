@@ -8,7 +8,7 @@
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
                         class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
                         target="_blank" rel="noopener">
@@ -38,7 +38,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                        }}, {{
+                            }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
@@ -228,12 +228,15 @@
                 </div>
                 <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="timelineItems.length > 0">
                     <h3 class="font-semibold text-base mb-3">Tijdlijn</h3>
-                    <ol class="space-y-2">
-                        <li v-for="(t, idx) in timelineItems" :key="idx" class="flex items-start">
-                            <span class="text-xs w-14 shrink-0 text-gray-500">{{ t.time }}</span>
-                            <span class="ml-2 text-xs">{{ t.label }}</span>
-                        </li>
-                    </ol>
+                    <div class="grid gap-2" v-auto-animate>
+                        <div v-for="t in displayedTimelineItems" :key="t.raw.id" class="grid grid-cols-[3.5rem_1fr] items-start">
+                            <div class="text-xs text-gray-500">{{ t.time }}</div>
+                            <div class="text-xs ml-2">{{ t.label }}</div>
+                        </div>
+                    </div>
+                    <button v-if="timelineItems.length > 10" @click="showAllActivities = !showAllActivities" class="mt-3 text-xs text-indigo-600 hover:underline">
+                        {{ showAllActivities ? 'Toon minder' : 'Toon alle ' + timelineItems.length }}
+                    </button>
                 </div>
                 <div class="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-2">
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
@@ -258,7 +261,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, nlTime } from '@/Utilities/Utilities';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
@@ -408,27 +411,31 @@ const materialsSubtotal = computed(() => {
 const materialsVat = computed(() => materialsSubtotal.value * 0.21);
 const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.value);
 
-const formatTime = (iso) => {
-    if (!iso) return '';
+const formatTimelineStamp = (iso) => {
+    if (!iso) {
+        return '';
+    }
     const d = new Date(iso);
-    return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const today = new Date();
+    const isToday = d.toDateString() === today.toDateString();
+    if (isToday) {
+        return nlTime(d);
+    }
+    return nlDate(d) + ' ' + nlTime(d);
 };
 const timelineItems = computed(() => {
-    const items = [];
-    if (props.serviceOrder.created_at) {
-        items.push({ time: formatTime(props.serviceOrder.created_at), label: 'Werkbon aangemaakt' });
+    if (!props.serviceOrder.activities) return [];
+    return props.serviceOrder.activities.map(a => ({
+        time: formatTimelineStamp(a.pivot?.created_at || a.created_at),
+        label: a.description,
+        raw: a
+    }));
+});
+const showAllActivities = ref(false);
+const displayedTimelineItems = computed(() => {
+    if (showAllActivities.value) {
+        return timelineItems.value;
     }
-    props.serviceOrder.servicejobs.forEach(job => {
-        if (job.created_at) {
-            items.push({ time: formatTime(job.created_at), label: 'Keuring gestart' });
-        }
-    });
-    props.serviceOrder.materials.forEach(mat => {
-        if (mat.pivot?.created_at) {
-            items.push({ time: formatTime(mat.pivot.created_at), label: 'Materiaal toegevoegd' });
-        }
-    });
-    // Sort by time ascending
-    return items.sort((a, b) => a.time.localeCompare(b.time));
+    return timelineItems.value.slice(0, 10);
 });
 </script>

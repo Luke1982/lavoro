@@ -6,6 +6,7 @@ use App\Enums\ServiceJobOutcomes;
 use App\Models\Ticket;
 use App\Models\Material;
 use App\Models\ServiceOrder;
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceJob;
@@ -49,11 +50,21 @@ class ServiceOrderController extends Controller
         }
         if ($request->has('assets')) {
             foreach ($request->input('assets') as $asset_id) {
-                ServiceJob::create([
+                $job = ServiceJob::create([
                     'asset_id' => $asset_id,
                     'service_order_id' => $serviceorder->id,
                     'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
                 ]);
+                $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
+                if ($asset) {
+                    $serviceorder->logActivity(sprintf(
+                        'Keuring toegevoegd: %s %s %s (serienummer %s)',
+                        $asset->product->productType->name ?? 'Onbekend type',
+                        $asset->product->brand->name ?? '',
+                        $asset->product->model ?? '',
+                        $asset->serial_number ?? '-'
+                    ));
+                }
             };
             $redirect = 'serviceorders.show';
         }
@@ -84,6 +95,9 @@ class ServiceOrderController extends Controller
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
             'materials',
+            'activities' => function ($q) {
+                $q->orderByDesc('activityables.created_at');
+            },
             'remarks.user'
         ])->findOrFail($id),
         'allMaterials' => Material::all()->load([
@@ -302,6 +316,17 @@ class ServiceOrderController extends Controller
     public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
     {
         $ticket->update(['service_order_id' => $serviceorder->id]);
+        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
+        if ($asset) {
+            $serviceorder->logActivity(sprintf(
+                'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
+                $ticket->subject ?? ('Ticket #' . $ticket->id),
+                $asset->product->productType->name ?? 'Type',
+                $asset->product->brand->name ?? 'Merk',
+                $asset->product->model ?? '',
+                $asset->serial_number ?? '-'
+            ));
+        }
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
     }
 
@@ -311,6 +336,17 @@ class ServiceOrderController extends Controller
     public function detachTicket(ServiceOrder $serviceorder, Ticket $ticket)
     {
         $ticket->update(['service_order_id' => null]);
+        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
+        if ($asset) {
+            $serviceorder->logActivity(sprintf(
+                'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
+                $ticket->subject ?? ('Ticket #' . $ticket->id),
+                $asset->product->productType->name ?? 'Type',
+                $asset->product->brand->name ?? 'Merk',
+                $asset->product->model ?? '',
+                $asset->serial_number ?? '-'
+            ));
+        }
         return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');
     }
 
@@ -322,16 +358,32 @@ class ServiceOrderController extends Controller
         $serviceorder->materials()->attach($material, [
         'quantity' => $request->input('quantity', 1),
         ]);
+        $serviceorder->logActivity(sprintf(
+            'Materiaal toegevoegd: %s (aantal %s)',
+            $material->name,
+            $request->input('quantity', 1)
+        ));
         return redirect()->back()->with('success', 'Materiaal succesvol gekoppeld aan de werkbon.');
     }
 
     public function detachMaterial(ServiceOrder $serviceorder, string $materiable_id)
     {
-        $serviceorder
-        ->materials()
-        ->newPivotQuery()
-        ->where('materiables.id', $materiable_id)
-        ->delete();
+        $pivotQuery = $serviceorder
+            ->materials()
+            ->newPivotQuery()
+            ->where('materiables.id', $materiable_id);
+        $record = $pivotQuery->first();
+        $material = null;
+        if ($record) {
+            $material = Material::find($record->material_id);
+        }
+        $pivotQuery->delete();
+        if ($material) {
+            $serviceorder->logActivity(sprintf(
+                'Materiaal verwijderd: %s',
+                $material->name
+            ));
+        }
 
         return redirect()->back()
         ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
@@ -339,14 +391,29 @@ class ServiceOrderController extends Controller
 
     public function updateMateriable(Request $request, ServiceOrder $serviceorder, string $materiable_id)
     {
-        $serviceorder
-        ->materials()
-        ->newPivotQuery()
-        ->where('materiables.id', $materiable_id)
-        ->update([
+        $pivotQuery = $serviceorder
+            ->materials()
+            ->newPivotQuery()
+            ->where('materiables.id', $materiable_id);
+
+        $record = $pivotQuery->first();
+        $material = null;
+        if ($record) {
+            $material = Material::find($record->material_id);
+        }
+
+        $pivotQuery->update([
             'quantity' => $request->input('quantity', 1),
             'material_role_id' => $request->input('material_role_id', null),
         ]);
+
+        if ($material) {
+            $serviceorder->logActivity(sprintf(
+                'Materiaal hoeveelheid aangepast: %s naar %s',
+                $material->name,
+                $request->input('quantity', 1)
+            ));
+        }
 
         return redirect()->back()
         ->with('success', 'Materiaal succesvol bijgewerkt.');

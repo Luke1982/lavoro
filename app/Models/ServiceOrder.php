@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\RemarkableTrait;
+use App\Models\Activity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -55,5 +56,19 @@ class ServiceOrder extends Model
     public function events()
     {
         return $this->morphToMany(Event::class, 'eventable');
+    }
+
+    public function activities()
+    {
+        return $this->morphToMany(Activity::class, 'activityable')->withTimestamps();
+    }
+
+    public function logActivity(string $description, ?\DateTimeInterface $occurredAt = null): Activity
+    {
+        $activity = Activity::create([
+            'description' => $description,
+        ]);
+        $this->activities()->attach($activity->id);
+        return $activity;
     }
 }

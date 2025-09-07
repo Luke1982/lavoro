@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceJobCreateRequest;
+use App\Models\ServiceOrder;
 use App\Http\Requests\ServiceJobUpdateRequest;
 
 class ServiceJobController extends Controller
@@ -33,7 +34,20 @@ class ServiceJobController extends Controller
      */
     public function store(ServiceJobCreateRequest $request)
     {
-        ServiceJob::create($request->validated());
+        $job = ServiceJob::create($request->validated());
+        $serviceOrder = ServiceOrder::with('customer')->find($job->service_order_id);
+        if ($serviceOrder) {
+            $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
+            if ($asset) {
+                $serviceOrder->logActivity(sprintf(
+                    'Keuring toegevoegd: %s %s %s (serienummer %s)',
+                    $asset->product->productType->name ?? 'Onbekend type',
+                    $asset->product->brand->name ?? '',
+                    $asset->product->model ?? '',
+                    $asset->serial_number ?? '-'
+                ));
+            }
+        }
         return redirect()->back()->with('success', 'Keuring succesvol aangemaakt.');
     }
 
