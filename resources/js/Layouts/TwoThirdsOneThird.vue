@@ -1,9 +1,9 @@
 <template>
-    <div class="flex flex-wrap md:flex-nowrap">
-        <div class="w-full md:w-2/3">
+    <div class="grid grid-cols-12 gap-x-6">
+        <div class="col-span-12 md:col-span-8">
             <slot name="main"></slot>
         </div>
-        <div class="w-full md:w-1/3">
+        <div class="col-span-12 md:col-span-4">
             <slot name="sidebar"></slot>
         </div>
     </div>

@@ -1,6 +1,6 @@
 <template>
-    <div :class="`grid-cols-${asset ? 6 : 5} grid gap-4 text-sm odd:bg-gray-50 md:py-2 relative p-5`">
-        <div class="col-span-3 lg:col-span-1 flex flex-col" v-if="asset">
+    <div :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 md:py-2 md:px-0 relative p-5`">
+        <div class="col-span-5 lg:col-span-5 flex flex-col" v-if="asset">
             <span class="font-bold block lg:hidden">Machine</span>
             <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
                 v-tooltip="'Met deze link ga je naar het algemene product'">
@@ -12,27 +12,23 @@
                     servicejob.asset.serial_number }}</Link>
         </div>
         <div
-            :class="[getOutcomeColor(servicejob.outcome), 'col-span-3 lg:col-span-1 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center ml-2']">
+            :class="[getOutcomeColor(servicejob.outcome), 'col-span-6 lg:col-span-2 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center ml-2']">
             <span class="font-bold block lg:hidden mr-2">Uitkomst:</span>{{
                 servicejob.outcome }}
         </div>
-        <div class="col-span-3 lg:col-span-1 flex flex-col">
+        <div class="col-span-6 lg:col-span-2 flex flex-col">
             <span class="font-bold block lg:hidden">Dagen tijdelijke goedkeur</span>
             {{ servicejob.outcome.toLowerCase() === 'tijdelijke goedkeur' ? `${servicejob.days_temporary_approval}
             dag(en) ` :
                 'n.v.t.' }}
         </div>
-        <div class="col-span-3 lg:col-span-1 flex flex-col">
+        <div class="col-span-6 lg:col-span-2 flex flex-col">
             <span class="font-bold block lg:hidden">Keuring afgerond op</span>
             {{ servicejob.completed_on ? new Date(servicejob.completed_on).toLocaleDateString('nl-NL', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
             }) : 'Nog niet afgerond' }}
-        </div>
-        <div class="col-span-6 lg:col-span-1 flex flex-col">
-            <span class="font-bold block lg:hidden">Opmerkingen</span>
-            {{ servicejob.description }}
         </div>
         <div class="absolute top-2 right-2 flex space-x-1 lg:space-x-2 items-center">
             <Link :href="`/servicejobs/${servicejob.id}`">
