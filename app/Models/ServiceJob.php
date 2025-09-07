@@ -59,6 +59,12 @@ class ServiceJob extends Model
         return $this
             ->hasMany(ServiceCheckInstance::class)
             ->join('service_checks', 'service_check_instances.service_check_id', '=', 'service_checks.id')
+            ->leftJoin('service_check_groups', 'service_checks.service_check_group_id', '=', 'service_check_groups.id')
+            // order by group order first (nulls last), then by check order
+            ->orderByRaw(
+                'CASE WHEN service_check_groups.`order` IS NULL THEN 1 ELSE 0 END, '
+                . 'service_check_groups.`order` ASC'
+            )
             ->orderBy('service_checks.order')
             ->select('service_check_instances.*');
     }

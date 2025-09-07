@@ -40,10 +40,17 @@
         <h2 class="text-xl font-bold my-4 text-center">
             Keurpunten
         </h2>
-        <div class="flex flex-wrap">
-            <ServiceCheckInstanceComponent v-for="check in servicejob.check_instances" :key="check.id"
-                :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
-                class="w-full md:w-1/2 xle:w-1/3" :readonly="servicejob.completed_on !== null" />
+        <div class="flex flex-col gap-6">
+            <div v-for="group in groupedChecks" :key="group.key" class="w-full">
+                <h3 v-if="group.name" class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    {{ group.name }}
+                </h3>
+                <div class="flex flex-wrap">
+                    <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
+                        :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
+                        class="w-full md:w-1/2 xle:w-1/3" :readonly="servicejob.completed_on !== null" />
+                </div>
+            </div>
         </div>
         <div class="border-t-1 border-gray-200">
             <h2 class="text-xl font-bold my-4 text-center">
@@ -99,7 +106,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { nlDate } from '@/Utilities/Utilities';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { watch, ref } from 'vue';
+import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
 import { Cog6ToothIcon, InformationCircleIcon, LockOpenIcon } from '@heroicons/vue/24/outline';
 
@@ -154,5 +161,36 @@ const clearCompletedOn = () => {
         },
     });
 };
+
+// Group the service checks by Product Type groups; checks in groups not attached to
+// the product type are placed under an "Overige keurpunten" section at the end.
+const groupedChecks = computed(() => {
+    const instances = (servicejob.check_instances || []).slice();
+    // Always order checks within a group by their own order
+    instances.sort((a, b) => (a.service_check?.order ?? 0) - (b.service_check?.order ?? 0));
+
+    const ptGroups = (servicejob.asset?.product?.product_type?.service_check_groups || [])
+        .map(g => ({ id: g.id, name: g.name, order: g.order ?? Number.MAX_SAFE_INTEGER }));
+    const allowed = new Map(ptGroups.map(g => [g.id, { key: g.id, name: g.name, order: g.order, items: [] }]));
+
+    const other = { key: 'other', name: 'Overige keurpunten', order: Number.MAX_SAFE_INTEGER, items: [] };
+
+    for (const ci of instances) {
+        const gid = ci.service_check?.group?.id ?? null;
+        if (gid && allowed.has(gid)) {
+            allowed.get(gid).items.push(ci);
+        } else {
+            other.items.push(ci);
+        }
+    }
+
+    const result = Array.from(allowed.values())
+        .filter(g => g.items.length > 0)
+        .sort((a, b) => a.order - b.order);
+    if (other.items.length > 0) {
+        result.push(other);
+    }
+    return result;
+});
 
 </script>
