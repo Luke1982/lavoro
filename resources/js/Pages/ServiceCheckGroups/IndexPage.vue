@@ -60,9 +60,9 @@ const groupFields = [
 ]
 
 const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-1/3' },
-    { key: 'product_type_ids', label: 'Producttypes', fieldtype: 'combobox', width: 'w-1/3', combovalues: productTypes, multiple: true },
-    { key: 'order', label: 'Volgorde', fieldtype: 'number', width: 'w-24' },
+    { key: 'name', label: 'Naam', fieldtype: 'text', width: 33 },
+    { key: 'product_type_ids', label: 'Producttypes', fieldtype: 'combobox', width: 33, combovalues: productTypes, multiple: true },
+    { key: 'order', label: 'Volgorde', fieldtype: 'number', width: 24 },
 ]
 
 // Map product_types to product_type_ids for editable grid initial selection
