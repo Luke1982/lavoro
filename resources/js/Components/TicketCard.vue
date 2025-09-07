@@ -120,6 +120,7 @@ const removeTicketLink = () => {
     if (confirm('Weet je zeker dat je deze storing van de werkbon wilt verwijderen?')) {
         form.get(`/serviceorders/${props.ticket.service_order_id}/tickets/${props.ticket.id}/detach`, {
             preserveScroll: true,
+            preserveState: true,
         });
     }
 }

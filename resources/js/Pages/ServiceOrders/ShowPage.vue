@@ -8,7 +8,7 @@
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
                         class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
                         target="_blank" rel="noopener">
@@ -38,7 +38,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                            }}, {{
+                        }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
@@ -112,20 +112,22 @@
                         <div class="w-full">
                             <div v-if="serviceOrder.materials.length > 0"
                                 class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 pb-3">
-                                <div class="col-span-5 pl-4">Materiaal</div>
-                                <div class="col-span-2">Aantal</div>
-                                <div class="col-span-2">Prijs per stuk</div>
-                                <div class="col-span-2">Totaal</div>
+                                <div :class="showFinancial ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
+                                <div :class="showFinancial ? 'col-span-2' : 'col-span-3'">Aantal</div>
+                                <div v-if="showFinancial" class="col-span-2">Prijs per stuk</div>
+                                <div v-if="showFinancial" class="col-span-2">Totaal</div>
                                 <div class="col-span-1">Acties</div>
                             </div>
                             <div v-auto-animate>
                                 <div v-for="material in serviceOrder.materials" :key="material.id"
                                     class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 px-4 md:px-0 relative">
-                                    <div class="col-span-12 md:col-span-5 pl-0 md:pl-4 flex flex-col">
+                                    <div
+                                        :class="'col-span-12 flex flex-col md:pl-4 ' + (showFinancial ? 'md:col-span-5' : 'md:col-span-7')">
                                         <span class="font-bold text-xs block lg:hidden">Materiaal</span>
                                         {{ material.name }}
                                     </div>
-                                    <div class="col-span-12 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                    <div
+                                        :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancial ? 'md:col-span-2' : 'md:col-span-3')">
                                         <span class="font-bold text-xs block lg:hidden">Aantal</span>
                                         <template v-if="!serviceOrder.sent">
                                             <EditableTextField inputType="number" v-model="material.pivot.quantity"
@@ -136,11 +138,13 @@
                                         </template>
                                         <span v-else class="text-sm">{{ material.pivot.quantity }}</span>
                                     </div>
-                                    <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                    <div v-if="showFinancial"
+                                        class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                         <span class="font-bold text-xs block lg:hidden">Prijs pst.</span>
                                         € {{ Number(material.price).toFixed(2) }}
                                     </div>
-                                    <div class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
+                                    <div v-if="showFinancial"
+                                        class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                         <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
                                             (Number(material.pivot.quantity) *
                                                 Number(material.price)).toFixed(2) }}
@@ -157,6 +161,14 @@
                     </div>
                 </div>
                 <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Afsluiting en opmerkingen</h2>
+                <div class="flex items-center justify-between my-4 border-b-gray-200 border-b-1 pb-2">
+                    <h2 class="text-lg font-medium">Afsluiting en opmerkingen</h2>
+                    <button type="button" @click="showFinancial = !showFinancial"
+                        class="text-gray-500 hover:text-gray-700"
+                        v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
+                        <span class="text-xl leading-none select-none">$</span>
+                    </button>
+                </div>
                 <div class="flex flex-wrap">
                     <div class="w-full md:w-1/2 flex flex-col pr-0 md:pr-3">
                         <EditableTextField v-model="form.signed_by" class="w-full mb-5"
@@ -211,7 +223,7 @@
                             om te bewaren</span>
                     </div>
                 </div>
-                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm">
+                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="showFinancial">
                     <h3 class="font-semibold text-base mb-3">Materiaaloverzicht</h3>
                     <div class="flex justify-between py-1">
                         <span class="text-gray-500">Subtotaal</span>
@@ -229,12 +241,14 @@
                 <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="timelineItems.length > 0">
                     <h3 class="font-semibold text-base mb-3">Tijdlijn</h3>
                     <div class="grid gap-2" v-auto-animate>
-                        <div v-for="t in displayedTimelineItems" :key="t.raw.id" class="grid grid-cols-[3.5rem_1fr] items-start">
+                        <div v-for="t in displayedTimelineItems" :key="t.raw.id"
+                            class="grid grid-cols-[3.5rem_1fr] items-start">
                             <div class="text-xs text-gray-500">{{ t.time }}</div>
                             <div class="text-xs ml-2">{{ t.label }}</div>
                         </div>
                     </div>
-                    <button v-if="timelineItems.length > 10" @click="showAllActivities = !showAllActivities" class="mt-3 text-xs text-indigo-600 hover:underline">
+                    <button v-if="timelineItems.length > 10" @click="showAllActivities = !showAllActivities"
+                        class="mt-3 text-xs text-indigo-600 hover:underline">
                         {{ showAllActivities ? 'Toon minder' : 'Toon alle ' + timelineItems.length }}
                     </button>
                 </div>
@@ -363,6 +377,7 @@ const attachTicket = () => {
     if (!ticketToSolve.value) return;
     form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             internalTickets.value = internalTickets.value.filter(ticket => ticket.id !== ticketToSolve.value);
         }
@@ -410,6 +425,8 @@ const materialsSubtotal = computed(() => {
 });
 const materialsVat = computed(() => materialsSubtotal.value * 0.21);
 const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.value);
+
+const showFinancial = ref(false);
 
 const formatTimelineStamp = (iso) => {
     if (!iso) {
