@@ -5,6 +5,7 @@
 </template>
 <script setup lang="ts">
 import { ColorPicker } from 'vue-accessible-color-picker';
+import { ref } from 'vue';
 
 const emit = defineEmits(['update:modelValue']);
 
@@ -12,8 +13,20 @@ const { modelValue } = defineProps<{
     modelValue: string;
 }>();
 
-function onColorChange(event: { colors: { hex } }) {
-    emit('update:modelValue', event.colors.hex);
+const firstEvent = ref(true);
+
+function onColorChange(event: { colors: { hex: string } }) {
+    const hex = event.colors.hex;
+    if (firstEvent.value) {
+        firstEvent.value = false;
+        return;
+    }
+    const current = (modelValue || '').toLowerCase();
+    const next = (hex || '').toLowerCase();
+    if (next === current) {
+        return;
+    }
+    emit('update:modelValue', hex);
 }
 </script>
 <style>
