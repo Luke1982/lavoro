@@ -12,6 +12,8 @@ use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Models\ServiceJob;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\SnelStartClient;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ServiceOrderPdfMail;
 
 class ServiceOrderController extends Controller
 {
@@ -145,6 +147,44 @@ class ServiceOrderController extends Controller
         return $pdf->download('werkbon-' . $serviceorder->id . '.pdf');
     }
 
+    /**
+     * Generate PDF and email it to the customer.
+     */
+    public function emailPdf(ServiceOrder $serviceorder)
+    {
+        $serviceorder->load([
+            'customer',
+            'serviceJobs.asset.product.brand',
+            'serviceJobs.asset.product.productType',
+            'tickets.asset.product.brand',
+            'tickets.asset.product.productType',
+            'materials',
+        ]);
+        // Determine one or more recipient addresses (primary + optional invoice address)
+        $recipients = array_unique(array_filter([
+            $serviceorder->customer?->email,
+            $serviceorder->customer?->invoice_email,
+        ]));
+        if (empty($recipients)) {
+            return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
+        }
+
+        $pdf = Pdf::loadView('pdf.serviceorder', [
+            'serviceOrder' => $serviceorder,
+        ])->setPaper('a4');
+
+        Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
+
+        $serviceorder->logActivity('Werkbon per e-mail verzonden naar: ' . implode(', ', $recipients));
+        // Mark as sent to customer
+        if (!$serviceorder->sent_to_customer) {
+            $serviceorder->sent_to_customer = true;
+            $serviceorder->save();
+        }
+
+        return redirect()->back()->with('success', 'Werkbon verzonden naar: ' . implode(', ', $recipients));
+    }
+
 
     /**
      * Remove the specified resource from storage.
@@ -160,7 +200,7 @@ class ServiceOrderController extends Controller
      */
     public function sendToSnelStart(ServiceOrder $serviceorder, SnelStartClient $client)
     {
-        if ($serviceorder->sent) {
+        if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
         $serviceorder->load(['customer', 'materials']);
@@ -267,8 +307,12 @@ class ServiceOrderController extends Controller
                 'regels_count' => count($lines),
             ]);
             $response = $client->post('/verkooporders', $payload);
-            $serviceorder->sent = true;
+            $serviceorder->sent_to_administration = true;
             $serviceorder->save();
+            // Log activity for sending to administration
+            $adminMessage = 'Werkbon naar administratie verzonden (SnelStart verkooporder ID: ' .
+                ($response['id'] ?? 'onbekend') . ').';
+            $serviceorder->logActivity($adminMessage);
             $redirect = redirect()->back()->with(
                 'success',
                 'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'

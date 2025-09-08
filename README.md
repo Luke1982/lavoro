@@ -92,3 +92,13 @@ Send a test mail (tinker):
 ```php
 Mail::raw('Graph test', fn($m) => $m->to('you@example.com')->subject('Graph OK'));
 ```
+
+### Customizing Mail Logo
+
+Set a custom logo for outgoing emails:
+
+```env
+MAIL_LOGO_URL=https://yourdomain.tld/path/to/logo.png
+```
+
+If unset, the app name text is shown.

@@ -21,7 +21,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('signed_by')->nullable();
             $table->mediumText(('signature_base64'))->nullable();
-            $table->boolean('sent')->default(false);
+            $table->boolean('sent_to_administration')->default(false);
+            $table->boolean('sent_to_customer')->default(false);
             $table->timestamps();
         });
     }

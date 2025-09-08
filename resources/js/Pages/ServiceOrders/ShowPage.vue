@@ -2,26 +2,73 @@
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent>
-                <div v-if="serviceOrder.sent"
+                <div v-if="serviceOrder.sent_to_administration"
                     class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 text-amber-800 text-sm font-semibold">
                     Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                    }}</h1>
-                    <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
-                        class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
-                        target="_blank" rel="noopener">
-                        Exporteer PDF
-                    </a>
-                    <template v-if="!serviceOrder.sent">
-                        <button @click="sendToSnelStart"
-                            class="ml-2 inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
-                            Verstuur naar SnelStart
-                        </button>
-                    </template>
+                        }}</h1>
+                    <!-- Acties menu -->
+                    <Menu as="div" class="relative ml-4 inline-block text-left">
+                        <div>
+                            <MenuButton
+                                class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 inset-ring-1 inset-ring-gray-300 hover:bg-gray-50">
+                                Acties
+                                <ChevronDownIcon class="-mr-1 size-5 text-gray-400" aria-hidden="true" />
+                            </MenuButton>
+                        </div>
+                        <transition enter-active-class="transition ease-out duration-100"
+                            enter-from-class="transform opacity-0 scale-95"
+                            enter-to-class="transform opacity-100 scale-100"
+                            leave-active-class="transition ease-in duration-75"
+                            leave-from-class="transform opacity-100 scale-100"
+                            leave-to-class="transform opacity-0 scale-95">
+                            <MenuItems
+                                class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg outline-1 outline-black/5 focus:outline-none">
+                                <div class="py-1 text-sm">
+                                    <MenuItem v-slot="{ active }">
+                                    <button type="button" @click="openPdf"
+                                        :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
+                                        <span class="inline-flex items-center">
+                                            <span
+                                                class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                            Exporteer PDF
+                                        </span>
+                                    </button>
+                                    </MenuItem>
+                                    <MenuItem v-slot="{ active }">
+                                    <button type="button" @click="emailPdf" :disabled="emailing"
+                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
+                                        <span class="inline-flex items-center" v-if="!emailing">
+                                            <span
+                                                class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                            E-mail PDF
+                                        </span>
+                                        <span v-else>Versturen...</span>
+                                    </button>
+                                    </MenuItem>
+                                    <MenuItem v-if="!serviceOrder.sent_to_administration" v-slot="{ active }">
+                                    <button type="button" @click="sendToSnelStart"
+                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
+                                        Verstuur naar SnelStart
+                                    </button>
+                                    </MenuItem>
+                                    <MenuItem v-else v-slot="{ active }">
+                                    <span
+                                        :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
+                                        naar administratie</span>
+                                    </MenuItem>
+                                </div>
+                            </MenuItems>
+                        </transition>
+                    </Menu>
+                    <span v-if="serviceOrder.sent_to_administration"
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">Verzonden
+                        administratie</span>
                     <span v-else
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">Verzonden</span>
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">Niet
+                        verzonden</span>
                 </div>
                 <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
                     <div class="col-span-2 text-xs">
@@ -38,7 +85,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                        }}, {{
+                            }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
@@ -103,8 +150,8 @@
                                 <TextInput v-model="materialsForm.quantity" type="number" placeholder="Aantal" />
                             </div>
                         </div>
-                        <button @click="attachMaterial" :disabled="serviceOrder.sent"
-                            :class="'self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-50 rounded text-sm ' + (serviceOrder.sent ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer')">
+                        <button @click="attachMaterial" :disabled="serviceOrder.sent_to_administration"
+                            :class="'self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-50 rounded text-sm ' + (serviceOrder.sent_to_administration ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer')">
                             Voeg toe
                         </button>
                     </div>
@@ -129,7 +176,7 @@
                                     <div
                                         :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancial ? 'md:col-span-2' : 'md:col-span-3')">
                                         <span class="font-bold text-xs block lg:hidden">Aantal</span>
-                                        <template v-if="!serviceOrder.sent">
+                                        <template v-if="!serviceOrder.sent_to_administration">
                                             <EditableTextField inputType="number" v-model="material.pivot.quantity"
                                                 class="w-full" @update="val => {
                                                     materialsForm.quantity = val;
@@ -150,7 +197,7 @@
                                                 Number(material.price)).toFixed(2) }}
                                     </div>
                                     <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1"
-                                        v-if="!serviceOrder.sent">
+                                        v-if="!serviceOrder.sent_to_administration">
                                         <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
                                             @click="detachMaterial(material.pivot.id)"
                                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
@@ -160,7 +207,6 @@
                         </div>
                     </div>
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Afsluiting en opmerkingen</h2>
                 <div class="flex items-center justify-between my-4 border-b-gray-200 border-b-1 pb-2">
                     <h2 class="text-lg font-medium">Afsluiting en opmerkingen</h2>
                     <button type="button" @click="showFinancial = !showFinancial"
@@ -216,8 +262,15 @@
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-gray-500">Status</span>
-                        <span v-if="serviceOrder.sent"
-                            class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden</span>
+                        <span v-if="statusState === 'both'"
+                            class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden
+                            klant & administratie</span>
+                        <span v-else-if="statusState === 'customer'"
+                            class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 border border-blue-300">Verzonden
+                            klant</span>
+                        <span v-else-if="statusState === 'administration'"
+                            class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden
+                            administratie</span>
                         <span v-else-if="serviceOrder.materials.length > 0"
                             class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 border border-amber-300">Klaar
                             om te verzenden</span>
@@ -257,13 +310,23 @@
                 </div>
                 <div class="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-2">
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
-                        class="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm w-full text-center">Exporteer
-                        PDF</a>
-                    <button v-if="!serviceOrder.sent" @click="sendToSnelStart"
+                        class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
+                        <span
+                            class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                        Exporteer PDF
+                    </a>
+                    <button @click="emailPdf"
+                        class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full font-semibold">
+                        <span
+                            class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                        E-mail PDF
+                    </button>
+                    <button v-if="!serviceOrder.sent_to_administration" @click="sendToSnelStart"
                         class="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm w-full">Verstuur
                         naar SnelStart</button>
                     <span v-else
-                        class="px-3 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300 text-center">Verzonden</span>
+                        class="px-3 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300 text-center">Verzonden
+                        administratie</span>
                 </div>
             </div>
         </template>
@@ -280,6 +343,8 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { mapsLinkFromCustomer, nlDate, nlTime } from '@/Utilities/Utilities';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { ChevronDownIcon } from '@heroicons/vue/20/solid';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
@@ -401,6 +466,20 @@ const detachMaterial = (materiableId) => {
     });
 };
 
+const emailPdf = () => {
+    if (emailing.value) return;
+    emailing.value = true;
+    form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf`, {
+        preserveScroll: true,
+        onFinish: () => { emailing.value = false; }
+    });
+};
+
+const emailing = ref(false);
+const openPdf = () => {
+    window.open(`/serviceorders/${props.serviceOrder.id}/export/pdf`, '_blank');
+};
+
 const updateMaterialQuantity = (materiableId) => {
     materialsForm.put(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
         preserveScroll: true,
@@ -412,7 +491,7 @@ const updateMaterialQuantity = (materiableId) => {
 
 const sendForm = useForm({});
 const sendToSnelStart = () => {
-    if (props.serviceOrder.sent) {
+    if (props.serviceOrder.sent_to_administration) {
         return;
     }
     sendForm.post(`/serviceorders/${props.serviceOrder.id}/send-snelstart`, {
@@ -428,6 +507,15 @@ const materialsSubtotal = computed(() => {
 });
 const materialsVat = computed(() => materialsSubtotal.value * 0.21);
 const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.value);
+
+// Combined status state for sent flags
+const statusState = computed(() => {
+    const so = props.serviceOrder;
+    if (so.sent_to_customer && so.sent_to_administration) return 'both';
+    if (so.sent_to_customer) return 'customer';
+    if (so.sent_to_administration) return 'administration';
+    return 'none';
+});
 
 const showFinancial = ref(false);
 

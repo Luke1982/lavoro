@@ -112,6 +112,28 @@
 </head>
 
 <body>
+    @php
+        // Prefer storage/app/public/logo.png (served via public/storage/logo.png symlink)
+        $logoPath = storage_path('app/public/logo.png');
+        $logoData = null;
+        if (is_file($logoPath) && filesize($logoPath) > 0) {
+            try {
+                $logoData =
+                    'data:image/' .
+                    (str_ends_with(strtolower($logoPath), '.svg') ? 'svg+xml' : 'png') .
+                    ';base64,' .
+                    base64_encode(file_get_contents($logoPath));
+            } catch (Throwable $e) {
+                // ignore, leave $logoData null
+            }
+        }
+    @endphp
+    @if ($logoData)
+        <div style="position:absolute; top:0mm; left:0mm;">
+            <img src="{{ $logoData }}" alt="Logo" style="height:20mm; width:auto;">
+        </div>
+        <div style="height:40px;"></div>
+    @endif
     <h1>WERKBON <span class="muted">{{ $serviceOrder->id }}</span></h1>
 
     <div class="hr"></div>

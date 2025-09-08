@@ -123,4 +123,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Custom logo for Markdown mail header
+    'mail_logo_url' => env('MAIL_LOGO_URL'),
+
 ];
