@@ -12,6 +12,9 @@ use App\Models\ServiceOrder;
 use App\Http\Requests\ServiceJobUpdateRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ServiceJobPdfMail;
+use Barryvdh\DomPDF\PDF as DompdfPdf;
 
 class ServiceJobController extends Controller
 {
@@ -153,6 +156,41 @@ class ServiceJobController extends Controller
      */
     public function exportPdf(ServiceJob $servicejob)
     {
+                $pdf = $this->generateServiceJobPdf($servicejob);
+                return $pdf->download('keuring-' . $servicejob->id . '.pdf');
+    }
+
+    /**
+     * Generate PDF and email it to the customer.
+     */
+    public function emailPdf(ServiceJob $servicejob)
+    {
+        $recipients = array_unique(array_filter([
+            $servicejob->asset?->customer?->email,
+            $servicejob->asset?->customer?->invoice_email,
+        ]));
+
+        if (empty($recipients)) {
+            return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
+        }
+                // Build (and load relations for) PDF
+                $pdf = $this->generateServiceJobPdf($servicejob);
+
+        Mail::to($recipients)->send(new ServiceJobPdfMail($servicejob, $pdf->output()));
+
+        // Log activity on parent service order if present
+        if ($servicejob->serviceOrder) {
+            $servicejob->serviceOrder->logActivity('Keuring per e-mail verzonden naar: ' . implode(', ', $recipients));
+        }
+
+        return redirect()->back()->with('success', 'Keuring verzonden naar: ' . implode(', ', $recipients));
+    }
+
+    /**
+     * Shared PDF generation logic for service jobs.
+     */
+    private function generateServiceJobPdf(ServiceJob $servicejob): DompdfPdf
+    {
         $servicejob->load([
             'asset.product.brand',
             'asset.product.productType.serviceCheckGroups',
@@ -161,11 +199,10 @@ class ServiceJobController extends Controller
             'checkInstances.serviceCheck.group',
             'checkInstances.serviceCheck.values',
             'checkInstances.values',
-            'serviceOrder',
+            'serviceOrder.customer',
         ]);
 
-        // Group logic similar to Vue groupedChecks computed property
-        $instances = $servicejob->checkInstances; // already ordered by query scope in model
+        $instances = $servicejob->checkInstances; // ordered
         $ptGroups = collect($servicejob->asset?->product?->productType?->serviceCheckGroups ?? [])
             ->map(fn($g) => [
                 'id' => $g->id,
@@ -173,14 +210,12 @@ class ServiceJobController extends Controller
                 'order' => $g->order ?? PHP_INT_MAX,
                 'items' => [],
             ])->keyBy('id');
-
         $other = [
             'key' => 'other',
             'name' => 'Overige keurpunten',
             'order' => PHP_INT_MAX,
             'items' => [],
         ];
-
         foreach ($instances as $ci) {
             $gid = $ci->serviceCheck?->group?->id;
             if ($gid && $ptGroups->has($gid)) {
@@ -191,7 +226,6 @@ class ServiceJobController extends Controller
                 $other['items'][] = $ci;
             }
         }
-
         $groups = $ptGroups->filter(fn($g) => count($g['items']) > 0)
             ->sortBy('order')
             ->values()
@@ -200,14 +234,11 @@ class ServiceJobController extends Controller
             $groups[] = $other;
         }
 
-                $pdf = Pdf::loadView('pdf.servicejob', [
-                    'serviceJob' => $servicejob,
-                    'groups' => $groups,
-                ])->setPaper('a4');
-
-                // Force Helvetica as default font to avoid serif fallback
-                $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
-
-        return $pdf->download('keuring-' . $servicejob->id . '.pdf');
+        $pdf = Pdf::loadView('pdf.servicejob', [
+            'serviceJob' => $servicejob,
+            'groups' => $groups,
+        ])->setPaper('a4');
+        $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
+        return $pdf;
     }
 }

@@ -4,10 +4,17 @@
             <h1 class="text-2xl font-bold text-center flex-1">
                 Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
             </h1>
-            <button @click="openPdf"
-                class="ml-4 px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">
-                PDF Export
-            </button>
+            <div class="flex gap-2 ml-4">
+                <button @click="openPdf"
+                    class="px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">
+                    PDF Export
+                </button>
+                <button @click="emailPdf" :disabled="emailing"
+                    class="px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 disabled:bg-gray-500">
+                    <span v-if="!emailing">Mail PDF</span>
+                    <span v-else>Versturen...</span>
+                </button>
+            </div>
         </div>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
             <div class="col-span-4 md:col-span-2 text-xs">
@@ -97,10 +104,21 @@
                     placeholder="Eventuele opmerkingen over de keuring..."
                     :disabled="servicejob.completed_on !== null"></textarea>
             </div>
-            <Link :href="`/serviceorders/${servicejob.service_order.id}`"
-                class="block w-full text-white text-center py-4 bg-blue-500 hover:bg-blue-600 transition-colors rounded-md mt-4">
-            Terug naar de werkbon
-            </Link>
+            <div class="mt-4 flex flex-col md:flex-row gap-2">
+                <Link :href="`/serviceorders/${servicejob.service_order.id}`"
+                    class="flex-1 text-white text-center py-4 bg-blue-500 hover:bg-blue-600 transition-colors rounded-md">
+                    Terug naar de werkbon
+                </Link>
+                <button @click="openPdf"
+                    class="py-4 px-4 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">
+                    PDF Export
+                </button>
+                <button @click="emailPdf" :disabled="emailing"
+                    class="py-4 px-4 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 disabled:bg-gray-500">
+                    <span v-if="!emailing">Mail PDF</span>
+                    <span v-else>Versturen...</span>
+                </button>
+            </div>
         </div>
     </BoxComponent>
 </template>
@@ -132,6 +150,7 @@ const { servicejob, possibleOutcomes } = defineProps({
 });
 
 const updating = ref(false);
+const emailing = ref(false);
 
 const form = useForm({
     outcome: '',
@@ -170,6 +189,16 @@ const clearCompletedOn = () => {
 
 const openPdf = () => {
     window.open(`/servicejobs/${servicejob.id}/export/pdf`, '_blank');
+};
+
+// Separate form for emailing PDF
+const mailForm = useForm({});
+const emailPdf = () => {
+    emailing.value = true;
+    mailForm.post(`/servicejobs/${servicejob.id}/email-pdf`, {
+        preserveScroll: true,
+        onFinish: () => { emailing.value = false; }
+    });
 };
 
 // Group the service checks by Product Type groups; checks in groups not attached to
