@@ -36,6 +36,9 @@ return [
     */
 
     'mailers' => [
+        'graph' => [
+            'transport' => 'graph',
+        ],
 
         'smtp' => [
             'transport' => 'smtp',

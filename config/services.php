@@ -18,6 +18,14 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    'graph' => [
+        'tenant_id' => env('GRAPH_TENANT_ID'),
+        'client_id' => env('GRAPH_CLIENT_ID'),
+        'client_secret' => env('GRAPH_CLIENT_SECRET'),
+        'user_id' => env('GRAPH_USER_ID'), // optional override (UPN or GUID)
+        'endpoint' => env('GRAPH_ENDPOINT', 'https://graph.microsoft.com/v1.0'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_KEY'),
     ],
