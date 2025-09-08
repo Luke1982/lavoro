@@ -10,6 +10,8 @@ use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Models\ServiceOrder;
 use App\Http\Requests\ServiceJobUpdateRequest;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 class ServiceJobController extends Controller
 {
@@ -144,5 +146,68 @@ class ServiceJobController extends Controller
     {
         $servicejob->delete();
         return redirect()->back()->with('success', 'Keuring succesvol verwijderd.');
+    }
+
+    /**
+     * Export a PDF representation of the service job checklist.
+     */
+    public function exportPdf(ServiceJob $servicejob)
+    {
+        $servicejob->load([
+            'asset.product.brand',
+            'asset.product.productType.serviceCheckGroups',
+            'asset.product.productType.serviceChecks',
+            'asset.customer',
+            'checkInstances.serviceCheck.group',
+            'checkInstances.serviceCheck.values',
+            'checkInstances.values',
+            'serviceOrder',
+        ]);
+
+        // Group logic similar to Vue groupedChecks computed property
+        $instances = $servicejob->checkInstances; // already ordered by query scope in model
+        $ptGroups = collect($servicejob->asset?->product?->productType?->serviceCheckGroups ?? [])
+            ->map(fn($g) => [
+                'id' => $g->id,
+                'name' => $g->name,
+                'order' => $g->order ?? PHP_INT_MAX,
+                'items' => [],
+            ])->keyBy('id');
+
+        $other = [
+            'key' => 'other',
+            'name' => 'Overige keurpunten',
+            'order' => PHP_INT_MAX,
+            'items' => [],
+        ];
+
+        foreach ($instances as $ci) {
+            $gid = $ci->serviceCheck?->group?->id;
+            if ($gid && $ptGroups->has($gid)) {
+                $group = $ptGroups->get($gid);
+                $group['items'][] = $ci;
+                $ptGroups->put($gid, $group);
+            } else {
+                $other['items'][] = $ci;
+            }
+        }
+
+        $groups = $ptGroups->filter(fn($g) => count($g['items']) > 0)
+            ->sortBy('order')
+            ->values()
+            ->all();
+        if (count($other['items']) > 0) {
+            $groups[] = $other;
+        }
+
+                $pdf = Pdf::loadView('pdf.servicejob', [
+                    'serviceJob' => $servicejob,
+                    'groups' => $groups,
+                ])->setPaper('a4');
+
+                // Force Helvetica as default font to avoid serif fallback
+                $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
+
+        return $pdf->download('keuring-' . $servicejob->id . '.pdf');
     }
 }

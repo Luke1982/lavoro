@@ -1,8 +1,14 @@
 <template>
     <BoxComponent>
-        <h1 class="text-2xl font-bold mb-4 text-center">
-            Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
-        </h1>
+        <div class="flex items-start justify-between mb-4">
+            <h1 class="text-2xl font-bold text-center flex-1">
+                Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
+            </h1>
+            <button @click="openPdf"
+                class="ml-4 px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">
+                PDF Export
+            </button>
+        </div>
         <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
             <div class="col-span-4 md:col-span-2 text-xs">
                 Naam klant
@@ -160,6 +166,10 @@ const clearCompletedOn = () => {
             form.completed_on = null;
         },
     });
+};
+
+const openPdf = () => {
+    window.open(`/servicejobs/${servicejob.id}/export/pdf`, '_blank');
 };
 
 // Group the service checks by Product Type groups; checks in groups not attached to

@@ -77,6 +77,8 @@ Route::group(
             [ServiceOrderController::class, 'updateMateriable']
         )->name('serviceorders.updateMateriable');
         Route::resource('servicejobs', ServiceJobController::class);
+        Route::get('servicejobs/{servicejob}/export/pdf', [ServiceJobController::class, 'exportPdf'])
+            ->name('servicejobs.exportPdf');
         Route::post('servicejobs/{servicejob}/clearcompletedon', [ServiceJobController::class, 'clearCompletedOn'])
             ->name('servicejobs.clearCompletedOn');
         Route::resource('images', ImageController::class)->except(['update']);
