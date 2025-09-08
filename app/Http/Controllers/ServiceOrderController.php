@@ -164,6 +164,9 @@ class ServiceOrderController extends Controller
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
         $serviceorder->load(['customer', 'materials']);
+        if ($serviceorder->materials->isEmpty()) {
+            return redirect()->back()->with('error', 'Geen materialen gekoppeld aan deze werkbon.');
+        }
 
         $customer = $serviceorder->customer;
         if (!$customer || !$customer->snelstart_id) {

@@ -88,15 +88,15 @@
                                             <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                                             <ul role="list" class="-mx-2 mt-2 space-y-1">
                                                 <li v-for="list in lists" :key="list.name">
-                                                    <a :href="list.href" @click="sidebarOpen = false" :class="[
+                                                    <Link :href="list.href" @click="sidebarOpen = false" :class="[
                                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                     ]">
-                                                        <span
-                                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                                list.initial }}</span>
-                                                        <span>{{ list.name }}</span>
-                                                    </a>
+                                                    <span
+                                                        class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
+                                                            list.initial }}</span>
+                                                    <span>{{ list.name }}</span>
+                                                    </Link>
                                                 </li>
                                             </ul>
                                         </li>
@@ -171,15 +171,15 @@
                             <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                             <ul role="list" class="-mx-2 mt-2 space-y-1">
                                 <li v-for="list in lists" :key="list.name">
-                                    <a :href="list.href" :class="[
+                                    <Link :href="list.href" @click="sidebarOpen = false" :class="[
                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                     ]">
-                                        <span
-                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                list.initial }}</span>
-                                        <span>{{ list.name }}</span>
-                                    </a>
+                                    <span
+                                        class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
+                                            list.initial }}</span>
+                                    <span>{{ list.name }}</span>
+                                    </Link>
                                 </li>
                             </ul>
                         </li>

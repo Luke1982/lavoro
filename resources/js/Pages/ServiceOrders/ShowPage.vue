@@ -8,7 +8,7 @@
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`"
                         class="ml-4 inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
                         target="_blank" rel="noopener">
@@ -38,7 +38,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                            }}, {{
+                        }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
@@ -218,9 +218,12 @@
                         <span class="text-gray-500">Status</span>
                         <span v-if="serviceOrder.sent"
                             class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden</span>
-                        <span v-else
+                        <span v-else-if="serviceOrder.materials.length > 0"
                             class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 border border-amber-300">Klaar
-                            om te bewaren</span>
+                            om te verzenden</span>
+                        <span v-else
+                            class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700 border border-gray-300">In
+                            bewerking</span>
                     </div>
                 </div>
                 <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="showFinancial">
