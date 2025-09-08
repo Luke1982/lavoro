@@ -12,16 +12,62 @@
             padding: 0;
             background: #f4f6f8;
         }
-        .wrapper { width: 100%; padding: 24px 0; }
-        .container { max-width: 570px; margin: 0 auto; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.05); padding:24px; }
-        h1 { font-size: 18px; margin:0 0 20px; color:#1a202c; }
-        p { line-height:1.55; font-size:14px; color:#374151; margin:0 0 16px; }
-        .meta strong { color:#2d3748; }
-        .footer { text-align:center; font-size:12px; color:#a0aec0; margin-top:28px; padding:24px 0 0; }
-        .logo { text-align:center; margin-bottom:24px; }
-        .logo img { max-height:56px; }
-        .label { font-weight:600; }
-        .desc { white-space:pre-line; }
+
+        .wrapper {
+            width: 100%;
+            padding: 24px 0;
+        }
+
+        .container {
+            max-width: 570px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 20px;
+            color: #1a202c;
+        }
+
+        p {
+            line-height: 1.55;
+            font-size: 14px;
+            color: #374151;
+            margin: 0 0 16px;
+        }
+
+        .meta strong {
+            color: #2d3748;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 28px;
+            padding: 24px 0 0;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo img {
+            max-height: 56px;
+        }
+
+        .label {
+            font-weight: 600;
+        }
+
+        .desc {
+            white-space: pre-line;
+        }
     </style>
 </head>
 
@@ -29,13 +75,13 @@
     <div class="wrapper">
         <div class="logo">
             @php($logo = config('app.mail_logo_url'))
-            @if(!$logo)
+            @if (!$logo)
                 @php($publicStorageLogo = public_path('storage/logo.png'))
-                @if(file_exists($publicStorageLogo))
+                @if (file_exists($publicStorageLogo))
                     @php($logo = asset('storage/logo.png'))
                 @endif
             @endif
-            @if($logo)
+            @if ($logo)
                 <img src="{{ $logo }}" alt="{{ config('app.name') }}">
             @else
                 <span style="font-size:20px;font-weight:600;color:#2d3748;">{{ config('app.name') }}</span>
@@ -48,7 +94,8 @@
             <p class="meta">
                 <span class="label">Datum:</span> {{ optional($serviceJob->created_at)->format('d-m-Y') }}<br>
                 <span class="label">Klant:</span> {{ $serviceJob->asset->customer->name }}<br>
-                <span class="label">Asset:</span> {{ $serviceJob->asset->product->brand->name ?? '' }} {{ $serviceJob->asset->product->model ?? '' }} (SN: {{ $serviceJob->asset->serial_number ?? '-' }})
+                <span class="label">Asset:</span> {{ $serviceJob->asset->product->brand->name ?? '' }}
+                {{ $serviceJob->asset->product->model ?? '' }} (SN: {{ $serviceJob->asset->serial_number ?? '-' }})
             </p>
             @php($desc = trim((string) ($serviceJob->description ?? '')))
             <p><span class="label">Opmerkingen:</span><br>

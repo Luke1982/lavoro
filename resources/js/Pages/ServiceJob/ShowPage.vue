@@ -107,7 +107,7 @@
             <div class="mt-4 flex flex-col md:flex-row gap-2">
                 <Link :href="`/serviceorders/${servicejob.service_order.id}`"
                     class="flex-1 text-white text-center py-4 bg-blue-500 hover:bg-blue-600 transition-colors rounded-md">
-                    Terug naar de werkbon
+                Terug naar de werkbon
                 </Link>
                 <button @click="openPdf"
                     class="py-4 px-4 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">
