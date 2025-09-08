@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\RemarkableTrait;
 
 class ServiceCheckInstance extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceCheckInstanceFactory> */
     use HasFactory;
+    use RemarkableTrait;
 
     /**
      * The attributes that are mass assignable.

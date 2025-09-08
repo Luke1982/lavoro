@@ -250,13 +250,25 @@
     // number/text already stored as result
     $remark = '';
 }
+// If there are attached remarks, they take precedence and are shown as list
+$instanceRemarks = $ci->remarks ?? collect();
+if ($instanceRemarks->count() > 0) {
+    $items = $instanceRemarks
+        ->map(function ($r) {
+            return '<li>' . nl2br(e($r->content)) . '</li>';
+        })
+        ->implode('');
+    $remark = '<ul style="margin:0;padding-left:14px;">' . $items . '</ul>';
+}
 $result = $result ?: '—';
-$remark = $remark === null || $remark === '' ? '—' : $remark;
+if ($remark === null || $remark === '') {
+    $remark = '—';
+                        }
                     @endphp
                     <tr>
                         <td>{{ $check?->name }}</td>
                         <td>{{ $result }}</td>
-                        <td>{{ $remark }}</td>
+                        <td>{!! $remark !!}</td>
                     </tr>
                 @endforeach
             </tbody>

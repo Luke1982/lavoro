@@ -68,6 +68,7 @@ class ServiceJobController extends Controller
                 'checkInstances.serviceCheck.values',
                 'checkInstances.serviceCheck.group',
                 'checkInstances.values',
+                'checkInstances.remarks.user',
                 'asset.product.brand',
                 'asset.customer',
                 'serviceOrder',
@@ -199,6 +200,7 @@ class ServiceJobController extends Controller
             'checkInstances.serviceCheck.group',
             'checkInstances.serviceCheck.values',
             'checkInstances.values',
+            'checkInstances.remarks.user',
             'serviceOrder.customer',
         ]);
 
