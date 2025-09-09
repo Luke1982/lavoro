@@ -6,7 +6,7 @@
     <title>Werkbon {{ $serviceOrder->id }}</title>
     <style>
         @page {
-            margin: 16mm 18mm;
+            margin: 16mm 18mm 18mm 18mm;
         }
 
         body {
@@ -85,16 +85,18 @@
 
         .footer {
             position: fixed;
-            left: 18mm;
-            right: 18mm;
-            bottom: 12mm;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 0 18mm 4mm 18mm;
             font-size: 10px;
             color: #666;
+            text-align: center;
         }
 
         .sign {
             margin-top: 30mm;
-            margin-bottom: 20mm;
+            margin-bottom: 8mm;
         }
 
         .columns {
@@ -112,31 +114,19 @@
 </head>
 
 <body>
-    @php
-        // Prefer storage/app/public/logo.png (served via public/storage/logo.png symlink)
-        $logoPath = storage_path('app/public/logo.png');
-        $logoData = null;
-        if (is_file($logoPath) && filesize($logoPath) > 0) {
-            try {
-                $logoData =
-                    'data:image/' .
-                    (str_ends_with(strtolower($logoPath), '.svg') ? 'svg+xml' : 'png') .
-                    ';base64,' .
-                    base64_encode(file_get_contents($logoPath));
-            } catch (Throwable $e) {
-                // ignore, leave $logoData null
-            }
-        }
-    @endphp
-    @if ($logoData)
-        <div style="position:absolute; top:0mm; left:0mm;">
-            <img src="{{ $logoData }}" alt="Logo" style="height:20mm; width:auto;">
-        </div>
-        <div style="height:40px;"></div>
-    @endif
-    <h1>WERKBON <span class="muted">{{ $serviceOrder->id }}</span></h1>
-
-    <div class="hr"></div>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:6px;">
+        <tr>
+            <td style="width:35%; vertical-align:middle;">
+                @if(($logo['data'] ?? null))
+                    <img src="{{ $logo['data'] }}" alt="Logo" style="{{ $logo['style'] }}" />
+                @endif
+            </td>
+            <td style="text-align:center; vertical-align:middle;">
+                <h1 style="margin:0;">WERKBON <span class="muted">{{ $serviceOrder->id }}</span></h1>
+            </td>
+        </tr>
+    </table>
+    <div class="hr" style="margin-top:4px;"></div>
 
     <h2>Ordergegevens</h2>
     <table class="columns">
@@ -187,7 +177,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($serviceOrder->tickets as $ticket)
+            @forelse(($tickets ?? []) as $ticket)
                 <tr>
                     <td>{{ trim((optional($ticket->asset->product->brand)->name ?? '') . ' ' . ($ticket->asset->product->model ?? '')) ?: '—' }}
                     </td>
@@ -203,14 +193,11 @@
         </tbody>
     </table>
 
-    @php
-        $__desc = trim((string) ($serviceOrder->description ?? ''));
-    @endphp
-    @if ($__desc !== '')
+    @if (($descriptionText ?? '') !== '')
         <div class="hr"></div>
         <h2>Uitgevoerde werkzaamheden</h2>
         <div class="section small">
-            {!! nl2br(e($__desc)) !!}
+            {!! nl2br(e($descriptionText)) !!}
         </div>
     @endif
 
@@ -226,7 +213,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($serviceOrder->serviceJobs as $job)
+            @forelse(($jobs ?? []) as $job)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ trim((optional($job->asset->product->brand)->name ?? '') . ' ' . ($job->asset->product->model ?? '')) ?: '—' }}
@@ -271,7 +258,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($serviceOrder->materials as $material)
+            @forelse(($materialsList ?? []) as $material)
                 <tr>
                     <td>{{ $material->pivot->quantity }}</td>
                     <td>{{ $material->name }}</td>
@@ -316,10 +303,7 @@
         </table>
     </div>
 
-    <div class="footer">
-        Op al onze offertes, opdrachten en overeenkomsten zijn onze algemene voorwaarden van toepassing. De algemene
-        voorwaarden worden u op verzoek toegezonden.
-    </div>
+    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if($company?->address_line2) {{ $company?->address_line2 }} @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} | Op al onze offertes, opdrachten en overeenkomsten zijn onze algemene voorwaarden van toepassing. De algemene voorwaarden worden u op verzoek toegezonden.</div>
 </body>
 
 </html>

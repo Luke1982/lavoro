@@ -94,20 +94,31 @@
         .remark-col {
             width: 35%;
         }
+        .footer {
+            position: fixed;
+            left: 14mm;
+            right: 14mm;
+            bottom: 10mm;
+            font-size: 9px;
+            color: #555;
+            text-align: center;
+        }
     </style>
 </head>
 
 <body>
-    @php
-        use Illuminate\Support\Str;
-        $asset = $serviceJob->asset;
-        $product = $asset?->product;
-        $pt = $product?->productType;
-        $customer = $asset?->customer;
-        $ptName = trim((string) ($pt->name ?? 'installatie'));
-        $ptNameLower = Str::lower($ptName);
-    @endphp
-    <h1>Checklist periodieke inspectie / keuring {{ $pt?->name }}</h1>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:6px;">
+        <tr>
+            <td style="width:35%; vertical-align:middle;">
+                @if($logo['data'] ?? null)
+                    <img src="{{ $logo['data'] }}" alt="Logo" style="{{ $logo['style'] }}" />
+                @endif
+            </td>
+            <td style="text-align:center; vertical-align:middle;">
+                <h1 style="margin:0;">Checklist periodieke inspectie / keuring {{ $ptName }}</h1>
+            </td>
+        </tr>
+    </table>
 
     <table class="small" style="margin-bottom:12px;">
         <tr>
@@ -149,64 +160,49 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($group['items'] as $ci)
+                @foreach ($group['items'] as $item)
                     @php
-                        $check = $ci->serviceCheck;
-                        $values = $ci->values; // collection
-                        $type = $check?->type;
+                        $type = $item['type'];
+                        $descRaw = trim((string) ($item['description'] ?? ''));
+                        $values = $item['values'];
                         $result = null;
                         if ($type === 'radio') {
-                            // For radio checks: description may store a boolean-like numeric or text (1/0/ja/nee)
-                            $rawDesc = trim((string) $ci->description);
-                            $recognizedBoolean = false;
-                            if ($rawDesc === '' || $rawDesc === '0') {
-                                // Explicit rule: empty or zero means Nee
+                            if ($descRaw === '' || $descRaw === '0') {
                                 $result = 'Nee';
-                                $recognizedBoolean = true;
-                            } elseif ($rawDesc !== '') {
-                                $lower = Str::lower($rawDesc);
+                            } elseif ($descRaw !== '') {
+                                $lower = strtolower($descRaw);
                                 if (in_array($lower, ['1', 'ja', 'yes', 'true', 'ok', 'y'])) {
                                     $result = 'Ja';
-                                    $recognizedBoolean = true;
                                 } elseif (in_array($lower, ['0', 'nee', 'no', 'false', 'nok', 'n'])) {
                                     $result = 'Nee';
-                                    $recognizedBoolean = true;
-                                }
-                                if (!$recognizedBoolean) {
-                                    // Not a recognizable boolean: treat description itself as result
-                                    $result = $rawDesc;
+                                } else {
+                                    $result = $descRaw;
                                 }
                             }
-                            // If still no result and values exist, fallback to first selected value
-                            if (!$recognizedBoolean && !$result) {
-                                $result = optional($values->first())->value;
+                            if (!$result && count($values) > 0) {
+                                $result = $values[0];
                             }
                         } elseif ($type === 'checkgroup') {
-                            $result = $values->pluck('value')->implode(', ');
+                            $result = implode(', ', $values);
                         } elseif ($type === 'boolean') {
-                            // Boolean uses description (1/0/ja/nee) not values; empty or zero => Nee
-                            $rawOriginal = (string) $ci->description;
-                            $raw = Str::lower(trim($rawOriginal));
-                            if ($raw === '' || $raw === '0') {
+                            $lower = strtolower($descRaw);
+                            if ($lower === '' || $lower === '0') {
                                 $result = 'Nee';
-                            } elseif (in_array($raw, ['1', 'ja', 'yes', 'true', 'ok', 'y'])) {
+                            } elseif (in_array($lower, ['1', 'ja', 'yes', 'true', 'ok', 'y'])) {
                                 $result = 'Ja';
-                            } elseif (in_array($raw, ['nee', 'no', 'false', 'nok', 'n'])) {
+                            } elseif (in_array($lower, ['nee', 'no', 'false', 'nok', 'n'])) {
                                 $result = 'Nee';
-                            } elseif ($raw !== '') {
-                                $result = $rawOriginal; // some custom text
+                            } elseif ($lower !== '') {
+                                $result = $descRaw;
                             }
                         } elseif (in_array($type, ['number', 'text'])) {
-                            $result = $ci->description;
+                            $result = $descRaw;
                         } else {
-                            // fallback: any selected values else description
-                            $result = $values->pluck('value')->implode(', ') ?: $ci->description;
+                            $result = implode(', ', $values) ?: $descRaw;
                         }
-                        // Build remark separate from result. For radio where we recognized boolean, we suppress numeric/raw remark.
                         $remark = null;
                         if ($type === 'radio') {
-                            $rawDesc = trim((string) $ci->description);
-                            $lower = Str::lower($rawDesc);
+                            $lower = strtolower($descRaw);
                             $isBool = in_array($lower, [
                                 '1',
                                 '0',
@@ -221,52 +217,45 @@
                                 'y',
                                 'n',
                             ]);
-                            if ($rawDesc !== '' && !$isBool) {
-                                $remark = $rawDesc; // only show if it's not the pure boolean token
-    }
-} elseif ($type === 'checkgroup' && $ci->description) {
-    $remark = $ci->description;
-} elseif ($type === 'boolean') {
-    // For boolean, only show remark if description is NOT a pure boolean token
-    $raw = Str::lower(trim((string) $ci->description));
-    $isBool = in_array($raw, [
-        '1',
-        '0',
-        'ja',
-        'nee',
-        'yes',
-        'no',
-        'true',
-        'false',
-        'ok',
-        'nok',
-        'y',
-        'n',
-    ]);
-    if ($raw !== '' && !$isBool) {
-        $remark = $ci->description;
-    }
-} elseif (in_array($type, ['number', 'text'])) {
-    // number/text already stored as result
-    $remark = '';
-}
-// If there are attached remarks, they take precedence and are shown as list
-$instanceRemarks = $ci->remarks ?? collect();
-if ($instanceRemarks->count() > 0) {
-    $items = $instanceRemarks
-        ->map(function ($r) {
-            return '<li>' . nl2br(e($r->content)) . '</li>';
-        })
-        ->implode('');
-    $remark = '<ul style="margin:0;padding-left:14px;">' . $items . '</ul>';
-}
-$result = $result ?: '—';
-if ($remark === null || $remark === '') {
-    $remark = '—';
+                            if ($descRaw !== '' && !$isBool && $descRaw !== $result) {
+                                $remark = $descRaw;
+                            }
+                        } elseif ($type === 'checkgroup' && $descRaw !== '') {
+                            $remark = $descRaw;
+                        } elseif ($type === 'boolean') {
+                            $lower = strtolower($descRaw);
+                            $isBool = in_array($lower, [
+                                '1',
+                                '0',
+                                'ja',
+                                'nee',
+                                'yes',
+                                'no',
+                                'true',
+                                'false',
+                                'ok',
+                                'nok',
+                                'y',
+                                'n',
+                            ]);
+                            if ($descRaw !== '' && !$isBool && $descRaw !== $result) {
+                                $remark = $descRaw;
+                            }
+                        }
+                        $attached = $item['remarks'];
+                        if (count($attached) > 0) {
+                            $remark =
+                                '<ul style="margin:0;padding-left:14px;">' .
+                                collect($attached)->map(fn($r) => '<li>' . nl2br(e($r)) . '</li>')->implode('') .
+                                '</ul>';
+                        }
+                        $result = $result ?: '—';
+                        if ($remark === null || $remark === '') {
+                            $remark = '—';
                         }
                     @endphp
                     <tr>
-                        <td>{{ $check?->name }}</td>
+                        <td>{{ $item['check_name'] }}</td>
                         <td>{{ $result }}</td>
                         <td>{!! $remark !!}</td>
                     </tr>
@@ -275,21 +264,7 @@ if ($remark === null || $remark === '') {
         </table>
     @endforeach
 
-    @php $remarksText = trim((string) $serviceJob->description); @endphp
-
-    @php
-        $outcome = $serviceJob->outcome; // string e.g. Goedkeur / Afkeur / etc.
-        $tmpDays = $serviceJob->days_temporary_approval;
-        $tmpUntil = null;
-        if ($outcome === \App\Enums\ServiceJobOutcomes::tijdelijk_goedkeur->value && $tmpDays) {
-            $tmpUntil = optional($serviceJob->created_at)->copy()->addDays($tmpDays)->format('d-m-Y');
-        }
-        $isApproved = $outcome === \App\Enums\ServiceJobOutcomes::goedkeur->value;
-        $isTempApproved = $outcome === \App\Enums\ServiceJobOutcomes::tijdelijk_goedkeur->value;
-        $isRejected = $outcome === \App\Enums\ServiceJobOutcomes::afkeur->value;
-        $isRepair = $outcome === \App\Enums\ServiceJobOutcomes::reparatie->value;
-    @endphp
-
+    {{-- remarks/outcome data supplied by controller --}}
     <h2>{{ count($groups) + 2 . '. ' }}Resultaat & Verklaring</h2>
     <table class="small" style="margin-bottom:14px;">
         <tr>
@@ -333,8 +308,7 @@ if ($remark === null || $remark === '') {
         </tr>
     </table>
 
-    <div class="foot">Gegenereerd op {{ now()->format('d-m-Y H:i') }} | Asset ID {{ $asset?->id }} | Keuring
-        #{{ $serviceJob->id }}</div>
+    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if($company?->address_line2) {{ $company?->address_line2 }} @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} | Gegenereerd op {{ now()->format('d-m-Y H:i') }} | Asset ID {{ $asset?->id }} | Keuring #{{ $serviceJob->id }}</div>
 </body>
 
 </html>

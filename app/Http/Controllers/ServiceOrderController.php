@@ -14,6 +14,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\SnelStartClient;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ServiceOrderPdfMail;
+use App\Models\Company;
+use Barryvdh\DomPDF\PDF as DompdfPdf;
 
 class ServiceOrderController extends Controller
 {
@@ -131,19 +133,7 @@ class ServiceOrderController extends Controller
      */
     public function exportPdf(ServiceOrder $serviceorder)
     {
-        $serviceorder->load([
-            'customer',
-            'serviceJobs.asset.product.brand',
-            'serviceJobs.asset.product.productType',
-            'tickets.asset.product.brand',
-            'tickets.asset.product.productType',
-            'materials',
-        ]);
-
-        $pdf = Pdf::loadView('pdf.serviceorder', [
-            'serviceOrder' => $serviceorder,
-        ])->setPaper('a4');
-
+        $pdf = $this->generateServiceOrderPdf($serviceorder);
         return $pdf->download('werkbon-' . $serviceorder->id . '.pdf');
     }
 
@@ -152,15 +142,7 @@ class ServiceOrderController extends Controller
      */
     public function emailPdf(ServiceOrder $serviceorder)
     {
-        $serviceorder->load([
-            'customer',
-            'serviceJobs.asset.product.brand',
-            'serviceJobs.asset.product.productType',
-            'tickets.asset.product.brand',
-            'tickets.asset.product.productType',
-            'materials',
-        ]);
-        // Determine one or more recipient addresses (primary + optional invoice address)
+        $serviceorder->load(['customer']);
         $recipients = array_unique(array_filter([
             $serviceorder->customer?->email,
             $serviceorder->customer?->invoice_email,
@@ -169,9 +151,7 @@ class ServiceOrderController extends Controller
             return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
         }
 
-        $pdf = Pdf::loadView('pdf.serviceorder', [
-            'serviceOrder' => $serviceorder,
-        ])->setPaper('a4');
+        $pdf = $this->generateServiceOrderPdf($serviceorder);
 
         Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
 
@@ -375,6 +355,32 @@ class ServiceOrderController extends Controller
             ));
         }
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
+    }
+
+    private function generateServiceOrderPdf(ServiceOrder $serviceorder): DompdfPdf
+    {
+        $serviceorder->load([
+            'customer',
+            'serviceJobs.asset.product.brand',
+            'serviceJobs.asset.product.productType',
+            'tickets.asset.product.brand',
+            'tickets.asset.product.productType',
+            'materials',
+        ]);
+        $company = Company::where('is_main', true)->first();
+        $logo = Company::pdfLogo($company);
+        $description_text = trim((string) ($serviceorder->description ?? ''));
+        $pdf = Pdf::loadView('pdf.serviceorder', [
+            'serviceOrder' => $serviceorder,
+            'logo' => $logo,
+            'descriptionText' => $description_text,
+            'tickets' => $serviceorder->tickets,
+            'jobs' => $serviceorder->serviceJobs,
+            'materialsList' => $serviceorder->materials,
+            'company' => $company,
+        ])->setPaper('a4');
+        $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
+        return $pdf;
     }
 
     /**

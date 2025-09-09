@@ -15,6 +15,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ServiceJobPdfMail;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
+use App\Models\Company;
+use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 
 class ServiceJobController extends Controller
 {
@@ -236,9 +238,54 @@ class ServiceJobController extends Controller
             $groups[] = $other;
         }
 
+        $asset = $servicejob->asset;
+        $product = $asset?->product;
+        $customer = $asset?->customer;
+        $pt_name = trim((string) ($product?->productType?->name ?? 'installatie'));
+        $pt_name_lower = Str::lower($pt_name);
+
+        $raw_groups = array_map(function ($g) {
+            $g['items'] = array_map(function ($ci) {
+                $check = $ci->serviceCheck;
+                return [
+                    'check_name' => $check?->name,
+                    'type' => $check?->type,
+                    'description' => $ci->description,
+                    'values' => $ci->values?->pluck('value')->all() ?? [],
+                    'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
+                ];
+            }, $g['items']);
+            return $g;
+        }, $groups);
+
+        $remarks_text = trim((string) $servicejob->description);
+        $outcome = $servicejob->outcome;
+        $tmp_days = $servicejob->days_temporary_approval;
+        $tmp_until = null;
+        if ($outcome === ServiceJobOutcomeEnum::tijdelijk_goedkeur->value && $tmp_days) {
+            $tmp_until = optional($servicejob->created_at)->copy()->addDays($tmp_days)->format('d-m-Y');
+        }
+        $is_temp_approved = $outcome === ServiceJobOutcomeEnum::tijdelijk_goedkeur->value;
+        $is_repair = $outcome === ServiceJobOutcomeEnum::reparatie->value;
+        $main_company = Company::where('is_main', true)->first();
+        $logo = Company::pdfLogo($main_company);
+
         $pdf = Pdf::loadView('pdf.servicejob', [
             'serviceJob' => $servicejob,
-            'groups' => $groups,
+            'asset' => $asset,
+            'product' => $product,
+            'customer' => $customer,
+            'ptName' => $pt_name,
+            'ptNameLower' => $pt_name_lower,
+            'groups' => $raw_groups,
+            'remarksText' => $remarks_text,
+            'outcome' => $outcome,
+            'tmpDays' => $tmp_days,
+            'tmpUntil' => $tmp_until,
+            'isTempApproved' => $is_temp_approved,
+            'isRepair' => $is_repair,
+            'logo' => $logo,
+            'company' => $main_company,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
         return $pdf;
