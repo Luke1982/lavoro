@@ -12,60 +12,51 @@
         <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
             add-button-label="Nieuwe klant" submit-label="Opslaan" />
     </div>
-    <ul role="list" class="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3 xl:gap-x-8">
-        <li v-for="customer in customers" :key="customer.id"
-            class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <Link :href="`/customers/${customer.id}`" class="flex items-center gap-x-4 border-b border-gray-900/5 p-6">
-            <BuildingOfficeIcon
-                class="size-12 flex-none rounded-lg bg-white object-cover ring-1 ring-gray-900/10 p-2" />
-            <div class="flex flex-col">
-                <h3 class="text-sm/6 font-medium text-gray-900">{{
-                    customer.name
-                    }}
-                </h3>
-                <span class="text-gray-500 text-xs">{{ customer.city }}</span>
-            </div>
-            </Link>
-            <dl class="-my-3 divide-y divide-gray-100 px-6 py-4 text-sm/6">
-                <div class="flex justify-between gap-x-4 py-3">
-                    <dt class="text-gray-500">Adres</dt>
-                    <dd class="flex items-start gap-x-2">
-                        <a :href="mapsLinkFromCustomer(customer)" class="font-medium text-blue-600 underline"
-                            target="_blank">{{ customer.address }}, {{
-                                customer.postal_code }}</a>
-                    </dd>
+    <div class="bg-white ring-1 ring-gray-200 sm:rounded-lg overflow-hidden">
+        <ul role="list" class="divide-y divide-gray-100">
+            <li v-for="customer in customers" :key="customer.id">
+                <Link :href="`/customers/${customer.id}`"
+                    class="group grid w-full grid-cols-[minmax(0,1fr)_180px_20px] items-center gap-x-6 px-4 py-5 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
+                <!-- Left section: avatar + name/email -->
+                <div class="flex min-w-0 gap-x-4">
+                    <span
+                        class="size-12 flex-none rounded-full bg-gray-200 ring-1 ring-gray-300 flex items-center justify-center text-sm font-medium text-gray-600 select-none">
+                        {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
+                    </span>
+                    <div class="min-w-0 flex-auto">
+                        <p class="text-sm font-semibold leading-6 text-gray-900 group-hover:underline">{{ customer.name
+                            }}
+                        </p>
+                        <p class="mt-1 truncate text-xs leading-5 text-gray-500">
+                            {{ customer.email || 'Geen e-mailadres' }}
+                        </p>
+                    </div>
                 </div>
-                <div class="flex justify-between gap-x-4 py-3">
-                    <dt class="text-gray-500">Storingen</dt>
-                    <dd class="flex flex-wrap items-start justify-end gap-y-2">
-                        <div v-if="customer.open_tickets.length > 0"
-                            class="text-red-700 bg-red-50 ring-red-600/10 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                            {{ customer.open_tickets.length }} Storingen open</div>
-                        <div v-if="customer.pending_tickets.length > 0"
-                            class="text-gray-600 bg-gray-50 ring-gray-500/10 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                            {{ customer.pending_tickets.length }} Storingen in behandeling</div>
-                        <div v-if="customer.closed_tickets.length > 0"
-                            class="text-green-700 bg-green-50 ring-green-600/20 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                            {{ customer.closed_tickets.length }} Storingen gesloten</div>
-                    </dd>
+                <!-- Middle section: city + ticket status -->
+                <div class="flex flex-col items-start justify-center">
+                    <p class="text-sm leading-6 text-gray-900">{{ customer.city || '—' }}</p>
+                    <p class="mt-1 text-xs leading-5 text-left">
+                        <span v-if="customer.open_tickets?.length" class="text-red-600 font-medium">{{
+                            customer.open_tickets.length }} open stor.</span>
+                        <span v-else-if="customer.pending_tickets?.length" class="text-amber-600 font-medium">{{
+                            customer.pending_tickets.length }} in beh.</span>
+                        <span v-else class="text-green-600">Geen open storingen</span>
+                    </p>
                 </div>
-                <div class="flex justify-between gap-x-4 py-3">
-                    <dt class="text-gray-500">Activa</dt>
-                    <dd class="flex flex-wrap items-start justify-end gap-y-2">
-                        <div v-if="customer.upcoming_assets.length > 0"
-                            class="text-green-700 bg-green-50 ring-green-600/20 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                            {{ customer.upcoming_assets.length }} Aankomende keuringen</div>
-                    </dd>
+                <!-- Right section: chevron -->
+                <div class="flex justify-end">
+                    <ChevronRightIcon class="size-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                    <span class="sr-only">Bekijk {{ customer.name }}</span>
                 </div>
-            </dl>
-        </li>
-    </ul>
+                </Link>
+            </li>
+        </ul>
+    </div>
 </template>
 
 <script setup>
-import { BuildingOfficeIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { Link } from '@inertiajs/vue3';
-import { mapsLinkFromCustomer } from '@/Utilities/Utilities';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import { ref } from 'vue';
