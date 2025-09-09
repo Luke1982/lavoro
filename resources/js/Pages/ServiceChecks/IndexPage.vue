@@ -1,4 +1,5 @@
 <template>
+    <div :key="serviceChecks.total">
     <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
         <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten" search-url="/servicechecks"
             search-label="Zoek binnen keurpunten" search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
@@ -115,7 +116,7 @@
                             :class="index % 2 === 1 ? 'bg-gray-100' : 'bg-white'">
                             <td colspan="5" class="px-4">
                                 <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name
-                                    }}, of voeg een nieuwe toe</h5>
+                                }}, of voeg een nieuwe toe</h5>
                                 <ServiceCheckValueListComponent v-model="item.values"
                                     :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
                                 <div class="flex items-center">
@@ -141,6 +142,7 @@
 
         <p v-else class="text-center text-gray-500 p-4">Geen service checks gevonden.</p>
     </BoxComponent>
+    </div>
 </template>
 
 <script setup>
@@ -151,7 +153,7 @@ import {
     XCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListComponent.vue'
@@ -215,6 +217,20 @@ const internalServiceChecks = ref(
         ...sc,
         product_type_ids: (sc.product_types || []).map(pt => pt.id),
     }))
+)
+
+watch(
+    () => serviceChecks.data,
+    (newData) => {
+        const existingById = {}
+        for (const sc of internalServiceChecks.value) existingById[sc.id] = sc
+        internalServiceChecks.value = (newData || []).map(sc => ({
+            ...sc,
+            product_type_ids: (sc.product_types || []).map(pt => pt.id),
+            open: existingById[sc.id]?.open || false,
+            openValue: existingById[sc.id]?.openValue || false,
+        }))
+    }
 )
 
 const serviceCheckFormRef = ref(null)
