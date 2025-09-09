@@ -50,6 +50,23 @@
                 </Link>
             </div>
         </div>
+        <div v-if="missing_checks_count > 0"
+            class="mb-4 p-3 border border-amber-300 bg-amber-50 rounded text-sm text-amber-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="flex-1">
+                <div class="font-semibold mb-1">{{ missing_checks_count }} ontbrekende keurpunt(en)</div>
+                <ul class="list-disc ml-5 space-y-0.5">
+                    <li v-for="mc in missing_checks" :key="mc.id">{{ mc.name }}<span
+                            class="text-gray-500 ml-1 text-xs">({{ mc.type }})</span></li>
+                </ul>
+            </div>
+            <div class="flex items-start md:items-center gap-2 md:ml-4">
+                <button @click="addMissing" :disabled="addingMissing"
+                    class="px-3 py-1.5 rounded bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 disabled:bg-gray-400 self-start md:self-auto">
+                    <span v-if="!addingMissing">Ontbrekende toevoegen</span>
+                    <span v-else>Bezig...</span>
+                </button>
+            </div>
+        </div>
         <h2 class="text-xl font-bold my-4 text-center">
             Keurpunten
         </h2>
@@ -134,7 +151,7 @@ import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
 import { Cog6ToothIcon, InformationCircleIcon, LockOpenIcon } from '@heroicons/vue/24/outline';
 
-const { servicejob, possibleOutcomes } = defineProps({
+const { servicejob, possibleOutcomes, missing_checks_count, missing_checks } = defineProps({
     servicejob: {
         type: Object,
         required: true
@@ -146,11 +163,20 @@ const { servicejob, possibleOutcomes } = defineProps({
     possibleOutcomes: {
         type: Object,
         required: true
+    },
+    missing_checks_count: {
+        type: Number,
+        required: true
+    },
+    missing_checks: {
+        type: Array,
+        required: true
     }
 });
 
 const updating = ref(false);
 const emailing = ref(false);
+const addingMissing = ref(false);
 
 const form = useForm({
     outcome: '',
@@ -198,6 +224,17 @@ const emailPdf = () => {
     mailForm.post(`/servicejobs/${servicejob.id}/email-pdf`, {
         preserveScroll: true,
         onFinish: () => { emailing.value = false; }
+    });
+};
+
+const addMissing = () => {
+    if (addingMissing.value) {
+        return;
+    };
+    addingMissing.value = true;
+    mailForm.post(`/servicejobs/${servicejob.id}/add-missing-instances`, {
+        preserveScroll: true,
+        onFinish: () => { addingMissing.value = false; },
     });
 };
 

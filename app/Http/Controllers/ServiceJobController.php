@@ -63,21 +63,52 @@ class ServiceJobController extends Controller
      */
     public function show(ServiceJob $servicejob)
     {
+        $servicejob->load([
+            'asset.product.productType.serviceChecks',
+            'asset.product.productType.serviceCheckGroups',
+            'checkInstances.serviceCheck.values',
+            'checkInstances.serviceCheck.group',
+            'checkInstances.values',
+            'checkInstances.remarks.user',
+            'asset.product.brand',
+            'asset.customer',
+            'serviceOrder',
+        ]);
+
+        $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
+        $existing_ids = $servicejob->checkInstances->pluck('service_check_id')->filter();
+        $missing = $all_checks->filter(fn($c) => !$existing_ids->contains($c->id))
+            ->values()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'type' => $c->type,
+            ]);
+
         return inertia('ServiceJob/ShowPage', [
-            'servicejob' => $servicejob->load([
-                'asset.product.productType.serviceChecks',
-                'asset.product.productType.serviceCheckGroups',
-                'checkInstances.serviceCheck.values',
-                'checkInstances.serviceCheck.group',
-                'checkInstances.values',
-                'checkInstances.remarks.user',
-                'asset.product.brand',
-                'asset.customer',
-                'serviceOrder',
-            ]),
+            'servicejob' => $servicejob,
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
             'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),
+            'missing_checks' => $missing,
+            'missing_checks_count' => $missing->count(),
         ]);
+    }
+
+    public function addMissingInstances(ServiceJob $servicejob)
+    {
+        $servicejob->load('asset.product.productType.serviceChecks', 'checkInstances');
+        $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
+        $existing_ids = $servicejob->checkInstances->pluck('service_check_id')->filter();
+        $missing = $all_checks->filter(fn($c) => !$existing_ids->contains($c->id));
+        if ($missing->isEmpty()) {
+            return redirect()->back()->with('info', 'Geen ontbrekende keurpunten gevonden.');
+        }
+        foreach ($missing as $check) {
+            $servicejob->checkInstances()->create([
+                'service_check_id' => $check->id,
+            ]);
+        }
+        return redirect()->back()->with('success', $missing->count() . ' ontbrekende keurpunten toegevoegd.');
     }
 
     /**

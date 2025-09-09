@@ -94,6 +94,10 @@ Route::group(
             ->name('servicejobs.emailPdf');
         Route::post('servicejobs/{servicejob}/clearcompletedon', [ServiceJobController::class, 'clearCompletedOn'])
             ->name('servicejobs.clearCompletedOn');
+        Route::post(
+            'servicejobs/{servicejob}/add-missing-instances',
+            [ServiceJobController::class, 'addMissingInstances']
+        )->name('servicejobs.addMissingInstances');
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::resource('remarks', RemarkController::class)
