@@ -94,6 +94,7 @@
         .remark-col {
             width: 35%;
         }
+
         .footer {
             position: fixed;
             left: 14mm;
@@ -110,7 +111,7 @@
     <table style="width:100%; border-collapse:collapse; margin-bottom:6px;">
         <tr>
             <td style="width:35%; vertical-align:middle;">
-                @if($logo['data'] ?? null)
+                @if ($logo['data'] ?? null)
                     <img src="{{ $logo['data'] }}" alt="Logo" style="{{ $logo['style'] }}" />
                 @endif
             </td>
@@ -308,7 +309,11 @@
         </tr>
     </table>
 
-    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if($company?->address_line2) {{ $company?->address_line2 }} @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} | Gegenereerd op {{ now()->format('d-m-Y H:i') }} | Asset ID {{ $asset?->id }} | Keuring #{{ $serviceJob->id }}</div>
+    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if ($company?->address_line2)
+            {{ $company?->address_line2 }}
+        @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} |
+        Gegenereerd op {{ now()->format('d-m-Y H:i') }} | Asset ID {{ $asset?->id }} | Keuring
+        #{{ $serviceJob->id }}</div>
 </body>
 
 </html>

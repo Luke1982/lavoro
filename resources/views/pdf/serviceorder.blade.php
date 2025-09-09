@@ -117,7 +117,7 @@
     <table style="width:100%; border-collapse:collapse; margin-bottom:6px;">
         <tr>
             <td style="width:35%; vertical-align:middle;">
-                @if(($logo['data'] ?? null))
+                @if ($logo['data'] ?? null)
                     <img src="{{ $logo['data'] }}" alt="Logo" style="{{ $logo['style'] }}" />
                 @endif
             </td>
@@ -303,7 +303,11 @@
         </table>
     </div>
 
-    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if($company?->address_line2) {{ $company?->address_line2 }} @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} | Op al onze offertes, opdrachten en overeenkomsten zijn onze algemene voorwaarden van toepassing. De algemene voorwaarden worden u op verzoek toegezonden.</div>
+    <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if ($company?->address_line2)
+            {{ $company?->address_line2 }}
+        @endif {{ $company?->postal_code }} {{ $company?->city }} {{ $company?->country }} | Op
+        al onze offertes, opdrachten en overeenkomsten zijn onze algemene voorwaarden van toepassing. De algemene
+        voorwaarden worden u op verzoek toegezonden.</div>
 </body>
 
 </html>

@@ -8,7 +8,7 @@
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <!-- Acties menu -->
                     <Menu as="div" class="relative ml-4 inline-block text-left">
                         <div>
@@ -106,7 +106,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                        }}, {{
+                            }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
