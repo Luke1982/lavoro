@@ -2,7 +2,7 @@
     <div>
         <div class="p-2 h-full relative" v-auto-animate>
             <div class="ring-gray-200 ring bg-[#fdfdfd] rounded-md p-4 pt-8 h-full relative" v-auto-animate>
-                <div class="absolute top-2 left-2 flex items-center gap-2">
+                <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
                     <button type="button" @click="toggleRemarks"
                         class="text-gray-500 hover:text-indigo-600 bg-white shadow-sm rounded-md p-1 ring-1 ring-gray-300"
                         v-tooltip="showRemarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
@@ -13,7 +13,7 @@
                 <div class="relative" v-auto-animate>
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900">{{ serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600">Kies een van de opties</p>
                         <div class="mt-6 space-y-6">
@@ -28,7 +28,7 @@
                     </fieldset>
                     <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
                         <legend class="text-sm/6 font-semibold text-gray-900">{{ serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600">Kies een of meerdere van de opties</p>
                         <div class="space-y-5">
@@ -50,7 +50,7 @@
                                 </div>
                                 <div class="text-sm/6">
                                     <label :for="`value-${value.id}`" class="font-medium text-gray-900">{{ value.value
-                                    }}</label>
+                                        }}</label>
                                 </div>
                             </div>
                         </div>
@@ -86,18 +86,27 @@
                                 :placeholder="`Vul een ${serviceCheckInstance.service_check.type === 'number' ? 'getal' : 'tekst'} in`" />
                         </div>
                     </div>
-                    <div v-if="readonly" class="absolute inset-0 bg-[#2c2c2c0e] flex items-center justify-center">
-                        <LockClosedIcon class="h-6 w-6"
+                    <div v-if="readonly" class="absolute inset-0 bg-white/30 flex items-center justify-center">
+                        <LockClosedIcon class="h-7 w-7 text-gray-600"
                             v-tooltip="'Deze keuring is gesloten, je kunt de keurpunten daarom alleen nog maar bekijken.'" />
                     </div>
                 </div>
-                <!-- Remarks inside card -->
-                <Transition name="fade-slide">
+                <!-- Remarks inside card (editable) -->
+                <Transition name="fade-slide" v-if="!readonly">
                     <div v-if="showRemarks" class="mt-10">
                         <RemarksComponent :remarkable-type="'App\\Models\\ServiceCheckInstance'"
                             :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
                     </div>
                 </Transition>
+                <!-- Readonly remarks list -->
+                <div v-else-if="readonly && (serviceCheckInstance.remarks?.length)" class="mt-4">
+                    <ul class="space-y-2 text-xs text-gray-600 list-disc ml-5">
+                        <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
+                            <span class="font-medium text-gray-800">{{ r.user?.name || 'Onbekend' }}:</span>
+                            {{ r.content }}
+                        </li>
+                    </ul>
+                </div>
             </div>
             <Cog6ToothIcon v-if="updating" class="absolute top-4 right-4 h-6 w-6 text-gray-500 animate-spin" />
             <CheckIcon v-if="!updating" class="absolute top-4 right-4 h-6 w-6 text-green-500" />
