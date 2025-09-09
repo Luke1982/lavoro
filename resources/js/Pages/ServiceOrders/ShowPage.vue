@@ -294,19 +294,10 @@
                         <span>€ {{ materialsTotal.toFixed(2) }}</span>
                     </div>
                 </div>
-                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="timelineItems.length > 0">
+                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm"
+                    v-if="serviceOrder.activities?.length">
                     <h3 class="font-semibold text-base mb-3">Tijdlijn</h3>
-                    <div class="grid gap-2" v-auto-animate>
-                        <div v-for="t in displayedTimelineItems" :key="t.raw.id"
-                            class="grid grid-cols-[3.5rem_1fr] items-start">
-                            <div class="text-xs text-gray-500">{{ t.time }}</div>
-                            <div class="text-xs ml-2">{{ t.label }}</div>
-                        </div>
-                    </div>
-                    <button v-if="timelineItems.length > 10" @click="showAllActivities = !showAllActivities"
-                        class="mt-3 text-xs text-indigo-600 hover:underline">
-                        {{ showAllActivities ? 'Toon minder' : 'Toon alle ' + timelineItems.length }}
-                    </button>
+                    <TimelineComponent :activities="serviceOrder.activities" />
                 </div>
                 <div class="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-2">
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
@@ -341,7 +332,8 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { mapsLinkFromCustomer, nlDate, nlTime } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
@@ -519,31 +511,4 @@ const statusState = computed(() => {
 
 const showFinancial = ref(false);
 
-const formatTimelineStamp = (iso) => {
-    if (!iso) {
-        return '';
-    }
-    const d = new Date(iso);
-    const today = new Date();
-    const isToday = d.toDateString() === today.toDateString();
-    if (isToday) {
-        return nlTime(d);
-    }
-    return nlDate(d) + ' ' + nlTime(d);
-};
-const timelineItems = computed(() => {
-    if (!props.serviceOrder.activities) return [];
-    return props.serviceOrder.activities.map(a => ({
-        time: formatTimelineStamp(a.pivot?.created_at || a.created_at),
-        label: a.description,
-        raw: a
-    }));
-});
-const showAllActivities = ref(false);
-const displayedTimelineItems = computed(() => {
-    if (showAllActivities.value) {
-        return timelineItems.value;
-    }
-    return timelineItems.value.slice(0, 10);
-});
 </script>
