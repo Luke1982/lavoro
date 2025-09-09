@@ -22,6 +22,11 @@ class ServiceCheckInstance extends Model
         'service_job_id',
         'service_check_value_id',
         'description',
+        'switch_state',
+    ];
+
+    protected $casts = [
+        'switch_state' => 'boolean',
     ];
 
     /**

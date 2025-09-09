@@ -9,7 +9,6 @@
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                     </button>
                 </div>
-                <!-- Main content wrapper (overlay only covers this part) -->
                 <div class="relative" v-auto-animate>
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900">{{ serviceCheckInstance.service_check.name
@@ -60,18 +59,9 @@
                         <span class="flex grow flex-col">
                             <label class="text-sm/6 font-semibold text-gray-900">{{
                                 serviceCheckInstance.service_check.name }}</label>
-                            <span class="text-sm text-gray-500" id="availability-description">Zet de schakelaar
-                                hiernaast
-                                aan of
-                                uit</span>
+                            <span class="text-sm text-gray-500">Zet de schakelaar aan of uit</span>
                         </span>
-                        <div
-                            class="group relative inline-flex w-11 shrink-0 rounded-full bg-red-400 p-0.5 inset-ring inset-ring-gray-900/5 outline-offset-2 outline-green-600 transition-colors duration-200 ease-in-out has-checked:bg-green-600 has-focus-visible:outline-2 dark:bg-red-400 dark:inset-ring-white/10 dark:outline-green-500 dark:has-checked:bg-green-500">
-                            <span
-                                class="size-5 rounded-full bg-white shadow-xs ring-1 ring-gray-900/5 transition-transform duration-200 ease-in-out group-has-checked:translate-x-5" />
-                            <input type="checkbox" class="absolute inset-0 appearance-none focus:outline-hidden"
-                                v-model="bool" />
-                        </div>
+                        <SwitchComponent v-model="form.switch_state" />
                     </div>
                     <div class="flex flex-col justify-between"
                         v-else-if="serviceCheckInstance.service_check.type === 'text' || serviceCheckInstance.service_check.type === 'number'">
@@ -91,14 +81,12 @@
                             v-tooltip="'Deze keuring is gesloten, je kunt de keurpunten daarom alleen nog maar bekijken.'" />
                     </div>
                 </div>
-                <!-- Remarks inside card (editable) -->
                 <Transition name="fade-slide" v-if="!readonly">
                     <div v-if="showRemarks" class="mt-10">
                         <RemarksComponent :remarkable-type="'App\\Models\\ServiceCheckInstance'"
                             :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
                     </div>
                 </Transition>
-                <!-- Readonly remarks list -->
                 <div v-else-if="readonly && (serviceCheckInstance.remarks?.length)" class="mt-4">
                     <ul class="space-y-2 text-xs text-gray-600 list-disc ml-5">
                         <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
@@ -117,6 +105,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
 import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
@@ -133,13 +122,10 @@ const { serviceCheckInstance } = defineProps({
 });
 
 const updating = ref(false);
+const lastSent = ref(null);
 const showRemarks = ref(false);
 const toggleRemarks = () => { showRemarks.value = !showRemarks.value; };
 
-const bool = ref(serviceCheckInstance.service_check.type === 'boolean' ? serviceCheckInstance.description === '1' : false);
-watch(bool, () => {
-    form.description = bool.value ? 1 : 0;
-});
 
 const isRadio = serviceCheckInstance.service_check.type === 'radio'
 
@@ -148,31 +134,39 @@ const form = useForm({
         ? (serviceCheckInstance.values[0]?.id ?? null)
         : serviceCheckInstance.values.map(v => v.id),
     description: serviceCheckInstance.description ?? '',
+    switch_state: serviceCheckInstance.switch_state,
     checkboxValues: [],
     type: serviceCheckInstance.service_check.type,
 });
 
 const updateInstance = debounce(() => {
+    const type = serviceCheckInstance.service_check.type;
+    if (type === 'boolean') {
+        const current = form.switch_state;
+        if (lastSent.value === current) {
+            return;
+        }
+        lastSent.value = current;
+    }
     updating.value = true;
-    form.description = form.description.toString().trim();
-    form.values = form.values.constructor === Array ? form.values : form.values;
+    if (form.description !== null && typeof form.description === 'string') {
+        form.description = form.description.trim();
+    }
     form.put(`/servicecheckinstances/${serviceCheckInstance.id}`, {
         preserveScroll: true,
-        onSuccess: () => {
-            updating.value = false;
-        },
+        onFinish: () => { updating.value = false; },
     });
 }, 500);
 
 watch(
-    [
-        () => form.values,
-        () => form.description,
-        () => form.checkboxValues,
-    ],
+    () => [form.values, form.description, form.checkboxValues, form.switch_state],
     () => {
+        if (serviceCheckInstance.service_check.type === 'boolean') {
+            updateInstance();
+            return;
+        }
         if (!updating.value) {
-            updateInstance()
+            updateInstance();
         }
     }
 )

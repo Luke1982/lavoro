@@ -23,6 +23,7 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
             $table->text('description')->nullable();
+            $table->boolean('switch_state')->nullable();
             $table->timestamps();
         });
     }
