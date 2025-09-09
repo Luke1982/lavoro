@@ -3,9 +3,9 @@
         <div class="p-2 h-full relative" v-auto-animate>
             <div class="ring-gray-200 ring bg-[#fdfdfd] rounded-md p-4 pt-8 h-full relative" v-auto-animate>
                 <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
-                    <button type="button" @click="toggleRemarks"
+                    <button type="button" @click="toggle_remarks"
                         class="text-gray-500 hover:text-indigo-600 bg-white shadow-sm rounded-md p-1 ring-1 ring-gray-300"
-                        v-tooltip="showRemarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
+                        v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                     </button>
                 </div>
@@ -71,7 +71,10 @@
 
                         </span>
                         <div>
-                            <input :type="serviceCheckInstance.service_check.type" v-model="form.description"
+                            <input
+                                :type="serviceCheckInstance.service_check.type === 'number' ? 'text' : serviceCheckInstance.service_check.type"
+                                :inputmode="serviceCheckInstance.service_check.type === 'number' ? 'decimal' : null"
+                                v-model="form.description"
                                 class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                                 :placeholder="`Vul een ${serviceCheckInstance.service_check.type === 'number' ? 'getal' : 'tekst'} in`" />
                         </div>
@@ -82,7 +85,7 @@
                     </div>
                 </div>
                 <Transition name="fade-slide" v-if="!readonly">
-                    <div v-if="showRemarks" class="mt-10">
+                    <div v-if="show_remarks" class="mt-10">
                         <RemarksComponent :remarkable-type="'App\\Models\\ServiceCheckInstance'"
                             :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
                     </div>
@@ -111,42 +114,31 @@ import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon } fro
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
-    serviceCheckInstance: {
-        type: Object,
-        required: true
-    },
-    readonly: {
-        type: Boolean,
-        default: false
-    }
+    serviceCheckInstance: { type: Object, required: true },
+    readonly: { type: Boolean, default: false }
 });
 
 const updating = ref(false);
-const lastSent = ref(null);
-const showRemarks = ref(false);
-const toggleRemarks = () => { showRemarks.value = !showRemarks.value; };
-
-
-const isRadio = serviceCheckInstance.service_check.type === 'radio'
+const last_sent = ref(null);
+const show_remarks = ref(false);
+const toggle_remarks = () => { show_remarks.value = !show_remarks.value; };
 
 const form = useForm({
-    values: isRadio
+    values: serviceCheckInstance.service_check.type === 'radio'
         ? (serviceCheckInstance.values[0]?.id ?? null)
         : serviceCheckInstance.values.map(v => v.id),
     description: serviceCheckInstance.description ?? '',
     switch_state: serviceCheckInstance.switch_state,
-    checkboxValues: [],
-    type: serviceCheckInstance.service_check.type,
 });
 
 const updateInstance = debounce(() => {
     const type = serviceCheckInstance.service_check.type;
     if (type === 'boolean') {
         const current = form.switch_state;
-        if (lastSent.value === current) {
+        if (last_sent.value === current) {
             return;
         }
-        lastSent.value = current;
+        last_sent.value = current;
     }
     updating.value = true;
     if (form.description !== null && typeof form.description === 'string') {
@@ -154,12 +146,12 @@ const updateInstance = debounce(() => {
     }
     form.put(`/servicecheckinstances/${serviceCheckInstance.id}`, {
         preserveScroll: true,
-        onFinish: () => { updating.value = false; },
+        onFinish: () => { updating.value = false; }
     });
 }, 500);
 
 watch(
-    () => [form.values, form.description, form.checkboxValues, form.switch_state],
+    () => [form.values, form.description, form.switch_state],
     () => {
         if (serviceCheckInstance.service_check.type === 'boolean') {
             updateInstance();

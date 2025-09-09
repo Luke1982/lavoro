@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\ServiceJobOutcomes;
+use App\Models\ServiceJob;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -43,6 +45,45 @@ class ServiceJobUpdateRequest extends FormRequest
         ];
     }
 
+    protected function passedValidation(): void
+    {
+        $job = request()->route('servicejob');
+        if (!$job) {
+            return;
+        }
+        $job->loadMissing('checkInstances.serviceCheck', 'checkInstances.values');
+
+        $incomplete = $job->checkInstances->filter(function ($ci) {
+            $type = $ci->serviceCheck?->type;
+            if ($type === 'boolean') {
+                return $ci->switch_state === null;
+            }
+            if ($type === 'text' || $type === 'number') {
+                return trim((string) ($ci->description ?? '')) === '';
+            }
+            if ($type === 'radio') {
+                return $ci->values->count() !== 1;
+            }
+            if ($type === 'checkgroup') {
+                return $ci->values->count() === 0;
+            }
+            return false;
+        });
+
+        if ($incomplete->isNotEmpty()) {
+            $names = $incomplete
+                ->map(fn($ci) => $ci->serviceCheck?->name)
+                ->filter()
+                ->unique()
+                ->values();
+            $list = $names->implode(', ');
+            $message = 'Niet alle keurpunten zijn ingevuld (' . $incomplete->count() . ' open): ' . $list . '.';
+            throw ValidationException::withMessages([
+                'service_checks' => $message,
+            ]);
+        }
+    }
+
     /**
      * Get the error messages for the defined validation rules.
      *
@@ -57,7 +98,8 @@ class ServiceJobUpdateRequest extends FormRequest
             'days_temporary_approval.integer' => 'Tijdelijke goedkeuring moet een geheel getal zijn.',
             'days_temporary_approval.min' => 'Tijdelijke goedkeuring moet minimaal 0 dagen zijn.',
             'days_temporary_approval.max' => 'Tijdelijke goedkeuring mag maximaal 365 dagen zijn.',
-            'days_temporary_approval.required' => 'Aantal dagen is verplicht wanneer het resultaat \'tijdelijk goedkeur\' is.',
+            'days_temporary_approval.required' => 'Aantal dagen is verplicht wanneer het resultaat '
+                . '\'tijdelijk goedkeur\' is.',
             'completed_on.required' => '\'Voltooid op\' datum is verplicht.',
             'completed_on.date' => '\'Voltooid op\' moet een geldige datum zijn.',
         ];
