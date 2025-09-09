@@ -1,6 +1,12 @@
 <template>
     <IndexHeaderComponent title="Klanten" addLabel="Nieuwe klant" search-placeholder="Zoek klant... "
-        search-url="/customers" @add="() => customerFormRef?.show()" />
+        search-url="/customers" @add="() => customerFormRef?.show()">
+        <template #right>
+            <button @click="importCustomers" :disabled="importingCustomers"
+                class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400 text-right">SnelStart
+                klanten importeren</button>
+        </template>
+    </IndexHeaderComponent>
 
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
@@ -63,8 +69,18 @@ import { mapsLinkFromCustomer } from '@/Utilities/Utilities';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import { ref } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 
 const customerFormRef = ref(null)
+const importingCustomers = ref(false)
+const importForm = useForm({})
+const importCustomers = () => {
+    importingCustomers.value = true;
+    importForm.post('/imports/snelstart/customers', {
+        preserveScroll: true,
+        onFinish: () => importingCustomers.value = false,
+    });
+}
 
 const customerFields = [
     { key: 'name', label: 'Naam', type: 'text' },

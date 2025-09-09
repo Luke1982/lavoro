@@ -2,7 +2,13 @@
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
             search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
-            add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()" />
+            add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()">
+            <template #right>
+                <button @click="importMaterials" :disabled="importingMaterials"
+                    class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400">SnelStart
+                    materialen importeren</button>
+            </template>
+        </IndexHeaderComponent>
     </div>
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="materialFormRef" external-trigger action="/materials" :fields="materialFields"
@@ -16,13 +22,24 @@
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
-import { useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 const materialFormRef = ref(null)
+const importingMaterials = ref(false)
+// reuse existing form instance to avoid duplicate import warning
+import { useForm as useInertiaForm } from '@inertiajs/vue3';
+const importMaterialsForm = useInertiaForm({})
+const importMaterials = () => {
+    importingMaterials.value = true;
+    importMaterialsForm.post('/imports/snelstart/materials', {
+        preserveScroll: true,
+        onFinish: () => importingMaterials.value = false,
+    });
+}
 
 const { materials, categories, usageUnits } = defineProps({
     materials: {

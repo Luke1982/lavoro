@@ -1,5 +1,5 @@
 <template>
-    <div class="mb-4 w-full">
+    <div class="w-full">
         <label v-if="label" class="block text-sm font-medium text-gray-900">{{ label }}</label>
         <div :class="[label ? 'mt-2' : '', 'relative rounded-md shadow-sm']">
             <TextInput :id="inputId" v-model="internalValue" :placeholder="placeholder" :disabled="inAction"

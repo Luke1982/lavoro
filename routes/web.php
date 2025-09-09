@@ -23,6 +23,7 @@ use App\Http\Controllers\MaterialUsageUnitController;
 use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceCheckInstanceController;
 use App\Http\Controllers\ServiceCheckGroupController;
+use App\Http\Controllers\SnelStartImportController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -51,6 +52,11 @@ Route::group(
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);
+        // Manual SnelStart imports
+        Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
+            ->name('imports.snelstart.customers');
+        Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
+            ->name('imports.snelstart.materials');
         Route::resource('serviceorders', ServiceOrderController::class);
         Route::get('serviceorders/{serviceorder}/export/pdf', [ServiceOrderController::class, 'exportPdf'])
             ->name('serviceorders.exportPdf');

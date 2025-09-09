@@ -12,7 +12,7 @@
             </button>
         </div>
 
-        <div v-if="showSearch" class="flex flex-wrap items-start">
+        <div v-if="showSearch" class="flex flex-wrap items-end">
             <div class="w-full md:w-2/3">
                 <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
                     :placeholder="searchPlaceholder" :other-params="searchOtherParams"
@@ -23,7 +23,7 @@
             </div>
         </div>
         <PaginationComponent v-if="paginator" :paginator="paginator" :params="paginationParams"
-            class="border-b border-gray-200 pb-2 mt-2" />
+            class="border-b border-gray-200 pb-2 mt-4" />
     </div>
     <slot />
 </template>
