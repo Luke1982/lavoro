@@ -1,12 +1,41 @@
 <template>
-    <div
-        class="group relative inline-flex w-11 shrink-0 rounded-full bg-red-400 p-0.5 inset-ring inset-ring-gray-900/5 outline-offset-2 outline-green-600 transition-colors duration-200 ease-in-out has-checked:bg-green-600 has-focus-visible:outline-2 dark:bg-red-400 dark:inset-ring-white/10 dark:outline-green-500 dark:has-checked:bg-green-500">
-        <span
-            class="size-5 rounded-full bg-white shadow-xs ring-1 ring-gray-900/5 transition-transform duration-200 ease-in-out group-has-checked:translate-x-5" />
-        <input type="checkbox" class="absolute inset-0 appearance-none focus:outline-hidden" v-model="value" />
+    <div :class="wrapperClass" @click="toggle" @keydown.space.prevent="toggle" @keydown.enter.prevent="toggle"
+        :title="stateTitle" role="switch" :aria-checked="ariaChecked" tabindex="0">
+        <span :class="thumbClass" />
     </div>
 </template>
 
 <script setup>
-const value = defineModel({ type: Boolean, default: false })
+import { computed } from 'vue'
+const value = defineModel({ default: null })
+
+function toggle() {
+    if (value.value === null) {
+        value.value = true
+    } else {
+        value.value = !value.value
+    }
+}
+
+const stateTitle = computed(() => {
+    if (value.value === null) return 'Geen waarde'
+    return value.value ? 'Ja' : 'Nee'
+})
+
+const ariaChecked = computed(() => {
+    if (value.value === null) return 'mixed'
+    return value.value ? 'true' : 'false'
+})
+
+const wrapperClass = computed(() => {
+    const base = 'relative inline-flex w-14 h-6 shrink-0 rounded-full p-0.5 cursor-pointer transition-colors duration-200'
+    if (value.value === null) return base + ' bg-gradient-to-r from-red-400 via-amber-300 to-green-400'
+    return base + (value.value ? ' bg-green-600' : ' bg-red-400')
+})
+
+const thumbClass = computed(() => {
+    const base = 'absolute top-0.5 size-5 rounded-full bg-white shadow-xs ring-1 ring-gray-900/5 transition-all duration-200'
+    if (value.value === null) return base + ' left-1/2 -translate-x-1/2'
+    return base + (value.value ? ' left-[calc(100%-1.75rem)]' : ' left-0.5')
+})
 </script>
