@@ -36,6 +36,13 @@
                     <div class="mt-2 h-9 flex items-center">
                         <SwitchComponent v-model="form[field.key]" />
                     </div>
+                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
+                </div>
+
+                <div v-else-if="field.type === 'file'" :class="['col-span-1 flex flex-col', field.class]">
+                    <label class="block text-sm font-medium leading-6 text-gray-900">{{ field.label }}</label>
+                    <input type="file" class="mt-2 text-sm" @change="e => form[field.key] = e.target.files[0]" />
+                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
                 </div>
             </template>
 
@@ -74,13 +81,16 @@ const initialState = () => {
     for (const f of props.fields) {
         switch (f.type) {
             case 'boolean':
-                state[f.key] = Boolean(f.default ?? false)
+                state[f.key] = Object.prototype.hasOwnProperty.call(f, 'default') ? Boolean(f.default) : null
                 break
             case 'number':
                 state[f.key] = Number(f.default ?? 0)
                 break
             case 'combobox':
                 state[f.key] = f.multiple ? (f.initialIds || []) : (f.initialId ?? null)
+                break
+            case 'file':
+                state[f.key] = null
                 break
             default:
                 state[f.key] = f.default ?? ''
@@ -93,7 +103,6 @@ const initialState = () => {
 const form = useForm(initialState())
 
 watchEffect(() => {
-    // Keep defaults reactive if fields prop changes
     if (!open.value) {
         form.defaults(initialState())
         form.reset()
@@ -101,11 +110,13 @@ watchEffect(() => {
     }
 })
 
+const hasFileField = computed(() => props.fields.some(f => f.type === 'file'))
+
 function submit() {
     form.post(props.action, {
         preserveScroll: true,
+        forceFormData: hasFileField.value,
         onSuccess: () => {
-            // Backend will redirect or flash as needed. Close the form; list refresh is handled by Inertia.
             close()
         },
     })
@@ -118,7 +129,6 @@ function close() {
     emit('closed')
 }
 
-// Expose control to parent components
 function show() { open.value = true }
 function hide() { close() }
 defineExpose({ show, hide })

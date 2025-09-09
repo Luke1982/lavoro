@@ -24,6 +24,7 @@ use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceCheckInstanceController;
 use App\Http\Controllers\ServiceCheckGroupController;
 use App\Http\Controllers\SnelStartImportController;
+use App\Http\Controllers\CompanyController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -99,6 +100,9 @@ Route::group(
             ->except(['show', 'edit', 'create']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
             ->name('upcomingactivities');
+            Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])->name('companies.inline');
+            Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])->name('companies.logo');
+            Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
     }
 );
 
