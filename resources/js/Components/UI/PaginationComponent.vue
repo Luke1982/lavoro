@@ -89,7 +89,10 @@ function appendParams(url) {
     const hasQuery = url.includes('?')
     const [base, existing] = hasQuery ? url.split('?') : [url, '']
     const usp = new URLSearchParams(existing)
-    for (const [k, v] of entries) usp.set(k, v)
+    for (const [k, v] of entries) {
+        if (k === 'page' && usp.has('page')) continue
+        usp.set(k, v)
+    }
     const qs = usp.toString()
     return qs ? `${base}?${qs}` : base
 }
