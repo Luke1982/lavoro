@@ -8,7 +8,7 @@
                 </div>
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <!-- Acties menu -->
                     <Menu as="div" class="relative ml-4 inline-block text-left">
                         <div>
@@ -63,12 +63,22 @@
                             </MenuItems>
                         </transition>
                     </Menu>
-                    <span v-if="serviceOrder.sent_to_administration"
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">Verzonden
-                        administratie</span>
+                    <span v-if="statusState === 'both'"
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                        Verzonden klant & administratie
+                    </span>
+                    <span v-else-if="statusState === 'customer'"
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 text-blue-700 border border-blue-300">
+                        Verzonden klant
+                    </span>
+                    <span v-else-if="statusState === 'administration'"
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                        Verzonden administratie
+                    </span>
                     <span v-else
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">Niet
-                        verzonden</span>
+                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">
+                        Niet verzonden
+                    </span>
                 </div>
                 <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
                     <div class="col-span-2 text-xs">
@@ -85,7 +95,7 @@
                     <div class="col-span-4">
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
                             serviceOrder.customer.address
-                            }}, {{
+                        }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
