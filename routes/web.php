@@ -63,6 +63,10 @@ Route::group(
             ->name('serviceorders.exportPdf');
         Route::post('serviceorders/{serviceorder}/email-pdf', [ServiceOrderController::class, 'emailPdf'])
             ->name('serviceorders.emailPdf');
+        Route::post(
+            'serviceorders/{serviceorder}/email-pdf-with-jobs',
+            [ServiceOrderController::class, 'emailPdfWithJobs']
+        )->name('serviceorders.emailPdfWithJobs');
         Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
             ->name('serviceorders.sendToSnelStart');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])

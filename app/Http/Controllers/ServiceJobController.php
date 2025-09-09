@@ -163,6 +163,12 @@ class ServiceJobController extends Controller
                 return $pdf->download('keuring-' . $servicejob->id . '.pdf');
     }
 
+    public function exportPdfForCombine(ServiceJob $servicejob): string
+    {
+        $pdf = $this->generateServiceJobPdf($servicejob);
+        return $pdf->output();
+    }
+
     /**
      * Generate PDF and email it to the customer.
      */

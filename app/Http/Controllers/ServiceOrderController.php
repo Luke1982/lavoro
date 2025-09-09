@@ -14,6 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\SnelStartClient;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ServiceOrderPdfMail;
+use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Company;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 
@@ -163,6 +164,34 @@ class ServiceOrderController extends Controller
         }
 
         return redirect()->back()->with('success', 'Werkbon verzonden naar: ' . implode(', ', $recipients));
+    }
+
+    public function emailPdfWithJobs(ServiceOrder $serviceorder)
+    {
+        $serviceorder->load(['customer', 'serviceJobs.asset.customer']);
+        $recipients = array_unique(array_filter([
+            $serviceorder->customer?->email,
+            $serviceorder->customer?->invoice_email,
+        ]));
+        if (empty($recipients)) {
+            return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
+        }
+        $orderPdf = $this->generateServiceOrderPdf($serviceorder)->output();
+        $jobPdfs = [];
+        foreach ($serviceorder->serviceJobs as $job) {
+            try {
+                $jobPdf = app(ServiceJobController::class)->exportPdfForCombine($job);
+                $jobPdfs[$job->id] = $jobPdf;
+            } catch (\Throwable $e) {
+            }
+        }
+        Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
+        $serviceorder->logActivity('Werkbon + keuringen per e-mail verzonden naar: ' . implode(', ', $recipients));
+        if (!$serviceorder->sent_to_customer) {
+            $serviceorder->sent_to_customer = true;
+            $serviceorder->save();
+        }
+        return redirect()->back()->with('success', 'Werkbon + keuringen verzonden naar: ' . implode(', ', $recipients));
     }
 
 

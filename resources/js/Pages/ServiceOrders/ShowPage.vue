@@ -48,6 +48,17 @@
                                         <span v-else>Versturen...</span>
                                     </button>
                                     </MenuItem>
+                                    <MenuItem v-slot="{ active }" v-if="serviceOrder.servicejobs.length > 0">
+                                    <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
+                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
+                                        <span class="inline-flex items-center" v-if="!emailingCombined">
+                                            <span
+                                                class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                            E-mail PDF + keuringen
+                                        </span>
+                                        <span v-else>Versturen...</span>
+                                    </button>
+                                    </MenuItem>
                                     <MenuItem v-if="!serviceOrder.sent_to_administration" v-slot="{ active }">
                                     <button type="button" @click="sendToSnelStart"
                                         :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
@@ -322,6 +333,12 @@
                             class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                         E-mail PDF
                     </button>
+                    <button v-if="serviceOrder.servicejobs.length > 0" @click="emailPdfWithJobs"
+                        class="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm w-full font-semibold">
+                        <span
+                            class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                        E-mail PDF + keuringen
+                    </button>
                     <button v-if="!serviceOrder.sent_to_administration" @click="sendToSnelStart"
                         class="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm w-full">Verstuur
                         naar SnelStart</button>
@@ -478,8 +495,18 @@ const emailPdf = () => {
 };
 
 const emailing = ref(false);
+const emailingCombined = ref(false);
 const openPdf = () => {
     window.open(`/serviceorders/${props.serviceOrder.id}/export/pdf`, '_blank');
+};
+
+const emailPdfWithJobs = () => {
+    if (emailingCombined.value) return;
+    emailingCombined.value = true;
+    form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf-with-jobs`, {
+        preserveScroll: true,
+        onFinish: () => { emailingCombined.value = false; }
+    });
 };
 
 const updateMaterialQuantity = (materiableId) => {
