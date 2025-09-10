@@ -1,17 +1,18 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="rounded-lg border border-red-200 bg-red-50 p-4">
-                <p class="text-xs font-medium text-red-700">Open</p>
-                <p class="mt-1 text-2xl font-semibold text-red-800">{{ openCount }}</p>
+    <div class="bg-white rounded-md border border-gray-200 shadow-sm mb-4 overflow-hidden">
+        <h2 class="sr-only">Ticket statistieken</h2>
+        <div
+            class="grid grid-cols-1 md:grid-cols-3 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100">
+            <div class="p-6">
+                <StatCard label="Open" :value="openCount" :baseline="avgCount" :delta="openPctVsAvg" type="open" />
             </div>
-            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <p class="text-xs font-medium text-amber-700">In behandeling</p>
-                <p class="mt-1 text-2xl font-semibold text-amber-800">{{ pendingCount }}</p>
+            <div class="p-6">
+                <StatCard label="In behandeling" :value="pendingCount" :baseline="avgCount" :delta="pendingPctVsAvg"
+                    type="pending" />
             </div>
-            <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                <p class="text-xs font-medium text-green-700">Gesloten</p>
-                <p class="mt-1 text-2xl font-semibold text-green-800">{{ closedCount }}</p>
+            <div class="p-6">
+                <StatCard label="Gesloten" :value="closedCount" :baseline="avgCount" :delta="closedPctVsAvg"
+                    type="closed" />
             </div>
         </div>
     </div>
@@ -112,6 +113,7 @@ import { Link } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import { computed, ref } from 'vue';
 import { nlDate } from '@/Utilities/Utilities';
+import StatCard from '@/Components/UI/StatCard.vue';
 
 const props = defineProps({
     tickets: { type: Object, required: true },
@@ -119,6 +121,10 @@ const props = defineProps({
     openCount: { type: Number, required: true },
     pendingCount: { type: Number, required: true },
     closedCount: { type: Number, required: true },
+    avgCount: { type: Number, required: true },
+    openPctVsAvg: { type: Number, required: true },
+    pendingPctVsAvg: { type: Number, required: true },
+    closedPctVsAvg: { type: Number, required: true },
     activeStatuses: { type: Array, default: () => [] },
     activePriorities: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
@@ -132,7 +138,6 @@ const computedOtherParams = computed(() => ({
     statuses: selectedStatuses.value.join(','),
     priorities: selectedPriorities.value.join(','),
 }));
-
 
 // Adjusted widths so table fits typical desktop widths without horizontal scroll.
 const headers = [
@@ -175,7 +180,9 @@ function priorityClasses(priority) {
     if (p === 'laag') return 'bg-green-100 text-green-700 ring-green-300';
     return 'bg-gray-100 text-gray-700 ring-gray-300';
 }
+
 </script>
+
 
 <style scoped>
 @media (min-width: 1024px) {

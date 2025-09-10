@@ -67,12 +67,34 @@ class TicketController extends Controller
 
         $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
 
+        $open_count    = Ticket::where('status', TicketStatusses::open->value)->count();
+        $pending_count = Ticket::where('status', TicketStatusses::in_behandeling->value)->count();
+        $closed_count  = Ticket::where('status', TicketStatusses::gesloten->value)->count();
+
+        $total_count = $open_count + $pending_count + $closed_count;
+        $average_count = $total_count === 0 ? 0 : $total_count / 3;
+
+        $calc_pct_vs_avg = function ($count, $avg) {
+            if ($avg == 0) {
+                return $count > 0 ? 100 : 0;
+            }
+            return round((($count - $avg) / $avg) * 100, 2);
+        };
+
+        $open_pct_vs_avg    = $calc_pct_vs_avg($open_count, $average_count);
+        $pending_pct_vs_avg = $calc_pct_vs_avg($pending_count, $average_count);
+        $closed_pct_vs_avg  = $calc_pct_vs_avg($closed_count, $average_count);
+
         return inertia('Tickets/IndexPage', [
-            'tickets'           => $tickets,
-            'search'            => $search,
-            'openCount'         => Ticket::where('status', TicketStatusses::open->value)->count(),
-            'pendingCount'      => Ticket::where('status', TicketStatusses::in_behandeling->value)->count(),
-            'closedCount'       => Ticket::where('status', TicketStatusses::gesloten->value)->count(),
+            'tickets'               => $tickets,
+            'search'                => $search,
+            'openCount'             => $open_count,
+            'pendingCount'          => $pending_count,
+            'closedCount'           => $closed_count,
+            'avgCount'              => (int) round($average_count),
+            'openPctVsAvg'          => $open_pct_vs_avg,
+            'pendingPctVsAvg'       => $pending_pct_vs_avg,
+            'closedPctVsAvg'        => $closed_pct_vs_avg,
             'activeStatuses'    => $status_key_collection->values()->all(),
             'activePriorities'  => $priority_key_collection->values()->all(),
             'statusOptions'     => TicketStatusses::comboBoxArray(),
