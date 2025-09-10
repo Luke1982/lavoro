@@ -36,34 +36,26 @@
                     </div>
                 </div>
             </BoxComponent>
-            <div class="mt-5 flex items-center justify-between text-sm px-1">
-                <button type="button" class="flex items-center gap-1 text-gray-600 hover:text-gray-800">
-                    <span class="font-medium">Filter</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" viewBox="0 0 24 24">
-                        <path d="m6 9 6 6 6-6" />
-                    </svg>
-                </button>
-                <div class="flex items-center gap-2">
-                    <button type="button"
-                        class="px-3 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1">Filters
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" viewBox="0 0 24 24">
-                            <path d="m6 9 6 6 6-6" />
-                        </svg>
-                    </button>
-                    <button type="button"
-                        class="px-3 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1">Sorteren
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" viewBox="0 0 24 24">
-                            <path d="m6 9 6 6 6-6" />
-                        </svg>
-                    </button>
-                    <button type="button"
-                        class="px-2.5 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">…</button>
+            <div class="mt-5 px-1">
+                <div class="flex flex-col md:flex-row md:items-start md:gap-4">
+                    <div class="w-full md:w-72">
+                        <ComboBox :options="productTypeOptions" v-model="selectedProductTypeIds" multiple
+                            placeholder="Filter apparaat type" />
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
+                        <template v-if="selectedProductTypeIds.length">
+                            <span v-for="pt in selectedProductTypes" :key="pt.id"
+                                class="inline-flex items-center gap-1 bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-xs font-medium">
+                                {{ pt.name }}
+                                <button type="button" class="hover:text-pink-600" @click="removeProductType(pt.id)">×</button>
+                            </span>
+                            <button type="button" class="text-xs text-gray-600 underline" @click="resetFilters">Reset</button>
+                        </template>
+                        <span v-else class="text-xs text-gray-500">Alle apparaat types</span>
+                    </div>
                 </div>
             </div>
-            <div class="mt-4">
+            <div class="mt-4" v-if="hasUpcomingFiltered">
                 <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
@@ -77,11 +69,11 @@
                 </div>
                 <transition name="fade-height" mode="out-in">
                     <div v-if="showUpcoming" key="upcoming" class="pt-6">
-                        <AssetListGroupComponent :assetGroups="upcomingAssetsByType" />
+                        <AssetListGroupComponent :assetGroups="upcomingFiltered" />
                     </div>
                 </transition>
             </div>
-            <div class="mt-8" v-if="hasNonUpcoming">
+            <div class="mt-8" v-if="hasNonUpcomingFiltered">
                 <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
@@ -95,7 +87,7 @@
                 </div>
                 <transition name="fade-height" mode="out-in">
                     <div v-if="showNonUpcoming" key="nonupcoming" class="pt-6">
-                        <AssetListGroupComponent :assetGroups="nonUpcomingAssetsByType" />
+                        <AssetListGroupComponent :assetGroups="nonUpcomingFiltered" />
                     </div>
                 </transition>
             </div>
@@ -144,7 +136,7 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 
@@ -182,7 +174,55 @@ const updateCustomer = () => {
 
 const showUpcoming = ref(true);
 const showNonUpcoming = ref(false);
-const hasNonUpcoming = computed(() => Object.keys(props.nonUpcomingAssetsByType || {}).length > 0);
+
+// Product type filtering ----------------------------------------------------
+const selectedProductTypeIds = ref([]); // array of product_type ids
+
+// Collect unique product types from both upcoming and non-upcoming groups
+const productTypeOptions = computed(() => {
+    const map = new Map();
+    const collect = (groups) => {
+        Object.values(groups || {}).forEach(assets => {
+            (assets || []).forEach(a => {
+                const pt = a?.product?.product_type;
+                if (pt && !map.has(pt.id)) map.set(pt.id, { id: pt.id, name: pt.name });
+            });
+        });
+    };
+    collect(props.upcomingAssetsByType);
+    collect(props.nonUpcomingAssetsByType);
+    return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name));
+});
+
+const selectedProductTypes = computed(() => {
+    const optionMap = Object.fromEntries(productTypeOptions.value.map(o => [o.id, o]));
+    return selectedProductTypeIds.value.map(id => optionMap[id]).filter(Boolean);
+});
+
+const removeProductType = (id) => {
+    selectedProductTypeIds.value = selectedProductTypeIds.value.filter(x => x !== id);
+};
+const resetFilters = () => { selectedProductTypeIds.value = []; };
+
+// Filtering helpers
+const filterAssetGroups = (groups) => {
+    if (!selectedProductTypeIds.value.length) return groups;
+    return Object.entries(groups || {}).reduce((acc, [groupName, assets]) => {
+        const filtered = (assets || []).filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
+        if (filtered.length) acc[groupName] = filtered;
+        return acc;
+    }, {});
+};
+
+const upcomingFiltered = computed(() => filterAssetGroups(props.upcomingAssetsByType));
+const nonUpcomingFiltered = computed(() => filterAssetGroups(props.nonUpcomingAssetsByType));
+
+const hasUpcomingFiltered = computed(() => Object.values(upcomingFiltered.value || {}).some(arr => arr.length));
+const hasNonUpcomingFiltered = computed(() => Object.values(nonUpcomingFiltered.value || {}).some(arr => arr.length));
+
+// Auto collapse groups if they become empty
+watch(hasUpcomingFiltered, (val) => { if (!val) showUpcoming.value = false; });
+watch(hasNonUpcomingFiltered, (val) => { if (!val) showNonUpcoming.value = false; });
 
 // Collect all events from service orders for this customer for timeline
 const eventList = computed(() => {
