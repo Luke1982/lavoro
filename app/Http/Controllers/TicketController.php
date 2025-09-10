@@ -7,15 +7,74 @@ use App\Enums\TicketStatusses;
 use App\Models\Ticket;
 use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketUpdateRequest;
+use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $search = $request->input('search');
+
+        $query = Ticket::with([
+            'asset.customer',
+            'asset.product.brand',
+            'asset.product.productType',
+        ]);
+        if (is_string($search) && trim($search) !== '') {
+            $query = $this->applySearch($query, $search);
+        } else {
+            // Normalize to empty string so paginator appends consistent param when needed
+            $search = '';
+        }
+
+        $tickets = $query
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->appends(['search' => $search]);
+
+        return inertia('Tickets/IndexPage', [
+            'tickets'      => $tickets,
+            'search'       => $search,
+            'openCount'    => Ticket::where('status', TicketStatusses::open->value)->count(),
+            'pendingCount' => Ticket::where('status', TicketStatusses::in_behandeling->value)->count(),
+            'closedCount'  => Ticket::where('status', TicketStatusses::gesloten->value)->count(),
+        ]);
+    }
+
+    /**
+     * Apply multi-word search across subject, product brand/model/type, serial number and customer name.
+     * Each word must match at least one of the fields (logical AND across words).
+     */
+    private function applySearch($query, ?string $term)
+    {
+        if (!is_string($term) || trim($term) === '') {
+            return $query;
+        }
+        $words = preg_split('/\s+/', trim($term)) ?: [];
+        foreach ($words as $word) {
+            $query->where(function ($q) use ($word) {
+                $q->where('subject', 'like', "%{$word}%")
+                    ->orWhereHas('asset', function ($qa) use ($word) {
+                        $qa->where('serial_number', 'like', "%{$word}%");
+                    })
+                    ->orWhereHas('asset.customer', function ($qc) use ($word) {
+                        $qc->where('name', 'like', "%{$word}%");
+                    })
+                    ->orWhereHas('asset.product', function ($qp) use ($word) {
+                        $qp->where('model', 'like', "%{$word}%")
+                            ->orWhereHas('brand', function ($qb) use ($word) {
+                                $qb->where('name', 'like', "%{$word}%");
+                            })
+                            ->orWhereHas('productType', function ($qt) use ($word) {
+                                $qt->where('name', 'like', "%{$word}%");
+                            });
+                    });
+            });
+        }
+        return $query;
     }
 
     /**
@@ -68,7 +127,11 @@ class TicketController extends Controller
     public function update(TicketUpdateRequest $request, Ticket $ticket)
     {
         $ticket->update($request->validated());
-        $message = 'Storing is bijgewerkt, de status is nu \'' . $request->status . '\' en de prioriteit is ' . '\'' . $request->priority . '\'.';
+            $message = sprintf(
+                "Storing is bijgewerkt, de status is nu '%s' en de prioriteit is '%s'.",
+                $request->status,
+                $request->priority
+            );
 
         if ($request->status && strtolower($request->status) === 'gesloten') {
             $ticket->update(['closed_on' => now()]);
