@@ -17,6 +17,27 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $statuses_param   = $request->input('statuses');
+        $priorities_param = $request->input('priorities');
+
+        $status_key_collection = collect(explode(',', (string)$statuses_param))
+            ->filter(fn($v) => trim($v) !== '')
+            ->unique();
+        $priority_key_collection = collect(explode(',', (string)$priorities_param))
+            ->filter(fn($v) => trim($v) !== '')
+            ->unique();
+
+        $status_cases   = collect(TicketStatusses::cases())->keyBy(fn($c) => $c->name);
+        $priority_cases = collect(TicketPriorities::cases())->keyBy(fn($c) => $c->name);
+
+        $active_status_values = $status_key_collection
+            ->map(fn($k) => optional($status_cases->get($k))->value)
+            ->filter()
+            ->values();
+        $active_priority_values = $priority_key_collection
+            ->map(fn($k) => optional($priority_cases->get($k))->value)
+            ->filter()
+            ->values();
 
         $query = Ticket::with([
             'asset.customer',
@@ -26,21 +47,36 @@ class TicketController extends Controller
         if (is_string($search) && trim($search) !== '') {
             $query = $this->applySearch($query, $search);
         } else {
-            // Normalize to empty string so paginator appends consistent param when needed
             $search = '';
         }
 
-        $tickets = $query
-            ->orderByDesc('created_at')
-            ->paginate(20)
-            ->appends(['search' => $search]);
+        if ($active_status_values->isNotEmpty()) {
+            $query->whereIn('status', $active_status_values->all());
+        }
+        if ($active_priority_values->isNotEmpty()) {
+            $query->whereIn('priority', $active_priority_values->all());
+        }
+
+        $appends = ['search' => $search];
+        if ($statuses_param) {
+            $appends['statuses'] = $statuses_param;
+        }
+        if ($priorities_param) {
+            $appends['priorities'] = $priorities_param;
+        }
+
+        $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
 
         return inertia('Tickets/IndexPage', [
-            'tickets'      => $tickets,
-            'search'       => $search,
-            'openCount'    => Ticket::where('status', TicketStatusses::open->value)->count(),
-            'pendingCount' => Ticket::where('status', TicketStatusses::in_behandeling->value)->count(),
-            'closedCount'  => Ticket::where('status', TicketStatusses::gesloten->value)->count(),
+            'tickets'           => $tickets,
+            'search'            => $search,
+            'openCount'         => Ticket::where('status', TicketStatusses::open->value)->count(),
+            'pendingCount'      => Ticket::where('status', TicketStatusses::in_behandeling->value)->count(),
+            'closedCount'       => Ticket::where('status', TicketStatusses::gesloten->value)->count(),
+            'activeStatuses'    => $status_key_collection->values()->all(),
+            'activePriorities'  => $priority_key_collection->values()->all(),
+            'statusOptions'     => TicketStatusses::comboBoxArray(),
+            'priorityOptions'   => TicketPriorities::comboBoxArray(),
         ]);
     }
 

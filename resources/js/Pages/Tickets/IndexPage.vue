@@ -18,7 +18,21 @@
 
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
-            search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets" />
+            search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
+            :search-other-params="computedOtherParams">
+            <template #right>
+                <div class="flex flex-col md:flex-row gap-4 w-full">
+                    <div class="flex-1">
+                        <ComboBox :options="statusOptions" v-model="selectedStatuses" multiple label="Statussen"
+                            placeholder="Filter op status" :initial-ids="selectedStatuses" />
+                    </div>
+                    <div class="flex-1">
+                        <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
+                            placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
+                    </div>
+                </div>
+            </template>
+        </IndexHeaderComponent>
     </div>
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
@@ -95,15 +109,30 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import { Link } from '@inertiajs/vue3';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+import { computed, ref } from 'vue';
 import { nlDate } from '@/Utilities/Utilities';
 
-defineProps({
+const props = defineProps({
     tickets: { type: Object, required: true },
     search: { type: String, default: '' },
     openCount: { type: Number, required: true },
     pendingCount: { type: Number, required: true },
     closedCount: { type: Number, required: true },
+    activeStatuses: { type: Array, default: () => [] },
+    activePriorities: { type: Array, default: () => [] },
+    statusOptions: { type: Array, default: () => [] },
+    priorityOptions: { type: Array, default: () => [] },
 });
+
+const selectedStatuses = ref(props.activeStatuses.slice());
+const selectedPriorities = ref(props.activePriorities.slice());
+
+const computedOtherParams = computed(() => ({
+    statuses: selectedStatuses.value.join(','),
+    priorities: selectedPriorities.value.join(','),
+}));
+
 
 // Adjusted widths so table fits typical desktop widths without horizontal scroll.
 const headers = [
