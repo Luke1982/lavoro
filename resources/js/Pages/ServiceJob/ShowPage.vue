@@ -1,7 +1,7 @@
 <template>
     <BoxComponent>
         <div class="flex items-start justify-between mb-4">
-            <h1 class="text-2xl font-bold text-center flex-1">
+            <h1 class="text-lg md:text-2xl font-bold text-left md:text-center flex-1">
                 Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
             </h1>
             <div class="flex gap-2 ml-4">
@@ -50,7 +50,7 @@
                 </Link>
             </div>
         </div>
-        <div v-if="missing_checks_count > 0"
+        <div v-if="missing_checks_count > 0 && servicejob.completed_on === null"
             class="mb-4 p-3 border border-amber-300 bg-amber-50 rounded text-sm text-amber-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div class="flex-1">
                 <div class="font-semibold mb-1">{{ missing_checks_count }} ontbrekende keurpunt(en)</div>
@@ -88,29 +88,31 @@
             </h2>
             <div class="grid grid-cols-12 md:flex mt-4 justify-center" v-auto-animate>
                 <ComboBox :label="'Uitkomst van de keuring'" :options="possibleOutcomes" v-model="currentOutcomeId"
-                    class="col-span-6 mr-2 md:mr-0 flex flex-col justify-between"></ComboBox>
+                    class="col-span-6 mr-2 md:mr-0 flex flex-col justify-end"
+                    :disabled="servicejob.completed_on !== null"></ComboBox>
                 <TextInput v-model="form.days_temporary_approval" :label="'Aantal dagen tijdelijk goedgekeurd'"
                     class="col-span-6 ml-2 md:ml-4 flex flex-col justify-between" type="number"
                     v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
                 <div class="col-span-6 ml-0 md:ml-4 mr-2 md:mr-0 flex flex-col justify-between mt-4 md:mt-0">
                     <label class="block text-sm font-medium leading-6 text-gray-900">Afgerond op:</label>
                     <input type="date" v-model="form.completed_on" lang="nl"
-                        class="w-full border border-gray-300 rounded-md text-sm p-1.5 mt-2" />
+                        class="w-full border border-gray-300 rounded-md text-sm p-1.5 mt-2 disabled:bg-gray-100"
+                        :disabled="servicejob.completed_on !== null" />
                 </div>
                 <button @click="updating = true; updateJob()" :disabled="updating" v-auto-animate
                     v-if="servicejob.completed_on === null"
-                    class="flex ml-2 md:ml-4 col-span-6 justify-around bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
+                    class="block md:flex w-full md:w-auto mt-2 md:ml-4 col-span-12 justify-around bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
                     <span> Opslaan </span>
                     <Cog6ToothIcon v-if="updating"
-                        class="inline size-5 mt-o md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
+                        class="inline size-5 mt-0 md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
                 </button>
-                <div v-else class="flex col-span-6">
+                <div v-else class="flex col-span-12 w-full md:w-auto mt-2 md:ml-4 mr-2 md:mr-0 justify-center">
                     <InformationCircleIcon class="inline size-6 ml-2 text-gray-500 self-end mb-2 cursor-pointer"
                         v-tooltip="{
                             html: true,
                             content: `<span class='block w-100'>Deze keuring is afgerond op <strong>${nlDate(servicejob.completed_on)}</strong>, dus je kunt hem niet meer opslaan. Wil je de datum leegmaken en de keuring opnieuw kunnen opslaan? Klik dan op het slot hiernaast.</span>`
                         }" />
-                    <LockOpenIcon class="inline size-6 ml-2 text-gray-500 self-end mb-2 cursor-pointer"
+                    <LockClosedIcon class="inline size-6 ml-2 text-gray-500 self-end mb-2 cursor-pointer"
                         @click="clearCompletedOn" />
                 </div>
             </div>
@@ -149,7 +151,7 @@ import { nlDate } from '@/Utilities/Utilities';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
-import { Cog6ToothIcon, InformationCircleIcon, LockOpenIcon } from '@heroicons/vue/24/outline';
+import { Cog6ToothIcon, InformationCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 
 const { servicejob, possibleOutcomes, missing_checks_count, missing_checks } = defineProps({
     servicejob: {

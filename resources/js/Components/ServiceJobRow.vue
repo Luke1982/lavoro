@@ -1,6 +1,6 @@
 <template>
-    <div :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 md:py-2 md:px-0 relative p-5`">
-        <div class="col-span-5 lg:col-span-5 flex flex-col" v-if="asset">
+    <div :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 md:py-2 relative`">
+        <div class="col-span-6 lg:col-span-5 flex flex-col" v-if="asset">
             <span class="font-bold block lg:hidden">Machine</span>
             <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 hover:underline"
                 v-tooltip="'Met deze link ga je naar het algemene product'">
@@ -12,7 +12,7 @@
                     servicejob.asset.serial_number }}</Link>
         </div>
         <div
-            :class="[getOutcomeColor(servicejob.outcome), 'col-span-6 lg:col-span-2 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center ml-2']">
+            :class="[getOutcomeColor(servicejob.outcome), 'col-span-6 lg:col-span-2 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center mr-4 md:mr-0']">
             <span class="font-bold block lg:hidden mr-2">Uitkomst:</span>{{
                 servicejob.outcome }}
         </div>

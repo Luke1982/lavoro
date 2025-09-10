@@ -1,5 +1,5 @@
 <template>
-    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px mx-2" role="table">
+    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px" role="table">
         <div class="hidden lg:flex" role="row">
             <div v-for="(header, hIndex) in headers" :key="header.key" role="columnheader" :class="[
                 'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md',
@@ -20,7 +20,8 @@
                 <div v-for="(column, cIndex) in headers" :key="column.key" role="cell"
                     :class="['px-4 py-2 flex flex-col col-span-12 md:col-span-6', classForIndex(cIndex)]"
                     :style="styleForIndex(cIndex)">
-                    <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600">{{ column.label }}</span>
+                    <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600"
+                        v-if="column.fieldtype !== 'combobox'">{{ column.label }}</span>
                     <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
                         @update:modelValue="onCellChange(item.id, column.key, $event)"
                         v-if="column.fieldtype === 'text' || column.fieldtype === 'number'" />
@@ -30,7 +31,7 @@
                         :options="column.combovalues || []" :multiple="column.multiple === true"
                         :initialId="Array.isArray(item[column.key]) ? null : (item[column.key]?.id ?? item[column.key] ?? null)"
                         :initialIds="Array.isArray(item[column.key]) ? item[column.key] : []"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)" />
+                        @update:modelValue="onCellChange(item.id, column.key, $event)" :label="column.label" />
                     <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                         @update:modelValue="onCellChange(item.id, column.key, $event)" />
                 </div>

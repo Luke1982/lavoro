@@ -9,87 +9,88 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
                         }}</h1>
-                    <!-- Acties menu -->
-                    <Menu as="div" class="relative ml-4 inline-block text-left">
-                        <div>
-                            <MenuButton
-                                class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 inset-ring-1 inset-ring-gray-300 hover:bg-gray-50">
-                                Acties
-                                <ChevronDownIcon class="-mr-1 size-5 text-gray-400" aria-hidden="true" />
-                            </MenuButton>
-                        </div>
-                        <transition enter-active-class="transition ease-out duration-100"
-                            enter-from-class="transform opacity-0 scale-95"
-                            enter-to-class="transform opacity-100 scale-100"
-                            leave-active-class="transition ease-in duration-75"
-                            leave-from-class="transform opacity-100 scale-100"
-                            leave-to-class="transform opacity-0 scale-95">
-                            <MenuItems
-                                class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg outline-1 outline-black/5 focus:outline-none">
-                                <div class="py-1 text-sm">
-                                    <MenuItem v-slot="{ active }">
-                                    <button type="button" @click="openPdf"
-                                        :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
-                                        <span class="inline-flex items-center">
-                                            <span
-                                                class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                            Exporteer PDF
-                                        </span>
-                                    </button>
-                                    </MenuItem>
-                                    <MenuItem v-slot="{ active }">
-                                    <button type="button" @click="emailPdf" :disabled="emailing"
-                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
-                                        <span class="inline-flex items-center" v-if="!emailing">
-                                            <span
-                                                class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                            E-mail PDF
-                                        </span>
-                                        <span v-else>Versturen...</span>
-                                    </button>
-                                    </MenuItem>
-                                    <MenuItem v-slot="{ active }" v-if="serviceOrder.servicejobs.length > 0">
-                                    <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
-                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
-                                        <span class="inline-flex items-center" v-if="!emailingCombined">
-                                            <span
-                                                class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                            E-mail PDF + keuringen
-                                        </span>
-                                        <span v-else>Versturen...</span>
-                                    </button>
-                                    </MenuItem>
-                                    <MenuItem v-if="!serviceOrder.sent_to_administration" v-slot="{ active }">
-                                    <button type="button" @click="sendToSnelStart"
-                                        :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
-                                        Verstuur naar SnelStart
-                                    </button>
-                                    </MenuItem>
-                                    <MenuItem v-else v-slot="{ active }">
-                                    <span
-                                        :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
-                                        naar administratie</span>
-                                    </MenuItem>
-                                </div>
-                            </MenuItems>
-                        </transition>
-                    </Menu>
-                    <span v-if="statusState === 'both'"
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
-                        Verzonden klant & administratie
-                    </span>
-                    <span v-else-if="statusState === 'customer'"
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 text-blue-700 border border-blue-300">
-                        Verzonden klant
-                    </span>
-                    <span v-else-if="statusState === 'administration'"
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
-                        Verzonden administratie
-                    </span>
-                    <span v-else
-                        class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">
-                        Niet verzonden
-                    </span>
+                    <div class="flex flex-col md:flex-row gap-2">
+                        <Menu as="div" class="relative ml-4 inline-block text-left">
+                            <div>
+                                <MenuButton
+                                    class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 inset-ring-1 inset-ring-gray-300 hover:bg-gray-50">
+                                    Acties
+                                    <ChevronDownIcon class="-mr-1 size-5 text-gray-400" aria-hidden="true" />
+                                </MenuButton>
+                            </div>
+                            <transition enter-active-class="transition ease-out duration-100"
+                                enter-from-class="transform opacity-0 scale-95"
+                                enter-to-class="transform opacity-100 scale-100"
+                                leave-active-class="transition ease-in duration-75"
+                                leave-from-class="transform opacity-100 scale-100"
+                                leave-to-class="transform opacity-0 scale-95">
+                                <MenuItems
+                                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg outline-1 outline-black/5 focus:outline-none">
+                                    <div class="py-1 text-sm">
+                                        <MenuItem v-slot="{ active }">
+                                        <button type="button" @click="openPdf"
+                                            :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
+                                            <span class="inline-flex items-center">
+                                                <span
+                                                    class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                Exporteer PDF
+                                            </span>
+                                        </button>
+                                        </MenuItem>
+                                        <MenuItem v-slot="{ active }">
+                                        <button type="button" @click="emailPdf" :disabled="emailing"
+                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
+                                            <span class="inline-flex items-center" v-if="!emailing">
+                                                <span
+                                                    class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                E-mail PDF
+                                            </span>
+                                            <span v-else>Versturen...</span>
+                                        </button>
+                                        </MenuItem>
+                                        <MenuItem v-slot="{ active }" v-if="serviceOrder.servicejobs.length > 0">
+                                        <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
+                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
+                                            <span class="inline-flex items-center" v-if="!emailingCombined">
+                                                <span
+                                                    class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                E-mail PDF + keuringen
+                                            </span>
+                                            <span v-else>Versturen...</span>
+                                        </button>
+                                        </MenuItem>
+                                        <MenuItem v-if="!serviceOrder.sent_to_administration" v-slot="{ active }">
+                                        <button type="button" @click="sendToSnelStart"
+                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
+                                            Verstuur naar SnelStart
+                                        </button>
+                                        </MenuItem>
+                                        <MenuItem v-else v-slot="{ active }">
+                                        <span
+                                            :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
+                                            naar administratie</span>
+                                        </MenuItem>
+                                    </div>
+                                </MenuItems>
+                            </transition>
+                        </Menu>
+                        <span v-if="statusState === 'both'"
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                            Verzonden klant & administratie
+                        </span>
+                        <span v-else-if="statusState === 'customer'"
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 text-blue-700 border border-blue-300">
+                            Verzonden klant
+                        </span>
+                        <span v-else-if="statusState === 'administration'"
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                            Verzonden administratie
+                        </span>
+                        <span v-else
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">
+                            Niet verzonden
+                        </span>
+                    </div>
                 </div>
                 <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
                     <div class="col-span-2 text-xs">

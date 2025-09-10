@@ -28,8 +28,8 @@
                 :fields="serviceCheckFields" add-button-label="Voeg keurpunt toe" submit-label="Opslaan" />
         </div>
 
-        <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-            <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0">
+        <BoxComponent padding="md:mx-0 px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
+            <div v-if="internalServiceChecks.length" class="mt-3">
                 <div class="hidden md:grid px-4 py-2 text-sm font-semibold text-left border-b border-gray-200"
                     :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
                     <div v-if="productTypeToShow !== 0">Volgorde</div>
@@ -85,7 +85,8 @@
                                 </div>
                                 <span v-else>{{ serviceCheckTypes[item.type] }}</span>
                             </div>
-                            <div class="flex flex-col px-4 py-2">
+                            <div
+                                :class="{ 'flex flex-col px-4 py-2': true, 'hidden': !Object.keys(serviceCheckTypesWithOptions).includes(item.type) }">
                                 <span class="block md:hidden font-semibold text-xs">Waarden</span>
                                 {{ getValuesCellContent(item) }}
                             </div>
@@ -298,7 +299,5 @@ const validateGroupSelection = (item) => {
         item.group = null
     }
 }
-
-// Navigation on filter changes is handled by SearchComponent via search-other-params.
 
 </script>

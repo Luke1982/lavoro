@@ -1,5 +1,6 @@
 <template>
-    <nav class="flex items-center justify-between px-4 sm:px-0" :class="$attrs.class">
+    <nav class="flex items-center justify-between px-4 py-2" :class="$attrs.class"
+        v-if="middleLinks.length > 1 || prevUrl || nextUrl">
         <div class="flex-1">
             <Link v-if="prevUrl" :href="appendParams(prevUrl)"
                 class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700" preserve-scroll>
