@@ -145,7 +145,7 @@ const changeTitle = (name, id) => {
     if (newTitle !== null) {
         uploadImagesForm.newTitle = newTitle;
 
-        uploadImagesForm.post(`/images/${id}`, {
+        uploadImagesForm.post(`/images/update/${id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 //todo emit new image
@@ -277,11 +277,11 @@ const saveEditedImage = () => {
 
     uploadImagesForm.imageToUpdate = file;  // Overwrite the existing image with the annotated image
 
-    uploadImagesForm.post(`/images/${currentImage.value.id}`, {
+    uploadImagesForm.post(`/images/update/${currentImage.value.id}`, {
         preserveScroll: true,
         onSuccess: () => {
             uploadImagesForm.imageToUpdate = null;
-            emit('imageUpdated', JSON.parse(page.props.flash.updated_image));
+            emit('imageUpdated', JSON.parse(page.props.flash.extra));
             currentImage.value = { id: null, path: null };
         }
     });

@@ -54,7 +54,7 @@ class ImageController extends Controller
             if (!file_exists($real_path)) {
                 mkdir($real_path, 0755, true);
             }
-            $image->storePubliclyAs($path, $image->getClientOriginalName(), 'local');
+            $image->storePubliclyAs($path, $image->getClientOriginalName(), 'public');
             $new_image = Image::create([
                 'name' => $request->titles[$image->getClientOriginalName()],
                 'path' => $path . $image->getClientOriginalName(),
@@ -109,7 +109,7 @@ class ImageController extends Controller
             $filename = preg_replace('/-TS\d{10}/', '', $filename);
             $new_filename = $filename . '-TS' . $time . '.' . $extension;
 
-            $new_image_file->storeAs($store_dir, $new_filename, 'local');
+            $new_image_file->storeAs($store_dir, $new_filename, 'public');
 
             $image->update([
                 'updated_at' => now(),
