@@ -1,7 +1,8 @@
 <template>
     <div class="flow-root">
         <div v-if="!eventsToShow.length" class="text-xs text-gray-500 px-1 py-0.5">Geen afspraken</div>
-        <ul v-else role="list" class="-mb-5" v-auto-animate>
+    <div v-else :class="['timeline-wrapper', expanded ? 'expanded' : 'collapsed']" aria-live="polite">
+    <ul role="list" class="-mb-5" v-auto-animate>
             <li v-for="(ev, idx) in eventsToShow" :key="ev.id">
                 <div class="relative pb-5">
                     <span v-if="idx !== eventsToShow.length - 1"
@@ -39,7 +40,8 @@
                     </div>
                 </div>
             </li>
-        </ul>
+    </ul>
+    </div>
         <div v-if="showToggle && eventsToShow.length" class="mt-1 -mx-3">
             <button type="button" @click="expanded = !expanded" :aria-expanded="expanded.toString()"
                 class="group w-full flex items-center justify-start gap-2 text-xs font-medium text-indigo-600 px-3 py-2 rounded-md hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1">
@@ -132,3 +134,9 @@ const statusBadgeClass = (status) => {
     }
 }
 </script>
+
+<style scoped>
+.timeline-wrapper { overflow: hidden; transition: max-height .35s ease; }
+.timeline-wrapper.collapsed { max-height: 500px; }
+.timeline-wrapper.expanded { max-height: 3000px; }
+</style>
