@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
+    use Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -34,6 +35,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * Attributes that should be appended when the model is serialized.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'avatar',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -44,5 +54,27 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Accessor for the user's avatar path (or URL).
+     */
+    public function getAvatarAttribute(): ?string
+    {
+        if (!$this->id) {
+            return null;
+        }
+
+        $directory = "users/{$this->id}/avatar";
+
+        if (!Storage::disk('public')->exists($directory)) {
+            return null;
+        }
+
+        $files = Storage::disk('public')->files($directory);
+        if (empty($files)) {
+            return null;
+        }
+        return Storage::url($files[0]);
     }
 }

@@ -102,13 +102,20 @@
                                         </li>
 
                                         <li class="-mx-6 mt-auto">
-                                            <div class="px-6 mb-2">
+                                            <div class="px-6 mb-2 space-y-1">
                                                 <Link :href="'/companies'" :class="[
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                                 Bedrijf
+                                                </Link>
+                                                <Link :href="'/users'" :class="[
+                                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                <UsersIcon class="size-6 shrink-0" />
+                                                Gebruikers
                                                 </Link>
                                             </div>
                                             <a href="#"
@@ -194,7 +201,7 @@
                         </li>
 
                         <li class="-mx-6 mt-auto">
-                            <div class="px-6 mb-2">
+                            <div class="px-6 mb-2 space-y-1">
                                 <Link :href="'/companies'" :class="[
                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -202,15 +209,25 @@
                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                 Bedrijf
                                 </Link>
+                                <Link :href="'/users'" :class="[
+                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                <UsersIcon class="size-6 shrink-0" />
+                                Gebruikers
+                                </Link>
                             </div>
-                            <a href="#"
+                            <Link :href="authUser ? '/users/' + authUser.id : '#'"
                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
-                                <img class="size-8 rounded-full bg-gray-800"
-                                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                    alt="" />
-                                <span class="sr-only">Your profile</span>
-                                <span aria-hidden="true">Tom Cook</span>
-                            </a>
+                            <div
+                                class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                                <img v-if="authUser?.avatar" :src="authUser.avatar"
+                                    class="object-cover w-full h-full" />
+                                <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
+                            </div>
+                            <span class="sr-only">Profiel</span>
+                            <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
+                            </Link>
                         </li>
                     </ul>
                 </nav>
@@ -223,12 +240,14 @@
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
             <div class="flex-1 text-sm/6 font-semibold text-white">Dashboard</div>
-            <a href="#">
-                <span class="sr-only">Your profile</span>
-                <img class="size-8 rounded-full bg-gray-800"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    alt="" />
-            </a>
+            <Link :href="authUser ? '/users/' + authUser.id : '#'">
+            <span class="sr-only">Profiel</span>
+            <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
+                <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
+            </div>
+            </Link>
+
         </div>
 
         <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72']">
@@ -267,6 +286,8 @@ import { Link, usePage } from '@inertiajs/vue3'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
+const authUser = computed(() => page.props.auth.user)
+const initials = computed(() => authUser.value?.name ? authUser.value.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '')
 
 const navigation = ref([
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
@@ -351,8 +372,8 @@ const lists = [
 const isCompanyCurrent = computed(() => currentPath === '/companies')
 
 /**
- * Set the active top-level navigation item.
- * @param {{name:string}} item
+ * Set the active top-level nav gation item.
+ * @param {{name: tring}} item
  */
 const updateCurrent = (item) => {
     navigation.value.forEach((navItem) => {

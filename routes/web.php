@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\ActivityListController;
-use App\Models\EventType;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
@@ -25,6 +24,7 @@ use App\Http\Controllers\ServiceCheckInstanceController;
 use App\Http\Controllers\ServiceCheckGroupController;
 use App\Http\Controllers\SnelStartImportController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\UserController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -111,6 +111,8 @@ Route::group(
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])->name('companies.inline');
             Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])->name('companies.logo');
             Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
+            Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
+            Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
     }
 );
 
