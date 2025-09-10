@@ -32,7 +32,7 @@
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Postadres</h3>
                         <p class="text-sm text-gray-800 leading-snug">{{ customer.postal_address }}<br>{{
                             customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
-                            customer.postal_city }}</p>
+                                customer.postal_city }}</p>
                     </div>
                 </div>
             </BoxComponent>
@@ -102,19 +102,35 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent class="md:ml-5 md:mt-0 ml-0 mt-5">
-                <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
-                    <div class="flex">
-                        <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
-                        <h2 class="font-regular text-xl">Werkbonnen</h2>
+            <div class="space-y-4 md:ml-5 md:mt-0 ml-0 mt-5">
+
+                <BoxComponent>
+                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
+                        <div class="flex">
+                            <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
+                            <h2 class="font-regular text-xl">Werkbonnen</h2>
+                        </div>
+                        <PlusCircleIcon class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                            @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
+                            v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
                     </div>
-                    <PlusCircleIcon class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
-                        @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
-                        v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
-                </div>
-                <ServiceOrderRow v-for="serviceorder in customer.service_orders" v-bind:key="serviceorder.id"
-                    :serviceorder="serviceorder" />
-            </BoxComponent>
+                    <ServiceOrderRow v-for="serviceorder in customer.service_orders" v-bind:key="serviceorder.id"
+                        :serviceorder="serviceorder" />
+                </BoxComponent>
+                <BoxComponent class="bg-white">
+                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between items-center">
+                        <div class="flex items-center">
+                            <svg class="size-6 text-gray-500 mr-2" fill="none" stroke="currentColor" stroke-width="1.5"
+                                viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            <h2 class="font-regular text-xl">Afspraken</h2>
+                        </div>
+                    </div>
+                    <EventTimelineComponent :events="eventList" />
+                </BoxComponent>
+            </div>
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -130,6 +146,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
+import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 
 const props = defineProps({
     customer: {
@@ -166,6 +183,15 @@ const updateCustomer = () => {
 const showUpcoming = ref(true);
 const showNonUpcoming = ref(false);
 const hasNonUpcoming = computed(() => Object.keys(props.nonUpcomingAssetsByType || {}).length > 0);
+
+// Collect all events from service orders for this customer for timeline
+const eventList = computed(() => {
+    const orders = props.customer.service_orders || [];
+    return orders.flatMap(o => (o.events || []).map(e => ({
+        ...e,
+        service_order_id: o.id,
+    })));
+});
 </script>
 
 <style scoped>

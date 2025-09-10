@@ -60,6 +60,8 @@ class CustomerController extends Controller
             'pendingTickets',
             'closedTickets',
             'serviceOrders.serviceJobs.asset.tickets',
+            // Load events (appointments) for each service order including their type for timeline
+            'serviceOrders.events.eventType',
         ]);
 
         $upcomingByType    = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
