@@ -30,7 +30,8 @@
 
         <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
             <div v-if="internalServiceChecks.length" class="-mx-4 mt-3 sm:-mx-0">
-                <div class="hidden md:grid px-4 py-2 text-sm font-semibold text-left border-b border-gray-200" :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
+                <div class="hidden md:grid px-4 py-2 text-sm font-semibold text-left border-b border-gray-200"
+                    :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
                     <div v-if="productTypeToShow !== 0">Volgorde</div>
                     <div>Naam</div>
                     <div>Producttypes</div>
@@ -40,72 +41,97 @@
                     <div></div>
                 </div>
                 <div v-auto-animate class="mb-4">
-                    <div v-for="item in internalServiceChecks" :key="item.id" class="odd:bg-white even:bg-gray-100" v-auto-animate>
-                            <div class="relative pt-5 md:pt-0 md:grid" :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
-                                <div v-if="productTypeToShow !== 0" class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Volgorde</span>
-                                    <div v-if="item.open"><TextInput v-model="item.order" /></div>
-                                    <span v-else>{{ item.order }}</span>
+                    <div v-for="item in internalServiceChecks" :key="item.id" class="odd:bg-white even:bg-gray-100"
+                        v-auto-animate>
+                        <div class="relative pt-5 md:pt-0 md:grid"
+                            :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
+                            <div v-if="productTypeToShow !== 0" class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Volgorde</span>
+                                <div v-if="item.open">
+                                    <TextInput v-model="item.order" />
                                 </div>
-                                <div class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Naam</span>
-                                    <div v-if="item.open"><TextInput v-model="item.name" /></div>
-                                    <span v-else>{{ item.name }}</span>
-                                </div>
-                                <div class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Producttypes</span>
-                                    <div v-if="item.open">
-                                        <ComboBox :options="productTypes" v-model="item.product_type_ids" multiple :initialIds="(item.product_types || []).map(pt => pt.id)" @update:modelValue="() => validateGroupSelection(item)" />
-                                    </div>
-                                    <span v-else>{{ (item.product_types || []).map(pt => pt.name).join(', ') }}</span>
-                                </div>
-                                <div class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Groep</span>
-                                    <div v-if="item.open">
-                                        <ComboBox :options="getGroupsFor(item)" v-model="item.service_check_group_id" :initialId="item.service_check_group_id ?? null" placeholder="Geen groep" :key="`grp-${item.id}-${(item.product_type_ids || []).join(',')}`" />
-                                    </div>
-                                    <span v-else>{{ item.group?.name || '—' }}</span>
-                                </div>
-                                <div class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
-                                    <div v-if="item.open">
-                                        <ComboBox :options="serviceCheckTypesForComboBox" v-model="item.type" :initialId="item.type.name" />
-                                    </div>
-                                    <span v-else>{{ serviceCheckTypes[item.type] }}</span>
-                                </div>
-                                <div class="flex flex-col px-4 py-2">
-                                    <span class="block md:hidden font-semibold text-xs">Waarden</span>
-                                    {{ getValuesCellContent(item) }}
-                                </div>
-                                <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium">
-                                    <button v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type) && !item.open" @click.stop="toggleRecordValueEdit(item.id)" v-tooltip="`Bewerk waarden voor ${item.name}`">
-                                        <AdjustmentsHorizontalIcon class="size-6 text-blue-300 hover:text-blue-500" />
-                                    </button>
-                                    <button v-if="!item.open" @click="toggleRecord(item.id)" v-tooltip="'Bewerk dit keurpunt'">
-                                        <PencilSquareIcon class="size-6 text-gray-600 hover:text-gray-800" />
-                                    </button>
-                                    <button v-else @click="saveRecord(item)" class="text-green-600 hover:text-green-800" v-tooltip="'Opslaan'">
-                                        <CheckIcon class="size-6" />
-                                    </button>
-                                    <button @click.stop="deleteServiceCheck(item.id)" v-tooltip="'Verwijder dit keurpunt'">
-                                        <TrashIcon class="size-6 text-red-400 hover:text-red-600" />
-                                    </button>
-                                </div>
+                                <span v-else>{{ item.order }}</span>
                             </div>
-                            <div v-if="item.openValue && !item.open" :key="`${item.id}-values`" class="px-4 pb-4">
-                                <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name }}, of voeg een nieuwe toe</h5>
-                                <ServiceCheckValueListComponent v-model="item.values" :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
-                                <div class="flex items-center">
-                                    <div class="flex flex-grow">
-                                        <TextInput v-model="serviceCheckValueForm.value" placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full" :error-message="serviceCheckValueForm.errors.value" :has-error="serviceCheckValueForm.errors.value" />
-                                    </div>
-                                    <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2" @click="() => { addnewServiceCheckValue(item.id) }" v-tooltip="`Voeg waarde '${serviceCheckValueForm.value}' toe`" />
+                            <div class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Naam</span>
+                                <div v-if="item.open">
+                                    <TextInput v-model="item.name" />
                                 </div>
+                                <span v-else>{{ item.name }}</span>
                             </div>
+                            <div class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Producttypes</span>
+                                <div v-if="item.open">
+                                    <ComboBox :options="productTypes" v-model="item.product_type_ids" multiple
+                                        :initialIds="(item.product_types || []).map(pt => pt.id)"
+                                        @update:modelValue="() => validateGroupSelection(item)" />
+                                </div>
+                                <span v-else>{{(item.product_types || []).map(pt => pt.name).join(', ')}}</span>
+                            </div>
+                            <div class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Groep</span>
+                                <div v-if="item.open">
+                                    <ComboBox :options="getGroupsFor(item)" v-model="item.service_check_group_id"
+                                        :initialId="item.service_check_group_id ?? null" placeholder="Geen groep"
+                                        :key="`grp-${item.id}-${(item.product_type_ids || []).join(',')}`" />
+                                </div>
+                                <span v-else>{{ item.group?.name || '—' }}</span>
+                            </div>
+                            <div class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
+                                <div v-if="item.open">
+                                    <ComboBox :options="serviceCheckTypesForComboBox" v-model="item.type"
+                                        :initialId="item.type.name" />
+                                </div>
+                                <span v-else>{{ serviceCheckTypes[item.type] }}</span>
+                            </div>
+                            <div class="flex flex-col px-4 py-2">
+                                <span class="block md:hidden font-semibold text-xs">Waarden</span>
+                                {{ getValuesCellContent(item) }}
+                            </div>
+                            <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium">
+                                <button
+                                    v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type) && !item.open"
+                                    @click.stop="toggleRecordValueEdit(item.id)"
+                                    v-tooltip="`Bewerk waarden voor ${item.name}`">
+                                    <AdjustmentsHorizontalIcon class="size-6 text-blue-300 hover:text-blue-500" />
+                                </button>
+                                <button v-if="!item.open" @click="toggleRecord(item.id)"
+                                    v-tooltip="'Bewerk dit keurpunt'">
+                                    <PencilSquareIcon class="size-6 text-gray-600 hover:text-gray-800" />
+                                </button>
+                                <button v-else @click="saveRecord(item)" class="text-green-600 hover:text-green-800"
+                                    v-tooltip="'Opslaan'">
+                                    <CheckIcon class="size-6" />
+                                </button>
+                                <button @click.stop="deleteServiceCheck(item.id)" v-tooltip="'Verwijder dit keurpunt'">
+                                    <TrashIcon class="size-6 text-red-400 hover:text-red-600" />
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="item.openValue && !item.open" :key="`${item.id}-values`" class="px-4 pb-4">
+                            <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name }},
+                                of voeg
+                                een nieuwe toe</h5>
+                            <ServiceCheckValueListComponent v-model="item.values"
+                                :allServiceChecks="internalServiceChecks" :parentServiceCheckId="item.id" />
+                            <div class="flex items-center">
+                                <div class="flex flex-grow">
+                                    <TextInput v-model="serviceCheckValueForm.value"
+                                        placeholder="Voeg nieuwe waarde toe" class="mb-2 w-full"
+                                        :error-message="serviceCheckValueForm.errors.value"
+                                        :has-error="serviceCheckValueForm.errors.value" />
+                                </div>
+                                <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2"
+                                    @click="() => { addnewServiceCheckValue(item.id) }"
+                                    v-tooltip="`Voeg waarde '${serviceCheckValueForm.value}' toe`" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks" class="border-t border-gray-200 pt-2" />
+            <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
+                class="border-t border-gray-200 pt-2" />
             <p v-else class="text-center text-gray-500 p-4">Geen service checks gevonden.</p>
         </BoxComponent>
     </div>
