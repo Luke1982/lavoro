@@ -26,7 +26,7 @@
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Bezoekadres</h3>
                         <p class="text-sm text-gray-800 leading-snug">{{ customer.address }}<br>{{ customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Postadres</h3>
@@ -47,9 +47,11 @@
                             <span v-for="pt in selectedProductTypes" :key="pt.id"
                                 class="inline-flex items-center gap-1 bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-xs font-medium">
                                 {{ pt.name }}
-                                <button type="button" class="hover:text-pink-600" @click="removeProductType(pt.id)">×</button>
+                                <button type="button" class="hover:text-pink-600"
+                                    @click="removeProductType(pt.id)">×</button>
                             </span>
-                            <button type="button" class="text-xs text-gray-600 underline" @click="resetFilters">Reset</button>
+                            <button type="button" class="text-xs text-gray-600 underline"
+                                @click="resetFilters">Reset</button>
                         </template>
                         <span v-else class="text-xs text-gray-500">Alle apparaat types</span>
                     </div>
@@ -62,7 +64,8 @@
                             class="inline-flex items-center justify-center w-5 h-5 rounded bg-pink-50 border border-pink-200"><span
                                 class="w-2 h-2 rounded-full bg-pink-600"></span></span>
                         <button type="button" class="text-sm font-medium"
-                            @click="showUpcoming = !showUpcoming">Apparaten die binnen 30 dagen verlopen</button>
+                            @click="showUpcoming = !showUpcoming">Apparaten die binnen
+                            30 dagen verlopen</button>
                     </div>
                     <button type="button" class="text-gray-400 hover:text-gray-600"
                         @click="showUpcoming = !showUpcoming">…</button>
@@ -80,7 +83,8 @@
                             class="inline-flex items-center justify-center w-5 h-5 rounded bg-yellow-50 border border-yellow-200"><span
                                 class="w-2 h-2 rounded-full bg-yellow-500"></span></span>
                         <button type="button" class="text-sm font-medium"
-                            @click="showNonUpcoming = !showNonUpcoming">Apparaten die na 30 dagen verlopen</button>
+                            @click="showNonUpcoming = !showNonUpcoming">Apparaten die
+                            na 30 dagen verlopen</button>
                     </div>
                     <button type="button" class="text-gray-400 hover:text-gray-600"
                         @click="showNonUpcoming = !showNonUpcoming">…</button>
@@ -191,7 +195,7 @@ const productTypeOptions = computed(() => {
     };
     collect(props.upcomingAssetsByType);
     collect(props.nonUpcomingAssetsByType);
-    return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name));
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 });
 
 const selectedProductTypes = computed(() => {
