@@ -37,6 +37,9 @@ return new class extends Migration
             $table->string('location_code')->nullable();
             $table->foreignIdFor(Customer::class, 'billing_customer_id')
                 ->nullable()->constrained('customers')->nullOnDelete();
+            $table->decimal('lat', 10, 7)->nullable();
+            $table->decimal('lon', 10, 7)->nullable();
+            $table->index(['lat', 'lon']);
             $table->timestamps();
         });
     }

@@ -5,12 +5,18 @@
                 <CalendarDateRangeIcon class="size-6 flex-none text-gray-500 mr-2" />
                 <h2 class="font-regular text-xl">Aankomende activiteiten</h2>
             </div>
-            <ComboBox
-                :options="[{ id: '60', name: 'Aankomende 60 dagen' }, { id: '90', name: 'Aankomende 90 dagen' }, { id: '180', name: 'Aankomende 180 dagen' }, { id: '365', name: 'Aankomende 365 dagen' }]"
-                class="w-full lg:w-64 z-20" placeholder="Filter op periode" v-model="form.days"
-                :initial-id="form.days" />
+            <div class="flex gap-2 items-start w-full lg:w-auto">
+                <ComboBox
+                    :options="[{ id: '60', name: 'Aankomende 60 dagen' }, { id: '90', name: 'Aankomende 90 dagen' }, { id: '180', name: 'Aankomende 180 dagen' }, { id: '365', name: 'Aankomende 365 dagen' }]"
+                    class="w-full lg:w-64 z-20" placeholder="Filter op periode" v-model="form.days"
+                    :initial-id="form.days" />
+                <button type="button" @click="openMap"
+                    class="px-3 py-2 bg-indigo-600 text-white rounded text-xs font-semibold hover:bg-indigo-700">
+                    Kaart
+                </button>
+            </div>
         </div>
-        <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`" class="my-8">
+        <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`" :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
             <div class="sticky top-16 lg:top-0 z-2 bg-white">
                 <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal"
                     class="bg-white py-4 lg:py-2" />
@@ -272,6 +278,42 @@ const customerState = (customerId) => {
     const selected = selA + selT;
 
     return { all: selected === total, some: selected > 0 && selected < total };
+};
+
+// expose scroll function for popup window
+if (typeof window !== 'undefined') {
+    const scrollFunc = (id) => {
+        const el = document.getElementById(`customer-section-${id}`);
+        if (!el) return;
+        // identify scroll container (page) - prefer window, else nearest scrollable parent
+        let container = window;
+        let parent = el.parentElement;
+        while (parent && parent !== document.body) {
+            const style = getComputedStyle(parent);
+            const overflowY = style.overflowY;
+            if (/(auto|scroll)/.test(overflowY)) { container = parent; break; }
+            parent = parent.parentElement;
+        }
+        const headerOffset = 0; // adjust if fixed header present
+        if (container === window) {
+            const rect = el.getBoundingClientRect();
+            const currentTop = window.scrollY || document.documentElement.scrollTop;
+            const targetY = currentTop + rect.top - headerOffset;
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+        } else {
+            container.scrollTo({ top: el.offsetTop - headerOffset, behavior: 'smooth' });
+        }
+        window.focus();
+    };
+    window.scrollToCustomer = scrollFunc;
+    window.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'scrollToCustomer') return;
+        scrollFunc(e.data.id);
+    });
+}
+
+const openMap = () => {
+    window.open('/upcomingactivities/map', 'customerMap', 'width=1200,height=800');
 };
 
 </script>

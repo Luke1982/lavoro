@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\AssetStatusses;
 use App\Models\Asset;
+use App\Models\Customer;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class ActivityListController extends Controller
 {
@@ -37,6 +39,37 @@ class ActivityListController extends Controller
 
         return inertia('ActivityList/UpcomingActivities', [
             'upcomingAssets' => $upcoming_assets,
+        ]);
+    }
+
+    public function map()
+    {
+        $customers = Customer::with(['assets' => function ($q) {
+            $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
+              ->with(['product.productType']);
+        }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
+
+        $now = Carbon::now();
+        $customers->transform(function ($c) use ($now) {
+            $eligible = $c->assets->filter(
+                fn($a) => $a->next_service_date &&
+                    $a->status !== AssetStatusses::inactive->value
+            );
+            $days = $eligible
+                ->map(fn($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
+                ->min();
+            $c->next_service_in_days = $days; // int|null
+            // earliest asset info
+            $earliest = $eligible->sortBy(fn($a) => $a->next_service_date)->first();
+            if ($earliest) {
+                $c->earliest_asset_serial = $earliest->serial_number;
+                $c->earliest_asset_product_type = $earliest->product?->productType?->name;
+            }
+            return $c;
+        });
+
+        return inertia('ActivityList/UpcomingActivitiesMap', [
+            'customers' => $customers,
         ]);
     }
 }

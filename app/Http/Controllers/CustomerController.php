@@ -111,4 +111,14 @@ class CustomerController extends Controller
 
         return redirect()->route('customers.index')->with('success', 'Klant aangemaakt.');
     }
+
+    public function updateCoords(Request $request, Customer $customer)
+    {
+        $data = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lon' => 'required|numeric|between:-180,180',
+        ]);
+        $customer->update($data);
+        return response()->json(['ok' => true]);
+    }
 }

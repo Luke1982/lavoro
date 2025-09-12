@@ -33,6 +33,8 @@ class Customer extends Model
         'contactname',
         'location_code',
         'billing_customer_id',
+        'lat',
+        'lon',
     ];
 
     public int|null $upcoming_asset_days = null;

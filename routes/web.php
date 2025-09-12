@@ -34,6 +34,9 @@ Route::group(
         });
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store']);
+        // coords patch
+        Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
+            ->name('customers.updateCoords');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::resource('products', ProductController::class);
@@ -108,11 +111,13 @@ Route::group(
             ->except(['show', 'edit', 'create']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
             ->name('upcomingactivities');
-            Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])->name('companies.inline');
-            Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])->name('companies.logo');
-            Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
-            Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
-            Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
+            ->name('upcomingactivities.map');
+        Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])->name('companies.inline');
+        Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])->name('companies.logo');
+        Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
+        Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
+        Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
     }
 );
 
