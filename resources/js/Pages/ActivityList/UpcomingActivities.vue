@@ -16,7 +16,8 @@
                 </button>
             </div>
         </div>
-        <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`" :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
+        <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
+            :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
             <div class="sticky top-16 lg:top-0 z-2 bg-white">
                 <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal"
                     class="bg-white py-4 lg:py-2" />
