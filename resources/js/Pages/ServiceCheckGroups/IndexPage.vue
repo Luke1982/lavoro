@@ -21,8 +21,8 @@
             add-button-label="Voeg groep toe" submit-label="Opslaan" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="" :hasDetailPages="false"
-            @update="onCellUpdate" />
+        <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="servicecheckgroups"
+            :hasDetailPages="false" @update="onCellUpdate" />
         <PaginationComponent v-if="groups.data.length" :paginator="groups" class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen groepen gevonden.</p>
     </BoxComponent>
