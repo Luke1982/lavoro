@@ -165,8 +165,12 @@ class AssetController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Asset $asset)
     {
-        //
+        $asset->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Machine verwijderd.');
     }
 }

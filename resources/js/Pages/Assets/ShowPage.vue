@@ -2,9 +2,13 @@
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent>
-                <div class="flex">
-                    <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2" />
-                    <h1 class="text-l font-bold">Details van de machine</h1>
+                <div class="flex justify-between items-start">
+                    <div class="flex">
+                        <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2" />
+                        <h1 class="text-l font-bold">Details van de machine</h1>
+                    </div>
+                    <TrashIcon class="w-6 h-6 text-red-500 cursor-pointer" @click="deleteAsset"
+                        v-tooltip="'Verwijder machine'" />
                 </div>
                 <div class="flex flex-wrap mt-4 gap-y-3">
                     <div class="w-full md:w-1/2 flex">
@@ -154,7 +158,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
@@ -219,6 +223,12 @@ const updateAsset = () => {
             editingCustomer.value = false;
         },
     });
+};
+
+const deleteForm = useForm({});
+const deleteAsset = () => {
+    if (!confirm('Weet je zeker dat je deze machine wilt verwijderen?')) return;
+    deleteForm.delete(`/assets/${props.asset.id}`);
 };
 
 watch(

@@ -1,11 +1,11 @@
 <template>
-    <div class="grid gap-6 grid-cols-1 xl:grid-cols-2">
+    <div class="grid gap-6 grid-cols-1 xl:grid-cols-2" v-auto-animate>
         <div v-for="asset in assets" :key="asset.id"
-            class="flex rounded-lg bg-white overflow-hidden transition border border-gray-200">
+            class="flex rounded-lg bg-white overflow-hidden transition border border-gray-200 relative">
             <div class="w-20 flex items-center justify-center bg-pink-600 text-white font-semibold text-sm select-none">
                 {{ asset.product.product_type.name.slice(0, 2).toUpperCase() }}
             </div>
-            <div class="flex-1 p-4 pr-5">
+            <div class="flex-1 p-4 pr-8">
                 <div class="flex flex-col text-sm">
                     <Link :href="`/assets/${asset.id}`"
                         class="font-medium text-gray-900 hover:text-gray-700 leading-snug line-clamp-2">{{
@@ -16,7 +16,8 @@
                         <CalendarDaysIcon class="h-4 w-4 text-gray-500" />
                         <span>{{ new Date(asset.next_service_date).toLocaleDateString('nl-NL', {
                             day: '2-digit', month:
-                            '2-digit', year: 'numeric' }) }}</span>
+                                '2-digit', year: 'numeric'
+                        }) }}</span>
                     </div>
                     <div class="flex items-center gap-1">
                         <HashtagIcon class="h-3.5 w-3.5 text-gray-500" />
@@ -45,17 +46,25 @@
                     </span>
                 </div>
             </div>
+            <TrashIcon class="w-5 h-5 text-red-500 cursor-pointer absolute top-2 right-2" @click="deleteAsset(asset.id)"
+                v-tooltip="'Verwijder machine'" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { CalendarDaysIcon, HashtagIcon } from '@heroicons/vue/24/outline';
+import { Link, useForm } from '@inertiajs/vue3';
+import { CalendarDaysIcon, HashtagIcon, TrashIcon } from '@heroicons/vue/24/outline';
 defineProps({
     assets: {
         type: Array,
         required: true,
     },
 });
+
+const deleteForm = useForm({});
+const deleteAsset = (id) => {
+    if (!confirm('Weet je zeker dat je deze machine wilt verwijderen?')) return;
+    deleteForm.delete(`/assets/${id}`, { preserveScroll: true });
+};
 </script>
