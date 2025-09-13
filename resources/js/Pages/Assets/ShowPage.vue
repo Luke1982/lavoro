@@ -113,18 +113,22 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.servicejobs.length > 0" class="mt-5">
+            <BoxComponent class="mt-5">
                 <div class="flex">
                     <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2" />
                     <h1 class="text-l font-bold">Keuringen</h1>
                 </div>
-                <div class="grid-cols-5 grid mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
-                    <div class="col-span-1">Uitkomst</div>
-                    <div class="col-span-1">Tijdelijke goedkeur</div>
-                    <div class="col-span-1">Afgerond op</div>
-                    <div class="col-span-2">Omschrijving</div>
+                <div v-if="asset.servicejobs.length"
+                    class="hidden lg:grid grid-cols-10 mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
+                    <div class="col-span-2">Uitkomst</div>
+                    <div class="col-span-2">Tijdelijke goedkeur</div>
+                    <div class="col-span-2">Afgerond op</div>
                 </div>
-                <ServiceJobRow v-for="servicejob in asset.servicejobs" :key="servicejob.id" :servicejob="servicejob" />
+                <div v-auto-animate>
+                    <ServiceJobRow v-for="servicejob in asset.servicejobs" :key="servicejob.id" :servicejob="servicejob"
+                        class="mt-4" />
+                </div>
+                <p v-if="!asset.servicejobs.length" class="text-sm text-gray-500 mt-3">Geen keuringen gevonden.</p>
             </BoxComponent>
         </template>
 
