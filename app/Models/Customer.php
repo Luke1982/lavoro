@@ -119,4 +119,9 @@ class Customer extends Model
     {
         return $this->hasMany(ServiceOrder::class);
     }
+
+    public function billingCustomer()
+    {
+        return $this->belongsTo(self::class, 'billing_customer_id');
+    }
 }

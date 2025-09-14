@@ -212,12 +212,13 @@ class ServiceOrderController extends Controller
         if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
-        $serviceorder->load(['customer', 'materials']);
+        $serviceorder->load(['customer.billingCustomer', 'materials']);
         if ($serviceorder->materials->isEmpty()) {
             return redirect()->back()->with('error', 'Geen materialen gekoppeld aan deze werkbon.');
         }
 
         $customer = $serviceorder->customer;
+        $customer = $customer?->billingCustomer ?: $customer;
         if (!$customer || !$customer->snelstart_id) {
             return redirect()->back()->with('error', 'Klant heeft geen gekoppeld SnelStart ID.');
         }
@@ -318,7 +319,6 @@ class ServiceOrderController extends Controller
             $response = $client->post('/verkooporders', $payload);
             $serviceorder->sent_to_administration = true;
             $serviceorder->save();
-            // Log activity for sending to administration
             $adminMessage = 'Werkbon naar administratie verzonden (SnelStart verkooporder ID: ' .
                 ($response['id'] ?? 'onbekend') . ').';
             $serviceorder->logActivity($adminMessage);
