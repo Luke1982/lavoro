@@ -25,6 +25,7 @@ use App\Http\Controllers\ServiceCheckGroupController;
 use App\Http\Controllers\SnelStartImportController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 use App\Models\Customer;
 use App\Models\Asset;
 use App\Models\ServiceOrder;
@@ -177,6 +178,7 @@ Route::group(
         Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
         Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
         Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);
     }
 );
 

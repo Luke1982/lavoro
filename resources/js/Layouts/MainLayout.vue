@@ -110,12 +110,19 @@
                                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                                 Bedrijf
                                                 </Link>
-                                                <Link :href="'/users'" :class="[
+                                                <Link :href="'\/users'" :class="[
                                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <UsersIcon class="size-6 shrink-0" />
                                                 Gebruikers
+                                                </Link>
+                                                <Link :href="'/roles'" :class="[
+                                                    currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                <UsersIcon class="size-6 shrink-0" />
+                                                Rollen
                                                 </Link>
                                             </div>
                                             <Link :href="authUser ? '/users/' + authUser.id : '#'"
@@ -125,7 +132,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -213,12 +220,19 @@
                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                 Bedrijf
                                 </Link>
-                                <Link :href="'/users'" :class="[
+                                <Link :href="'\/users'" :class="[
                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
                                 <UsersIcon class="size-6 shrink-0" />
                                 Gebruikers
+                                </Link>
+                                <Link :href="'/roles'" :class="[
+                                    currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                <UsersIcon class="size-6 shrink-0" />
+                                Rollen
                                 </Link>
                             </div>
                             <Link :href="authUser ? '/users/' + authUser.id : '#'"

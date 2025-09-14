@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Role;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
 use Illuminate\Http\UploadedFile;
@@ -22,16 +23,18 @@ class UserController extends Controller
 
     public function create()
     {
-        // Provide null user; front-end will treat as create mode.
         return inertia('Users/EditPage', [
             'user' => null,
+            'allRoles' => Role::orderBy('name')->get(['id','name']),
         ]);
     }
 
     public function edit(User $user)
     {
+        $user->load('roles:id,name');
         return inertia('Users/EditPage', [
             'user' => $user,
+            'allRoles' => Role::orderBy('name')->get(['id','name']),
         ]);
     }
 
@@ -40,6 +43,8 @@ class UserController extends Controller
         $data = $request->validated();
         unset($data['avatar']);
         $user = User::create($data);
+        $roleIds = $data['role_ids'] ?? [];
+        $user->roles()->sync($roleIds);
 
         $avatar = request()->file('avatar');
         if ($avatar instanceof UploadedFile) {
@@ -58,6 +63,8 @@ class UserController extends Controller
             unset($data['password']);
         }
         $user->update($data);
+        $roleIds = $data['role_ids'] ?? [];
+        $user->roles()->sync($roleIds);
         $avatar = request()->file('avatar');
         if ($avatar instanceof UploadedFile) {
             $dirname = 'users/' . $user->id . '/avatar';

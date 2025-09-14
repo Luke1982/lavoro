@@ -18,6 +18,8 @@ class UserStoreRequest extends FormRequest
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'avatar' => 'nullable|image|max:3072',
+            'role_ids' => 'sometimes|array',
+            'role_ids.*' => 'integer|exists:roles,id',
         ];
     }
 }

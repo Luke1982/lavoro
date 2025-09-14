@@ -77,4 +77,12 @@ class User extends Authenticatable
         }
         return Storage::url($files[0]);
     }
+
+    /**
+     * Roles assigned to this user.
+     */
+    public function roles()
+    {
+        return $this->morphToMany(Role::class, 'roleable', 'roleables')->withTimestamps();
+    }
 }

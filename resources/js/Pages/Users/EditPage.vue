@@ -51,6 +51,12 @@
                         <TextInput v-model="form.password" type="password" label="Nieuw wachtwoord (optioneel)"
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Rollen</label>
+                        <ComboBox v-model="form.role_ids" :options="allRoles" multiple />
+                        <div v-if="form.errors.role_ids" class="text-xs text-red-600 mt-1">{{ form.errors.role_ids }}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -73,12 +79,13 @@
 import { computed, ref } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
 
-const props = defineProps({ user: Object })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] } })
 
 const isEdit = computed(() => !!props.user)
 
-const form = useForm({ name: props.user?.name || '', email: props.user?.email || '', password: '', avatar: null })
+const form = useForm({ name: props.user?.name || '', email: props.user?.email || '', password: '', avatar: null, role_ids: (props.user?.roles || []).map(r => r.id) })
 
 const canSubmit = computed(() => form.name && form.email && (!isEdit.value ? form.password.length >= 8 : true))
 

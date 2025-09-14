@@ -29,6 +29,8 @@ class UserUpdateRequest extends FormRequest
             ],
             'password' => 'nullable|string|min:8',
             'avatar' => 'nullable|image|max:3072',
+            'role_ids' => 'sometimes|array',
+            'role_ids.*' => 'integer|exists:roles,id',
         ];
     }
 }
