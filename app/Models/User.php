@@ -85,4 +85,26 @@ class User extends Authenticatable
     {
         return $this->morphToMany(Role::class, 'roleable', 'roleables')->withTimestamps();
     }
+
+    /**
+     * Get a flat list of unique permission names for this user
+      * combining permissions via roles.
+     *
+     * @return array<int,string>
+     */
+    public function permissionNames(): array
+    {
+        $via_roles = $this->roles()->with('permissions:id,name')->get()
+            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+            ->all();
+        return array_values(array_unique($via_roles));
+    }
+
+    /**
+     * Whether the user has the admin role.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->roles()->where('name', 'admin')->exists();
+    }
 }

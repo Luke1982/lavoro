@@ -42,9 +42,9 @@ class UserController extends Controller
     {
         $data = $request->validated();
         unset($data['avatar']);
-        $user = User::create($data);
-        $roleIds = $data['role_ids'] ?? [];
-        $user->roles()->sync($roleIds);
+            $user = User::create($data);
+            $role_ids = $data['role_ids'] ?? [];
+            $user->roles()->sync($role_ids);
 
         $avatar = request()->file('avatar');
         if ($avatar instanceof UploadedFile) {
@@ -62,9 +62,9 @@ class UserController extends Controller
         if (empty($data['password'])) {
             unset($data['password']);
         }
-        $user->update($data);
-        $roleIds = $data['role_ids'] ?? [];
-        $user->roles()->sync($roleIds);
+            $user->update($data);
+            $role_ids = $data['role_ids'] ?? [];
+            $user->roles()->sync($role_ids);
         $avatar = request()->file('avatar');
         if ($avatar instanceof UploadedFile) {
             $dirname = 'users/' . $user->id . '/avatar';

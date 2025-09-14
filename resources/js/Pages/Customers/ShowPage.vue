@@ -26,7 +26,7 @@
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Bezoekadres</h3>
                         <p class="text-sm text-gray-800 leading-snug">{{ customer.address }}<br>{{ customer.postal_code
-                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Postadres</h3>
@@ -106,7 +106,8 @@
                             <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
                             <h2 class="font-regular text-xl">Werkbonnen</h2>
                         </div>
-                        <PlusCircleIcon class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                        <PlusCircleIcon v-if="canCreateServiceOrder"
+                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
                             @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
                             v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
                     </div>
@@ -141,6 +142,7 @@ import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+import { hasPermission } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 
@@ -171,6 +173,8 @@ const form = useForm({
 const newServiceOrderForm = useForm({
     customer_id: props.customer.id,
 });
+
+const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
 const updateCustomer = () => {
     form.patch(`/customers/${props.customer.id}`)

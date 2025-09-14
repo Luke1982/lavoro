@@ -19,13 +19,13 @@ return new class extends Migration {
         DB::table('permissions')->insert([
             [
                 'name' => 'serviceorder.create',
-                'label' => 'Serviceorder aanmaken',
+                'label' => 'Werkbon aanmaken',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'servicejob.create',
-                'label' => 'Serviceklus aanmaken',
+                'label' => 'Keuring aanmaken',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

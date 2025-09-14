@@ -25,3 +25,15 @@ export const mapsLinkFromCustomer = (customer) => {
         customer.address + " " + customer.postal_code + " " + customer.city
     )}`;
 };
+
+import { usePage } from "@inertiajs/vue3";
+
+export const hasPermission = (permission) => {
+    const page = usePage();
+    const auth = page?.props?.auth || {};
+    if (auth.isAdmin) {
+        return true;
+    }
+    const perms = new Set(auth.permissions || []);
+    return perms.has(permission);
+};

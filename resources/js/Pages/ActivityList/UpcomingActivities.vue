@@ -132,14 +132,14 @@
     </BoxComponent>
     <div class="fixed right-4 bottom-4 left-4 z-3">
         <div v-auto-animate class="flex gap-2 flex-col lg:flex-row justify-end">
-            <button v-if="canCreateWorkOrder === 'yes'" :disabled="canCreateWorkOrder === 'diffCustomers'"
-                @click="createServiceOrder(false)" v-auto-animate
+            <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
+                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(false)" v-auto-animate
                 class="cursor-pointer  bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span>Maak een werkbon aan en blijf hier</span>
             </button>
-            <button v-if="canCreateWorkOrder !== 'no'" :disabled="canCreateWorkOrder === 'diffCustomers'"
-                @click="createServiceOrder(true)" v-auto-animate
+            <button v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder"
+                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(true)" v-auto-animate
                 class="cursor-pointer bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan en open die</span>
@@ -158,7 +158,8 @@ import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
 import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
-import { watch, ref } from 'vue';
+import { watch, ref, computed } from 'vue';
+import { hasPermission } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 
 const { upcomingAssets } = defineProps({
@@ -175,6 +176,8 @@ const form = useForm({
 });
 
 const canCreateWorkOrder = ref('no');
+
+const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
 watch(() => form.days, (newValue) => {
     form.get('/upcomingactivities', { days: newValue }, { preserveScroll: true });
@@ -200,7 +203,9 @@ watch(
 );
 
 const createServiceOrder = (redirect) => {
-    if (canCreateWorkOrder.value !== 'yes') return;
+    if (canCreateWorkOrder.value !== 'yes') {
+        return;
+    }
     form.transform(data => {
         return {
             ...data,

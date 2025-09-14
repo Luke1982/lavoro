@@ -44,6 +44,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user' => $request->user() ? $request->user()->only('id', 'name', 'email', 'avatar') : null,
+                'permissions' => $request->user() ? $request->user()->permissionNames() : [],
+                'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
             ],
         ];
     }
