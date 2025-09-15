@@ -133,7 +133,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -141,8 +141,8 @@
                                             <div class="px-6 pb-4">
                                                 <Link href="/logout" as="button"
                                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <ArrowRightOnRectangleIcon class="size-5" />
-                                                    Uitloggen
+                                                <ArrowRightOnRectangleIcon class="size-5" />
+                                                Uitloggen
                                                 </Link>
                                             </div>
                                         </li>
@@ -257,8 +257,8 @@
                             <div class="px-6 pb-6">
                                 <Link href="/logout" as="button"
                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    <ArrowRightOnRectangleIcon class="size-5" />
-                                    Uitloggen
+                                <ArrowRightOnRectangleIcon class="size-5" />
+                                Uitloggen
                                 </Link>
                             </div>
                         </li>
