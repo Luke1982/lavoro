@@ -6,16 +6,22 @@ use App\Models\Asset;
 use App\Models\Product;
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
+use App\Http\Requests\AssetDestroyRequest;
+use App\Http\Requests\AssetIndexRequest;
+use App\Http\Requests\AssetShowRequest;
 
 class AssetController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(AssetIndexRequest $request)
     {
-        $search = $request->input('search', '');
+
+                $validated = $request->validated();
+                $search = isset($validated['search']) ? (string) $validated['search'] : '';
 
         $query = Asset::with([
             'product.brand',
@@ -83,14 +89,9 @@ class AssetController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(AssetStoreRequest $request)
     {
-        $validated = $request->validate([
-            'product_id'    => ['required', 'exists:products,id'],
-            'customer_id'   => ['required', 'exists:customers,id'],
-            'serial_number' => ['nullable', 'string', 'max:255'],
-            'is_active'     => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $asset = Asset::create([
             'product_id'       => $validated['product_id'],
@@ -115,7 +116,7 @@ class AssetController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Asset $asset)
+    public function show(AssetShowRequest $request, Asset $asset)
     {
         $all_products = Product::with(['brand', 'productType'])
             ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
@@ -165,7 +166,7 @@ class AssetController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Asset $asset)
+    public function destroy(AssetDestroyRequest $request, Asset $asset)
     {
         $asset->delete();
 

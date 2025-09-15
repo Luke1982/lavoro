@@ -37,7 +37,7 @@
                                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
-                                                <li v-for="item in navigation" :key="item.name">
+                                                <li v-for="item in filteredNavigation" :key="item.name">
                                                     <div class="flex items-center justify-between">
                                                         <Link :href="item.href" @click="handleNavClick(item)" :class="[
                                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
@@ -65,7 +65,8 @@
                                                         leave-to-class="max-h-0 opacity-0">
                                                         <ul v-if="item.children" v-show="item.open"
                                                             class="overflow-hidden">
-                                                            <li v-for="child in item.children" :key="child.name">
+                                                            <li v-for="child in item.children.filter(canSeeNavItem)"
+                                                                :key="child.name">
                                                                 <Link :href="child.href" @click="sidebarOpen = false"
                                                                     :class="[
                                                                         child.current
@@ -132,7 +133,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -158,7 +159,7 @@
                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
                         <li>
                             <ul role="list" class="-mx-2 space-y-1">
-                                <li v-for="item in navigation" :key="item.name">
+                                <li v-for="item in filteredNavigation" :key="item.name">
                                     <div class="flex items-center justify-between">
                                         <Link :href="item.href" @click="updateCurrent(item)" :class="[
                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
@@ -178,7 +179,7 @@
                                         leave-active-class="transition-all duration-200 ease-in"
                                         leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
                                         <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
-                                            <li v-for="child in item.children" :key="child.name">
+                                            <li v-for="child in item.children.filter(canSeeNavItem)" :key="child.name">
                                                 <Link :href="child.href" :class="[
                                                     child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
@@ -301,6 +302,7 @@ import {
     BuildingOffice2Icon
 } from '@heroicons/vue/24/outline'
 import { Link, usePage } from '@inertiajs/vue3'
+import { hasPermission } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
@@ -322,7 +324,7 @@ const navigation = ref([
         ],
         open: false,
     },
-    { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false },
+    { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false, requiresPermission: 'asset.read' },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
     {
         name: 'Keurpunten',
@@ -354,6 +356,13 @@ const navigation = ref([
         open: false,
     }
 ])
+
+const canSeeNavItem = (item) => {
+    if (!item?.requiresPermission) return true;
+    return hasPermission(item.requiresPermission);
+}
+
+const filteredNavigation = computed(() => navigation.value.filter(canSeeNavItem))
 
 // Open the submenu if current route is within its children
 const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''

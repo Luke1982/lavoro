@@ -2,7 +2,7 @@
     <div class="p-4 bg-white rounded-md mb-3">
         <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
             search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
-            add-label="Voeg asset toe" @add="() => assetFormRef?.show()">
+            :add-label="canCreate ? 'Voeg asset toe' : ''" @add="() => canCreate && assetFormRef?.show()">
             <template #right>
                 <div class="flex items-end w-full">
                     <div class="flex-grow">
@@ -14,7 +14,7 @@
             </template>
         </IndexHeaderComponent>
     </div>
-    <div class="mb-4" v-auto-animate>
+    <div class="mb-4" v-auto-animate v-if="canCreate">
         <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
             add-button-label="Voeg asset toe" submit-label="Toevoegen" />
     </div>
@@ -81,6 +81,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import { hasPermission } from '@/Utilities/Utilities';
 const assetFormRef = ref(null)
 
 const props = defineProps({
@@ -120,6 +121,8 @@ const assetFields = [
     { key: 'serial_number', label: 'Serie nr.', type: 'text' },
     { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
 ]
+
+const canCreate = computed(() => hasPermission('asset.create'))
 
 
 </script>

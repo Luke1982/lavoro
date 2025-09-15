@@ -7,7 +7,7 @@
                         <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2" />
                         <h1 class="text-l font-bold">Details van de machine</h1>
                     </div>
-                    <TrashIcon class="w-6 h-6 text-red-500 cursor-pointer" @click="deleteAsset"
+                    <TrashIcon v-if="canDelete" class="w-6 h-6 text-red-500 cursor-pointer" @click="deleteAsset"
                         v-tooltip="'Verwijder machine'" />
                 </div>
                 <div class="flex flex-wrap mt-4 gap-y-3">
@@ -21,7 +21,7 @@
                             </span>
                             <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
                                 @update:modelValue="updateAsset" />
-                            <PencilSquareIcon v-if="!editing.product_id"
+                            <PencilSquareIcon v-if="canUpdate && !editing.product_id"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('product_id')" />
                         </div>
@@ -41,7 +41,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <PencilSquareIcon v-if="!editing.serial_number"
+                            <PencilSquareIcon v-if="canUpdate && !editing.serial_number"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('serial_number')" />
                         </div>
@@ -62,7 +62,7 @@
                                     </svg>
                                 </button>
                             </div>
-                            <PencilSquareIcon v-if="!editing.next_service_date"
+                            <PencilSquareIcon v-if="canUpdate && !editing.next_service_date"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('next_service_date')" />
                         </div>
@@ -78,7 +78,7 @@
                                         asset.status }}</span>
                             </div>
                             <ComboBox v-if="editing.status" :options="statusOptions" v-model="form.status" />
-                            <PencilSquareIcon v-if="!editing.status"
+                            <PencilSquareIcon v-if="canUpdate && !editing.status"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('status')" />
                         </div>
@@ -90,7 +90,7 @@
                                 class="text-blue-600 underline">
                             {{ asset.customer.name }}
                             </Link>
-                            <PencilSquareIcon v-if="!editingCustomer"
+                            <PencilSquareIcon v-if="canUpdate && !editingCustomer"
                                 class="w-5 h-5 text-gray-500 absolute right-0 md:right-3 top-2 transform -translate-y-1/2 cursor-pointer"
                                 @click="editingCustomer = true" />
                             <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id" />
@@ -166,11 +166,12 @@ import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSqua
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const editing = ref({
     product: false,
@@ -218,7 +219,11 @@ const form = useForm({
     customer_id: props.asset.customer.id,
 });
 
+const canUpdate = computed(() => hasPermission('asset.update'))
+const canDelete = computed(() => hasPermission('asset.delete'))
+
 const updateAsset = () => {
+    if (!canUpdate.value) return;
     form.put(`/assets/${props.asset.id}`, {
         onSuccess: () => {
             for (const key in editing.value) {

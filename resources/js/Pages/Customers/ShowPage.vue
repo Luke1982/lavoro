@@ -26,7 +26,7 @@
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Bezoekadres</h3>
                         <p class="text-sm text-gray-800 leading-snug">{{ customer.address }}<br>{{ customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Postadres</h3>
@@ -57,7 +57,7 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4" v-if="hasUpcomingFiltered">
+            <div class="mt-4" v-if="canReadAssets && hasUpcomingFiltered">
                 <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
@@ -76,7 +76,7 @@
                     </div>
                 </transition>
             </div>
-            <div class="mt-8" v-if="hasNonUpcomingFiltered">
+            <div class="mt-8" v-if="canReadAssets && hasNonUpcomingFiltered">
                 <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
@@ -177,6 +177,8 @@ const newServiceOrderForm = useForm({
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
 const canUpdate = computed(() => hasPermission('customer.update'))
+
+const canReadAssets = computed(() => hasPermission('asset.read'))
 
 const updateCustomer = () => {
     form.patch(`/customers/${props.customer.id}`)

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class AssetUpdateRequest extends FormRequest
 {
@@ -11,7 +12,11 @@ class AssetUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->isAdmin() || $user->hasPermission('asset.update');
     }
 
     /**
