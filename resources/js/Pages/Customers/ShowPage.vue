@@ -17,7 +17,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-6 md:mt-0 md:min-w-60 w-full md:w-auto">
+                    <div class="mt-6 md:mt-0 md:min-w-60 w-full md:w-auto" v-if="canUpdate">
                         <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
                             placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer" />
                     </div>
@@ -175,6 +175,8 @@ const newServiceOrderForm = useForm({
 });
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
+
+const canUpdate = computed(() => hasPermission('customer.update'))
 
 const updateCustomer = () => {
     form.patch(`/customers/${props.customer.id}`)

@@ -107,4 +107,9 @@ class User extends Authenticatable
     {
         return $this->roles()->where('name', 'admin')->exists();
     }
+
+    public function hasPermission(string $name): bool
+    {
+        return in_array($name, $this->permissionNames(), true);
+    }
 }

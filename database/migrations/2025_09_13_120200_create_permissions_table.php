@@ -14,22 +14,6 @@ return new class extends Migration {
             $table->string('label');
             $table->timestamps();
         });
-
-        // Seed a baseline set of permissions (not editable via frontend)
-        DB::table('permissions')->insert([
-            [
-                'name' => 'serviceorder.create',
-                'label' => 'Werkbon aanmaken',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'servicejob.create',
-                'label' => 'Keuring aanmaken',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
     }
 
     public function down(): void

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Role;
 use App\Models\Asset;
 use App\Models\Ticket;
 use App\Models\Product;
@@ -29,11 +30,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
-        User::factory()->create([
+        $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        $admin_role = Role::query()->where('name', 'admin')->first();
+        if ($admin_role) {
+            $user->roles()->syncWithoutDetaching([$admin_role->id]);
+        }
 
         Product::factory(30)->create();
         Artisan::call('snelstart:fetch-relaties');

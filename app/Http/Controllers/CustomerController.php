@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Http\Requests\CustomerStoreRequest;
+use App\Http\Requests\CustomerUpdateRequest;
+use App\Http\Requests\CustomerUpdateCoordsRequest;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
@@ -85,13 +87,9 @@ class CustomerController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Customer $customer)
+    public function update(CustomerUpdateRequest $request, Customer $customer)
     {
-        $request->validate([
-            'billing_customer_id' => 'required|exists:customers,id',
-        ]);
-
-        $customer->update($request->only(['billing_customer_id']));
+        $customer->update($request->validated());
 
         return redirect()->route('customers.show', $customer)->with('success', 'Facturatieklant ingesteld.');
     }
@@ -112,13 +110,9 @@ class CustomerController extends Controller
         return redirect()->route('customers.index')->with('success', 'Klant aangemaakt.');
     }
 
-    public function updateCoords(Request $request, Customer $customer)
+    public function updateCoords(CustomerUpdateCoordsRequest $request, Customer $customer)
     {
-        $data = $request->validate([
-            'lat' => 'required|numeric|between:-90,90',
-            'lon' => 'required|numeric|between:-180,180',
-        ]);
-        $customer->update($data);
+        $customer->update($request->validated());
         return response()->json(['ok' => true]);
     }
 }
