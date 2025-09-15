@@ -173,12 +173,20 @@ Route::group(
             ->name('upcomingactivities');
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
             ->name('upcomingactivities.map');
-        Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])->name('companies.inline');
-        Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])->name('companies.logo');
-        Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
-        Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
-        Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);
+                Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
+                Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+        Route::middleware('admin')->group(function () {
+            Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
+                ->name('companies.inline');
+            Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])
+                ->name('companies.logo');
+            Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
+
+            Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
+            Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
+
+            Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);
+        });
     }
 );
 

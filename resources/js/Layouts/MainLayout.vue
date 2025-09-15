@@ -102,7 +102,7 @@
                                         </li>
 
                                         <li class="-mx-6 mt-auto">
-                                            <div class="px-6 mb-2 space-y-1">
+                                            <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
                                                 <Link :href="'/companies'" :class="[
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -125,14 +125,14 @@
                                                 Rollen
                                                 </Link>
                                             </div>
-                                            <Link :href="authUser ? '/users/' + authUser.id : '#'"
+                                            <Link :href="'/me/edit'"
                                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                                             <div
                                                 class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -212,7 +212,7 @@
                         </li>
 
                         <li class="-mx-6 mt-auto">
-                            <div class="px-6 mb-2 space-y-1">
+                            <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
                                 <Link :href="'/companies'" :class="[
                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -235,7 +235,7 @@
                                 Rollen
                                 </Link>
                             </div>
-                            <Link :href="authUser ? '/users/' + authUser.id : '#'"
+                            <Link :href="'/me/edit'"
                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                             <div
                                 class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -258,7 +258,7 @@
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
             <div class="flex-1 text-sm/6 font-semibold text-white">Dashboard</div>
-            <Link :href="authUser ? '/users/' + authUser.id : '#'">
+            <Link :href="'/me/edit'">
             <span class="sr-only">Profiel</span>
             <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
                 <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
@@ -305,6 +305,7 @@ import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
+const isAdmin = computed(() => !!page.props.auth.isAdmin)
 const initials = computed(() => authUser.value?.name ? authUser.value.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '')
 
 const navigation = ref([

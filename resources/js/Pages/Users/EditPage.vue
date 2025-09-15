@@ -51,7 +51,7 @@
                         <TextInput v-model="form.password" type="password" label="Nieuw wachtwoord (optioneel)"
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
-                    <div>
+                    <div v-if="isAdmin">
                         <label class="block text-xs font-medium text-gray-700 mb-1">Rollen</label>
                         <ComboBox v-model="form.role_ids" :options="allRoles" multiple />
                         <div v-if="form.errors.role_ids" class="text-xs text-red-600 mt-1">{{ form.errors.role_ids }}
@@ -70,18 +70,21 @@
                     </svg>
                     <span>{{ isEdit ? 'Opslaan' : 'Aanmaken' }}</span>
                 </button>
-                <Link href="/users/" class="text-sm text-gray-500 hover:text-gray-700">Annuleren</Link>
+                <Link :href="cancelHref" class="text-sm text-gray-500 hover:text-gray-700">Annuleren</Link>
             </div>
         </form>
     </div>
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { useForm, Link } from '@inertiajs/vue3'
+import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 
 const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] } })
+
+const page = usePage()
+const isAdmin = computed(() => !!page.props.auth?.isAdmin)
 
 const isEdit = computed(() => !!props.user)
 
@@ -111,9 +114,21 @@ const onAvatarChange = () => {
 
 const submit = () => {
     if (isEdit.value) {
-        form.post(`/users/${props.user.id}`)
+        // If editing yourself (navigated from /me/edit), the route is /me
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/me')) {
+            form.post('/me')
+        } else {
+            form.post(`/users/${props.user.id}`)
+        }
     } else {
         form.post('/users')
     }
 }
+
+const cancelHref = computed(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/me')) {
+        return '/'
+    }
+    return '/users/'
+})
 </script>

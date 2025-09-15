@@ -6,8 +6,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use App\Services\UserAvatarService;
 
 class UserController extends Controller
 {
@@ -42,16 +41,11 @@ class UserController extends Controller
     {
         $data = $request->validated();
         unset($data['avatar']);
-            $user = User::create($data);
-            $role_ids = $data['role_ids'] ?? [];
-            $user->roles()->sync($role_ids);
+        $user = User::create($data);
+        $role_ids = $data['role_ids'] ?? [];
+        $user->roles()->sync($role_ids);
 
-        $avatar = request()->file('avatar');
-        if ($avatar instanceof UploadedFile) {
-            $dirname = 'users/' . $user->id . '/avatar';
-            Storage::disk('public')->makeDirectory($dirname);
-            $avatar->storeAs($dirname, $avatar->getClientOriginalName(), 'public');
-        }
+        app(UserAvatarService::class)->save($user, request()->file('avatar'));
 
         return redirect()->route('users.index')->with('success', 'Gebruiker aangemaakt');
     }
@@ -62,16 +56,44 @@ class UserController extends Controller
         if (empty($data['password'])) {
             unset($data['password']);
         }
-            $user->update($data);
-            $role_ids = $data['role_ids'] ?? [];
-            $user->roles()->sync($role_ids);
-        $avatar = request()->file('avatar');
-        if ($avatar instanceof UploadedFile) {
-            $dirname = 'users/' . $user->id . '/avatar';
-            Storage::disk('public')->deleteDirectory($dirname);
-            Storage::disk('public')->makeDirectory($dirname);
-            $avatar->storeAs($dirname, $avatar->getClientOriginalName(), 'public');
-        }
+        $user->update($data);
+        $role_ids = $data['role_ids'] ?? [];
+        $user->roles()->sync($role_ids);
+        app(UserAvatarService::class)->save($user, request()->file('avatar'));
         return redirect()->route('users.index')->with('success', 'Gebruiker bijgewerkt');
+    }
+
+    /**
+     * Edit the currently authenticated user's profile (non-admins allowed).
+     */
+    public function editSelf()
+    {
+        $user = request()->user();
+        abort_unless($user, 403);
+        $user->load('roles:id,name');
+        return inertia('Users/EditPage', [
+            'user' => $user,
+            'allRoles' => $user->isAdmin() ? Role::orderBy('name')->get(['id','name']) : [],
+        ]);
+    }
+
+    /**
+     * Update the currently authenticated user's profile (non-admins allowed).
+     */
+    public function updateSelf(UserUpdateRequest $request)
+    {
+        $user = request()->user();
+        abort_unless($user, 403);
+
+        $data = $request->validated();
+        unset($data['role_ids']);
+        if (empty($data['password'])) {
+            unset($data['password']);
+        }
+
+        $user->update($data);
+        app(UserAvatarService::class)->save($user, request()->file('avatar'));
+
+        return redirect()->route('me.edit')->with('success', 'Profiel bijgewerkt');
     }
 }
