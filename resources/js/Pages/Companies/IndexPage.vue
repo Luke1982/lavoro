@@ -35,7 +35,7 @@
                     <td class="px-4 py-2">{{ company.city }}</td>
                     <td class="px-4 py-2">{{ company.country }}</td>
                     <td class="px-4 py-2">
-                        <img v-if="company.logo_path" :src="`/public/${company.logo_path}`"
+                        <img v-if="company.logo_path" :src="`/storage/${company.logo_path}`"
                             class="h-10 w-10 object-contain rounded" />
                         <span v-else class="text-xs text-gray-400">Geen</span>
                     </td>

@@ -51,7 +51,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
                                     <input type="file" @change="onFile" class="block w-full text-sm" />
                                     <div v-if="company.logo_path" class="mt-2">
-                                        <img :src="`/public/${company.logo_path}`" class="h-12 object-contain" />
+                                        <img :src="`/storage/${company.logo_path}`" class="h-12 object-contain" />
                                     </div>
                                 </div>
                                 <div class="flex justify-end gap-3 pt-6">

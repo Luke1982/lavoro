@@ -5,12 +5,14 @@
             <div
                 class="relative bg-white/90 backdrop-blur-md rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
                 <div class="px-8 pt-8 pb-6 text-center">
-                    <div class="mx-auto flex items-center justify-center gap-3">
-                        <img class="h-10 w-auto rounded" src="https://susan.nu/onewebstatic/81ba2bac65.jpg"
-                            alt="Stedelijk water" />
-                        <img class="h-10 w-auto rounded"
-                            src="https://nlgaat.nu/wp-content/themes/nlgaat/assets/img/flowfabriek-logo.png"
-                            alt="NLgaat.nl" />
+                    <div class="mx-auto flex flex-col items-center justify-center gap-3">
+                        <div v-if="companyLogo" class="relative">
+                            <img :src="companyLogo" :alt="companyName || 'Bedrijf'"
+                                 class="h-16 w-auto object-contain drop-shadow-sm" />
+                        </div>
+                        <div v-else class="h-16 flex items-center justify-center">
+                            <span class="text-white/80 text-xl font-semibold tracking-wide">WH Service CRM</span>
+                        </div>
                     </div>
                     <h2 class="mt-6 text-2xl font-semibold tracking-tight text-gray-900">Welkom terug</h2>
                     <p class="text-sm text-gray-500 mt-1">Log in om verder te gaan</p>
@@ -74,7 +76,7 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 
@@ -83,6 +85,10 @@ const loginForm = useForm({
     password: '',
 });
 const showPassword = ref(false);
+
+const page = usePage();
+const companyLogo = computed(() => page.props.company?.logo_url || null);
+const companyName = computed(() => page.props.company?.name || null);
 
 const flatErrors = computed(() => {
     const e = loginForm.errors || {}
