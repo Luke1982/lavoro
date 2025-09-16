@@ -1,7 +1,7 @@
 <template>
     <div class="relative">
         <Link :href="`/tickets/${ticket.id}`"
-            :class="[getWrapperClasses(ticket.status), 'rounded-md p-2 border-2 block cursor-pointer']">
+            :class="[getWrapperClasses(ticket.status), 'rounded-md p-2 border-2 block cursor-pointer transition-colors']">
         <div class="flex">
             <div class="flex flex-col items-center justify-start mr-2 min-w-20 pb-4 text-center">
                 <ExclamationCircleIcon
@@ -10,32 +10,36 @@
                     ticket.priority }}</span>
             </div>
             <div class="flex flex-col">
-                <h1 class="text-l font-bold">{{ ticket.subject }}</h1>
+                <h1 class="text-l font-bold dark:text-slate-100">{{ ticket.subject }}</h1>
                 <div class="flex mt-1">
-                    <CalendarDateRangeIcon class="w-5 h-5 text-gray-800 mr-1" />
-                    <div class="text-sm text-gray-800">
+                    <CalendarDateRangeIcon class="w-5 h-5 text-gray-800 dark:text-slate-300 mr-1" />
+                    <div class="text-sm text-gray-800 dark:text-slate-300">
                         <span>Sinds {{ nlDate(ticket.created_at) }}</span>
                         <span v-if="ticket.closed_on && ticket.status.toLowerCase() === 'gesloten'">, Gesloten op {{
                             nlDate(ticket.closed_on) }}</span>
                     </div>
                 </div>
-                <p class="text-sm text-gray-500 mt-1" v-if="modes.find(m => m === 'simple') === undefined">{{
-                    ticket.description }}</p>
+                <p class="text-sm text-gray-500 dark:text-slate-400 mt-1"
+                    v-if="modes.find(m => m === 'simple') === undefined">{{
+                        ticket.description }}</p>
             </div>
         </div>
         </Link>
         <div class="absolute top-2 right-2 flex items-center space-x-2">
-            <CheckIcon v-if="ticket.status.toLowerCase() !== 'gesloten'" class="w-5 h-5 text-green-500 cursor-pointer"
+            <CheckIcon v-if="ticket.status.toLowerCase() !== 'gesloten'"
+                class="w-5 h-5 text-green-500 dark:text-green-400 cursor-pointer"
                 @click.stop="setTicketStatusTo('Gesloten')" v-tooltip="'Wijzig de status naar \'Gesloten\''" />
             <ClockIcon v-if="ticket.status.toLowerCase() !== 'in behandeling'"
-                class="w-5 h-5 text-blue-500 cursor-pointer" @click.stop="setTicketStatusTo('In behandeling')"
+                class="w-5 h-5 text-blue-500 dark:text-blue-400 cursor-pointer"
+                @click.stop="setTicketStatusTo('In behandeling')"
                 v-tooltip="'Wijzig de status naar \'In behandeling\''" />
-            <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open'" class="w-5 h-5 text-red-500 cursor-pointer"
-                @click.stop="setTicketStatusTo('Open')" v-tooltip="'Wijzig de status naar \'Open\''" />
+            <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open'"
+                class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer" @click.stop="setTicketStatusTo('Open')"
+                v-tooltip="'Wijzig de status naar \'Open\''" />
             <TrashIcon v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined"
-                class="w-5 h-5 text-gray-500 cursor-pointer" @click.stop="deleteTicket"
+                class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer" @click.stop="deleteTicket"
                 v-tooltip="'Verwijder de storing'" />
-            <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 cursor-pointer"
+            <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer"
                 @click.stop="removeTicketLink" v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
         <div class="absolute bottom-2 left-2 w-20">
@@ -98,13 +102,13 @@ const getExclamationMarkClasses = (priority, status) => {
 const getWrapperClasses = status => {
     const lowerStatus = status.toLowerCase();
     if (lowerStatus === 'open') {
-        return 'bg-red-50 border-red-200 text-red-700';
+        return 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300';
     } else if (lowerStatus === 'gesloten') {
-        return 'bg-green-50 border-green-200 text-green-700';
+        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300';
     } else if (lowerStatus === 'in behandeling') {
-        return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+        return 'bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-300';
     } else {
-        return 'bg-gray-50 border-gray-200 text-gray-700';
+        return 'bg-gray-50 border-gray-200 text-gray-700 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-200';
     }
 }
 

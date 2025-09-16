@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
                 <TransitionChild as="template" enter="transition-opacity ease-linear duration-300"
@@ -133,7 +133,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -283,8 +283,8 @@
 
         </div>
 
-        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72']">
-            <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8']">
+        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-white/0 dark:bg-transparent']">
+            <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
         </main>

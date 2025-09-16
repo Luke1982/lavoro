@@ -1,9 +1,10 @@
 <template>
     <BoxComponent>
-        <div class="flex flex-wrap mb-4 border-b-1 border-gray-200 pb-2 justify-between">
+        <div class="flex flex-wrap mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between">
             <div class="flex w-full lg:w-auto justify-center mb-2 lg:mb-0">
-                <CalendarDateRangeIcon class="size-6 flex-none text-gray-500 mr-2" />
-                <h2 class="font-regular text-xl">Aankomende activiteiten</h2>
+                <CalendarDateRangeIcon class="size-6 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                <h2 class="font-regular text-xl text-gray-800 dark:text-slate-100 tracking-wide">Aankomende activiteiten
+                </h2>
             </div>
             <div class="flex gap-2 items-start w-full lg:w-auto">
                 <ComboBox
@@ -11,59 +12,52 @@
                     class="w-full lg:w-64 z-20" placeholder="Filter op periode" v-model="form.days"
                     :initial-id="form.days" />
                 <button type="button" @click="openMap"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded text-xs font-semibold hover:bg-indigo-700">
+                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded text-xs font-semibold">
                     Kaart
                 </button>
             </div>
         </div>
         <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
             :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
-            <div class="sticky top-16 lg:top-0 z-2 bg-white">
+            <div
+                class="sticky top-16 lg:top-0 z-2 bg-white dark:bg-slate-800 dark:text-slate-100 border border-transparent dark:border-slate-700 rounded-md px-4 py-2">
                 <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal"
-                    class="bg-white py-4 lg:py-2" />
+                    class="bg-white dark:bg-transparent py-4 lg:py-2" />
             </div>
             <div
-                class="grid grid-cols-12 text-sm bg-gray-200 p-2 rounded-tl-md rounded-tr-md mt-3 border border-gray-300 border-b-0">
+                class="grid grid-cols-12 text-xs lg:text-sm font-medium bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300 p-2 rounded-tl-md rounded-tr-md mt-3 border border-gray-300 dark:border-slate-700 border-b-0 tracking-wide">
                 <div class="col-span-1">
                     <input type="checkbox" :checked="customerState(mainAsset.customer.id).all"
                         v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
-                        @change="selectAllFor(mainAsset.customer.id)" class="cursor-pointer size-4" />
+                        @change="selectAllFor(mainAsset.customer.id)"
+                        class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500" />
                 </div>
-                <div class="hidden xl:block col-span-3">
-                    Merk en model
-                </div>
-                <div class="hidden xl:block col-span-1">
-                    Serienummer
-                </div>
-                <div class="hidden xl:block col-span-1">
-                    Verloopdatum
-                </div>
-                <div class="hidden xl:block col-span-2">
-                    Soort product
-                </div>
-                <div class="hidden xl:block col-span-4">
-                    Storingen
-                </div>
-                <div class="col-span-11 xl:hidden">
-                    Activa en storingen, klik links om alles van deze klant te selecteren
-                </div>
+                <div class="hidden xl:block col-span-3">Merk en model</div>
+                <div class="hidden xl:block col-span-1">Serienummer</div>
+                <div class="hidden xl:block col-span-1">Verloopdatum</div>
+                <div class="hidden xl:block col-span-2">Soort product</div>
+                <div class="hidden xl:block col-span-4">Storingen</div>
+                <div class="col-span-11 xl:hidden text-gray-600 dark:text-slate-400">Activa en storingen, klik links om
+                    alles van deze klant te selecteren</div>
             </div>
             <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id"
-                class="grid grid-cols-12 even:bg-gray-50 dark:bg-gray-900 dark:text-white even:dark:bg-gray-800 px-2 py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 border-r last:border-b">
+                class="grid grid-cols-12 px-2 py-2 lg:py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 dark:border-slate-700/60 border-r last:border-b dark:last:border-slate-700/60 bg-white even:bg-gray-50 dark:bg-slate-900 even:dark:bg-slate-800/70 hover:dark:bg-slate-700/70 transition-colors text-gray-800 dark:text-slate-200">
                 <div class="col-span-1">
                     <input type="checkbox" :id="`assetcheckbox-${asset.id}`" v-model="form.selectedAssets"
-                        :value="{ id: asset.id, customer_id: mainAsset.customer.id }" class="cursor-pointer size-4">
+                        :value="{ id: asset.id, customer_id: mainAsset.customer.id }"
+                        class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500">
                 </div>
                 <div class="col-span-11 xl:col-span-3 pr-5">
-                    <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
+                    <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer dark:text-slate-100">
                         {{ asset.product.brand.name }} {{ asset.product.model }}
                     </label>
                     <div v-if="asset.pending_service_jobs.length > 0">
-                        <span class="text-xs">Er zijn nog openstaande keuringen voor deze machine:</span>
+                        <span class="text-xs text-gray-600 dark:text-slate-400">Er zijn nog openstaande keuringen voor
+                            deze machine:</span>
                         <span v-for="job in asset.pending_service_jobs" :key="job.id">
                             <BadgeComponent :text="`Keuring ${job.id}`" color="orange" :url="`/servicejobs/${job.id}`"
                                 :tooltip="`Ga direct naar keuring ${job.id}`" />
-                            <span class="text-xs">op</span>
+                            <span class="text-xs dark:text-slate-300">op</span>
                             <BadgeComponent
                                 :text="`Werkbon ${job.service_order.id} ${job.service_order.events.length > 0 ? ' gepland op ' + nlDate(job.service_order.events[0]?.start) : ''}`"
                                 color="blue" :url="`/serviceorders/${job.service_order.id}`"
@@ -74,53 +68,57 @@
                 <div class="col-span-1 xl:hidden"></div>
                 <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
                     <span class="text-xs font-bold xl:hidden">Serienummer</span>
-                    <Link :href="`/assets/${asset.id}`" class="cursor-pointer underline">
-                    {{ asset.serial_number }}
-                    </Link>
+                    <Link :href="`/assets/${asset.id}`"
+                        class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300">
+                    {{ asset.serial_number }}</Link>
                 </div>
                 <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
                     <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
-                    <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer">
-                        {{ nlDate(asset.next_service_date) }}
-                    </label>
+                    <label :for="`assetcheckbox-${asset.id}`"
+                        class="cursor-pointer text-gray-700 dark:text-slate-300">{{ nlDate(asset.next_service_date)
+                        }}</label>
                 </div>
                 <div class="col-span-5 xl:col-span-2 flex flex-col mt-5 xl:mt-0">
                     <span class="text-xs font-bold xl:hidden">Soort product</span>
-                    {{ asset.product.product_type.name }}
+                    <span class="text-gray-700 dark:text-slate-300">{{ asset.product.product_type.name }}</span>
                 </div>
                 <div class="col-span-1 xl:hidden"></div>
                 <div class="col-span-11 xl:col-span-4 flex flex-col mt-5 xl:mt-0">
                     <div v-if="getNonPlannedTickets(asset.pending_tickets).length > 0">
-                        <span class="text-xs font-bold">Lopende storingen</span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-slate-300 tracking-wide">Lopende
+                            storingen</span>
                         <div v-for="ticket in getNonPlannedTickets(asset.pending_tickets)" :key="ticket.id">
                             <TicketSelectCard :ticket="ticket" :customer-id="mainAsset.customer.id"
                                 v-model="form.selectedTickets" />
                         </div>
                     </div>
                     <div v-if="getPlannedTickets(asset.pending_tickets).length > 0">
-                        <span class="text-xs font-bold">Geplande lopende storingen</span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-slate-300 tracking-wide">Geplande
+                            lopende storingen</span>
                         <div v-for="ticket in getPlannedTickets(asset.pending_tickets)" :key="ticket.id">
                             Storing {{ ticket.id }} is gepland op
                             <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
-                                ticket.service_order_id }}</Link>, klik
+                            ticket.service_order_id }}</Link>, klik
                             <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
                                 class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
                             kunt koppelen aan een nieuwe.
                         </div>
                     </div>
                     <div v-if="getNonPlannedTickets(asset.open_tickets).length > 0">
-                        <span class="text-xs font-bold">Openstaande storingen</span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-slate-300 tracking-wide">Openstaande
+                            storingen</span>
                         <div v-for="ticket in getNonPlannedTickets(asset.open_tickets)" :key="ticket.id">
                             <TicketSelectCard :ticket="ticket" :customer-id="mainAsset.customer.id"
                                 v-model="form.selectedTickets" />
                         </div>
                     </div>
                     <div v-if="getPlannedTickets(asset.open_tickets).length > 0">
-                        <span class="text-xs font-bold">Geplande open storingen</span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-slate-300 tracking-wide">Geplande open
+                            storingen</span>
                         <div v-for="ticket in getPlannedTickets(asset.open_tickets)" :key="ticket.id">
                             Storing {{ ticket.id }} is gepland op
                             <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
-                                ticket.service_order_id }}</Link>, klik
+                            ticket.service_order_id }}</Link>, klik
                             <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
                                 class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
                             kunt koppelen aan een nieuwe.
@@ -134,13 +132,13 @@
         <div v-auto-animate class="flex gap-2 flex-col lg:flex-row justify-end">
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
                 :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(false)" v-auto-animate
-                class="cursor-pointer  bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
+                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span>Maak een werkbon aan en blijf hier</span>
             </button>
             <button v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder"
                 :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(true)" v-auto-animate
-                class="cursor-pointer bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed">
+                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan en open die</span>
                 <span v-else-if="canCreateWorkOrder === 'diffCustomers'">Selecteer storingen en keuringen van één

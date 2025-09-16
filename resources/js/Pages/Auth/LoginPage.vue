@@ -8,7 +8,7 @@
                     <div class="mx-auto flex flex-col items-center justify-center gap-3">
                         <div v-if="companyLogo" class="relative">
                             <img :src="companyLogo" :alt="companyName || 'Bedrijf'"
-                                 class="h-16 w-auto object-contain drop-shadow-sm" />
+                                class="h-16 w-auto object-contain drop-shadow-sm" />
                         </div>
                         <div v-else class="h-16 flex items-center justify-center">
                             <span class="text-white/80 text-xl font-semibold tracking-wide">WH Service CRM</span>

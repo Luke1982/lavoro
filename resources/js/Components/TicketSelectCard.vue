@@ -5,7 +5,8 @@
             :value="{ id: ticket.id, customer_id: customerId }"
             class="absolute top-2 left-2 size-5 cursor-pointer hidden" />
         <label :for="`ticketcheckbox-${ticket.id}`" class="absolute left-0 top-0 w-full h-full cursor-pointer">
-            <CheckIcon v-if="selectedTickets.find(t => t.id === ticket.id)" class="size-6 ml-1 mt-1 text-blue-500"
+            <CheckIcon v-if="selectedTickets.find(t => t.id === ticket.id)"
+                class="size-6 ml-1 mt-1 text-blue-500 dark:text-blue-400 drop-shadow"
                 v-tooltip="'Deze storing is geselecteerd voor de werkbon'" />
         </label>
     </div>
