@@ -8,16 +8,17 @@ use App\Models\Ticket;
 use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketUpdateRequest;
 use App\Http\Requests\TicketReadRequest;
+use App\Http\Requests\TicketListRequest;
 
 class TicketController extends Controller
 {
     /**
      * List tickets with optional search, status and priority filters.
      *
-     * @param TicketReadRequest $request
+    * @param TicketListRequest $request
      * @return \Inertia\Response
      */
-    public function index(TicketReadRequest $request)
+    public function index(TicketListRequest $request)
     {
         $data = method_exists($request, 'validated') ? $request->validated() : [];
         $search = $data['search'] ?? null;
