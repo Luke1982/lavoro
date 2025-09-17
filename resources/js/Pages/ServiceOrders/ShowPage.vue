@@ -60,13 +60,17 @@
                                             <span v-else>Versturen...</span>
                                         </button>
                                         </MenuItem>
-                                        <MenuItem v-if="!serviceOrder.sent_to_administration" v-slot="{ active }">
+                                        <MenuItem
+                                            v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                                            v-slot="{ active }">
                                         <button type="button" @click="sendToSnelStart"
                                             :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
                                             Verstuur naar SnelStart
                                         </button>
                                         </MenuItem>
-                                        <MenuItem v-else v-slot="{ active }">
+                                        <MenuItem
+                                            v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                                            v-slot="{ active }">
                                         <span
                                             :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
                                             naar administratie</span>
@@ -361,10 +365,12 @@
                             class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                         E-mail PDF + keuringen
                     </button>
-                    <button v-if="!serviceOrder.sent_to_administration" @click="sendToSnelStart"
+                    <button v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                        @click="sendToSnelStart"
                         class="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm w-full">Verstuur
                         naar SnelStart</button>
-                    <span v-else
+                    <span
+                        v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
                         class="px-3 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300 text-center">Verzonden
                         administratie</span>
                 </div>
