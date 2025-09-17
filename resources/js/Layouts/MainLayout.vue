@@ -47,7 +47,7 @@
                                                             aria-hidden="true" />
                                                         {{ item.name }}
                                                         </Link>
-                                                        <button v-if="item.children"
+                                                        <button v-if="visibleChildren(item).length"
                                                             class="p-2 text-gray-400 hover:text-white"
                                                             @click.stop="item.open = !item.open">
                                                             <ChevronDownIcon
@@ -63,9 +63,9 @@
                                                         leave-active-class="transition-all duration-200 ease-in"
                                                         leave-from-class="max-h-96 opacity-100"
                                                         leave-to-class="max-h-0 opacity-0">
-                                                        <ul v-if="item.children" v-show="item.open"
+                                                        <ul v-if="visibleChildren(item).length" v-show="item.open"
                                                             class="overflow-hidden">
-                                                            <li v-for="child in item.children.filter(canSeeNavItem)"
+                                                            <li v-for="child in visibleChildren(item)"
                                                                 :key="child.name">
                                                                 <Link :href="child.href" @click="sidebarOpen = false"
                                                                     :class="[
@@ -88,7 +88,7 @@
                                         <li>
                                             <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                                             <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                                <li v-for="list in lists" :key="list.name">
+                                                <li v-for="list in filteredLists" :key="list.name">
                                                     <Link :href="list.href" @click="sidebarOpen = false" :class="[
                                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -133,7 +133,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -175,7 +175,8 @@
                                         <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
                                         {{ item.name }}
                                         </Link>
-                                        <button v-if="item.children" class="p-2 text-gray-400 hover:text-white"
+                                        <button v-if="visibleChildren(item).length"
+                                            class="p-2 text-gray-400 hover:text-white"
                                             @click.stop="item.open = !item.open">
                                             <ChevronDownIcon class="size-4 transition-transform duration-200"
                                                 :class="item.open ? 'rotate-180' : ''" />
@@ -185,8 +186,9 @@
                                         enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100"
                                         leave-active-class="transition-all duration-200 ease-in"
                                         leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
-                                        <ul v-if="item.children" v-show="item.open" class="overflow-hidden">
-                                            <li v-for="child in item.children.filter(canSeeNavItem)" :key="child.name">
+                                        <ul v-if="visibleChildren(item).length" v-show="item.open"
+                                            class="overflow-hidden">
+                                            <li v-for="child in visibleChildren(item)" :key="child.name">
                                                 <Link :href="child.href" :class="[
                                                     child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
@@ -205,7 +207,7 @@
                         <li>
                             <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
                             <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                <li v-for="list in lists" :key="list.name">
+                                <li v-for="list in filteredLists" :key="list.name">
                                     <Link :href="list.href" @click="sidebarOpen = false" :class="[
                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -333,21 +335,23 @@ const navigation = ref([
         href: '/products',
         icon: CubeIcon,
         current: false,
+        requiresPermission: 'product.read',
         children: [
-            { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false },
-            { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false },
+            { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false, requiresPermission: 'producttype.read' },
+            { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false, requiresPermission: 'brand.read' },
         ],
         open: false,
     },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false, requiresPermission: 'asset.read' },
-    { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false },
+    { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false, requiresPermission: 'ticket.read' },
     {
         name: 'Keurpunten',
         href: '/servicechecks',
         icon: CheckIcon,
         current: false,
+        requiresPermission: 'servicecheck.read',
         children: [
-            { name: 'Groepen', href: '/servicecheckgroups', icon: Squares2X2Icon, current: false }
+            { name: 'Groepen', href: '/servicecheckgroups', icon: Squares2X2Icon, current: false, requiresPermission: 'servicecheckgroup.read' }
         ],
         open: false,
     },
@@ -356,9 +360,10 @@ const navigation = ref([
         href: '/materials',
         icon: SwatchIcon,
         current: false,
+        requiresPermission: 'material.read',
         children: [
-            { name: 'Categorieën', href: '/materialcategories', icon: FolderIcon, current: false },
-            { name: 'Gebruikseenheden', href: '/materialusageunits', icon: ScaleIcon, current: false }
+            { name: 'Categorieën', href: '/materialcategories', icon: FolderIcon, current: false, requiresPermission: 'materialcategory.read' },
+            { name: 'Gebruikseenheden', href: '/materialusageunits', icon: ScaleIcon, current: false, requiresPermission: 'materialusageunit.read' }
         ],
         open: false,
     },
@@ -367,7 +372,8 @@ const navigation = ref([
         href: '/events',
         icon: CalendarIcon,
         current: false,
-        children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false }],
+        requiresPermission: 'event.read',
+        children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' }],
         open: false,
     }
 ])
@@ -409,8 +415,17 @@ watch(navigation, (val) => {
 }, { deep: true })
 
 const lists = [
-    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false }
+    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false, requiresPermission: 'activitylist.read' }
 ]
+
+// Children of a nav item the user can see
+const visibleChildren = (item) => {
+    if (!item?.children) return []
+    return item.children.filter(canSeeNavItem)
+}
+
+// Filter lists by permission too
+const filteredLists = computed(() => lists.filter(canSeeNavItem))
 
 const isCompanyCurrent = computed(() => currentPath === '/companies')
 

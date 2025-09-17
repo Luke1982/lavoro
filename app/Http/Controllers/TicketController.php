@@ -7,18 +7,22 @@ use App\Enums\TicketStatusses;
 use App\Models\Ticket;
 use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketUpdateRequest;
-use Illuminate\Http\Request;
+use App\Http\Requests\TicketReadRequest;
 
 class TicketController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List tickets with optional search, status and priority filters.
+     *
+     * @param TicketReadRequest $request
+     * @return \Inertia\Response
      */
-    public function index(Request $request)
+    public function index(TicketReadRequest $request)
     {
-        $search = $request->input('search');
-        $statuses_param   = $request->input('statuses');
-        $priorities_param = $request->input('priorities');
+        $data = method_exists($request, 'validated') ? $request->validated() : [];
+        $search = $data['search'] ?? null;
+        $statuses_param   = $data['statuses'] ?? null;
+        $priorities_param = $data['priorities'] ?? null;
 
         $status_key_collection = collect(explode(',', (string)$statuses_param))
             ->filter(fn($v) => trim($v) !== '')
@@ -158,9 +162,13 @@ class TicketController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Show a single ticket with related asset, product and remarks.
+     *
+     * @param TicketReadRequest $request
+     * @param Ticket $ticket
+     * @return \Inertia\Response
      */
-    public function show(Ticket $ticket)
+    public function show(TicketReadRequest $request, Ticket $ticket)
     {
         $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand', 'images']);
         return inertia('Tickets/ShowPage', [

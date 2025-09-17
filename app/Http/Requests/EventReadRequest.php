@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Customer read (index & show) request.
+ * Event index & show authorization.
  *
  * @mixin \Illuminate\Http\Request
  * @method array validated()
@@ -16,23 +16,17 @@ use Illuminate\Support\Facades\Auth;
  * @method mixed get(string $key, $default = null)
  * @method array all($keys = null)
  * @method mixed query(string $key = null, $default = null)
- * @property-read string|null $search Optional search term for index.
  */
-class CustomerReadRequest extends FormRequest
+class EventReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
         $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        return $user->isAdmin() || $user->hasPermission('customer.read');
+        return $user && ($user->isAdmin() || $user->hasPermission('event.read'));
     }
 
     public function rules(): array
     {
-        return [
-            'search' => ['nullable', 'string', 'max:255'],
-        ];
+        return [];
     }
 }

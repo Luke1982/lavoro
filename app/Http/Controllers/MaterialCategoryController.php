@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Material;
 use App\Models\MaterialCategory;
 use Illuminate\Http\Request;
+use App\Http\Requests\MaterialCategoryReadRequest;
 
 class MaterialCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(MaterialCategoryReadRequest $request)
     {
         return inertia('Materials/CategoryIndexPage', [
             'categories' => MaterialCategory::all(),

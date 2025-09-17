@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductType;
-use Illuminate\Http\Request;
+use App\Http\Requests\ProductTypeReadRequest;
 use App\Http\Requests\ProductTypeStoreUpdateRequest;
 
 class ProductTypeController extends Controller
@@ -11,19 +11,21 @@ class ProductTypeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(ProductTypeReadRequest $request)
     {
         $types = ProductType::query();
 
-        if ($request->has('search')) {
-            $types = self::getByTerm($request->search);
+        $data = $request->validated();
+        $search = $data['search'] ?? null;
+        if ($search) {
+            $types = self::getByTerm($search);
         }
 
         return inertia(
             'ProductTypes/IndexPage',
             [
                 'productTypes' => $types->orderBy('name')->paginate(20),
-                'search'       => $request->search,
+                'search'       => $search,
             ]
         );
     }

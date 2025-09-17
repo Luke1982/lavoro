@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductType;
 use App\Models\ServiceCheck;
 use App\Models\ServiceCheckGroup;
-use Illuminate\Http\Request;
+use App\Http\Requests\ServiceCheckReadRequest;
 use App\Enums\ServiceCheckTypes;
 use App\Http\Requests\ServiceCheckStoreUpdateRequest;
 
@@ -14,7 +14,7 @@ class ServiceCheckController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(ServiceCheckReadRequest $request)
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);

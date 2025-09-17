@@ -11,14 +11,15 @@
                         <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`" class="text-xs underline">
                         Werkbon {{ event.extendedProps.eventable_id }}
                         </Link>&nbsp;bij&nbsp;
-                        <Link :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
-                            class="text-xs underline">
-                        {{ getCustomerById(event.extendedProps.customer_id).name }}
-                        </Link>
+                        <component :is="hasPermission('customer.read') ? Link : 'span'"
+                            :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
+                            :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
+                            {{ getCustomerById(event.extendedProps.customer_id).name }}
+                        </component>
                     </div>
                     <div class="flex flex-col absolute top-0 right-0 rounded-bl-md p-1 bg-white">
                         <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
-                            class="size-6 text-red-500 cursor-pointer" />
+                            class="size-6 text-red-500 cursor-pointer" v-if="hasPermission('event.delete')" />
                         <ClockIcon @click.stop="updateStatus(event.id, 'Afgerond')" v-tooltip="'Rond afspraak af'"
                             class="size-6 text-blue-500 cursor-pointer pt-1"
                             v-if="event.extendedProps.status !== 'Afgerond'" />
@@ -114,7 +115,7 @@ import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { formatLocalDateAsISO, nlDate, nlTime } from '@/Utilities/Utilities'
+import { formatLocalDateAsISO, hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 
 const { eventTypes, allCustomers, allServiceOrders, eventStatusses } = defineProps({
@@ -221,6 +222,9 @@ const saveEvent = async () => {
 }
 
 const createEvent = async () => {
+    if (!hasPermission('event.create')) {
+        return
+    }
     const response = await axios.post('/api/events', {
         ...form,
         start: form.start_date + ' ' + form.start_time,
@@ -250,6 +254,9 @@ const updateEvent = async () => {
 }
 
 const onSelect = (selectInfo) => {
+    if (!hasPermission('event.create')) {
+        return
+    }
     modalOpen.value = true
     form.start_date = formatLocalDateAsISO(selectInfo.start)
     form.end_date = formatLocalDateAsISO(selectInfo.end)
@@ -330,6 +337,9 @@ const onResize = async resizeInfo => {
 }
 
 const onEventClick = (clickInfo) => {
+    if (!hasPermission('event.update')) {
+        return
+    }
     editingExistingEvent.value = true
     const event = clickInfo.event
     form.id = event.extendedProps.id
@@ -349,6 +359,9 @@ const onEventClick = (clickInfo) => {
 }
 
 const deleteEvent = async (eventId) => {
+    if (!hasPermission('event.delete')) {
+        return
+    }
     if (!confirm('Weet je zeker dat je deze afspraak wilt verwijderen?')) {
         return
     }
@@ -371,12 +384,12 @@ const calendarOptions = ref({
     plugins: [timeGridPlugin, interactionPlugin, listPlugin],
     initialView: getView(),
     events: getEvents,
+    editable: hasPermission('event.update'),
     headerToolbar: getHeaderToolbar(),
     nowIndicator: true,
     selectable: true,
     select: onSelect,
     weekNumbers: true,
-    editable: true,
     eventDrop: onDrop,
     eventResize: onResize,
     eventClick: onEventClick,

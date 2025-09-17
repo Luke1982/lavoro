@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductType;
-use Illuminate\Http\Request;
+use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreUpdateRequest;
 
 class ProductController extends Controller
@@ -13,17 +13,18 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(ProductReadRequest $request)
     {
         $products = Product::query();
 
-        if ($request->has('search')) {
-            $products = self::getByTerm($request->search);
+        $search = trim((string)$request->input('search', ''));
+        if ($search !== '') {
+            $products = self::getByTerm($search);
         }
 
-        // Optional filter by product type
-        if ($request->filled('onlyType')) {
-            $products->where('product_type_id', $request->onlyType);
+        $onlyType = $request->input('onlyType');
+        if ($onlyType !== null && $onlyType !== '') {
+            $products->where('product_type_id', $onlyType);
         }
 
         return inertia(
@@ -33,10 +34,10 @@ class ProductController extends Controller
                     ->with(['brand', 'productType'])
                     ->orderBy('model')
                     ->paginate(20),
-                'search'       => $request->search,
+                'search'       => $search,
                 'brands'       => Brand::all(),
                 'productTypes' => ProductType::all(),
-                'onlyType'     => $request->onlyType,
+                'onlyType'     => $onlyType,
             ]
         );
     }
@@ -65,7 +66,7 @@ class ProductController extends Controller
         return $query;
     }
 
-    public function show(Product $product)
+    public function show(ProductReadRequest $request, Product $product)
     {
         return inertia(
             'Products/ShowPage',

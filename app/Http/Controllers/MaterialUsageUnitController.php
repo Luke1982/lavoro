@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests\MaterialUsageUnitReadRequest;
 use App\Models\MaterialUsageUnit;
 
 class MaterialUsageUnitController extends Controller
@@ -10,7 +11,7 @@ class MaterialUsageUnitController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(MaterialUsageUnitReadRequest $request)
     {
         return inertia('Materials/UsageUnitIndexPage', [
             'usageUnits' => MaterialUsageUnit::all(),

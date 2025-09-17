@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\EventType;
 use Illuminate\Http\Request;
+use App\Http\Requests\EventTypeReadRequest;
 
 class EventTypeController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(EventTypeReadRequest $request)
     {
         return inertia('Events/EventTypesIndexPage', [
             'eventTypes' => EventType::all(),

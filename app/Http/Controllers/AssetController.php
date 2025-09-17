@@ -5,19 +5,25 @@ namespace App\Http\Controllers;
 use App\Models\Asset;
 use App\Models\Product;
 use App\Models\Customer;
-use Illuminate\Http\Request;
+use App\Http\Requests\AssetReadRequest; // unified read
 use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
 use App\Http\Requests\AssetDestroyRequest;
-use App\Http\Requests\AssetIndexRequest;
-use App\Http\Requests\AssetShowRequest;
+
+// duplicate imports removed
 
 class AssetController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(AssetIndexRequest $request)
+    /**
+     * List assets with optional search filter.
+     *
+     * @param AssetReadRequest $request
+     * @return \Inertia\Response
+     */
+    public function index(AssetReadRequest $request)
     {
 
                 $validated = $request->validated();
@@ -114,9 +120,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Show a single asset.
+     *
+     * @param AssetReadRequest $request
+     * @param Asset $asset
+     * @return \Inertia\Response
      */
-    public function show(AssetShowRequest $request, Asset $asset)
+    public function show(AssetReadRequest $request, Asset $asset)
     {
         $all_products = Product::with(['brand', 'productType'])
             ->join('product_types', 'products.product_type_id', '=', 'product_types.id')

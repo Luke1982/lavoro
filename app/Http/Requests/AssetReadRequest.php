@@ -6,27 +6,24 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Customer read (index & show) request.
+ * Unified read request for Assets (index & show).
  *
  * @mixin \Illuminate\Http\Request
- * @method array validated()
+ * @property-read string|null $search Optional search term
+ * @method array validated() Return validated data
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
  * @method bool filled(string $key)
  * @method mixed get(string $key, $default = null)
  * @method array all($keys = null)
  * @method mixed query(string $key = null, $default = null)
- * @property-read string|null $search Optional search term for index.
  */
-class CustomerReadRequest extends FormRequest
+class AssetReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
         $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        return $user->isAdmin() || $user->hasPermission('customer.read');
+        return $user && ($user->isAdmin() || $user->hasPermission('asset.read'));
     }
 
     public function rules(): array

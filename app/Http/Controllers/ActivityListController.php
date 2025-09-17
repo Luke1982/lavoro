@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatusses;
 use App\Models\Asset;
 use App\Models\Customer;
-use Illuminate\Http\Request;
+use App\Http\Requests\ActivityListReadRequest;
 use Carbon\Carbon;
 
 class ActivityListController extends Controller
 {
-    public function getUpcomingActivities(Request $request)
+    public function getUpcomingActivities(ActivityListReadRequest $request)
     {
         $days = (int)$request->input('days', 60);
         $upcoming_assets = Asset::where('next_service_date', '<', now()->addDays($days))
@@ -42,7 +42,7 @@ class ActivityListController extends Controller
         ]);
     }
 
-    public function map()
+    public function map(ActivityListReadRequest $request)
     {
         $customers = Customer::with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')

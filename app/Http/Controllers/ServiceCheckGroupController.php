@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ServiceCheckGroupStoreUpdateRequest;
 use App\Models\ProductType;
 use App\Models\ServiceCheckGroup;
-use Illuminate\Http\Request;
+use App\Http\Requests\ServiceCheckGroupReadRequest;
 
 class ServiceCheckGroupController extends Controller
 {
-    public function index(Request $request)
+    public function index(ServiceCheckGroupReadRequest $request)
     {
         $search = $request->get('search', '');
         $productType = $request->get('onlyType', null);

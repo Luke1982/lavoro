@@ -170,9 +170,9 @@ Route::group(
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
-            ->name('upcomingactivities');
+            ->name('upcomingactivities'); // requires activitylist.read
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
-            ->name('upcomingactivities.map');
+            ->name('upcomingactivities.map'); // requires activitylist.read
                 Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
                 Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
         Route::middleware('admin')->group(function () {

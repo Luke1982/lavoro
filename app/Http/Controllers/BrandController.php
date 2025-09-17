@@ -4,25 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use Illuminate\Http\Request;
+use App\Http\Requests\BrandReadRequest;
 
 class BrandController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(BrandReadRequest $request)
     {
         $brands = Brand::query();
-
-        if ($request->has('search')) {
-            $brands = self::getByTerm($request->search);
+        $data = method_exists($request, 'validated') ? $request->validated() : [];
+        $search = $data['search'] ?? null;
+        if ($search) {
+            $brands = self::getByTerm($search);
         }
 
         return inertia(
             'Brands/IndexPage',
             [
                 'brands' => $brands->orderBy('name')->paginate(20),
-                'search' => $request->search,
+                'search' => $search,
             ]
         );
     }

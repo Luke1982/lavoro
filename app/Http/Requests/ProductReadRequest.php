@@ -6,9 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Customer read (index & show) request.
+ * Product index & show authorization.
  *
- * @mixin \Illuminate\Http\Request
+ * @property-read string|null $search
+ * @property-read int|string|null $onlyType
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -16,23 +17,21 @@ use Illuminate\Support\Facades\Auth;
  * @method mixed get(string $key, $default = null)
  * @method array all($keys = null)
  * @method mixed query(string $key = null, $default = null)
- * @property-read string|null $search Optional search term for index.
+ * @mixin \Illuminate\Http\Request
  */
-class CustomerReadRequest extends FormRequest
+class ProductReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
         $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        return $user->isAdmin() || $user->hasPermission('customer.read');
+        return $user && ($user->isAdmin() || $user->hasPermission('product.read'));
     }
 
     public function rules(): array
     {
         return [
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'onlyType' => ['sometimes', 'nullable'],
         ];
     }
 }

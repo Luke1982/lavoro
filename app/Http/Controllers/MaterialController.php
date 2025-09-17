@@ -7,15 +7,16 @@ use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
 use Illuminate\Http\Request;
+use App\Http\Requests\MaterialReadRequest;
 
 class MaterialController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(MaterialReadRequest $request)
     {
-        $search = trim((string) $request->query('search', ''));
+        $search = trim((string) $request->input('search', ''));
 
         $query = Material::with(['category', 'usageUnit']);
 
