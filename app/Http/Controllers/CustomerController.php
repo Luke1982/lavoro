@@ -69,7 +69,7 @@ class CustomerController extends Controller
         ]);
 
         $user = Auth::user();
-        $has_all = $user?->is_admin || $user?->permissions()->where('name', 'event.see_all')->exists();
+        $has_all = $user->hasPermission('event.view_all');
         if (!$has_all) {
             foreach ($customer->serviceOrders as $order) {
                 $order->setRelation('events', $order->events->filter(function ($e) use ($user) {
