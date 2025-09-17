@@ -4,3 +4,4 @@
 -   In Laravel, always check authorization via Form Requests (authorize()) and/or policies.
 -   Reuse the userables pivot with type field for role-like distinctions (owner, executing).
 -   When adding relationships, use proper morphs/foreignIdFor patterns.
+-   Don't write tests unless I ask you to
