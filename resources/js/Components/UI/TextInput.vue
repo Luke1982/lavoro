@@ -1,12 +1,13 @@
 <template>
     <div>
-        <label :for="id" class="block text-sm font-medium leading-6 text-gray-900">{{ label }}</label>
+        <label :for="id" class="block text-sm font-medium leading-6 text-gray-900 dark:text-white">{{ label }}</label>
         <div :class="[label === '' ? '' : 'mt-2', 'relative']">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400" aria-hidden="true" v-bind="iconLeftProps" />
+                <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400 dark:text-gray-300" aria-hidden="true"
+                    v-bind="iconLeftProps" />
             </div>
             <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" :class="{
-                'block w-full border-0 rounded-md py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
+                'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
                 'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 ring-1 ring-inset ring-red-300 placeholder:text-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 border-red-500': hasError,
                 'pl-10': iconLeft,
                 'pl-2': !iconLeft,

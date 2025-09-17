@@ -5,13 +5,13 @@
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between">
                     <div class="flex items-start">
                         <BuildingOffice2Icon
-                            class="size-12 flex-none rounded-lg bg-white object-cover ring-1 ring-gray-900/10 p-2 mr-4" />
+                            class="size-12 flex-none rounded-lg bg-white dark:bg-slate-800 object-cover ring-1 ring-gray-900/10 dark:ring-slate-600 p-2 mr-4 text-gray-700 dark:text-slate-200" />
                         <div class="flex flex-col">
-                            <h1 class="text-xl font-semibold">{{ customer.name }}</h1>
-                            <div class="flex flex-wrap items-center gap-x-2 text-sm text-gray-500 mt-1">
+                            <h1 class="text-xl font-semibold dark:text-slate-100">{{ customer.name }}</h1>
+                            <div class="flex flex-wrap items-center gap-x-2 text-sm text-gray-500 dark:text-slate-400 mt-1">
                                 <a v-if="customer.website" :href="customer.website" target="_blank" class="underline">{{
                                     customer.website }}</a>
-                                <span v-if="customer.website && customer.email" class="text-gray-300">|</span>
+                                <span v-if="customer.website && customer.email" class="text-gray-300 dark:text-slate-600">|</span>
                                 <a v-if="customer.email" :href="`mailto:${customer.email}`" class="underline">{{
                                     customer.email }}</a>
                             </div>
@@ -24,13 +24,13 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
                     <div>
-                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Bezoekadres</h3>
-                        <p class="text-sm text-gray-800 leading-snug">{{ customer.address }}<br>{{ customer.postal_code
+                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">Bezoekadres</h3>
+                        <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{ customer.postal_code
                         }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
-                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide">Postadres</h3>
-                        <p class="text-sm text-gray-800 leading-snug">{{ customer.postal_address }}<br>{{
+                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">Postadres</h3>
+                        <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address }}<br>{{
                             customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>
@@ -45,29 +45,29 @@
                     <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
                         <template v-if="selectedProductTypeIds.length">
                             <span v-for="pt in selectedProductTypes" :key="pt.id"
-                                class="inline-flex items-center gap-1 bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-xs font-medium">
+                                class="inline-flex items-center gap-1 bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-300 px-2 py-0.5 rounded text-xs font-medium">
                                 {{ pt.name }}
-                                <button type="button" class="hover:text-pink-600"
+                                <button type="button" class="hover:text-pink-600 dark:hover:text-pink-400"
                                     @click="removeProductType(pt.id)">×</button>
                             </span>
-                            <button type="button" class="text-xs text-gray-600 underline"
+                            <button type="button" class="text-xs text-gray-600 dark:text-slate-400 underline"
                                 @click="resetFilters">Reset</button>
                         </template>
-                        <span v-else class="text-xs text-gray-500">Alle apparaat types</span>
+                        <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle apparaat types</span>
                     </div>
                 </div>
             </div>
             <div class="mt-4" v-if="canReadAssets && hasUpcomingFiltered">
-                <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
-                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-pink-50 border border-pink-200"><span
+                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-pink-50 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-700/50"><span
                                 class="w-2 h-2 rounded-full bg-pink-600"></span></span>
-                        <button type="button" class="text-sm font-medium"
+                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
                             @click="showUpcoming = !showUpcoming">Apparaten die binnen
                             30 dagen verlopen</button>
                     </div>
-                    <button type="button" class="text-gray-400 hover:text-gray-600"
+                    <button type="button" class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
                         @click="showUpcoming = !showUpcoming">…</button>
                 </div>
                 <transition name="fade-height" mode="out-in">
@@ -77,16 +77,16 @@
                 </transition>
             </div>
             <div class="mt-8" v-if="canReadAssets && hasNonUpcomingFiltered">
-                <div class="bg-white rounded-md border border-gray-200 flex items-center justify-between px-4 py-3">
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
                         <span
-                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-yellow-50 border border-yellow-200"><span
+                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50"><span
                                 class="w-2 h-2 rounded-full bg-yellow-500"></span></span>
-                        <button type="button" class="text-sm font-medium"
+                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
                             @click="showNonUpcoming = !showNonUpcoming">Apparaten die
                             na 30 dagen verlopen</button>
                     </div>
-                    <button type="button" class="text-gray-400 hover:text-gray-600"
+                    <button type="button" class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
                         @click="showNonUpcoming = !showNonUpcoming">…</button>
                 </div>
                 <transition name="fade-height" mode="out-in">

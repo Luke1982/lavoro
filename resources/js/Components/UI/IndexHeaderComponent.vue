@@ -3,7 +3,7 @@
         <div class="sm:flex justify-between items-center flex-wrap mb-4">
             <div>
                 <h1 class="text-base font-semibold">{{ title }}</h1>
-                <p v-if="subtitle" class="text-sm text-gray-700">{{ subtitle }}</p>
+                <p v-if="subtitle" class="text-sm text-gray-700 dark:text-slate-400">{{ subtitle }}</p>
             </div>
             <button v-if="addLabel" @click="$emit('add')"
                 class="cursor-pointer inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm">

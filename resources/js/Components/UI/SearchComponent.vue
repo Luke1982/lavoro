@@ -5,7 +5,7 @@
             <TextInput :id="inputId" v-model="internalValue" :placeholder="placeholder" :disabled="inAction"
                 :iconLeft="inAction ? ArrowPathIcon : MagnifyingGlassIcon" :iconLeftProps="{
                     class: (inAction ? 'animate-spin ' : '') + 'h-5 w-5 text-gray-400'
-                }" class="w-full bg-white" type="search" />
+                }" class="w-full bg-white rounded-md" type="search" />
         </div>
     </div>
 

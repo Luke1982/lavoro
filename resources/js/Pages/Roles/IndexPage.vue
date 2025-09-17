@@ -1,6 +1,7 @@
 <template>
     <div class="space-y-4">
-        <div class="p-4 bg-white rounded-md">
+        <div
+            class="p-4 bg-white rounded-md dark:bg-slate-800 shadow-sm dark:shadow-none ring-1 ring-gray-900/5 dark:ring-slate-800 dark:text-white">
             <IndexHeaderComponent title="Rollen" subtitle="Beheer rollen en koppel gebruikers en permissies"
                 :paginator="null" add-label="Nieuwe rol" @add="() => roleFormRef?.show()" />
         </div>

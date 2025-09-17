@@ -1,19 +1,19 @@
 <template>
     <TwoThirdsOneThird>
         <template #main>
-            <BoxComponent>
+            <BoxComponent class="dark:bg-slate-900">
                 <div v-if="serviceOrder.sent_to_administration"
                     class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 text-amber-800 text-sm font-semibold">
                     Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                 </div>
                 <div class="flex items-center justify-between mb-4">
-                    <h1 class="text-2xl font-bold flex-1 uppercase">Werkbon van {{ nlDate(serviceOrder.created_at)
+                    <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{ nlDate(serviceOrder.created_at)
                         }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>
                                 <MenuButton
-                                    class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 inset-ring-1 inset-ring-gray-300 hover:bg-gray-50">
+                                    class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-slate-100 inset-ring-1 inset-ring-gray-300 dark:inset-ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/70">
                                     Acties
                                     <ChevronDownIcon class="-mr-1 size-5 text-gray-400" aria-hidden="true" />
                                 </MenuButton>
@@ -25,7 +25,7 @@
                                 leave-from-class="transform opacity-100 scale-100"
                                 leave-to-class="transform opacity-0 scale-95">
                                 <MenuItems
-                                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg outline-1 outline-black/5 focus:outline-none">
+                                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-slate-800 shadow-lg outline-1 outline-black/5 dark:outline-slate-700/60 focus:outline-none">
                                     <div class="py-1 text-sm">
                                         <MenuItem v-slot="{ active }">
                                         <button type="button" @click="openPdf"
@@ -75,37 +75,37 @@
                             </transition>
                         </Menu>
                         <span v-if="statusState === 'both'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">
                             Verzonden klant & administratie
                         </span>
                         <span v-else-if="statusState === 'customer'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 text-blue-700 border border-blue-300">
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700/50">
                             Verzonden klant
                         </span>
                         <span v-else-if="statusState === 'administration'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">
                             Verzonden administratie
                         </span>
                         <span v-else
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 text-gray-600 border border-gray-300">
+                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 dark:bg-slate-700/40 text-gray-600 dark:text-slate-300 border border-gray-300 dark:border-slate-600">
                             Niet verzonden
                         </span>
                     </div>
                 </div>
-                <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 pb-4">
-                    <div class="col-span-2 text-xs">
+                <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 dark:border-slate-700/60 pb-4">
+                    <div class="col-span-2 text-xs text-gray-600 dark:text-slate-400">
                         Naam klant
                     </div>
                     <div class="col-span-4">
-                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline">
+                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                         {{ serviceOrder.customer.name }}
                         </Link>
                     </div>
-                    <div class="col-span-2 text-xs">
+                    <div class="col-span-2 text-xs text-gray-600 dark:text-slate-400">
                         Adres
                     </div>
                     <div class="col-span-4">
-                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline">{{
+                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
                             serviceOrder.customer.address
                             }}, {{
                                 serviceOrder.customer.postal_code }} {{
@@ -113,7 +113,7 @@
                         </a>
                     </div>
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Uitgevoerde werkzaamheden</h2>
+                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Uitgevoerde werkzaamheden</h2>
                 <div class="grid grid-cols-12 mt-2">
                     <div class="col-span-12">
                         <EditableTextField type="textarea" v-model="form.description"
@@ -122,7 +122,7 @@
                     </div>
                 </div>
                 <div v-auto-animate class="my-4">
-                    <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Keuringen</h2>
+                    <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Keuringen</h2>
                     <div class="grid grid-cols-12 mt-4">
 
                         <div class="col-span-12 flex">
@@ -134,7 +134,7 @@
                         </div>
                     </div>
                     <div v-if="serviceOrder.servicejobs.length > 0"
-                        class="grid-cols-12 lg:grid mt-6 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3 hidden">
+                        class="grid-cols-12 lg:grid mt-6 text-xs gap-4 font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 hidden dark:text-slate-300">
                         <div class="col-span-5">Machine</div>
                         <div class="col-span-2">Uitkomst</div>
                         <div class="col-span-2">Tijdelijke goedkeur</div>
@@ -143,7 +143,7 @@
                     <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
                         :asset="job.asset" />
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Storingen</h2>
+                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Storingen</h2>
                 <div class="grid grid-cols-12 mt-4">
                     <div class="col-span-12 flex flex-col md:flex-row">
                         <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
@@ -159,7 +159,7 @@
                         <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
                     </div>
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 border-b-1 pb-2">Materialen</h2>
+                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Materialen</h2>
                 <div class="grid grid-cols-12 mt-4">
                     <div class="col-span-12 flex flex-col md:flex-row items-start">
                         <div class="flex flex-grow w-full">
@@ -179,8 +179,8 @@
                     </div>
                     <div class="col-span-12 flex mt-5">
                         <div class="w-full">
-                            <div v-if="serviceOrder.materials.length > 0"
-                                class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 pb-3">
+                                <div v-if="serviceOrder.materials.length > 0"
+                                class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 dark:text-slate-300">
                                 <div :class="showFinancial ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
                                 <div :class="showFinancial ? 'col-span-2' : 'col-span-3'">Aantal</div>
                                 <div v-if="showFinancial" class="col-span-2">Prijs per stuk</div>
@@ -189,7 +189,7 @@
                             </div>
                             <div v-auto-animate>
                                 <div v-for="material in serviceOrder.materials" :key="material.id"
-                                    class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 px-4 md:px-0 relative">
+                                    class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 dark:odd:bg-slate-800/40 px-4 md:px-0 relative">
                                     <div
                                         :class="'col-span-12 flex flex-col md:pl-4 ' + (showFinancial ? 'md:col-span-5' : 'md:col-span-7')">
                                         <span class="font-bold text-xs block lg:hidden">Materiaal</span>
@@ -229,8 +229,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center justify-between my-4 border-b-gray-200 border-b-1 pb-2">
-                    <h2 class="text-lg font-medium">Afsluiting en opmerkingen</h2>
+                <div class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
+                    <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2>
                     <button type="button" @click="showFinancial = !showFinancial"
                         class="text-gray-500 hover:text-gray-700"
                         v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
@@ -244,13 +244,13 @@
                             placeholder="Voer de naam van degene in die de werkbon tekent" />
                         <div class="relative" v-if="!editingSignature">
                             <img :src="serviceOrder.signature_base64" alt="">
-                            <PencilSquareIcon
-                                class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 cursor-pointer"
+                <PencilSquareIcon
+                    class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
                                 @click="editingSignature = true" />
                         </div>
                         <div class="relative" v-if="editingSignature">
                             <SignaturePad v-model="form.signature_base64" />
-                            <XMarkIcon class="absolute top-2 right-2 transform w-5 h-5 text-red-600 cursor-pointer"
+                            <XMarkIcon class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
                                 @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                         </div>
                     </div>
@@ -263,52 +263,52 @@
         </template>
         <template #sidebar>
             <div class="space-y-4 mt-6 md:mt-0">
-                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm">
-                    <h3 class="font-semibold text-base mb-3">Werkbon details</h3>
-                    <div class="flex justify-between py-1 border-b border-gray-100">
-                        <span class="text-gray-500">Datum</span>
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
+                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Werkbon details</h3>
+                    <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
+                        <span class="text-gray-500 dark:text-slate-400">Datum</span>
                         <span>{{ nlDate(serviceOrder.created_at) }}</span>
                     </div>
-                    <div class="flex justify-between py-1 border-b border-gray-100">
-                        <span class="text-gray-500">Klant</span>
-                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline">{{
+                    <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
+                        <span class="text-gray-500 dark:text-slate-400">Klant</span>
+                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
                             serviceOrder.customer.name }}</Link>
                     </div>
-                    <div class="py-1 border-b border-gray-100">
-                        <span class="text-gray-500 block">Adres</span>
+                    <div class="py-1 border-b border-gray-100 dark:border-slate-800/60">
+                        <span class="text-gray-500 dark:text-slate-400 block">Adres</span>
                         <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
-                            class="underline text-xs break-words">
+                            class="underline text-xs break-words text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                             {{ serviceOrder.customer.address }}, {{ serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
                     </div>
                     <div class="flex items-center justify-between py-2">
-                        <span class="text-gray-500">Status</span>
+                        <span class="text-gray-500 dark:text-slate-400">Status</span>
                         <span v-if="statusState === 'both'"
-                            class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden
+                            class="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">Verzonden
                             klant & administratie</span>
                         <span v-else-if="statusState === 'customer'"
-                            class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 border border-blue-300">Verzonden
+                            class="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700/50">Verzonden
                             klant</span>
                         <span v-else-if="statusState === 'administration'"
-                            class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700 border border-green-300">Verzonden
+                            class="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">Verzonden
                             administratie</span>
                         <span v-else-if="serviceOrder.materials.length > 0"
-                            class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 border border-amber-300">Klaar
+                            class="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50">Klaar
                             om te verzenden</span>
                         <span v-else
-                            class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700 border border-gray-300">In
+                            class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-slate-700/40 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600">In
                             bewerking</span>
                     </div>
                 </div>
-                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm" v-if="showFinancial">
-                    <h3 class="font-semibold text-base mb-3">Materiaaloverzicht</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm" v-if="showFinancial">
+                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Materiaaloverzicht</h3>
                     <div class="flex justify-between py-1">
-                        <span class="text-gray-500">Subtotaal</span>
+                        <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
                         <span>€ {{ materialsSubtotal.toFixed(2) }}</span>
                     </div>
                     <div class="flex justify-between py-1">
-                        <span class="text-gray-500">BTW (21%)</span>
+                        <span class="text-gray-500 dark:text-slate-400">BTW (21%)</span>
                         <span>€ {{ materialsVat.toFixed(2) }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-t mt-2 font-semibold text-base">
@@ -316,12 +316,12 @@
                         <span>€ {{ materialsTotal.toFixed(2) }}</span>
                     </div>
                 </div>
-                <div class="bg-white rounded-md border border-gray-200 p-4 text-sm"
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
                     v-if="serviceOrder.activities?.length">
-                    <h3 class="font-semibold text-base mb-3">Tijdlijn</h3>
+                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
                     <TimelineComponent :activities="serviceOrder.activities" />
                 </div>
-                <div class="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-2">
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 flex flex-col gap-2">
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
                         class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
                         <span

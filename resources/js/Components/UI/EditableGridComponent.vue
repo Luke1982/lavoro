@@ -1,26 +1,26 @@
 <template>
-    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 bg-white p-px" role="table">
+    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-px transition-colors" role="table">
         <div class="hidden lg:flex" role="row">
             <div v-for="(header, hIndex) in headers" :key="header.key" role="columnheader" :class="[
-                'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 first:rounded-tl-md',
+                'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 first:rounded-tl-md',
                 (!(hasDetailPages || urlBase) ? 'last:rounded-tr-md' : ''),
                 classForIndex(hIndex)
             ]" :style="styleForIndex(hIndex)">
                 {{ header.label }}
             </div>
             <div v-if="hasDetailPages || urlBase"
-                class="px-4 py-2 bg-gray-600 rounded-tr-md shrink-0 flex items-center justify-end gap-3">
+                class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md shrink-0 flex items-center justify-end gap-3">
                 <TrashIcon class="size-5 opacity-0" />
             </div>
         </div>
 
-        <div class="bg-white" role="rowgroup" v-auto-animate>
+        <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
             <div v-for="item in items" :key="item.id" role="row"
-                class="even:bg-gray-50 grid grid-cols-12 py-3 lg:flex lg:flex-row lg:items-stretch">
+                class="even:bg-gray-50 dark:even:bg-slate-800/70 dark:bg-slate-900 grid grid-cols-12 py-3 lg:flex lg:flex-row lg:items-stretch border-b border-gray-100 dark:border-slate-800/60 last:border-b-0">
                 <div v-for="(column, cIndex) in headers" :key="column.key" role="cell"
-                    :class="['px-4 py-2 flex flex-col col-span-12 md:col-span-6', classForIndex(cIndex)]"
+                    :class="['px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200', classForIndex(cIndex)]"
                     :style="styleForIndex(cIndex)">
-                    <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600"
+                    <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400"
                         v-if="column.fieldtype !== 'combobox'">{{ column.label }}</span>
                     <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
                         @update:modelValue="onCellChange(item.id, column.key, $event)"
@@ -38,10 +38,10 @@
                 <div class="px-4 py-2 text-right flex items-center justify-end gap-3 shrink-0"
                     v-if="hasDetailPages || urlBase">
                     <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`"
-                        class="text-blue-600 hover:text-blue-900">
+                        class="text-blue-600 dark:text-indigo-400 hover:text-blue-900 dark:hover:text-indigo-300">
                     Details
                     </Link>
-                    <TrashIcon v-if="urlBase" class="size-5 text-red-400 hover:text-red-600 cursor-pointer"
+                    <TrashIcon v-if="urlBase" class="size-5 text-red-400 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer"
                         @click.stop="onDelete(item.id)" />
                 </div>
             </div>
