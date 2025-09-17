@@ -133,7 +133,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -327,7 +327,7 @@ const initials = computed(() => authUser.value?.name ? authUser.value.name.split
 
 const navigation = ref([
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
-    { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false },
+    { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false, requiresPermission: 'customer.read' },
     {
         name: 'Producten',
         href: '/products',

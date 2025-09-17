@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request; // Removed, using CustomerIndexRequest instead
+use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
@@ -14,7 +15,7 @@ class CustomerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(CustomerReadRequest $request)
     {
         $search = $request->input('search');
         $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
@@ -45,7 +46,7 @@ class CustomerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Customer $customer)
+    public function show(CustomerReadRequest $request, Customer $customer)
     {
         $customer->load([
             'upcomingAssets.product.brand',

@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>
@@ -98,10 +98,13 @@
                         Naam klant
                     </div>
                     <div class="col-span-4">
-                        <Link :href="`/customers/${serviceOrder.customer.id}`"
-                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
-                        {{ serviceOrder.customer.name }}
-                        </Link>
+                        <component :is="hasPermission('customer.read') ? Link : 'span'"
+                            :href="`/customers/${serviceOrder.customer.id}`" :class="{
+                                'text-gray-800 dark:text-slate-200': true,
+                                'underline dark:hover:text-slate-400 hover:text-gray-600': hasPermission('customer.read')
+                            }">
+                            {{ serviceOrder.customer.name }}
+                        </component>
                     </div>
                     <div class="col-span-2 text-xs text-gray-600 dark:text-slate-400">
                         Adres
@@ -284,10 +287,11 @@
                     </div>
                     <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
                         <span class="text-gray-500 dark:text-slate-400">Klant</span>
-                        <Link :href="`/customers/${serviceOrder.customer.id}`"
-                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
-                        {{
-                            serviceOrder.customer.name }}</Link>
+                        <component :is="hasPermission('customer.read') ? Link : 'span'"
+                            :href="`/customers/${serviceOrder.customer.id}`" :class="{
+                                'text-gray-800 dark:text-slate-200': true,
+                                'underline dark:hover:text-slate-400 hover:text-gray-600': hasPermission('customer.read')
+                            }">{{ serviceOrder.customer.name }}</component>
                     </div>
                     <div class="py-1 border-b border-gray-100 dark:border-slate-800/60">
                         <span class="text-gray-500 dark:text-slate-400 block">Adres</span>
