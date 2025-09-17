@@ -16,6 +16,11 @@
                             :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
                             {{ getCustomerById(event.extendedProps.customer_id).name }}
                         </component>
+                        <ul class="text-xs list-disc ml-3 mt-3" v-if="event.extendedProps.executing_users.length > 0">
+                            <li v-for="user in event.extendedProps.executing_users" :key="user.id">
+                                {{ user.name }}
+                            </li>
+                        </ul>
                     </div>
                     <div class="flex flex-col absolute top-0 right-0 rounded-bl-md p-1 bg-white">
                         <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
@@ -301,6 +306,7 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
             customer_id: event.service_orders[0]?.customer_id,
             status: event.status,
             executing_user_ids: event.executing_users?.map(u => u.id) || [],
+            executing_users: event.executing_users || [],
         },
     }))
     successCallback(events)
