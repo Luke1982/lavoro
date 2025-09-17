@@ -124,15 +124,15 @@
                     <ServiceOrderRow v-for="serviceorder in customer.service_orders" v-bind:key="serviceorder.id"
                         :serviceorder="serviceorder" />
                 </BoxComponent>
-                <BoxComponent class="bg-white">
-                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between items-center">
+                <BoxComponent class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60">
+                    <div class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
                         <div class="flex items-center">
-                            <svg class="size-6 text-gray-500 mr-2" fill="none" stroke="currentColor" stroke-width="1.5"
+                            <svg class="size-6 text-gray-500 dark:text-slate-400 mr-2" fill="none" stroke="currentColor" stroke-width="1.5"
                                 viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                            <h2 class="font-regular text-xl">Afspraken</h2>
+                            <h2 class="font-regular text-xl text-gray-800 dark:text-slate-200">Afspraken</h2>
                         </div>
                     </div>
                     <EventTimelineComponent :events="eventList" />

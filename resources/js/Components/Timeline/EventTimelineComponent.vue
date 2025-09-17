@@ -1,50 +1,57 @@
 <template>
     <div class="flow-root">
-        <div v-if="!eventsToShow.length" class="text-xs text-gray-500 px-1 py-0.5">Geen afspraken</div>
-    <div v-else :class="['timeline-wrapper', expanded ? 'expanded' : 'collapsed']" aria-live="polite">
-    <ul role="list" class="-mb-5" v-auto-animate>
-            <li v-for="(ev, idx) in eventsToShow" :key="ev.id">
-                <div class="relative pb-5">
-                    <span v-if="idx !== eventsToShow.length - 1"
-                        class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
-                    <div class="relative flex space-x-3">
-                        <div>
-                            <span
-                                :class="[ev.bg, 'flex size-7 items-center justify-center rounded-full ring-6 ring-white text-[10px] font-bold uppercase tracking-tight text-white']">
-                                {{ ev.short }}
-                            </span>
-                        </div>
-                        <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                            <div class="text-sm text-gray-600">
-                                <p class="flex items-center gap-2 flex-wrap">
-                                    <span v-if="ev.name" class="font-medium text-gray-800">{{ ev.name }}</span>
-                                    <span v-if="ev.status" :class="statusBadgeClass(ev.status)"
-                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium tracking-wide">{{
-                                        ev.status }}</span>
-                                </p>
-                                <p class="text-gray-600" v-if="ev.service_order_id">
-                                    Werkbon
-                                    <Link :href="`/serviceorders/${ev.service_order_id}`" class="underline">#{{
-                                    ev.service_order_id }}</Link>
-                                </p>
-                                <p class="mt-0.5 text-xs text-gray-500" v-if="ev.description" v-html="ev.description" />
-                                <p class="mt-1 text-[11px] leading-snug">
-                                    <span class="font-medium">Start:</span> {{ ev.startFormatted }}<br>
-                                    <span class="font-medium">Einde:</span> {{ ev.endFormatted }}
-                                </p>
+        <div v-if="!eventsToShow.length" class="text-xs text-gray-500 dark:text-slate-500 px-1 py-0.5">Geen afspraken
+        </div>
+        <div v-else :class="['timeline-wrapper', expanded ? 'expanded' : 'collapsed']" aria-live="polite">
+            <ul role="list" class="-mb-5" v-auto-animate>
+                <li v-for="(ev, idx) in eventsToShow" :key="ev.id">
+                    <div class="relative pb-5">
+                        <span v-if="idx !== eventsToShow.length - 1"
+                            class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200 dark:bg-slate-700/60"
+                            aria-hidden="true" />
+                        <div class="relative flex space-x-3">
+                            <div>
+                                <span
+                                    :class="[ev.bg, 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm text-[10px] font-bold uppercase tracking-tight text-white']">
+                                    {{ ev.short }}
+                                </span>
                             </div>
-                            <div class="text-right text-[11px] whitespace-nowrap text-gray-500">
-                                <time :datetime="ev.start">{{ ev.compactDate }}</time>
+                            <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                <div class="text-sm text-gray-600 dark:text-slate-400">
+                                    <p class="flex items-center gap-2 flex-wrap">
+                                        <span v-if="ev.name" class="font-medium text-gray-800 dark:text-slate-200">{{
+                                            ev.name }}</span>
+                                        <span v-if="ev.status" :class="statusBadgeClass(ev.status)"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium tracking-wide">{{
+                                                ev.status }}</span>
+                                    </p>
+                                    <p class="text-gray-600 dark:text-slate-400" v-if="ev.service_order_id">
+                                        Werkbon
+                                        <Link :href="`/serviceorders/${ev.service_order_id}`"
+                                            class="underline text-indigo-600 dark:text-indigo-400">#{{
+                                                ev.service_order_id }}</Link>
+                                    </p>
+                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-slate-500" v-if="ev.description"
+                                        v-html="ev.description" />
+                                    <p class="mt-1 text-[11px] leading-snug text-gray-700 dark:text-slate-300">
+                                        <span class="font-medium dark:text-slate-200">Start:</span> {{ ev.startFormatted
+                                        }}<br>
+                                        <span class="font-medium dark:text-slate-200">Einde:</span> {{ ev.endFormatted
+                                        }}
+                                    </p>
+                                </div>
+                                <div class="text-right text-[11px] whitespace-nowrap text-gray-500 dark:text-slate-500">
+                                    <time :datetime="ev.start">{{ ev.compactDate }}</time>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </li>
-    </ul>
-    </div>
+                </li>
+            </ul>
+        </div>
         <div v-if="showToggle && eventsToShow.length" class="mt-1 -mx-3">
             <button type="button" @click="expanded = !expanded" :aria-expanded="expanded.toString()"
-                class="group w-full flex items-center justify-start gap-2 text-xs font-medium text-indigo-600 px-3 py-2 rounded-md hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1">
+                class="group w-full flex items-center justify-start gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 px-3 py-2 rounded-md hover:bg-indigo-50 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900">
                 <span class="select-none">{{ expanded ? 'Toon minder' : 'Toon alle ' + internalEvents.length }}</span>
                 <svg v-if="!expanded" class="size-3 text-indigo-500 group-hover:translate-y-0.5 transition-transform"
                     viewBox="0 0 20 20" fill="currentColor">
@@ -136,7 +143,16 @@ const statusBadgeClass = (status) => {
 </script>
 
 <style scoped>
-.timeline-wrapper { overflow: hidden; transition: max-height .35s ease; }
-.timeline-wrapper.collapsed { max-height: 500px; }
-.timeline-wrapper.expanded { max-height: 3000px; }
+.timeline-wrapper {
+    overflow: hidden;
+    transition: max-height .35s ease;
+}
+
+.timeline-wrapper.collapsed {
+    max-height: 500px;
+}
+
+.timeline-wrapper.expanded {
+    max-height: 3000px;
+}
 </style>
