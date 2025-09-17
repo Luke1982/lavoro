@@ -19,6 +19,9 @@ use App\Models\Company;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use App\Http\Requests\TicketAttachToServiceOrderRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
+use App\Http\Requests\ServiceOrderExportPdfRequest;
+use App\Http\Requests\ServiceOrderEmailPdfRequest;
+use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 
 class ServiceOrderController extends Controller
 {
@@ -134,7 +137,7 @@ class ServiceOrderController extends Controller
     /**
      * Export a PDF of the service order.
      */
-    public function exportPdf(ServiceOrder $serviceorder)
+    public function exportPdf(ServiceOrderExportPdfRequest $request, ServiceOrder $serviceorder)
     {
         $pdf = $this->generateServiceOrderPdf($serviceorder);
         return $pdf->download('werkbon-' . $serviceorder->id . '.pdf');
@@ -143,7 +146,7 @@ class ServiceOrderController extends Controller
     /**
      * Generate PDF and email it to the customer.
      */
-    public function emailPdf(ServiceOrder $serviceorder)
+    public function emailPdf(ServiceOrderEmailPdfRequest $request, ServiceOrder $serviceorder)
     {
         $serviceorder->load(['customer']);
         $recipients = array_unique(array_filter([
@@ -168,7 +171,7 @@ class ServiceOrderController extends Controller
         return redirect()->back()->with('success', 'Werkbon verzonden naar: ' . implode(', ', $recipients));
     }
 
-    public function emailPdfWithJobs(ServiceOrder $serviceorder)
+    public function emailPdfWithJobs(ServiceOrderEmailPdfWithChecksRequest $request, ServiceOrder $serviceorder)
     {
         $serviceorder->load(['customer', 'serviceJobs.asset.customer']);
         $recipients = array_unique(array_filter([

@@ -28,7 +28,7 @@
                                 <MenuItems
                                     class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-slate-800 shadow-lg outline-1 outline-black/5 dark:outline-slate-700/60 focus:outline-none">
                                     <div class="py-1 text-sm">
-                                        <MenuItem v-slot="{ active }">
+                                        <MenuItem v-if="hasPermission('serviceorder.export_pdf')" v-slot="{ active }">
                                         <button type="button" @click="openPdf"
                                             :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
                                             <span class="inline-flex items-center">
@@ -38,7 +38,7 @@
                                             </span>
                                         </button>
                                         </MenuItem>
-                                        <MenuItem v-slot="{ active }">
+                                        <MenuItem v-if="hasPermission('serviceorder.email_pdf')" v-slot="{ active }">
                                         <button type="button" @click="emailPdf" :disabled="emailing"
                                             :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
                                             <span class="inline-flex items-center" v-if="!emailing">
@@ -49,7 +49,7 @@
                                             <span v-else>Versturen...</span>
                                         </button>
                                         </MenuItem>
-                                        <MenuItem v-slot="{ active }" v-if="serviceOrder.servicejobs.length > 0">
+                                        <MenuItem v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')" v-slot="{ active }">
                                         <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
                                             :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
                                             <span class="inline-flex items-center" v-if="!emailingCombined">
@@ -348,20 +348,24 @@
                     <TimelineComponent :activities="serviceOrder.activities" />
                 </div>
                 <div
+                    v-if="hasPermission('serviceorder.export_pdf')
+                        || hasPermission('serviceorder.email_pdf')
+                        || (serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks'))
+                        || (!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder'))"
                     class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 flex flex-col gap-2">
-                    <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
+                    <a v-if="hasPermission('serviceorder.export_pdf')" :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
                         class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
                         <span
                             class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                         Exporteer PDF
                     </a>
-                    <button @click="emailPdf"
+                    <button v-if="hasPermission('serviceorder.email_pdf')" @click="emailPdf"
                         class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full font-semibold">
                         <span
                             class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                         E-mail PDF
                     </button>
-                    <button v-if="serviceOrder.servicejobs.length > 0" @click="emailPdfWithJobs"
+                    <button v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')" @click="emailPdfWithJobs"
                         class="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm w-full font-semibold">
                         <span
                             class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
