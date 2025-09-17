@@ -39,7 +39,7 @@
                 class="size-7 lg:size-5 text-blue-400 dark:text-blue-300 hover:text-blue-600 dark:hover:text-blue-200 cursor-pointer"
                 :href="`/servicejobs/${servicejob.id}`" v-tooltip="'Voer deze keuring uit'" />
             </Link>
-            <TrashIcon
+            <TrashIcon v-if="hasPermission('servicejob.delete')"
                 class="size-7 lg:size-5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                 @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
         </div>
@@ -48,6 +48,7 @@
 </template>
 
 <script setup>
+import { hasPermission } from '@/Utilities/Utilities';
 import { ArrowRightCircleIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';

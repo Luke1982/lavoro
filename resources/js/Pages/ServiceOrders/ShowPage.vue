@@ -126,12 +126,11 @@
                             placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
                     </div>
                 </div>
-                <div v-auto-animate class="my-4">
+                <div v-auto-animate class="my-4" v-if="hasPermission('servicejob.read')">
                     <h2
                         class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                         Keuringen</h2>
-                    <div class="grid grid-cols-12 mt-4">
-
+                    <div class="grid grid-cols-12 mt-4" v-if="hasPermission('servicejob.create')">
                         <div class="col-span-12 flex">
                             <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
                             <button @click="addServiceJob"
@@ -378,7 +377,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { mapsLinkFromCustomer, nlDate } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, hasPermission } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
