@@ -7,7 +7,8 @@
                     Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                 </div>
                 <div class="flex items-center justify-between mb-4">
-                    <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{ nlDate(serviceOrder.created_at)
+                    <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
+                        nlDate(serviceOrder.created_at)
                         }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
@@ -97,7 +98,8 @@
                         Naam klant
                     </div>
                     <div class="col-span-4">
-                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                        <Link :href="`/customers/${serviceOrder.customer.id}`"
+                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                         {{ serviceOrder.customer.name }}
                         </Link>
                     </div>
@@ -105,15 +107,18 @@
                         Adres
                     </div>
                     <div class="col-span-4">
-                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
-                            serviceOrder.customer.address
+                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
+                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
+                                serviceOrder.customer.address
                             }}, {{
                                 serviceOrder.customer.postal_code }} {{
                                 serviceOrder.customer.city }}
                         </a>
                     </div>
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Uitgevoerde werkzaamheden</h2>
+                <h2
+                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                    Uitgevoerde werkzaamheden</h2>
                 <div class="grid grid-cols-12 mt-2">
                     <div class="col-span-12">
                         <EditableTextField type="textarea" v-model="form.description"
@@ -122,7 +127,9 @@
                     </div>
                 </div>
                 <div v-auto-animate class="my-4">
-                    <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Keuringen</h2>
+                    <h2
+                        class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                        Keuringen</h2>
                     <div class="grid grid-cols-12 mt-4">
 
                         <div class="col-span-12 flex">
@@ -143,7 +150,9 @@
                     <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
                         :asset="job.asset" />
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Storingen</h2>
+                <h2
+                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                    Storingen</h2>
                 <div class="grid grid-cols-12 mt-4">
                     <div class="col-span-12 flex flex-col md:flex-row">
                         <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
@@ -159,7 +168,9 @@
                         <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
                     </div>
                 </div>
-                <h2 class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">Materialen</h2>
+                <h2
+                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                    Materialen</h2>
                 <div class="grid grid-cols-12 mt-4">
                     <div class="col-span-12 flex flex-col md:flex-row items-start">
                         <div class="flex flex-grow w-full">
@@ -179,7 +190,7 @@
                     </div>
                     <div class="col-span-12 flex mt-5">
                         <div class="w-full">
-                                <div v-if="serviceOrder.materials.length > 0"
+                            <div v-if="serviceOrder.materials.length > 0"
                                 class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 dark:text-slate-300">
                                 <div :class="showFinancial ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
                                 <div :class="showFinancial ? 'col-span-2' : 'col-span-3'">Aantal</div>
@@ -229,7 +240,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
+                <div
+                    class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
                     <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2>
                     <button type="button" @click="showFinancial = !showFinancial"
                         class="text-gray-500 hover:text-gray-700"
@@ -244,13 +256,14 @@
                             placeholder="Voer de naam van degene in die de werkbon tekent" />
                         <div class="relative" v-if="!editingSignature">
                             <img :src="serviceOrder.signature_base64" alt="">
-                <PencilSquareIcon
-                    class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
+                            <PencilSquareIcon
+                                class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
                                 @click="editingSignature = true" />
                         </div>
                         <div class="relative" v-if="editingSignature">
                             <SignaturePad v-model="form.signature_base64" />
-                            <XMarkIcon class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
+                            <XMarkIcon
+                                class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
                                 @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                         </div>
                     </div>
@@ -263,7 +276,8 @@
         </template>
         <template #sidebar>
             <div class="space-y-4 mt-6 md:mt-0">
-                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Werkbon details</h3>
                     <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
                         <span class="text-gray-500 dark:text-slate-400">Datum</span>
@@ -271,7 +285,9 @@
                     </div>
                     <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
                         <span class="text-gray-500 dark:text-slate-400">Klant</span>
-                        <Link :href="`/customers/${serviceOrder.customer.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
+                        <Link :href="`/customers/${serviceOrder.customer.id}`"
+                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                        {{
                             serviceOrder.customer.name }}</Link>
                     </div>
                     <div class="py-1 border-b border-gray-100 dark:border-slate-800/60">
@@ -301,7 +317,8 @@
                             bewerking</span>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm" v-if="showFinancial">
+                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
+                    v-if="showFinancial">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Materiaaloverzicht</h3>
                     <div class="flex justify-between py-1">
                         <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
@@ -321,7 +338,8 @@
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
                     <TimelineComponent :activities="serviceOrder.activities" />
                 </div>
-                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 flex flex-col gap-2">
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 flex flex-col gap-2">
                     <a :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
                         class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
                         <span

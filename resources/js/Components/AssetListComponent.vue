@@ -2,14 +2,16 @@
     <div class="grid gap-6 grid-cols-1 xl:grid-cols-2" v-auto-animate>
         <div v-for="asset in assets" :key="asset.id"
             class="flex rounded-lg bg-white dark:bg-slate-900 overflow-hidden transition border border-gray-200 dark:border-slate-700/60 relative hover:shadow-sm hover:border-gray-300 dark:hover:border-slate-600/80">
-            <div class="w-20 flex items-center justify-center bg-pink-600 text-white font-semibold text-sm select-none dark:bg-pink-700">
+            <div
+                class="w-20 flex items-center justify-center bg-pink-600 text-white font-semibold text-sm select-none dark:bg-pink-700">
                 {{ asset.product.product_type.name.slice(0, 2).toUpperCase() }}
             </div>
             <div class="flex-1 p-4 pr-8">
                 <div class="flex flex-col text-sm">
                     <Link :href="`/assets/${asset.id}`"
-                        class="font-medium text-gray-900 dark:text-slate-100 hover:text-gray-700 dark:hover:text-slate-300 leading-snug line-clamp-2">{{
-                            asset.product.brand.name }} {{ asset.product.model }}</Link>
+                        class="font-medium text-gray-900 dark:text-slate-100 hover:text-gray-700 dark:hover:text-slate-300 leading-snug line-clamp-2">
+                    {{
+                        asset.product.brand.name }} {{ asset.product.model }}</Link>
                 </div>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-600 dark:text-slate-400">
                     <div class="flex items-center gap-1">
@@ -46,8 +48,9 @@
                     </span>
                 </div>
             </div>
-            <TrashIcon class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer absolute top-2 right-2 opacity-80 hover:opacity-100" @click="deleteAsset(asset.id)"
-                v-tooltip="'Verwijder machine'" />
+            <TrashIcon
+                class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer absolute top-2 right-2 opacity-80 hover:opacity-100"
+                @click="deleteAsset(asset.id)" v-tooltip="'Verwijder machine'" />
         </div>
     </div>
 </template>

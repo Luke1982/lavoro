@@ -24,8 +24,10 @@
                         {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
                     </span>
                     <div class="min-w-0 flex-auto">
-                        <p class="text-sm font-semibold leading-6 text-gray-900 dark:text-slate-100 group-hover:underline">{{ customer.name
-                        }}
+                        <p
+                            class="text-sm font-semibold leading-6 text-gray-900 dark:text-slate-100 group-hover:underline">
+                            {{ customer.name
+                            }}
                         </p>
                         <p class="mt-1 truncate text-xs leading-5 text-gray-500 dark:text-slate-400">
                             {{ customer.email || 'Geen e-mailadres' }}
@@ -38,14 +40,17 @@
                     <p class="mt-1 text-xs leading-5 text-left text-gray-600 dark:text-slate-400">
                         <span v-if="customer.open_tickets?.length" class="text-red-600 dark:text-red-400 font-medium">{{
                             customer.open_tickets.length }} open stor.</span>
-                        <span v-else-if="customer.pending_tickets?.length" class="text-amber-600 dark:text-amber-400 font-medium">{{
-                            customer.pending_tickets.length }} in beh.</span>
+                        <span v-else-if="customer.pending_tickets?.length"
+                            class="text-amber-600 dark:text-amber-400 font-medium">{{
+                                customer.pending_tickets.length }} in beh.</span>
                         <span v-else class="text-green-600 dark:text-green-400">Geen open storingen</span>
                     </p>
                 </div>
                 <!-- Right section: chevron -->
                 <div class="flex justify-end">
-                    <ChevronRightIcon class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400" aria-hidden="true" />
+                    <ChevronRightIcon
+                        class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
+                        aria-hidden="true" />
                     <span class="sr-only">Bekijk {{ customer.name }}</span>
                 </div>
                 </Link>

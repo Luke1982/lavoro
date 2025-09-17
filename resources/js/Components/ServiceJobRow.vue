@@ -1,13 +1,16 @@
 <template>
-    <div :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 dark:odd:bg-slate-800/40 p-5 md:px-0 md:py-2 relative rounded-md`">
+    <div
+        :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 dark:odd:bg-slate-800/40 p-5 md:px-0 md:py-2 relative rounded-md`">
         <div class="col-span-6 lg:col-span-5 flex flex-col" v-if="asset">
             <span class="font-bold block lg:hidden">Machine</span>
-            <Link :href="`/products/${servicejob.asset.product.id}`" class="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 dark:hover:text-blue-300"
+            <Link :href="`/products/${servicejob.asset.product.id}`"
+                class="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 dark:hover:text-blue-300"
                 v-tooltip="'Met deze link ga je naar het algemene product'">
             {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
             </Link>
             met serienummer
-            <Link :href="`/assets/${servicejob.asset.id}`" class="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 dark:hover:text-blue-300"
+            <Link :href="`/assets/${servicejob.asset.id}`"
+                class="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 dark:hover:text-blue-300"
                 v-tooltip="'Met deze link ga je naar de individuele machine'">{{
                     servicejob.asset.serial_number }}</Link>
         </div>
@@ -32,10 +35,12 @@
         </div>
         <div class="absolute top-2 right-2 flex space-x-1 lg:space-x-2 items-center">
             <Link :href="`/servicejobs/${servicejob.id}`">
-            <ArrowRightCircleIcon class="size-7 lg:size-5 text-blue-400 dark:text-blue-300 hover:text-blue-600 dark:hover:text-blue-200 cursor-pointer"
+            <ArrowRightCircleIcon
+                class="size-7 lg:size-5 text-blue-400 dark:text-blue-300 hover:text-blue-600 dark:hover:text-blue-200 cursor-pointer"
                 :href="`/servicejobs/${servicejob.id}`" v-tooltip="'Voer deze keuring uit'" />
             </Link>
-            <TrashIcon class="size-7 lg:size-5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
+            <TrashIcon
+                class="size-7 lg:size-5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                 @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
         </div>
 

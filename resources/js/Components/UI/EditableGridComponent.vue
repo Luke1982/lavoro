@@ -1,5 +1,7 @@
 <template>
-    <div v-if="items.length" class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-px transition-colors" role="table">
+    <div v-if="items.length"
+        class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-px transition-colors"
+        role="table">
         <div class="hidden lg:flex" role="row">
             <div v-for="(header, hIndex) in headers" :key="header.key" role="columnheader" :class="[
                 'px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 first:rounded-tl-md',
@@ -41,7 +43,8 @@
                         class="text-blue-600 dark:text-indigo-400 hover:text-blue-900 dark:hover:text-indigo-300">
                     Details
                     </Link>
-                    <TrashIcon v-if="urlBase" class="size-5 text-red-400 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer"
+                    <TrashIcon v-if="urlBase"
+                        class="size-5 text-red-400 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer"
                         @click.stop="onDelete(item.id)" />
                 </div>
             </div>

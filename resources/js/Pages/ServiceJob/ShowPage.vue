@@ -21,7 +21,8 @@
                 Naam klant
             </div>
             <div class="col-span-8 md:col-span-4">
-                <Link :href="`/customers/${servicejob.asset.customer.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                <Link :href="`/customers/${servicejob.asset.customer.id}`"
+                    class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                 {{ servicejob.asset.customer.name }}
                 </Link>
             </div>
@@ -29,7 +30,8 @@
                 Werkbon
             </div>
             <div class="col-span-8 md:col-span-4">
-                <Link :href="`/serviceorders/${servicejob.service_order.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                <Link :href="`/serviceorders/${servicejob.service_order.id}`"
+                    class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                 Nummer {{ servicejob.service_order.id }} gemaakt op {{ nlDate(servicejob.service_order.created_at) }}
                 </Link>
             </div>
@@ -37,7 +39,8 @@
                 Serienummer
             </div>
             <div class="col-span-8 md:col-span-4">
-                <Link :href="`/assets/${servicejob.asset.id}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                <Link :href="`/assets/${servicejob.asset.id}`"
+                    class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                 {{ servicejob.asset.serial_number }}
                 </Link>
             </div>
@@ -45,7 +48,8 @@
                 Soort product
             </div>
             <div class="col-span-8 md:col-span-4">
-                <Link :href="`/producttypes?search=${servicejob.asset.product.product_type.name}`" class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
+                <Link :href="`/producttypes?search=${servicejob.asset.product.product_type.name}`"
+                    class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
                 {{ servicejob.asset.product.product_type.name }}
                 </Link>
             </div>
@@ -67,12 +71,13 @@
                 </button>
             </div>
         </div>
-    <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
+        <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
             Keurpunten
         </h2>
         <div class="flex flex-col gap-6">
             <div v-for="group in groupedChecks" :key="group.key" class="w-full">
-                <h3 v-if="group.name" class="text-lg font-semibold text-gray-900 dark:text-slate-200 mb-2 flex items-center gap-2">
+                <h3 v-if="group.name"
+                    class="text-lg font-semibold text-gray-900 dark:text-slate-200 mb-2 flex items-center gap-2">
                     {{ group.name }}
                 </h3>
                 <div class="flex flex-wrap">
@@ -94,7 +99,8 @@
                     class="col-span-6 ml-2 md:ml-4 flex flex-col justify-between" type="number"
                     v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
                 <div class="col-span-6 ml-0 md:ml-4 mr-2 md:mr-0 flex flex-col justify-between mt-4 md:mt-0">
-                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op:</label>
+                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond
+                        op:</label>
                     <input type="date" v-model="form.completed_on" lang="nl"
                         class="w-full border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         :disabled="servicejob.completed_on !== null" />
@@ -107,17 +113,20 @@
                         class="inline size-5 mt-0 md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
                 </button>
                 <div v-else class="flex col-span-12 w-full md:w-auto mt-2 md:ml-4 mr-2 md:mr-0 justify-center">
-                    <InformationCircleIcon class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
+                    <InformationCircleIcon
+                        class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
                         v-tooltip="{
                             html: true,
                             content: `<span class='block w-100'>Deze keuring is afgerond op <strong>${nlDate(servicejob.completed_on)}</strong>, dus je kunt hem niet meer opslaan. Wil je de datum leegmaken en de keuring opnieuw kunnen opslaan? Klik dan op het slot hiernaast.</span>`
                         }" />
-                    <LockClosedIcon class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
+                    <LockClosedIcon
+                        class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
                         @click="clearCompletedOn" />
                 </div>
             </div>
             <div class="mt-4">
-                <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200 mb-2">Opmerkingen:</label>
+                <label
+                    class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200 mb-2">Opmerkingen:</label>
                 <textarea v-model="form.description" rows="3"
                     class="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     placeholder="Eventuele opmerkingen over de keuring..."
