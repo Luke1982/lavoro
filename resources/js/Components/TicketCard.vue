@@ -39,8 +39,9 @@
             <TrashIcon v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined"
                 class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer" @click.stop="deleteTicket"
                 v-tooltip="'Verwijder de storing'" />
-            <LinkSlashIcon v-if="disconnect !== null" class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer"
-                @click.stop="removeTicketLink" v-tooltip="'Verwijder de storing van deze werkbon'" />
+            <LinkSlashIcon v-if="disconnect !== null && hasPermission('ticket.detach_from_serviceorder')"
+                class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer" @click.stop="removeTicketLink"
+                v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
         <div class="absolute bottom-2 left-2 w-20">
             <ChevronDownIcon v-if="ticket.priority.toLowerCase() !== ticketPriorities[0].id.toLowerCase()"
@@ -60,6 +61,7 @@ import { Link } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import { useForm } from '@inertiajs/vue3';
 import { ticketPriorities } from './data/TicketData';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     ticket: {

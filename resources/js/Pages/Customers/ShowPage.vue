@@ -30,13 +30,13 @@
                             Bezoekadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
                             customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
                             Postadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                            }}<br>{{
+                        }}<br>{{
                                 customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>
@@ -125,10 +125,11 @@
                         :serviceorder="serviceorder" />
                 </BoxComponent>
                 <BoxComponent class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60">
-                    <div class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                    <div
+                        class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
                         <div class="flex items-center">
-                            <svg class="size-6 text-gray-500 dark:text-slate-400 mr-2" fill="none" stroke="currentColor" stroke-width="1.5"
-                                viewBox="0 0 24 24" aria-hidden="true">
+                            <svg class="size-6 text-gray-500 dark:text-slate-400 mr-2" fill="none" stroke="currentColor"
+                                stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>

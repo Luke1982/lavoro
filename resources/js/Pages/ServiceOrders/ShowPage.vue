@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>
@@ -156,24 +156,26 @@
                     <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
                         :asset="job.asset" />
                 </div>
-                <h2
-                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                    Storingen</h2>
-                <div class="grid grid-cols-12 mt-4">
-                    <div class="col-span-12 flex flex-col md:flex-row">
-                        <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
-                        <button @click="attachTicket"
-                            class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
-                            Voeg storing toe
-                        </button>
+                <template v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
+                    <h2
+                        class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                        Storingen</h2>
+                    <div class="grid grid-cols-12 mt-4" v-if="hasPermission('ticket.add_to_serviceorder')">
+                        <div class="col-span-12 flex flex-col md:flex-row">
+                            <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
+                            <button @click="attachTicket"
+                                class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
+                                Voeg storing toe
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="flex flex-wrap" v-auto-animate>
-                    <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
-                        :key="ticket.id">
-                        <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
+                    <div class="flex flex-wrap" v-auto-animate>
+                        <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
+                            :key="ticket.id">
+                            <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
+                        </div>
                     </div>
-                </div>
+                </template>
                 <h2
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Materialen</h2>
@@ -433,6 +435,10 @@ const internalTickets = ref([]);
 watch(
     () => props.serviceOrder.tickets,
     (newTickets) => {
+        if (!hasPermission('ticket.add_to_serviceorder')) {
+            internalTickets.value = [];
+            return;
+        }
         internalTickets.value = props.serviceOrder.customer.tickets.slice()
             .filter(ticket => ticket.status !== 'Gesloten' && newTickets.map(t => t.id).indexOf(ticket.id) === -1)
             .sort((a, b) =>
@@ -489,6 +495,7 @@ watch(
 )
 
 const attachTicket = () => {
+    if (!hasPermission('ticket.add_to_serviceorder')) return;
     if (!ticketToSolve.value) return;
     form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
         preserveScroll: true,

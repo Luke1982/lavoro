@@ -17,6 +17,8 @@ use App\Mail\ServiceOrderPdfMail;
 use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Company;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
+use App\Http\Requests\TicketAttachToServiceOrderRequest;
+use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 
 class ServiceOrderController extends Controller
 {
@@ -366,26 +368,6 @@ class ServiceOrderController extends Controller
         }
     }
 
-    /**
-     * Attach a ticket to a service order.
-     */
-    public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
-    {
-        $ticket->update(['service_order_id' => $serviceorder->id]);
-        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
-        if ($asset) {
-            $serviceorder->logActivity(sprintf(
-                'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
-                $ticket->subject ?? ('Ticket #' . $ticket->id),
-                $asset->product->productType->name ?? 'Type',
-                $asset->product->brand->name ?? 'Merk',
-                $asset->product->model ?? '',
-                $asset->serial_number ?? '-'
-            ));
-        }
-        return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
-    }
-
     private function generateServiceOrderPdf(ServiceOrder $serviceorder): DompdfPdf
     {
         $serviceorder->load([
@@ -413,10 +395,33 @@ class ServiceOrderController extends Controller
     }
 
     /**
+     * Attach a ticket to a service order.
+     */
+    public function attachTicket(TicketAttachToServiceOrderRequest $request, ServiceOrder $serviceorder, Ticket $ticket)
+    {
+        $ticket->update(['service_order_id' => $serviceorder->id]);
+        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
+        if ($asset) {
+            $serviceorder->logActivity(sprintf(
+                'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
+                $ticket->subject ?? ('Ticket #' . $ticket->id),
+                $asset->product->productType->name ?? 'Type',
+                $asset->product->brand->name ?? 'Merk',
+                $asset->product->model ?? '',
+                $asset->serial_number ?? '-'
+            ));
+        }
+        return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
+    }
+
+    /**
      * Detach a ticket from a service order.
      */
-    public function detachTicket(ServiceOrder $serviceorder, Ticket $ticket)
-    {
+    public function detachTicket(
+        TicketDetachFromServiceOrderRequest $request,
+        ServiceOrder $serviceorder,
+        Ticket $ticket
+    ) {
         $ticket->update(['service_order_id' => null]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
