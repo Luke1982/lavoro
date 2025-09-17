@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-// use Illuminate\Http\Request; // Removed, using CustomerIndexRequest instead
 use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
@@ -63,11 +63,24 @@ class CustomerController extends Controller
             'pendingTickets',
             'closedTickets',
             'serviceOrders.serviceJobs.asset.tickets',
-            // Load events (appointments) for each service order including their type for timeline
             'serviceOrders.events.eventType',
+            'serviceOrders.events.executingUsers:id,name',
+            'serviceOrders.events.owners:id,name',
         ]);
 
-        $upcomingByType    = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
+        $user = Auth::user();
+        $has_all = $user?->is_admin || $user?->permissions()->where('name', 'event.see_all')->exists();
+        if (!$has_all) {
+            foreach ($customer->serviceOrders as $order) {
+                $order->setRelation('events', $order->events->filter(function ($e) use ($user) {
+                    $executing_ids = $e->executingUsers->pluck('id')->all();
+                    $owner_ids = $e->owners->pluck('id')->all();
+                    return in_array($user->id, $executing_ids) || in_array($user->id, $owner_ids);
+                })->values());
+            }
+        }
+
+        $upcomingByType = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
         $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
 
         $allCustomers = Customer::select(

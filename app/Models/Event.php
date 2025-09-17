@@ -4,9 +4,14 @@ namespace App\Models;
 
 use App\Enums\EventStatusses;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\HasOwner;
+use App\Models\Traits\HasExecutingUsers;
 
 class Event extends Model
 {
+    use HasOwner;
+    use HasExecutingUsers;
+
     protected $fillable = [
         'name',
         'description',

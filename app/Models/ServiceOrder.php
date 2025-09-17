@@ -6,12 +6,16 @@ use App\Models\Traits\RemarkableTrait;
 use App\Models\Activity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\HasOwner;
+use App\Models\Traits\HasExecutingUsers;
 
 class ServiceOrder extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceOrderFactory> */
     use HasFactory;
     use RemarkableTrait;
+    use HasOwner;
+    use HasExecutingUsers;
 
     protected $fillable = [
         'description',
@@ -65,8 +69,11 @@ class ServiceOrder extends Model
         return $this->morphToMany(Activity::class, 'activityable')->withTimestamps();
     }
 
-    public function logActivity(string $description, ?\DateTimeInterface $occurredAt = null, ?string $category = null): Activity
-    {
+    public function logActivity(
+        string $description,
+        ?\DateTimeInterface $occurredAt = null,
+        ?string $category = null
+    ): Activity {
         // Basic inference if no category explicitly provided
         if (!$category) {
             $lower = mb_strtolower($description);

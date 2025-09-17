@@ -30,16 +30,17 @@
             </template>
         </FullCalendar>
         <div v-if="modalOpen"
-            class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-start lg:items-center justify-center px-5 lg:px-0">
+            class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-start lg:items-center justify-center px-5 lg:px-0 bg-white/60 dark:bg-gray-900/60">
             <div
-                class="w-full lg:w-2/3 xl:w-1/2 bg-white rounded-2xl mt-3 lg:mt-0 h-[90vh] lg:h-[96vh] shadow-2xl relative">
-                <div class="flex p-4 border-b-gray-200 border-b-1 items-center">
-                    <div class="w-10/12 text-gray-600">
+                class="w-full lg:w-2/3 xl:w-1/2 bg-white dark:bg-gray-800 rounded-2xl mt-3 lg:mt-0 h-[90vh] lg:h-[96vh] shadow-2xl relative text-gray-900 dark:text-gray-100">
+                <div class="flex p-4 border-b-gray-200 dark:border-b-gray-700 border-b-1 items-center">
+                    <div class="w-10/12 text-gray-600 dark:text-gray-300">
                         <span v-if="!editingExistingEvent">Maak een nieuwe afspraak</span>
                         <span v-else>Wijzig afspraak</span>
                     </div>
                     <div class="w-2/12 flex justify-end">
-                        <XMarkIcon class="h-6 w-6 cursor-pointer text-red-600" @click="modalOpen = false" />
+                        <XMarkIcon class="h-6 w-6 cursor-pointer text-red-600 dark:text-red-400"
+                            @click="modalOpen = false" />
                     </div>
                 </div>
                 <div class="overflow-y-scroll h-[77vh]">
@@ -67,10 +68,11 @@
                         <TextInput v-model="form.name" label="Titel" type="text" class="w-full" />
                     </div>
                     <div class="w-full px-4 py-2">
-                        <label class="block text-sm font-medium leading-6 text-gray-900">Omschrijving</label>
+                        <label
+                            class="block text-sm font-medium leading-6 text-gray-900 dark:text-white">Omschrijving</label>
                         <textarea v-model="form.description" label="Omschrijving" type="textarea"
-                            class="w-full ring-1 ring-inset ring-gray-300 rounded-md p-2 text-sm" rows="4"
-                            placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
+                            class="w-full ring-1 ring-inset ring-gray-300 dark:ring-slate-500 bg-white dark:bg-slate-900 dark:text-white rounded-md p-2 text-sm placeholder-gray-400 dark:placeholder:text-gray-600"
+                            rows="4" placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
                     </div>
                     <div class="w-full px-4 py-2">
                         <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
@@ -80,14 +82,18 @@
                         <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
                             class="w-full" :initial-id="form.eventable_id" />
                     </div>
+                    <div class="w-full px-4 py-2">
+                        <ComboBox v-model="form.executing_user_ids" :options="allUsers" label="Uitvoerende gebruikers"
+                            class="w-full" :initial-ids="form.executing_user_ids" :multiple="true" />
+                    </div>
                 </div>
                 <div class="absolute bottom-0 w-full flex justify-end rounded-b-2xl overflow-hidden">
                     <button @click="modalOpen = false; editingExistingEvent = false; form.reset()"
-                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 flex-grow">
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 font-semibold py-2 px-4 flex-grow">
                         Annuleren
                     </button>
                     <button @click="saveEvent"
-                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 flex-grow">
+                        class="bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 font-semibold py-2 px-4 flex-grow">
                         Opslaan
                     </button>
                 </div>
@@ -118,7 +124,7 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 
-const { eventTypes, allCustomers, allServiceOrders, eventStatusses } = defineProps({
+const { eventTypes, allCustomers, allServiceOrders, eventStatusses, allUsers } = defineProps({
     eventTypes: {
         type: Array,
         required: true
@@ -132,6 +138,10 @@ const { eventTypes, allCustomers, allServiceOrders, eventStatusses } = definePro
         required: true
     },
     eventStatusses: {
+        type: Array,
+        required: true
+    },
+    allUsers: {
         type: Array,
         required: true
     }
@@ -151,6 +161,7 @@ const form = useForm({
     id: '',
     description: '',
     status: eventStatusses[0]?.name,
+    executing_user_ids: allUsers.length ? [allUsers[0].id] : [],
 })
 
 const page = usePage()
@@ -222,13 +233,12 @@ const saveEvent = async () => {
 }
 
 const createEvent = async () => {
-    if (!hasPermission('event.create')) {
-        return
-    }
+    if (!hasPermission('event.create')) { return }
     const response = await axios.post('/api/events', {
         ...form,
         start: form.start_date + ' ' + form.start_time,
         end: form.end_date + ' ' + form.end_time,
+        executing_user_ids: form.executing_user_ids,
     })
     if (response.status !== 201) {
         page.props.flash.error = 'Kon de afspraak niet opslaan'
@@ -243,6 +253,7 @@ const updateEvent = async () => {
         ...form,
         start: form.start_date + ' ' + form.start_time,
         end: form.end_date + ' ' + form.end_time,
+        executing_user_ids: form.executing_user_ids,
     })
     if (response.status !== 200) {
         page.props.flash.error = 'Kon de afspraak niet bijwerken'
@@ -274,25 +285,24 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
         failureCallback('There was an error while fetching events')
         return
     }
-    const events = response.data.map(event => {
-        return {
+    const events = response.data.map(event => ({
+        id: event.id,
+        title: event.event_type.name,
+        start: event.start,
+        end: event.end,
+        color: event.event_type.color,
+        extendedProps: {
             id: event.id,
-            title: event.event_type.name,
-            start: event.start,
-            end: event.end,
-            color: event.event_type.color,
-            extendedProps: {
-                id: event.id,
-                name: event.name,
-                event_type_id: event.event_type.id,
-                eventable_id: event.service_orders[0]?.id,
-                eventable_type: '\\App\\Models\\ServiceOrder',
-                description: event.description ?? '',
-                customer_id: event.service_orders[0]?.customer_id,
-                status: event.status,
-            },
-        }
-    })
+            name: event.name,
+            event_type_id: event.event_type.id,
+            eventable_id: event.service_orders[0]?.id,
+            eventable_type: '\\App\\Models\\ServiceOrder',
+            description: event.description ?? '',
+            customer_id: event.service_orders[0]?.customer_id,
+            status: event.status,
+            executing_user_ids: event.executing_users?.map(u => u.id) || [],
+        },
+    }))
     successCallback(events)
 }
 
@@ -352,6 +362,7 @@ const onEventClick = (clickInfo) => {
     form.event_type_id = event.extendedProps.event_type_id
     form.eventable_id = event.extendedProps.eventable_id || ''
     form.status = event.extendedProps.status || ''
+    form.executing_user_ids = event.extendedProps.executing_user_ids || []
     const serviceOrder = allServiceOrders.find(order => order.id === form.eventable_id)
     selectedCustomer.value = serviceOrder ? serviceOrder.customer_id : null
     form.eventable_id = event.extendedProps.eventable_id || ''

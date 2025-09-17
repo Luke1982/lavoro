@@ -5,11 +5,15 @@ namespace App\Models;
 use App\Enums\ServiceJobOutcomes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Traits\HasOwner;
+use App\Models\Traits\HasExecutingUsers;
 
 class ServiceJob extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceJobFactory> */
     use HasFactory;
+    use HasOwner;
+    use HasExecutingUsers;
 
     /**
      * The attributes that are mass assignable.

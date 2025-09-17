@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Http\Requests\EventReadRequest;
 use App\Models\EventType;
 use App\Models\ServiceOrder;
+use App\Models\User;
 
 class EventController extends Controller
 {
@@ -18,6 +19,7 @@ class EventController extends Controller
             'noPadding' => true,
             'allCustomers' => Customer::all(),
             'allServiceOrders' => ServiceOrder::with('customer')->get(),
+            'allUsers' => User::select('id', 'name')->get(),
         ]);
     }
 }

@@ -110,6 +110,9 @@ class User extends Authenticatable
 
     public function hasPermission(string $name): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
         return in_array($name, $this->permissionNames(), true);
     }
 }
