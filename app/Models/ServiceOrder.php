@@ -27,12 +27,20 @@ class ServiceOrder extends Model
         'signature_base64',
         'sent_to_administration',
         'sent_to_customer',
+        'status',
     ];
 
     protected $casts = [
         'sent_to_administration' => 'boolean',
         'sent_to_customer' => 'boolean',
+        'status' => 'string',
     ];
+
+    public function getIsClosedAttribute(): bool
+    {
+        $status = is_string($this->status) ? strtolower($this->status) : null;
+        return $status === 'closed';
+    }
 
     public function customer()
     {

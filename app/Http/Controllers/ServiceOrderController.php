@@ -506,6 +506,6 @@ class ServiceOrderController extends Controller
         }
 
         return redirect()->back()
-        ->with('success', 'Materiaal succesvol bijgewerkt.');
+            ->with('success', 'Materiaal succesvol bijgewerkt.');
     }
 }

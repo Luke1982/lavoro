@@ -3,8 +3,19 @@
 namespace App\Http\Requests;
 
 use App\Enums\ServiceJobOutcomes;
+use App\Models\ServiceOrder;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Class ServiceJobCreateRequest
+ *
+ * @property int $service_order_id
+ * @property int $asset_id
+ * @property string $outcome
+ * @property int|null $days_temporary_approval
+ * @property string|null $completed_on
+ * @method mixed input(string $key, mixed $default = null)
+ */
 class ServiceJobCreateRequest extends FormRequest
 {
     /**

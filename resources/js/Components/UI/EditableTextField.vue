@@ -15,7 +15,7 @@
             </button>
         </div>
 
-        <PencilSquareIcon v-if="!editing"
+        <PencilSquareIcon v-if="!editing && !readonly"
             class="size-5 text-gray-600 absolute right-2 top-2 transform -translate-y-1/2 cursor-pointer"
             @click="startEdit" />
     </div>
@@ -33,6 +33,7 @@ defineProps({
     type: { type: String, default: 'input' },
     inputType: { type: String, default: 'text' },
     placeholder: { type: String, default: '' },
+    readonly: { type: Boolean, default: false }
 });
 
 const editing = ref(false);

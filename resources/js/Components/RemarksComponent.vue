@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div v-if="comments.length > 0 || !disabled">
         <div
             class="p-6 border border-gray-300 dark:border-slate-700/60 rounded-md bg-gray-50 dark:bg-slate-900 relative pt-8 mt-5">
             <div
@@ -29,12 +29,12 @@
                         </div>
                         <p class="text-sm/6 text-gray-500 dark:text-slate-300">{{ comment.content }}</p>
                     </div>
-                    <TrashIcon v-if="page.props.auth.user.id === comment.user_id"
+                    <TrashIcon v-if="page.props.auth.user.id === comment.user_id && !disabled"
                         class="h-5 w-5 text-red-400 dark:text-red-400 cursor-pointer absolute top-3 right-3 z-[50]"
                         aria-hidden="true" @click="deleteComment(comment.id)" />
                 </li>
             </ul>
-            <div class="mt-6 flex gap-x-3">
+            <div class="mt-6 flex gap-x-3" v-if="!disabled">
                 <div class="relative flex-auto">
                     <div
                         class="overflow-hidden rounded-lg pb-12 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-700/60 focus-within:ring-2 focus-within:ring-indigo-600 dark:focus-within:ring-indigo-500 dark:bg-slate-800">
@@ -60,10 +60,14 @@ import { usePage, useForm } from '@inertiajs/vue3';
 import { ChatBubbleLeftRightIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime } from '@/Utilities/Utilities';
 
-const { comments, remarkableType, remarkableId } = defineProps({
+const { comments, remarkableType, remarkableId, disabled } = defineProps({
     comments: Array,
     remarkableType: String,
-    remarkableId: Number
+    remarkableId: Number,
+    disabled: {
+        type: Boolean,
+        default: false
+    }
 })
 
 const page = usePage();

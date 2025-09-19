@@ -7,7 +7,7 @@
                         penColor: state.options.penColor, backgroundColor: state.options.backgroundColor
                     }" />
             </div>
-            <div class="flex">
+            <div class="flex" v-if="!readonly">
                 <button class="border py-2 px-4 border-gray-400 rounded-l-md border-r-0 cursor-pointer" type="button"
                     @click="handleSave('image/jpeg')">Opslaan</button>
                 <button class="border py-2 px-4 border-gray-400 border-r-0 cursor-pointer" type="button"
@@ -35,6 +35,7 @@ import { ref } from "vue";
 
 defineProps({
     modelValue: { type: String, default: '' },
+    readonly: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update:modelValue']);
