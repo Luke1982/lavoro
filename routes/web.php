@@ -68,10 +68,21 @@ Route::group(
             ];
 
             $openServiceOrders = ServiceOrder::with('customer')
-                ->whereNull('closed_on')
-                ->orderByDesc('created_at')
-                ->take(5)
-                ->get(['id', 'customer_id', 'created_at', 'closed_on', 'sent_to_customer']);
+                ->where('status', 'closed')
+                ->where(function ($q) {
+                    $q->where('sent_to_administration', false)
+                      ->orWhere('sent_to_customer', false);
+                })
+                ->orderByDesc('updated_at')
+                ->get([
+                    'id',
+                    'customer_id',
+                    'updated_at',
+                    'closed_on',
+                    'sent_to_administration',
+                    'sent_to_customer',
+                    'status',
+                ]);
 
             $upcomingJobs = ServiceJob::with(['serviceOrder.customer'])
                 ->whereNull('completed_on')

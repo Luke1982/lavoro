@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>
@@ -81,21 +81,9 @@
                                 </MenuItems>
                             </transition>
                         </Menu>
-                        <span v-if="statusState === 'both'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">
-                            Verzonden klant & administratie
-                        </span>
-                        <span v-else-if="statusState === 'customer'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700/50">
-                            Verzonden klant
-                        </span>
-                        <span v-else-if="statusState === 'administration'"
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">
-                            Verzonden administratie
-                        </span>
-                        <span v-else
-                            class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded bg-gray-200 dark:bg-slate-700/40 text-gray-600 dark:text-slate-300 border border-gray-300 dark:border-slate-600">
-                            Niet verzonden
+                        <span class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded border"
+                            :class="serviceOrderPillColorClasses(serviceOrder)">
+                            {{ serviceOrderPillText(serviceOrder) }}
                         </span>
                     </div>
                 </div>
@@ -324,21 +312,9 @@
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-gray-500 dark:text-slate-400">Status</span>
-                        <span v-if="statusState === 'both'"
-                            class="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">Verzonden
-                            klant & administratie</span>
-                        <span v-else-if="statusState === 'customer'"
-                            class="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700/50">Verzonden
-                            klant</span>
-                        <span v-else-if="statusState === 'administration'"
-                            class="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/50">Verzonden
-                            administratie</span>
-                        <span v-else-if="serviceOrder.materials.length > 0"
-                            class="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50">Klaar
-                            om te verzenden</span>
-                        <span v-else
-                            class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-slate-700/40 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600">In
-                            bewerking</span>
+                        <span class="px-2 py-0.5 text-xs rounded border"
+                            :class="serviceOrderPillColorClasses(serviceOrder)">{{ serviceOrderPillText(serviceOrder)
+                            }}</span>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
@@ -410,7 +386,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { mapsLinkFromCustomer, nlDate, hasPermission } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, hasPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
@@ -610,13 +586,6 @@ const materialsSubtotal = computed(() => {
 const materialsVat = computed(() => materialsSubtotal.value * 0.21);
 const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.value);
 
-const statusState = computed(() => {
-    const so = props.serviceOrder;
-    if (so.sent_to_customer && so.sent_to_administration) return 'both';
-    if (so.sent_to_customer) return 'customer';
-    if (so.sent_to_administration) return 'administration';
-    return 'none';
-});
 
 const showFinancial = ref(false);
 

@@ -66,20 +66,37 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
                 <div class="text-sm font-medium mb-2">Open Werkbonnen</div>
-                <ul class="divide-y divide-gray-100">
-                    <li v-for="o in openServiceOrders" :key="o.id" class="py-2 flex items-center justify-between">
+                <div class="flex items-center gap-2 mb-3">
+                    <button class="px-2 py-1 text-xs rounded border"
+                        :class="ordersFilter === 'neither' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        @click="ordersFilter = 'neither'">Niet verzonden</button>
+                    <button class="px-2 py-1 text-xs rounded border"
+                        :class="ordersFilter === 'administration' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        @click="ordersFilter = 'administration'">Alleen administratie</button>
+                    <button class="px-2 py-1 text-xs rounded border"
+                        :class="ordersFilter === 'customer' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        @click="ordersFilter = 'customer'">Alleen klant</button>
+                    <div class="ml-auto">
+                        <button class="text-xs underline" @click="showAllOpenOrders = !showAllOpenOrders">
+                            {{ showAllOpenOrders ? 'Toon minder' : 'Toon alles' }}
+                        </button>
+                    </div>
+                </div>
+                <ul class="divide-y divide-gray-100" v-auto-animate>
+                    <li v-for="o in openOrdersToShow" :key="o.id" class="py-2 flex items-center justify-between">
                         <span class="text-sm">#{{ o.id }} bij {{ o.customer?.name || 'Onbekende klant' }}</span>
                         <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                                :class="o.sent_to_customer ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'">
-                                {{ o.sent_to_customer ? 'Verzonden' : 'Niet verzonden' }}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium border"
+                                :class="serviceOrderPillColorClasses(o)">
+                                {{ serviceOrderPillText(o) }}
                             </span>
                             <Link :href="`/serviceorders/${o.id}`"
                                 class="px-3 py-1 text-xs rounded-lg border border-gray-200">Open</Link>
                         </div>
                     </li>
-                    <li v-if="!openServiceOrders || openServiceOrders.length === 0" class="py-4 text-sm text-gray-500">
-                        Geen open werkbonnen</li>
+                    <li v-if="filteredOpenOrders.length === 0" class="py-4 text-sm text-gray-500">
+                        Geen werkbonnen
+                    </li>
                 </ul>
             </div>
             <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
@@ -136,8 +153,9 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -148,6 +166,32 @@ const { customers, stats, openServiceOrders, upcomingJobs, recentTickets } = def
     upcomingJobs: { type: Array, required: true },
     recentTickets: { type: Array, required: true }
 });
+
+const ordersFilter = ref('neither');
+const showAllOpenOrders = ref(false);
+
+const allClosedOrdersNeedingSend = computed(() => {
+    const list = (openServiceOrders || []).slice();
+    return list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+});
+
+const filteredOpenOrders = computed(() => {
+    if (ordersFilter.value === 'neither') {
+        return allClosedOrdersNeedingSend.value.filter(o => !o.sent_to_administration && !o.sent_to_customer);
+    }
+    if (ordersFilter.value === 'administration') {
+        return allClosedOrdersNeedingSend.value.filter(o => o.sent_to_administration && !o.sent_to_customer);
+    }
+    if (ordersFilter.value === 'customer') {
+        return allClosedOrdersNeedingSend.value.filter(o => !o.sent_to_administration && o.sent_to_customer);
+    }
+    return allClosedOrdersNeedingSend.value;
+});
+
+const openOrdersToShow = computed(() => showAllOpenOrders.value
+    ? filteredOpenOrders.value
+    : filteredOpenOrders.value.slice(0, 5));
+
 
 const map = ref(null);
 const added = new Set();
