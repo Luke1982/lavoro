@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>
@@ -289,7 +289,8 @@
                     </div>
                 </div>
             </BoxComponent>
-            <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3" @click="updateStatus('closed')"
+            <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700"
+                @click="updateStatus('closed')"
                 v-if="serviceOrder.status !== 'closed' && hasPermission('serviceorder.close')">Werkbon
                 afsluiten</button>
             <button class="w-full p-4 rounded-md bg-blue-500 text-white mt-3" @click="updateStatus('open')"
@@ -484,8 +485,14 @@ const form = useForm({
 const updateStatus = (newStatus) => {
     if (newStatus === form.status) return;
 
-    if (newStatus === 'closed' && !confirm(`Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
-        return;
+    if (newStatus === 'closed') {
+        if (!canClose.value) {
+            alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.');
+            return;
+        }
+        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
+            return;
+        }
     }
     form.status = newStatus;
     form.put(`/serviceorders/${props.serviceOrder.id}`, {
@@ -612,5 +619,11 @@ const statusState = computed(() => {
 });
 
 const showFinancial = ref(false);
+
+const canClose = computed(() => {
+    const name = (form.signed_by ?? '').toString().trim();
+    const sig = (form.signature_base64 ?? '').toString().trim();
+    return name.length > 0 && sig.length > 0;
+});
 
 </script>
