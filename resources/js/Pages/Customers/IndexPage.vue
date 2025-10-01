@@ -3,11 +3,11 @@
         <IndexHeaderComponent title="Klanten" :addLabel="canCreate ? 'Nieuwe klant' : null"
             search-placeholder="Zoek klant... " search-url="/customers"
             @add="() => canCreate && customerFormRef?.show()">
-        <template #right>
-            <button @click="importCustomers" :disabled="importingCustomers"
-                class="ml-auto px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">SnelStart
-                klanten importeren</button>
-        </template>
+            <template #right>
+                <button @click="importCustomers" :disabled="importingCustomers"
+                    class="ml-auto px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">SnelStart
+                    klanten importeren</button>
+            </template>
         </IndexHeaderComponent>
     </div>
 

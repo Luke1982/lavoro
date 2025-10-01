@@ -4,19 +4,20 @@
             <li v-for="(event, idx) in visibleItems" :key="event.id">
                 <div class="relative pb-5">
                     <span v-if="idx !== visibleItems.length - 1"
-                        class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                        class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-400"
+                        aria-hidden="true" />
                     <div class="relative flex space-x-3">
                         <div>
                             <span
-                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-6 ring-white']">
+                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-400']">
                                 <component :is="event.icon" class="size-4 text-white" aria-hidden="true" />
                             </span>
                         </div>
                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                             <div>
-                                <p class="text-sm text-gray-600" v-html="event.rendered"></p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400" v-html="event.rendered"></p>
                             </div>
-                            <div class="text-right text-xs whitespace-nowrap text-gray-500">
+                            <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400">
                                 <time :datetime="event.datetime">{{ event.date }}</time>
                             </div>
                         </div>

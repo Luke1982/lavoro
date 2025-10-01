@@ -16,7 +16,7 @@
         </div>
 
         <PencilSquareIcon v-if="!editing && !readonly"
-            class="size-5 text-gray-600 absolute right-2 top-2 transform -translate-y-1/2 cursor-pointer"
+            class="size-5 text-gray-600 dark:text-gray-300 absolute right-2 top-2 transform -translate-y-1/2 cursor-pointer"
             @click="startEdit" />
     </div>
 </template>

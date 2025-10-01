@@ -10,8 +10,9 @@
                     <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
                         placeholder="Selecteer producttype" class="w-full mt-2" />
                 </div>
-                <XCircleIcon class="h-8 w-8 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer ml-2 mb-1" @click="resetFilter"
-                    v-tooltip="'Reset filter op producttype'" />
+                <XCircleIcon
+                    class="h-8 w-8 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer ml-2 mb-1"
+                    @click="resetFilter" v-tooltip="'Reset filter op producttype'" />
             </template>
         </IndexHeaderComponent>
     </div>
@@ -23,8 +24,9 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <EditableGridComponent :headers="headers" :items="internalGroups" urlBase="servicecheckgroups"
             :hasDetailPages="false" @update="onCellUpdate" />
-    <PaginationComponent v-if="groups.data.length" :paginator="groups" class="border-t border-gray-200 dark:border-slate-700 pt-2" />
-    <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen groepen gevonden.</p>
+        <PaginationComponent v-if="groups.data.length" :paginator="groups"
+            class="border-t border-gray-200 dark:border-slate-700 pt-2" />
+        <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen groepen gevonden.</p>
     </BoxComponent>
 </template>
 

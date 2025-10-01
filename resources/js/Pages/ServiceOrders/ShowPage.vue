@@ -11,7 +11,8 @@
                         nlDate(serviceOrder.created_at)
                     }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
-                        <Menu as="div" class="relative ml-4 inline-block text-left">
+                        <Menu as="div" class="relative ml-4 inline-block text-left"
+                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
                             <div>
                                 <MenuButton
                                     class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-slate-100 inset-ring-1 inset-ring-gray-300 dark:inset-ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/70">
@@ -40,7 +41,7 @@
                                         </MenuItem>
                                         <MenuItem v-if="hasPermission('serviceorder.email_pdf')" v-slot="{ active }">
                                         <button type="button" @click="emailPdf" :disabled="emailing"
-                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
+                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
                                             <span class="inline-flex items-center" v-if="!emailing">
                                                 <span
                                                     class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
@@ -53,7 +54,7 @@
                                             v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
                                             v-slot="{ active }">
                                         <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
-                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
+                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
                                             <span class="inline-flex items-center" v-if="!emailingCombined">
                                                 <span
                                                     class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
@@ -66,7 +67,7 @@
                                             v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
                                             v-slot="{ active }">
                                         <button type="button" @click="sendToSnelStart"
-                                            :class="[active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'block w-full text-left px-4 py-2']">
+                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2']">
                                             Verstuur naar SnelStart
                                         </button>
                                         </MenuItem>
@@ -386,7 +387,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { mapsLinkFromCustomer, nlDate, hasPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';

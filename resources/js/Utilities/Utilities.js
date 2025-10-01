@@ -38,6 +38,19 @@ export const hasPermission = (permission) => {
     return perms.has(permission);
 };
 
+export const hasAnyPermission = (permissions) => {
+    const page = usePage();
+    const auth = page?.props?.auth || {};
+    if (auth.isAdmin) {
+        return true;
+    }
+    const perms = new Set(auth.permissions || []);
+    if (Array.isArray(permissions)) {
+        return permissions.some((p) => perms.has(p));
+    }
+    return perms.has(permissions);
+};
+
 export const serviceOrderSentState = (order) => {
     if (!order) return "none";
     const a = !!order.sent_to_administration;
