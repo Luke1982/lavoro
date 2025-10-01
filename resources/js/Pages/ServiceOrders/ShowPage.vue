@@ -193,22 +193,22 @@
                         <div class="w-full">
                             <div v-if="serviceOrder.materials.length > 0"
                                 class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 dark:text-slate-300">
-                                <div :class="showFinancial ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
-                                <div :class="showFinancial ? 'col-span-2' : 'col-span-3'">Aantal</div>
-                                <div v-if="showFinancial" class="col-span-2">Prijs per stuk</div>
-                                <div v-if="showFinancial" class="col-span-2">Totaal</div>
+                                <div :class="showFinancialUi ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
+                                <div :class="showFinancialUi ? 'col-span-2' : 'col-span-3'">Aantal</div>
+                                <div v-if="showFinancialUi" class="col-span-2">Prijs per stuk</div>
+                                <div v-if="showFinancialUi" class="col-span-2">Totaal</div>
                                 <div class="col-span-1">Acties</div>
                             </div>
                             <div v-auto-animate>
                                 <div v-for="material in serviceOrder.materials" :key="material.id"
                                     class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 dark:odd:bg-slate-800/40 px-4 md:px-0 relative">
                                     <div
-                                        :class="'col-span-12 flex flex-col md:pl-4 ' + (showFinancial ? 'md:col-span-5' : 'md:col-span-7')">
+                                        :class="'col-span-12 flex flex-col md:pl-4 ' + (showFinancialUi ? 'md:col-span-5' : 'md:col-span-7')">
                                         <span class="font-bold text-xs block lg:hidden">Materiaal</span>
                                         {{ material.name }}
                                     </div>
                                     <div
-                                        :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancial ? 'md:col-span-2' : 'md:col-span-3')">
+                                        :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancialUi ? 'md:col-span-2' : 'md:col-span-3')">
                                         <span class="font-bold text-xs block lg:hidden">Aantal</span>
                                         <template
                                             v-if="!serviceOrder.sent_to_administration && serviceOrder.status !== 'closed'">
@@ -220,12 +220,12 @@
                                         </template>
                                         <span v-else class="text-sm">{{ material.pivot.quantity }}</span>
                                     </div>
-                                    <div v-if="showFinancial"
+                                    <div v-if="showFinancialUi"
                                         class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                         <span class="font-bold text-xs block lg:hidden">Prijs pst.</span>
                                         € {{ Number(material.price).toFixed(2) }}
                                     </div>
-                                    <div v-if="showFinancial"
+                                    <div v-if="showFinancialUi"
                                         class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
                                         <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
                                             (Number(material.pivot.quantity) *
@@ -245,7 +245,7 @@
                 <div
                     class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
                     <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2>
-                    <button type="button" @click="showFinancial = !showFinancial"
+                    <button v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
                         class="text-gray-500 hover:text-gray-700"
                         v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
                         <span class="text-xl leading-none select-none">$</span>
@@ -318,7 +318,7 @@
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
-                    v-if="showFinancial">
+                    v-if="showFinancialUi">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Materiaaloverzicht</h3>
                     <div class="flex justify-between py-1">
                         <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
@@ -588,6 +588,8 @@ const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.val
 
 
 const showFinancial = ref(false);
+const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'));
+const showFinancialUi = computed(() => canSeeFinancials.value && showFinancial.value);
 
 const canClose = computed(() => {
     const name = (form.signed_by ?? '').toString().trim();
