@@ -33,7 +33,8 @@
                         :options="column.combovalues || []" :multiple="column.multiple === true"
                         :initialId="Array.isArray(item[column.key]) ? null : (item[column.key]?.id ?? item[column.key] ?? null)"
                         :initialIds="Array.isArray(item[column.key]) ? item[column.key] : []"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)" :label="column.label" />
+                        @update:modelValue="onCellChange(item.id, column.key, $event)"
+                        :label="column.comboLabel ? column.label : ''" />
                     <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                         @update:modelValue="onCellChange(item.id, column.key, $event)" />
                 </div>
@@ -70,6 +71,7 @@ type Header = {
     width?: number;
     combovalues?: { id: number | string; name: string }[];
     multiple?: boolean;
+    comboLabel?: boolean;
 };
 
 const { headers, items, urlBase, hasDetailPages } = defineProps<{

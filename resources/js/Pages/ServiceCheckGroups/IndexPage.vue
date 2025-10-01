@@ -61,7 +61,7 @@ const groupFields = [
 
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 33 },
-    { key: 'product_type_ids', label: 'Producttypes', fieldtype: 'combobox', width: 33, combovalues: productTypes, multiple: true },
+    { key: 'product_type_ids', label: 'Producttypes', fieldtype: 'combobox', width: 33, combovalues: productTypes, multiple: true, comboLabel: false },
     { key: 'order', label: 'Volgorde', fieldtype: 'number', width: 24 },
 ]
 
