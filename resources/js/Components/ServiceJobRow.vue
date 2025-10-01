@@ -15,9 +15,9 @@
                     servicejob.asset.serial_number }}</Link>
         </div>
         <div
-            :class="[getOutcomeColor(servicejob.outcome), 'col-span-6 lg:col-span-2 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center mr-4 md:mr-0 text-gray-800 dark:text-slate-100']">
-            <span class="font-bold block lg:hidden mr-2">Uitkomst:</span>{{
-                servicejob.outcome }}
+            :class="[getOutcomeColor(servicejob.outcome), 'flex-col md:flex-row col-span-6 lg:col-span-2 mt-10 lg:mt-0 rounded-full p-1 text-center ring-2 items-center self-start flex justify-center mr-4 md:mr-0 text-gray-800 dark:text-slate-100']">
+            <span class="font-bold block lg:hidden mr-2">Uitkomst:</span><span class="text-xs md:text-md">{{
+                servicejob.outcome }}</span>
         </div>
         <div class="col-span-6 lg:col-span-2 flex flex-col">
             <span class="font-bold block lg:hidden">Dagen tijdelijke goedkeur</span>
