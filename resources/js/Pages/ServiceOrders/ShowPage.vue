@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left">
                             <div>

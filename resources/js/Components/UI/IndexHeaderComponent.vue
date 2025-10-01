@@ -6,7 +6,7 @@
                 <p v-if="subtitle" class="text-sm text-gray-700 dark:text-slate-400">{{ subtitle }}</p>
             </div>
             <button v-if="addLabel" @click="$emit('add')"
-                class="cursor-pointer inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm">
+                class="cursor-pointer inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm dark:border-green-800 dark:text-green-800 dark:bg-green-200 hover:bg-green-200 hover:text-green-950 hover:dark:bg-green-300 hover:dark:text-green-900">
                 <PlusCircleIcon class="h-5 w-5 mr-1" />
                 {{ addLabel }}
             </button>
@@ -23,7 +23,7 @@
             </div>
         </div>
         <PaginationComponent v-if="paginator" :paginator="paginator" :params="paginationParams"
-            class="border-b border-gray-200 pb-2 mt-4" />
+            class="border-b border-gray-200 pb-2 mt-4 dark:border-slate-700" />
     </div>
     <slot />
 </template>

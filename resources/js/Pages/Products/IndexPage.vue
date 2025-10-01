@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 dark:border-slate-800 border">
         <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
             search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'"
             :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
@@ -26,24 +26,29 @@
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 mb-4">
+            <table class="min-w-full divide-y divide-gray-200 mb-4 dark:divide-slate-700">
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Model</th>
-                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Merk</th>
-                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Producttype</th>
-                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Verkoopperiode</th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-300">Model
+                        </th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-300">Merk</th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-300">
+                            Producttype
+                        </th>
+                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-300">
+                            Verkoopperiode</th>
                         <th class="px-4 py-2"></th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-slate-800 dark:divide-slate-700">
                     <tr v-for="product in internalProducts" :key="product.id">
                         <td class="px-4 py-2">
                             <div v-if="product.open">
                                 <TextInput v-model="product.model" />
                             </div>
-                            <Link :href="`/products/${product.id}`" class="text-blue-500 underline" v-else>{{
-                                product.model }}</Link>
+                            <Link :href="`/products/${product.id}`" class="text-blue-500 dark:text-blue-300 underline"
+                                v-else>{{
+                                    product.model }}</Link>
                         </td>
                         <td class="px-4 py-2">
                             <div v-if="product.open">
@@ -60,7 +65,7 @@
                             </div>
                             <span v-else>{{ product.product_type?.name }}</span>
                         </td>
-                        <td class="px-4 py-2 text-sm text-gray-600">
+                        <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
                             <div v-if="product.open" class="grid grid-cols-2 gap-2 pt-2">
                                 <input type="date" v-model="product.start_sell"
                                     class="ring ring-gray-300 rounded-md p-1 text-sm py-2" />

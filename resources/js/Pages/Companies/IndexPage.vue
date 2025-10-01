@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
         <IndexHeaderComponent title="Bedrijven" subtitle="Beheer de bedrijfsgegevens" :paginator="null"
             :show-search="false" add-label="Voeg bedrijf toe" @add="() => formRef?.show()" />
     </div>

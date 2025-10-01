@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
         <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
             search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
             :add-label="canCreate ? 'Voeg asset toe' : ''" @add="() => canCreate && assetFormRef?.show()">
@@ -20,21 +20,21 @@
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <ul role="list"
-            class="divide-y divide-gray-100 overflow-hidden bg-white shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
+            class="divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden bg-white dark:bg-slate-900 shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
             <li v-for="asset in filteredAssets" :key="asset.id"
-                class="relative flex flex-col md:flex-row justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 sm:px-6">
+                class="relative flex flex-col md:flex-row justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-300 sm:px-6">
                 <div class="flex min-w-0 gap-x-4">
                     <img class="size-12 flex-none rounded-full bg-gray-50"
                         :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : ''"
                         alt="" />
                     <div class="min-w-0 flex-auto">
-                        <p class="text-sm/6 font-semibold text-gray-900">
+                        <p class="text-sm/6 font-semibold text-gray-900 dark:text-gray-300">
                             <Link :href="`/assets/${asset.id}`">
                             <span class="absolute inset-x-0 -top-px bottom-0" />
                             {{ asset.product.brand.name }} {{ asset.product.model }}
                             </Link>
                         </p>
-                        <p class="mt-1 flex text-xs/5 text-gray-500">
+                        <p class="mt-1 flex text-xs/5 text-gray-500 dark:text-gray-400">
                             <Link :href="`/producttypes?search=${asset.product.product_type.name}`"
                                 class="relative truncate underline">{{
                                     asset.product.product_type.name }}</Link>
@@ -53,8 +53,9 @@
                             class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
                                 asset.status }}</span>
                         <p v-if="asset.next_service_date"
-                            class="mt-1 text-xs/5 text-gray-500 flex items-center ml-3 md:ml-0">
-                            <CalendarDateRangeIcon class="inline-block size-5 text-gray-400 mr-2" aria-hidden="true" />
+                            class="mt-1 text-xs/5 text-gray-500 dark:text-gray-200 flex items-center ml-3 md:ml-0">
+                            <CalendarDateRangeIcon class="inline-block size-5 text-gray-400 dark:text-gray-200 mr-2"
+                                aria-hidden="true" />
                             <time :datetime="asset.next_service_date">{{ new
                                 Date(asset.next_service_date).toLocaleDateString('nl-NL', {
                                     year: 'numeric',

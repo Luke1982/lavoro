@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="p-4 bg-white rounded-md mb-3" v-auto-animate>
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800" v-auto-animate>
             <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
                 search-url="/servicechecks" search-label="Zoek binnen keurpunten"
                 search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
@@ -9,12 +9,13 @@
                 <template #right>
                     <div class="w-full flex items-end gap-2">
                         <div class="flex-grow mt-1">
-                            <label class="block text-xs font-medium">Filter op type</label>
+                            <label class="block text-xs font-medium text-gray-900 dark:text-gray-300">Filter op
+                                type</label>
                             <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
                                 placeholder="Selecteer producttype" class="w-full mt-2" />
                         </div>
                         <button type="button"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 mb-[2px]"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 mb-[2px]"
                             @click="productTypeToShow = null" v-tooltip="'Reset filter op producttype'">
                             <XCircleIcon class="h-5 w-5" />
                         </button>
@@ -31,63 +32,80 @@
         <BoxComponent padding="md:mx-0 px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
             <div v-if="internalServiceChecks.length" class="mt-3">
                 <div
-                    class="hidden md:grid md:grid-cols-12 px-4 py-2 text-sm font-semibold text-left border-b border-gray-200">
-                    <div v-if="productTypeToShow !== 0" class="col-span-1">Volgorde</div>
-                    <div class="col-span-2">Naam</div>
-                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-2' : 'pl-1']">Producttypes</div>
-                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-3' : 'pl-2']">Groep</div>
-                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-4' : 'pl-3']">Type</div>
-                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-5' : 'pl-4']">Waarden</div>
+                    class="hidden md:grid md:grid-cols-12 px-4 py-2 text-sm font-semibold text-left border-b border-gray-200 dark:border-slate-700">
+                    <div v-if="productTypeToShow !== 0" class="col-span-1 text-gray-900 dark:text-gray-300">Volgorde
+                    </div>
+                    <div class="col-span-2 text-gray-900 dark:text-gray-300">Naam</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-2' : 'pl-1']"
+                        class="text-gray-900 dark:text-gray-300">Producttypes</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-3' : 'pl-2']"
+                        class="text-gray-900 dark:text-gray-300">Groep</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-4' : 'pl-3']"
+                        class="text-gray-900 dark:text-gray-300">Type</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-5' : 'pl-4']"
+                        class="text-gray-900 dark:text-gray-300">Waarden</div>
                     <div class="col-span-1"></div>
                 </div>
                 <div v-auto-animate class="mb-4">
-                    <div v-for="item in internalServiceChecks" :key="item.id" class="odd:bg-white even:bg-gray-100"
+                    <div v-for="item in internalServiceChecks" :key="item.id"
+                        class="odd:bg-white even:bg-gray-100 dark:odd:bg-slate-800 dark:even:bg-slate-900"
                         v-auto-animate>
                         <div class="relative pt-5 md:pt-0 md:grid grid-cols-12 break-all">
                             <div v-if="productTypeToShow !== 0" class="flex flex-col px-4 py-2 col-span-1">
-                                <span class="block md:hidden font-semibold text-xs">Volgorde</span>
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Volgorde</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.order" />
                                 </div>
-                                <span v-else>{{ item.order }}</span>
+                                <span v-else class="text-gray-800 dark:text-slate-200">{{ item.order }}</span>
                             </div>
                             <div class="flex flex-col px-4 py-2 col-span-2">
-                                <span class="block md:hidden font-semibold text-xs">Naam</span>
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Naam</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.name" />
                                 </div>
-                                <span v-else>{{ item.name }}</span>
+                                <span v-else class="text-gray-800 dark:text-slate-200">{{ item.name }}</span>
                             </div>
                             <div class="flex flex-col px-4 py-2 col-span-2">
-                                <span class="block md:hidden font-semibold text-xs">Producttypes</span>
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Producttypes</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="productTypes" v-model="item.product_type_ids" multiple
                                         :initialIds="(item.product_types || []).map(pt => pt.id)"
                                         @update:modelValue="() => validateGroupSelection(item)" />
                                 </div>
-                                <span v-else>{{(item.product_types || []).map(pt => pt.name).join(', ')}}</span>
+                                <span v-else class="text-gray-800 dark:text-slate-200">{{(item.product_types ||
+                                    []).map(pt =>
+                                    pt.name).join(', ')}}</span>
                             </div>
                             <div class="flex flex-col px-4 py-2 col-span-2">
-                                <span class="block md:hidden font-semibold text-xs">Groep</span>
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Groep</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="getGroupsFor(item)" v-model="item.service_check_group_id"
                                         :initialId="item.service_check_group_id ?? null" placeholder="Geen groep"
                                         :key="`grp-${item.id}-${(item.product_type_ids || []).join(',')}`" />
                                 </div>
-                                <span v-else>{{ item.group?.name || '—' }}</span>
+                                <span v-else class="text-gray-800 dark:text-slate-200">{{ item.group?.name || '—'
+                                    }}</span>
                             </div>
                             <div class="flex flex-col px-4 py-2 col-span-2">
-                                <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Type
+                                    keurpunt</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="serviceCheckTypesForComboBox" v-model="item.type"
                                         :initialId="item.type.name" />
                                 </div>
-                                <span v-else>{{ serviceCheckTypes[item.type] }}</span>
+                                <span v-else class="text-gray-800 dark:text-slate-200">{{ serviceCheckTypes[item.type]
+                                    }}</span>
                             </div>
                             <div
                                 :class="['flex flex-col px-4 py-2', productTypeToShow !== 0 ? 'col-span-2' : 'col-span-3']">
-                                <span class="block md:hidden font-semibold text-xs">Waarden</span>
-                                {{ getValuesCellContent(item) }}
+                                <span
+                                    class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Waarden</span>
+                                <span class="text-gray-800 dark:text-slate-200">{{ getValuesCellContent(item) }}</span>
                             </div>
                             <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium col-span-1">
                                 <button
@@ -98,7 +116,8 @@
                                 </button>
                                 <button v-if="!item.open" @click="toggleRecord(item.id)"
                                     v-tooltip="'Bewerk dit keurpunt'">
-                                    <PencilSquareIcon class="size-6 text-gray-600 hover:text-gray-800" />
+                                    <PencilSquareIcon
+                                        class="size-6 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100" />
                                 </button>
                                 <button v-else @click="saveRecord(item)" class="text-green-600 hover:text-green-800"
                                     v-tooltip="'Opslaan'">
@@ -110,7 +129,9 @@
                             </div>
                         </div>
                         <div v-if="item.openValue && !item.open" :key="`${item.id}-values`" class="px-4 pb-4">
-                            <h5 class="text-sm font-semibold mb-2">Bewerk of verwijder de waarden voor {{ item.name }},
+                            <h5 class="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-300">Bewerk of verwijder
+                                de
+                                waarden voor {{ item.name }},
                                 of voeg
                                 een nieuwe toe</h5>
                             <ServiceCheckValueListComponent v-model="item.values"
@@ -131,8 +152,8 @@
                 </div>
             </div>
             <PaginationComponent v-if="internalServiceChecks.length" :paginator="serviceChecks"
-                class="border-t border-gray-200 pt-2" />
-            <p v-else class="text-center text-gray-500 p-4">Geen service checks gevonden.</p>
+                class="border-t border-gray-200 dark:border-slate-700 pt-2" />
+            <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen service checks gevonden.</p>
         </BoxComponent>
     </div>
 </template>

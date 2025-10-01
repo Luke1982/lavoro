@@ -1,6 +1,7 @@
 <template>
     <div>
-        <label :for="id" class="block text-sm font-medium leading-6 text-gray-900 dark:text-white">{{ label }}</label>
+        <label :for="id" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ label
+            }}</label>
         <div :class="[label === '' ? '' : 'mt-2', 'relative']">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400 dark:text-gray-300" aria-hidden="true"

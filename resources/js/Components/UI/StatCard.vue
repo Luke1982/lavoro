@@ -1,10 +1,10 @@
 <template>
     <div class="w-full">
-        <p class="text-sm font-medium text-gray-900 leading-tight">{{ label }}</p>
+        <p class="text-sm font-medium text-gray-900 dark:text-gray-500 leading-tight">{{ label }}</p>
         <div class="mt-0.5 flex items-start justify-between gap-4">
             <div class="flex items-baseline gap-2">
                 <p :class="['text-3xl font-semibold tracking-tight leading-none', valueColour]">{{ formattedValue }}</p>
-                <span class="text-sm text-gray-500">gem. {{ baselineFormatted }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">gem. {{ baselineFormatted }}</span>
             </div>
             <span :class="badgeClasses">
                 <component :is="icon" class="h-4 w-4 mr-1" />

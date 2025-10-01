@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
         <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
             search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
             add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()">
@@ -17,7 +17,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate" urlBase="materials" />
         <PaginationComponent v-if="innerMaterials.length" :paginator="materials"
-            class="border-t border-gray-200 pt-2 mt-2" />
+            class="border-t border-gray-200 dark:border-slate-700 pt-2 mt-2" />
     </BoxComponent>
 </template>
 <script setup>

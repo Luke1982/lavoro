@@ -24,7 +24,7 @@
         <div @click="openFilePicker" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg cursor-pointer',
-                isDragging ? 'bg-gray-200 border-gray-400' : 'bg-white border-gray-300'
+                isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
             ]">
             <p class="text-gray-500">Sleep afbeeldingen hiernaartoe</p>
             <p class="text-gray-500">of</p>
