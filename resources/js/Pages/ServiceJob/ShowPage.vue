@@ -5,11 +5,11 @@
                 Keuring voor {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
             </h1>
             <div class="flex gap-2 ml-4">
-                <button @click="openPdf"
+                <button v-if="hasPermission('servicejob.export_pdf')" @click="openPdf"
                     class="px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 dark:hover:bg-red-500">
                     PDF Export
                 </button>
-                <button @click="emailPdf" :disabled="emailing"
+                <button v-if="hasPermission('servicejob.mail_pdf')" @click="emailPdf" :disabled="emailing"
                     class="px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 dark:hover:bg-green-500 disabled:bg-gray-500 dark:disabled:bg-slate-600/50">
                     <span v-if="!emailing">Mail PDF</span>
                     <span v-else>Versturen...</span>
@@ -137,11 +137,11 @@
                     class="flex-1 text-white text-center py-4 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-400 transition-colors rounded-md">
                 Terug naar de werkbon
                 </Link>
-                <button @click="openPdf"
+                <button v-if="hasPermission('servicejob.export_pdf')" @click="openPdf"
                     class="py-4 px-4 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 dark:hover:bg-red-500">
                     PDF Export
                 </button>
-                <button @click="emailPdf" :disabled="emailing"
+                <button v-if="hasPermission('servicejob.mail_pdf')" @click="emailPdf" :disabled="emailing"
                     class="py-4 px-4 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 dark:hover:bg-green-500 disabled:bg-gray-500 dark:disabled:bg-slate-600/50">
                     <span v-if="!emailing">Mail PDF</span>
                     <span v-else>Versturen...</span>
@@ -156,7 +156,7 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import ServiceCheckInstanceComponent from '@/Components/ServiceCheckInstanceComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { nlDate } from '@/Utilities/Utilities';
+import { nlDate, hasPermission } from '@/Utilities/Utilities';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
