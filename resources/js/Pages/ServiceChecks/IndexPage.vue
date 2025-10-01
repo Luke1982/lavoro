@@ -30,36 +30,35 @@
 
         <BoxComponent padding="md:mx-0 px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
             <div v-if="internalServiceChecks.length" class="mt-3">
-                <div class="hidden md:grid px-4 py-2 text-sm font-semibold text-left border-b border-gray-200"
-                    :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
-                    <div v-if="productTypeToShow !== 0">Volgorde</div>
-                    <div>Naam</div>
-                    <div>Producttypes</div>
-                    <div>Groep</div>
-                    <div>Type</div>
-                    <div>Waarden</div>
-                    <div></div>
+                <div
+                    class="hidden md:grid md:grid-cols-12 px-4 py-2 text-sm font-semibold text-left border-b border-gray-200">
+                    <div v-if="productTypeToShow !== 0" class="col-span-1">Volgorde</div>
+                    <div class="col-span-2">Naam</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-2' : 'pl-1']">Producttypes</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-3' : 'pl-2']">Groep</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-4' : 'pl-3']">Type</div>
+                    <div :class="['col-span-2', productTypeToShow !== 0 ? 'pl-5' : 'pl-4']">Waarden</div>
+                    <div class="col-span-1"></div>
                 </div>
                 <div v-auto-animate class="mb-4">
                     <div v-for="item in internalServiceChecks" :key="item.id" class="odd:bg-white even:bg-gray-100"
                         v-auto-animate>
-                        <div class="relative pt-5 md:pt-0 md:grid"
-                            :class="productTypeToShow !== 0 ? 'md:grid-cols-7' : 'md:grid-cols-6'">
-                            <div v-if="productTypeToShow !== 0" class="flex flex-col px-4 py-2">
+                        <div class="relative pt-5 md:pt-0 md:grid grid-cols-12 break-all">
+                            <div v-if="productTypeToShow !== 0" class="flex flex-col px-4 py-2 col-span-1">
                                 <span class="block md:hidden font-semibold text-xs">Volgorde</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.order" />
                                 </div>
                                 <span v-else>{{ item.order }}</span>
                             </div>
-                            <div class="flex flex-col px-4 py-2">
+                            <div class="flex flex-col px-4 py-2 col-span-2">
                                 <span class="block md:hidden font-semibold text-xs">Naam</span>
                                 <div v-if="item.open">
                                     <TextInput v-model="item.name" />
                                 </div>
                                 <span v-else>{{ item.name }}</span>
                             </div>
-                            <div class="flex flex-col px-4 py-2">
+                            <div class="flex flex-col px-4 py-2 col-span-2">
                                 <span class="block md:hidden font-semibold text-xs">Producttypes</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="productTypes" v-model="item.product_type_ids" multiple
@@ -68,7 +67,7 @@
                                 </div>
                                 <span v-else>{{(item.product_types || []).map(pt => pt.name).join(', ')}}</span>
                             </div>
-                            <div class="flex flex-col px-4 py-2">
+                            <div class="flex flex-col px-4 py-2 col-span-2">
                                 <span class="block md:hidden font-semibold text-xs">Groep</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="getGroupsFor(item)" v-model="item.service_check_group_id"
@@ -77,7 +76,7 @@
                                 </div>
                                 <span v-else>{{ item.group?.name || '—' }}</span>
                             </div>
-                            <div class="flex flex-col px-4 py-2">
+                            <div class="flex flex-col px-4 py-2 col-span-2">
                                 <span class="block md:hidden font-semibold text-xs">Type keurpunt</span>
                                 <div v-if="item.open">
                                     <ComboBox :options="serviceCheckTypesForComboBox" v-model="item.type"
@@ -86,11 +85,11 @@
                                 <span v-else>{{ serviceCheckTypes[item.type] }}</span>
                             </div>
                             <div
-                                :class="{ 'flex flex-col px-4 py-2': true, 'hidden': !Object.keys(serviceCheckTypesWithOptions).includes(item.type) }">
+                                :class="['flex flex-col px-4 py-2', productTypeToShow !== 0 ? 'col-span-2' : 'col-span-3']">
                                 <span class="block md:hidden font-semibold text-xs">Waarden</span>
                                 {{ getValuesCellContent(item) }}
                             </div>
-                            <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium">
+                            <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium col-span-1">
                                 <button
                                     v-if="Object.keys(serviceCheckTypesWithOptions).includes(item.type) && !item.open"
                                     @click.stop="toggleRecordValueEdit(item.id)"
