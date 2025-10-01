@@ -33,11 +33,8 @@ class EventApiController extends Controller
 
         if (!$has_all && $user_id) {
             $base->where(function ($q) use ($user_id) {
-                $q->whereHas('executingUsers', function ($sq) use ($user_id) {
-                    $sq->where('users.id', $user_id);
-                })->orWhereHas('owners', function ($sq) use ($user_id) {
-                    $sq->where('users.id', $user_id)->where('userables.type', 'owner');
-                });
+                $q->whereHas('executingUsers', fn($sq) => $sq->where('users.id', $user_id))
+                  ->orWhereHas('owners', fn($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
             });
         }
 
