@@ -16,11 +16,18 @@
                             :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
                             {{ getCustomerById(event.extendedProps.customer_id).name }}
                         </component>
-                        <ul class="text-xs list-disc ml-3 mt-3" v-if="event.extendedProps.executing_users.length > 0">
-                            <li v-for="user in event.extendedProps.executing_users" :key="user.id">
-                                {{ user.name }}
-                            </li>
-                        </ul>
+                        <div v-if="event.extendedProps.executing_users.length > 0"
+                            class="mt-3 flex flex-wrap gap-2 ml-1">
+                            <div v-for="user in event.extendedProps.executing_users" :key="user.id"
+                                class="inline-flex items-center gap-1">
+                                <img v-if="user.avatar" :src="user.avatar" :alt="user.name"
+                                    class="h-5 w-5 rounded-full ring-1 ring-gray-300 object-cover" />
+                                <span v-else
+                                    class="h-5 w-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-medium ring-1 ring-gray-300">{{
+                                    initials(user.name) }}</span>
+                                <span class="text-[11px] leading-none text-white">{{ user.name }}</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex flex-col absolute top-0 right-0 rounded-bl-md p-1 bg-white">
                         <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
@@ -170,6 +177,10 @@ const form = useForm({
 })
 
 const page = usePage()
+const initials = (name = '') => {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean)
+    return parts.slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'US'
+}
 
 const calendar = ref(null)
 const modalOpen = ref(false)
