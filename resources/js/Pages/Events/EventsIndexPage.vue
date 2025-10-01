@@ -7,8 +7,9 @@
                         <span class="text-sm font-semibold">{{ event.title }}</span>
                         <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
                     </div>
-                    <div class="m-2" v-if="event.extendedProps.eventable_id">
-                        <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`" class="text-xs underline">
+                    <div class="my-2 m-0 md:m-2" v-if="event.extendedProps.eventable_id">
+                        <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`"
+                            class="border rounded-md p-2 my-2 bg-amber-600 md:border-none md:p-0 md:bg-transparent text-xs underline">
                         Werkbon {{ event.extendedProps.eventable_id }}
                         </Link>&nbsp;bij&nbsp;
                         <component :is="hasPermission('customer.read') ? Link : 'span'"
@@ -24,7 +25,7 @@
                                     class="h-5 w-5 rounded-full ring-1 ring-gray-300 object-cover" />
                                 <span v-else
                                     class="h-5 w-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-medium ring-1 ring-gray-300">{{
-                                    initials(user.name) }}</span>
+                                        initials(user.name) }}</span>
                                 <span class="text-[11px] leading-none text-white">{{ user.name }}</span>
                             </div>
                         </div>
@@ -437,6 +438,17 @@ const calendarOptions = ref({
 @media screen and (max-width: 1024px) {
     .fc {
         height: 92vh !important;
+    }
+}
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+    .fc-theme-standard .fc-list-day-cushion {
+        background-color: #1e293b;
+    }
+
+    .fc .fc-list-event:hover td {
+        background-color: #334155;
     }
 }
 </style>
