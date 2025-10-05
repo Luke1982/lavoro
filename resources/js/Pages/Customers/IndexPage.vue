@@ -21,9 +21,9 @@
         <ul role="list" class="divide-y divide-gray-100 dark:divide-slate-800/70">
             <li v-for="customer in customers.data" :key="customer.id">
                 <Link :href="`/customers/${customer.id}`"
-                    class="group grid w-full grid-cols-[minmax(0,1fr)_180px_20px] items-center gap-x-6 px-4 py-5 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 transition even:bg-gray-50 even:dark:bg-slate-800/40">
+                    class="group grid w-full grid-cols-[minmax(0,1fr)_24px] sm:grid-cols-[minmax(0,1fr)_180px_20px] items-start sm:items-center gap-y-2 sm:gap-y-0 gap-x-6 px-4 py-5 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 transition even:bg-gray-50 even:dark:bg-slate-800/40">
                 <!-- Left section: avatar + name/email -->
-                <div class="flex min-w-0 gap-x-4">
+                <div class="flex min-w-0 gap-x-4 col-start-1 row-start-1">
                     <span
                         class="size-12 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-slate-200 select-none">
                         {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
@@ -40,7 +40,7 @@
                     </div>
                 </div>
                 <!-- Middle section: city + ticket status -->
-                <div class="flex flex-col items-start justify-center">
+                <div class="flex flex-col items-start justify-center col-start-1 row-start-2 sm:col-start-2 sm:row-start-1 pl-16 sm:pl-0">
                     <p class="text-sm leading-6 text-gray-900 dark:text-slate-200">{{ customer.city || '—' }}</p>
                     <p class="mt-1 text-xs leading-5 text-left text-gray-600 dark:text-slate-400">
                         <span v-if="customer.open_tickets?.length" class="text-red-600 dark:text-red-400 font-medium">{{
@@ -52,7 +52,7 @@
                     </p>
                 </div>
                 <!-- Right section: chevron -->
-                <div class="flex justify-end">
+                <div class="flex justify-end col-start-2 sm:col-start-3 row-span-2 sm:row-span-1 self-center">
                     <ChevronRightIcon
                         class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
                         aria-hidden="true" />
