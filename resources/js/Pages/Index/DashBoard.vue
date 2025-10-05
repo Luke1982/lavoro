@@ -253,7 +253,11 @@ const addMarker = (c) => {
 };
 
 onMounted(() => {
-    map.value = L.map('dashboard-map', { zoomControl: true }).setView([52.1, 5.29], 7);
+    if (!hasPermission('dashboard.see_map')) return;
+    const container = typeof document !== 'undefined' ? document.getElementById('dashboard-map') : null;
+    if (!container) return;
+
+    map.value = L.map(container, { zoomControl: true }).setView([52.1, 5.29], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
     }).addTo(map.value);
@@ -271,7 +275,7 @@ onMounted(() => {
     }
 });
 
-// Customer lookup handled inside CalendarWidget
+
 </script>
 
 <style>

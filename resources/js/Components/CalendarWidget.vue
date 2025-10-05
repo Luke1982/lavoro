@@ -443,23 +443,6 @@ const calendarOptions = ref({
     dayMaxEventRows: 2,
 })
 </script>
-
-<style scoped>
-@media (max-width: 768px) {
-    :deep(.fc .fc-toolbar.fc-header-toolbar) {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    :deep(.fc .fc-toolbar-chunk) {
-        margin-bottom: 0.25rem;
-    }
-    :deep(.fc .fc-toolbar-title) {
-        margin: 0.25rem 0;
-    }
-}
-</style>
 <style scoped>
 @media screen and (max-width: 1024px) {
     .fc {

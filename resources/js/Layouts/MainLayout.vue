@@ -132,7 +132,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -267,11 +267,11 @@
         </div>
 
         <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-xs sm:px-6 lg:hidden">
-            <button type="button" class="-m-2.5 p-2.5 text-gray-400 lg:hidden" @click="sidebarOpen = true">
+            <button type="button" class="-m-2.5 p-2.5 text-gray-400 lg:hidden" @click="toggleSidebar">
                 <span class="sr-only">Open sidebar</span>
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
-            <div class="flex-1 text-sm/6 font-semibold text-white">Dashboard</div>
+            <div class="flex-1 text-sm/6 font-semibold text-white">{{ currentTopTitle }}</div>
             <Link :href="'/me/edit'">
             <span class="sr-only">Profiel</span>
             <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -384,24 +384,41 @@ const canSeeNavItem = (item) => {
 
 const filteredNavigation = computed(() => navigation.value.filter(canSeeNavItem))
 
-// Open the submenu if current route is within its children
-const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+const currentPath = computed(() => {
+    const url = page?.url
+    if (url && typeof url === 'string') return url
+    return typeof window !== 'undefined' ? window.location.pathname : ''
+})
 
 // Load persisted open state
 const savedOpenState = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('navOpenState') || '{}') : {}
 
-navigation.value.forEach((item) => {
-    if (item.children) {
-        if (Object.prototype.hasOwnProperty.call(savedOpenState, item.name)) {
-            item.open = !!savedOpenState[item.name]
-        } else if (item.children.some(c => c.href === currentPath)) {
-            item.open = true
-            item.current = true
+const initializeNavState = () => {
+    const path = currentPath.value
+    navigation.value.forEach((item) => {
+        item.current = false
+        if (item.children) {
+            if (Object.prototype.hasOwnProperty.call(savedOpenState, item.name)) {
+                item.open = !!savedOpenState[item.name]
+            }
+            item.children.forEach((c) => {
+                c.current = (path === c.href) || path.startsWith(c.href + '/')
+            })
+            const anyChildCurrent = item.children.some((c) => c.current)
+            if (anyChildCurrent) {
+                item.open = true
+                item.current = true
+            }
+        } else {
+            if ((path === item.href) || path.startsWith(item.href + '/')) {
+                item.current = true
+            }
         }
-    } else if (item.href === currentPath) {
-        item.current = true
-    }
-})
+    })
+}
+
+initializeNavState()
+watch(() => page?.url, () => initializeNavState())
 
 // Persist open state on changes
 watch(navigation, (val) => {
@@ -426,7 +443,7 @@ const visibleChildren = (item) => {
 // Filter lists by permission too
 const filteredLists = computed(() => lists.filter(canSeeNavItem))
 
-const isCompanyCurrent = computed(() => currentPath === '/companies')
+const isCompanyCurrent = computed(() => currentPath.value === '/companies')
 
 /**
  * Set the active top-level nav gation item.
@@ -448,4 +465,13 @@ const handleNavClick = (item) => {
 }
 
 const sidebarOpen = ref(false)
+
+const toggleSidebar = () => {
+    sidebarOpen.value = !sidebarOpen.value
+}
+
+const currentTopTitle = computed(() => {
+    const activeTop = navigation.value.find(n => n.current)
+    return activeTop ? activeTop.name : 'Dashboard'
+})
 </script>
