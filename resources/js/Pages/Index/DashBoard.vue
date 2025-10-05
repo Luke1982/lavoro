@@ -1,46 +1,57 @@
 <template>
-    <div class="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div class="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
         <div>
             <input type="text" placeholder="Zoek objecten, werkbonnen..."
-                class="w-full max-w-xl rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none" />
+                class="w-full max-w-xl rounded-xl border border-gray-200 bg-white dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100 px-4 py-2 text-sm outline-none" />
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm text-gray-500">Objecten</div>
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm text-gray-500 dark:text-slate-400">Objecten</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-2xl font-semibold">{{ stats.assets?.toLocaleString?.() ?? stats.assets }}</div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{
+                        stats.assets?.toLocaleString?.() ?? stats.assets }}</div>
                     <div class="text-emerald-600 text-xs">+3,1%</div>
                 </div>
             </div>
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm text-gray-500">Werkbonnen</div>
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm text-gray-500 dark:text-slate-400">Werkbonnen</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-2xl font-semibold">{{ stats.serviceOrders?.toLocaleString?.() ??
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{
+                        stats.serviceOrders?.toLocaleString?.() ??
                         stats.serviceOrders }}</div>
                 </div>
             </div>
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm text-gray-500">Keuringen</div>
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm text-gray-500 dark:text-slate-400">Keuringen</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-2xl font-semibold">{{ stats.serviceJobs?.toLocaleString?.() ?? stats.serviceJobs }}
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{
+                        stats.serviceJobs?.toLocaleString?.() ?? stats.serviceJobs }}
                     </div>
                     <div class="text-emerald-600 text-xs">+2,2%</div>
                 </div>
             </div>
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm text-gray-500">Tickets</div>
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm text-gray-500 dark:text-slate-400">Tickets</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-2xl font-semibold">{{ stats.tickets?.toLocaleString?.() ?? stats.tickets }}</div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{
+                        stats.tickets?.toLocaleString?.() ?? stats.tickets }}</div>
                     <div class="text-red-600 text-xs">-47%</div>
                 </div>
             </div>
         </div>
 
-        <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-            <div class="text-sm font-medium mb-3">Werkbonnen en Keuringen (6 maanden)</div>
+        <div
+            class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+            <div class="text-sm font-medium mb-3 text-gray-900 dark:text-slate-100">Werkbonnen en Keuringen (6 maanden)
+            </div>
             <div class="h-40">
-                <svg :viewBox="`0 0 ${svgW} ${svgH}`" preserveAspectRatio="none" class="w-full h-full">
+                <svg :viewBox="`0 0 ${svgW} ${svgH}`" preserveAspectRatio="none"
+                    class="w-full h-full text-slate-400 dark:text-slate-500">
                     <defs>
                         <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
                             <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
@@ -49,13 +60,13 @@
                     </defs>
                     <g>
                         <line v-for="t in yGrid" :key="`g-${t.y}`" :x1="padLeft" :x2="svgW - padRight" :y1="t.y"
-                            :y2="t.y" stroke="#EEF2FF" />
+                            :y2="t.y" stroke="currentColor" stroke-opacity="0.2" />
                     </g>
                     <g>
                         <text v-for="t in yTicks" :key="`yt-${t.y}`" :x="padLeft - 10" :y="t.y + 5" text-anchor="end"
-                            font-size="13" fill="#6B7280">{{ t.label }}</text>
+                            font-size="13" fill="currentColor">{{ t.label }}</text>
                         <text v-for="t in xTicks" :key="`xt-${t.x}`" :x="t.x" :y="svgH - 6" :text-anchor="t.anchor"
-                            font-size="13" fill="#6B7280">{{ t.label }}</text>
+                            font-size="13" fill="currentColor">{{ t.label }}</text>
                     </g>
                     <path :d="areaPath" fill="url(#g)" />
                     <path :d="linePath" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" />
@@ -64,87 +75,99 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm font-medium mb-2">Open Werkbonnen</div>
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Open Werkbonnen</div>
                 <div class="flex items-center gap-2 mb-3">
                     <button class="px-2 py-1 text-xs rounded border"
-                        :class="ordersFilter === 'neither' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        :class="ordersFilter === 'neither' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'neither'">Niet verzonden</button>
                     <button class="px-2 py-1 text-xs rounded border"
-                        :class="ordersFilter === 'administration' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        :class="ordersFilter === 'administration' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'administration'">Alleen administratie</button>
                     <button class="px-2 py-1 text-xs rounded border"
-                        :class="ordersFilter === 'customer' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300'"
+                        :class="ordersFilter === 'customer' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'customer'">Alleen klant</button>
                     <div class="ml-auto">
-                        <button class="text-xs underline" @click="showAllOpenOrders = !showAllOpenOrders">
+                        <button class="text-xs underline text-gray-700 dark:text-slate-300"
+                            @click="showAllOpenOrders = !showAllOpenOrders">
                             {{ showAllOpenOrders ? 'Toon minder' : 'Toon alles' }}
                         </button>
                     </div>
                 </div>
-                <ul class="divide-y divide-gray-100" v-auto-animate>
+                <ul class="divide-y divide-gray-100 dark:divide-slate-800" v-auto-animate>
                     <li v-for="o in openOrdersToShow" :key="o.id" class="py-2 flex items-center justify-between">
-                        <span class="text-sm">#{{ o.id }} bij {{ o.customer?.name || 'Onbekende klant' }}</span>
+                        <span class="text-sm text-gray-800 dark:text-slate-200">#{{ o.id }} bij {{ o.customer?.name ||
+                            'Onbekende klant' }}</span>
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-0.5 rounded-full text-xs font-medium border"
                                 :class="serviceOrderPillColorClasses(o)">
                                 {{ serviceOrderPillText(o) }}
                             </span>
                             <Link :href="`/serviceorders/${o.id}`"
-                                class="px-3 py-1 text-xs rounded-lg border border-gray-200">Open</Link>
+                                class="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-slate-700/60 dark:text-slate-100">
+                            Open</Link>
                         </div>
                     </li>
-                    <li v-if="filteredOpenOrders.length === 0" class="py-4 text-sm text-gray-500">
+                    <li v-if="filteredOpenOrders.length === 0" class="py-4 text-sm text-gray-500 dark:text-slate-400">
                         Geen werkbonnen
                     </li>
                 </ul>
             </div>
-            <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                <div class="text-sm font-medium mb-2">Aankomende Keuringen</div>
-                <ul class="divide-y divide-gray-100">
+            <div
+                class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+                <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Aankomende Keuringen</div>
+                <ul class="divide-y divide-gray-100 dark:divide-slate-800">
                     <li v-for="j in upcomingJobs" :key="j.id" class="py-2 flex items-center justify-between">
-                        <span class="text-sm">SJ-{{ j.id }}</span>
-                        <span class="px-3 py-1 text-xs rounded-xl bg-gray-100">Gepland</span>
+                        <span class="text-sm text-gray-800 dark:text-slate-200">SJ-{{ j.id }}</span>
+                        <span
+                            class="px-3 py-1 text-xs rounded-xl bg-gray-100 dark:bg-slate-800 dark:text-slate-200">Gepland</span>
                     </li>
-                    <li v-if="!upcomingJobs || upcomingJobs.length === 0" class="py-4 text-sm text-gray-500">Geen
+                    <li v-if="!upcomingJobs || upcomingJobs.length === 0"
+                        class="py-4 text-sm text-gray-500 dark:text-slate-400">Geen
                         geplande keuringen</li>
                 </ul>
             </div>
         </div>
 
-        <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-            <div class="text-sm font-medium mb-2">Recente Tickets</div>
+        <div
+            class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+            <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Recente Tickets</div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm">
                     <thead>
-                        <tr class="text-left text-gray-500">
+                        <tr class="text-left text-gray-500 dark:text-slate-400">
                             <th class="py-2 pr-4">Nr</th>
                             <th class="py-2 pr-4">Onderwerp</th>
                             <th class="py-2 pr-4">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
                         <tr v-for="t in recentTickets" :key="t.id">
                             <td class="py-2 pr-4">
-                                <Link :href="`/tickets/${t.id}`" class="text-blue-600 hover:underline">T-{{ t.id }}
+                                <Link :href="`/tickets/${t.id}`"
+                                    class="text-blue-600 dark:text-blue-400 hover:underline">T-{{ t.id }}
                                 </Link>
                             </td>
                             <td class="py-2 pr-4">
-                                <Link :href="`/tickets/${t.id}`" class="text-blue-600 hover:underline">{{ t.subject }}
+                                <Link :href="`/tickets/${t.id}`"
+                                    class="text-blue-600 dark:text-blue-400 hover:underline">{{ t.subject }}
                                 </Link>
                             </td>
-                            <td class="py-2 pr-4">{{ t.status }}</td>
+                            <td class="py-2 pr-4 text-gray-800 dark:text-slate-200">{{ t.status }}</td>
                         </tr>
                         <tr v-if="!recentTickets || recentTickets.length === 0">
-                            <td colspan="3" class="py-4 text-sm text-gray-500">Geen recente tickets</td>
+                            <td colspan="3" class="py-4 text-sm text-gray-500 dark:text-slate-400">Geen recente tickets
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-            <div class="text-sm font-medium mb-2">Kaart</div>
+        <div
+            class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
+            <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Kaart</div>
             <div class="h-48">
                 <div id="dashboard-map" class="w-full h-full rounded-lg"></div>
             </div>

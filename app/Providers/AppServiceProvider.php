@@ -6,6 +6,9 @@ use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Transport\Dsn;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\Transports\GraphTransport;
+use Inertia\Inertia;
+use App\Models\Company;
+use Illuminate\Support\Facades\Storage;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +36,18 @@ class AppServiceProvider extends ServiceProvider
                 dispatcher: app('events'),
                 logger: app('log')->channel()
             );
+        });
+
+        Inertia::share('company', function () {
+            $company = Company::where('is_main', true)->first();
+            if (!$company) {
+                return null;
+            }
+            $logo_url = $company->logo_path ? asset('storage/' . $company->logo_path) : null;
+            return [
+                'name' => $company->name,
+                'logo_url' => $logo_url,
+            ];
         });
     }
 }

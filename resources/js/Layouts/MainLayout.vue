@@ -28,9 +28,8 @@
                             <div
                                 class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
                                 <div class="flex h-16 shrink-0 items-center">
-                                    <img class="h-8 w-auto"
-                                        src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-                                        alt="Your Company" />
+                                    <img v-if="companyLogo" class="h-8 w-auto" :src="companyLogo"
+                                        :alt="companyName || 'Bedrijf'" />
                                 </div>
 
                                 <nav class="flex flex-1 flex-col">
@@ -133,7 +132,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -158,9 +157,7 @@
         <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
             <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6">
                 <div class="flex h-16 shrink-0 items-center">
-                    <img class="h-8 w-auto"
-                        src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-                        alt="Your Company" />
+                    <img v-if="companyLogo" class="h-8 w-auto" :src="companyLogo" :alt="companyName || 'Bedrijf'" />
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
@@ -326,6 +323,8 @@ const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
 const initials = computed(() => authUser.value?.name ? authUser.value.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '')
+const companyLogo = computed(() => page.props.company?.logo_url || null)
+const companyName = computed(() => page.props.company?.name || null)
 
 const navigation = ref([
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
