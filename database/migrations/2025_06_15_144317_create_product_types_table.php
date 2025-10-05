@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ProductTypes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -18,11 +17,6 @@ return new class extends Migration
             $table->integer('typical_certificate_days')->nullable()->default(null);
             $table->timestamps();
         });
-
-        array_map(
-            fn($case) => \App\Models\ProductType::create(['name' => $case->value]),
-            ProductTypes::cases()
-        );
     }
 
     /**

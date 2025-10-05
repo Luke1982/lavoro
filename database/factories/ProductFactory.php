@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Brand;
 use App\Models\ProductType;
-use App\Enums\ProductBrands;
+use App\Enums\Automotive\ProductBrands;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

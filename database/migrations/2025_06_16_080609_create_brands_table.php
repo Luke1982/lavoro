@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Brand;
-use App\Enums\ProductBrands;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -18,11 +16,6 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->timestamps();
         });
-
-        array_map(
-            fn($case) => Brand::create(['name' => $case->value,]),
-            ProductBrands::cases()
-        );
     }
 
     /**

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -42,6 +44,35 @@ return new class extends Migration
             $table->index(['lat', 'lon']);
             $table->timestamps();
         });
+
+        DB::table('customers')->insert([
+            'snelstart_id' => Str::uuid()->toString(),
+            'name' => 'Dummy klant',
+            'email' => null,
+            'invoice_email' => null,
+            'quotes_email' => null,
+            'phone' => null,
+            'mobile' => null,
+            'website' => null,
+            'address' => null,
+            'postal_code' => null,
+            'city' => null,
+            'country' => null,
+            'postal_address' => null,
+            'postal_postal_code' => null,
+            'postal_city' => null,
+            'postal_country' => null,
+            'iban' => null,
+            'vat_number' => null,
+            'chamber_of_commerce_number' => null,
+            'contactname' => null,
+            'location_code' => null,
+            'billing_customer_id' => null,
+            'lat' => null,
+            'lon' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\ProductType;
-use App\Enums\ProductBrands;
+use App\Enums\Automotive\ProductBrands;
 use App\Models\Brand;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
