@@ -30,13 +30,13 @@
                             Bezoekadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
                             customer.postal_code
-                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
                             Postadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                        }}<br>{{
+                            }}<br>{{
                                 customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>
@@ -105,6 +105,27 @@
                     </div>
                 </transition>
             </div>
+            <div class="mt-8" v-if="canReadAssets && hasOverdueFiltered">
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/50"><span
+                                class="w-2 h-2 rounded-full bg-red-500"></span></span>
+                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
+                            @click="showOverdue = !showOverdue">Apparaten met verlopen of ontbrekende service
+                            datum</button>
+                    </div>
+                    <button type="button"
+                        class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
+                        @click="showOverdue = !showOverdue">…</button>
+                </div>
+                <transition name="fade-height" mode="out-in">
+                    <div v-if="showOverdue" key="overdue" class="pt-6">
+                        <AssetListGroupComponent :assetGroups="overdueFiltered" />
+                    </div>
+                </transition>
+            </div>
         </template>
 
         <template #sidebar>
@@ -170,6 +191,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    overdueAssetsByType: {
+        type: Object,
+        required: true,
+    },
     allCustomers: {
         type: Array,
         required: true,
@@ -197,6 +222,7 @@ const updateCustomer = () => {
 
 const showUpcoming = ref(true);
 const showNonUpcoming = ref(false);
+const showOverdue = ref(true);
 
 // Product type filtering ----------------------------------------------------
 const selectedProductTypeIds = ref([]); // array of product_type ids
@@ -214,6 +240,7 @@ const productTypeOptions = computed(() => {
     };
     collect(props.upcomingAssetsByType);
     collect(props.nonUpcomingAssetsByType);
+    collect(props.overdueAssetsByType);
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 });
 
@@ -239,13 +266,16 @@ const filterAssetGroups = (groups) => {
 
 const upcomingFiltered = computed(() => filterAssetGroups(props.upcomingAssetsByType));
 const nonUpcomingFiltered = computed(() => filterAssetGroups(props.nonUpcomingAssetsByType));
+const overdueFiltered = computed(() => filterAssetGroups(props.overdueAssetsByType));
 
 const hasUpcomingFiltered = computed(() => Object.values(upcomingFiltered.value || {}).some(arr => arr.length));
 const hasNonUpcomingFiltered = computed(() => Object.values(nonUpcomingFiltered.value || {}).some(arr => arr.length));
+const hasOverdueFiltered = computed(() => Object.values(overdueFiltered.value || {}).some(arr => arr.length));
 
 // Auto collapse groups if they become empty
 watch(hasUpcomingFiltered, (val) => { if (!val) showUpcoming.value = false; });
 watch(hasNonUpcomingFiltered, (val) => { if (!val) showNonUpcoming.value = false; });
+watch(hasOverdueFiltered, (val) => { if (!val) showOverdue.value = false; });
 
 // Collect all events from service orders for this customer for timeline
 const eventList = computed(() => {

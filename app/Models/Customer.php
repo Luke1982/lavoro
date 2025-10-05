@@ -61,6 +61,17 @@ class Customer extends Model
             ->orderBy('next_service_date');
     }
 
+    public function overdueAssets()
+    {
+        return $this->hasMany(Asset::class)
+            ->where(function ($q) {
+                $q->whereNull('next_service_date')
+                  ->orWhere('next_service_date', '<', now());
+            })
+            ->where('status', 'Actief')
+            ->orderBy('next_service_date');
+    }
+
     public function tickets()
     {
         return $this->hasManyThrough(

@@ -61,6 +61,11 @@ class CustomerController extends Controller
             'nonUpcomingAssets.openTickets',
             'nonUpcomingAssets.pendingTickets',
             'nonUpcomingAssets.closedTickets',
+            'overdueAssets.product.brand',
+            'overdueAssets.product.productType',
+            'overdueAssets.openTickets',
+            'overdueAssets.pendingTickets',
+            'overdueAssets.closedTickets',
             'openTickets',
             'pendingTickets',
             'closedTickets',
@@ -84,6 +89,7 @@ class CustomerController extends Controller
 
         $upcomingByType = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
         $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
+        $overdueByType = $customer->overdueAssets->groupBy('product.productType.name')->sortKeys();
 
         $allCustomers = Customer::select(
             'id',
@@ -96,6 +102,7 @@ class CustomerController extends Controller
             'customer' => $customer,
             'upcomingAssetsByType' => $upcomingByType,
             'nonUpcomingAssetsByType' => $nonUpcomingByType,
+            'overdueAssetsByType' => $overdueByType,
             'allCustomers' => $allCustomers,
         ]);
     }
