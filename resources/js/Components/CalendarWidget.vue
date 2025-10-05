@@ -60,12 +60,40 @@
                 <div class="overflow-y-scroll h-[77vh]">
                     <div class="flex flex-wrap">
                         <div class="w-full lg:w-1/2 flex px-4 py-2">
-                            <TextInput v-model="form.start_date" label="Startdatum" type="date" class="w-1/2" />
-                            <TextInput v-model="form.start_time" label="Starttijd" type="time" class="w-1/2 ml-2" />
+                            <TextInput
+                                v-model="form.start_date"
+                                label="Startdatum"
+                                type="date"
+                                class="w-1/2"
+                                :has-error="Boolean(form.errors.start)"
+                                :error-message="form.errors.start"
+                            />
+                            <TextInput
+                                v-model="form.start_time"
+                                label="Starttijd"
+                                type="time"
+                                class="w-1/2 ml-2"
+                                :has-error="Boolean(form.errors.start)"
+                                :error-message="form.errors.start"
+                            />
                         </div>
                         <div class="w-full lg:w-1/2 flex px-4 py-2">
-                            <TextInput v-model="form.end_date" label="Einddatum" type="date" class="w-1/2" />
-                            <TextInput v-model="form.end_time" label="Eindtijd" type="time" class="w-1/2 ml-2" />
+                            <TextInput
+                                v-model="form.end_date"
+                                label="Einddatum"
+                                type="date"
+                                class="w-1/2"
+                                :has-error="Boolean(form.errors.end)"
+                                :error-message="form.errors.end"
+                            />
+                            <TextInput
+                                v-model="form.end_time"
+                                label="Eindtijd"
+                                type="time"
+                                class="w-1/2 ml-2"
+                                :has-error="Boolean(form.errors.end)"
+                                :error-message="form.errors.end"
+                            />
                         </div>
                     </div>
                     <div class="flex flex-wrap">
@@ -216,6 +244,7 @@ const getHeaderToolbar = () => {
 const finalizeSaveOrUpdate = () => {
     modalOpen.value = false
     form.reset()
+    form.clearErrors()
     form.event_type_id = props.eventTypes[0]?.id || ''
     form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
     selectedCustomer.value = props.allCustomers[0]?.id || null
@@ -224,44 +253,69 @@ const finalizeSaveOrUpdate = () => {
 
 const saveEvent = async () => {
     await axios.get('sanctum/csrf-cookie')
+    let ok = false
     if (editingExistingEvent.value) {
-        await updateEvent()
+        ok = await updateEvent()
     } else {
-        await createEvent()
+        ok = await createEvent()
     }
-    finalizeSaveOrUpdate()
+    if (ok) {
+        finalizeSaveOrUpdate()
+    }
 }
 
 const createEvent = async () => {
-    if (!hasPermission('event.create')) { return }
-    const response = await axios.post('/api/events', {
-        ...form,
-        start: form.start_date + ' ' + form.start_time,
-        end: form.end_date + ' ' + form.end_time,
-        executing_user_ids: form.executing_user_ids,
-    })
-    if (response.status !== 201) {
-        page.props.flash.error = 'Kon de afspraak niet opslaan'
-        console.error('Error saving event:', response.data)
-        return
+    if (!hasPermission('event.create')) { return false }
+    try {
+        const response = await axios.post('/api/events', {
+            ...form,
+            start: form.start_date + ' ' + form.start_time,
+            end: form.end_date + ' ' + form.end_time,
+            executing_user_ids: form.executing_user_ids,
+        })
+        if (response.status !== 201) {
+            page.props.flash.error = 'Kon de afspraak niet opslaan'
+            console.error('Error saving event:', response.data)
+            return false
+        }
+        page.props.flash.success = 'Afspraak succesvol opgeslagen'
+        return true
+    } catch (error) {
+        if (error.response?.status === 422) {
+            const errs = error.response.data?.errors || {}
+            form.clearErrors()
+            Object.keys(errs).forEach(k => form.setError(k, Array.isArray(errs[k]) ? errs[k][0] : String(errs[k])))
+        }
+        page.props.flash.error = error.response?.data?.message || 'Validatie mislukt bij het opslaan van de afspraak'
+        return false
     }
-    page.props.flash.success = 'Afspraak succesvol opgeslagen'
 }
 
 const updateEvent = async () => {
-    const response = await axios.put(`/api/events/${form.id}`, {
-        ...form,
-        start: form.start_date + ' ' + form.start_time,
-        end: form.end_date + ' ' + form.end_time,
-        executing_user_ids: form.executing_user_ids,
-    })
-    if (response.status !== 200) {
-        page.props.flash.error = 'Kon de afspraak niet bijwerken'
-        console.error('Error updating event:', response.data)
-        return
+    try {
+        const response = await axios.put(`/api/events/${form.id}`, {
+            ...form,
+            start: form.start_date + ' ' + form.start_time,
+            end: form.end_date + ' ' + form.end_time,
+            executing_user_ids: form.executing_user_ids,
+        })
+        if (response.status !== 200) {
+            page.props.flash.error = 'Kon de afspraak niet bijwerken'
+            console.error('Error updating event:', response.data)
+            return false
+        }
+        page.props.flash.success = 'Afspraak succesvol bijgewerkt'
+        editingExistingEvent.value = false
+        return true
+    } catch (error) {
+        if (error.response?.status === 422) {
+            const errs = error.response.data?.errors || {}
+            form.clearErrors()
+            Object.keys(errs).forEach(k => form.setError(k, Array.isArray(errs[k]) ? errs[k][0] : String(errs[k])))
+        }
+        page.props.flash.error = error.response?.data?.message || 'Validatie mislukt bij het bijwerken van de afspraak'
+        return false
     }
-    page.props.flash.success = 'Afspraak succesvol bijgewerkt'
-    editingExistingEvent.value = false
 }
 
 const onSelect = (selectInfo) => {
