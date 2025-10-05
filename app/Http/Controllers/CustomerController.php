@@ -37,7 +37,9 @@ class CustomerController extends Controller
                         ->orWhere('postal_city', 'like', "%{$search}%")
                         ->orWhere('postal_country', 'like', "%{$search}%")
                         ->orWhere('location_code', 'like', "%{$search}%")))
-            ->get();
+            ->orderBy('name')
+            ->paginate(25)
+            ->appends(['search' => $search]);
         return inertia('Customers/IndexPage', [
             'customers' => $customers,
         ]);

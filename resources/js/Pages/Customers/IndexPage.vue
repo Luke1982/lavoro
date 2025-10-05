@@ -15,9 +15,11 @@
         <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
             add-button-label="Nieuwe klant" submit-label="Opslaan" />
     </div>
+    <PaginationComponent v-if="(customers.links || []).length" :paginator="customers" :params="{ search: searchParam }"
+        class="border-b border-gray-200 dark:border-slate-700/60" />
     <div class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-hidden">
         <ul role="list" class="divide-y divide-gray-100 dark:divide-slate-800/70">
-            <li v-for="customer in customers" :key="customer.id">
+            <li v-for="customer in customers.data" :key="customer.id">
                 <Link :href="`/customers/${customer.id}`"
                     class="group grid w-full grid-cols-[minmax(0,1fr)_180px_20px] items-center gap-x-6 px-4 py-5 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 transition even:bg-gray-50 even:dark:bg-slate-800/40">
                 <!-- Left section: avatar + name/email -->
@@ -60,6 +62,8 @@
             </li>
         </ul>
     </div>
+    <PaginationComponent v-if="(customers.links || []).length" :paginator="customers" :params="{ search: searchParam }"
+        class="border-t border-gray-200 dark:border-slate-700/60" />
 </template>
 
 <script setup>
@@ -70,6 +74,7 @@ import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { hasPermission } from '@/Utilities/Utilities';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
 const customerFormRef = ref(null)
 const importingCustomers = ref(false)
@@ -95,10 +100,12 @@ const customerFields = [
 
 defineProps({
     customers: {
-        type: Array,
+        type: Object,
         required: true,
     },
 })
+
+const searchParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('search') || '' : ''
 
 const canCreate = computed(() => hasPermission('customer.create'))
 </script>
