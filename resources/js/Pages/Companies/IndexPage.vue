@@ -11,14 +11,26 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/60">
             <thead class="bg-gray-50 dark:bg-slate-800">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Naam</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Adres
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Naam</th>
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Adres
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Plaats
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Plaats
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Land</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Logo</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">Hoofd
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Land</th>
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Logo</th>
+                    <th
+                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider">
+                        Hoofd
                     </th>
                     <th class="px-4 py-2"></th>
                 </tr>
@@ -28,7 +40,8 @@
                     <td class="px-4 py-2 text-gray-900 dark:text-slate-100">{{ company.name }}</td>
                     <td class="px-4 py-2">
                         <div class="text-gray-900 dark:text-slate-100">{{ company.address_line1 }}</div>
-                        <div v-if="company.address_line2" class="text-gray-500 dark:text-slate-400 text-xs">{{ company.address_line2 }}
+                        <div v-if="company.address_line2" class="text-gray-500 dark:text-slate-400 text-xs">{{
+                            company.address_line2 }}
                         </div>
                         <div class="text-gray-500 dark:text-slate-400 text-xs">{{ company.postal_code }}</div>
                     </td>
@@ -57,7 +70,8 @@
                     </td>
                 </tr>
                 <tr v-if="companies.length === 0">
-                    <td colspan="7" class="px-4 py-4 text-center text-gray-500 dark:text-slate-400">Geen bedrijven gevonden.</td>
+                    <td colspan="7" class="px-4 py-4 text-center text-gray-500 dark:text-slate-400">Geen bedrijven
+                        gevonden.</td>
                 </tr>
             </tbody>
         </table>

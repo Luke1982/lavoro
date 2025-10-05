@@ -2,15 +2,18 @@
     <div class="max-w-5xl mx-auto py-6">
         <div class="mb-8">
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{ isEdit ? 'Gebruiker' : 'Nieuwe gebruiker' }}</h1>
-            <p v-if="!isEdit" class="mt-1 text-sm text-gray-500 dark:text-slate-400">Voer de gegevens in om een gebruiker toe te voegen.</p>
+            <p v-if="!isEdit" class="mt-1 text-sm text-gray-500 dark:text-slate-400">Voer de gegevens in om een
+                gebruiker toe te voegen.</p>
         </div>
 
         <form class="space-y-10">
             <!-- Profile Section -->
-            <section class="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 shadow-sm">
+            <section
+                class="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 shadow-sm">
                 <div class="px-6 py-5 border-b border-gray-200 dark:border-slate-800">
                     <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Profiel</h2>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Deze informatie kan door anderen worden gezien.</p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Deze informatie kan door anderen worden
+                        gezien.</p>
                 </div>
                 <div class="p-6 space-y-6">
                     <div class="flex items-center gap-4">
@@ -43,7 +46,8 @@
                             :has-error="form.errors.email" :error-message="form.errors.email" />
                     </div>
                     <div v-if="!isEdit">
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wachtwoord</label>
+                        <label
+                            class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wachtwoord</label>
                         <TextInput v-model="form.password" type="password" label="Wachtwoord" required
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
@@ -70,7 +74,9 @@
                     </svg>
                     <span>{{ isEdit ? 'Opslaan' : 'Aanmaken' }}</span>
                 </button>
-                <Link :href="cancelHref" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300">Annuleren</Link>
+                <Link :href="cancelHref"
+                    class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300">
+                Annuleren</Link>
             </div>
         </form>
     </div>

@@ -12,4 +12,6 @@ return [
 'serviceorder.read',
 'asset.read',
 'product.read',
+// Dashboard permissions
+'dashboard.see_events',
 ];

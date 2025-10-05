@@ -7,37 +7,46 @@
                     class="relative transform overflow-hidden rounded-lg bg-white dark:bg-slate-900 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6 border dark:border-slate-800">
                     <div class="sm:flex sm:items-start">
                         <div class="mt-3 text-left sm:ml-4 sm:mt-0 w-full">
-                            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-slate-100 mb-4">Bewerk bedrijf</h3>
+                            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-slate-100 mb-4">Bewerk
+                                bedrijf</h3>
                             <form @submit.prevent="uploadLogo" class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Naam<span
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Naam<span
                                             class="text-red-500">*</span></label>
                                     <EditableTextField v-model="form.name" class="w-full" placeholder="Naam"
                                         @update="inlineSave('name', $event)" />
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Adresregel 1</label>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Adresregel
+                                            1</label>
                                         <EditableTextField v-model="form.address_line1" class="w-full"
                                             placeholder="Adres" @update="inlineSave('address_line1', $event)" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Adresregel 2</label>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Adresregel
+                                            2</label>
                                         <EditableTextField v-model="form.address_line2" class="w-full"
                                             placeholder="Adres 2" @update="inlineSave('address_line2', $event)" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Postcode</label>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Postcode</label>
                                         <EditableTextField v-model="form.postal_code" class="w-full"
                                             placeholder="1234AB" @update="inlineSave('postal_code', $event)" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Plaats</label>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Plaats</label>
                                         <EditableTextField v-model="form.city" class="w-full" placeholder="Plaats"
                                             @update="inlineSave('city', $event)" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Land</label>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Land</label>
                                         <EditableTextField v-model="form.country" class="w-full" placeholder="NL"
                                             @update="inlineSave('country', $event)" />
                                     </div>
@@ -48,8 +57,10 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo</label>
-                                    <input type="file" @change="onFile" class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo</label>
+                                    <input type="file" @change="onFile"
+                                        class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
                                     <div v-if="company.logo_path" class="mt-2">
                                         <img :src="`/storage/${company.logo_path}`" class="h-12 object-contain" />
                                     </div>

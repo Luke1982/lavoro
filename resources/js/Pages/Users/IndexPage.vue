@@ -19,8 +19,8 @@
                 <p class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ u.name }}</p>
                 <p class="text-sm text-gray-500 dark:text-slate-400 truncate">{{ u.email }}</p>
             </div>
-            <svg class="h-5 w-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400" viewBox="0 0 20 20" fill="currentColor"
-                aria-hidden="true">
+            <svg class="h-5 w-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
+                viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd"
                     d="M7.21 14.77a.75.75 0 0 1 0-1.06L10.94 10 7.2 6.29A.75.75 0 0 1 8.25 5.2l4.25 4.25a.75.75 0 0 1 0 1.06L8.25 14.77a.75.75 0 0 1-1.06 0Z"
                     clip-rule="evenodd" />

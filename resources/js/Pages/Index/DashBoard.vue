@@ -1,11 +1,8 @@
 <template>
     <div class="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
-        <div>
-            <input type="text" placeholder="Zoek objecten, werkbonnen..."
-                class="w-full max-w-xl rounded-xl border border-gray-200 bg-white dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100 px-4 py-2 text-sm outline-none" />
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div v-if="hasPermission('dashboard.see_stats')" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
                 class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
                 <div class="text-sm text-gray-500 dark:text-slate-400">Objecten</div>
@@ -45,47 +42,26 @@
             </div>
         </div>
 
-        <div
+        <div v-if="hasPermission('dashboard.see_events')"
             class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
-            <div class="text-sm font-medium mb-3 text-gray-900 dark:text-slate-100">Werkbonnen en Keuringen (6 maanden)
-            </div>
-            <div class="h-40">
-                <svg :viewBox="`0 0 ${svgW} ${svgH}`" preserveAspectRatio="none"
-                    class="w-full h-full text-slate-400 dark:text-slate-500">
-                    <defs>
-                        <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
-                            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
-                        </linearGradient>
-                    </defs>
-                    <g>
-                        <line v-for="t in yGrid" :key="`g-${t.y}`" :x1="padLeft" :x2="svgW - padRight" :y1="t.y"
-                            :y2="t.y" stroke="currentColor" stroke-opacity="0.2" />
-                    </g>
-                    <g>
-                        <text v-for="t in yTicks" :key="`yt-${t.y}`" :x="padLeft - 10" :y="t.y + 5" text-anchor="end"
-                            font-size="13" fill="currentColor">{{ t.label }}</text>
-                        <text v-for="t in xTicks" :key="`xt-${t.x}`" :x="t.x" :y="svgH - 6" :text-anchor="t.anchor"
-                            font-size="13" fill="currentColor">{{ t.label }}</text>
-                    </g>
-                    <path :d="areaPath" fill="url(#g)" />
-                    <path :d="linePath" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" />
-                </svg>
-            </div>
+            <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Afspraken</div>
+            <CalendarWidget :customers="customers" height="60vh" read-only />
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+
+        <div v-if="canSeeOpenOrders" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div
                 class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
                 <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Open Werkbonnen</div>
                 <div class="flex items-center gap-2 mb-3">
-                    <button class="px-2 py-1 text-xs rounded border"
+                    <button v-if="canNotSent" class="px-2 py-1 text-xs rounded border"
                         :class="ordersFilter === 'neither' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'neither'">Niet verzonden</button>
-                    <button class="px-2 py-1 text-xs rounded border"
+                    <button v-if="canAdministration" class="px-2 py-1 text-xs rounded border"
                         :class="ordersFilter === 'administration' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'administration'">Alleen administratie</button>
-                    <button class="px-2 py-1 text-xs rounded border"
+                    <button v-if="canCustomer" class="px-2 py-1 text-xs rounded border"
                         :class="ordersFilter === 'customer' ? 'bg-gray-900 text-white border-gray-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white border-gray-300 dark:bg-slate-900 dark:border-slate-700/60 dark:text-slate-100'"
                         @click="ordersFilter = 'customer'">Alleen klant</button>
                     <div class="ml-auto">
@@ -114,7 +90,7 @@
                     </li>
                 </ul>
             </div>
-            <div
+            <div v-if="hasPermission('dashboard.see_upcoming_servicejobs')"
                 class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
                 <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Aankomende Keuringen</div>
                 <ul class="divide-y divide-gray-100 dark:divide-slate-800">
@@ -130,7 +106,7 @@
             </div>
         </div>
 
-        <div
+        <div v-if="hasPermission('dashboard.see_pending_tickets')"
             class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
             <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Recente Tickets</div>
             <div class="overflow-x-auto">
@@ -165,10 +141,10 @@
             </div>
         </div>
 
-        <div
+        <div v-if="hasPermission('dashboard.see_map')"
             class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
             <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Kaart</div>
-            <div class="h-48">
+            <div class="h-[36rem]">
                 <div id="dashboard-map" class="w-full h-full rounded-lg"></div>
             </div>
         </div>
@@ -178,7 +154,8 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
+import { serviceOrderPillText, serviceOrderPillColorClasses, hasPermission } from '@/Utilities/Utilities';
+import CalendarWidget from '@/Components/CalendarWidget.vue'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -192,6 +169,12 @@ const { customers, stats, openServiceOrders, upcomingJobs, recentTickets } = def
 
 const ordersFilter = ref('neither');
 const showAllOpenOrders = ref(false);
+
+const canNotSent = computed(() => hasPermission('dashboard.see_open_serviceorders.not_sent'))
+const canAdministration = computed(() => hasPermission('dashboard.see_open_serviceorders.sent_administration'))
+const canCustomer = computed(() => hasPermission('dashboard.see_open_serviceorders.sent_customer'))
+const canAllOpen = computed(() => hasPermission('dashboard.see_open_serviceorders.all'))
+const canSeeOpenOrders = computed(() => canNotSent.value || canAdministration.value || canCustomer.value || canAllOpen.value)
 
 const allClosedOrdersNeedingSend = computed(() => {
     const list = (openServiceOrders || []).slice();
@@ -218,17 +201,6 @@ const openOrdersToShow = computed(() => showAllOpenOrders.value
 
 const map = ref(null);
 const added = new Set();
-const linePath = ref('');
-const areaPath = ref('');
-const svgW = 1000;
-const svgH = 220;
-const padLeft = 48;
-const padRight = 10;
-const padTop = 10;
-const padBottom = 36;
-const yGrid = ref([]);
-const yTicks = ref([]);
-const xTicks = ref([]);
 
 const classifyColor = (days) => {
     if (days === null || days === undefined) {
@@ -281,51 +253,6 @@ const addMarker = (c) => {
 };
 
 onMounted(() => {
-    const data = [20, 40, 25, 45, 42, 47, 65];
-    const n = data.length;
-    const dx = (svgW - padLeft - padRight) / (n - 1);
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const scaleY = (v) => {
-        if (max === min) {
-            return svgH / 2;
-        }
-        return svgH - padBottom - ((v - min) / (max - min)) * (svgH - padTop - padBottom);
-    };
-    let d = '';
-    for (let i = 0; i < n; i += 1) {
-        const x = padLeft + i * dx;
-        const y = scaleY(data[i]);
-        if (i === 0) {
-            d += `M ${x} ${y}`;
-        } else {
-            d += ` L ${x} ${y}`;
-        }
-    }
-    linePath.value = d;
-    const endX = svgW - padRight;
-    const baseY = svgH - padBottom;
-    areaPath.value = `${d} L ${endX} ${baseY} L ${padLeft} ${baseY} Z`;
-    const t0 = min;
-    const t1 = min + (max - min) / 3;
-    const t2 = min + 2 * (max - min) / 3;
-    const t3 = max;
-    yGrid.value = [t0, t1, t2, t3].map(v => ({ y: scaleY(v) }));
-    yTicks.value = [t0, t1, t2, t3].map(v => ({ y: scaleY(v), label: Math.round(v) }));
-    const ticks = [];
-    for (let i = 0; i < n; i += 1) {
-        const x = padLeft + i * dx;
-        const remaining = (n - 1) - i;
-        let label = '';
-        if (remaining === 0) {
-            label = 'Nu';
-        } else {
-            label = `-${remaining} mnd`;
-        }
-        const anchor = i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle');
-        ticks.push({ x, label, anchor });
-    }
-    xTicks.value = ticks;
     map.value = L.map('dashboard-map', { zoomControl: true }).setView([52.1, 5.29], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
@@ -343,6 +270,8 @@ onMounted(() => {
         map.value.fitBounds(group.getBounds().pad(0.2));
     }
 });
+
+// Customer lookup handled inside CalendarWidget
 </script>
 
 <style>
