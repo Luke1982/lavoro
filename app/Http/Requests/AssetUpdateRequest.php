@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class AssetUpdateRequest extends FormRequest
 {
@@ -28,7 +29,16 @@ class AssetUpdateRequest extends FormRequest
     {
         return [
             'product_id' => 'required|exists:products,id',
-            'serial_number' => 'required|string|max:255',
+            'serial_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('assets', 'serial_number')
+                    ->ignore(request()->route('asset')?->id)
+                    ->where(function ($q) {
+                        return $q->where('product_id', request()->input('product_id'));
+                    }),
+            ],
             'next_service_date' => 'nullable|date',
             'customer_id' => 'required|exists:customers,id',
             'status' => 'required|in:Actief,Niet actief',

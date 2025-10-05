@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class AssetStoreRequest extends FormRequest
 {
@@ -21,8 +22,16 @@ class AssetStoreRequest extends FormRequest
         return [
             'product_id'    => ['required', 'exists:products,id'],
             'customer_id'   => ['required', 'exists:customers,id'],
-            'serial_number' => ['nullable', 'string', 'max:255'],
+            'serial_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('assets', 'serial_number')->where(function ($q) {
+                    return $q->where('product_id', request()->input('product_id'));
+                }),
+            ],
             'is_active'     => ['nullable', 'boolean'],
+            'next_service_date' => ['nullable', 'date'],
         ];
     }
 }

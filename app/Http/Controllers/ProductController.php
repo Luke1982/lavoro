@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductType;
+use App\Models\Customer;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreUpdateRequest;
 
@@ -84,6 +85,9 @@ class ProductController extends Controller
                         'assets.product.brand',
                     ]
                 ),
+                'allCustomers' => Customer::orderBy('name', 'ASC')
+                    ->get(['id', 'name'])
+                    ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
             ]
         );
     }

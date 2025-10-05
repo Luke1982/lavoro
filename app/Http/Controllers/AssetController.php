@@ -103,7 +103,7 @@ class AssetController extends Controller
             'product_id'       => $validated['product_id'],
             'customer_id'      => $validated['customer_id'],
             'serial_number'    => $validated['serial_number'] ?? null,
-            'next_service_date' => null,
+            'next_service_date' => $validated['next_service_date'] ?? null,
             'status'           => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
         ]);
 
@@ -114,8 +114,8 @@ class AssetController extends Controller
             'customer',
         ]);
 
-        return redirect()->route('assets.index')
-            ->with('success', 'Asset toegevoegd.')
+        return redirect()->back()
+            ->with('success', 'Machine toegevoegd.')
             ->with('extra', $created);
     }
 
