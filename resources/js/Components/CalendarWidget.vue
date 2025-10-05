@@ -25,7 +25,7 @@
                                     class="h-5 w-5 rounded-full ring-1 ring-gray-300 object-cover" />
                                 <span v-else
                                     class="h-5 w-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-medium ring-1 ring-gray-300">{{
-                                    initials(user.name) }}</span>
+                                        initials(user.name) }}</span>
                                 <span class="text-[11px] leading-none text-white">{{ user.name }}</span>
                             </div>
                         </div>
@@ -60,40 +60,16 @@
                 <div class="overflow-y-scroll h-[77vh]">
                     <div class="flex flex-wrap">
                         <div class="w-full lg:w-1/2 flex px-4 py-2">
-                            <TextInput
-                                v-model="form.start_date"
-                                label="Startdatum"
-                                type="date"
-                                class="w-1/2"
-                                :has-error="Boolean(form.errors.start)"
-                                :error-message="form.errors.start"
-                            />
-                            <TextInput
-                                v-model="form.start_time"
-                                label="Starttijd"
-                                type="time"
-                                class="w-1/2 ml-2"
-                                :has-error="Boolean(form.errors.start)"
-                                :error-message="form.errors.start"
-                            />
+                            <TextInput v-model="form.start_date" label="Startdatum" type="date" class="w-1/2"
+                                :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
+                            <TextInput v-model="form.start_time" label="Starttijd" type="time" class="w-1/2 ml-2"
+                                :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
                         </div>
                         <div class="w-full lg:w-1/2 flex px-4 py-2">
-                            <TextInput
-                                v-model="form.end_date"
-                                label="Einddatum"
-                                type="date"
-                                class="w-1/2"
-                                :has-error="Boolean(form.errors.end)"
-                                :error-message="form.errors.end"
-                            />
-                            <TextInput
-                                v-model="form.end_time"
-                                label="Eindtijd"
-                                type="time"
-                                class="w-1/2 ml-2"
-                                :has-error="Boolean(form.errors.end)"
-                                :error-message="form.errors.end"
-                            />
+                            <TextInput v-model="form.end_date" label="Einddatum" type="date" class="w-1/2"
+                                :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
+                            <TextInput v-model="form.end_time" label="Eindtijd" type="time" class="w-1/2 ml-2"
+                                :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
                         </div>
                     </div>
                     <div class="flex flex-wrap">

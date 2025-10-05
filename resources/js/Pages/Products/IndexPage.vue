@@ -25,7 +25,7 @@
             add-button-label="Voeg product toe" submit-label="Opslaan" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="internalProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
+        <div v-if="displayProducts.length" class="-mx-4 mt-3 sm:-mx-0 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 mb-4 dark:divide-slate-700">
                 <thead>
                     <tr>
@@ -41,7 +41,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200 dark:bg-slate-800 dark:divide-slate-700">
-                    <tr v-for="product in internalProducts" :key="product.id">
+                    <tr v-for="product in displayProducts" :key="product.id">
                         <td class="px-4 py-2">
                             <div v-if="product.open">
                                 <TextInput v-model="product.model" />
@@ -85,34 +85,36 @@
                         </td>
                         <td class="px-4 py-2 text-right text-sm font-medium">
                             <button v-if="!product.open" @click="toggleRecord(product.id)">
-                                <PencilSquareIcon class="inline h-5 w-5 text-gray-600 mr-2 cursor-pointer" />
+                                <PencilSquareIcon
+                                    class="inline h-5 w-5 text-gray-600 dark:text-gray-300 mr-2 cursor-pointer" />
                             </button>
                             <button v-else @click="saveRecord(product)"
-                                class="text-green-600 hover:text-green-900 mr-2">
+                                class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-2">
                                 Opslaan
                             </button>
-                            <TrashIcon class="inline h-5 w-5 text-red-400 hover:text-red-600 cursor-pointer"
+                            <TrashIcon
+                                class="inline h-5 w-5 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                                 @click.stop="deleteProduct(product.id)" />
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <PaginationComponent v-if="internalProducts.length" :paginator="products"
+        <PaginationComponent v-if="displayProducts.length" :paginator="products"
             class="border-t border-gray-200 pt-2" />
         <p v-else class="text-center text-gray-500 p-4">Geen producten gevonden.</p>
     </BoxComponent>
 </template>
 
 <script setup>
-import { Link, useForm, usePage } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { Link, useForm } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
-import { XCircleIcon } from '@heroicons/vue/24/outline'
+import { XCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const { products, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
@@ -121,7 +123,11 @@ const { products, brands, productTypes } = defineProps({
 })
 
 const productFormRef = ref(null)
-const internalProducts = ref(products.data)
+const openIds = ref(new Set())
+const displayProducts = computed(() => (products.data || []).map(p => ({
+    ...p,
+    open: openIds.value.has(p.id)
+})))
 // product type filter
 const typeFromURL = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('onlyType')
@@ -143,14 +149,14 @@ const deleteProduct = (id) => {
 }
 
 const toggleRecord = (id) => {
-    internalProducts.value = internalProducts.value.map(product => {
-        if (product.open) {
-            const updateForm = useForm({ ...product })
-            updateForm.patch(`/products/${product.id}`, { preserveScroll: true })
-        }
-        product.open = product.id === id ? !product.open : false
-        return product
-    })
+    const currentlyOpen = displayProducts.value.find(p => p.open)
+    if (currentlyOpen && currentlyOpen.id !== id) {
+        const updateForm = useForm({ ...currentlyOpen })
+        updateForm.patch(`/products/${currentlyOpen.id}`, { preserveScroll: true })
+        openIds.value.delete(currentlyOpen.id)
+    }
+    if (openIds.value.has(id)) openIds.value.delete(id)
+    else openIds.value.add(id)
 }
 
 
@@ -160,12 +166,7 @@ const saveRecord = (product) => {
     form.patch(`/products/${product.id}`, {
         preserveScroll: true,
         onSuccess: () => {
-            const updated = usePage().props.flash.extra
-            internalProducts.value = internalProducts.value.map(p =>
-                p.id === updated.id
-                    ? { ...updated, open: false }
-                    : p
-            )
+            openIds.value.delete(product.id)
         }
     })
 }
