@@ -45,7 +45,7 @@
         <div v-if="hasPermission('dashboard.see_events')"
             class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
             <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Afspraken</div>
-            <CalendarWidget :customers="customers" height="60vh" read-only />
+            <CalendarWidget :allCustomers="customers" height="60vh" read-only />
         </div>
 
 
