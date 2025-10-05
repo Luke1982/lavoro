@@ -538,6 +538,10 @@ const detachMaterial = (materiableId) => {
 
 const emailPdf = () => {
     if (emailing.value) return;
+    if (props.serviceOrder.status !== 'closed') {
+        alert('Sluit de werkbon af voordat je de PDF kunt e-mailen.');
+        return;
+    }
     emailing.value = true;
     form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf`, {
         preserveScroll: true,
@@ -553,6 +557,10 @@ const openPdf = () => {
 
 const emailPdfWithJobs = () => {
     if (emailingCombined.value) return;
+    if (props.serviceOrder.status !== 'closed') {
+        alert('Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.');
+        return;
+    }
     emailingCombined.value = true;
     form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf-with-jobs`, {
         preserveScroll: true,
@@ -572,6 +580,10 @@ const updateMaterialQuantity = (materiableId) => {
 const sendForm = useForm({});
 const sendToSnelStart = () => {
     if (props.serviceOrder.sent_to_administration) {
+        return;
+    }
+    if (props.serviceOrder.status !== 'closed') {
+        alert('Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         return;
     }
     sendForm.post(`/serviceorders/${props.serviceOrder.id}/send-snelstart`, {

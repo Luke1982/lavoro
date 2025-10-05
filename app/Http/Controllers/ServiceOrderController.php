@@ -148,6 +148,9 @@ class ServiceOrderController extends Controller
      */
     public function emailPdf(ServiceOrderEmailPdfRequest $request, ServiceOrder $serviceorder)
     {
+        if ($serviceorder->status !== 'closed') {
+            return redirect()->back()->with('error', 'Sluit de werkbon af voordat je de PDF kunt e-mailen.');
+        }
         $serviceorder->load(['customer']);
         $recipients = array_unique(array_filter([
             $serviceorder->customer?->email,
@@ -173,6 +176,12 @@ class ServiceOrderController extends Controller
 
     public function emailPdfWithJobs(ServiceOrderEmailPdfWithChecksRequest $request, ServiceOrder $serviceorder)
     {
+        if ($serviceorder->status !== 'closed') {
+            return redirect()->back()->with(
+                'error',
+                'Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.'
+            );
+        }
         $serviceorder->load(['customer', 'serviceJobs.asset.customer']);
         $recipients = array_unique(array_filter([
             $serviceorder->customer?->email,
@@ -216,6 +225,9 @@ class ServiceOrderController extends Controller
     {
         if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
+        }
+        if ($serviceorder->status !== 'closed') {
+            return redirect()->back()->with('error', 'Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         }
         $serviceorder->load(['customer.billingCustomer', 'materials']);
         if ($serviceorder->materials->isEmpty()) {
