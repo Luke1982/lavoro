@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
         <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
             search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
             :add-label="canCreate ? 'Voeg asset toe' : ''" @add="() => canCreate && assetFormRef?.show()">

@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
         <IndexHeaderComponent title="Producttypen" subtitle="Hieronder een lijst van alle producttypen"
             search-url="/producttypes" search-label="Zoek binnen producttypen"
             search-placeholder="bijv. 'Viergastester'" add-label="Voeg producttype toe" :paginator="productTypes"

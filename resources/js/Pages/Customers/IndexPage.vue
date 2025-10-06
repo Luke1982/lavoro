@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
         <IndexHeaderComponent title="Klanten" :addLabel="canCreate ? 'Nieuwe klant' : null"
             search-placeholder="Zoek klant... " search-url="/customers"
             @add="() => canCreate && customerFormRef?.show()">

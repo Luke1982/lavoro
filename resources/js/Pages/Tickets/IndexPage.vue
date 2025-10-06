@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 dark:border-slate-800 border">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 dark:border-slate-800 border border-gray-200 shadow-sm">
         <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
             search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
             :search-other-params="computedOtherParams">

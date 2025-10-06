@@ -1,5 +1,5 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 dark:border-slate-800 border">
+    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
         <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
             search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'"
             :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
