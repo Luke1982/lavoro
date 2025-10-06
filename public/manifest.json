@@ -1,0 +1,31 @@
+{
+    "name": "WH Service CRM",
+    "short_name": "WH CRM",
+    "description": "Service CRM voor werkbonnen, keuringen en materiaalbeheer.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f5f5f5",
+    "theme_color": "#4f46e5",
+    "orientation": "portrait",
+    "scope": "/",
+    "lang": "nl-NL",
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "prefer_related_applications": false
+}
