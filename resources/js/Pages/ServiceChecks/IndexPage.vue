@@ -1,6 +1,7 @@
 <template>
     <div>
-        <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border dark:border-slate-800" v-auto-animate>
+        <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm"
+            v-auto-animate>
             <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
                 search-url="/servicechecks" search-label="Zoek binnen keurpunten"
                 search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
@@ -88,7 +89,7 @@
                                         :key="`grp-${item.id}-${(item.product_type_ids || []).join(',')}`" />
                                 </div>
                                 <span v-else class="text-gray-800 dark:text-slate-200">{{ item.group?.name || '—'
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div class="flex flex-col px-4 py-2 col-span-2">
                                 <span
@@ -99,7 +100,7 @@
                                         :initialId="item.type.name" />
                                 </div>
                                 <span v-else class="text-gray-800 dark:text-slate-200">{{ serviceCheckTypes[item.type]
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div
                                 :class="['flex flex-col px-4 py-2', productTypeToShow !== 0 ? 'col-span-2' : 'col-span-3']">
