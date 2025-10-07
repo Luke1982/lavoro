@@ -1,7 +1,5 @@
 <template>
-    <div class="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
-
-
+    <div class="p-2 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen">
         <div v-if="hasPermission('dashboard.see_stats')" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
                 class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
