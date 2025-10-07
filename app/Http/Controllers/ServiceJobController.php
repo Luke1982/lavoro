@@ -213,12 +213,11 @@ class ServiceJobController extends Controller
         if (empty($recipients)) {
             return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
         }
-                // Build (and load relations for) PDF
-                $pdf = $this->generateServiceJobPdf($servicejob);
+
+        $pdf = $this->generateServiceJobPdf($servicejob);
 
         Mail::to($recipients)->send(new ServiceJobPdfMail($servicejob, $pdf->output()));
 
-        // Log activity on parent service order if present
         if ($servicejob->serviceOrder) {
             $servicejob->serviceOrder->logActivity('Keuring per e-mail verzonden naar: ' . implode(', ', $recipients));
         }
