@@ -132,17 +132,17 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                                             </Link>
                                             <div class="px-6 pb-4">
-                                                <Link href="/logout" as="button"
+                                                <button @click="logout"
                                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                <ArrowRightOnRectangleIcon class="size-5" />
-                                                Uitloggen
-                                                </Link>
+                                                    <ArrowRightOnRectangleIcon class="size-5" />
+                                                    Uitloggen
+                                                </button>
                                             </div>
                                         </li>
                                     </ul>
@@ -254,11 +254,11 @@
                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                             </Link>
                             <div class="px-6 pb-6">
-                                <Link href="/logout" as="button"
+                                <button @click="logout"
                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                <ArrowRightOnRectangleIcon class="size-5" />
-                                Uitloggen
-                                </Link>
+                                    <ArrowRightOnRectangleIcon class="size-5" />
+                                    Uitloggen
+                                </button>
                             </div>
                         </li>
                     </ul>
@@ -315,7 +315,7 @@ import {
     BuildingOffice2Icon,
     ArrowRightOnRectangleIcon
 } from '@heroicons/vue/24/outline'
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
@@ -474,4 +474,17 @@ const currentTopTitle = computed(() => {
     const activeTop = navigation.value.find(n => n.current)
     return activeTop ? activeTop.name : 'Dashboard'
 })
+
+const logout = async () => {
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const registration of registrations) {
+            registration.unregister()
+        }
+    }
+    const caches = await window.caches.keys()
+    await Promise.all(caches.map(cache => window.caches.delete(cache)))
+
+    router.get('/logout')
+}
 </script>
