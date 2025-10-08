@@ -30,13 +30,13 @@
                             Bezoekadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
                             customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
                             Postadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                            }}<br>{{
+                        }}<br>{{
                                 customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>
@@ -126,6 +126,8 @@
                     </div>
                 </transition>
             </div>
+            <AddAssetForm :customerId="customer.id" :allProducts="allProducts" v-if="hasPermission('asset.create')" />
+
         </template>
 
         <template #sidebar>
@@ -177,6 +179,7 @@ import { ref, computed, watch } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
+import AddAssetForm from '@/Components/AddAssetForm.vue';
 
 const props = defineProps({
     customer: {
@@ -199,6 +202,10 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    allProducts: {
+        type: Array,
+        required: true,
+    }
 });
 
 const form = useForm({

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
@@ -98,12 +99,14 @@ class CustomerController extends Controller
         ->orderBy('name')
         ->get();
 
+        $allProducts = Product::with(['brand', 'productType'])->orderBy('model')->get();
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
             'upcomingAssetsByType' => $upcomingByType,
             'nonUpcomingAssetsByType' => $nonUpcomingByType,
             'overdueAssetsByType' => $overdueByType,
             'allCustomers' => $allCustomers,
+            'allProducts' => $allProducts,
         ]);
     }
 

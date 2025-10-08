@@ -1,4 +1,4 @@
-const CACHE_NAME = "wh-crm-cache-v5";
+const CACHE_NAME = "wh-crm-cache-v6";
 const urlsToCache = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
