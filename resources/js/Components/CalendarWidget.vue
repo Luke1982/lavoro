@@ -451,6 +451,26 @@ const calendarOptions = ref({
 }
 </style>
 <style>
+@media screen and (max-width: 1024px) {
+    .fc-header-toolbar {
+        flex-direction: column !important;
+        display: flex !important;
+        gap: 0.5rem;
+    }
+
+    .fc-header-toolbar .fc-toolbar-chunk {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .fc-header-toolbar .fc-toolbar-chunk .fc-toolbar-title {
+        font-size: 1.25rem;
+        width: 100%;
+        text-align: center;
+    }
+}
+
 @media (prefers-color-scheme: dark) {
     .fc-theme-standard .fc-list-day-cushion {
         background-color: #1e293b;
