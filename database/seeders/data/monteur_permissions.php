@@ -10,8 +10,6 @@ return [
 'servicejob.mail_pdf',
 'ticket.update',
 'serviceorder.read',
-'asset.read',
-'product.read',
 // Dashboard permissions
 'dashboard.see_events',
 ];
