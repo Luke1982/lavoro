@@ -49,13 +49,14 @@
                     </div>
                     <div class="col-span-4">
                         <ComboBox :options="statusses" v-model="form.status" :initial-id="initialStatus.id"
-                            class="w-full" />
+                            class="w-full" v-if="hasPermission('ticket.change_status')" />
+                        <span v-else>{{ form.status }}</span>
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Prioriteit</span>
                     </div>
                     <div class="col-span-4">
-                        <fieldset aria-label="Kies een prioriteit">
+                        <fieldset aria-label="Kies een prioriteit" v-if="hasPermission('ticket.alter_priority')">
                             <div class="grid grid-cols-3 gap-3">
                                 <label v-for="prio in priorities" :key="prio.id" :aria-label="prio.name" :class="{
                                     'cursor-pointer group relative flex items-center justify-center rounded-md border p-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-disabled:opacity-25': true,
@@ -71,6 +72,7 @@
                                 </label>
                             </div>
                         </fieldset>
+                        <span v-else>{{ form.priority }}</span>
                     </div>
                 </div>
             </BoxComponent>
@@ -103,6 +105,7 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import { CheckIcon, ClockIcon, ExclamationCircleIcon, NoSymbolIcon, PhotoIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     ticket: {
@@ -128,25 +131,31 @@ const form = useForm({
     priority: props.priorities.find(p => p.name === props.ticket.priority).id
 });
 
-watch(
-    [
-        () => form.subject,
-        () => form.description,
-        () => form.status,
-        () => form.priority
-    ],
-    () => {
-        form
-            .transform(data => {
-                return {
-                    ...data,
-                    status: props.statusses.find(s => s.id === data.status).name,
-                    priority: props.priorities.find(p => p.id === data.priority).name
-                };
-            })
-            .patch(`/tickets/${props.ticket.id}`, {
-                preserveScroll: true,
-            });
-    }
-)
+function patchTicketField(field, value) {
+    form.transform(() => {
+        return {
+            [field]: value
+        };
+    }).patch(`/tickets/${props.ticket.id}`, {
+        preserveScroll: true,
+    });
+}
+
+watch(() => form.subject, (newVal) => {
+    patchTicketField('subject', newVal);
+});
+
+watch(() => form.description, (newVal) => {
+    patchTicketField('description', newVal);
+});
+
+watch(() => form.status, (newVal) => {
+    const statusName = props.statusses.find(s => s.id === newVal)?.name || newVal;
+    patchTicketField('status', statusName);
+});
+
+watch(() => form.priority, (newVal) => {
+    const priorityName = props.priorities.find(p => p.id === newVal)?.name || newVal;
+    patchTicketField('priority', priorityName);
+});
 </script>
