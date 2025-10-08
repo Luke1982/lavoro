@@ -19,10 +19,10 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-12 mt-2 grid-wrap gap-4">
-                    <div class="col-span-2">
+                    <div class="col-span-12 md:col-span-2">
                         <span class="text-xs font-bold">Storing aan</span>
                     </div>
-                    <div class="col-span-10">
+                    <div class="col-span-12 md:col-span-10">
                         {{ ticket.asset.product.brand.name }}
                         <Link class="text-blue-600 hover:text-blue-800 underline"
                             :href="`/products/${ticket.asset.product.id}`">{{ ticket.asset.product.model }}</Link> ({{
@@ -32,22 +32,22 @@
                         <Link :href="`/customers/${ticket.asset.customer.id}`"
                             class="text-blue-600 hover:text-blue-800 underline">{{ ticket.asset.customer.name }}</Link>
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-12 md:col-span-2">
                         <span class="text-xs font-bold">Onderwerp</span>
                     </div>
-                    <div class="col-span-10">
+                    <div class="col-span-12 md:col-span-10">
                         <EditableTextField v-model="form.subject" class="w-full" />
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-12 md:col-span-2">
                         <span class="text-xs font-bold">Omschrijving</span>
                     </div>
-                    <div class="col-span-10">
+                    <div class="col-span-12 md:col-span-10">
                         <EditableTextField v-model="form.description" type="textarea" class="w-full" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Status</span>
                     </div>
-                    <div class="col-span-4">
+                    <div class="col-span-10 md:col-span-4">
                         <ComboBox :options="statusses" v-model="form.status" :initial-id="initialStatus.id"
                             class="w-full" v-if="hasPermission('ticket.change_status')" />
                         <span v-else>{{ form.status }}</span>
@@ -55,7 +55,7 @@
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Prioriteit</span>
                     </div>
-                    <div class="col-span-4">
+                    <div class="col-span-10 md:col-span-4">
                         <fieldset aria-label="Kies een prioriteit" v-if="hasPermission('ticket.alter_priority')">
                             <div class="grid grid-cols-3 gap-3">
                                 <label v-for="prio in priorities" :key="prio.id" :aria-label="prio.name" :class="{
@@ -77,7 +77,7 @@
                 </div>
             </BoxComponent>
             <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
-                :comments="ticket.remarks" class="mt-8" />
+                :comments="ticket.remarks" class="mt-8 mb-8" />
         </template>
         <template #sidebar>
             <BoxComponent>
