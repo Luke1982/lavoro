@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
  * @method array validated() Return validated data
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
+ * @method User user()
+ * @method Asset route(string $key = null)
  * @method bool filled(string $key)
  * @method mixed get(string $key, $default = null)
  * @method array all($keys = null)
@@ -22,8 +24,7 @@ class AssetReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('asset.read'));
+        return $this->user()->can('view', $this->route('asset'));
     }
 
     public function rules(): array

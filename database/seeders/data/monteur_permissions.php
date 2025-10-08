@@ -8,9 +8,10 @@ return [
     'serviceorder.close',
     'servicejob.export_pdf',
     'servicejob.mail_pdf',
-    'ticket.update',
     'serviceorder.read',
     'ticket.change_status',
+    'product.read.relevant.serviceorder',
+    'asset.read.relevant.serviceorder',
     // Dashboard permissions
     'dashboard.see_events',
 ];

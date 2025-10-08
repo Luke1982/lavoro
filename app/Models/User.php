@@ -115,4 +115,41 @@ class User extends Authenticatable
         }
         return in_array($name, $this->permissionNames(), true);
     }
+
+    /**
+     * Get asset IDs relevant for open serviceorders where user is executing.
+     *
+     * @return array<int>
+     */
+    public function relevantAssetIds(): array
+    {
+        $serviceorders = $this->serviceOrdersExecuting()->where('status', '!=', 'closed')->get();
+        $asset_ids = $serviceorders->flatMap(function ($so) {
+            $job_assets = $so->serviceJobs->pluck('asset_id');
+            $ticket_assets = $so->tickets->pluck('asset_id');
+            return $job_assets->merge($ticket_assets);
+        })->unique()->values()->all();
+        return $asset_ids;
+    }
+
+    /**
+     * Get product IDs relevant for open serviceorders where user is executing.
+     *
+     * @return array<int>
+     */
+    public function relevantProductIds(): array
+    {
+        $asset_ids = $this->relevantAssetIds();
+        return Asset::whereIn('id', $asset_ids)->pluck('product_id')->unique()->values()->all();
+    }
+
+    /**
+     * ServiceOrders where user is executing.
+     */
+    public function serviceOrdersExecuting()
+    {
+        return ServiceOrder::whereHas('executingUsers', function ($q) {
+            $q->where('users.id', $this->id);
+        });
+    }
 }

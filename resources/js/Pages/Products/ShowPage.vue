@@ -52,17 +52,19 @@
                         <EditableTextField v-model="form.typical_certificate_days" type="input" input-type="number" />
                     </div>
                 </div>
-                <div class="flex items-center py-3 border-t border-gray-200 mt-5">
-                    <PuzzlePieceIcon class="size-6 text-gray-500" />
-                    <h3 class="text-sm font-medium ml-2">Machines</h3>
+                <div v-if="hasPermission('asset.read') && product.assets.length > 0">
+                    <div class="flex items-center py-3 border-t border-gray-200 mt-5">
+                        <PuzzlePieceIcon class="size-6 text-gray-500" />
+                        <h3 class="text-sm font-medium ml-2">Machines</h3>
+                    </div>
+                    <AssetListComponent :assets="product.assets" />
                 </div>
-                <AssetListComponent :assets="product.assets" />
             </BoxComponent>
         </template>
         <template #sidebar>
             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                 imageable-type="\App\Models\Product" />
-            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" />
+            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')" />
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -77,6 +79,7 @@ import { useForm } from '@inertiajs/vue3';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     product: {
