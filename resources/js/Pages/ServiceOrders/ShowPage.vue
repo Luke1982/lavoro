@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -125,7 +125,7 @@
                     </div>
                 </div>
                 <div v-auto-animate class="my-4" v-if="hasPermission('servicejob.read')">
-                    <h2
+                    <h2 v-if="serviceOrder.servicejobs.length > 0"
                         class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                         Keuringen</h2>
                     <div class="grid grid-cols-12 mt-4"
@@ -148,27 +148,25 @@
                     <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
                         :asset="job.asset" />
                 </div>
-                <template v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
-                    <h2
-                        class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                        Storingen</h2>
-                    <div class="grid grid-cols-12 mt-4"
-                        v-if="hasPermission('ticket.add_to_serviceorder') && serviceOrder.status !== 'closed'">
-                        <div class="col-span-12 flex flex-col md:flex-row">
-                            <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
-                            <button @click="attachTicket"
-                                class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
-                                Voeg storing toe
-                            </button>
-                        </div>
+                <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
+                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                    Storingen</h2>
+                <div class="grid grid-cols-12 mt-4"
+                    v-if="hasPermission('ticket.add_to_serviceorder') && serviceOrder.status !== 'closed'">
+                    <div class="col-span-12 flex flex-col md:flex-row">
+                        <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
+                        <button @click="attachTicket"
+                            class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
+                            Voeg storing toe
+                        </button>
                     </div>
-                    <div class="flex flex-wrap" v-auto-animate>
-                        <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
-                            :key="ticket.id">
-                            <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
-                        </div>
+                </div>
+                <div class="flex flex-wrap" v-auto-animate>
+                    <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
+                        :key="ticket.id">
+                        <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
                     </div>
-                </template>
+                </div>
                 <h2
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Materialen</h2>
