@@ -4,25 +4,23 @@
             <div class="ring-gray-200 dark:ring-slate-700/60 ring bg-[#fdfdfd] dark:bg-slate-800 rounded-md p-4 pt-8 h-full relative"
                 v-auto-animate>
                 <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
-                    <button type="button" @click="toggle_remarks"
-                        :class="[
-                            'flex items-center gap-1 shadow-sm rounded-md p-1 ring-1',
-                            (serviceCheckInstance.remarks?.length ?? 0) > 0
-                                ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 ring-orange-200 dark:ring-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50'
-                                : 'text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600'
-                        ]"
-                        v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
+                    <button type="button" @click="toggle_remarks" :class="[
+                        'flex items-center gap-1 shadow-sm rounded-md p-1 ring-1',
+                        (serviceCheckInstance.remarks?.length ?? 0) > 0
+                            ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 ring-orange-200 dark:ring-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600'
+                    ]" v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                         <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
                             serviceCheckInstance.remarks.length
-                        }}</span>
+                            }}</span>
                     </button>
                 </div>
                 <div class="relative" v-auto-animate>
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                            }}
+                        }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een van de opties</p>
                         <div class="mt-6 space-y-6">
@@ -39,7 +37,7 @@
                     <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                            }}
+                        }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een of meerdere van de opties
                         </p>
@@ -109,7 +107,7 @@
                     <ul class="space-y-2 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
                         <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
                             <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
-                                }}:</span>
+                            }}:</span>
                             {{ r.content }}
                         </li>
                     </ul>
