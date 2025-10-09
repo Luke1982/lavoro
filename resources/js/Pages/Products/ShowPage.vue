@@ -64,6 +64,8 @@
         <template #sidebar>
             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                 imageable-type="\App\Models\Product" />
+            <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
+                documentable-type="\App\Models\Product" class="mt-4" />
             <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')" />
         </template>
     </TwoThirdsOneThird>
@@ -73,6 +75,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';

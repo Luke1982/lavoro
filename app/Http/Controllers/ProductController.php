@@ -8,13 +8,14 @@ use App\Models\ProductType;
 use App\Models\Customer;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreUpdateRequest;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(ProductReadRequest $request)
+    public function index(Request $request)
     {
         $products = Product::query();
 
@@ -72,19 +73,18 @@ class ProductController extends Controller
         return inertia(
             'Products/ShowPage',
             [
-                'product' => $product->load(
-                    [
-                        'brand',
-                        'productType',
-                        'images',
-                        'assets.customer',
-                        'assets.openTickets',
-                        'assets.pendingTickets',
-                        'assets.closedTickets',
-                        'assets.product.productType',
-                        'assets.product.brand',
-                    ]
-                ),
+                'product' => $product->load([
+                    'brand',
+                    'productType',
+                    'images',
+                    'documents',
+                    'assets.customer',
+                    'assets.openTickets',
+                    'assets.pendingTickets',
+                    'assets.closedTickets',
+                    'assets.product.productType',
+                    'assets.product.brand',
+                ]),
                 'allCustomers' => Customer::orderBy('name', 'ASC')
                     ->get(['id', 'name'])
                     ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
