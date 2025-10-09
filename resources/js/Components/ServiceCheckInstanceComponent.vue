@@ -5,9 +5,17 @@
                 v-auto-animate>
                 <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
                     <button type="button" @click="toggle_remarks"
-                        class="text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-white dark:bg-slate-700 shadow-sm rounded-md p-1 ring-1 ring-gray-300 dark:ring-slate-600"
+                        :class="[
+                            'flex items-center gap-1 shadow-sm rounded-md p-1 ring-1',
+                            (serviceCheckInstance.remarks?.length ?? 0) > 0
+                                ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 ring-orange-200 dark:ring-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50'
+                                : 'text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600'
+                        ]"
                         v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
+                        <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
+                            serviceCheckInstance.remarks.length
+                        }}</span>
                     </button>
                 </div>
                 <div class="relative" v-auto-animate>
