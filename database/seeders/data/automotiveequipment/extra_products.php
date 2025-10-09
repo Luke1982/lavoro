@@ -1,0 +1,40 @@
+<?php
+
+use App\Enums\Automotive\ProductBrands;
+use App\Enums\Automotive\ProductTypes;
+
+return [
+    ['model' => 'KO-4040-W/L/V', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'ST-4040', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'KS-4045-L/V', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'ST-4070', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'KS-2025', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'KS-2030', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'KS-2050', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'KS-2055 EFA', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'KS-2038', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'KS-2028', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'SK-2030 A', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'ST-1072', 'brand' => ProductBrands::koni, 'product_type' => ProductTypes::mobiele_hefkolom],
+    ['model' => 'WLS445T', 'brand' => ProductBrands::wolf, 'product_type' => ProductTypes::rijbanen_schaarhefbrug],
+    ['model' => 'WL240', 'brand' => ProductBrands::wolf, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '1518H', 'brand' => ProductBrands::apac, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '1518', 'brand' => ProductBrands::apac, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '1513', 'brand' => ProductBrands::apac, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '1531 LP', 'brand' => ProductBrands::apac, 'product_type' => ProductTypes::wielvrije_schaarhefbrug],
+    ['model' => 'RAV 1450 N', 'brand' => ProductBrands::ravaglioli, 'product_type' => ProductTypes::poetsbrug_bandenbrug],
+    ['model' => 'LM4000-200', 'brand' => ProductBrands::liftmaster, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '13381', 'brand' => ProductBrands::cascos, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'XX32', 'brand' => ProductBrands::orange, 'product_type' => ProductTypes::wielvrije_schaarhefbrug],
+    ['model' => 'R S-serie', 'brand' => ProductBrands::orange, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'Art 199/w2', 'brand' => ProductBrands::omcn, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'SPI 4000 UNIVERSAL', 'brand' => ProductBrands::nussbaum, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => '2.30 SLE', 'brand' => ProductBrands::nussbaum, 'product_type' => ProductTypes::hefbrug_2_koloms],
+    ['model' => 'Jumbo lift', 'brand' => ProductBrands::nussbaum, 'product_type' => ProductTypes::wielvrije_schaarhefbrug],
+    ['model' => '005431 530AL', 'brand' => ProductBrands::stenhoj, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'Magix 30 S', 'brand' => ProductBrands::stenhoj, 'product_type' => ProductTypes::wielvrije_schaarhefbrug],
+    ['model' => '494 9021', 'brand' => ProductBrands::fog, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'AL4044/VS', 'brand' => ProductBrands::autec, 'product_type' => ProductTypes::hefbrug_4_koloms],
+    ['model' => 'TwinRam 30', 'brand' => ProductBrands::jab, 'product_type' => ProductTypes::wielvrije_stempelhefbrug],
+    ['model' => '42/43', 'brand' => ProductBrands::bradbury, 'product_type' => ProductTypes::hefbrug_4_koloms],
+];
