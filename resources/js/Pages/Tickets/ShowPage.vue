@@ -36,13 +36,15 @@
                         <span class="text-xs font-bold">Onderwerp</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.subject" class="w-full" />
+                        <EditableTextField v-model="form.subject" class="w-full"
+                            :readonly="!hasPermission('ticket.update')" />
                     </div>
                     <div class="col-span-12 md:col-span-2">
                         <span class="text-xs font-bold">Omschrijving</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.description" type="textarea" class="w-full" />
+                        <EditableTextField v-model="form.description" type="textarea" class="w-full"
+                            :readonly="!hasPermission('ticket.update')" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Status</span>

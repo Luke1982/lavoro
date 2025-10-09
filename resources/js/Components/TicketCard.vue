@@ -36,7 +36,8 @@
             <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open' && hasPermission('ticket.change_status')"
                 class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer" @click.stop="setTicketStatusTo('Open')"
                 v-tooltip="'Wijzig de status naar \'Open\''" />
-            <TrashIcon v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined"
+            <TrashIcon
+                v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined && hasPermission('ticket.delete')"
                 class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer" @click.stop="deleteTicket"
                 v-tooltip="'Verwijder de storing'" />
             <LinkSlashIcon v-if="disconnect !== null && hasPermission('ticket.detach_from_serviceorder')"
@@ -134,7 +135,11 @@ const removeTicketLink = () => {
 
 const setTicketStatusTo = (status) => {
     form.status = status;
-    form.put(`/tickets/${props.ticket.id}`, {
+    form.transform(data => {
+        return {
+            status: data.status,
+        };
+    }).put(`/tickets/${props.ticket.id}`, {
         preserveScroll: true,
     });
 }
@@ -146,7 +151,11 @@ const alterTicketPrio = (dir) => {
 
     const newIndex = dir === 'up' ? idx + 1 : idx - 1;
     form.priority = ticketPriorities[newIndex].id;
-    form.put(`/tickets/${props.ticket.id}`, {
+    form.transform(data => {
+        return {
+            priority: data.priority,
+        };
+    }).put(`/tickets/${props.ticket.id}`, {
         preserveScroll: true,
     });
 }

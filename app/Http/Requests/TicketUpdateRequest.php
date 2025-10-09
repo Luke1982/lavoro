@@ -18,7 +18,9 @@ use Illuminate\Foundation\Http\FormRequest;
  * @property string|null $status      The status of the ticket.
  * @property int|null    $asset_id    The ID of the associated asset.
  *
- * @method bool has()
+ * @method bool route()
+ * @method mixed user()
+ * @method bool has(string $key)
  */
 class TicketUpdateRequest extends FormRequest
 {
@@ -27,21 +29,7 @@ class TicketUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        if ($this->has('status')) {
-            if (!$user->hasPermission('ticket.change_status')) {
-                return false;
-            }
-        }
-        if ($this->has('priority')) {
-            if (!$user->hasPermission('ticket.alter_priority')) {
-                return false;
-            }
-        }
-        return $user->hasPermission('ticket.update');
+        return $this->user()->can('update', [$this->route('ticket'), $this]);
     }
 
     /**

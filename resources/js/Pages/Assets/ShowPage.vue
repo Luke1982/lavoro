@@ -104,7 +104,8 @@
                         <ExclamationCircleIcon class="w-6 h-6 text-gray-500 mr-2" />
                         <h1 class="text-l font-bold">Storingen</h1>
                     </div>
-                    <button v-if="!openNewTicketForm" @click="openNewTicketForm = true"
+                    <button v-if="!openNewTicketForm && hasPermission('ticket.create')"
+                        @click="openNewTicketForm = true"
                         class="bg-emerald-600 rounded-md py-1.5 px-2 text-white hover:bg-emerald-700 cursor-pointer text-sm">
                         <PlusIcon class="w-5 h-5 inline-block mr-1" />
                         Nieuwe storing
