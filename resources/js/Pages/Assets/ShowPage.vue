@@ -135,14 +135,15 @@
 
         <template #sidebar>
             <BoxComponent>
-                <h2 class="text-center border-b border-gray-300 pb-2 mb-2">
+                <h2 class="text-center border-b border-gray-300 pb-2 mb-2"
+                    v-if="hasPermission('image.upload') || hasPermission('image.see')">
                     <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
                     Foto's van de machine:
                 </h2>
                 <ImageUploadComponent :existing="asset.images" :imageable-id="asset.id"
                     imageable-type="\App\Models\Asset" />
             </BoxComponent>
-            <BoxComponent v-if="asset.product.images.length > 0" class="mt-6">
+            <BoxComponent v-if="asset.product.images.length > 0 && hasPermission('image.see')" class="mt-6">
                 <h2 class="text-center border-b border-gray-300 pb-2 mb-2">
                     <CubeIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
                     Foto's van het

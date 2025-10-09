@@ -1,28 +1,32 @@
 <template>
-    <div class="w-full mx-auto">
+    <div class="w-full mx-auto" v-if="hasPermission('image.upload') || hasPermission('image.see')">
         <ul v-if="props.existing.length > 0" class="flex flex-wrap gap-3 mb-4">
             <li v-for="image in props.existing" :key="image.id"
                 class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden">
                 <img :src="`/storage/${image.path}`" :alt="image.path" class="object-contain"
-                    @click="openEditor(image)">
+                    @click="hasPermission('image.edit') && openEditor(image)">
                 <div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent text-center text-white pb-4 pt-8"
-                    @click="changeTitle(image.name, image.id)">
+                    @click="hasPermission('image.update') && changeTitle(image.name, image.id)">
                     {{ image.name }}
                 </div>
                 <a :href="`/storage/${image.path}`"
                     class="glightbox absolute top-2 left-2 text-black font-bold bg-white rounded-full p-2">
                     <MagnifyingGlassIcon class="h-5 w-5" />
                 </a>
-                <button @click.stop="deleteImage(image.id)"
+                <button @click.stop="deleteImage(image.id)" v-if="hasPermission('image.delete')"
                     class="absolute top-2 right-2 text-red-500 font-bold bg-white rounded-full p-2"
                     title="Verwijder deze afbeelding">
                     <TrashIcon class="h-5 w-5" />
                 </button>
             </li>
         </ul>
+        <div v-else-if="!hasPermission('image.upload') && hasPermission('image.see') && existing.length === 0"
+            class="text-center text-gray-500 p-5 border-2 border-dashed rounded-lg">
+            Er zijn nog geen afbeeldingen.
+        </div>
 
-        <div @click="openFilePicker" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
-            @drop.prevent="handleDrop" :class="[
+        <div v-if="hasPermission('image.upload')" @click="openFilePicker" @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg cursor-pointer',
                 isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
             ]">
@@ -80,6 +84,7 @@ import 'tui-image-editor/dist/tui-image-editor.min.css';
 import { TrashIcon } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import { hasPermission } from '@/Utilities/Utilities.js';
 
 let lightbox = null;
 onMounted(() => {
