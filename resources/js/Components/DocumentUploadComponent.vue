@@ -5,10 +5,18 @@
         <ul v-if="existing.length > 0 && hasPermission('document.see')" class="space-y-2 mb-4" v-auto-animate>
             <li v-for="doc in existing" :key="doc.id"
                 class="flex items-center justify-between p-2 rounded-md bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-                <a :href="`/storage/${doc.path}`" target="_blank"
-                    class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate flex-grow mr-4">
-                    {{ doc.name }}
-                </a>
+                <div class="flex-grow mr-4 min-w-0">
+                    <EditableTextField v-if="hasPermission('document.update')" :modelValue="doc.title"
+                        @update:modelValue="updateTitle(doc.id, $event)" placeholder="Geen titel" />
+                    <a v-else :href="`/storage/${doc.path}`" target="_blank"
+                        class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate">
+                        {{ doc.title || doc.name }}
+                    </a>
+                    <a :href="`/storage/${doc.path}`" target="_blank"
+                        class="text-xs text-gray-500 dark:text-gray-400 hover:underline truncate block">
+                        {{ doc.name }}
+                    </a>
+                </div>
                 <button @click="deleteDocument(doc.id)" v-if="hasPermission('document.delete')"
                     class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
                     title="Verwijder dit document">
@@ -39,6 +47,7 @@ import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { TrashIcon } from '@heroicons/vue/24/solid';
 import { hasPermission } from '@/Utilities/Utilities';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
 
 const props = defineProps({
     documentableId: {
@@ -65,6 +74,9 @@ const uploadForm = useForm({
 });
 
 const deleteForm = useForm({});
+const updateForm = useForm({
+    title: '',
+});
 
 const openFilePicker = () => {
     fileInput.value.click();
@@ -100,5 +112,12 @@ const deleteDocument = (id) => {
             preserveScroll: true,
         });
     }
+};
+
+const updateTitle = (id, title) => {
+    updateForm.title = title;
+    updateForm.put(`/documents/${id}`, {
+        preserveScroll: true,
+    });
 };
 </script>

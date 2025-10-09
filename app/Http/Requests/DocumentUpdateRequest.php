@@ -3,22 +3,23 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 /**
- * @property string $name
+ * @property string $title
+ * @method array user()
+ * @method \App\Models\Document route(string $key = null)
  */
 class DocumentUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Auth::check();
+        return $this->user()->can('update', $this->route('document'));
     }
 
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
         ];
     }
 }
