@@ -14,4 +14,5 @@ return [
     'asset.read.relevant.serviceorder',
     // Dashboard permissions
     'dashboard.see_events',
+    'document.see',
 ];

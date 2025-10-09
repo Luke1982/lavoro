@@ -1,15 +1,15 @@
 <template>
-    <div
+    <div v-if="(hasPermission('document.see') && existing.length > 0) || hasPermission('document.upload')"
         class="w-full mx-auto p-4 bg-white dark:bg-slate-900/70 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800">
         <h3 class="text-lg font-semibold mb-4 dark:text-slate-100">Documenten</h3>
-        <ul v-if="existing.length > 0" class="space-y-2 mb-4">
+        <ul v-if="existing.length > 0 && hasPermission('document.see')" class="space-y-2 mb-4" v-auto-animate>
             <li v-for="doc in existing" :key="doc.id"
                 class="flex items-center justify-between p-2 rounded-md bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
                 <a :href="`/storage/${doc.path}`" target="_blank"
                     class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate flex-grow mr-4">
                     {{ doc.name }}
                 </a>
-                <button @click="deleteDocument(doc.id)"
+                <button @click="deleteDocument(doc.id)" v-if="hasPermission('document.delete')"
                     class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
                     title="Verwijder dit document">
                     <TrashIcon class="h-4 w-4" />
@@ -17,8 +17,8 @@
             </li>
         </ul>
 
-        <div @click="openFilePicker" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
-            @drop.prevent="handleDrop" :class="[
+        <div v-if="hasPermission('document.upload')" @click="openFilePicker" @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors',
                 isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
             ]">
@@ -38,6 +38,7 @@
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { TrashIcon } from '@heroicons/vue/24/solid';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     documentableId: {
