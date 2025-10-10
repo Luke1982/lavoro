@@ -16,7 +16,7 @@ return new class extends Migration
     {
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
-            $table->uuid('snelstart_id')->unique();
+            $table->uuid('snelstart_id')->unique()->nullable();
             $table->string('name');
             $table->string('email')->nullable();
             $table->string('invoice_email')->nullable();
