@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Asset;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Unified read request for Assets (index & show).
@@ -24,7 +24,11 @@ class AssetReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('view', $this->route('asset'));
+        $asset = $this->route('asset');
+        if ($asset) {
+            return $this->user()->can('view', $asset);
+        }
+        return $this->user()->can('list', Asset::class);
     }
 
     public function rules(): array

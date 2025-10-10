@@ -12,12 +12,20 @@ class AssetPolicy
      */
     public function view(User $user, Asset $asset): bool
     {
-        if ($user->isAdmin() || $user->hasPermission('asset.read')) {
+        if ($user->hasPermission('asset.read')) {
             return true;
         }
         if ($user->hasPermission('asset.read.relevant.serviceorder')) {
             return in_array($asset->id, $user->relevantAssetIds());
         }
         return false;
+    }
+
+    /**
+     * Determine if the user can view any assets.
+     */
+    public function list(User $user): bool
+    {
+        return $user->hasPermission('asset.read');
     }
 }
