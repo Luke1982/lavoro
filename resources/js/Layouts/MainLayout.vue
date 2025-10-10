@@ -103,21 +103,21 @@
 
                                         <li class="-mx-6 mt-auto">
                                             <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
-                                                <Link :href="'/companies'" :class="[
+                                                <Link :href="'/companies'" @click="sidebarOpen = false" :class="[
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                                 Bedrijf
                                                 </Link>
-                                                <Link :href="'\/users'" :class="[
+                                                <Link @click="sidebarOpen = false" :href="'/users'" :class="[
                                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <UsersIcon class="size-6 shrink-0" />
                                                 Gebruikers
                                                 </Link>
-                                                <Link :href="'/roles'" :class="[
+                                                <Link @click="sidebarOpen = false" :href="'/roles'" :class="[
                                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
@@ -125,7 +125,7 @@
                                                 Rollen
                                                 </Link>
                                             </div>
-                                            <Link :href="'/me/edit'"
+                                            <Link @click="sidebarOpen = false" :href="'/me/edit'"
                                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                                             <div
                                                 class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -227,7 +227,7 @@
                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                 Bedrijf
                                 </Link>
-                                <Link :href="'\/users'" :class="[
+                                <Link :href="'/users'" :class="[
                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
