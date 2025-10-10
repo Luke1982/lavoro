@@ -1,0 +1,296 @@
+[
+    {
+        "name": "Installatiebedrijf de Vries",
+        "address": "Dorpsstraat 12",
+        "postal_code": "1012 AB",
+        "city": "Amsterdam"
+    },
+    {
+        "name": "Jansen Elektrotechniek",
+        "address": "Stationsweg 45",
+        "postal_code": "3011 CE",
+        "city": "Rotterdam"
+    },
+    {
+        "name": "Bakker Klimaattechniek",
+        "address": "Markt 3",
+        "postal_code": "5611 EC",
+        "city": "Eindhoven"
+    },
+    {
+        "name": "De Boer Installaties",
+        "address": "Lange Voorhout 8",
+        "postal_code": "2514 ED",
+        "city": "Den Haag"
+    },
+    {
+        "name": "Willems Ventilatie",
+        "address": "Grote Markt 1",
+        "postal_code": "9712 HN",
+        "city": "Groningen"
+    },
+    {
+        "name": "Smit Elektro",
+        "address": "Kerkstraat 22",
+        "postal_code": "3811 CV",
+        "city": "Amersfoort"
+    },
+    {
+        "name": "Van Dijk Techniek",
+        "address": "Nieuweweg 5",
+        "postal_code": "6811 JS",
+        "city": "Arnhem"
+    },
+    {
+        "name": "Vos Installaties",
+        "address": "Breestraat 10",
+        "postal_code": "2311 CS",
+        "city": "Leiden"
+    },
+    {
+        "name": "Kuiper BV",
+        "address": "Oude Gracht 100",
+        "postal_code": "3511 AP",
+        "city": "Utrecht"
+    },
+    {
+        "name": "Mulder Groep",
+        "address": "Peperstraat 7",
+        "postal_code": "9711 PC",
+        "city": "Groningen"
+    },
+    {
+        "name": "Meijer Installatie",
+        "address": "Hoofdstraat 15",
+        "postal_code": "9401 ER",
+        "city": "Assen"
+    },
+    {
+        "name": "De Groot Techniek",
+        "address": "Kanaalstraat 8",
+        "postal_code": "7551 NH",
+        "city": "Hengelo"
+    },
+    {
+        "name": "Bos Klimaatservice",
+        "address": "Parklaan 3",
+        "postal_code": "3818 ER",
+        "city": "Amersfoort"
+    },
+    {
+        "name": "Peters Elektrotechniek",
+        "address": "Schoolstraat 21",
+        "postal_code": "8011 BA",
+        "city": "Zwolle"
+    },
+    {
+        "name": "Hendriks Installatiegroep",
+        "address": "Ringweg 44",
+        "postal_code": "3815 DE",
+        "city": "Amersfoort"
+    },
+    {
+        "name": "Van Leeuwen Techniek",
+        "address": "Spoorstraat 9",
+        "postal_code": "4201 AA",
+        "city": "Gorinchem"
+    },
+    {
+        "name": "Vermeulen Installaties",
+        "address": "Dorpstraat 2",
+        "postal_code": "5501 AM",
+        "city": "Veldhoven"
+    },
+    {
+        "name": "De Bruin BV",
+        "address": "Kade 17",
+        "postal_code": "3311 RD",
+        "city": "Dordrecht"
+    },
+    {
+        "name": "Van den Berg Techniek",
+        "address": "Havenstraat 6",
+        "postal_code": "1211 KM",
+        "city": "Hilversum"
+    },
+    {
+        "name": "Van der Meer Installatie",
+        "address": "Lijnbaan 12",
+        "postal_code": "3012 ER",
+        "city": "Rotterdam"
+    },
+    {
+        "name": "Hoekstra Installatie",
+        "address": "Noorderweg 5",
+        "postal_code": "8911 AA",
+        "city": "Leeuwarden"
+    },
+    {
+        "name": "Dekker Elektrotechniek",
+        "address": "Zuiderweg 8",
+        "postal_code": "9601 LG",
+        "city": "Hoogezand"
+    },
+    {
+        "name": "Prins Klimaatservice",
+        "address": "Prinsestraat 11",
+        "postal_code": "2513 CA",
+        "city": "Den Haag"
+    },
+    {
+        "name": "Schouten Installatie",
+        "address": "Burgemeesterlaan 4",
+        "postal_code": "1181 AA",
+        "city": "Amstelveen"
+    },
+    {
+        "name": "Koster Techniek",
+        "address": "Kerkplein 2",
+        "postal_code": "3811 CV",
+        "city": "Amersfoort"
+    },
+    {
+        "name": "Veenstra Installatie",
+        "address": "Veenweg 7",
+        "postal_code": "9401 ER",
+        "city": "Assen"
+    },
+    {
+        "name": "Postma Elektrotechniek",
+        "address": "Poststraat 9",
+        "postal_code": "8441 ER",
+        "city": "Heerenveen"
+    },
+    {
+        "name": "Brouwer Klimaatservice",
+        "address": "Brouwersstraat 6",
+        "postal_code": "9712 HN",
+        "city": "Groningen"
+    },
+    {
+        "name": "Dijkstra Installatie",
+        "address": "Dijkstraat 3",
+        "postal_code": "8911 AA",
+        "city": "Leeuwarden"
+    },
+    {
+        "name": "Smits Techniek",
+        "address": "Smitslaan 8",
+        "postal_code": "5611 EC",
+        "city": "Eindhoven"
+    },
+    {
+        "name": "Van Dam Installatie",
+        "address": "Damstraat 5",
+        "postal_code": "1012 AB",
+        "city": "Amsterdam"
+    },
+    {
+        "name": "De Jong Elektrotechniek",
+        "address": "Jongstraat 2",
+        "postal_code": "2311 CS",
+        "city": "Leiden"
+    },
+    {
+        "name": "Van der Wal Installatie",
+        "address": "Walstraat 7",
+        "postal_code": "8011 BA",
+        "city": "Zwolle"
+    },
+    {
+        "name": "De Graaf Techniek",
+        "address": "Graafstraat 4",
+        "postal_code": "3511 AP",
+        "city": "Utrecht"
+    },
+    {
+        "name": "Van der Linden Installatie",
+        "address": "Lindenlaan 10",
+        "postal_code": "1181 AA",
+        "city": "Amstelveen"
+    },
+    {
+        "name": "Van der Heijden Klimaatservice",
+        "address": "Heijdenstraat 6",
+        "postal_code": "5611 EC",
+        "city": "Eindhoven"
+    },
+    {
+        "name": "Van der Ven Installatie",
+        "address": "Venstraat 3",
+        "postal_code": "4811 AA",
+        "city": "Breda"
+    },
+    {
+        "name": "Van der Pol Techniek",
+        "address": "Polstraat 8",
+        "postal_code": "8011 BA",
+        "city": "Zwolle"
+    },
+    {
+        "name": "Van der Horst Installatie",
+        "address": "Horstlaan 5",
+        "postal_code": "2311 CS",
+        "city": "Leiden"
+    },
+    {
+        "name": "Van der Zee Installatie",
+        "address": "Zeelaan 2",
+        "postal_code": "8911 AA",
+        "city": "Leeuwarden"
+    },
+    {
+        "name": "Van der Meulen Installatie",
+        "address": "Meulenstraat 9",
+        "postal_code": "8441 ER",
+        "city": "Heerenveen"
+    },
+    {
+        "name": "Van der Veen Installatie",
+        "address": "Veenlaan 7",
+        "postal_code": "9401 ER",
+        "city": "Assen"
+    },
+    {
+        "name": "Van der Sluis Installatie",
+        "address": "Sluisstraat 4",
+        "postal_code": "9712 HN",
+        "city": "Groningen"
+    },
+    {
+        "name": "Van der Wiel Installatie",
+        "address": "Wielstraat 6",
+        "postal_code": "5611 EC",
+        "city": "Eindhoven"
+    },
+    {
+        "name": "Van der Laan Installatie",
+        "address": "Laanstraat 3",
+        "postal_code": "3511 AP",
+        "city": "Utrecht"
+    },
+    {
+        "name": "Van der Brug Installatie",
+        "address": "Brugstraat 8",
+        "postal_code": "8011 BA",
+        "city": "Zwolle"
+    },
+    {
+        "name": "Van der Plas Installatie",
+        "address": "Plaslaan 2",
+        "postal_code": "1181 AA",
+        "city": "Amstelveen"
+    },
+    {
+        "name": "Van der Steen Installatie",
+        "address": "Steenstraat 5",
+        "postal_code": "2311 CS",
+        "city": "Leiden"
+    },
+    {
+        "name": "Van der Bosch Installatie",
+        "address": "Boschlaan 7",
+        "postal_code": "5611 EC",
+        "city": "Eindhoven"
+    }
+]

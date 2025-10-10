@@ -1,0 +1,417 @@
+[
+    {
+        "name": "Visuele inspectie",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "Uitstekend",
+            "Goed",
+            "Voldoende",
+            "Matig",
+            "Slecht"
+        ]
+    },
+    {
+        "name": "Keuringssticker",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "Aanwezig",
+            "Beschadigd",
+            "Ontbreekt"
+        ]
+    },
+    {
+        "name": "Aansluitingen",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "Correct",
+            "Onveilig",
+            "Niet aangesloten"
+        ]
+    },
+    {
+        "name": "Behuizing",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "Intact",
+            "Beschadigd",
+            "Gebroken"
+        ]
+    },
+    {
+        "name": "Ventilatie werking",
+        "type": "radio",
+        "groups": [
+            "Functionele test"
+        ],
+        "servicecheckoptions": [
+            "Werkt goed",
+            "Werkt matig",
+            "Werkt niet"
+        ]
+    },
+    {
+        "name": "Smering bewegende delen",
+        "type": "radio",
+        "groups": [
+            "Onderhoudscontrole"
+        ],
+        "servicecheckoptions": [
+            "Voldoende",
+            "Aanvullen",
+            "Verversen"
+        ]
+    },
+    {
+        "name": "Veiligheidsvoorzieningen",
+        "type": "checkgroup",
+        "groups": [
+            "Veiligheidscontrole"
+        ],
+        "servicecheckoptions": [
+            "Noodstop",
+            "Afscherming",
+            "Waarschuwingslabels",
+            "Vergrendeling",
+            "Aarding"
+        ]
+    },
+    {
+        "name": "Noodstop",
+        "type": "boolean",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Aarding",
+        "type": "boolean",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Handleiding aanwezig",
+        "type": "boolean",
+        "groups": [
+            "Onderhoudscontrole"
+        ]
+    },
+    {
+        "name": "Reservedeel beschikbaar",
+        "type": "boolean",
+        "groups": [
+            "Onderhoudscontrole"
+        ]
+    },
+    {
+        "name": "Reiniging",
+        "type": "boolean",
+        "groups": [
+            "Onderhoudscontrole"
+        ]
+    },
+    {
+        "name": "Functietest",
+        "type": "boolean",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Elektrische meting",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Lektest",
+        "type": "boolean",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Opmerkingen",
+        "type": "text",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Aantal draaiuren",
+        "type": "number",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Temperatuur meting",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Naam monteur",
+        "type": "text",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Locatie apparaat",
+        "type": "text",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Stroomverbruik",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Geluidsniveau",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Luchtvochtigheid",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Filterstatus",
+        "type": "radio",
+        "groups": [
+            "Onderhoudscontrole"
+        ],
+        "servicecheckoptions": [
+            "Schoon",
+            "Vervuild",
+            "Vervangen"
+        ]
+    },
+    {
+        "name": "Drukverschil",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Schoonmaakfrequentie",
+        "type": "radio",
+        "groups": [
+            "Onderhoudscontrole"
+        ],
+        "servicecheckoptions": [
+            "Wekelijks",
+            "Maandelijks",
+            "Jaarlijks"
+        ]
+    },
+    {
+        "name": "Bedieningspaneel werkt",
+        "type": "boolean",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Firmwareversie",
+        "type": "text",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Laatste update",
+        "type": "text",
+        "groups": [
+            "Algemene inspectie"
+        ]
+    },
+    {
+        "name": "Alarmstatus",
+        "type": "boolean",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Externe sensor aangesloten",
+        "type": "boolean",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Brandveiligheid",
+        "type": "checkgroup",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Waterdichtheid",
+        "type": "boolean",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Isolatie",
+        "type": "boolean",
+        "groups": [
+            "Veiligheidscontrole"
+        ]
+    },
+    {
+        "name": "Kabelmanagement",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "Netjes",
+            "Onordelijk",
+            "Gevaarlijk"
+        ]
+    },
+    {
+        "name": "Energieklasse",
+        "type": "radio",
+        "groups": [
+            "Algemene inspectie"
+        ],
+        "servicecheckoptions": [
+            "A++",
+            "A+",
+            "A",
+            "B",
+            "C"
+        ]
+    },
+    {
+        "name": "Bedrijfstemperatuur",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Brandveiligheid",
+        "type": "checkgroup",
+        "groups": [
+            "Veiligheidscontrole"
+        ],
+        "servicecheckoptions": [
+            "Rookmelder",
+            "Blusser",
+            "Sprinkler",
+            "Branddeur"
+        ]
+    },
+    {
+        "name": "Bedrijfstemperatuur",
+        "type": "number",
+        "groups": [
+            "Functionele test"
+        ]
+    },
+    {
+        "name": "Brandveiligheid",
+        "type": "checkgroup",
+        "groups": [
+            "Veiligheidscontrole"
+        ],
+        "servicecheckoptions": [
+            "Rookmelder",
+            "Blusser",
+            "Sprinkler",
+            "Branddeur"
+        ]
+    },
+    {
+        "name": "Bedieningshandleiding",
+        "type": "boolean",
+        "groups": [
+            "Onderhoudscontrole"
+        ]
+    },
+    {
+        "name": "Stroomverbruik",
+        "type": "number",
+        "groups": []
+    },
+    {
+        "name": "Geluidsniveau",
+        "type": "number",
+        "groups": []
+    },
+    {
+        "name": "Luchtvochtigheid",
+        "type": "number",
+        "groups": []
+    },
+    {
+        "name": "Filterstatus",
+        "type": "radio",
+        "groups": []
+    },
+    {
+        "name": "Drukverschil",
+        "type": "number",
+        "groups": []
+    },
+    {
+        "name": "Schoonmaakfrequentie",
+        "type": "radio",
+        "groups": []
+    },
+    {
+        "name": "Bedieningspaneel werkt",
+        "type": "boolean",
+        "groups": []
+    },
+    {
+        "name": "Firmwareversie",
+        "type": "text",
+        "groups": []
+    },
+    {
+        "name": "Laatste update",
+        "type": "text",
+        "groups": []
+    },
+    {
+        "name": "Alarmstatus",
+        "type": "boolean",
+        "groups": []
+    },
+    {
+        "name": "Externe sensor aangesloten",
+        "type": "boolean",
+        "groups": []
+    }
+]
