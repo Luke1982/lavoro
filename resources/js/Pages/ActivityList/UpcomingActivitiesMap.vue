@@ -3,9 +3,8 @@
         <div id="map" class="w-full h-full"></div>
         <div v-if="geocodingStatus !== 'idle'"
             class="fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-[1000] max-w-sm transition-colors duration-500"
-            :class="boxClasses"
-            @click="geocodingStatus === 'failed' ? (showFailedList = !showFailedList) : null">
-            
+            :class="boxClasses" @click="geocodingStatus === 'failed' ? (showFailedList = !showFailedList) : null">
+
             <!-- Processing State -->
             <div v-if="geocodingStatus === 'processing'">
                 <div class="flex items-center justify-between">
@@ -28,11 +27,13 @@
                 <div class="flex items-center">
                     <ExclamationTriangleIcon class="h-8 w-8 mr-2" />
                     <span>
-                        {{ customers.length - failedGeocodes.length }} van {{ customers.length }} adressen te zien op de kaart, {{ failedGeocodes.length }} konden er niet worden gevonden.
+                        {{ customers.length - failedGeocodes.length }} van {{ customers.length }} adressen te zien op de
+                        kaart, {{ failedGeocodes.length }} konden er niet worden gevonden.
                     </span>
                 </div>
                 <transition name="fade-height">
-                    <div v-if="showFailedList" class="mt-2 pt-2 border-t" :class="geocodingStatus === 'failed' ? 'border-red-300' : 'border-gray-300'">
+                    <div v-if="showFailedList" class="mt-2 pt-2 border-t"
+                        :class="geocodingStatus === 'failed' ? 'border-red-300' : 'border-gray-300'">
                         <ul class="list-disc list-inside text-sm max-h-60 overflow-y-auto">
                             <li v-for="c in failedGeocodes" :key="c.id">{{ c.name }}</li>
                         </ul>
