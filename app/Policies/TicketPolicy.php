@@ -30,4 +30,12 @@ class TicketPolicy
         }
         return $user->hasPermission('ticket.update');
     }
+
+    /**
+     * Determine whether the user can attach a ticket to a service order.
+     */
+    public function attachToServiceOrder(User $user, Ticket $ticket): bool
+    {
+        return $user->hasPermission('ticket.add_to_serviceorder');
+    }
 }

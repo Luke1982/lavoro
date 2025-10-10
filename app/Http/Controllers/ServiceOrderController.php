@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ServiceJobOutcomes;
 use App\Models\Ticket;
-use App\Models\Material;
-use App\Models\ServiceOrder;
-use App\Models\Activity;
-use Illuminate\Http\Request;
-use App\Http\Requests\ServiceOrderUpdateRequest;
-use App\Models\ServiceJob;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Services\SnelStartClient;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ServiceOrderPdfMail;
-use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Company;
+use App\Models\Activity;
+use App\Models\Material;
+use App\Models\ServiceJob;
+use App\Models\ServiceOrder;
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Enums\ServiceJobOutcomes;
+use App\Mail\ServiceOrderPdfMail;
+use App\Services\SnelStartClient;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
-use App\Http\Requests\TicketAttachToServiceOrderRequest;
-use App\Http\Requests\TicketDetachFromServiceOrderRequest;
-use App\Http\Requests\ServiceOrderExportPdfRequest;
+use App\Mail\ServiceOrderWithJobsPdfMail;
+use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
+use App\Http\Requests\ServiceOrderExportPdfRequest;
+use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 
 class ServiceOrderController extends Controller
@@ -412,8 +412,9 @@ class ServiceOrderController extends Controller
     /**
      * Attach a ticket to a service order.
      */
-    public function attachTicket(TicketAttachToServiceOrderRequest $request, ServiceOrder $serviceorder, Ticket $ticket)
+    public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
     {
+        Gate::authorize('attach-to-service-order', $ticket);
         $ticket->update(['service_order_id' => $serviceorder->id]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
