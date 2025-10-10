@@ -19,14 +19,14 @@
 
             <!-- Success State -->
             <div v-if="geocodingStatus === 'success'" class="flex items-center">
-                <CheckCircleIcon class="h-5 w-5 mr-2" />
+                <CheckCircleIcon class="h-8 w-8 mr-2" />
                 <span>Alle {{ totalToGeocode }} adressen gevonden.</span>
             </div>
 
             <!-- Failed State -->
             <div v-if="geocodingStatus === 'failed'" class="cursor-pointer">
                 <div class="flex items-center">
-                    <ExclamationTriangleIcon class="h-5 w-5 mr-2" />
+                    <ExclamationTriangleIcon class="h-8 w-8 mr-2" />
                     <span>
                         {{ customers.length - failedGeocodes.length }} van {{ customers.length }} adressen te zien op de kaart, {{ failedGeocodes.length }} konden er niet worden gevonden.
                     </span>
