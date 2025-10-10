@@ -44,7 +44,15 @@ class ActivityListController extends Controller
 
     public function map(ActivityListReadRequest $request)
     {
-        $customers = Customer::with(['assets' => function ($q) {
+        $days = (int)$request->input('days', 60);
+
+        $customer_ids = Asset::where('next_service_date', '<', now()->addDays($days))
+            ->where('status', '!=', AssetStatusses::inactive->value)
+            ->whereNotNull('customer_id')
+            ->pluck('customer_id')
+            ->unique();
+
+        $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
               ->with(['product.productType']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);

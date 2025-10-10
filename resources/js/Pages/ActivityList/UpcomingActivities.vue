@@ -317,7 +317,7 @@ if (typeof window !== 'undefined') {
 }
 
 const openMap = () => {
-    window.open('/upcomingactivities/map', 'customerMap', 'width=1200,height=800');
+    window.open(`/upcomingactivities/map?days=${form.days}`, 'customerMap', 'width=1200,height=800');
 };
 
 </script>
