@@ -18,4 +18,9 @@ class ServiceCheckGroup extends Model
     {
         return $this->morphToMany(ProductType::class, 'producttypeable');
     }
+
+    public function checks()
+    {
+        return $this->hasMany(ServiceCheck::class);
+    }
 }
