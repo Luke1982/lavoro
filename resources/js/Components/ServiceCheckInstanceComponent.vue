@@ -13,14 +13,14 @@
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                         <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
                             serviceCheckInstance.remarks.length
-                            }}</span>
+                        }}</span>
                     </button>
                 </div>
                 <div class="relative" v-auto-animate>
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een van de opties</p>
                         <div class="mt-6 space-y-6">
@@ -37,7 +37,7 @@
                     <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een of meerdere van de opties
                         </p>
@@ -107,7 +107,7 @@
                     <ul class="space-y-2 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
                         <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
                             <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
-                            }}:</span>
+                                }}:</span>
                             {{ r.content }}
                         </li>
                     </ul>
