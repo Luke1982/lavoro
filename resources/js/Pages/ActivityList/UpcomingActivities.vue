@@ -189,7 +189,8 @@
                         <div class="w-full px-2 mb-4">
                             <ComboBox v-model="eventForm.executing_user_ids" :options="allUsers"
                                 label="Uitvoerende gebruikers" class="w-full" :multiple="true" />
-                            <p v-if="eventForm.errors.executing_user_ids" class="text-sm text-red-600 dark:text-red-400 mt-1">
+                            <p v-if="eventForm.errors.executing_user_ids"
+                                class="text-sm text-red-600 dark:text-red-400 mt-1">
                                 {{ eventForm.errors.executing_user_ids }}
                             </p>
                         </div>
