@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -472,7 +472,7 @@ const updateStatus = (newStatus) => {
         }
     }
     form.status = newStatus;
-    form.put(`/ serviceorders / ${props.serviceOrder.id} `, {
+    form.put(`/serviceorders/ ${props.serviceOrder.id} `, {
         preserveScroll: true,
     });
 };
@@ -489,7 +489,7 @@ const newServicejobForm = useForm({
 
 const addServiceJob = () => {
     newServicejobForm.asset_id = assetToCheck.value;
-    newServicejobForm.post(`/ servicejobs`, {
+    newServicejobForm.post(`/servicejobs`, {
         preserveScroll: true
     })
 };
@@ -501,7 +501,7 @@ watch(
         () => form.signature_base64,
     ],
     () => {
-        form.put(`/ serviceorders / ${props.serviceOrder.id} `, {
+        form.put(`/serviceorders / ${props.serviceOrder.id} `, {
             preserveScroll: true,
             onSuccess: () => {
                 editingSignature.value = false;
@@ -513,7 +513,7 @@ watch(
 const attachTicket = () => {
     if (!hasPermission('ticket.add_to_serviceorder')) return;
     if (!ticketToSolve.value) return;
-    form.post(`/ serviceorders / ${props.serviceOrder.id} /tickets/${ticketToSolve.value} `, {
+    form.post(`/serviceorders/ ${props.serviceOrder.id} /tickets/${ticketToSolve.value} `, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => {
@@ -525,13 +525,13 @@ const attachTicket = () => {
 const attachMaterial = () => {
     if (!materialToAdd.value || materialsForm.quantity <= 0) return;
 
-    materialsForm.post(`/ serviceorders / ${props.serviceOrder.id} /materials/${materialToAdd.value} `, {
+    materialsForm.post(`/serviceorders/ ${props.serviceOrder.id} /materials/${materialToAdd.value} `, {
         preserveScroll: true,
     });
 };
 
 const detachMaterial = (materiableId) => {
-    materialsForm.delete(`/ serviceorders / ${props.serviceOrder.id} /materials/${materiableId} `, {
+    materialsForm.delete(`/serviceorders/ ${props.serviceOrder.id} /materials/${materiableId} `, {
         preserveScroll: true,
     });
 };
@@ -543,7 +543,7 @@ const emailPdf = () => {
         return;
     }
     emailing.value = true;
-    form.post(`/ serviceorders / ${props.serviceOrder.id}/email-pdf`, {
+    form.post(`/serviceorders/ ${props.serviceOrder.id}/email-pdf`, {
         preserveScroll: true,
         onFinish: () => { emailing.value = false; }
     });
