@@ -124,6 +124,15 @@ class ServiceJobController extends Controller
      */
     public function update(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
     {
+        if (
+            $request->outcome === ServiceJobOutcomeEnum::nog_geen_uitkomst->value &&
+            $request->completed_on
+        ) {
+            return redirect()->back()->with(
+                'error',
+                'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
+            );
+        }
         $servicejob->update($request->validated());
         $message = '';
         $days = $servicejob->getDaysToAdvanceNextServiceDate(
