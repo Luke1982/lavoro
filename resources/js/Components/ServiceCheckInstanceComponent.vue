@@ -115,17 +115,20 @@
             </div>
             <Cog6ToothIcon v-if="updating"
                 class="absolute top-4 right-4 h-6 w-6 text-gray-500 dark:text-slate-400 animate-spin" />
-            <CheckIcon v-if="!updating" class="absolute top-4 right-4 h-6 w-6 text-green-500 dark:text-green-400" />
+            <CheckIcon v-if="!updating && isComplete"
+                class="absolute top-4 right-4 h-6 w-6 text-green-500 dark:text-green-400" />
+            <QuestionMarkCircleIcon v-if="!updating && !isComplete"
+                class="absolute top-4 right-4 h-6 w-6 text-orange-500 dark:text-orange-400" />
         </div>
     </div>
 </template>
 
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
-import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
@@ -136,6 +139,26 @@ const { serviceCheckInstance } = defineProps({
 const updating = ref(false);
 const last_sent = ref(null);
 const show_remarks = ref(false);
+
+const isComplete = computed(() => {
+    const instance = serviceCheckInstance;
+    const type = instance.service_check.type;
+
+    if (type === 'boolean') {
+        return instance.switch_state !== null;
+    }
+    if (type === 'text' || type === 'number') {
+        return (instance.description ?? '').trim() !== '';
+    }
+    if (type === 'radio') {
+        return instance.values.length === 1;
+    }
+    if (type === 'checkgroup') {
+        return instance.values.length > 0;
+    }
+    return false;
+});
+
 const toggle_remarks = () => { show_remarks.value = !show_remarks.value; };
 
 const form = useForm({
