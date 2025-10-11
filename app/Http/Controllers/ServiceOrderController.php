@@ -99,6 +99,7 @@ class ServiceOrderController extends Controller
         'serviceOrder' => ServiceOrder::with([
             'customer.assets.product.brand',
             'customer.assets.product.productType',
+            'customer.assets.product.images',
             'servicejobs.asset.product.brand',
             'customer.tickets.asset.product.brand',
             'customer.tickets.asset.product.productType',

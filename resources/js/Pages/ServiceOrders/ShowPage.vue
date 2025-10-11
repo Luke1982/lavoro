@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -131,7 +131,8 @@
                     <div class="grid grid-cols-12 mt-4"
                         v-if="hasPermission('servicejob.create') && serviceOrder.status !== 'closed'">
                         <div class="col-span-12 flex">
-                            <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
+                            <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
+                                :with-images="true" />
                             <button @click="addServiceJob"
                                 class="w-auto md:w-40 ml-2 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
                                 Keuren
@@ -424,6 +425,7 @@ const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     return {
         id: asset.id,
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
+        image_url: asset.product.images.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
     };
 });
 const internalTickets = ref([]);
@@ -465,12 +467,12 @@ const updateStatus = (newStatus) => {
             alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.');
             return;
         }
-        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
+        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten ? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
             return;
         }
     }
     form.status = newStatus;
-    form.put(`/serviceorders/${props.serviceOrder.id}`, {
+    form.put(`/ serviceorders / ${props.serviceOrder.id} `, {
         preserveScroll: true,
     });
 };
@@ -487,7 +489,7 @@ const newServicejobForm = useForm({
 
 const addServiceJob = () => {
     newServicejobForm.asset_id = assetToCheck.value;
-    newServicejobForm.post(`/servicejobs`, {
+    newServicejobForm.post(`/ servicejobs`, {
         preserveScroll: true
     })
 };
@@ -499,7 +501,7 @@ watch(
         () => form.signature_base64,
     ],
     () => {
-        form.put(`/serviceorders/${props.serviceOrder.id}`, {
+        form.put(`/ serviceorders / ${props.serviceOrder.id} `, {
             preserveScroll: true,
             onSuccess: () => {
                 editingSignature.value = false;
@@ -511,7 +513,7 @@ watch(
 const attachTicket = () => {
     if (!hasPermission('ticket.add_to_serviceorder')) return;
     if (!ticketToSolve.value) return;
-    form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
+    form.post(`/ serviceorders / ${props.serviceOrder.id} /tickets/${ticketToSolve.value} `, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => {
@@ -523,13 +525,13 @@ const attachTicket = () => {
 const attachMaterial = () => {
     if (!materialToAdd.value || materialsForm.quantity <= 0) return;
 
-    materialsForm.post(`/serviceorders/${props.serviceOrder.id}/materials/${materialToAdd.value}`, {
+    materialsForm.post(`/ serviceorders / ${props.serviceOrder.id} /materials/${materialToAdd.value} `, {
         preserveScroll: true,
     });
 };
 
 const detachMaterial = (materiableId) => {
-    materialsForm.delete(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
+    materialsForm.delete(`/ serviceorders / ${props.serviceOrder.id} /materials/${materiableId} `, {
         preserveScroll: true,
     });
 };
@@ -541,7 +543,7 @@ const emailPdf = () => {
         return;
     }
     emailing.value = true;
-    form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf`, {
+    form.post(`/ serviceorders / ${props.serviceOrder.id}/email-pdf`, {
         preserveScroll: true,
         onFinish: () => { emailing.value = false; }
     });
