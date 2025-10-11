@@ -129,7 +129,7 @@ const addMarker = (c) => {
         return;
     }
     added.add(c.id);
-    const color = classifyColor(c.next_service_in_days);
+    const color = c.has_expired_assets ? 'purple' : classifyColor(c.next_service_in_days);
     const m = L.marker([c.lat, c.lon], { icon: markerIcon(color) })
         .addTo(map.value)
         .bindPopup(popupHtml(c));

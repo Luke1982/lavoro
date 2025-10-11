@@ -53,6 +53,14 @@ class Customer extends Model
             ->orderBy('next_service_date');
     }
 
+    public function expiredAssets()
+    {
+        return $this->hasMany(Asset::class)
+            ->where('next_service_date', '<', now())
+            ->where('status', 'Actief')
+            ->orderBy('next_service_date');
+    }
+
     public function nonUpcomingAssets()
     {
         return $this->hasMany(Asset::class)
