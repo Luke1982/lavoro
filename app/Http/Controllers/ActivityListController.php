@@ -6,6 +6,8 @@ use App\Enums\AssetStatusses;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Http\Requests\ActivityListReadRequest;
+use App\Models\EventType;
+use App\Models\User;
 use Carbon\Carbon;
 
 class ActivityListController extends Controller
@@ -39,6 +41,8 @@ class ActivityListController extends Controller
 
         return inertia('ActivityList/UpcomingActivities', [
             'upcomingAssets' => $upcoming_assets,
+            'eventTypes' => EventType::all(),
+            'allUsers' => User::all(['id', 'name']),
         ]);
     }
 

@@ -128,22 +128,103 @@
             </div>
         </div>
     </BoxComponent>
-    <div class="fixed right-4 bottom-4 left-4 z-3">
-        <div v-auto-animate class="flex gap-2 flex-col lg:flex-row justify-end">
+    <div class="fixed right-4 bottom-4 z-30">
+        <div v-auto-animate class="flex flex-col gap-2">
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
                 :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(false)" v-auto-animate
-                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors">
+                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span>Maak een werkbon aan en blijf hier</span>
             </button>
             <button v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder"
                 :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(true)" v-auto-animate
-                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-4 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors">
+                class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan en open die</span>
                 <span v-else-if="canCreateWorkOrder === 'diffCustomers'">Selecteer storingen en keuringen van één
                     klant</span>
             </button>
+            <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
+                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrderAndPlan" v-auto-animate
+                class="cursor-pointer bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
+                <CalendarIcon class="w-6 h-6 inline-block mr-2" />
+                <span>Maak werkbon en plan deze in</span>
+            </button>
+        </div>
+    </div>
+    <div v-if="planningModalOpen" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40" @click="closePlanningModal">
+    </div>
+    <div v-if="planningModalOpen" class="fixed inset-0 flex items-center justify-center z-50 p-4" v-auto-animate>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+            @click.stop>
+            <div class="p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-slate-100">Plan Werkbon</h3>
+            </div>
+            <div class="p-4 overflow-y-auto" v-auto-animate>
+                <div v-if="!eventForm.service_order_id" class="text-center p-4">
+                    <p>Werkbon aanmaken...</p>
+                </div>
+                <div v-else-if="!eventSuccessfullyCreated">
+                    <div class="flex flex-wrap -mx-2">
+                        <div class="w-full lg:w-1/2 px-2 mb-4">
+                            <TextInput v-model="eventForm.start_date" label="Startdatum" type="date" class="w-full"
+                                :has-error="Boolean(eventForm.errors.start)" :error-message="eventForm.errors.start" />
+                        </div>
+                        <div class="w-full lg:w-1/2 px-2 mb-4">
+                            <TextInput v-model="eventForm.start_time" label="Starttijd" type="time" class="w-full"
+                                :has-error="Boolean(eventForm.errors.start)" :error-message="eventForm.errors.start" />
+                        </div>
+                        <div class="w-full lg:w-1/2 px-2 mb-4">
+                            <TextInput v-model="eventForm.end_date" label="Einddatum" type="date" class="w-full"
+                                :has-error="Boolean(eventForm.errors.end)" :error-message="eventForm.errors.end" />
+                        </div>
+                        <div class="w-full lg:w-1/2 px-2 mb-4">
+                            <TextInput v-model="eventForm.end_time" label="Eindtijd" type="time" class="w-full"
+                                :has-error="Boolean(eventForm.errors.end)" :error-message="eventForm.errors.end" />
+                        </div>
+                        <div class="w-full px-2 mb-4">
+                            <ComboBox v-model="eventForm.event_type_id" :options="eventTypes" label="Type"
+                                class="w-full" />
+                        </div>
+                        <div class="w-full px-2 mb-4">
+                            <ComboBox v-model="eventForm.executing_user_ids" :options="allUsers"
+                                label="Uitvoerende gebruikers" class="w-full" :multiple="true" />
+                            <p v-if="eventForm.errors.executing_user_ids" class="text-sm text-red-600 dark:text-red-400 mt-1">
+                                {{ eventForm.errors.executing_user_ids }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="text-center p-4">
+                    <p class="text-lg text-green-600 dark:text-green-400">Werkbon succesvol ingepland!</p>
+                </div>
+            </div>
+            <div class="p-4 border-t dark:border-slate-700 flex justify-end gap-2" v-if="eventForm.service_order_id">
+                <div v-if="!eventSuccessfullyCreated" class="flex gap-2">
+                    <button @click="closePlanningModal"
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
+                        Annuleren
+                    </button>
+                    <button @click="submitEvent" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        :disabled="eventForm.processing">
+                        Opslaan
+                    </button>
+                </div>
+                <div v-else class="flex gap-2">
+                    <button @click="closePlanningModal"
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
+                        Sluiten
+                    </button>
+                    <a :href="`/serviceorders/${eventForm.service_order_id}`"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
+                        Naar werkbon
+                    </a>
+                    <a href="/events"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+                        Naar kalender
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -154,23 +235,49 @@ import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
-import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline';
-import { Link, useForm } from '@inertiajs/vue3';
+import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
+import axios from 'axios';
 
-const { upcomingAssets } = defineProps({
+const { upcomingAssets, eventTypes, allUsers } = defineProps({
     upcomingAssets: {
         type: Array,
         required: true
     },
+    eventTypes: {
+        type: Array,
+        default: () => []
+    },
+    allUsers: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const form = useForm({
     days: new URL(window.location).searchParams.get('days') ?? '60',
     selectedAssets: [],
     selectedTickets: [],
+});
+
+const planningModalOpen = ref(false);
+const eventSuccessfullyCreated = ref(false);
+
+const eventForm = useForm({
+    service_order_id: null,
+    start_date: '',
+    start_time: '',
+    end_date: '',
+    end_time: '',
+    event_type_id: eventTypes[0]?.id || null,
+    executing_user_ids: [],
+    eventable_type: '\\App\\Models\\ServiceOrder',
+    name: 'Werkbon ingepland',
+    status: 'Gepland',
 });
 
 const canCreateWorkOrder = ref('no');
@@ -215,10 +322,80 @@ const createServiceOrder = (redirect) => {
             redirect
         };
     }).post('/serviceorders', {
-        preserveScroll: true, onSuccess: () => {
-            form.reset()
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset('selectedAssets', 'selectedTickets');
         }
     });
+};
+
+const createServiceOrderAndPlan = () => {
+    if (canCreateWorkOrder.value !== 'yes') {
+        return;
+    }
+    planningModalOpen.value = true;
+    const transformedData = {
+        ...form.data(),
+        customer_id: form.selectedTickets.length > 0
+            ? form.selectedTickets[0].customer_id
+            : form.selectedAssets[0].customer_id,
+        tickets: form.selectedTickets.map(ticket => ticket.id),
+        assets: form.selectedAssets.map(asset => asset.id),
+        json: true
+    };
+
+    axios.post('/serviceorders', transformedData)
+        .then(response => {
+            if (response.data.id) {
+                eventForm.service_order_id = response.data.id;
+                const now = new Date();
+                eventForm.start_date = now.toISOString().split('T')[0];
+                eventForm.start_time = now.toTimeString().slice(0, 5);
+                now.setHours(now.getHours() + 1);
+                eventForm.end_date = now.toISOString().split('T')[0];
+                eventForm.end_time = now.toTimeString().slice(0, 5);
+                eventForm.executing_user_ids = [usePage().props.auth.user.id];
+                form.reset('selectedAssets', 'selectedTickets');
+            } else {
+                closePlanningModal();
+                usePage().props.flash.error = 'Kon werkbon niet aanmaken.';
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            closePlanningModal();
+            usePage().props.flash.error = 'Er is een fout opgetreden bij het aanmaken van de werkbon.';
+        });
+};
+
+const submitEvent = () => {
+    const eventData = {
+        ...eventForm.data(),
+        eventable_id: eventForm.service_order_id,
+        start: `${eventForm.start_date} ${eventForm.start_time}`,
+        end: `${eventForm.end_date} ${eventForm.end_time}`,
+    };
+
+    axios.post('/api/events', eventData)
+        .then(() => {
+            usePage().props.flash.success = 'Werkbon succesvol ingepland.';
+            eventSuccessfullyCreated.value = true;
+        })
+        .catch(error => {
+            if (error.response && error.response.data && error.response.data.errors) {
+                eventForm.setError(error.response.data.errors);
+            } else {
+                console.error(error);
+                usePage().props.flash.error = 'Er is een onbekende fout opgetreden.';
+            }
+        });
+};
+
+const closePlanningModal = () => {
+    planningModalOpen.value = false;
+    eventSuccessfullyCreated.value = false;
+    eventForm.reset();
+    eventForm.clearErrors();
 };
 
 const getNonPlannedTickets = tickets => {

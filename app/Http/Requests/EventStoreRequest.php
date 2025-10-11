@@ -42,6 +42,8 @@ class EventStoreRequest extends FormRequest
             'end' => 'required|date_format:Y-m-d H:i|after_or_equal:start',
             'eventable_type' => 'nullable|string|in:\\App\\Models\\ServiceOrder',
             'eventable_id' => 'nullable|exists:service_orders,id',
+            'executing_user_ids' => 'required|array|min:1',
+            'executing_user_ids.*' => 'exists:users,id',
         ];
     }
 }
