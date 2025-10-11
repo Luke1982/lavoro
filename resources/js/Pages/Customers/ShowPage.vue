@@ -20,8 +20,14 @@
                         </div>
                     </div>
                     <div class="mt-6 md:mt-0 md:min-w-60 w-full md:w-auto" v-if="canUpdate">
-                        <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
-                            placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer" />
+                        <div class="flex items-end gap-2">
+                            <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
+                                placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer"
+                                class="grow" />
+                            <XCircleIcon v-if="form.billing_customer_id"
+                                class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
@@ -170,7 +176,7 @@
 import '@/Layouts/TwoThirdsOneThird.vue';
 import '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
@@ -225,6 +231,11 @@ const canReadAssets = computed(() => hasPermission('asset.read'))
 
 const updateCustomer = () => {
     form.patch(`/customers/${props.customer.id}`)
+};
+
+const clearBillingCustomer = () => {
+    form.billing_customer_id = null;
+    updateCustomer();
 };
 
 const showUpcoming = ref(true);

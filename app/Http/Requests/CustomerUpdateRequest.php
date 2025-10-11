@@ -19,7 +19,7 @@ class CustomerUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'billing_customer_id' => 'required|exists:customers,id',
+            'billing_customer_id' => 'nullable|exists:customers,id',
         ];
     }
 }
