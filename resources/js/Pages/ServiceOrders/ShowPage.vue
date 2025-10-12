@@ -409,15 +409,18 @@ const props = defineProps({
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
 
-const internalMaterials = props.allMaterials.slice().sort((a, b) =>
-    a.name.localeCompare(b.name)
-).map((material) => {
-    return {
-        id: material.id,
-        name: `${material.name}, code ${material.code}, voorraad ${material.stock}, prijs € ${material.price}`,
-    };
+const internalMaterials = computed(() => {
+    return props.allMaterials.slice().sort((a, b) =>
+        a.name.localeCompare(b.name)
+    ).map((material) => {
+        let label = `${material.name}, code ${material.code}, voorraad ${material.stock}${hasPermission('serviceorder.see_financials') ? ', prijs € ' + material.price : ''}`;
+        return {
+            id: material.id,
+            name: label,
+        };
+    });
 });
-const materialToAdd = ref(internalMaterials[0]?.id || null);
+const materialToAdd = ref(internalMaterials.value[0]?.id || null);
 
 const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     a.product.product_type.name.localeCompare(b.product.product_type.name)
