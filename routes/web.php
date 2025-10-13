@@ -34,7 +34,7 @@ Route::group(
     function () {
         Route::get('/', DashboardController::class);
         Route::resource('customers', CustomerController::class)
-            ->only(['index', 'show', 'update', 'store']);
+            ->only(['index', 'show', 'update', 'store', 'edit']);
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');

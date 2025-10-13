@@ -19,15 +19,64 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-6 md:mt-0 md:min-w-60 w-full md:w-auto" v-if="canUpdate">
-                        <div class="flex items-end gap-2">
-                            <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
-                                placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer"
-                                class="grow" />
-                            <XCircleIcon v-if="form.billing_customer_id"
-                                class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
+                    <div class="flex items-center gap-4 mt-4 md:mt-0">
+                        <div class="md:min-w-60 w-full md:w-auto" v-if="canUpdate">
+                            <div class="flex items-end gap-2">
+                                <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
+                                    placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer"
+                                    class="grow" />
+                                <XCircleIcon v-if="form.billing_customer_id"
+                                    class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
+                            </div>
                         </div>
+                        <Link v-if="canUpdate" :href="`/customers/${customer.id}/edit`" class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
+                            <PencilSquareIcon class="size-6" />
+                        </Link>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+                    <div>
+                        <h2 class="text-base font-semibold dark:text-slate-200">Contactgegevens</h2>
+                        <dl class="mt-2 space-y-1 text-sm text-gray-800 dark:text-slate-300">
+                            <div v-if="customer.contactname">
+                                <dt class="inline font-semibold">Contactpersoon:</dt>
+                                <dd class="inline ml-1">{{ customer.contactname }}</dd>
+                            </div>
+                            <div v-if="customer.phone">
+                                <dt class="inline font-semibold">Telefoon:</dt>
+                                <dd class="inline ml-1">{{ customer.phone }}</dd>
+                            </div>
+                            <div v-if="customer.mobile">
+                                <dt class="inline font-semibold">Mobiel:</dt>
+                                <dd class="inline ml-1">{{ customer.mobile }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-semibold dark:text-slate-200">Financiële Informatie</h2>
+                        <dl class="mt-2 space-y-1 text-sm text-gray-800 dark:text-slate-300">
+                            <div v-if="customer.invoice_email">
+                                <dt class="inline font-semibold">Factuur e-mail:</dt>
+                                <dd class="inline ml-1">{{ customer.invoice_email }}</dd>
+                            </div>
+                            <div v-if="customer.quotes_email">
+                                <dt class="inline font-semibold">Offerte e-mail:</dt>
+                                <dd class="inline ml-1">{{ customer.quotes_email }}</dd>
+                            </div>
+                            <div v-if="customer.iban">
+                                <dt class="inline font-semibold">IBAN:</dt>
+                                <dd class="inline ml-1">{{ customer.iban }}</dd>
+                            </div>
+                            <div v-if="customer.vat_number">
+                                <dt class="inline font-semibold">BTW-nummer:</dt>
+                                <dd class="inline ml-1">{{ customer.vat_number }}</dd>
+                            </div>
+                            <div v-if="customer.chamber_of_commerce_number">
+                                <dt class="inline font-semibold">KvK-nummer:</dt>
+                                <dd class="inline ml-1">{{ customer.chamber_of_commerce_number }}</dd>
+                            </div>
+                        </dl>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
@@ -173,14 +222,12 @@
 </template>
 
 <script setup>
-import '@/Layouts/TwoThirdsOneThird.vue';
-import '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Link } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';

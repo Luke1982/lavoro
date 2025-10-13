@@ -46,6 +46,22 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function edit(CustomerReadRequest $request, Customer $customer)
+    {
+        $allCustomers = Customer::select(
+            'id',
+            DB::raw("CONCAT_WS(' – ', name, city) as name")
+        )
+        ->where('id', '!=', $customer->id)
+        ->orderBy('name')
+        ->get();
+
+        return inertia('Customers/EditPage', [
+            'customer' => $customer,
+            'allCustomers' => $allCustomers,
+        ]);
+    }
+
     /**
      * Display the specified resource.
      */
@@ -117,7 +133,7 @@ class CustomerController extends Controller
     {
         $customer->update($request->validated());
 
-        return redirect()->route('customers.show', $customer)->with('success', 'Facturatieklant ingesteld.');
+        return redirect()->route('customers.show', $customer)->with('success', 'Klant bijgewerkt.');
     }
 
     /**
