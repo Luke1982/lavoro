@@ -32,7 +32,7 @@
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer dark:text-slate-100">
                     {{ asset.product.brand.name }} {{ asset.product.model }}
                 </label>
-                <div v-if="asset.pending_service_jobs.length > 0">
+                <div v-if="asset.pending_service_jobs.length > 0 || asset.has_past_planned_event">
                     <span class="text-xs text-gray-600 dark:text-slate-400">Er zijn nog openstaande keuringen voor
                         deze machine:</span>
                     <span v-for="job in asset.pending_service_jobs" :key="job.id">
@@ -40,10 +40,18 @@
                             :tooltip="`Ga direct naar keuring ${job.id}`" />
                         <span class="text-xs dark:text-slate-300">op</span>
                         <BadgeComponent
-                            :text="`Werkbon ${job.service_order.id} ${job.service_order.events.length > 0 ? ' gepland op ' + nlDate(job.service_order.events[0]?.start) : ''}`"
+                            :text="`Werkbon ${job.service_order.id} ${job.service_order?.coming_events?.length > 0 ? ' gepland op ' + nlDate(job.service_order.coming_events[0]?.start) : ''}`"
                             color="blue" :url="`/serviceorders/${job.service_order.id}`"
                             :tooltip="`Ga direct naar werkbon ${job.service_order.id}`" />
                     </span>
+                    <template v-if="asset.has_past_planned_event">
+                        <span class="text-xs text-gray-600 dark:text-slate-400 block mt-1">Eerder ingepland:</span>
+                        <span v-for="(ev, idx) in asset.earlier_planned_events" :key="idx" class="mr-1">
+                            <BadgeComponent :text="`Werkbon ${ev.service_order_id} op ${nlDate(ev.start)}`" color="red"
+                                :url="`/serviceorders/${ev.service_order_id}`"
+                                :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)" />
+                        </span>
+                    </template>
                 </div>
             </div>
             <div class="col-span-1 xl:hidden"></div>
@@ -57,7 +65,7 @@
                 <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer text-gray-700 dark:text-slate-300">{{
                     nlDate(asset.next_service_date)
-                    }}</label>
+                }}</label>
             </div>
             <div class="col-span-5 xl:col-span-2 flex flex-col mt-5 xl:mt-0">
                 <span class="text-xs font-bold xl:hidden">Soort product</span>
@@ -82,7 +90,8 @@
                         <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
                             ticket.service_order_id }}</Link>, klik
                         <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
-                            class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
+                            class="underline">hier
+                        </Link> om deze te verwijderen van die werkbon, zodat je hem hier
                         kunt koppelen aan een nieuwe.
                     </div>
                 </div>
@@ -103,7 +112,8 @@
                         <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
                             ticket.service_order_id }}</Link>, klik
                         <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
-                            class="underline">hier</Link> om deze te verwijderen van die werkbon, zodat je hem hier
+                            class="underline">hier
+                        </Link> om deze te verwijderen van die werkbon, zodat je hem hier
                         kunt koppelen aan een nieuwe.
                     </div>
                 </div>

@@ -53,16 +53,36 @@ class ActivityListController extends Controller
                     default => $asset->customer->upcomingAssets(),
                 };
 
-                $asset->customer->setRelation(
-                    'upcomingAssets',
-                    $asset_query->with([
-                        'product.brand',
-                        'openTickets',
-                        'pendingTickets',
-                        'product.productType',
-                        'pendingServiceJobs.serviceOrder.events'
-                    ])->get()
-                );
+                $upcoming_assets_for_customer = $asset_query->with([
+                    'product.brand',
+                    'openTickets',
+                    'pendingTickets',
+                    'product.productType',
+                    'pendingServiceJobs.serviceOrder.pastOpenEvents',
+                    'pendingServiceJobs.serviceOrder.comingEvents',
+                ])->get();
+
+                $upcoming_assets_for_customer->each(function ($a) {
+                    $earlier = [];
+                    foreach ($a->pendingServiceJobs as $job) {
+                        $order_id = $job->serviceOrder?->id;
+                        $past_events = $job->serviceOrder?->pastOpenEvents ?? collect();
+                        foreach ($past_events as $ev) {
+                            $start = $ev->start;
+                            $earlier[] = [
+                                'start' => \Carbon\Carbon::parse($start)->toIso8601String(),
+                                'service_order_id' => $order_id,
+                            ];
+                        }
+                    }
+                    usort($earlier, function ($a, $b) {
+                        return strcmp($b['start'], $a['start']);
+                    });
+                    $a->has_past_planned_event = !empty($earlier);
+                    $a->earlier_planned_events = $earlier;
+                });
+
+                $asset->customer->setRelation('upcomingAssets', $upcoming_assets_for_customer);
             }
         }
     }

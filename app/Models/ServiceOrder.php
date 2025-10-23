@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasActivities;
+use Carbon\Carbon;
+use App\Enums\EventStatusses;
 
 class ServiceOrder extends Model
 {
@@ -72,5 +74,20 @@ class ServiceOrder extends Model
     public function events()
     {
         return $this->morphToMany(Event::class, 'eventable');
+    }
+
+    public function pastOpenEvents()
+    {
+        return $this->morphToMany(Event::class, 'eventable')
+            ->where('start', '<', Carbon::now())
+            ->where('status', '!=', EventStatusses::completed->value)
+            ->orderBy('start', 'desc');
+    }
+
+    public function comingEvents()
+    {
+        return $this->morphToMany(Event::class, 'eventable')
+            ->where('start', '>=', Carbon::now())
+            ->orderBy('start', 'asc');
     }
 }
