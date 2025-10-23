@@ -100,25 +100,25 @@ class ServiceOrderController extends Controller
     public function show(string $id)
     {
         return inertia('ServiceOrders/ShowPage', [
-        'serviceOrder' => ServiceOrder::with([
-            'customer.assets.product.brand',
-            'customer.assets.product.productType',
-            'customer.assets.product.images',
-            'servicejobs.asset.product.brand',
-            'customer.tickets.asset.product.brand',
-            'customer.tickets.asset.product.productType',
-            'tickets.asset.product.brand',
-            'tickets.asset.product.productType',
-            'materials',
-            'activities' => function ($q) {
-                $q->orderByDesc('activityables.created_at');
-            },
-            'remarks.user'
-        ])->findOrFail($id),
-        'allMaterials' => Material::all()->load([
-            'category',
-            'usageUnit',
-        ]),
+            'serviceOrder' => ServiceOrder::with([
+                'customer.assets.product.brand',
+                'customer.assets.product.productType',
+                'customer.assets.product.images',
+                'servicejobs.asset.product.brand',
+                'customer.tickets.asset.product.brand',
+                'customer.tickets.asset.product.productType',
+                'tickets.asset.product.brand',
+                'tickets.asset.product.productType',
+                'materials',
+                'activities' => function ($q) {
+                    $q->orderByDesc('activityables.created_at');
+                },
+                'remarks.user',
+                'events.eventType',
+            ])->findOrFail($id),
+            'allMaterials' => Material::all()->load([
+                'usageUnit',
+            ]),
         ]);
     }
 

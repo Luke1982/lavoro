@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -334,9 +334,9 @@
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
-                    v-if="serviceOrder.activities?.length">
+                    v-if="timelineItems.length">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
-                    <TimelineComponent :activities="serviceOrder.activities" />
+                    <TimelineComponent :activities="timelineItems" />
                 </div>
                 <div v-if="hasPermission('serviceorder.export_pdf')
                     || hasPermission('serviceorder.email_pdf')
@@ -611,6 +611,25 @@ const canClose = computed(() => {
     const name = (form.signed_by ?? '').toString().trim();
     const sig = (form.signature_base64 ?? '').toString().trim();
     return name.length > 0 && sig.length > 0;
+});
+
+// Build mixed timeline: activities + linked events
+const timelineItems = computed(() => {
+    const acts = (props.serviceOrder.activities || []).map(a => ({
+        id: `act-${a.id}`,
+        category: a.category || 'other',
+        description: a.description,
+        created_at: a.created_at,
+    }));
+    const evts = (props.serviceOrder.events || []).map(e => ({
+        id: `evt-${e.id}`,
+        category: 'event',
+        rendered: `${e.event_type?.name || 'Afspraak'}${e.name ? ': ' + e.name : ''}`,
+        description: e.description || '',
+        created_at: e.start || e.created_at,
+        color: e.event_type?.color || null,
+    }));
+    return acts.concat(evts).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
 
 </script>

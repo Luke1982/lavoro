@@ -9,7 +9,8 @@
                     <div class="relative flex space-x-3">
                         <div>
                             <span
-                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-400']">
+                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-400']"
+                                :style="event.iconStyle">
                                 <component :is="event.icon" class="size-4 text-white" aria-hidden="true" />
                             </span>
                         </div>
@@ -49,7 +50,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime } from '@/Utilities/Utilities';
 
 const props = defineProps({
@@ -68,6 +69,7 @@ const CATEGORY_MAP = {
     material: { icon: WrenchScrewdriverIcon, bg: 'bg-emerald-600' },
     ticket: { icon: TicketIcon, bg: 'bg-cyan-600' },
     email: { icon: EnvelopeIcon, bg: 'bg-purple-600' },
+    event: { icon: CalendarDaysIcon, bg: 'bg-slate-500' },
     other: { icon: EllipsisHorizontalIcon, bg: 'bg-gray-400' },
 };
 
@@ -94,7 +96,8 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         id: a.id,
         icon: meta.icon,
         iconBackground: meta.bg,
-        rendered: a.description,
+        iconStyle: a.color ? { backgroundColor: a.color } : undefined,
+        rendered: a.rendered ?? a.description,
         date: formatDate(a.created_at),
         datetime: a.created_at
     };
