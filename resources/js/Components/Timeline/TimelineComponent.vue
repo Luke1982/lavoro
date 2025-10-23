@@ -15,8 +15,20 @@
                             </span>
                         </div>
                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-sm text-gray-600 dark:text-gray-400" v-html="event.rendered"></p>
+                                <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
+                                    <div v-for="u in event.executing_users" :key="u.id"
+                                        class="inline-flex items-center gap-1">
+                                        <img v-if="u.avatar" :src="u.avatar" :alt="u.name"
+                                            class="h-4 w-4 rounded-full ring-1 ring-gray-300 object-cover" />
+                                        <span v-else
+                                            class="h-4 w-4 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-gray-300">{{
+                                                initials(u.name) }}</span>
+                                        <span class="text-[11px] leading-none text-gray-600 dark:text-gray-400">{{
+                                            u.name }}</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400">
                                 <time :datetime="event.datetime">{{ event.date }}</time>
@@ -51,7 +63,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
-import { nlDate, nlTime } from '@/Utilities/Utilities';
+import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 
 const props = defineProps({
     activities: { type: Array, required: true }, // array of activity models
@@ -98,10 +110,12 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         iconBackground: meta.bg,
         iconStyle: a.color ? { backgroundColor: a.color } : undefined,
         rendered: a.rendered ?? a.description,
+        executing_users: a.executing_users || [],
         date: formatDate(a.created_at),
         datetime: a.created_at
     };
 }));
 
 const toggle = () => expanded.value = !expanded.value;
+
 </script>

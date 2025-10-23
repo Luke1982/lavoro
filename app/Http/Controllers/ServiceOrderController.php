@@ -115,6 +115,7 @@ class ServiceOrderController extends Controller
                 },
                 'remarks.user',
                 'events.eventType',
+                'events.executingUsers:id,name',
             ])->findOrFail($id),
             'allMaterials' => Material::all()->load([
                 'usageUnit',
