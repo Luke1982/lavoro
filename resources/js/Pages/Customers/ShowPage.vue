@@ -22,16 +22,17 @@
                     <div class="flex items-center gap-4 mt-4 md:mt-0">
                         <div class="md:min-w-60 w-full md:w-auto" v-if="canUpdate">
                             <div class="flex items-end gap-2">
-                                <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
-                                    placeholder="Kies naar welke klant de factuur moet" @update:modelValue="updateCustomer"
-                                    class="grow" />
+                                <ComboBox :options="allCustomers" v-model="form.billing_customer_id"
+                                    label="Factuurklant" placeholder="Kies naar welke klant de factuur moet"
+                                    @update:modelValue="updateCustomer" class="grow" />
                                 <XCircleIcon v-if="form.billing_customer_id"
                                     class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
                                     @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
                             </div>
                         </div>
-                        <Link v-if="canUpdate" :href="`/customers/${customer.id}/edit`" class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
-                            <PencilSquareIcon class="size-6" />
+                        <Link v-if="canUpdate" :href="`/customers/${customer.id}/edit`"
+                            class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
+                        <PencilSquareIcon class="size-6" />
                         </Link>
                     </div>
                 </div>
@@ -85,13 +86,13 @@
                             Bezoekadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
                             customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
                             Postadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                            }}<br>{{
+                        }}<br>{{
                                 customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>

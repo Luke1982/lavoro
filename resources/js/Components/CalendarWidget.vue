@@ -140,7 +140,7 @@ import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { formatLocalDateAsISO, hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
+import { formatLocalDateAsISO, hasPermission, nlDate, nlTime, initials } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 
 const props = defineProps({
@@ -154,10 +154,6 @@ const props = defineProps({
 })
 
 const page = usePage()
-const initials = (name = '') => {
-    const parts = String(name).trim().split(/\s+/).filter(Boolean)
-    return parts.slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'US'
-}
 
 const calendar = ref(null)
 const modalOpen = ref(false)

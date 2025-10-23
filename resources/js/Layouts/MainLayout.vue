@@ -132,7 +132,7 @@
                                                 <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                     class="object-cover w-full h-full" />
                                                 <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                             <span class="sr-only">Profiel</span>
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -316,13 +316,13 @@ import {
     ArrowRightOnRectangleIcon
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
-import { hasPermission } from '@/Utilities/Utilities'
+import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
-const initials = computed(() => authUser.value?.name ? authUser.value.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '')
+const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)
 

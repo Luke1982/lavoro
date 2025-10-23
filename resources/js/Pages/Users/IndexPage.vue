@@ -40,9 +40,9 @@
 </template>
 <script setup>
 import { router, Link } from '@inertiajs/vue3'
+import { initials } from '@/Utilities/Utilities'
 
 defineProps({ users: Object })
 
-const initials = (name) => name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
 const go = (url) => router.visit(url)
 </script>
