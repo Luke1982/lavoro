@@ -72,6 +72,7 @@ class ActivityListController extends Controller
                             $earlier[] = [
                                 'start' => \Carbon\Carbon::parse($start)->toIso8601String(),
                                 'service_order_id' => $order_id,
+                                'event_id' => $ev->id,
                             ];
                         }
                     }

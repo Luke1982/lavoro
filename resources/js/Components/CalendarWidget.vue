@@ -135,7 +135,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import nlLocale from '@fullcalendar/core/locales/nl'
 import timeGridPlugin from '@fullcalendar/timegrid'
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
@@ -159,6 +159,8 @@ const calendar = ref(null)
 const modalOpen = ref(false)
 const editingExistingEvent = ref(false)
 const selectedCustomer = ref(props.allCustomers[0]?.id || null)
+const highlightEventId = ref(null)
+const highlightScrolled = ref(false)
 
 const form = useForm({
     event_type_id: props.eventTypes[0]?.id || '',
@@ -197,8 +199,21 @@ watch(selectedCustomer, () => {
     }
 })
 
-onMounted(() => {
+onMounted(async () => {
     form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
+    const params = new URLSearchParams(window.location.search)
+    const gd = params.get('gotodate')
+    const he = params.get('highlightevent')
+    if (he) {
+        highlightEventId.value = String(he)
+    }
+    if (gd) {
+        const d = new Date(gd)
+        if (!isNaN(d.getTime())) {
+            await nextTick()
+            calendar.value?.getApi()?.gotoDate(d)
+        }
+    }
 })
 
 const getView = () => {
@@ -430,6 +445,21 @@ const calendarOptions = ref({
     eventClick: onEventClick,
     height: props.height,
     locale: nlLocale,
+    eventDidMount: (info) => {
+        if (highlightEventId.value && String(info.event.id) === String(highlightEventId.value)) {
+            const el = info.el
+            el.classList.add('animate-pulse-highlight')
+            if (!highlightScrolled.value) {
+                highlightScrolled.value = true
+                setTimeout(() => {
+                    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }) } catch { /* no-op */ }
+                }, 100)
+            }
+            setTimeout(() => {
+                el.classList.remove('animate-pulse-highlight')
+            }, 4500)
+        }
+    },
     businessHours: {
         daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
         startTime: '08:00',
@@ -447,6 +477,44 @@ const calendarOptions = ref({
 }
 </style>
 <style>
+@keyframes cal-pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.75);
+    }
+
+    70% {
+        box-shadow: 0 0 0 14px rgba(37, 99, 235, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    }
+}
+
+@keyframes cal-pulse-ring-dark {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.85);
+    }
+
+    70% {
+        box-shadow: 0 0 0 14px rgba(255, 255, 255, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
+.animate-pulse-highlight {
+    animation: cal-pulse-ring 1.2s ease-out 4;
+    border-radius: 0.5rem;
+    background-color: rgba(59, 130, 246, 0.08);
+    outline: 2px solid rgba(59, 130, 246, 0.35);
+    outline-offset: 0px;
+    position: relative;
+    z-index: 5;
+}
+
 @media screen and (max-width: 1024px) {
     .fc-header-toolbar {
         flex-direction: column !important;
@@ -474,6 +542,12 @@ const calendarOptions = ref({
 
     .fc .fc-list-event:hover td {
         background-color: #334155;
+    }
+
+    .animate-pulse-highlight {
+        animation: cal-pulse-ring-dark 1.2s ease-out 4;
+        background-color: rgba(255, 255, 255, 0.12);
+        outline: 2px solid rgba(255, 255, 255, 0.35);
     }
 }
 </style>
