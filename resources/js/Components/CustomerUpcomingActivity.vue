@@ -47,9 +47,9 @@
                     <template v-if="asset.has_past_planned_event">
                         <span class="text-xs text-gray-600 dark:text-slate-400 block mt-1">Eerder ingepland:</span>
                         <span v-for="(ev, idx) in asset.earlier_planned_events" :key="idx" class="mr-1">
-                                <BadgeComponent :text="`Werkbon ${ev.service_order_id} op ${nlDate(ev.start)}`" color="red"
-                                    :url="`/events?gotodate=${encodeURIComponent((typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start)}&highlightevent=${encodeURIComponent(ev.event_id ?? '')}`"
-                                    :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)" />
+                            <BadgeComponent :text="`Werkbon ${ev.service_order_id} op ${nlDate(ev.start)}`" color="red"
+                                :url="`/events?gotodate=${encodeURIComponent((typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start)}&highlightevent=${encodeURIComponent(ev.event_id ?? '')}`"
+                                :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)" />
                         </span>
                     </template>
                 </div>
@@ -65,7 +65,7 @@
                 <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer text-gray-700 dark:text-slate-300">{{
                     nlDate(asset.next_service_date)
-                    }}</label>
+                }}</label>
             </div>
             <div class="col-span-5 xl:col-span-2 flex flex-col mt-5 xl:mt-0">
                 <span class="text-xs font-bold xl:hidden">Soort product</span>
