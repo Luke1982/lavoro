@@ -26,17 +26,18 @@
         </div>
         </Link>
         <div class="absolute top-2 right-2 flex items-center space-x-2">
-            <CheckIcon v-if="ticket.status.toLowerCase() !== 'gesloten'"
+            <CheckIcon v-if="ticket.status.toLowerCase() !== 'gesloten' && hasPermission('ticket.change_status')"
                 class="w-5 h-5 text-green-500 dark:text-green-400 cursor-pointer"
                 @click.stop="setTicketStatusTo('Gesloten')" v-tooltip="'Wijzig de status naar \'Gesloten\''" />
-            <ClockIcon v-if="ticket.status.toLowerCase() !== 'in behandeling'"
+            <ClockIcon v-if="ticket.status.toLowerCase() !== 'in behandeling' && hasPermission('ticket.change_status')"
                 class="w-5 h-5 text-blue-500 dark:text-blue-400 cursor-pointer"
                 @click.stop="setTicketStatusTo('In behandeling')"
                 v-tooltip="'Wijzig de status naar \'In behandeling\''" />
-            <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open'"
+            <NoSymbolIcon v-if="ticket.status.toLowerCase() !== 'open' && hasPermission('ticket.change_status')"
                 class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer" @click.stop="setTicketStatusTo('Open')"
                 v-tooltip="'Wijzig de status naar \'Open\''" />
-            <TrashIcon v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined"
+            <TrashIcon
+                v-if="disconnect === null && modes.find(m => m === 'nodelete') === undefined && hasPermission('ticket.delete')"
                 class="w-5 h-5 text-gray-500 dark:text-slate-400 cursor-pointer" @click.stop="deleteTicket"
                 v-tooltip="'Verwijder de storing'" />
             <LinkSlashIcon v-if="disconnect !== null && hasPermission('ticket.detach_from_serviceorder')"
@@ -44,11 +45,12 @@
                 v-tooltip="'Verwijder de storing van deze werkbon'" />
         </div>
         <div class="absolute bottom-2 left-2 w-20">
-            <ChevronDownIcon v-if="ticket.priority.toLowerCase() !== ticketPriorities[0].id.toLowerCase()"
+            <ChevronDownIcon
+                v-if="ticket.priority.toLowerCase() !== ticketPriorities[0].id.toLowerCase() && hasPermission('ticket.alter_priority')"
                 class="w-5 h-5 text-gray-500 cursor-pointer absolute left-0 bottom-0"
                 v-tooltip="'Verlaag de prioriteit'" @click.stop="alterTicketPrio('down')" />
             <ChevronUpIcon
-                v-if="ticket.priority.toLowerCase() !== ticketPriorities[ticketPriorities.length - 1].id.toLowerCase()"
+                v-if="ticket.priority.toLowerCase() !== ticketPriorities[ticketPriorities.length - 1].id.toLowerCase() && hasPermission('ticket.alter_priority')"
                 class="w-5 h-5 text-gray-500 cursor-pointer absolute right-0 bottom-0"
                 v-tooltip="'Verhoog de prioriteit'" @click.stop="alterTicketPrio('up')" />
         </div>
@@ -133,7 +135,11 @@ const removeTicketLink = () => {
 
 const setTicketStatusTo = (status) => {
     form.status = status;
-    form.put(`/tickets/${props.ticket.id}`, {
+    form.transform(data => {
+        return {
+            status: data.status,
+        };
+    }).put(`/tickets/${props.ticket.id}`, {
         preserveScroll: true,
     });
 }
@@ -145,7 +151,11 @@ const alterTicketPrio = (dir) => {
 
     const newIndex = dir === 'up' ? idx + 1 : idx - 1;
     form.priority = ticketPriorities[newIndex].id;
-    form.put(`/tickets/${props.ticket.id}`, {
+    form.transform(data => {
+        return {
+            priority: data.priority,
+        };
+    }).put(`/tickets/${props.ticket.id}`, {
         preserveScroll: true,
     });
 }

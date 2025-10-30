@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
@@ -45,27 +46,33 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function edit(CustomerReadRequest $request, Customer $customer)
+    {
+        $allCustomers = Customer::select(
+            'id',
+            DB::raw("CONCAT_WS(' – ', name, city) as name")
+        )
+        ->where('id', '!=', $customer->id)
+        ->orderBy('name')
+        ->get();
+
+        return inertia('Customers/EditPage', [
+            'customer' => $customer,
+            'allCustomers' => $allCustomers,
+        ]);
+    }
+
     /**
      * Display the specified resource.
      */
     public function show(CustomerReadRequest $request, Customer $customer)
     {
         $customer->load([
-            'upcomingAssets.product.brand',
-            'upcomingAssets.product.productType',
-            'upcomingAssets.openTickets',
-            'upcomingAssets.pendingTickets',
-            'upcomingAssets.closedTickets',
-            'nonUpcomingAssets.product.brand',
-            'nonUpcomingAssets.product.productType',
-            'nonUpcomingAssets.openTickets',
-            'nonUpcomingAssets.pendingTickets',
-            'nonUpcomingAssets.closedTickets',
-            'overdueAssets.product.brand',
-            'overdueAssets.product.productType',
-            'overdueAssets.openTickets',
-            'overdueAssets.pendingTickets',
-            'overdueAssets.closedTickets',
+            'activeAssets.product.brand',
+            'activeAssets.product.productType',
+            'activeAssets.openTickets',
+            'activeAssets.pendingTickets',
+            'activeAssets.closedTickets',
             'openTickets',
             'pendingTickets',
             'closedTickets',
@@ -87,10 +94,6 @@ class CustomerController extends Controller
             }
         }
 
-        $upcomingByType = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
-        $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
-        $overdueByType = $customer->overdueAssets->groupBy('product.productType.name')->sortKeys();
-
         $allCustomers = Customer::select(
             'id',
             DB::raw("CONCAT_WS(' – ', name, city) as name")
@@ -98,12 +101,12 @@ class CustomerController extends Controller
         ->orderBy('name')
         ->get();
 
+        $allProducts = Product::with(['brand', 'productType'])->orderBy('model')->get();
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
-            'upcomingAssetsByType' => $upcomingByType,
-            'nonUpcomingAssetsByType' => $nonUpcomingByType,
-            'overdueAssetsByType' => $overdueByType,
+            'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
+            'allProducts' => $allProducts,
         ]);
     }
 
@@ -114,7 +117,7 @@ class CustomerController extends Controller
     {
         $customer->update($request->validated());
 
-        return redirect()->route('customers.show', $customer)->with('success', 'Facturatieklant ingesteld.');
+        return redirect()->route('customers.show', $customer)->with('success', 'Klant bijgewerkt.');
     }
 
     /**

@@ -1,0 +1,98 @@
+[
+    {
+        "name": "Standaard schroef 4.5x50",
+        "description": "Verzinkte schroef voor algemeen gebruik.",
+        "code": "SCH-4550",
+        "vendor_code": "V-12345",
+        "price": 0.15,
+        "cost_price": 0.05,
+        "usage_unit": "Stuk",
+        "divisable": false,
+        "is_service": false,
+        "stock": 1000
+    },
+    {
+        "name": "HDMI Kabel 2m",
+        "description": "Hoge snelheid HDMI kabel met ethernet.",
+        "code": "HDMI-2M",
+        "vendor_code": "V-67890",
+        "price": 12.99,
+        "cost_price": 5.50,
+        "usage_unit": "Stuk",
+        "divisable": false,
+        "is_service": false,
+        "stock": 150
+    },
+    {
+        "name": "Koelpasta",
+        "description": "Thermische pasta voor CPU's.",
+        "code": "KOEL-P",
+        "vendor_code": "V-10112",
+        "price": 8.75,
+        "cost_price": 3.20,
+        "usage_unit": "Stuk",
+        "divisable": true,
+        "is_service": false,
+        "stock": 200
+    },
+    {
+        "name": "Installatiekosten",
+        "description": "Arbeidskosten voor installatie.",
+        "code": "ARB-INST",
+        "vendor_code": null,
+        "price": 75.00,
+        "cost_price": 25.00,
+        "usage_unit": "Uur",
+        "divisable": true,
+        "is_service": true,
+        "stock": 0
+    },
+    {
+        "name": "Onderhoudscontract",
+        "description": "Jaarlijks onderhoudscontract.",
+        "code": "SRV-MAIN",
+        "vendor_code": null,
+        "price": 350.00,
+        "cost_price": 100.00,
+        "usage_unit": "Stuk",
+        "divisable": false,
+        "is_service": true,
+        "stock": 0
+    },
+    {
+        "name": "UTP Kabel Cat6",
+        "description": "Netwerkkabel per meter.",
+        "code": "UTP-C6",
+        "vendor_code": "V-13141",
+        "price": 1.20,
+        "cost_price": 0.40,
+        "usage_unit": "Meter",
+        "divisable": true,
+        "is_service": false,
+        "stock": 500
+    },
+    {
+        "name": "Reinigingsvloeistof",
+        "description": "Speciale vloeistof voor het reinigen van contacten.",
+        "code": "REIN-VL",
+        "vendor_code": "V-15161",
+        "price": 25.00,
+        "cost_price": 10.00,
+        "usage_unit": "Liter",
+        "divisable": true,
+        "is_service": false,
+        "stock": 50
+    },
+    {
+        "name": "Zekering 10A",
+        "description": "Standaard 10 Ampere zekering.",
+        "code": "ZEK-10A",
+        "vendor_code": "V-17181",
+        "price": 2.50,
+        "cost_price": 0.75,
+        "usage_unit": "Doos",
+        "divisable": false,
+        "is_service": false,
+        "stock": 300
+    }
+]

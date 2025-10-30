@@ -47,6 +47,11 @@ class Product extends Model
             ->withTimestamps();
     }
 
+    public function documents()
+    {
+        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
+    }
+
     public function assets()
     {
         return $this->hasMany(Asset::class);

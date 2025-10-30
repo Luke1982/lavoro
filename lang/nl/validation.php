@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     // Standaard validatieberichten
     'accepted' => ':Attribute moet geaccepteerd worden.',
     'accepted_if' => ':Attribute moet geaccepteerd worden wanneer :other :value is.',
@@ -157,7 +156,11 @@ return [
 
     // Aangepaste placeholders (optioneel voorbeeld)
     'custom' => [
-        // 'email.required' => 'We hebben een e-mailadres nodig om verder te gaan.',
+        'executing_user_ids' => [
+            'required' => 'Selecteer ten minste één uitvoerende gebruiker.',
+            'array' => 'Selecteer ten minste één uitvoerende gebruiker.',
+            'min' => 'Selecteer ten minste één uitvoerende gebruiker.',
+        ],
     ],
 
     // Attribuutnamen (vriendelijke benamingen)
@@ -198,30 +201,6 @@ return [
         'start_sell' => 'start verkoop',
         'end_sell' => 'einde verkoop',
         'origin' => 'herkomst',
-        'typical_certificate_days' => 'typische certificaatdagen',
-        'content' => 'inhoud',
-        'remarkable_type' => 'type opmerking',
-        'remarkable_id' => 'ID opmerking',
-        'user_id' => 'gebruiker',
-        'product_type_ids' => 'producttype(s)',
-        'product_type_ids.*' => 'producttype',
-        'service_check_group_id' => 'servicecheckgroep',
-        'type' => 'type',
-        'order' => 'volgorde',
-        'value' => 'waarde',
-        'service_check_id' => 'servicecheck',
-        'service_order_id' => 'werkbon',
-        'asset_id' => 'asset',
-        'outcome' => 'resultaat',
-        'days_temporary_approval' => 'dagen tijdelijke goedkeuring',
-        'completed_on' => 'voltooid op',
-        'closed_on' => 'gesloten op',
-        'signed_by' => 'ondertekend door',
-        'signature_base64' => 'handtekening',
-        'email' => 'e-mailadres',
-        'password' => 'wachtwoord',
-        'subject' => 'onderwerp',
-        'priority' => 'prioriteit',
+        'executing_user_ids' => 'uitvoerende gebruikers',
     ],
-
 ];

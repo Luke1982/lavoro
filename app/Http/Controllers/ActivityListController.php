@@ -6,51 +6,120 @@ use App\Enums\AssetStatusses;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Http\Requests\ActivityListReadRequest;
+use App\Models\EventType;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class ActivityListController extends Controller
 {
     public function getUpcomingActivities(ActivityListReadRequest $request)
     {
         $days = (int)$request->input('days', 60);
-        $upcoming_assets = Asset::where('next_service_date', '<', now()->addDays($days))
-            ->where('status', '!=', AssetStatusses::inactive->value)
-            ->with(['customer' ])
+
+        $upcoming_assets = $this->getAssetsForListView($this->getUpcomingAssetsQuery($days));
+        $expired_assets = $this->getAssetsForListView($this->getExpiredAssetsQuery());
+
+        $this->prepareAssetData($upcoming_assets, $days, 'upcoming');
+        $this->prepareAssetData($expired_assets, $days, 'expired');
+
+        return inertia('ActivityList/UpcomingActivities', [
+            'upcomingAssets' => $upcoming_assets,
+            'expiredAssets' => $expired_assets,
+            'eventTypes' => EventType::all(),
+            'allUsers' => User::all(['id', 'name']),
+        ]);
+    }
+
+    private function getAssetsForListView(Builder $query)
+    {
+        return $query
+            ->with(['customer'])
             ->orderBy('next_service_date')
             ->get()
             ->unique(fn ($asset) => $asset->customer?->id)
             ->values();
+    }
 
-        foreach ($upcoming_assets as $asset) {
+    private function prepareAssetData($assets, int $days, string $type)
+    {
+        foreach ($assets as $asset) {
             if ($asset->customer) {
                 $asset->customer->upcoming_asset_days = $days;
-                $asset->customer->setRelation(
-                    'upcomingAssets',
-                    $asset->customer->upcomingAssets()->with([
-                        'product.brand',
-                        'openTickets',
-                        'pendingTickets',
-                        'product.productType',
-                        'pendingServiceJobs.serviceOrder.events'
-                    ])->get()
-                );
+
+                $asset_query = match ($type) {
+                    'upcoming' => $asset->customer->upcomingAssets(),
+                    'expired' => $asset->customer->expiredAssets(),
+                    default => $asset->customer->upcomingAssets(),
+                };
+
+                $upcoming_assets_for_customer = $asset_query->with([
+                    'product.brand',
+                    'openTickets',
+                    'pendingTickets',
+                    'product.productType',
+                    'pendingServiceJobs.serviceOrder.pastOpenEvents',
+                    'pendingServiceJobs.serviceOrder.comingEvents',
+                ])->get();
+
+                $upcoming_assets_for_customer->each(function ($a) {
+                    $earlier = [];
+                    foreach ($a->pendingServiceJobs as $job) {
+                        $order_id = $job->serviceOrder?->id;
+                        $past_events = $job->serviceOrder?->pastOpenEvents ?? collect();
+                        foreach ($past_events as $ev) {
+                            $start = $ev->start;
+                            $earlier[] = [
+                                'start' => \Carbon\Carbon::parse($start)->toIso8601String(),
+                                'service_order_id' => $order_id,
+                                'event_id' => $ev->id,
+                            ];
+                        }
+                    }
+                    usort($earlier, function ($a, $b) {
+                        return strcmp($b['start'], $a['start']);
+                    });
+                    $a->has_past_planned_event = !empty($earlier);
+                    $a->earlier_planned_events = $earlier;
+                });
+
+                $asset->customer->setRelation('upcomingAssets', $upcoming_assets_for_customer);
             }
         }
+    }
 
-        return inertia('ActivityList/UpcomingActivities', [
-            'upcomingAssets' => $upcoming_assets,
-        ]);
+    private function getUpcomingAssetsQuery(int $days)
+    {
+        return Asset::upcomingAndUnplanned($days);
+    }
+
+    private function getExpiredAssetsQuery()
+    {
+        return Asset::expired();
     }
 
     public function map(ActivityListReadRequest $request)
     {
-        $customers = Customer::with(['assets' => function ($q) {
+        $days = (int)$request->input('days', 60);
+
+        $upcoming_customer_ids = $this->getUpcomingAssetsQuery($days)
+            ->whereNotNull('customer_id')
+            ->pluck('customer_id');
+
+        $expired_customer_ids = $this->getExpiredAssetsQuery()
+            ->whereNotNull('customer_id')
+            ->pluck('customer_id');
+
+        $customer_ids = $upcoming_customer_ids->merge($expired_customer_ids)->unique();
+
+        $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
               ->with(['product.productType']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 
         $now = Carbon::now();
-        $customers->transform(function ($c) use ($now) {
+        $customers->transform(function ($c) use ($now, $expired_customer_ids) {
+            $c->has_expired_assets = $expired_customer_ids->contains($c->id);
             $eligible = $c->assets->filter(
                 fn($a) => $a->next_service_date &&
                     $a->status !== AssetStatusses::inactive->value

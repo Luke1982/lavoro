@@ -8,7 +8,40 @@
             add-button-label="Voeg bedrijf toe" submit-label="Toevoegen" enctype="multipart/form-data" />
     </div>
     <BoxComponent padding="px-0 py-0">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/60">
+        <div class="block lg:hidden">
+            <ul>
+                <li v-for="company in companies" :key="company.id"
+                    class="border-b border-gray-200 dark:border-slate-800/60 p-4">
+                    <div class="flex items-center gap-3">
+                        <img v-if="company.logo_path" :src="`/storage/${company.logo_path}`"
+                            class="h-10 w-10 object-contain rounded" />
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900 dark:text-slate-100">{{ company.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-slate-400">{{ company.address_line1 }}</div>
+                            <div v-if="company.address_line2" class="text-xs text-gray-400 dark:text-slate-500">{{
+                                company.address_line2 }}</div>
+                            <div class="text-xs text-gray-500 dark:text-slate-400">{{ company.postal_code }} {{
+                                company.city }}, {{ company.country }}</div>
+                            <span v-if="company.is_main"
+                                class="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-2.5 py-0.5 text-xs font-medium mt-1">Hoofd</span>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button type="button" @click="edit(company)"
+                                class="p-2 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100">
+                                <PencilSquareIcon class="w-4 h-4" />
+                            </button>
+                            <button type="button" @click="deleteCompany(company)"
+                                class="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                <TrashIcon class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </li>
+                <li v-if="companies.length === 0" class="py-4 text-center text-gray-500 dark:text-slate-400">Geen
+                    bedrijven gevonden.</li>
+            </ul>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/60 hidden lg:table">
             <thead class="bg-gray-50 dark:bg-slate-800">
                 <tr>
                     <th

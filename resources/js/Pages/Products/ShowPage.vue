@@ -52,48 +52,21 @@
                         <EditableTextField v-model="form.typical_certificate_days" type="input" input-type="number" />
                     </div>
                 </div>
-                <div class="flex items-center py-3 border-t border-gray-200 mt-5">
-                    <PuzzlePieceIcon class="size-6 text-gray-500" />
-                    <h3 class="text-sm font-medium ml-2">Machines</h3>
+                <div v-if="hasPermission('asset.read') && product.assets.length > 0">
+                    <div class="flex items-center py-3 border-t border-gray-200 mt-5">
+                        <PuzzlePieceIcon class="size-6 text-gray-500" />
+                        <h3 class="text-sm font-medium ml-2">Machines</h3>
+                    </div>
+                    <AssetListComponent :assets="product.assets" />
                 </div>
-                <AssetListComponent :assets="product.assets" />
             </BoxComponent>
         </template>
         <template #sidebar>
             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                 imageable-type="\App\Models\Product" />
-            <BoxComponent class="mt-4">
-                <div class="flex items-center mb-3">
-                    <PuzzlePieceIcon class="size-6 text-gray-500 mr-2" />
-                    <h3 class="text-sm font-semibold">Nieuwe machine voor dit product</h3>
-                </div>
-                <div class="grid grid-cols-1 gap-3">
-                    <ComboBox :options="allCustomers" v-model="assetForm.customer_id" placeholder="Selecteer klant" />
-                    <p v-if="assetForm.errors.customer_id" class="text-xs text-red-600">{{ assetForm.errors.customer_id
-                        }}</p>
-
-                    <TextInput v-model="assetForm.serial_number" placeholder="Serienummer"
-                        :class="assetForm.errors.serial_number ? 'border-red-500' : ''" />
-                    <p v-if="assetForm.errors.serial_number" class="text-xs text-red-600">{{
-                        assetForm.errors.serial_number }}</p>
-
-                    <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
-                        :class="assetForm.errors.next_service_date ? 'border-red-500' : ''" />
-                    <p v-if="assetForm.errors.next_service_date" class="text-xs text-red-600">{{
-                        assetForm.errors.next_service_date }}</p>
-
-                    <div class="flex items-center gap-2">
-                        <SwitchComponent v-model="assetForm.is_active" />
-                        <label class="text-sm">Actief</label>
-                    </div>
-                    <p v-if="assetForm.errors.is_active" class="text-xs text-red-600">{{ assetForm.errors.is_active }}
-                    </p>
-                    <button @click="createAsset"
-                        class="px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
-                        Machine toevoegen
-                    </button>
-                </div>
-            </BoxComponent>
+            <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
+                documentable-type="\App\Models\Product" class="mt-4" />
+            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')" />
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -102,14 +75,14 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import ComboBox from '@/Components/UI/ComboBox.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
-import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
+import AddAssetForm from '@/Components/AddAssetForm.vue';
+import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     product: {
@@ -146,15 +119,4 @@ const currentIcon = computed(() =>
     editing.value ? CheckCircleIcon : PencilSquareIcon
 );
 
-const assetForm = useForm({
-    product_id: props.product.id,
-    customer_id: props.product.assets[0]?.customer?.id ?? null,
-    serial_number: '',
-    next_service_date: null,
-    is_active: true,
-});
-
-const createAsset = () => {
-    assetForm.post('/assets', { preserveScroll: true });
-};
 </script>

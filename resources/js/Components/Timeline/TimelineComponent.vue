@@ -9,15 +9,34 @@
                     <div class="relative flex space-x-3">
                         <div>
                             <span
-                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-400']">
+                                :class="[event.iconBackground, 'flex size-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-400']"
+                                :style="event.iconStyle">
                                 <component :is="event.icon" class="size-4 text-white" aria-hidden="true" />
                             </span>
                         </div>
                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                            <div>
-                                <p class="text-sm text-gray-600 dark:text-gray-400" v-html="event.rendered"></p>
+                            <div class="min-w-0">
+                                <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                    <span v-html="event.rendered"></span>
+                                </div>
+                                <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
+                                    <div v-for="u in event.executing_users" :key="u.id"
+                                        class="inline-flex items-center gap-1">
+                                        <img v-if="u.avatar" :src="u.avatar" :alt="u.name"
+                                            class="h-4 w-4 rounded-full ring-1 ring-gray-300 object-cover" />
+                                        <span v-else
+                                            class="h-4 w-4 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-gray-300">{{
+                                                initials(u.name) }}</span>
+                                        <span class="text-[11px] leading-none text-gray-600 dark:text-gray-400">{{
+                                            u.name }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400">
+                            <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400 relative">
+                                <span class="absolute right-0 top-5">
+                                    <ClockIcon v-if="event.is_event && !event.completed" class="size-4 text-blue-500" />
+                                    <CheckIcon v-if="event.is_event && event.completed" class="size-4 text-green-600" />
+                                </span>
                                 <time :datetime="event.datetime">{{ event.date }}</time>
                             </div>
                         </div>
@@ -49,8 +68,8 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
-import { nlDate, nlTime } from '@/Utilities/Utilities';
+import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 
 const props = defineProps({
     activities: { type: Array, required: true }, // array of activity models
@@ -68,6 +87,7 @@ const CATEGORY_MAP = {
     material: { icon: WrenchScrewdriverIcon, bg: 'bg-emerald-600' },
     ticket: { icon: TicketIcon, bg: 'bg-cyan-600' },
     email: { icon: EnvelopeIcon, bg: 'bg-purple-600' },
+    event: { icon: CalendarDaysIcon, bg: 'bg-slate-500' },
     other: { icon: EllipsisHorizontalIcon, bg: 'bg-gray-400' },
 };
 
@@ -94,11 +114,16 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         id: a.id,
         icon: meta.icon,
         iconBackground: meta.bg,
-        rendered: a.description,
+        iconStyle: a.color ? { backgroundColor: a.color } : undefined,
+        rendered: a.rendered ?? a.description,
+        executing_users: a.executing_users || [],
+        is_event: a.category === 'event',
+        completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),
-        datetime: a.created_at
+        datetime: a.created_at,
     };
 }));
 
 const toggle = () => expanded.value = !expanded.value;
+
 </script>

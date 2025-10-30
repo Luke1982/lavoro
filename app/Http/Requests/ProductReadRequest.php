@@ -2,8 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Product index & show authorization.
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
+ * @method User user()
+ * @method Product route(string $key = null)
  * @method bool filled(string $key)
  * @method mixed get(string $key, $default = null)
  * @method array all($keys = null)
@@ -23,8 +26,7 @@ class ProductReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('product.read'));
+        return $this->user()->can('view', $this->route('product'));
     }
 
     public function rules(): array

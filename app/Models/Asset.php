@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\AssetStatusses;
+use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Asset extends Model
 {
@@ -18,6 +20,28 @@ class Asset extends Model
         'next_service_date',
         'status',
     ];
+
+    public function scopeUpcomingAndUnplanned($query, int $days = 60)
+    {
+        return $query->whereBetween('next_service_date', [now(), now()->addDays($days)])
+            ->where('status', '!=', AssetStatusses::inactive->value)
+            ->whereDoesntHave('servicejobs', function ($query) {
+                $query->whereNull('completed_on')
+                    ->whereHas('serviceOrder', function ($query) {
+                        $query->where('status', '!=', 'closed')
+                            ->whereHas('events', function ($query) {
+                                $query->where('status', '!=', EventStatusses::completed->value)
+                                    ->where('start', '>', now());
+                            });
+                    });
+            });
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('next_service_date', '<', now())
+            ->where('status', '!=', AssetStatusses::inactive->value);
+    }
 
     public function product()
     {

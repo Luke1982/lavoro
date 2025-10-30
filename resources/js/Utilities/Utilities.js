@@ -85,3 +85,14 @@ export const serviceOrderPillColorClasses = (order) => {
             return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600";
     }
 };
+
+export const initials = (name = "") => {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    return (
+        parts
+            .slice(0, 2)
+            .map((p) => p[0])
+            .join("")
+            .toUpperCase() || "US"
+    );
+};

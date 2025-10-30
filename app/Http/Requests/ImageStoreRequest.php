@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Image;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * @property int                   $imageable_id    ID of the model to attach images to
  * @property string                $imageable_type  FQN of the model (e.g. App\Models\Post)
  * @property string[]|null         $titles          Optional titles, keyed by original filename
+ * @method \App\Models\User|null user(string $guard = null)
  */
 class ImageStoreRequest extends FormRequest
 {
@@ -22,7 +24,7 @@ class ImageStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('create', Image::class);
     }
 
     /**

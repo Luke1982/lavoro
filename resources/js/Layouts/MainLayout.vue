@@ -103,21 +103,21 @@
 
                                         <li class="-mx-6 mt-auto">
                                             <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
-                                                <Link :href="'/companies'" :class="[
+                                                <Link :href="'/companies'" @click="sidebarOpen = false" :class="[
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                                 Bedrijf
                                                 </Link>
-                                                <Link :href="'\/users'" :class="[
+                                                <Link @click="sidebarOpen = false" :href="'/users'" :class="[
                                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                 <UsersIcon class="size-6 shrink-0" />
                                                 Gebruikers
                                                 </Link>
-                                                <Link :href="'/roles'" :class="[
+                                                <Link @click="sidebarOpen = false" :href="'/roles'" :class="[
                                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
@@ -125,7 +125,7 @@
                                                 Rollen
                                                 </Link>
                                             </div>
-                                            <Link :href="'/me/edit'"
+                                            <Link @click="sidebarOpen = false" :href="'/me/edit'"
                                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                                             <div
                                                 class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -138,11 +138,11 @@
                                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                                             </Link>
                                             <div class="px-6 pb-4">
-                                                <Link href="/logout" as="button"
+                                                <button @click="logout"
                                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                <ArrowRightOnRectangleIcon class="size-5" />
-                                                Uitloggen
-                                                </Link>
+                                                    <ArrowRightOnRectangleIcon class="size-5" />
+                                                    Uitloggen
+                                                </button>
                                             </div>
                                         </li>
                                     </ul>
@@ -227,7 +227,7 @@
                                 <BuildingOffice2Icon class="size-6 shrink-0" />
                                 Bedrijf
                                 </Link>
-                                <Link :href="'\/users'" :class="[
+                                <Link :href="'/users'" :class="[
                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
@@ -254,11 +254,11 @@
                             <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                             </Link>
                             <div class="px-6 pb-6">
-                                <Link href="/logout" as="button"
+                                <button @click="logout"
                                     class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                <ArrowRightOnRectangleIcon class="size-5" />
-                                Uitloggen
-                                </Link>
+                                    <ArrowRightOnRectangleIcon class="size-5" />
+                                    Uitloggen
+                                </button>
                             </div>
                         </li>
                     </ul>
@@ -315,14 +315,14 @@ import {
     BuildingOffice2Icon,
     ArrowRightOnRectangleIcon
 } from '@heroicons/vue/24/outline'
-import { Link, usePage } from '@inertiajs/vue3'
-import { hasPermission } from '@/Utilities/Utilities'
+import { Link, usePage, router } from '@inertiajs/vue3'
+import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
-const initials = computed(() => authUser.value?.name ? authUser.value.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '')
+const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)
 
@@ -474,4 +474,17 @@ const currentTopTitle = computed(() => {
     const activeTop = navigation.value.find(n => n.current)
     return activeTop ? activeTop.name : 'Dashboard'
 })
+
+const logout = async () => {
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const registration of registrations) {
+            registration.unregister()
+        }
+    }
+    const caches = await window.caches.keys()
+    await Promise.all(caches.map(cache => window.caches.delete(cache)))
+
+    router.get('/logout')
+}
 </script>

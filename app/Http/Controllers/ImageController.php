@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageStoreRequest;
 use App\Models\Image;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Requests\StoreImageRequest;
 
 class ImageController extends Controller
 {
@@ -138,7 +138,7 @@ class ImageController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Image $image, Request $request)
+    public function destroy(ImageDestroyRequest $request, Image $image)
     {
         $imageable_record = new ($request->imageable_type);
         $imageable_record = $imageable_record->find($request->imageable_id);

@@ -124,6 +124,15 @@ class ServiceJobController extends Controller
      */
     public function update(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
     {
+        if (
+            $request->outcome === ServiceJobOutcomeEnum::nog_geen_uitkomst->value &&
+            $request->completed_on
+        ) {
+            return redirect()->back()->with(
+                'error',
+                'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
+            );
+        }
         $servicejob->update($request->validated());
         $message = '';
         $days = $servicejob->getDaysToAdvanceNextServiceDate(
@@ -213,12 +222,11 @@ class ServiceJobController extends Controller
         if (empty($recipients)) {
             return redirect()->back()->with('error', 'Klant heeft geen e-mailadres.');
         }
-                // Build (and load relations for) PDF
-                $pdf = $this->generateServiceJobPdf($servicejob);
+
+        $pdf = $this->generateServiceJobPdf($servicejob);
 
         Mail::to($recipients)->send(new ServiceJobPdfMail($servicejob, $pdf->output()));
 
-        // Log activity on parent service order if present
         if ($servicejob->serviceOrder) {
             $servicejob->serviceOrder->logActivity('Keuring per e-mail verzonden naar: ' . implode(', ', $recipients));
         }

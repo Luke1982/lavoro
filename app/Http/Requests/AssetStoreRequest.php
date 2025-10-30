@@ -14,7 +14,7 @@ class AssetStoreRequest extends FormRequest
         if (!$user) {
             return false;
         }
-        return $user->isAdmin() || $user->hasPermission('asset.create');
+        return $user->hasPermission('asset.create');
     }
 
     public function rules(): array

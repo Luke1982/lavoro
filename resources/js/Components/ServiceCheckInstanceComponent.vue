@@ -4,10 +4,16 @@
             <div class="ring-gray-200 dark:ring-slate-700/60 ring bg-[#fdfdfd] dark:bg-slate-800 rounded-md p-4 pt-8 h-full relative"
                 v-auto-animate>
                 <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
-                    <button type="button" @click="toggle_remarks"
-                        class="text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-white dark:bg-slate-700 shadow-sm rounded-md p-1 ring-1 ring-gray-300 dark:ring-slate-600"
-                        v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
+                    <button type="button" @click="toggle_remarks" :class="[
+                        'flex items-center gap-1 shadow-sm rounded-md p-1 ring-1',
+                        (serviceCheckInstance.remarks?.length ?? 0) > 0
+                            ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 ring-orange-200 dark:ring-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600'
+                    ]" v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
+                        <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
+                            serviceCheckInstance.remarks.length
+                        }}</span>
                     </button>
                 </div>
                 <div class="relative" v-auto-animate>
@@ -112,17 +118,20 @@
             </div>
             <Cog6ToothIcon v-if="updating"
                 class="absolute top-4 right-4 h-6 w-6 text-gray-500 dark:text-slate-400 animate-spin" />
-            <CheckIcon v-if="!updating" class="absolute top-4 right-4 h-6 w-6 text-green-500 dark:text-green-400" />
+            <CheckIcon v-if="!updating && isComplete"
+                class="absolute top-4 right-4 h-6 w-6 text-green-500 dark:text-green-400" />
+            <QuestionMarkCircleIcon v-if="!updating && !isComplete"
+                class="absolute top-4 right-4 h-6 w-6 text-orange-500 dark:text-orange-400" />
         </div>
     </div>
 </template>
 
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
-import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
@@ -133,6 +142,26 @@ const { serviceCheckInstance } = defineProps({
 const updating = ref(false);
 const last_sent = ref(null);
 const show_remarks = ref(false);
+
+const isComplete = computed(() => {
+    const instance = serviceCheckInstance;
+    const type = instance.service_check.type;
+
+    if (type === 'boolean') {
+        return instance.switch_state !== null;
+    }
+    if (type === 'text' || type === 'number') {
+        return (instance.description ?? '').trim() !== '';
+    }
+    if (type === 'radio') {
+        return instance.values.length === 1;
+    }
+    if (type === 'checkgroup') {
+        return instance.values.length > 0;
+    }
+    return false;
+});
+
 const toggle_remarks = () => { show_remarks.value = !show_remarks.value; };
 
 const form = useForm({

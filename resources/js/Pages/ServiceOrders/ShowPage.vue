@@ -125,13 +125,14 @@
                     </div>
                 </div>
                 <div v-auto-animate class="my-4" v-if="hasPermission('servicejob.read')">
-                    <h2
+                    <h2 v-if="serviceOrder.servicejobs.length > 0"
                         class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                         Keuringen</h2>
                     <div class="grid grid-cols-12 mt-4"
                         v-if="hasPermission('servicejob.create') && serviceOrder.status !== 'closed'">
                         <div class="col-span-12 flex">
-                            <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck" />
+                            <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
+                                :with-images="true" />
                             <button @click="addServiceJob"
                                 class="w-auto md:w-40 ml-2 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
                                 Keuren
@@ -148,27 +149,25 @@
                     <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
                         :asset="job.asset" />
                 </div>
-                <template v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
-                    <h2
-                        class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                        Storingen</h2>
-                    <div class="grid grid-cols-12 mt-4"
-                        v-if="hasPermission('ticket.add_to_serviceorder') && serviceOrder.status !== 'closed'">
-                        <div class="col-span-12 flex flex-col md:flex-row">
-                            <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
-                            <button @click="attachTicket"
-                                class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
-                                Voeg storing toe
-                            </button>
-                        </div>
+                <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
+                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
+                    Storingen</h2>
+                <div class="grid grid-cols-12 mt-4"
+                    v-if="hasPermission('ticket.add_to_serviceorder') && serviceOrder.status !== 'closed'">
+                    <div class="col-span-12 flex flex-col md:flex-row">
+                        <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
+                        <button @click="attachTicket"
+                            class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
+                            Voeg storing toe
+                        </button>
                     </div>
-                    <div class="flex flex-wrap" v-auto-animate>
-                        <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
-                            :key="ticket.id">
-                            <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
-                        </div>
+                </div>
+                <div class="flex flex-wrap" v-auto-animate>
+                    <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
+                        :key="ticket.id">
+                        <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
                     </div>
-                </template>
+                </div>
                 <h2
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Materialen</h2>
@@ -335,9 +334,9 @@
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
-                    v-if="serviceOrder.activities?.length">
+                    v-if="timelineItems.length">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
-                    <TimelineComponent :activities="serviceOrder.activities" />
+                    <TimelineComponent :activities="timelineItems" />
                 </div>
                 <div v-if="hasPermission('serviceorder.export_pdf')
                     || hasPermission('serviceorder.email_pdf')
@@ -410,15 +409,18 @@ const props = defineProps({
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
 
-const internalMaterials = props.allMaterials.slice().sort((a, b) =>
-    a.name.localeCompare(b.name)
-).map((material) => {
-    return {
-        id: material.id,
-        name: `${material.name}, code ${material.code}, voorraad ${material.stock}, prijs € ${material.price}`,
-    };
+const internalMaterials = computed(() => {
+    return props.allMaterials.slice().sort((a, b) =>
+        a.name.localeCompare(b.name)
+    ).map((material) => {
+        let label = `${material.name}, code ${material.code}, voorraad ${material.stock}${hasPermission('serviceorder.see_financials') ? ', prijs € ' + material.price : ''}`;
+        return {
+            id: material.id,
+            name: label,
+        };
+    });
 });
-const materialToAdd = ref(internalMaterials[0]?.id || null);
+const materialToAdd = ref(internalMaterials.value[0]?.id || null);
 
 const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     a.product.product_type.name.localeCompare(b.product.product_type.name)
@@ -426,6 +428,7 @@ const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     return {
         id: asset.id,
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
+        image_url: asset.product.images.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
     };
 });
 const internalTickets = ref([]);
@@ -467,12 +470,12 @@ const updateStatus = (newStatus) => {
             alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.');
             return;
         }
-        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
+        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten ? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
             return;
         }
     }
     form.status = newStatus;
-    form.put(`/serviceorders/${props.serviceOrder.id}`, {
+    form.put(`/serviceorders/ ${props.serviceOrder.id} `, {
         preserveScroll: true,
     });
 };
@@ -501,7 +504,7 @@ watch(
         () => form.signature_base64,
     ],
     () => {
-        form.put(`/serviceorders/${props.serviceOrder.id}`, {
+        form.put(`/serviceorders / ${props.serviceOrder.id} `, {
             preserveScroll: true,
             onSuccess: () => {
                 editingSignature.value = false;
@@ -513,7 +516,7 @@ watch(
 const attachTicket = () => {
     if (!hasPermission('ticket.add_to_serviceorder')) return;
     if (!ticketToSolve.value) return;
-    form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${ticketToSolve.value}`, {
+    form.post(`/serviceorders/ ${props.serviceOrder.id} /tickets/${ticketToSolve.value} `, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => {
@@ -525,13 +528,13 @@ const attachTicket = () => {
 const attachMaterial = () => {
     if (!materialToAdd.value || materialsForm.quantity <= 0) return;
 
-    materialsForm.post(`/serviceorders/${props.serviceOrder.id}/materials/${materialToAdd.value}`, {
+    materialsForm.post(`/serviceorders/ ${props.serviceOrder.id} /materials/${materialToAdd.value} `, {
         preserveScroll: true,
     });
 };
 
 const detachMaterial = (materiableId) => {
-    materialsForm.delete(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
+    materialsForm.delete(`/serviceorders/ ${props.serviceOrder.id} /materials/${materiableId} `, {
         preserveScroll: true,
     });
 };
@@ -543,7 +546,7 @@ const emailPdf = () => {
         return;
     }
     emailing.value = true;
-    form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf`, {
+    form.post(`/serviceorders/ ${props.serviceOrder.id}/email-pdf`, {
         preserveScroll: true,
         onFinish: () => { emailing.value = false; }
     });
@@ -608,6 +611,27 @@ const canClose = computed(() => {
     const name = (form.signed_by ?? '').toString().trim();
     const sig = (form.signature_base64 ?? '').toString().trim();
     return name.length > 0 && sig.length > 0;
+});
+
+// Build mixed timeline: activities + linked events
+const timelineItems = computed(() => {
+    const acts = (props.serviceOrder.activities || []).map(a => ({
+        id: `act-${a.id}`,
+        category: a.category || 'other',
+        description: a.description,
+        created_at: a.created_at,
+    }));
+    const evts = (props.serviceOrder.events || []).map(e => ({
+        id: `evt-${e.id}`,
+        category: 'event',
+        rendered: `${e.event_type?.name || 'Afspraak'}${e.name ? ': ' + e.name : ''}`,
+        description: e.description || '',
+        created_at: e.start || e.created_at,
+        color: e.event_type?.color || null,
+        executing_users: e.executing_users || [],
+        status: e.status || null,
+    }));
+    return acts.concat(evts).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
 
 </script>

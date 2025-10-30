@@ -1,7 +1,8 @@
 <template>
     <div class="max-w-5xl mx-auto py-6">
         <div class="mb-8">
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{ isEdit ? 'Gebruiker' : 'Nieuwe gebruiker' }}</h1>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">{{ isEdit ? 'Gebruiker' : `Nieuwe
+                gebruiker` }}</h1>
             <p v-if="!isEdit" class="mt-1 text-sm text-gray-500 dark:text-slate-400">Voer de gegevens in om een
                 gebruiker toe te voegen.</p>
         </div>
@@ -83,6 +84,7 @@
 </template>
 <script setup>
 import { computed, ref } from 'vue'
+import { initials } from '@/Utilities/Utilities'
 import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -98,10 +100,6 @@ const form = useForm({ name: props.user?.name || '', email: props.user?.email ||
 
 const canSubmit = computed(() => form.name && form.email && (!isEdit.value ? form.password.length >= 8 : true))
 
-const initials = (name = '') => {
-    const letters = name.trim().split(/\s+/).filter(Boolean).map(p => p[0]).slice(0, 2)
-    return letters.length ? letters.join('').toUpperCase() : 'US'
-}
 
 const avatarInput = ref(null)
 const avatarFile = ref(null)

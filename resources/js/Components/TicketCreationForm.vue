@@ -1,11 +1,11 @@
 <template>
     <div class="flex flex-wrap">
-        <div class="pr-1 w-1/3">
+        <div class="w-full md:w-1/3 md:pr-1 mb-2 md:mb-0">
             <TextInput v-model="form.subject" placeholder="Onderwerp" :error-message="form.errors.subject"
                 :has-error="form.errors.subject !== undefined" name="subject" id="subject" autocomplete="off"
                 error-id="subject" />
         </div>
-        <div class="pl-1 w-2/3">
+        <div class="w-full md:w-2/3 md:pl-1">
             <TextInput v-model="form.description" placeholder="Beschrijving" :error-message="form.errors.description"
                 :has-error="form.errors.description !== undefined" />
         </div>

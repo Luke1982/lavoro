@@ -28,6 +28,7 @@ enum ProductTypes: string
     case hefbrug_2_koloms                = '2-koloms hefbrug';
     case hefbrug_4_koloms                = '4-koloms hefbrug';
     case hefbrug_toebehoren              = 'Hefbrug toebehoren';
+    case poetsbrug_bandenbrug            = 'Poetsbrug/Bandenbrug';
     case wielvrije_schaarhefbrug         = 'Wielvrije schaarhefbrug';
     case rijbanen_schaarhefbrug          = 'Rijbanen schaarhefbrug';
     case wielvrije_stempelhefbrug        = 'Wielvrije stempelhefbrug';

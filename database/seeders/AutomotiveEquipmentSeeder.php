@@ -12,6 +12,7 @@ use App\Models\ServiceCheck;
 use App\Models\ServiceCheckGroup;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
+use App\Models\Product;
 use Illuminate\Database\Seeder;
 
 class AutomotiveEquipmentSeeder extends Seeder
@@ -81,6 +82,24 @@ class AutomotiveEquipmentSeeder extends Seeder
         $usage_units = include base_path('database/seeders/data/general/usage_units.php');
         foreach ($usage_units as $name) {
             MaterialUsageUnit::query()->firstOrCreate(['name' => $name]);
+        }
+
+        $extra_products = include base_path('database/seeders/data/automotiveequipment/extra_products.php');
+        foreach ($extra_products as $product_data) {
+            $brand = Brand::firstWhere('name', $product_data['brand']->value);
+            $product_type = ProductType::firstWhere('name', $product_data['product_type']->value);
+
+            if ($brand && $product_type) {
+                Product::firstOrCreate(
+                    [
+                        'model' => $product_data['model'],
+                        'brand_id' => $brand->id,
+                    ],
+                    [
+                        'product_type_id' => $product_type->id,
+                    ]
+                );
+            }
         }
 
         $admin = User::query()->firstOrCreate(

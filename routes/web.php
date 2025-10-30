@@ -27,13 +27,14 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
 
 Route::group(
     ['middleware' => 'auth'],
     function () {
         Route::get('/', DashboardController::class);
         Route::resource('customers', CustomerController::class)
-            ->only(['index', 'show', 'update', 'store']);
+            ->only(['index', 'show', 'update', 'store', 'edit']);
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
@@ -105,6 +106,8 @@ Route::group(
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::resource('remarks', RemarkController::class)
             ->only(['store', 'destroy']);
+        Route::resource('documents', DocumentController::class)
+            ->only(['store', 'update', 'destroy']);
         Route::resource('events', EventController::class)
             ->only(['index']);
         Route::resource('eventtypes', EventTypeController::class)

@@ -34,7 +34,7 @@ class MaterialUpdateRequest extends FormRequest
             'divisable'     => 'boolean',
             'is_active'     => 'boolean',
             'is_service'    => 'boolean',
-            'stock'         => 'required|numeric|min:0',
+            'stock'         => 'required|numeric',
             'min_stock'     => 'required|numeric|min:0',
             'max_stock'     => 'required|numeric|min:0',
         ];

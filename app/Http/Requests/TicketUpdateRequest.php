@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\TicketStatusses;
 use App\Enums\TicketPriorities;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -16,6 +17,10 @@ use Illuminate\Foundation\Http\FormRequest;
  * @property string|null $priority    The priority of the ticket.
  * @property string|null $status      The status of the ticket.
  * @property int|null    $asset_id    The ID of the associated asset.
+ *
+ * @method bool route()
+ * @method mixed user()
+ * @method bool has(string $key)
  */
 class TicketUpdateRequest extends FormRequest
 {
@@ -24,7 +29,7 @@ class TicketUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('update', [$this->route('ticket'), $this]);
     }
 
     /**
