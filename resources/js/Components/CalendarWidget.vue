@@ -552,6 +552,7 @@ const calendarOptions = ref({
 
     .fc-theme-standard .fc-scrollgrid,
     .fc-theme-standard td,
+    .fc-theme-standard .fc-list,
     .fc-theme-standard th {
         border-color: #334155;
     }
