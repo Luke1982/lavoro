@@ -12,12 +12,18 @@
                     <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Algemene Informatie</h2>
                 </div>
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <TextInput v-model="form.name" label="Naam" required :has-error="!!form.errors.name" :error-message="form.errors.name" />
-                    <TextInput v-model="form.contactname" label="Contactpersoon" :has-error="!!form.errors.contactname" :error-message="form.errors.contactname" />
-                    <TextInput v-model="form.email" label="E-mail" type="email" :has-error="!!form.errors.email" :error-message="form.errors.email" />
-                    <TextInput v-model="form.phone" label="Telefoon" :has-error="!!form.errors.phone" :error-message="form.errors.phone" />
-                    <TextInput v-model="form.mobile" label="Mobiel" :has-error="!!form.errors.mobile" :error-message="form.errors.mobile" />
-                    <TextInput v-model="form.website" label="Website" :has-error="!!form.errors.website" :error-message="form.errors.website" />
+                    <TextInput v-model="form.name" label="Naam" required :has-error="!!form.errors.name"
+                        :error-message="form.errors.name" />
+                    <TextInput v-model="form.contactname" label="Contactpersoon" :has-error="!!form.errors.contactname"
+                        :error-message="form.errors.contactname" />
+                    <TextInput v-model="form.email" label="E-mail" type="email" :has-error="!!form.errors.email"
+                        :error-message="form.errors.email" />
+                    <TextInput v-model="form.phone" label="Telefoon" :has-error="!!form.errors.phone"
+                        :error-message="form.errors.phone" />
+                    <TextInput v-model="form.mobile" label="Mobiel" :has-error="!!form.errors.mobile"
+                        :error-message="form.errors.mobile" />
+                    <TextInput v-model="form.website" label="Website" :has-error="!!form.errors.website"
+                        :error-message="form.errors.website" />
                 </div>
             </section>
 
@@ -27,10 +33,14 @@
                     <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Bezoekadres</h2>
                 </div>
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <TextInput v-model="form.address" label="Adres" :has-error="!!form.errors.address" :error-message="form.errors.address" />
-                    <TextInput v-model="form.postal_code" label="Postcode" :has-error="!!form.errors.postal_code" :error-message="form.errors.postal_code" />
-                    <TextInput v-model="form.city" label="Plaats" :has-error="!!form.errors.city" :error-message="form.errors.city" />
-                    <TextInput v-model="form.country" label="Land" :has-error="!!form.errors.country" :error-message="form.errors.country" />
+                    <TextInput v-model="form.address" label="Adres" :has-error="!!form.errors.address"
+                        :error-message="form.errors.address" />
+                    <TextInput v-model="form.postal_code" label="Postcode" :has-error="!!form.errors.postal_code"
+                        :error-message="form.errors.postal_code" />
+                    <TextInput v-model="form.city" label="Plaats" :has-error="!!form.errors.city"
+                        :error-message="form.errors.city" />
+                    <TextInput v-model="form.country" label="Land" :has-error="!!form.errors.country"
+                        :error-message="form.errors.country" />
                 </div>
             </section>
 
@@ -40,10 +50,14 @@
                     <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Postadres</h2>
                 </div>
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <TextInput v-model="form.postal_address" label="Postbus/adres" :has-error="!!form.errors.postal_address" :error-message="form.errors.postal_address" />
-                    <TextInput v-model="form.postal_postal_code" label="Postcode" :has-error="!!form.errors.postal_postal_code" :error-message="form.errors.postal_postal_code" />
-                    <TextInput v-model="form.postal_city" label="Plaats" :has-error="!!form.errors.postal_city" :error-message="form.errors.postal_city" />
-                    <TextInput v-model="form.postal_country" label="Land" :has-error="!!form.errors.postal_country" :error-message="form.errors.postal_country" />
+                    <TextInput v-model="form.postal_address" label="Postbus/adres"
+                        :has-error="!!form.errors.postal_address" :error-message="form.errors.postal_address" />
+                    <TextInput v-model="form.postal_postal_code" label="Postcode"
+                        :has-error="!!form.errors.postal_postal_code" :error-message="form.errors.postal_postal_code" />
+                    <TextInput v-model="form.postal_city" label="Plaats" :has-error="!!form.errors.postal_city"
+                        :error-message="form.errors.postal_city" />
+                    <TextInput v-model="form.postal_country" label="Land" :has-error="!!form.errors.postal_country"
+                        :error-message="form.errors.postal_country" />
                 </div>
             </section>
 
@@ -53,13 +67,21 @@
                     <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Financiële Informatie</h2>
                 </div>
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <TextInput v-model="form.invoice_email" label="Factuur e-mail" type="email" :has-error="!!form.errors.invoice_email" :error-message="form.errors.invoice_email" />
-                    <TextInput v-model="form.quotes_email" label="Offerte e-mail" type="email" :has-error="!!form.errors.quotes_email" :error-message="form.errors.quotes_email" />
-                    <TextInput v-model="form.iban" label="IBAN" :has-error="!!form.errors.iban" :error-message="form.errors.iban" />
-                    <TextInput v-model="form.vat_number" label="BTW-nummer" :has-error="!!form.errors.vat_number" :error-message="form.errors.vat_number" />
-                    <TextInput v-model="form.chamber_of_commerce_number" label="KvK-nummer" :has-error="!!form.errors.chamber_of_commerce_number" :error-message="form.errors.chamber_of_commerce_number" />
+                    <TextInput v-model="form.invoice_email" label="Factuur e-mail" type="email"
+                        :has-error="!!form.errors.invoice_email" :error-message="form.errors.invoice_email" />
+                    <TextInput v-model="form.quotes_email" label="Offerte e-mail" type="email"
+                        :has-error="!!form.errors.quotes_email" :error-message="form.errors.quotes_email" />
+                    <TextInput v-model="form.iban" label="IBAN" :has-error="!!form.errors.iban"
+                        :error-message="form.errors.iban" />
+                    <TextInput v-model="form.vat_number" label="BTW-nummer" :has-error="!!form.errors.vat_number"
+                        :error-message="form.errors.vat_number" />
+                    <TextInput v-model="form.chamber_of_commerce_number" label="KvK-nummer"
+                        :has-error="!!form.errors.chamber_of_commerce_number"
+                        :error-message="form.errors.chamber_of_commerce_number" />
                     <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
-                        placeholder="Kies naar welke klant de factuur moet" :has-error="!!form.errors.billing_customer_id" :error-message="form.errors.billing_customer_id" />
+                        placeholder="Kies naar welke klant de factuur moet"
+                        :has-error="!!form.errors.billing_customer_id"
+                        :error-message="form.errors.billing_customer_id" />
                 </div>
             </section>
 

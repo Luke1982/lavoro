@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -629,6 +629,7 @@ const timelineItems = computed(() => {
         created_at: e.start || e.created_at,
         color: e.event_type?.color || null,
         executing_users: e.executing_users || [],
+        status: e.status || null,
     }));
     return acts.concat(evts).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });

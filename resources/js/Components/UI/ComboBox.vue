@@ -6,12 +6,10 @@
                 v-tooltip="'Meerdere selecties mogelijk'" />
         </ComboboxLabel>
         <div :class="[label ? 'mt-2' : '', 'relative']">
-            <ComboboxInput
-                :class="{
-                    'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': !hasError,
-                    'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-red-900 dark:text-red-500 placeholder:text-red-400 dark:placeholder:text-red-600 ring-1 ring-inset ring-red-300 dark:ring-red-500 focus:ring-2 focus:ring-inset focus:ring-red-600 dark:focus:ring-red-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': hasError,
-                }"
-                @change="query = $event.target.value" @blur="onBlur" @focus="onFocus" :display-value="displayValue"
+            <ComboboxInput :class="{
+                'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': !hasError,
+                'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-red-900 dark:text-red-500 placeholder:text-red-400 dark:placeholder:text-red-600 ring-1 ring-inset ring-red-300 dark:ring-red-500 focus:ring-2 focus:ring-inset focus:ring-red-600 dark:focus:ring-red-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': hasError,
+            }" @change="query = $event.target.value" @blur="onBlur" @focus="onFocus" :display-value="displayValue"
                 ref="inputRef" :default-value="filteredOptions[0]?.name" :placeholder="props.placeholder"
                 :disabled="props.disabled" />
             <ComboboxButton class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none"
