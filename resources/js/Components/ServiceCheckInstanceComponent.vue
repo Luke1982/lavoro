@@ -14,15 +14,17 @@
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                            }}
+                        }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een van de opties</p>
                         <div class="mt-6 space-y-6">
                             <div v-for="value in serviceCheckInstance.service_check.values" :key="value.id"
                                 class="flex items-center">
-                                <input :id="value.id" name="value" type="radio" v-model="form.values" :value="value.id"
+                                <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                    :name="`sci-value-${serviceCheckInstance.id}`" type="radio" v-model="form.values"
+                                    :value="value.id"
                                     class="relative size-4 appearance-none rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 before:absolute before:inset-1 before:rounded-full before:bg-white dark:before:bg-slate-500 not-checked:before:hidden checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:before:bg-gray-400 forced-colors:appearance-auto forced-colors:before:hidden" />
-                                <label :for="value.id"
+                                <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
                                     class="ml-3 block text-sm/6 font-medium text-gray-900 dark:text-slate-100">{{
                                         value.value }}</label>
                             </div>
@@ -31,7 +33,7 @@
                     <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                            }}
+                        }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een of meerdere van de opties
                         </p>
@@ -40,7 +42,8 @@
                                 :key="value.id">
                                 <div class="flex h-6 shrink-0 items-center">
                                     <div class="group grid size-4 grid-cols-1">
-                                        <input :id="`value-${value.id}`" :name="`value-${value.id}`" type="checkbox"
+                                        <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                            :name="`sci-${serviceCheckInstance.id}-value-${value.id}`" type="checkbox"
                                             v-model="form.values" :value="value.id"
                                             class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:border-indigo-600 checked:bg-indigo-600 indeterminate:border-indigo-600 indeterminate:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:checked:bg-gray-100 forced-colors:appearance-auto" />
                                         <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25"
@@ -53,7 +56,7 @@
                                     </div>
                                 </div>
                                 <div class="text-sm/6">
-                                    <label :for="`value-${value.id}`"
+                                    <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
                                         class="font-medium text-gray-900 dark:text-slate-100">{{ value.value
                                         }}</label>
                                 </div>
@@ -101,7 +104,7 @@
                     <ul class="space-y-2 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
                         <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
                             <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
-                                }}:</span>
+                            }}:</span>
                             {{ r.content }}
                         </li>
                     </ul>
