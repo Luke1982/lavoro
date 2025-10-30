@@ -44,6 +44,13 @@ class Customer extends Model
         return $this->hasMany(Asset::class)->orderBy('next_service_date');
     }
 
+    public function activeAssets()
+    {
+        return $this->hasMany(Asset::class)
+            ->where('status', 'Actief')
+            ->orderBy('next_service_date');
+    }
+
     public function upcomingAssets()
     {
         return $this->hasMany(Asset::class)
@@ -58,26 +65,7 @@ class Customer extends Model
         return $this->hasMany(Asset::class)
             ->where('next_service_date', '<', now())
             ->where('status', 'Actief')
-            ->orderBy('next_service_date');
-    }
-
-    public function nonUpcomingAssets()
-    {
-        return $this->hasMany(Asset::class)
-            ->where('next_service_date', '>', now()->addDays($this->upcoming_asset_days ?? 30))
-            ->where('status', 'Actief')
-            ->orderBy('next_service_date');
-    }
-
-    public function overdueAssets()
-    {
-        return $this->hasMany(Asset::class)
-            ->where(function ($q) {
-                $q->whereNull('next_service_date')
-                  ->orWhere('next_service_date', '<', now());
-            })
-            ->where('status', 'Actief')
-            ->orderBy('next_service_date');
+            ->orderBy('next_service_date', 'desc');
     }
 
     public function tickets()

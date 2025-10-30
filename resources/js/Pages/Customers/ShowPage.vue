@@ -107,80 +107,27 @@
                     <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
                         <template v-if="selectedProductTypeIds.length">
                             <span v-for="pt in selectedProductTypes" :key="pt.id"
-                                class="inline-flex items-center gap-1 bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-300 px-2 py-0.5 rounded text-xs font-medium">
+                                class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200 dark:text-slate-200 dark:ring-slate-700">
                                 {{ pt.name }}
-                                <button type="button" class="hover:text-pink-600 dark:hover:text-pink-400"
-                                    @click="removeProductType(pt.id)">×</button>
+                                <button type="button" @click="removeProductType(pt.id)"
+                                    class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+                                    <span class="sr-only">Remove</span>
+                                    <svg viewBox="0 0 14 14"
+                                        class="h-3.5 w-3.5 text-gray-600/50 stroke-gray-600/75 group-hover:stroke-gray-600/75 dark:text-slate-400 dark:stroke-slate-400 dark:group-hover:stroke-slate-300">
+                                        <path d="M4 4l6 6m0-6l-6 6" />
+                                    </svg>
+                                    <span class="absolute -inset-1" />
+                                </button>
                             </span>
-                            <button type="button" class="text-xs text-gray-600 dark:text-slate-400 underline"
-                                @click="resetFilters">Reset</button>
+                            <button type="button" @click="resetFilters"
+                                class="text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">Reset</button>
                         </template>
                         <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle apparaat types</span>
                     </div>
                 </div>
             </div>
-            <div class="mt-4" v-if="canReadAssets && hasUpcomingFiltered">
-                <div
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
-                    <div class="flex items-center gap-3">
-                        <span
-                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-pink-50 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-700/50"><span
-                                class="w-2 h-2 rounded-full bg-pink-600"></span></span>
-                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
-                            @click="showUpcoming = !showUpcoming">Apparaten die binnen
-                            30 dagen verlopen</button>
-                    </div>
-                    <button type="button"
-                        class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
-                        @click="showUpcoming = !showUpcoming">…</button>
-                </div>
-                <transition name="fade-height" mode="out-in">
-                    <div v-if="showUpcoming" key="upcoming" class="pt-6">
-                        <AssetListGroupComponent :assetGroups="upcomingFiltered" />
-                    </div>
-                </transition>
-            </div>
-            <div class="mt-8" v-if="canReadAssets && hasNonUpcomingFiltered">
-                <div
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
-                    <div class="flex items-center gap-3">
-                        <span
-                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50"><span
-                                class="w-2 h-2 rounded-full bg-yellow-500"></span></span>
-                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
-                            @click="showNonUpcoming = !showNonUpcoming">Apparaten die
-                            na 30 dagen verlopen</button>
-                    </div>
-                    <button type="button"
-                        class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
-                        @click="showNonUpcoming = !showNonUpcoming">…</button>
-                </div>
-                <transition name="fade-height" mode="out-in">
-                    <div v-if="showNonUpcoming" key="nonupcoming" class="pt-6">
-                        <AssetListGroupComponent :assetGroups="nonUpcomingFiltered" />
-                    </div>
-                </transition>
-            </div>
-            <div class="mt-8" v-if="canReadAssets && hasOverdueFiltered">
-                <div
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 flex items-center justify-between px-4 py-3">
-                    <div class="flex items-center gap-3">
-                        <span
-                            class="inline-flex items-center justify-center w-5 h-5 rounded bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/50"><span
-                                class="w-2 h-2 rounded-full bg-red-500"></span></span>
-                        <button type="button" class="text-sm font-medium text-gray-800 dark:text-slate-200"
-                            @click="showOverdue = !showOverdue">Apparaten met verlopen of ontbrekende service
-                            datum</button>
-                    </div>
-                    <button type="button"
-                        class="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400"
-                        @click="showOverdue = !showOverdue">…</button>
-                </div>
-                <transition name="fade-height" mode="out-in">
-                    <div v-if="showOverdue" key="overdue" class="pt-6">
-                        <AssetListGroupComponent :assetGroups="overdueFiltered" />
-                    </div>
-                </transition>
+            <div class="mt-4" v-if="canReadAssets && hasAssetsFiltered">
+                <AssetListComponent :assets="assetsFiltered" />
             </div>
             <AddAssetForm :customerId="customer.id" :allProducts="allProducts" v-if="hasPermission('asset.create')" />
 
@@ -226,10 +173,10 @@
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
-import AssetListGroupComponent from '@/Components/AssetListGroupComponent.vue';
+import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import { useForm, Link } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
@@ -240,16 +187,8 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    upcomingAssetsByType: {
-        type: Object,
-        required: true,
-    },
-    nonUpcomingAssetsByType: {
-        type: Object,
-        required: true,
-    },
-    overdueAssetsByType: {
-        type: Object,
+    assets: {
+        type: Array,
         required: true,
     },
     allCustomers: {
@@ -286,27 +225,16 @@ const clearBillingCustomer = () => {
     updateCustomer();
 };
 
-const showUpcoming = ref(true);
-const showNonUpcoming = ref(false);
-const showOverdue = ref(true);
-
 // Product type filtering ----------------------------------------------------
 const selectedProductTypeIds = ref([]); // array of product_type ids
 
-// Collect unique product types from both upcoming and non-upcoming groups
+// Collect unique product types from the assets list
 const productTypeOptions = computed(() => {
     const map = new Map();
-    const collect = (groups) => {
-        Object.values(groups || {}).forEach(assets => {
-            (assets || []).forEach(a => {
-                const pt = a?.product?.product_type;
-                if (pt && !map.has(pt.id)) map.set(pt.id, { id: pt.id, name: pt.name });
-            });
-        });
-    };
-    collect(props.upcomingAssetsByType);
-    collect(props.nonUpcomingAssetsByType);
-    collect(props.overdueAssetsByType);
+    (props.assets || []).forEach(a => {
+        const pt = a?.product?.product_type;
+        if (pt && !map.has(pt.id)) map.set(pt.id, { id: pt.id, name: pt.name });
+    });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 });
 
@@ -320,28 +248,13 @@ const removeProductType = (id) => {
 };
 const resetFilters = () => { selectedProductTypeIds.value = []; };
 
-// Filtering helpers
-const filterAssetGroups = (groups) => {
-    if (!selectedProductTypeIds.value.length) return groups;
-    return Object.entries(groups || {}).reduce((acc, [groupName, assets]) => {
-        const filtered = (assets || []).filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
-        if (filtered.length) acc[groupName] = filtered;
-        return acc;
-    }, {});
-};
+// Filtering helper
+const assetsFiltered = computed(() => {
+    if (!selectedProductTypeIds.value.length) return props.assets;
+    return (props.assets || []).filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
+});
 
-const upcomingFiltered = computed(() => filterAssetGroups(props.upcomingAssetsByType));
-const nonUpcomingFiltered = computed(() => filterAssetGroups(props.nonUpcomingAssetsByType));
-const overdueFiltered = computed(() => filterAssetGroups(props.overdueAssetsByType));
-
-const hasUpcomingFiltered = computed(() => Object.values(upcomingFiltered.value || {}).some(arr => arr.length));
-const hasNonUpcomingFiltered = computed(() => Object.values(nonUpcomingFiltered.value || {}).some(arr => arr.length));
-const hasOverdueFiltered = computed(() => Object.values(overdueFiltered.value || {}).some(arr => arr.length));
-
-// Auto collapse groups if they become empty
-watch(hasUpcomingFiltered, (val) => { if (!val) showUpcoming.value = false; });
-watch(hasNonUpcomingFiltered, (val) => { if (!val) showNonUpcoming.value = false; });
-watch(hasOverdueFiltered, (val) => { if (!val) showOverdue.value = false; });
+const hasAssetsFiltered = computed(() => assetsFiltered.value.length > 0);
 
 // Collect all events from service orders for this customer for timeline
 const eventList = computed(() => {

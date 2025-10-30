@@ -2,8 +2,10 @@
     <div class="grid gap-6 grid-cols-1 xl:grid-cols-2" v-auto-animate>
         <div v-for="asset in assets" :key="asset.id"
             class="flex rounded-lg bg-white dark:bg-slate-900 overflow-hidden transition border border-gray-200 dark:border-slate-700/60 relative hover:shadow-sm hover:border-gray-300 dark:hover:border-slate-600/80">
+            <div class="absolute top-2 left-2 size-3 rounded-full" :class="dotClasses(asset.next_service_date)">
+            </div>
             <div
-                class="w-20 flex items-center justify-center bg-pink-600 text-white font-semibold text-sm select-none dark:bg-pink-700">
+                class="w-20 flex items-center justify-center bg-slate-600 text-white font-semibold text-sm select-none dark:bg-slate-700">
                 {{ asset.product.product_type.name.slice(0, 2).toUpperCase() }}
             </div>
             <div class="flex-1 p-4 pr-8">
@@ -65,9 +67,71 @@ defineProps({
     },
 });
 
+const dotClasses = (nextServiceDate) => {
+    if (!nextServiceDate) {
+        return 'bg-gray-400';
+    }
+
+    const serviceDate = new Date(nextServiceDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = serviceDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return 'bg-purple-500 animate-pulse-shadow-purple';
+    }
+    if (diffDays <= 30) {
+        return 'bg-red-500 animate-pulse-shadow-red';
+    }
+    if (diffDays <= 60) {
+        return 'bg-orange-500';
+    }
+    return 'bg-green-500';
+};
+
 const deleteForm = useForm({});
 const deleteAsset = (id) => {
     if (!confirm('Weet je zeker dat je deze machine wilt verwijderen?')) return;
     deleteForm.delete(`/assets/${id}`, { preserveScroll: true });
 };
 </script>
+
+<style scoped>
+@keyframes pulse-shadow-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+@keyframes pulse-shadow-purple {
+    0% {
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(168, 85, 247, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+    }
+}
+
+.animate-pulse-shadow-red {
+    animation: pulse-shadow-red 2s infinite;
+}
+
+.animate-pulse-shadow-purple {
+    animation: pulse-shadow-purple 2s infinite;
+}
+</style>

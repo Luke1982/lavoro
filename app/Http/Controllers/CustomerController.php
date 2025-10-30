@@ -68,21 +68,11 @@ class CustomerController extends Controller
     public function show(CustomerReadRequest $request, Customer $customer)
     {
         $customer->load([
-            'upcomingAssets.product.brand',
-            'upcomingAssets.product.productType',
-            'upcomingAssets.openTickets',
-            'upcomingAssets.pendingTickets',
-            'upcomingAssets.closedTickets',
-            'nonUpcomingAssets.product.brand',
-            'nonUpcomingAssets.product.productType',
-            'nonUpcomingAssets.openTickets',
-            'nonUpcomingAssets.pendingTickets',
-            'nonUpcomingAssets.closedTickets',
-            'overdueAssets.product.brand',
-            'overdueAssets.product.productType',
-            'overdueAssets.openTickets',
-            'overdueAssets.pendingTickets',
-            'overdueAssets.closedTickets',
+            'activeAssets.product.brand',
+            'activeAssets.product.productType',
+            'activeAssets.openTickets',
+            'activeAssets.pendingTickets',
+            'activeAssets.closedTickets',
             'openTickets',
             'pendingTickets',
             'closedTickets',
@@ -104,10 +94,6 @@ class CustomerController extends Controller
             }
         }
 
-        $upcomingByType = $customer->upcomingAssets->groupBy('product.productType.name')->sortKeys();
-        $nonUpcomingByType = $customer->nonUpcomingAssets->groupBy('product.productType.name')->sortKeys();
-        $overdueByType = $customer->overdueAssets->groupBy('product.productType.name')->sortKeys();
-
         $allCustomers = Customer::select(
             'id',
             DB::raw("CONCAT_WS(' – ', name, city) as name")
@@ -118,9 +104,7 @@ class CustomerController extends Controller
         $allProducts = Product::with(['brand', 'productType'])->orderBy('model')->get();
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
-            'upcomingAssetsByType' => $upcomingByType,
-            'nonUpcomingAssetsByType' => $nonUpcomingByType,
-            'overdueAssetsByType' => $overdueByType,
+            'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
             'allProducts' => $allProducts,
         ]);
