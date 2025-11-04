@@ -168,33 +168,19 @@
                         $values = $item['values'];
                         $result = null;
                         if ($type === 'radio') {
-                            if ($descRaw === '' || $descRaw === '0') {
-                                $result = 'Nee';
-                            } elseif ($descRaw !== '') {
-                                $lower = strtolower($descRaw);
-                                if (in_array($lower, ['1', 'ja', 'yes', 'true', 'ok', 'y'])) {
-                                    $result = 'Ja';
-                                } elseif (in_array($lower, ['0', 'nee', 'no', 'false', 'nok', 'n'])) {
-                                    $result = 'Nee';
-                                } else {
-                                    $result = $descRaw;
-                                }
-                            }
-                            if (!$result && count($values) > 0) {
+                            if (count($values) > 0) {
                                 $result = $values[0];
                             }
                         } elseif ($type === 'checkgroup') {
                             $result = implode(', ', $values);
                         } elseif ($type === 'boolean') {
-                            $lower = strtolower($descRaw);
-                            if ($lower === '' || $lower === '0') {
-                                $result = 'Nee';
-                            } elseif (in_array($lower, ['1', 'ja', 'yes', 'true', 'ok', 'y'])) {
+                            $switchState = $item['switch_state'] ?? null;
+                            if ($switchState === null) {
+                                $result = null;
+                            } elseif ((int) $switchState === 1) {
                                 $result = 'Ja';
-                            } elseif (in_array($lower, ['nee', 'no', 'false', 'nok', 'n'])) {
+                            } else {
                                 $result = 'Nee';
-                            } elseif ($lower !== '') {
-                                $result = $descRaw;
                             }
                         } elseif (in_array($type, ['number', 'text'])) {
                             $result = $descRaw;
@@ -203,43 +189,13 @@
                         }
                         $remark = null;
                         if ($type === 'radio') {
-                            $lower = strtolower($descRaw);
-                            $isBool = in_array($lower, [
-                                '1',
-                                '0',
-                                'ja',
-                                'nee',
-                                'yes',
-                                'no',
-                                'true',
-                                'false',
-                                'ok',
-                                'nok',
-                                'y',
-                                'n',
-                            ]);
-                            if ($descRaw !== '' && !$isBool && $descRaw !== $result) {
+                            if ($descRaw !== '') {
                                 $remark = $descRaw;
                             }
                         } elseif ($type === 'checkgroup' && $descRaw !== '') {
                             $remark = $descRaw;
                         } elseif ($type === 'boolean') {
-                            $lower = strtolower($descRaw);
-                            $isBool = in_array($lower, [
-                                '1',
-                                '0',
-                                'ja',
-                                'nee',
-                                'yes',
-                                'no',
-                                'true',
-                                'false',
-                                'ok',
-                                'nok',
-                                'y',
-                                'n',
-                            ]);
-                            if ($descRaw !== '' && !$isBool && $descRaw !== $result) {
+                            if ($descRaw !== '') {
                                 $remark = $descRaw;
                             }
                         }
@@ -251,6 +207,9 @@
                                 '</ul>';
                         }
                         $result = $result ?: '—';
+                        if ($result === 'Nee' && $type !== 'boolean') {
+                            $result = null;
+                        }
                         if ($remark === null || $remark === '') {
                             $remark = '—';
                         }

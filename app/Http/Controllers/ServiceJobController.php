@@ -296,6 +296,7 @@ class ServiceJobController extends Controller
                     'check_name' => $check?->name,
                     'type' => $check?->type,
                     'description' => $ci->description,
+                    'switch_state' => $ci->switch_state ?? null,
                     'values' => $ci->values?->pluck('value')->all() ?? [],
                     'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
                 ];
