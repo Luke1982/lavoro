@@ -3,19 +3,20 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use App\Models\Company;
 use App\Models\ServiceJob;
+use Illuminate\Support\Str;
+use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
+use App\Mail\ServiceJobPdfMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
-use App\Http\Requests\ServiceJobCreateRequest;
-use App\Models\ServiceOrder;
-use App\Http\Requests\ServiceJobUpdateRequest;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ServiceJobPdfMail;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
-use App\Models\Company;
+use App\Http\Requests\ServiceJobCreateRequest;
+use App\Http\Requests\ServiceJobUpdateRequest;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 
 class ServiceJobController extends Controller
@@ -133,7 +134,9 @@ class ServiceJobController extends Controller
                 'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
             );
         }
-        $servicejob->update($request->validated());
+        $data = $request->validated();
+        $data['completed_by'] = Auth::user()->id;
+        $servicejob->update($data);
         $message = '';
         $days = $servicejob->getDaysToAdvanceNextServiceDate(
             $request->days_temporary_approval
@@ -162,6 +165,7 @@ class ServiceJobController extends Controller
         $message = '';
         $servicejob->update([
             'completed_on' => null,
+            'completed_by' => null,
         ]);
         if ($days !== null) {
             $servicejob->asset->update([
@@ -249,6 +253,7 @@ class ServiceJobController extends Controller
             'checkInstances.values',
             'checkInstances.remarks.user',
             'serviceOrder.customer',
+            'completedBy',
         ]);
 
         $instances = $servicejob->checkInstances; // ordered

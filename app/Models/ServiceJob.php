@@ -27,6 +27,7 @@ class ServiceJob extends Model
         'days_temporary_approval',
         'description',
         'completed_on',
+        'completed_by',
     ];
 
     /**
@@ -100,5 +101,13 @@ class ServiceJob extends Model
         }
 
         return $days;
+    }
+
+    /**
+     * The user who completed the service job.
+     */
+    public function completedBy()
+    {
+        return $this->belongsTo(User::class, 'completed_by');
     }
 }

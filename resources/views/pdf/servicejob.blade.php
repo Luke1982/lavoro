@@ -138,7 +138,7 @@
         </tr>
         <tr>
             <th style="width:20%">Naam keurmeester</th>
-            <td style="width:30%">{{ $serviceJob->serviceOrder?->signed_by ?? '—' }}</td>
+            <td style="width:30%">{{ $serviceJob->completedBy->name ?? '—' }}</td>
             <th style="width:20%">Werkbon #</th>
             <td style="width:30%">{{ $serviceJob->service_order_id }}</td>
         </tr>
