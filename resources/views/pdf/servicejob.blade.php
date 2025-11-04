@@ -99,7 +99,7 @@
             position: fixed;
             left: 14mm;
             right: 14mm;
-            bottom: 10mm;
+            bottom: -4mm;
             font-size: 9px;
             color: #555;
             text-align: center;
