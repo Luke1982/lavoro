@@ -13,14 +13,22 @@
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                         <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
                             serviceCheckInstance.remarks.length
-                        }}</span>
+                            }}</span>
+                    </button>
+                    <button type="button"
+                        class="flex items-center gap-1 shadow-sm rounded-md p-1 ring-1 text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600"
+                        @click="show_images = !show_images">
+                        <CameraIcon class="h-4 w-4" />
+                        <span v-if="serviceCheckInstance.images?.length" class="text-xs font-bold">{{
+                            serviceCheckInstance.images.length
+                            }}</span>
                     </button>
                 </div>
                 <div class="relative" v-auto-animate>
                     <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een van de opties</p>
                         <div class="mt-6 space-y-6">
@@ -39,7 +47,7 @@
                     <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
                         <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
                             serviceCheckInstance.service_check.name
-                        }}
+                            }}
                         </legend>
                         <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een of meerdere van de opties
                         </p>
@@ -106,11 +114,17 @@
                             :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
                     </div>
                 </Transition>
+                <Transition name="fade-slide" v-if="!readonly">
+                    <div v-if="show_images" class="mt-10">
+                        <ImageUploadComponent :existing="serviceCheckInstance.images"
+                            :imageable-id="serviceCheckInstance.id" imageable-type="\App\Models\ServiceCheckInstance" />
+                    </div>
+                </Transition>
                 <div v-else-if="readonly && (serviceCheckInstance.remarks?.length)" class="mt-4">
                     <ul class="space-y-2 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
                         <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
                             <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
-                            }}:</span>
+                                }}:</span>
                             {{ r.content }}
                         </li>
                     </ul>
@@ -131,8 +145,9 @@ import { useForm } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
-import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon, CameraIcon } from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
+import ImageUploadComponent from './ImageUploadComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
     serviceCheckInstance: { type: Object, required: true },
@@ -142,6 +157,7 @@ const { serviceCheckInstance } = defineProps({
 const updating = ref(false);
 const last_sent = ref(null);
 const show_remarks = ref(false);
+const show_images = ref(false);
 
 const isComplete = computed(() => {
     const instance = serviceCheckInstance;

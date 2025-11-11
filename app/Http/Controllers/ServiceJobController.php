@@ -70,6 +70,7 @@ class ServiceJobController extends Controller
             'checkInstances.serviceCheck.values',
             'checkInstances.serviceCheck.group',
             'checkInstances.values',
+            'checkInstances.images',
             'checkInstances.remarks.user',
             'asset.product.brand',
             'asset.customer',
@@ -251,12 +252,13 @@ class ServiceJobController extends Controller
             'checkInstances.serviceCheck.group',
             'checkInstances.serviceCheck.values',
             'checkInstances.values',
+            'checkInstances.images',
             'checkInstances.remarks.user',
             'serviceOrder.customer',
             'completedBy',
         ]);
 
-        $instances = $servicejob->checkInstances; // ordered
+        $instances = $servicejob->checkInstances;
         $ptGroups = collect($servicejob->asset?->product?->productType?->serviceCheckGroups ?? [])
             ->map(fn($g) => [
                 'id' => $g->id,
@@ -304,6 +306,7 @@ class ServiceJobController extends Controller
                     'switch_state' => $ci->switch_state ?? null,
                     'values' => $ci->values?->pluck('value')->all() ?? [],
                     'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
+                    'images' => $ci->images,
                 ];
             }, $g['items']);
             return $g;

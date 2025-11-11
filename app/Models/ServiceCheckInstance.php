@@ -53,4 +53,9 @@ class ServiceCheckInstance extends Model
         return $this->belongsToMany(ServiceCheckValue::class, 'check_instance_service_value')
             ->withTimestamps();
     }
+
+    public function images()
+    {
+        return $this->morphToMany(Image::class, 'imageable');
+    }
 }

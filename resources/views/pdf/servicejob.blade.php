@@ -157,7 +157,7 @@
                 <tr>
                     <th style="width:35%">Controlepunt</th>
                     <th class="result-col">Resultaat</th>
-                    <th class="remark-col">Opmerking</th>
+                    <th class="remark-col">Opmerkingen / foto's</th>
                 </tr>
             </thead>
             <tbody>
@@ -217,7 +217,17 @@
                     <tr>
                         <td>{{ $item['check_name'] }}</td>
                         <td>{{ $result }}</td>
-                        <td>{!! $remark !!}</td>
+                        <td>
+                            {!! $remark !!}
+                            @if (count($item['images']) > 0)
+                                <div style="margin-top:6px;">
+                                    @foreach ($item['images'] as $img)
+                                        <img src="{{ storage_path('app/public/' . $img['path']) }}"
+                                            style="width: 100%; max-width: 100%; margin-bottom:4px;" />
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
