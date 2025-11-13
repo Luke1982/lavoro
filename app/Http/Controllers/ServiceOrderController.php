@@ -146,7 +146,7 @@ class ServiceOrderController extends Controller
     public function exportPdf(ServiceOrderExportPdfRequest $request, ServiceOrder $serviceorder)
     {
         $pdf = $this->generateServiceOrderPdf($serviceorder);
-        return $pdf->download('werkbon-' . $serviceorder->id . '.pdf');
+        return $pdf->stream('werkbon-' . $serviceorder->id . '.pdf');
     }
 
     /**

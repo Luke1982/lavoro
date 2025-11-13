@@ -204,8 +204,8 @@ class ServiceJobController extends Controller
      */
     public function exportPdf(ServiceJob $servicejob)
     {
-                $pdf = $this->generateServiceJobPdf($servicejob);
-                return $pdf->download('keuring-' . $servicejob->id . '.pdf');
+        $pdf = $this->generateServiceJobPdf($servicejob);
+        return $pdf->stream('keuring-' . $servicejob->id . '.pdf');
     }
 
     public function exportPdfForCombine(ServiceJob $servicejob): string
