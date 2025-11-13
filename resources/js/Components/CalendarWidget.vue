@@ -39,6 +39,55 @@
                         <CheckIcon @click.stop="updateStatus(event.id, 'Gepland')" v-tooltip="'Markeer als \'Gepland\''"
                             class="size-6 text-green-500 cursor-pointer pt-1" v-else />
                     </div>
+                    <VDropdown v-if="eventsWithOverflow.has(event.id)" class="absolute left-0 top-0 z-10" :triggers="[]"
+                        :shown="eventsWithVisibleOverflow.has(event.id)" placement="top-start">
+                        <button class="p-1 bg-gray-400 rounded-md"
+                            @click.stop="eventsWithVisibleOverflow.clear(); eventsWithVisibleOverflow.add(event.id)">
+                            <PlusIcon class="size-5 text-white" />
+                        </button>
+                        <template #popper>
+                            <div class="p-2 relative">
+                                <div class="pr-10 flex flex-col">
+                                    <span class="text-sm font-semibold">{{ event.title }}</span>
+                                    <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
+                                </div>
+                                <div v-if="event.extendedProps.eventable_id">
+                                    <Link :href="`/serviceorders/${event.extendedProps.eventable_id}`"
+                                        class="border rounded-md p-2 my-2 bg-amber-600 md:border-none md:p-0 md:bg-transparent text-xs underline">
+                                    Werkbon {{ event.extendedProps.eventable_id }}
+                                    </Link>&nbsp;bij&nbsp;
+                                    <component :is="hasPermission('customer.read') ? Link : 'span'"
+                                        :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
+                                        :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
+                                        {{ getCustomerById(event.extendedProps.customer_id).name }}
+                                    </component>
+                                    <div v-if="event.extendedProps.executing_users?.length > 0"
+                                        class="mt-3 flex flex-wrap gap-2 ml-1">
+                                        <div v-for="user in event.extendedProps.executing_users" :key="user.id"
+                                            class="inline-flex items-center gap-1">
+                                            <img v-if="user.avatar" :src="user.avatar" :alt="user.name"
+                                                class="h-5 w-5 rounded-full ring-1 ring-gray-300 object-cover" />
+                                            <span v-else
+                                                class="h-5 w-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-medium ring-1 ring-gray-300">{{
+                                                    initials(user.name) }}</span>
+                                            <span class="text-[11px] leading-none">{{ user.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col absolute top-0 right-0 rounded-bl-md p-1 bg-white">
+                                    <TrashIcon @click.stop="deleteEvent(event.id)" v-tooltip="'Verwijder afspraak'"
+                                        class="size-6 text-red-500 cursor-pointer"
+                                        v-if="hasPermission('event.delete')" />
+                                    <ClockIcon @click.stop="updateStatus(event.id, 'Afgerond')"
+                                        v-tooltip="'Rond afspraak af'" class="size-6 text-blue-500 cursor-pointer pt-1"
+                                        v-if="event.extendedProps.status !== 'Afgerond'" />
+                                    <CheckIcon @click.stop="updateStatus(event.id, 'Gepland')"
+                                        v-tooltip="'Markeer als \'Gepland\''"
+                                        class="size-6 text-green-500 cursor-pointer pt-1" v-else />
+                                </div>
+                            </div>
+                        </template>
+                    </VDropdown>
                 </div>
             </template>
         </FullCalendar>
@@ -138,7 +187,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
-import { CheckIcon, ClockIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { CheckIcon, ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, hasPermission, nlDate, nlTime, initials } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -161,6 +210,14 @@ const editingExistingEvent = ref(false)
 const selectedCustomer = ref(props.allCustomers[0]?.id || null)
 const highlightEventId = ref(null)
 const highlightScrolled = ref(false)
+const eventsWithOverflow = ref(new Set())
+const eventsWithVisibleOverflow = ref(new Set())
+
+watch(modalOpen, (newVal) => {
+    if (newVal) {
+        eventsWithVisibleOverflow.value.clear();
+    }
+})
 
 const form = useForm({
     event_type_id: props.eventTypes[0]?.id || '',
@@ -379,6 +436,7 @@ const updateStatus = async (eventId, newStatus) => {
 }
 
 const onDrop = async dropInfo => {
+    determineContentOverflow(dropInfo.el, dropInfo.event.id)
     const { event } = dropInfo
     await updateTimes(event)
 }
@@ -446,6 +504,9 @@ const calendarOptions = ref({
     height: props.height,
     locale: nlLocale,
     eventDidMount: (info) => {
+        setTimeout(() => {
+            determineContentOverflow(info.el, info.event.id)
+        }, 100)
         if (highlightEventId.value && String(info.event.id) === String(highlightEventId.value)) {
             const el = info.el
             el.classList.add('animate-pulse-highlight')
@@ -468,6 +529,14 @@ const calendarOptions = ref({
     eventMaxStack: 2,
     dayMaxEventRows: 2,
 })
+
+const determineContentOverflow = (el, eventId) => {
+    if (el.children[0].children[0] && el.offsetHeight < el.children[0].children[0].offsetHeight) {
+        eventsWithOverflow.value.add(eventId);
+        return;
+    }
+    eventsWithOverflow.value.delete(eventId);
+}
 </script>
 <style scoped>
 @media screen and (max-width: 1024px) {
@@ -513,6 +582,10 @@ const calendarOptions = ref({
     outline-offset: 0px;
     position: relative;
     z-index: 5;
+}
+
+.fc-event {
+    overflow: hidden;
 }
 
 @media screen and (max-width: 1024px) {
