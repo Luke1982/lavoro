@@ -55,6 +55,7 @@ const doSearch = debounce((term) => {
     localStorage.setItem(props.localStorageKey, 'true')
     router.get(props.url, params, {
         preserveScroll: true,
+        preserveState: true,
         onStart: () => { inAction.value = true },
         onFinish: () => {
             inAction.value = false
@@ -64,7 +65,7 @@ const doSearch = debounce((term) => {
             })
         }
     })
-}, 500)
+}, 100)
 
 watch(internalValue, (val) => {
     doSearch(val)
