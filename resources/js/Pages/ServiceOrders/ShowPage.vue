@@ -35,7 +35,7 @@
                                             <span class="inline-flex items-center">
                                                 <span
                                                     class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                Exporteer PDF
+                                                Exporteer PDF voorbeeld
                                             </span>
                                         </button>
                                         </MenuItem>
@@ -348,7 +348,7 @@
                         class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
                         <span
                             class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                        Exporteer PDF
+                        Exporteer PDF voorbeeld
                     </a>
                     <button v-if="hasPermission('serviceorder.email_pdf')" @click="emailPdf"
                         class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full font-semibold">

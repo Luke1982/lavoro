@@ -241,7 +241,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="small">Geen servicejobs gekoppeld.</td>
+                    <td colspan="5" class="small">Geen periodieke controle gekoppeld.</td>
                 </tr>
             @endforelse
         </tbody>

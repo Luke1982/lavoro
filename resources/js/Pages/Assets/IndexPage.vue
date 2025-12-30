@@ -1,8 +1,8 @@
 <template>
     <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Assets" subtitle="Zoek en filter assets"
+        <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
             search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
-            :add-label="canCreate ? 'Voeg asset toe' : ''" @add="() => canCreate && assetFormRef?.show()">
+            :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && assetFormRef?.show()">
             <template #right>
                 <div class="flex items-end w-full">
                     <div class="flex-grow">
@@ -16,7 +16,7 @@
     </div>
     <div class="mb-4" v-auto-animate v-if="canCreate">
         <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
-            add-button-label="Voeg asset toe" submit-label="Toevoegen" />
+            add-button-label="Voeg machine toe" submit-label="Toevoegen" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <ul role="list"
@@ -30,8 +30,8 @@
                     <div class="min-w-0 flex-auto">
                         <p class="text-sm/6 font-semibold text-gray-900 dark:text-gray-300">
                             <Link :href="`/assets/${asset.id}`">
-                            <span class="absolute inset-x-0 -top-px bottom-0" />
-                            {{ asset.product.brand.name }} {{ asset.product.model }}
+                                <span class="absolute inset-x-0 -top-px bottom-0" />
+                                {{ asset.product.brand.name }} {{ asset.product.model }}
                             </Link>
                         </p>
                         <p class="mt-1 flex text-xs/5 text-gray-500 dark:text-gray-400">
