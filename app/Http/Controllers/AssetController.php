@@ -26,8 +26,8 @@ class AssetController extends Controller
     public function index(AssetReadRequest $request)
     {
 
-                $validated = $request->validated();
-                $search = isset($validated['search']) ? (string) $validated['search'] : '';
+        $validated = $request->validated();
+        $search = isset($validated['search']) ? (string) $validated['search'] : '';
 
         $query = Asset::with([
             'product.brand',
