@@ -45,12 +45,13 @@
 </template>
 
 <script setup>
-import { onMounted, ref, defineOptions, computed } from 'vue';
+import { onMounted, ref, defineOptions, computed, h, render } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import EmptyLayout from '@/Layouts/EmptyLayout.vue';
 import { ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import MapPopup from '@/Components/MapPopup.vue';
 
 defineOptions({ layout: EmptyLayout });
 
@@ -90,10 +91,10 @@ const classifyColor = (days) => {
         return 'gray';
     }
     if (days <= 30) {
-        return 'red';
+        return 'orange';
     }
     if (days <= 60) {
-        return 'orange';
+        return 'yellow';
     }
     return 'green';
 };
@@ -105,22 +106,6 @@ const markerIcon = (color) => L.divIcon({
     iconAnchor: [7, 7]
 });
 
-const popupHtml = (c) => {
-    const dagen = c.next_service_in_days != null ? Math.max(0, Math.round(c.next_service_in_days)) : null;
-    let line = '';
-    if (dagen != null && c.earliest_asset_product_type) {
-        line = `Eerstvolgende keuring over ${dagen} dagen aan ${c.earliest_asset_product_type}`;
-        if (c.earliest_asset_serial) {
-            line += ` (${c.earliest_asset_serial})`;
-        }
-    } else if (dagen != null) {
-        line = `Eerstvolgende keuring over ${dagen} dagen`;
-    } else {
-        line = 'Geen geplande keuring bekend';
-    }
-    return `<strong>${c.name}</strong><br>${[c.address, c.postal_code, c.city].filter(Boolean).join(' ')}<br>${line}`;
-};
-
 const addMarker = (c) => {
     if (c.lat == null || c.lon == null) {
         return;
@@ -129,10 +114,14 @@ const addMarker = (c) => {
         return;
     }
     added.add(c.id);
-    const color = c.has_expired_assets ? 'purple' : classifyColor(c.next_service_in_days);
+    const color = c.has_expired_assets ? 'red' : classifyColor(c.next_service_in_days);
+
+    const div = document.createElement('div');
+    render(h(MapPopup, { customer: c }), div);
+
     const m = L.marker([c.lat, c.lon], { icon: markerIcon(color) })
         .addTo(map.value)
-        .bindPopup(popupHtml(c));
+        .bindPopup(div);
     m.on('click', () => {
         setTimeout(() => {
             if (window.opener && window.opener.scrollToCustomer) {
