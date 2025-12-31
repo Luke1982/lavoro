@@ -30,6 +30,7 @@ class ServiceOrder extends Model
         'sent_to_administration',
         'sent_to_customer',
         'status',
+        'external_purchaseorder_no',
     ];
 
     protected $casts = [

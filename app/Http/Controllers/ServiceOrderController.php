@@ -323,6 +323,7 @@ class ServiceOrderController extends Controller
             'datum' => now()->toDateString(),
             'omschrijving' => $desc,
             'orderreferentie' => 'Werkbon ' . $serviceorder->id,
+            'memo' => $serviceorder->external_purchaseorder_no,
             'verkooporderBtwIngaveModel' => 'Inclusief',
             'verkoopOrderStatus' => 'InBehandeling',
             'regels' => $lines,

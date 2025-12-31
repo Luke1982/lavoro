@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -294,6 +294,18 @@
                         <span class="text-gray-500 dark:text-slate-400">Datum</span>
                         <span>{{ nlDate(serviceOrder.created_at) }}</span>
                     </div>
+                    <div
+                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
+                        <span class="text-gray-500 dark:text-slate-400">Externe ref.</span>
+                        <div v-if="hasPermission('serviceorder.update') && !serviceOrder.sent_to_administration"
+                            class=" w-1/2 text-right">
+                            <EditableTextField v-model="form.external_purchaseorder_no"
+                                @update="val => { form.external_purchaseorder_no = val; }"
+                                placeholder="Externe referentie" />
+                        </div>
+                        <span v-else class="text-gray-800 dark:text-slate-200">{{
+                            serviceOrder.external_purchaseorder_no || '—' }}</span>
+                    </div>
                     <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
                         <span class="text-gray-500 dark:text-slate-400">Klant</span>
                         <component :is="hasPermission('customer.read') ? Link : 'span'"
@@ -502,9 +514,10 @@ watch(
         () => form.description,
         () => form.signed_by,
         () => form.signature_base64,
+        () => form.external_purchaseorder_no,
     ],
     () => {
-        form.put(`/serviceorders / ${props.serviceOrder.id} `, {
+        form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 editingSignature.value = false;

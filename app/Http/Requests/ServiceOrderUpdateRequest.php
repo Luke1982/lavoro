@@ -43,6 +43,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'signed_by' => 'nullable|string|max:100',
             'signature_base64' => 'nullable|string',
             'status' => 'nullable|in:open,closed',
+            'external_purchaseorder_no' => 'nullable|string|max:255',
         ];
     }
 
