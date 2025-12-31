@@ -44,6 +44,8 @@ class ServiceOrderUpdateRequest extends FormRequest
             'signature_base64' => 'nullable|string',
             'status' => 'nullable|in:open,closed',
             'external_purchaseorder_no' => 'nullable|string|max:255',
+            'actual_start_time' => 'nullable|date_format:H:i',
+            'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
         ];
     }
 
@@ -57,6 +59,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'signed_by.max' => 'Ondertekend door mag maximaal 100 tekens bevatten.',
             'signature_base64.string' => 'Handtekening moet een geldige string zijn.',
             'status.in' => 'Ongeldige status opgegeven.',
+            'actual_end_time.after' => 'Eindtijd moet later zijn dan de starttijd.',
         ];
     }
 }

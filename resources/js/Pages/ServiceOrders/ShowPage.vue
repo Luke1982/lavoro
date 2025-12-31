@@ -345,6 +345,30 @@
                         <span>€ {{ materialsTotal.toFixed(2) }}</span>
                     </div>
                 </div>
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
+                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Start- en eindtijd</h3>
+                    <div
+                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
+                        <span class="text-gray-500 dark:text-slate-400">Starttijd</span>
+                        <div v-if="hasPermission('serviceorder.update')" class="w-1/2 text-right">
+                            <EditableTextField inputType="time" v-model="form.actual_start_time"
+                                @update="val => { form.actual_start_time = val; }" class="text-right" />
+                        </div>
+                        <span v-else class="text-gray-800 dark:text-slate-200">{{
+                            (serviceOrder.actual_start_time || '').substring(0, 5) || '—' }}</span>
+                    </div>
+                    <div
+                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
+                        <span class="text-gray-500 dark:text-slate-400">Eindtijd</span>
+                        <div v-if="hasPermission('serviceorder.update')" class="w-1/2 text-right">
+                            <EditableTextField inputType="time" v-model="form.actual_end_time"
+                                @update="val => { form.actual_end_time = val; }" class="text-right" />
+                        </div>
+                        <span v-else class="text-gray-800 dark:text-slate-200">{{
+                            (serviceOrder.actual_end_time || '').substring(0, 5) || '—' }}</span>
+                    </div>
+                </div>
                 <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
                     v-if="timelineItems.length">
                     <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
@@ -403,7 +427,7 @@ import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
@@ -471,7 +495,9 @@ const assetToCheck = ref(internalAssets[0]?.id || null);
 const ticketToSolve = ref(internalTickets.value[0]?.id || null);
 
 const form = useForm({
-    ...props.serviceOrder
+    ...props.serviceOrder,
+    actual_start_time: props.serviceOrder.actual_start_time ? props.serviceOrder.actual_start_time.substring(0, 5) : null,
+    actual_end_time: props.serviceOrder.actual_end_time ? props.serviceOrder.actual_end_time.substring(0, 5) : null,
 });
 
 const updateStatus = (newStatus) => {
@@ -509,18 +535,32 @@ const addServiceJob = () => {
     })
 };
 
+const isReverting = ref(false);
+
 watch(
     [
         () => form.description,
         () => form.signed_by,
         () => form.signature_base64,
         () => form.external_purchaseorder_no,
+        () => form.actual_start_time,
+        () => form.actual_end_time,
     ],
     () => {
+        if (isReverting.value) {
+            isReverting.value = false;
+            return;
+        }
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 editingSignature.value = false;
+                form.defaults();
+            },
+            onError: () => {
+                isReverting.value = true;
+                form.reset();
+                usePage().props.flash.error = usePage().props.errors;
             }
         });
     }
