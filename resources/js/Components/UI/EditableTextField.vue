@@ -1,6 +1,6 @@
 <template>
     <div :class="[editing ? '' : 'pr-5', 'relative']">
-        <span v-if="!editing">{{ model ?? placeholder }}</span>
+        <span v-if="!editing" class="pr-4">{{ model ?? placeholder }}</span>
 
         <div class="flex min-w-0" v-if="editing">
             <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow min-w-0"
