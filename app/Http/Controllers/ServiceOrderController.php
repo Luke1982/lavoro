@@ -136,7 +136,11 @@ class ServiceOrderController extends Controller
      */
     public function update(ServiceOrderUpdateRequest $request, ServiceOrder $serviceorder)
     {
-        $serviceorder->update($request->validated());
+        $data = $request->validated();
+        if ($serviceorder->status !== 'closed' && $request->input('status') === 'closed') {
+            $data['closed_on'] = now();
+        }
+        $serviceorder->update($data);
         return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
     }
 
