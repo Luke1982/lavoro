@@ -97,6 +97,8 @@
                         </div>
                     </div>
                 </div>
+                <CustomFieldsComponent v-if="customFields.length" model-type="asset" :model-id="asset.id"
+                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <BoxComponent class="mt-5" v-auto-animate>
                 <div class="flex justify-between items-center mb-2">
@@ -173,6 +175,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
+import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission } from '@/Utilities/Utilities';
 
 const editing = ref({
@@ -205,6 +208,10 @@ const props = defineProps({
     allCustomers: {
         type: Array,
         required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
     },
 });
 

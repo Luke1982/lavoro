@@ -21,23 +21,23 @@ class CustomerController extends Controller
         $search = $request->input('search');
         $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
             ->when($search !== null && $search !== '', fn($query) =>
-                $query->where(fn($q) =>
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('invoice_email', 'like', "%{$search}%")
-                        ->orWhere('quotes_email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('mobile', 'like', "%{$search}%")
-                        ->orWhere('website', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%")
-                        ->orWhere('postal_code', 'like', "%{$search}%")
-                        ->orWhere('city', 'like', "%{$search}%")
-                        ->orWhere('country', 'like', "%{$search}%")
-                        ->orWhere('postal_address', 'like', "%{$search}%")
-                        ->orWhere('postal_postal_code', 'like', "%{$search}%")
-                        ->orWhere('postal_city', 'like', "%{$search}%")
-                        ->orWhere('postal_country', 'like', "%{$search}%")
-                        ->orWhere('location_code', 'like', "%{$search}%")))
+            $query->where(fn($q) =>
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('invoice_email', 'like', "%{$search}%")
+                ->orWhere('quotes_email', 'like', "%{$search}%")
+                ->orWhere('phone', 'like', "%{$search}%")
+                ->orWhere('mobile', 'like', "%{$search}%")
+                ->orWhere('website', 'like', "%{$search}%")
+                ->orWhere('address', 'like', "%{$search}%")
+                ->orWhere('postal_code', 'like', "%{$search}%")
+                ->orWhere('city', 'like', "%{$search}%")
+                ->orWhere('country', 'like', "%{$search}%")
+                ->orWhere('postal_address', 'like', "%{$search}%")
+                ->orWhere('postal_postal_code', 'like', "%{$search}%")
+                ->orWhere('postal_city', 'like', "%{$search}%")
+                ->orWhere('postal_country', 'like', "%{$search}%")
+                ->orWhere('location_code', 'like', "%{$search}%")))
             ->orderBy('name')
             ->paginate(25)
             ->appends(['search' => $search]);
@@ -52,9 +52,9 @@ class CustomerController extends Controller
             'id',
             DB::raw("CONCAT_WS(' – ', name, city) as name")
         )
-        ->where('id', '!=', $customer->id)
-        ->orderBy('name')
-        ->get();
+            ->where('id', '!=', $customer->id)
+            ->orderBy('name')
+            ->get();
 
         return inertia('Customers/EditPage', [
             'customer' => $customer,
@@ -80,6 +80,7 @@ class CustomerController extends Controller
             'serviceOrders.events.eventType',
             'serviceOrders.events.executingUsers:id,name',
             'serviceOrders.events.owners:id,name',
+            'customFields',
         ]);
 
         $user = Auth::user();
@@ -98,8 +99,8 @@ class CustomerController extends Controller
             'id',
             DB::raw("CONCAT_WS(' – ', name, city) as name")
         )
-        ->orderBy('name')
-        ->get();
+            ->orderBy('name')
+            ->get();
 
         $allProducts = Product::with(['brand', 'productType'])->orderBy('model')->get();
         return inertia('Customers/ShowPage', [
@@ -107,6 +108,7 @@ class CustomerController extends Controller
             'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
             'allProducts' => $allProducts,
+            'customFields' => $customer->allCustomFieldsWithValues(),
         ]);
     }
 

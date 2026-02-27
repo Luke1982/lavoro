@@ -56,12 +56,12 @@ class ProductController extends Controller
         foreach ($words as $word) {
             $query->where(function ($q) use ($word) {
                 $q->where('model', 'like', '%' . $word . '%')
-                  ->orWhereHas('brand', function ($qb) use ($word) {
-                      $qb->where('name', 'like', '%' . $word . '%');
-                  })
-                  ->orWhereHas('productType', function ($qb) use ($word) {
-                      $qb->where('name', 'like', '%' . $word . '%');
-                  });
+                    ->orWhereHas('brand', function ($qb) use ($word) {
+                        $qb->where('name', 'like', '%' . $word . '%');
+                    })
+                    ->orWhereHas('productType', function ($qb) use ($word) {
+                        $qb->where('name', 'like', '%' . $word . '%');
+                    });
             });
         }
 
@@ -84,10 +84,12 @@ class ProductController extends Controller
                     'assets.closedTickets',
                     'assets.product.productType',
                     'assets.product.brand',
+                    'customFields',
                 ]),
                 'allCustomers' => Customer::orderBy('name', 'ASC')
                     ->get(['id', 'name'])
                     ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
+                'customFields' => $product->allCustomFieldsWithValues(),
             ]
         );
     }
@@ -132,7 +134,6 @@ class ProductController extends Controller
             ->route($request->origin === 'showPage' ? 'products.show' : 'products.index', $product->id)
             ->with('success', 'Product bijgewerkt.')
             ->with('extra', $product->load(['brand', 'productType']));
-        ;
     }
 
     /**

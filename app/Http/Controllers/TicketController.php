@@ -15,7 +15,7 @@ class TicketController extends Controller
     /**
      * List tickets with optional search, status and priority filters.
      *
-    * @param TicketListRequest $request
+     * @param TicketListRequest $request
      * @return \Inertia\Response
      */
     public function index(TicketListRequest $request)
@@ -171,12 +171,13 @@ class TicketController extends Controller
      */
     public function show(TicketReadRequest $request, Ticket $ticket)
     {
-        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand', 'images']);
+        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand', 'images', 'customFields']);
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
             'remarks' => $ticket->remarks->load('user'),
+            'customFields' => $ticket->allCustomFieldsWithValues(),
         ]);
     }
 
@@ -194,11 +195,11 @@ class TicketController extends Controller
     public function update(TicketUpdateRequest $request, Ticket $ticket)
     {
         $ticket->update($request->validated());
-            $message = sprintf(
-                "Storing is bijgewerkt, de status is nu '%s' en de prioriteit is '%s'.",
-                $request->status,
-                $request->priority
-            );
+        $message = sprintf(
+            "Storing is bijgewerkt, de status is nu '%s' en de prioriteit is '%s'.",
+            $request->status,
+            $request->priority
+        );
 
         if ($request->status && strtolower($request->status) === 'gesloten') {
             $ticket->update(['closed_on' => now()]);

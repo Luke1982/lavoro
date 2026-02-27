@@ -313,7 +313,8 @@ import {
     ScaleIcon,
     AdjustmentsHorizontalIcon,
     BuildingOffice2Icon,
-    ArrowRightOnRectangleIcon
+    ArrowRightOnRectangleIcon,
+    WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -374,7 +375,8 @@ const navigation = ref([
         requiresPermission: 'event.read',
         children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' }],
         open: false,
-    }
+    },
+    { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },
 ])
 
 const canSeeNavItem = (item) => {

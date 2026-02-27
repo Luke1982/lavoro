@@ -77,6 +77,8 @@
                         <span v-else>{{ form.priority }}</span>
                     </div>
                 </div>
+                <CustomFieldsComponent v-if="customFields.length" model-type="ticket" :model-id="ticket.id"
+                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
                 :comments="ticket.remarks" class="mt-8 mb-8" />
@@ -108,6 +110,7 @@ import { CheckIcon, ClockIcon, ExclamationCircleIcon, NoSymbolIcon, PhotoIcon } 
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
+import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 
 const props = defineProps({
     ticket: {
@@ -121,6 +124,10 @@ const props = defineProps({
     priorities: {
         type: Array,
         required: true
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
     }
 });
 

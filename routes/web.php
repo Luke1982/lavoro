@@ -28,6 +28,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\CustomFieldController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -112,12 +113,16 @@ Route::group(
             ->only(['index']);
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
+        Route::resource('customfields', CustomFieldController::class)
+            ->except(['show', 'edit', 'create']);
+        Route::post('customfields/values', [CustomFieldController::class, 'saveValues'])
+            ->name('customfields.saveValues');
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
             ->name('upcomingactivities'); // requires activitylist.read
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
             ->name('upcomingactivities.map'); // requires activitylist.read
-                Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
-                Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+        Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
+        Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
                 ->name('companies.inline');
@@ -125,7 +130,7 @@ Route::group(
                 ->name('companies.logo');
             Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
 
-            Route::resource('users', UserController::class)->except(['destroy','show', 'update']);
+            Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
             Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
             Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RemarkableTrait;
 use App\Models\Activity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ class ServiceOrder extends Model
     use HasOwner;
     use HasExecutingUsers;
     use HasActivities;
+    use HasCustomFields;
 
     protected $fillable = [
         'description',

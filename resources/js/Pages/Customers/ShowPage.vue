@@ -97,6 +97,8 @@
                                 customer.postal_city }}</p>
                     </div>
                 </div>
+                <CustomFieldsComponent v-if="customFields.length" model-type="customer" :model-id="customer.id"
+                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <div class="mt-5 px-1">
                 <div class="flex flex-col md:flex-row md:items-start md:gap-4">
@@ -181,6 +183,7 @@ import { hasPermission } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
+import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 
 const props = defineProps({
     customer: {
@@ -198,6 +201,10 @@ const props = defineProps({
     allProducts: {
         type: Array,
         required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
     }
 });
 

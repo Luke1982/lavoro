@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
+use App\Models\Traits\HasCustomFields;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -12,6 +13,7 @@ class Asset extends Model
 {
     /** @use HasFactory<\Database\Factories\AssetsFactory> */
     use HasFactory;
+    use HasCustomFields;
 
     protected $fillable = [
         'product_id',

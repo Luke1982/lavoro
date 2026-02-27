@@ -99,27 +99,31 @@ class ServiceOrderController extends Controller
      */
     public function show(string $id)
     {
+        $service_order = ServiceOrder::with([
+            'customer.assets.product.brand',
+            'customer.assets.product.productType',
+            'customer.assets.product.images',
+            'servicejobs.asset.product.brand',
+            'customer.tickets.asset.product.brand',
+            'customer.tickets.asset.product.productType',
+            'tickets.asset.product.brand',
+            'tickets.asset.product.productType',
+            'materials',
+            'activities' => function ($q) {
+                $q->orderByDesc('activityables.created_at');
+            },
+            'remarks.user',
+            'events.eventType',
+            'events.executingUsers:id,name',
+            'customFields',
+        ])->findOrFail($id);
+
         return inertia('ServiceOrders/ShowPage', [
-            'serviceOrder' => ServiceOrder::with([
-                'customer.assets.product.brand',
-                'customer.assets.product.productType',
-                'customer.assets.product.images',
-                'servicejobs.asset.product.brand',
-                'customer.tickets.asset.product.brand',
-                'customer.tickets.asset.product.productType',
-                'tickets.asset.product.brand',
-                'tickets.asset.product.productType',
-                'materials',
-                'activities' => function ($q) {
-                    $q->orderByDesc('activityables.created_at');
-                },
-                'remarks.user',
-                'events.eventType',
-                'events.executingUsers:id,name',
-            ])->findOrFail($id),
+            'serviceOrder' => $service_order,
             'allMaterials' => Material::all()->load([
                 'usageUnit',
             ]),
+            'customFields' => $service_order->allCustomFieldsWithValues(),
         ]);
     }
 
@@ -470,7 +474,7 @@ class ServiceOrderController extends Controller
     public function attachMaterial(Request $request, ServiceOrder $serviceorder, Material $material)
     {
         $serviceorder->materials()->attach($material, [
-        'quantity' => $request->input('quantity', 1),
+            'quantity' => $request->input('quantity', 1),
         ]);
         $serviceorder->logActivity(sprintf(
             'Materiaal toegevoegd: %s (aantal %s)',
@@ -500,7 +504,7 @@ class ServiceOrderController extends Controller
         }
 
         return redirect()->back()
-        ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
+            ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
     }
 
     public function updateMateriable(Request $request, ServiceOrder $serviceorder, string $materiable_id)

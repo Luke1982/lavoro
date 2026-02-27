@@ -276,6 +276,9 @@
                             :comments="serviceOrder.remarks" class="mt-8" />
                     </div>
                 </div>
+                <CustomFieldsComponent v-if="customFields.length" model-type="service_order"
+                    :model-id="serviceOrder.id" :custom-fields="customFields"
+                    :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700"
                 @click="updateStatus('closed')"
@@ -431,6 +434,7 @@ import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
+import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 
 const props = defineProps({
     serviceOrder: {
@@ -440,6 +444,10 @@ const props = defineProps({
     allMaterials: {
         type: Array,
         required: true
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
     }
 });
 

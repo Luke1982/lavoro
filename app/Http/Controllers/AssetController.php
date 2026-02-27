@@ -39,7 +39,7 @@ class AssetController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('product', function ($q2) use ($search) {
-                        $q2->where('model', 'like', "%{$search}%");
+                    $q2->where('model', 'like', "%{$search}%");
                 })
                     ->orWhereHas('product.brand', function ($q3) use ($search) {
                         $q3->where('name', 'like', "%{$search}%");
@@ -148,9 +148,11 @@ class AssetController extends Controller
                 'product.productType',
                 'customer',
                 'servicejobs',
+                'customFields',
             ]),
             'allProducts' => $all_products,
             'allCustomers'  => Customer::all(),
+            'customFields' => $asset->allCustomFieldsWithValues(),
         ]);
     }
 
