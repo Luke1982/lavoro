@@ -1,0 +1,7 @@
+- For PHP, use snake_case for all variable names.
+- Do not add inline comments; prefer clear names and docblocks only when needed.
+- Don’t propose git commands or workflows.
+- In Laravel, always check authorization via Form Requests (authorize()) and/or policies.
+- Reuse the userables pivot with type field for role-like distinctions (owner, executing).
+- When adding relationships, use proper morphs/foreignIdFor patterns.
+- Don't write tests unless I ask you to
