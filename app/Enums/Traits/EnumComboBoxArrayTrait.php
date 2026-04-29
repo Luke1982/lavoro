@@ -17,4 +17,9 @@ trait EnumComboBoxArrayTrait
             self::cases()
         );
     }
+
+    public static function validationString(): string
+    {
+        return implode(',', array_map(fn($s) => $s->value, self::cases()));
+    }
 }

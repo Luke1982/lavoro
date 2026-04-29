@@ -29,6 +29,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\CustomFieldController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectMilestoneController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -117,6 +119,9 @@ Route::group(
             ->except(['show', 'edit', 'create']);
         Route::post('customfields/values', [CustomFieldController::class, 'saveValues'])
             ->name('customfields.saveValues');
+        Route::resource('projects', ProjectController::class);
+        Route::resource('projectmilestones', ProjectMilestoneController::class)
+            ->only(['store', 'update', 'destroy']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])
             ->name('upcomingactivities'); // requires activitylist.read
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])

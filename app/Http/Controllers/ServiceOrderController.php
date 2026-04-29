@@ -47,7 +47,8 @@ class ServiceOrderController extends Controller
     public function store(Request $request)
     {
         $serviceorder = ServiceOrder::create($request->validate([
-            'customer_id' => 'required|exists:customers,id'
+            'customer_id' => 'required|exists:customers,id',
+            'project_id'  => 'nullable|exists:projects,id',
         ]));
         $redirect = 'back';
 

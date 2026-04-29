@@ -42,9 +42,9 @@
                                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
                                                         ]">
-                                                        <component :is="item.icon" class="size-6 shrink-0"
-                                                            aria-hidden="true" />
-                                                        {{ item.name }}
+                                                            <component :is="item.icon" class="size-6 shrink-0"
+                                                                aria-hidden="true" />
+                                                            {{ item.name }}
                                                         </Link>
                                                         <button v-if="visibleChildren(item).length"
                                                             class="p-2 text-gray-400 hover:text-white"
@@ -73,9 +73,9 @@
                                                                             : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                                         'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
                                                                     ]">
-                                                                <component v-if="child.icon" :is="child.icon"
-                                                                    class="size-5 shrink-0" aria-hidden="true" />
-                                                                <span>{{ child.name }}</span>
+                                                                    <component v-if="child.icon" :is="child.icon"
+                                                                        class="size-5 shrink-0" aria-hidden="true" />
+                                                                    <span>{{ child.name }}</span>
                                                                 </Link>
                                                             </li>
                                                         </ul>
@@ -92,10 +92,10 @@
                                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                     ]">
-                                                    <span
-                                                        class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                            list.initial }}</span>
-                                                    <span>{{ list.name }}</span>
+                                                        <span
+                                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
+                                                                list.initial }}</span>
+                                                        <span>{{ list.name }}</span>
                                                     </Link>
                                                 </li>
                                             </ul>
@@ -107,35 +107,35 @@
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
-                                                <BuildingOffice2Icon class="size-6 shrink-0" />
-                                                Bedrijf
+                                                    <BuildingOffice2Icon class="size-6 shrink-0" />
+                                                    Bedrijf
                                                 </Link>
                                                 <Link @click="sidebarOpen = false" :href="'/users'" :class="[
                                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
-                                                <UsersIcon class="size-6 shrink-0" />
-                                                Gebruikers
+                                                    <UsersIcon class="size-6 shrink-0" />
+                                                    Gebruikers
                                                 </Link>
                                                 <Link @click="sidebarOpen = false" :href="'/roles'" :class="[
                                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
-                                                <UsersIcon class="size-6 shrink-0" />
-                                                Rollen
+                                                    <UsersIcon class="size-6 shrink-0" />
+                                                    Rollen
                                                 </Link>
                                             </div>
                                             <Link @click="sidebarOpen = false" :href="'/me/edit'"
                                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
-                                            <div
-                                                class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
-                                                <img v-if="authUser?.avatar" :src="authUser.avatar"
-                                                    class="object-cover w-full h-full" />
-                                                <span v-else class="text-xs font-medium text-white">{{ initials
-                                                }}</span>
-                                            </div>
-                                            <span class="sr-only">Profiel</span>
-                                            <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
+                                                <div
+                                                    class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                                                    <img v-if="authUser?.avatar" :src="authUser.avatar"
+                                                        class="object-cover w-full h-full" />
+                                                    <span v-else class="text-xs font-medium text-white">{{ initials
+                                                        }}</span>
+                                                </div>
+                                                <span class="sr-only">Profiel</span>
+                                                <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                                             </Link>
                                             <div class="px-6 pb-4">
                                                 <button @click="logout"
@@ -169,8 +169,8 @@
                                             item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                             'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
                                         ]">
-                                        <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                        {{ item.name }}
+                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
+                                            {{ item.name }}
                                         </Link>
                                         <button v-if="visibleChildren(item).length"
                                             class="p-2 text-gray-400 hover:text-white"
@@ -190,9 +190,9 @@
                                                     child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
                                                 ]">
-                                                <component v-if="child.icon" :is="child.icon" class="size-5 shrink-0"
-                                                    aria-hidden="true" />
-                                                <span>{{ child.name }}</span>
+                                                    <component v-if="child.icon" :is="child.icon"
+                                                        class="size-5 shrink-0" aria-hidden="true" />
+                                                    <span>{{ child.name }}</span>
                                                 </Link>
                                             </li>
                                         </ul>
@@ -209,10 +209,10 @@
                                         list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                     ]">
-                                    <span
-                                        class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                            list.initial }}</span>
-                                    <span>{{ list.name }}</span>
+                                        <span
+                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
+                                                list.initial }}</span>
+                                        <span>{{ list.name }}</span>
                                     </Link>
                                 </li>
                             </ul>
@@ -224,34 +224,34 @@
                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
-                                <BuildingOffice2Icon class="size-6 shrink-0" />
-                                Bedrijf
+                                    <BuildingOffice2Icon class="size-6 shrink-0" />
+                                    Bedrijf
                                 </Link>
                                 <Link :href="'/users'" :class="[
                                     currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
-                                <UsersIcon class="size-6 shrink-0" />
-                                Gebruikers
+                                    <UsersIcon class="size-6 shrink-0" />
+                                    Gebruikers
                                 </Link>
                                 <Link :href="'/roles'" :class="[
                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
-                                <UsersIcon class="size-6 shrink-0" />
-                                Rollen
+                                    <UsersIcon class="size-6 shrink-0" />
+                                    Rollen
                                 </Link>
                             </div>
                             <Link :href="'/me/edit'"
                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
-                            <div
-                                class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
-                                <img v-if="authUser?.avatar" :src="authUser.avatar"
-                                    class="object-cover w-full h-full" />
-                                <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
-                            </div>
-                            <span class="sr-only">Profiel</span>
-                            <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
+                                <div
+                                    class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                                    <img v-if="authUser?.avatar" :src="authUser.avatar"
+                                        class="object-cover w-full h-full" />
+                                    <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
+                                </div>
+                                <span class="sr-only">Profiel</span>
+                                <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
                             </Link>
                             <div class="px-6 pb-6">
                                 <button @click="logout"
@@ -273,11 +273,11 @@
             </button>
             <div class="flex-1 text-sm/6 font-semibold text-white">{{ currentTopTitle }}</div>
             <Link :href="'/me/edit'">
-            <span class="sr-only">Profiel</span>
-            <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
-                <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
-                <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
-            </div>
+                <span class="sr-only">Profiel</span>
+                <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                    <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
+                    <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
+                </div>
             </Link>
 
         </div>
@@ -315,6 +315,7 @@ import {
     BuildingOffice2Icon,
     ArrowRightOnRectangleIcon,
     WrenchScrewdriverIcon,
+    ClipboardDocumentListIcon,
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -377,6 +378,7 @@ const navigation = ref([
         open: false,
     },
     { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },
+    { name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read' },
 ])
 
 const canSeeNavItem = (item) => {

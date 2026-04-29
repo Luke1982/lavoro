@@ -9,7 +9,7 @@ export const nlDate = (date) => {
 export const formatLocalDateAsISO = (date) => {
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-        date.getDate()
+        date.getDate(),
     )}`;
 };
 
@@ -22,7 +22,7 @@ export const nlTime = (date) => {
 
 export const mapsLinkFromCustomer = (customer) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        customer.address + " " + customer.postal_code + " " + customer.city
+        customer.address + " " + customer.postal_code + " " + customer.city,
     )}`;
 };
 
@@ -95,4 +95,14 @@ export const initials = (name = "") => {
             .join("")
             .toUpperCase() || "US"
     );
+};
+
+export const projectStatusClass = (status) => {
+    const map = {
+        "Niet gestart": "text-gray-500 dark:text-slate-400",
+        Gestart: "text-blue-600 dark:text-blue-400",
+        Afgerond: "text-green-600 dark:text-green-400",
+        Geannuleerd: "text-red-600 dark:text-red-400",
+    };
+    return map[status] || "";
 };

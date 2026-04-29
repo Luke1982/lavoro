@@ -26,6 +26,7 @@ class ServiceOrder extends Model
     protected $fillable = [
         'description',
         'customer_id',
+        'project_id',
         'closed_on',
         'signed_by',
         'signature_base64',
@@ -52,6 +53,11 @@ class ServiceOrder extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function serviceJobs()

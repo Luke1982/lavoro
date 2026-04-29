@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProjectStatuses;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CustomerReadRequest;
@@ -80,6 +82,8 @@ class CustomerController extends Controller
             'serviceOrders.events.eventType',
             'serviceOrders.events.executingUsers:id,name',
             'serviceOrders.events.owners:id,name',
+            'projects.projectManager',
+            'projects.serviceOrders.serviceJobs',
             'customFields',
         ]);
 
@@ -108,6 +112,8 @@ class CustomerController extends Controller
             'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
             'allProducts' => $allProducts,
+            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
+            'statuses' => ProjectStatuses::comboBoxArray(),
             'customFields' => $customer->allCustomFieldsWithValues(),
         ]);
     }

@@ -88,14 +88,14 @@ class User extends Authenticatable
 
     /**
      * Get a flat list of unique permission names for this user
-      * combining permissions via roles.
+     * combining permissions via roles.
      *
      * @return array<int,string>
      */
     public function permissionNames(): array
     {
         $via_roles = $this->roles()->with('permissions:id,name')->get()
-            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+            ->flatMap(fn($role) => $role->permissions->pluck('name'))
             ->all();
         return array_values(array_unique($via_roles));
     }
@@ -114,6 +114,16 @@ class User extends Authenticatable
             return true;
         }
         return in_array($name, $this->permissionNames(), true);
+    }
+
+    public function scopeCanLeadProjects($query)
+    {
+        return $query->whereHas('roles', function ($role_query) {
+            $role_query->where('name', 'admin')
+                ->orWhereHas('permissions', function ($permission_query) {
+                    $permission_query->where('name', 'projects.lead');
+                });
+        });
     }
 
     /**

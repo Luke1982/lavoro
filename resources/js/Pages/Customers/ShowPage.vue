@@ -32,7 +32,7 @@
                         </div>
                         <Link v-if="canUpdate" :href="`/customers/${customer.id}/edit`"
                             class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
-                        <PencilSquareIcon class="size-6" />
+                            <PencilSquareIcon class="size-6" />
                         </Link>
                     </div>
                 </div>
@@ -86,13 +86,13 @@
                             Bezoekadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
                             customer.postal_code
-                        }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
+                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
                             Postadres</h3>
                         <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                        }}<br>{{
+                            }}<br>{{
                                 customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
                                 customer.postal_city }}</p>
                     </div>
@@ -139,6 +139,63 @@
             <div class="space-y-4 md:ml-5 md:mt-0 ml-0 mt-5">
 
                 <BoxComponent>
+                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between items-center">
+                        <div class="flex items-center">
+                            <FolderIcon class="size-6 flex-none text-gray-500 mr-2" />
+                            <h2 class="font-regular text-xl">Projecten</h2>
+                        </div>
+                        <PlusCircleIcon v-if="canCreateProject"
+                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                            @click="projectFormRef?.show()"
+                            v-tooltip="`Maak een nieuw project aan voor ${customer.name}`" />
+                    </div>
+
+                    <CreateRecordForm ref="projectFormRef" external-trigger action="/projects" :fields="projectFields"
+                        submit-label="Opslaan" />
+
+                    <div v-if="!sortedProjects.length" class="text-sm text-gray-500 dark:text-slate-400">
+                        Nog geen projecten
+                    </div>
+
+                    <div v-else class="space-y-3" v-auto-animate>
+                        <div v-for="project in sortedProjects" :key="project.id"
+                            class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
+                            <div class="flex items-start justify-between gap-2">
+                                <component :is="hasPermission('project.read') ? Link : 'span'"
+                                    :href="`/projects/${project.id}`" :class="{
+                                        'text-gray-800 dark:text-slate-200 font-medium': true,
+                                        'underline hover:text-gray-600 dark:hover:text-slate-400': hasPermission('project.read')
+                                    }">
+                                    {{ project.title }}
+                                </component>
+                                <span class="text-xs" :class="projectStatusClass(project.status)">{{ project.status
+                                    }}</span>
+                            </div>
+
+                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Start: {{ project.start_date ? nlDate(project.start_date) : 'Onbekend' }}
+                                <span v-if="project.project_manager"> • Projectleider: {{ project.project_manager.name
+                                    }}</span>
+                            </div>
+
+                            <h4
+                                class="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
+                                Werkbonnen
+                            </h4>
+
+                            <div class="mt-2 space-y-2" v-auto-animate>
+                                <div v-if="!project.service_orders?.length"
+                                    class="text-xs text-gray-500 dark:text-slate-400">
+                                    Geen werkbonnen binnen dit project
+                                </div>
+                                <ServiceOrderRow v-for="serviceorder in project.service_orders" :key="serviceorder.id"
+                                    :serviceorder="serviceorder" />
+                            </div>
+                        </div>
+                    </div>
+                </BoxComponent>
+
+                <BoxComponent>
                     <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
                         <div class="flex">
                             <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
@@ -149,7 +206,10 @@
                             @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
                             v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
                     </div>
-                    <ServiceOrderRow v-for="serviceorder in customer.service_orders" v-bind:key="serviceorder.id"
+                    <div v-if="!serviceOrdersWithoutProject.length" class="text-sm text-gray-500 dark:text-slate-400">
+                        Geen losse werkbonnen
+                    </div>
+                    <ServiceOrderRow v-for="serviceorder in serviceOrdersWithoutProject" v-bind:key="serviceorder.id"
                         :serviceorder="serviceorder" />
                 </BoxComponent>
                 <BoxComponent class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60">
@@ -173,13 +233,14 @@
 
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon, PencilSquareIcon, FolderIcon } from '@heroicons/vue/24/outline';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import { hasPermission } from '@/Utilities/Utilities';
+import { hasPermission, nlDate, projectStatusClass } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
@@ -202,6 +263,14 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    users: {
+        type: Array,
+        default: () => [],
+    },
+    statuses: {
+        type: Array,
+        default: () => [],
+    },
     customFields: {
         type: Array,
         default: () => [],
@@ -217,7 +286,10 @@ const newServiceOrderForm = useForm({
     customer_id: props.customer.id,
 });
 
+const projectFormRef = ref(null)
+
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
+const canCreateProject = computed(() => hasPermission('project.create'));
 
 const canUpdate = computed(() => hasPermission('customer.update'))
 
@@ -262,6 +334,29 @@ const assetsFiltered = computed(() => {
 });
 
 const hasAssetsFiltered = computed(() => assetsFiltered.value.length > 0);
+
+const sortedProjects = computed(() => {
+    return (props.customer.projects || []).slice().sort((a, b) => {
+        if (!a.start_date && !b.start_date) return 0
+        if (!a.start_date) return 1
+        if (!b.start_date) return -1
+        return a.start_date.localeCompare(b.start_date)
+    })
+})
+
+const serviceOrdersWithoutProject = computed(() => {
+    return (props.customer.service_orders || []).filter(serviceorder => !serviceorder.project_id)
+})
+
+const projectFields = [
+    { key: 'customer_id', type: 'number', default: props.customer.id, label: '', class: 'hidden' },
+    { key: 'title', label: 'Titel', type: 'text', class: 'md:col-span-4' },
+    { key: 'project_manager_id', label: 'Projectleider', type: 'combobox', options: props.users, initialId: props.users[0]?.id, class: 'md:col-span-4' },
+    { key: 'status', label: 'Status', type: 'combobox', options: props.statuses, initialId: props.statuses[0]?.id, emitValue: true, class: 'md:col-span-4' },
+    { key: 'start_date', label: 'Startdatum', type: 'date', class: 'md:col-span-4' },
+    { key: 'end_date', label: 'Einddatum', type: 'date', class: 'md:col-span-4' },
+    { key: 'description', label: 'Omschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
+]
 
 // Collect all events from service orders for this customer for timeline
 const eventList = computed(() => {
