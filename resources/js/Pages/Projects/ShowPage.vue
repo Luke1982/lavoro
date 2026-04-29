@@ -49,22 +49,13 @@
                         <EditableTextField v-model="form.end_date" type="input" input-type="date" class="w-full" />
                     </div>
                 </div>
-            </BoxComponent>
-
-            <BoxComponent class="mt-4">
-                <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
-                    <div class="flex items-center">
-                        <FlagIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
-                        <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Mijlpalen</h3>
-                    </div>
-                    <button @click="toggleMilestoneForm"
-                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
-                        {{ showMilestoneForm ? 'Annuleren' : 'Mijlpaal toevoegen' }}
+                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
+                    <button @click="showMilestoneDrawer = true"
+                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 inline-flex items-center gap-1.5">
+                        <FlagIcon class="size-4" />
+                        Mijlpaal toevoegen
                     </button>
                 </div>
-
-                <CreateRecordForm ref="milestoneFormRef" :action="'/projectmilestones'" :fields="milestoneFields"
-                    submit-label="Toevoegen" :external-trigger="true" @closed="showMilestoneForm = false" />
             </BoxComponent>
 
             <BoxComponent class="mt-4">
@@ -260,6 +251,69 @@
             </BoxComponent>
         </template>
     </TwoThirdsOneThird>
+
+    <DrawerComponent v-model="showMilestoneDrawer" max-width-class="max-w-2xl" title="Nieuwe mijlpaal"
+        subtitle="Vul onderstaande velden in om een mijlpaal aan dit project toe te voegen.">
+        <div class="-mx-4 sm:-mx-6 divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMilestoneForm.title" type="text"
+                        :hasError="Boolean(newMilestoneForm.errors.title)"
+                        :errorMessage="newMilestoneForm.errors.title" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-start">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 sm:pt-2">Omschrijving</label>
+                <div class="sm:col-span-2">
+                    <textarea v-model="newMilestoneForm.description" rows="4"
+                        class="block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm p-2"
+                        placeholder="Optioneel"></textarea>
+                    <p v-if="newMilestoneForm.errors.description" class="text-red-600 text-sm mt-1">
+                        {{ newMilestoneForm.errors.description }}
+                    </p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Toegewezen gebruiker</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="users" v-model="newMilestoneForm.assigned_user_id"
+                        placeholder="Selecteer gebruiker" />
+                    <p v-if="newMilestoneForm.errors.assigned_user_id" class="text-red-600 text-sm mt-1">
+                        {{ newMilestoneForm.errors.assigned_user_id }}
+                    </p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Geplande datum</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMilestoneForm.projected_date" type="date"
+                        :hasError="Boolean(newMilestoneForm.errors.projected_date)"
+                        :errorMessage="newMilestoneForm.errors.projected_date" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Werkelijke datum</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMilestoneForm.actual_date" type="date"
+                        :hasError="Boolean(newMilestoneForm.errors.actual_date)"
+                        :errorMessage="newMilestoneForm.errors.actual_date" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeMilestoneDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewMilestone" :disabled="newMilestoneForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Aanmaken
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
 </template>
 
 <script setup>
@@ -269,7 +323,8 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import TextInput from '@/Components/UI/TextInput.vue'
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
@@ -328,26 +383,31 @@ watch(() => form.status, (val) => {
     patchField('status', statusName)
 })
 
-const showMilestoneForm = ref(false)
-const milestoneFormRef = ref(null)
+const showMilestoneDrawer = ref(false)
+const newMilestoneForm = useForm({
+    project_id: props.project.id,
+    title: '',
+    description: '',
+    assigned_user_id: null,
+    projected_date: null,
+    actual_date: null,
+})
 
-function toggleMilestoneForm() {
-    showMilestoneForm.value = !showMilestoneForm.value
-    if (showMilestoneForm.value) {
-        milestoneFormRef.value?.show()
-    } else {
-        milestoneFormRef.value?.hide()
-    }
+function submitNewMilestone() {
+    newMilestoneForm.post('/projectmilestones', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showMilestoneDrawer.value = false
+            newMilestoneForm.reset()
+        },
+    })
 }
 
-const milestoneFields = [
-    { key: 'project_id', type: 'number', default: props.project.id, label: '', class: 'hidden' },
-    { key: 'title', label: 'Titel', type: 'text' },
-    { key: 'assigned_user_id', label: 'Toegewezen gebruiker', type: 'combobox', options: props.users },
-    { key: 'projected_date', label: 'Geplande datum', type: 'date' },
-    { key: 'actual_date', label: 'Werkelijke datum', type: 'date' },
-    { key: 'description', label: 'Omschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
-]
+function closeMilestoneDrawer() {
+    showMilestoneDrawer.value = false
+    newMilestoneForm.reset()
+    newMilestoneForm.clearErrors()
+}
 
 const editingMilestoneId = ref(null)
 const editForms = reactive({})
