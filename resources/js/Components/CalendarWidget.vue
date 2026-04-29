@@ -1,8 +1,28 @@
 <template>
-    <div :class="{ 'relative': modalOpen }" v-auto-animate>
+    <div v-auto-animate>
         <FullCalendar :options="calendarOptions" ref="calendar">
             <template #eventContent="{ event }">
-                <div class="flex flex-col relative">
+                <div v-if="event.extendedProps.kind === 'project'" class="flex flex-col p-1">
+                    <span class="text-sm font-semibold leading-tight">{{ event.title }}</span>
+                    <span v-if="event.extendedProps.customer_name" class="text-xs">
+                        {{ event.extendedProps.customer_name }}
+                    </span>
+                    <span v-if="event.extendedProps.status" class="text-[11px] opacity-90">
+                        {{ event.extendedProps.status }}
+                    </span>
+                </div>
+                <div v-else-if="event.extendedProps.kind === 'milestone'" class="flex flex-col p-1">
+                    <span class="text-sm font-semibold leading-tight">
+                        Mijlpaal: {{ event.title }}
+                    </span>
+                    <span v-if="event.extendedProps.project_title" class="text-xs">
+                        {{ event.extendedProps.project_title }}
+                    </span>
+                    <span class="text-[11px] opacity-90">
+                        {{ event.extendedProps.is_actual ? 'Werkelijke datum' : 'Geplande datum' }}
+                    </span>
+                </div>
+                <div v-else class="flex flex-col relative">
                     <div class="pr-10 flex flex-col">
                         <span class="text-sm font-semibold">{{ event.title }}</span>
                         <span class="text-xs">{{ nlDate(event.start) }} {{ nlTime(event.start) }}</span>
@@ -93,7 +113,7 @@
         </FullCalendar>
 
         <div v-if="modalOpen"
-            class="absolute top-0 left-0 w-full h-full z-10 backdrop-blur-lg flex items-start lg:items-center justify-center px-5 lg:px-0 bg-white/60 dark:bg-gray-900/60">
+            class="fixed inset-0 z-50 backdrop-blur-lg flex items-start lg:items-center justify-center px-5 lg:px-0 bg-white/60 dark:bg-gray-900/60">
             <div
                 class="w-full lg:w-2/3 xl:w-1/2 bg-white dark:bg-gray-800 rounded-2xl mt-3 lg:mt-0 h-[90vh] lg:h-[96vh] shadow-2xl relative text-gray-900 dark:text-gray-100">
                 <div class="flex p-4 border-b-gray-200 dark:border-b-gray-700 border-b-1 items-center">
@@ -185,7 +205,7 @@ import listPlugin from '@fullcalendar/list'
 import nlLocale from '@fullcalendar/core/locales/nl'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import { ref, watch, onMounted, nextTick } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -390,6 +410,7 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
         end: event.end,
         color: event.event_type.color,
         extendedProps: {
+            kind: 'event',
             id: event.id,
             name: event.name,
             event_type_id: event.event_type.id,
@@ -403,6 +424,28 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
         },
     }))
     successCallback(events)
+}
+
+const fetchCalendarFeed = async (url, fetchInfo, successCallback) => {
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const startParam = formatLocalDateAsISO(fetchInfo.start)
+        const endParam = formatLocalDateAsISO(fetchInfo.end)
+        const response = await axios.get(
+            `${url}?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`,
+        )
+        successCallback(response.status === 200 ? response.data : [])
+    } catch {
+        successCallback([])
+    }
+}
+
+const getProjects = (fetchInfo, successCallback) => {
+    fetchCalendarFeed('/api/projects', fetchInfo, successCallback)
+}
+
+const getMilestones = (fetchInfo, successCallback) => {
+    fetchCalendarFeed('/api/projectmilestones', fetchInfo, successCallback)
 }
 
 const updateTimes = async (event) => {
@@ -442,10 +485,18 @@ const onDrop = async dropInfo => {
 }
 
 const onEventClick = (clickInfo) => {
+    const event = clickInfo.event
+    const kind = event.extendedProps.kind
+    if (kind === 'project' || kind === 'milestone') {
+        const project_id = event.extendedProps.project_id
+        if (project_id) {
+            router.visit(`/projects/${project_id}`)
+        }
+        return
+    }
     if (props.readOnly || !hasPermission('event.update')) {
         return
     }
-    const event = clickInfo.event
     editingExistingEvent.value = true
     form.id = event.extendedProps.id
     form.name = event.extendedProps.name
@@ -491,7 +542,11 @@ const deleteEvent = async (eventId) => {
 const calendarOptions = ref({
     plugins: [timeGridPlugin, interactionPlugin, listPlugin],
     initialView: getView(),
-    events: getEvents,
+    eventSources: [
+        { events: getEvents },
+        { events: getProjects, editable: false },
+        { events: getMilestones, editable: false },
+    ],
     editable: hasPermission('event.update') && !props.readOnly,
     headerToolbar: getHeaderToolbar(),
     nowIndicator: true,
@@ -504,9 +559,12 @@ const calendarOptions = ref({
     height: props.height,
     locale: nlLocale,
     eventDidMount: (info) => {
-        setTimeout(() => {
-            determineContentOverflow(info.el, info.event.id)
-        }, 100)
+        const kind = info.event.extendedProps.kind
+        if (!kind || kind === 'event') {
+            setTimeout(() => {
+                determineContentOverflow(info.el, info.event.id)
+            }, 100)
+        }
         if (highlightEventId.value && String(info.event.id) === String(highlightEventId.value)) {
             const el = info.el
             el.classList.add('animate-pulse-highlight')
@@ -528,6 +586,7 @@ const calendarOptions = ref({
     },
     eventMaxStack: 2,
     dayMaxEventRows: 2,
+    dayMaxEvents: 3,
 })
 
 const determineContentOverflow = (el, eventId) => {
