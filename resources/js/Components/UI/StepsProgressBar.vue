@@ -2,7 +2,7 @@
     <nav aria-label="Progress">
         <ol role="list"
             class="divide-y divide-gray-300 rounded-md border border-gray-300 md:flex md:divide-y-0 dark:divide-white/15 dark:border-white/15">
-            <li v-for="(step, stepIdx) in steps" :key="step.id" class="relative md:flex md:flex-1">
+            <li v-for="(step, stepIdx) in steps" :key="step.id" class="relative md:flex md:flex-1 py-1">
                 <button v-if="stepStatus(stepIdx) === 'complete'" @click="$emit('update:modelValue', step.id)"
                     class="group flex w-full items-center cursor-pointer">
                     <span class="flex items-center px-3 py-1.5 text-xs font-medium">
@@ -33,7 +33,7 @@
                         </span>
                         <span
                             class="ml-2 text-xs font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">{{
-                            step.name }}</span>
+                                step.name }}</span>
                     </span>
                 </button>
                 <template v-if="stepIdx !== steps.length - 1">

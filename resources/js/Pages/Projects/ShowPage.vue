@@ -7,7 +7,7 @@
                         <ClipboardDocumentListIcon class="h-6 w-6 text-gray-500 dark:text-slate-400 mr-2" />
                         <h1 class="text-l font-medium">Gegevens van het project</h1>
                     </div>
-                    <StepsProgressBar :steps="statuses" v-model="form.status" class="flex-1 ml-4" />
+                    <StepsProgressBar :steps="statuses" v-model="form.status" class="flex-1 ml-4 max-w-250" />
                 </div>
                 <div class="grid grid-cols-12 mt-2 gap-4">
                     <div class="col-span-12 md:col-span-2">
@@ -155,11 +155,16 @@
                                     aria-hidden="true" />
                                 <div class="relative flex space-x-3">
                                     <div>
-                                        <span
+                                        <span v-if="ms.actual_date"
                                             :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm']">
-                                            <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
-                                            <ClockIcon v-else class="size-4 text-white" />
+                                            <CheckIcon class="size-4 text-white" />
                                         </span>
+                                        <button v-else type="button"
+                                            v-tooltip="'Markeer als afgerond met vandaag als werkelijke datum'"
+                                            @click="markMilestoneActualToday(ms)"
+                                            :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm cursor-pointer hover:brightness-110']">
+                                            <ClockIcon class="size-4 text-white" />
+                                        </button>
                                     </div>
                                     <div class="min-w-0 flex-1 pt-1">
                                         <div class="flex items-start justify-between">
@@ -268,7 +273,7 @@ import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
-import { nlDate, mapsLinkFromCustomer } from '@/Utilities/Utilities'
+import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer } from '@/Utilities/Utilities'
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -388,6 +393,11 @@ function toggleEditMilestone(ms) {
 function deleteMilestone(id) {
     if (!confirm('Weet je zeker dat je deze mijlpaal wilt verwijderen?')) return
     milestoneForm.delete(`/projectmilestones/${id}`, { preserveScroll: true })
+}
+
+function markMilestoneActualToday(ms) {
+    if (ms.actual_date) return
+    patchMilestoneField(ms.id, 'actual_date', formatLocalDateAsISO(new Date()))
 }
 
 const serviceOrderForm = useForm({
