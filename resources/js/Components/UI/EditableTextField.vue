@@ -1,6 +1,6 @@
 <template>
     <div :class="[editing ? '' : 'pr-5', 'relative']">
-        <span v-if="!editing" class="pr-4">{{ model ?? placeholder }}</span>
+        <span v-if="!editing" class="pr-4">{{ displayValue }}</span>
 
         <div class="flex min-w-0" v-if="editing">
             <TextInput v-if="type === 'input'" v-model="local" :rightCorners="false" class="flex-grow min-w-0"
@@ -22,14 +22,15 @@
 </template>
 
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { PencilSquareIcon } from '@heroicons/vue/24/outline';
 import TextInput from './TextInput.vue';
+import { nlDate } from '@/Utilities/Utilities';
 
 const emit = defineEmits(['update']);
 
 const model = defineModel();
-defineProps({
+const props = defineProps({
     type: { type: String, default: 'input' },
     inputType: { type: String, default: 'text' },
     placeholder: { type: String, default: '' },
@@ -38,6 +39,16 @@ defineProps({
 
 const editing = ref(false);
 const local = ref(model.value);
+
+const displayValue = computed(() => {
+    if (model.value === null || model.value === undefined || model.value === '') {
+        return props.placeholder;
+    }
+    if (props.inputType === 'date') {
+        return nlDate(model.value);
+    }
+    return model.value;
+});
 
 watchEffect(() => {
     if (!editing.value) local.value = model.value;
