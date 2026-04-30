@@ -2,28 +2,53 @@
     <div v-if="(hasPermission('document.see') && existing.length > 0) || hasPermission('document.upload')"
         class="w-full mx-auto p-4 bg-white dark:bg-slate-900/70 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800">
         <h3 class="text-lg font-semibold mb-4 dark:text-slate-100">Documenten</h3>
-        <ul v-if="existing.length > 0 && hasPermission('document.see')" class="space-y-2 mb-4" v-auto-animate>
-            <li v-for="doc in existing" :key="doc.id"
-                class="flex items-center justify-between p-2 rounded-md bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-                <div class="flex-grow mr-4 min-w-0">
-                    <EditableTextField v-if="hasPermission('document.update')" :modelValue="doc.title"
-                        @update:modelValue="updateTitle(doc.id, $event)" placeholder="Geen titel" />
-                    <a v-else :href="`/storage/${doc.path}`" target="_blank"
-                        class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate">
-                        {{ doc.title || doc.name }}
-                    </a>
-                    <a :href="`/storage/${doc.path}`" target="_blank"
-                        class="text-xs text-gray-500 dark:text-gray-400 hover:underline truncate block">
-                        {{ doc.name }}
-                    </a>
+        <div v-if="existing.length > 0 && hasPermission('document.see')"
+            class="mb-4 rounded-md border border-gray-200 dark:border-slate-700/60 overflow-hidden" role="table">
+            <div class="hidden md:flex bg-gray-600 dark:bg-slate-700 text-sm font-semibold text-white dark:text-slate-100"
+                role="row">
+                <div class="px-3 py-2 flex-1 min-w-0">Naam</div>
+                <div class="px-3 py-2 flex-1 min-w-0">Bestandsnaam</div>
+                <div class="px-3 py-2 w-32 shrink-0">Aangemaakt</div>
+                <div v-if="hasPermission('document.delete')" class="px-3 py-2 w-10 shrink-0"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
+                <div v-for="doc in existing" :key="doc.id" role="row"
+                    class="border-t border-gray-200 dark:border-slate-700/60 first:border-t-0 flex flex-col md:flex-row md:items-center">
+                    <div class="px-3 py-2 flex-1 min-w-0 space-y-1 md:space-y-0">
+                        <span
+                            class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Naam</span>
+                        <EditableTextField v-if="hasPermission('document.update')" :modelValue="doc.title"
+                            @update:modelValue="updateTitle(doc.id, $event)" placeholder="Geen titel" />
+                        <a v-else :href="`/storage/${doc.path}`" target="_blank"
+                            class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate block">
+                            {{ doc.title || doc.name }}
+                        </a>
+                    </div>
+                    <div class="px-3 py-2 flex-1 min-w-0 space-y-1 md:space-y-0">
+                        <span
+                            class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Bestandsnaam</span>
+                        <a :href="`/storage/${doc.path}`" target="_blank"
+                            class="text-xs text-gray-600 dark:text-gray-400 hover:underline truncate block">
+                            {{ doc.name }}
+                        </a>
+                    </div>
+                    <div class="px-3 py-2 w-full md:w-32 md:shrink-0 space-y-1 md:space-y-0">
+                        <span
+                            class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Aangemaakt</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-400">{{ nlDate(doc.created_at) }}</span>
+                    </div>
+                    <div v-if="hasPermission('document.delete')"
+                        class="px-3 py-2 md:w-10 md:shrink-0 flex md:justify-center">
+                        <button @click="deleteDocument(doc.id)"
+                            class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
+                            title="Verwijder dit document">
+                            <TrashIcon class="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
-                <button @click="deleteDocument(doc.id)" v-if="hasPermission('document.delete')"
-                    class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full"
-                    title="Verwijder dit document">
-                    <TrashIcon class="h-4 w-4" />
-                </button>
-            </li>
-        </ul>
+            </div>
+        </div>
 
         <div v-if="hasPermission('document.upload')" @click="openFilePicker" @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
@@ -46,7 +71,7 @@
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { TrashIcon } from '@heroicons/vue/24/solid';
-import { hasPermission } from '@/Utilities/Utilities';
+import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 
 const props = defineProps({

@@ -77,6 +77,9 @@
                     <ServiceOrderRow v-for="so in project.service_orders" :key="so.id" :serviceorder="so" />
                 </div>
             </BoxComponent>
+
+            <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
+                documentable-type="\App\Models\Project" class="mt-4" />
         </template>
         <template #sidebar>
             <BoxComponent v-if="project.customer">
@@ -328,6 +331,7 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer } from '@/Utilities/Utilities'
 
 const props = defineProps({

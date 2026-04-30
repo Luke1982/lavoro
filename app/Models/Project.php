@@ -35,4 +35,9 @@ class Project extends Model
     {
         return $this->hasMany(ServiceOrder::class);
     }
+
+    public function documents()
+    {
+        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
+    }
 }

@@ -48,6 +48,7 @@ class ProjectController extends Controller
                 'projectManager',
                 'milestones.assignedUser',
                 'serviceOrders.serviceJobs',
+                'documents',
             ]),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'users'     => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
