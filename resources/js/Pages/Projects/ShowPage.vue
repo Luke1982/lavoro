@@ -7,7 +7,8 @@
                         <ClipboardDocumentListIcon class="h-6 w-6 text-gray-500 dark:text-slate-400 mr-2" />
                         <h1 class="text-l font-medium">Gegevens van het project</h1>
                     </div>
-                    <StepsProgressBar :steps="statuses" v-model="form.status" class="flex-1 ml-4 max-w-250" />
+                    <StepsProgressBar :steps="statuses" v-model="form.status"
+                        class="flex-1 ml-4 md:max-w-250 max-w-60" />
                 </div>
                 <div class="grid grid-cols-12 mt-2 gap-4">
                     <div class="col-span-12 md:col-span-2">
