@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Industry;
 
 use App\Models\EventType;
 use App\Models\MaterialUsageUnit;
