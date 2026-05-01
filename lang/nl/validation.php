@@ -161,6 +161,24 @@ return [
             'array' => 'Selecteer ten minste één uitvoerende gebruiker.',
             'min' => 'Selecteer ten minste één uitvoerende gebruiker.',
         ],
+        'assigned_user_id' => [
+            'required' => 'Selecteer een toegewezen gebruiker.',
+        ],
+        'outcome' => [
+            'required' => 'Selecteer een uitkomst van de keuring.',
+        ],
+        'project_manager_id' => [
+            'required' => 'Selecteer een projectleider.',
+        ],
+        'customer_id' => [
+            'required' => 'Selecteer een klant.',
+        ],
+        'product_id' => [
+            'required' => 'Selecteer een product.',
+        ],
+        'event_type_id' => [
+            'required' => 'Selecteer een afspraaktype.',
+        ],
     ],
 
     // Attribuutnamen (vriendelijke benamingen)
@@ -202,5 +220,12 @@ return [
         'end_sell' => 'einde verkoop',
         'origin' => 'herkomst',
         'executing_user_ids' => 'uitvoerende gebruikers',
+        'assigned_user_id' => 'toegewezen gebruiker',
+        'project_manager_id' => 'projectleider',
+        'outcome' => 'uitkomst',
+        'priority' => 'prioriteit',
+        'service_check_group_id' => 'controlepuntgroep',
+        'billing_customer_id' => 'factuurklant',
+        'role_ids' => 'rollen',
     ],
 ];
