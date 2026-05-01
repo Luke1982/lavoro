@@ -10,10 +10,12 @@
                 :has-error="form.errors.description !== undefined" />
         </div>
         <div class="pr-1 pt-2 w-1/2">
-            <ComboBox :options="ticketStatusses" v-model="form.status" />
+            <ComboBox :options="ticketStatusses" v-model="form.status"
+                :hasError="Boolean(form.errors.status)" :errorMessage="form.errors.status" />
         </div>
         <div class="pl-1 pt-2 w-1/2">
-            <ComboBox :options="ticketPriorities" v-model="form.priority" />
+            <ComboBox :options="ticketPriorities" v-model="form.priority"
+                :hasError="Boolean(form.errors.priority)" :errorMessage="form.errors.priority" />
         </div>
     </div>
     <div class="flex justify-end pt-2">

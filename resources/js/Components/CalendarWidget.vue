@@ -144,11 +144,15 @@
                     <div class="flex flex-wrap">
                         <div class="w-1/2 flex px-4 py-2">
                             <ComboBox v-model="form.event_type_id" :options="eventTypes" label="Type" class="w-full"
-                                :initial-id="eventTypes[0]?.id" />
+                                :initial-id="eventTypes[0]?.id"
+                                :hasError="Boolean(form.errors.event_type_id)"
+                                :errorMessage="form.errors.event_type_id" />
                         </div>
                         <div class="w-1/2 flex px-4 py-2">
                             <ComboBox v-model="form.status" :options="eventStatusses" label="Status" class="w-full"
-                                :initial-id="getInitialEventStatusId()" :emitValue="true" />
+                                :initial-id="getInitialEventStatusId()" :emitValue="true"
+                                :hasError="Boolean(form.errors.status)"
+                                :errorMessage="form.errors.status" />
                         </div>
                     </div>
                     <div class="w-full px-4 py-2">
@@ -167,11 +171,15 @@
                     </div>
                     <div class="w-full px-4 py-2">
                         <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
-                            class="w-full" :initial-id="form.eventable_id" />
+                            class="w-full" :initial-id="form.eventable_id"
+                            :hasError="Boolean(form.errors.eventable_id)"
+                            :errorMessage="form.errors.eventable_id" />
                     </div>
                     <div class="w-full px-4 py-2">
                         <ComboBox v-model="form.executing_user_ids" :options="allUsers" label="Uitvoerende gebruikers"
-                            class="w-full" :initial-ids="form.executing_user_ids" :multiple="true" />
+                            class="w-full" :initial-ids="form.executing_user_ids" :multiple="true"
+                            :hasError="Boolean(form.errors.executing_user_ids)"
+                            :errorMessage="form.errors.executing_user_ids" />
                     </div>
                 </div>
                 <div class="absolute bottom-0 w-full flex justify-end rounded-b-2xl overflow-hidden">

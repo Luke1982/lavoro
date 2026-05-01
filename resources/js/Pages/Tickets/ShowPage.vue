@@ -51,7 +51,8 @@
                     </div>
                     <div class="col-span-10 md:col-span-4">
                         <ComboBox :options="statusses" v-model="form.status" :initial-id="initialStatus.id"
-                            class="w-full" v-if="hasPermission('ticket.change_status')" />
+                            class="w-full" v-if="hasPermission('ticket.change_status')"
+                            :hasError="Boolean(form.errors.status)" :errorMessage="form.errors.status" />
                         <span v-else>{{ form.status }}</span>
                     </div>
                     <div class="col-span-2">

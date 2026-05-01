@@ -28,14 +28,17 @@
                     </div>
                     <div class="col-span-10 md:col-span-4">
                         <ComboBox :options="customers" v-model="form.customer_id" :initialId="project.customer?.id"
-                            placeholder="Selecteer klant" />
+                            placeholder="Selecteer klant" :hasError="Boolean(form.errors.customer_id)"
+                            :errorMessage="form.errors.customer_id" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Projectleider</span>
                     </div>
                     <div class="col-span-10 md:col-span-4">
                         <ComboBox :options="users" v-model="form.project_manager_id"
-                            :initialId="project.project_manager?.id" placeholder="Selecteer projectleider" />
+                            :initialId="project.project_manager?.id" placeholder="Selecteer projectleider"
+                            :hasError="Boolean(form.errors.project_manager_id)"
+                            :errorMessage="form.errors.project_manager_id" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Startdatum</span>
@@ -228,7 +231,9 @@
                                                         :modelValue="editForms[ms.id].assigned_user_id"
                                                         @update:modelValue="(val) => { editForms[ms.id].assigned_user_id = val; patchMilestoneField(ms.id, 'assigned_user_id', val) }"
                                                         :initialId="ms.assigned_user?.id"
-                                                        placeholder="Selecteer gebruiker" />
+                                                        placeholder="Selecteer gebruiker"
+                                                        :hasError="Boolean(milestoneForm.errors.assigned_user_id)"
+                                                        :errorMessage="milestoneForm.errors.assigned_user_id" />
                                                 </div>
                                                 <div>
                                                     <span
@@ -282,10 +287,9 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Toegewezen gebruiker</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="users" v-model="newMilestoneForm.assigned_user_id"
-                        placeholder="Selecteer gebruiker" />
-                    <p v-if="newMilestoneForm.errors.assigned_user_id" class="text-red-600 text-sm mt-1">
-                        {{ newMilestoneForm.errors.assigned_user_id }}
-                    </p>
+                        placeholder="Selecteer gebruiker"
+                        :hasError="Boolean(newMilestoneForm.errors.assigned_user_id)"
+                        :errorMessage="newMilestoneForm.errors.assigned_user_id" />
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">

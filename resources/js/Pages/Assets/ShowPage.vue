@@ -20,7 +20,9 @@
                                 }}</Link>
                             </span>
                             <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
-                                @update:modelValue="updateAsset" />
+                                @update:modelValue="updateAsset"
+                                :hasError="Boolean(form.errors.product_id)"
+                                :errorMessage="form.errors.product_id" />
                             <PencilSquareIcon v-if="canUpdate && !editing.product_id"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('product_id')" />
@@ -77,7 +79,9 @@
                                     class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
                                         asset.status }}</span>
                             </div>
-                            <ComboBox v-if="editing.status" :options="statusOptions" v-model="form.status" />
+                            <ComboBox v-if="editing.status" :options="statusOptions" v-model="form.status"
+                                :hasError="Boolean(form.errors.status)"
+                                :errorMessage="form.errors.status" />
                             <PencilSquareIcon v-if="canUpdate && !editing.status"
                                 class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
                                 @click="edit('status')" />
@@ -93,7 +97,9 @@
                             <PencilSquareIcon v-if="canUpdate && !editingCustomer"
                                 class="w-5 h-5 text-gray-500 absolute right-0 md:right-3 top-2 transform -translate-y-1/2 cursor-pointer"
                                 @click="editingCustomer = true" />
-                            <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id" />
+                            <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id"
+                                :hasError="Boolean(form.errors.customer_id)"
+                                :errorMessage="form.errors.customer_id" />
                         </div>
                     </div>
                 </div>
