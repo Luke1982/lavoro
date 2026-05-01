@@ -1,5 +1,5 @@
 <template>
-    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple">
+    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id">
         <ComboboxLabel v-if="label" class="block text-xs font-light mb-1.5 text-gray-600 dark:text-slate-300">
             {{ label }}
             <ListBulletIcon v-if="multiple" class="inline size-5 ml-1 text-gray-400"
@@ -204,9 +204,16 @@ watch(() => query.value, (newVal) => {
 })
 
 function onSelect(newOption) {
-    internalValue.value = newOption
     if (!props.multiple) {
-        emit('update:modelValue', props.emitValue ? newOption.name : newOption.id)
+        const newPayload = props.emitValue ? newOption.name : newOption.id
+        const wasSelected = props.modelValue != null && newPayload === props.modelValue
+        if (wasSelected) {
+            internalValue.value = null
+            emit('update:modelValue', null)
+        } else {
+            internalValue.value = newOption
+            emit('update:modelValue', newPayload)
+        }
         query.value = ''
         nextTick(() => {
             setTimeout(() => {
@@ -215,6 +222,7 @@ function onSelect(newOption) {
             }, 100)
         })
     } else {
+        internalValue.value = newOption
         const arr = Array.isArray(newOption) ? newOption : internalValue.value
         const payload = props.emitValue ? arr.map(o => o.name) : arr.map(o => o.id)
         emit('update:modelValue', payload)
