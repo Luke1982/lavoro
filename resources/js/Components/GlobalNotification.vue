@@ -50,6 +50,7 @@ const page = usePage()
 
 const flashSuccess = computed(() => page.props.flash.success)
 const flashError = computed(() => page.props.flash.error)
+const pageErrors = computed(() => page.props.errors)
 
 const localFlashMessage = ref(null)
 const type = ref('success')
@@ -76,6 +77,15 @@ watch([flashSuccess, flashError], ([newSuccess, newError]) => {
     } else {
         localFlashMessage.value = null
     }
+})
+
+watch(pageErrors, (errors) => {
+    if (!errors || !Object.keys(errors).length) return
+    clearTimeout(notificationTimer)
+    localFlashMessage.value = Object.values(errors).join(' ')
+    type.value = 'error'
+    title.value = 'Controleer de ingevulde gegevens'
+    startAutoClear()
 })
 
 function startAutoClear() {
