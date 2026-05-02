@@ -10,9 +10,4 @@ class ProductRelation extends Model
     use HasFactory;
 
     protected $fillable = ['name'];
-
-    public function productables()
-    {
-        return $this->hasMany(Productable::class);
-    }
 }
