@@ -29,8 +29,9 @@ class ProductTypeStoreUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name'                     => 'required|string|max:255',
             'typical_certificate_days' => 'nullable|integer|min:1',
+            'parent_id'                => 'nullable|integer|exists:product_types,id',
         ];
     }
 }

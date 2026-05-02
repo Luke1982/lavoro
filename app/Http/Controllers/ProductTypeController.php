@@ -8,31 +8,44 @@ use App\Http\Requests\ProductTypeStoreUpdateRequest;
 
 class ProductTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(ProductTypeReadRequest $request)
     {
-        $types = ProductType::query();
-
-        $data = $request->validated();
+        $data   = $request->validated();
         $search = $data['search'] ?? null;
+
         if ($search) {
-            $types = self::getByTerm($search);
+            $types = self::getByTerm($search)
+                ->with(['products' => fn($q) => $q
+                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name')])
+                ->orderBy('name')
+                ->get();
+
+            return inertia('ProductTypes/IndexPage', [
+                'productTypes' => $types,
+                'treeMode'     => false,
+                'search'       => $search,
+            ]);
         }
 
-        return inertia(
-            'ProductTypes/IndexPage',
-            [
-                'productTypes' => $types->orderBy('name')->paginate(20),
-                'search'       => $search,
-            ]
-        );
+        $types = ProductType::whereNull('parent_id')
+            ->with([
+                'children.children.products' => fn($q) => $q
+                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
+                'children.products'          => fn($q) => $q
+                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
+                'products'                   => fn($q) => $q
+                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
+            ])
+            ->orderBy('name')
+            ->get();
+
+        return inertia('ProductTypes/IndexPage', [
+            'productTypes' => $types,
+            'treeMode'     => true,
+            'search'       => null,
+        ]);
     }
 
-    /**
-     * Build a query filtering by the given search terms.
-     */
     private static function getByTerm(?string $term)
     {
         $query = ProductType::query();
@@ -49,9 +62,6 @@ class ProductTypeController extends Controller
         return $query;
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(ProductTypeStoreUpdateRequest $request)
     {
         $type = ProductType::create($request->validated());
@@ -62,9 +72,6 @@ class ProductTypeController extends Controller
             ->with('extra', $type);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(ProductTypeStoreUpdateRequest $request, ProductType $producttype)
     {
         $producttype->update($request->validated());
@@ -74,15 +81,43 @@ class ProductTypeController extends Controller
             ->with('success', 'Producttype bijgewerkt.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(ProductType $productType)
     {
-        $productType->delete();
+        if ($this->hasProducts($productType)) {
+            return back()->with(
+                'error',
+                'Dit producttype of een van de subtypes heeft nog gekoppelde producten en kan niet verwijderd worden.'
+            );
+        }
+
+        $this->deleteRecursive($productType);
 
         return redirect()
             ->route('producttypes.index')
             ->with('success', 'Producttype verwijderd.');
+    }
+
+    private function hasProducts(ProductType $type): bool
+    {
+        if ($type->products()->exists()) {
+            return true;
+        }
+
+        foreach ($type->children as $child) {
+            if ($this->hasProducts($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function deleteRecursive(ProductType $type): void
+    {
+        foreach ($type->children as $child) {
+            $this->deleteRecursive($child);
+        }
+
+        $type->delete();
     }
 }

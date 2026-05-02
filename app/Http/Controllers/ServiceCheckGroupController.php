@@ -26,7 +26,7 @@ class ServiceCheckGroupController extends Controller
 
         return inertia('ServiceCheckGroups/IndexPage', [
             'groups'       => $query->orderBy('order')->paginate(10),
-            'productTypes' => ProductType::all(),
+            'productTypes' => ProductType::flatListWithPath(),
             'search'       => $search,
         ]);
     }

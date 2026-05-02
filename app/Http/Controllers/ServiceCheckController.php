@@ -32,7 +32,7 @@ class ServiceCheckController extends Controller
 
         return inertia('ServiceChecks/IndexPage', [
             'serviceChecks'                => $query->orderBy('order')->paginate(10),
-            'productTypes'                 => ProductType::all(),
+            'productTypes'                 => ProductType::flatListWithPath(),
             'groups'                       => ServiceCheckGroup::with('productTypes:id,name')->orderBy('order')->get(),
             'serviceCheckTypes'            => ServiceCheckTypes::assocArray(),
             'serviceCheckTypesWithOptions' => ServiceCheckTypes::getTypesWithOptions(),

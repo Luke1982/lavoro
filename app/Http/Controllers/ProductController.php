@@ -38,7 +38,7 @@ class ProductController extends Controller
                     ->paginate(20),
                 'search'       => $search,
                 'brands'       => Brand::all(),
-                'productTypes' => ProductType::all(),
+                'productTypes' => ProductType::flatListWithPath(),
                 'onlyType'     => $onlyType,
             ]
         );

@@ -10,6 +10,7 @@
             ]" :style="styleForIndex(hIndex)">
                 {{ header.label }}
             </div>
+            <div class="flex-1 bg-gray-600 dark:bg-slate-700" aria-hidden="true"></div>
             <div v-if="hasDetailPages || urlBase"
                 class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md shrink-0 flex items-center justify-end gap-3">
                 <TrashIcon class="size-5 opacity-0" />
@@ -17,52 +18,92 @@
         </div>
 
         <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
-            <div v-for="item in items" :key="item.id" role="row"
-                class="even:bg-gray-50 dark:even:bg-slate-800/70 dark:bg-slate-900 grid grid-cols-12 py-3 lg:flex lg:flex-row lg:items-stretch border-b border-gray-100 dark:border-slate-800/60 last:border-b-0">
-                <div v-for="(column, cIndex) in headers" :key="column.key" role="cell"
-                    :class="['px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200', classForIndex(cIndex)]"
-                    :style="styleForIndex(cIndex)">
-                    <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400"
-                        v-if="column.fieldtype !== 'combobox'">{{ column.label }}</span>
-                    <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)"
-                        v-if="column.fieldtype === 'text' || column.fieldtype === 'number'" />
-                    <SwitchComponent v-model="item[column.key]" v-else-if="column.fieldtype === 'boolean'"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)" />
-                    <ComboBox v-else-if="column.fieldtype === 'combobox'" v-model="item[column.key]"
-                        :options="column.combovalues || []" :multiple="column.multiple === true"
-                        :initialId="Array.isArray(item[column.key]) ? null : (item[column.key]?.id ?? item[column.key] ?? null)"
-                        :initialIds="Array.isArray(item[column.key]) ? item[column.key] : []"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)"
-                        :label="column.comboLabel ? column.label : ''" />
-                    <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
-                        @update:modelValue="onCellChange(item.id, column.key, $event)" />
+            <template v-for="item in items" :key="item.id">
+                <div role="row"
+                    :class="[
+                        'even:bg-gray-50 dark:even:bg-slate-800/70 dark:bg-slate-900 grid grid-cols-12 py-3 lg:flex lg:flex-row lg:items-stretch border-b border-gray-100 dark:border-slate-800/60 last:border-b-0',
+                        nestable && item[depthKey ?? '_depth'] > 0 ? 'border-l-2 border-indigo-200 dark:border-indigo-700' : '',
+                    ]"
+>
+                    <div v-for="(column, cIndex) in headers" :key="column.key" role="cell"
+                        :class="['px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200', classForIndex(cIndex)]"
+                        :style="{ ...styleForIndex(cIndex), ...(cIndex === 0 && nestable && (item[depthKey ?? '_depth'] as number) > 0 ? { paddingLeft: `${(item[depthKey ?? '_depth'] as number) * 1.5}rem` } : {}) }">
+                        <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400"
+                            v-if="column.fieldtype !== 'combobox'">{{ column.label }}</span>
+                        <div v-if="column.fieldtype === 'text' || column.fieldtype === 'number'"
+                            class="flex items-center gap-1">
+                            <span v-if="cIndex === 0 && nestable && (item[depthKey ?? '_depth'] as number) > 0"
+                                class="shrink-0 font-mono text-gray-500 dark:text-slate-400 select-none text-sm leading-none font-semibold mr-0.5">└─</span>
+                            <EditableTextField v-model="item[column.key]" :inputType="column.fieldtype"
+                                @update:modelValue="onCellChange(item.id, column.key, $event)" class="flex-1 min-w-0" />
+                        </div>
+                        <SwitchComponent v-else-if="column.fieldtype === 'boolean'" v-model="item[column.key]"
+                            @update:modelValue="onCellChange(item.id, column.key, $event)" />
+                        <ComboBox v-else-if="column.fieldtype === 'combobox'" v-model="item[column.key]"
+                            :options="column.combovalues || []" :multiple="column.multiple === true"
+                            :initialId="Array.isArray(item[column.key]) ? null : (item[column.key]?.id ?? item[column.key] ?? null)"
+                            :initialIds="Array.isArray(item[column.key]) ? item[column.key] : []"
+                            @update:modelValue="onCellChange(item.id, column.key, $event)"
+                            :label="column.comboLabel ? column.label : ''" />
+                        <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
+                            @update:modelValue="onCellChange(item.id, column.key, $event)" />
+                        <span v-else-if="column.fieldtype === 'count'"
+                            v-tooltip="item[column.tooltipKey ?? ''] ? { html: true, content: item[column.tooltipKey ?? ''], placement: 'top' } : undefined"
+                            class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 tabular-nums cursor-default select-none ring-1 ring-gray-200 dark:ring-slate-600 self-start">
+                            {{ item[column.key] ?? 0 }}
+                        </span>
+                    </div>
+                    <div class="flex-1 hidden lg:block" aria-hidden="true"></div>
+                    <div class="px-4 py-2 text-right flex items-center justify-end gap-3 shrink-0"
+                        v-if="hasDetailPages || urlBase">
+                        <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`"
+                            class="text-blue-600 dark:text-indigo-400 hover:text-blue-900 dark:hover:text-indigo-300">
+                        Details
+                        </Link>
+                        <PlusCircleIcon v-if="nestable && urlBase"
+                            class="size-5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 cursor-pointer"
+                            v-tooltip="'Voeg subtype toe'"
+                            @click.stop="addingChildFor = addingChildFor === item.id ? null : item.id; childName = ''" />
+                        <TrashIcon v-if="urlBase"
+                            class="size-5 text-red-400 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer"
+                            @click.stop="onDelete(item.id)" />
+                    </div>
                 </div>
-                <div class="px-4 py-2 text-right flex items-center justify-end gap-3 shrink-0"
-                    v-if="hasDetailPages || urlBase">
-                    <Link v-if="hasDetailPages && urlBase" :href="`/${urlBase}/${item.id}`"
-                        class="text-blue-600 dark:text-indigo-400 hover:text-blue-900 dark:hover:text-indigo-300">
-                    Details
-                    </Link>
-                    <TrashIcon v-if="urlBase"
-                        class="size-5 text-red-400 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 cursor-pointer"
-                        @click.stop="onDelete(item.id)" />
+
+                <!-- Inline child creation form -->
+                <div v-if="nestable && addingChildFor === item.id"
+                    :style="{ paddingLeft: `${((item[depthKey ?? '_depth'] ?? 0) + 1) * 1.5}rem` }"
+                    class="flex items-center gap-2 py-2 px-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/40 border-l-2 border-l-indigo-300 dark:border-l-indigo-600">
+                    <input v-model="childName" type="text" placeholder="Naam van het subtype..."
+                        @keyup.enter="submitChild(item.id)"
+                        @keyup.escape="addingChildFor = null; childName = ''"
+                        class="flex-1 text-sm rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <button @click="submitChild(item.id)"
+                        class="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md">
+                        Opslaan
+                    </button>
+                    <button @click="addingChildFor = null; childName = ''"
+                        class="px-3 py-1 text-xs font-medium bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 rounded-md">
+                        Annuleren
+                    </button>
                 </div>
-            </div>
+            </template>
         </div>
     </div>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3';
 import EditableTextField from './EditableTextField.vue';
 import SwitchComponent from './SwitchComponent.vue';
 import ComboBox from './ComboBox.vue';
 import ColorPickerComponent from './ColorPickerComponent.vue';
-import { TrashIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, PlusCircleIcon } from '@heroicons/vue/24/outline'
 
 type Item = {
     id: number;
     name: string;
+    [key: string]: unknown;
 };
 type Header = {
     key: string;
@@ -72,19 +113,35 @@ type Header = {
     combovalues?: { id: number | string; name: string }[];
     multiple?: boolean;
     comboLabel?: boolean;
+    tooltipKey?: string;
 };
 
-const { headers, items, urlBase, hasDetailPages } = defineProps<{
+const { headers, items, urlBase, hasDetailPages, nestable, depthKey } = defineProps<{
     headers: Header[];
     items: Item[];
     urlBase?: string;
     hasDetailPages?: boolean;
+    nestable?: boolean;
+    depthKey?: string;
 }>();
 
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+    update: [payload: { item: Item; key: string; value: unknown }];
+    'add-child': [payload: { parentId: number; name: string }];
+}>();
+
+const addingChildFor = ref<number | null>(null)
+const childName = ref('')
+
+function submitChild(parentId: number) {
+    if (!childName.value.trim()) return
+    emit('add-child', { parentId, name: childName.value.trim() })
+    addingChildFor.value = null
+    childName.value = ''
+}
 
 function onCellChange(id: number, key: string, value: unknown) {
-    emit('update', { item: items.find(item => item.id === id), key, value });
+    emit('update', { item: items.find(item => item.id === id)!, key, value });
 }
 
 function onDelete(id: number) {
@@ -94,16 +151,16 @@ function onDelete(id: number) {
 }
 
 function classForIndex(index: number) {
-    if (index === headers.length - 1) return 'lg-grow'
     const w = headers[index]?.width
     if (typeof w === 'number' && isFinite(w)) return 'lg-col'
+    if (index === headers.length - 1) return 'lg-grow'
     return 'lg-col-auto'
 }
 
 function styleForIndex(index: number) {
     if (index === headers.length - 1) return {}
     const w = headers[index]?.width
-    if (typeof w === 'number' && isFinite(w)) return { '--col-w': `${w}%` } as any
+    if (typeof w === 'number' && isFinite(w)) return { '--col-w': `${w}%` } as Record<string, string>
     return {}
 }
 
