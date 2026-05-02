@@ -122,10 +122,6 @@ class ServiceJobController extends Controller
             'asset.product.brand',
             'asset.customer',
             'serviceOrder',
-            'asset.parentAssetRelations.parentAsset.product.brand',
-            'asset.parentAssetRelations.parentAsset.product.productType',
-            'asset.childAssetRelations.childAsset.product.brand',
-            'asset.childAssetRelations.childAsset.product.productType',
             'parentJob.asset.product.brand',
             'parentJob.asset.product.productType',
             'parentJob.asset.customer',
@@ -344,59 +340,16 @@ class ServiceJobController extends Controller
             'childJobs.asset.product.productType.serviceCheckGroups',
         ]);
 
-        $instances = $servicejob->checkInstances;
-        $ptGroups = collect($servicejob->asset?->product?->productType?->serviceCheckGroups ?? [])
-            ->map(fn($g) => [
-                'id' => $g->id,
-                'name' => $g->name,
-                'order' => $g->order ?? PHP_INT_MAX,
-                'items' => [],
-            ])->keyBy('id');
-        $other = [
-            'key' => 'other',
-            'name' => 'Overige keurpunten',
-            'order' => PHP_INT_MAX,
-            'items' => [],
-        ];
-        foreach ($instances as $ci) {
-            $gid = $ci->serviceCheck?->group?->id;
-            if ($gid && $ptGroups->has($gid)) {
-                $group = $ptGroups->get($gid);
-                $group['items'][] = $ci;
-                $ptGroups->put($gid, $group);
-            } else {
-                $other['items'][] = $ci;
-            }
-        }
-        $groups = $ptGroups->filter(fn($g) => count($g['items']) > 0)
-            ->sortBy('order')
-            ->values()
-            ->all();
-        if (count($other['items']) > 0) {
-            $groups[] = $other;
-        }
-
-        $asset = $servicejob->asset;
-        $product = $asset?->product;
+        $asset    = $servicejob->asset;
+        $product  = $asset?->product;
         $customer = $asset?->customer;
-        $pt_name = trim((string) ($product?->productType?->name ?? 'installatie'));
+        $pt_name       = trim((string) ($product?->productType?->name ?? 'installatie'));
         $pt_name_lower = Str::lower($pt_name);
 
-        $raw_groups = array_map(function ($g) {
-            $g['items'] = array_map(function ($ci) {
-                $check = $ci->serviceCheck;
-                return [
-                    'check_name' => $check?->name,
-                    'type' => $check?->type,
-                    'description' => $ci->description,
-                    'switch_state' => $ci->switch_state ?? null,
-                    'values' => $ci->values?->pluck('value')->all() ?? [],
-                    'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
-                    'images' => $ci->images,
-                ];
-            }, $g['items']);
-            return $g;
-        }, $groups);
+        $raw_groups = $this->buildRawGroups(
+            $servicejob->checkInstances,
+            $product?->productType
+        );
 
         $remarks_text = trim((string) $servicejob->description);
         $outcome = $servicejob->outcome;
@@ -410,51 +363,16 @@ class ServiceJobController extends Controller
         $main_company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($main_company);
 
-        $childJobSections = $servicejob->childJobs->map(function ($childJob) {
-            $childInstances = $childJob->checkInstances;
-            $childPtGroups  = collect($childJob->asset?->product?->productType?->serviceCheckGroups ?? [])
-                ->map(fn($g) => [
-                    'id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? PHP_INT_MAX, 'items' => [],
-                ])
-                ->keyBy('id');
-            $childOther = ['key' => 'other', 'name' => 'Overige keurpunten', 'order' => PHP_INT_MAX, 'items' => []];
-
-            foreach ($childInstances as $ci) {
-                $gid = $ci->serviceCheck?->group?->id;
-                if ($gid && $childPtGroups->has($gid)) {
-                    $group = $childPtGroups->get($gid);
-                    $group['items'][] = $ci;
-                    $childPtGroups->put($gid, $group);
-                } else {
-                    $childOther['items'][] = $ci;
-                }
-            }
-
-            $childGroups = $childPtGroups->filter(fn($g) => count($g['items']) > 0)
-                ->sortBy('order')->values()->all();
-            if (count($childOther['items']) > 0) {
-                $childGroups[] = $childOther;
-            }
-
-            return [
-                'asset_label' => $childJob->asset->product->brand->name
-                    . ' ' . $childJob->asset->product->model
-                    . ' — ' . ($childJob->asset->serial_number ?? '-'),
-                'outcome'     => $childJob->outcome,
-                'groups'      => array_map(function ($g) {
-                    $g['items'] = array_map(fn($ci) => [
-                        'check_name'   => $ci->serviceCheck?->name,
-                        'type'         => $ci->serviceCheck?->type,
-                        'description'  => $ci->description,
-                        'switch_state' => $ci->switch_state ?? null,
-                        'values'       => $ci->values?->pluck('value')->all() ?? [],
-                        'remarks'      => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
-                        'images'       => $ci->images,
-                    ], $g['items']);
-                    return $g;
-                }, $childGroups),
-            ];
-        })->all();
+        $childJobSections = $servicejob->childJobs->map(fn($childJob) => [
+            'asset_label' => $childJob->asset->product->brand->name
+                . ' ' . $childJob->asset->product->model
+                . ' — ' . ($childJob->asset->serial_number ?? '-'),
+            'outcome' => $childJob->outcome,
+            'groups'  => $this->buildRawGroups(
+                $childJob->checkInstances,
+                $childJob->asset?->product?->productType
+            ),
+        ])->all();
 
         $isChildJob     = $servicejob->parent_service_job_id !== null;
         $parentJobLabel = $servicejob->parentJob
@@ -485,5 +403,42 @@ class ServiceJobController extends Controller
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
         return $pdf;
+    }
+
+    private function buildRawGroups(\Illuminate\Support\Collection $instances, $productType): array
+    {
+        $ptGroups = collect($productType?->serviceCheckGroups ?? [])
+            ->map(fn($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? PHP_INT_MAX, 'items' => []])
+            ->keyBy('id');
+        $other = ['key' => 'other', 'name' => 'Overige keurpunten', 'order' => PHP_INT_MAX, 'items' => []];
+
+        foreach ($instances as $ci) {
+            $gid = $ci->serviceCheck?->group?->id;
+            if ($gid && $ptGroups->has($gid)) {
+                $group = $ptGroups->get($gid);
+                $group['items'][] = $ci;
+                $ptGroups->put($gid, $group);
+            } else {
+                $other['items'][] = $ci;
+            }
+        }
+
+        $groups = $ptGroups->filter(fn($g) => count($g['items']) > 0)->sortBy('order')->values()->all();
+        if (count($other['items']) > 0) {
+            $groups[] = $other;
+        }
+
+        return array_map(function ($g) {
+            $g['items'] = array_map(fn($ci) => [
+                'check_name'   => $ci->serviceCheck?->name,
+                'type'         => $ci->serviceCheck?->type,
+                'description'  => $ci->description,
+                'switch_state' => $ci->switch_state ?? null,
+                'values'       => $ci->values?->pluck('value')->all() ?? [],
+                'remarks'      => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
+                'images'       => $ci->images,
+            ], $g['items']);
+            return $g;
+        }, $groups);
     }
 }
