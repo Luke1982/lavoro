@@ -150,6 +150,17 @@
         </tr>
     </table>
 
+    @if(!empty($siblingJobLabels))
+    <div style="margin-bottom: 12px; padding: 8px; background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 4px;">
+        <strong style="font-size: 10px;">Gecombineerde keuring – ook gekeurde onderdelen:</strong>
+        <ul style="margin: 4px 0 0 12px; font-size: 10px;">
+            @foreach($siblingJobLabels as $label)
+                <li>{{ $label }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @foreach ($groups as $index => $group)
         <h2>{{ $loop->iteration . '. ' . $group['name'] }}</h2>
         <table class="small">

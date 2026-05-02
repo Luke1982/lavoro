@@ -71,6 +71,19 @@
                 </button>
             </div>
         </div>
+        <div v-if="sibling_jobs.length" class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
+            <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                Gecombineerde keuring — gerelateerde keuringen in dit werkorder:
+            </p>
+            <ul class="space-y-1">
+                <li v-for="sj in sibling_jobs" :key="sj.id">
+                    <Link :href="`/servicejobs/${sj.id}`" class="text-blue-600 underline text-sm">
+                        {{ sj.asset_label }}
+                    </Link>
+                    <span class="text-xs text-gray-400 ml-2">{{ sj.outcome }}</span>
+                </li>
+            </ul>
+        </div>
         <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
             Keurpunten
         </h2>
@@ -162,7 +175,7 @@ import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
 import { Cog6ToothIcon, InformationCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 
-const { servicejob, possibleOutcomes, missing_checks_count, missing_checks } = defineProps({
+const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, sibling_jobs } = defineProps({
     servicejob: {
         type: Object,
         required: true
@@ -182,6 +195,10 @@ const { servicejob, possibleOutcomes, missing_checks_count, missing_checks } = d
     missing_checks: {
         type: Array,
         required: true
+    },
+    sibling_jobs: {
+        type: Array,
+        default: () => []
     }
 });
 

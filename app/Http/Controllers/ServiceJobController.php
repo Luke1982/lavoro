@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
+use App\Models\Asset;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 
 class ServiceJobController extends Controller
@@ -43,6 +44,7 @@ class ServiceJobController extends Controller
     public function store(ServiceJobCreateRequest $request)
     {
         $job = ServiceJob::create($request->validated());
+
         $serviceOrder = ServiceOrder::with('customer')->find($job->service_order_id);
         if ($serviceOrder) {
             $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
@@ -56,7 +58,46 @@ class ServiceJobController extends Controller
                 ));
             }
         }
-        return redirect()->back()->with('success', 'Keuring succesvol aangemaakt.');
+
+        // Auto-create service jobs for all child assets
+        $parentAsset = Asset::with([
+            'childAssets.product.brand',
+            'childAssets.product.productType',
+        ])->find($job->asset_id);
+
+        $newChildCount = 0;
+
+        foreach ($parentAsset->childAssets as $childAsset) {
+            $childJob = ServiceJob::firstOrCreate(
+                [
+                    'asset_id'         => $childAsset->id,
+                    'service_order_id' => $job->service_order_id,
+                ],
+                [
+                    'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
+                ]
+            );
+
+            if ($childJob->wasRecentlyCreated) {
+                $newChildCount++;
+                if ($serviceOrder) {
+                    $serviceOrder->logActivity(sprintf(
+                        'Gecombineerde keuring toegevoegd voor onderdeel: %s %s %s (serienummer %s)',
+                        $childAsset->product->productType->name ?? 'Onbekend type',
+                        $childAsset->product->brand->name ?? '',
+                        $childAsset->product->model ?? '',
+                        $childAsset->serial_number ?? '-'
+                    ));
+                }
+            }
+        }
+
+        $childNote = "{$newChildCount} gecombineerde keuring(en) aangemaakt voor gerelateerde onderdelen.";
+        $message = $newChildCount > 0
+            ? "Keuring succesvol aangemaakt. {$childNote}"
+            : 'Keuring succesvol aangemaakt.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
@@ -75,6 +116,10 @@ class ServiceJobController extends Controller
             'asset.product.brand',
             'asset.customer',
             'serviceOrder',
+            'asset.parentAssetRelations.parentAsset.product.brand',
+            'asset.parentAssetRelations.parentAsset.product.productType',
+            'asset.childAssetRelations.childAsset.product.brand',
+            'asset.childAssetRelations.childAsset.product.productType',
         ]);
 
         $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
@@ -87,12 +132,36 @@ class ServiceJobController extends Controller
                 'type' => $c->type,
             ]);
 
+        $siblingJobs = collect();
+        if ($servicejob->service_order_id) {
+            $relatedAssetIds = collect()
+                ->merge($servicejob->asset->childAssets()->pluck('assets.id'))
+                ->merge($servicejob->asset->parentAssets()->pluck('assets.id'));
+
+            if ($relatedAssetIds->isNotEmpty()) {
+                $siblingJobs = ServiceJob::query()
+                    ->where('service_order_id', $servicejob->service_order_id)
+                    ->whereIn('asset_id', $relatedAssetIds)
+                    ->where('id', '!=', $servicejob->id)
+                    ->with(['asset.product.brand', 'asset.product.productType'])
+                    ->get()
+                    ->map(fn($j) => [
+                        'id'          => $j->id,
+                        'asset_label' => $j->asset->product->brand->name
+                            . ' ' . $j->asset->product->model
+                            . ' (' . ($j->asset->serial_number ?? '-') . ')',
+                        'outcome'     => $j->outcome,
+                    ]);
+            }
+        }
+
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
             'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),
             'missing_checks' => $missing,
             'missing_checks_count' => $missing->count(),
+            'sibling_jobs' => $siblingJobs,
         ]);
     }
 
@@ -324,6 +393,27 @@ class ServiceJobController extends Controller
         $main_company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($main_company);
 
+        // Sibling job context for PDF
+        $siblingJobLabels = [];
+        if ($servicejob->service_order_id) {
+            $relatedAssetIds = collect()
+                ->merge($servicejob->asset->childAssets()->pluck('assets.id'))
+                ->merge($servicejob->asset->parentAssets()->pluck('assets.id'));
+
+            if ($relatedAssetIds->isNotEmpty()) {
+                $siblingJobLabels = ServiceJob::query()
+                    ->where('service_order_id', $servicejob->service_order_id)
+                    ->whereIn('asset_id', $relatedAssetIds)
+                    ->where('id', '!=', $servicejob->id)
+                    ->with(['asset.product.brand', 'asset.product.productType'])
+                    ->get()
+                    ->map(fn($j) => $j->asset->product->brand->name
+                        . ' ' . $j->asset->product->model
+                        . ' — ' . ($j->asset->serial_number ?? '-'))
+                    ->all();
+            }
+        }
+
         $pdf = Pdf::loadView('pdf.servicejob', [
             'serviceJob' => $servicejob,
             'asset' => $asset,
@@ -340,6 +430,7 @@ class ServiceJobController extends Controller
             'isRepair' => $is_repair,
             'logo' => $logo,
             'company' => $main_company,
+            'siblingJobLabels' => $siblingJobLabels,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
         return $pdf;
