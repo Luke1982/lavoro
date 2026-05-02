@@ -1,6 +1,6 @@
 {
-    "name": "WH Service CRM",
-    "short_name": "WH CRM",
+    "name": "Lavoro FSM",
+    "short_name": "Lavoro FSM",
     "description": "Service CRM voor werkbonnen, keuringen en materiaalbeheer.",
     "start_url": "/",
     "display": "standalone",

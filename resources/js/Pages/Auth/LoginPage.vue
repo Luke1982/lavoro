@@ -11,7 +11,7 @@
                                 class="h-16 w-auto object-contain drop-shadow-sm" />
                         </div>
                         <div v-else class="h-16 flex items-center justify-center">
-                            <span class="text-white/80 text-xl font-semibold tracking-wide">WH Service CRM</span>
+                            <span class="text-white/80 text-xl font-semibold tracking-wide">Lavoro FSM</span>
                         </div>
                     </div>
                     <h2 class="mt-6 text-2xl font-semibold tracking-tight text-gray-900">Welkom terug</h2>
@@ -63,7 +63,7 @@
                 </form>
 
                 <div class="px-8 pb-6 text-center text-xs text-gray-500">
-                    <span>© {{ new Date().getFullYear() }} — WH Service CRM</span>
+                    <span>© {{ new Date().getFullYear() }} — Lavoro FSM</span>
                 </div>
 
                 <div
