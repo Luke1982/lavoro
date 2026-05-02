@@ -40,6 +40,9 @@ return [
     // Activity list
     'activitylist.read',
 
+    // Pricing
+    'product.view_prices',
+
     // Dashboard — financial widgets
     'dashboard.see_stats',
     'dashboard.see_open_serviceorders.not_sent',

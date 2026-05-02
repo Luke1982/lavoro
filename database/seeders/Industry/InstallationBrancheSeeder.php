@@ -50,6 +50,12 @@ class InstallationBrancheSeeder extends Seeder
             include base_path('database/seeders/data/administratie_permissions.php')
         );
 
+        $verkoop_role = Role::firstOrCreate(['name' => 'Verkoop']);
+        $this->syncPermissions(
+            $verkoop_role,
+            include base_path('database/seeders/data/verkoop_permissions.php')
+        );
+
         $event_types = [
             'Periodieke controle' => '#388e3c',
             'Oplossen storing' => '#d32f2f',
