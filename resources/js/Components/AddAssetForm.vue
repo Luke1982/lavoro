@@ -20,6 +20,25 @@
             <p v-if="assetForm.errors.serial_number" class="text-xs text-red-600">{{ assetForm.errors.serial_number }}
             </p>
 
+            <template v-if="requiredParts.length">
+                <div class="mt-3 border-t pt-3">
+                    <p class="text-xs font-medium text-gray-500 mb-2">
+                        Serienummers vereiste onderdelen
+                    </p>
+                    <div v-for="(part, i) in requiredParts" :key="part.productable_id" class="mb-2">
+                        <label class="block text-xs text-gray-500 mb-1">
+                            {{ part.relation_name }}: {{ part.name }}
+                            <span v-if="part.quantity > 1">(×{{ part.quantity }})</span>
+                        </label>
+                        <TextInput
+                            v-model="assetForm.child_assets[i].serial_number"
+                            :placeholder="'Serienummer ' + part.name"
+                            class="w-full"
+                        />
+                    </div>
+                </div>
+            </template>
+
             <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
                 :class="assetForm.errors.next_service_date ? 'border-red-500' : ''" />
             <p v-if="assetForm.errors.next_service_date" class="text-xs text-red-600">{{
@@ -45,7 +64,7 @@ import TextInput from '@/Components/UI/TextInput.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 const props = defineProps({
     allCustomers: {
@@ -63,7 +82,11 @@ const props = defineProps({
     productId: {
         type: [Number, String],
         default: null
-    }
+    },
+    requiredProductablesByProduct: {
+        type: Object,
+        default: () => ({})
+    },
 });
 
 const showCustomer = computed(() => !props.customerId);
@@ -82,7 +105,21 @@ const assetForm = useForm({
     serial_number: '',
     next_service_date: null,
     is_active: true,
+    child_assets: [],
 });
+
+const requiredParts = computed(() => {
+    const pid = assetForm.product_id ?? props.productId
+    if (!pid) return []
+    return props.requiredProductablesByProduct[pid] ?? []
+})
+
+watch(() => assetForm.product_id, () => {
+    assetForm.child_assets = requiredParts.value.map(part => ({
+        productable_id: part.productable_id,
+        serial_number: '',
+    }))
+})
 
 const createAsset = () => {
     assetForm.post('/assets', { preserveScroll: true });

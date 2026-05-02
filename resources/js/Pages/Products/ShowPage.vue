@@ -172,7 +172,8 @@
                 imageable-type="\App\Models\Product" />
             <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
                 documentable-type="\App\Models\Product" class="mt-4" />
-            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')" />
+            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')"
+                :required-productables-by-product="requiredProductablesByProduct" />
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -205,9 +206,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    productRelations:      { type: Array, default: () => [] },
-    eligibleChildProducts: { type: Array, default: () => [] },
-    childProducts:         { type: Array, default: () => [] },
+    productRelations:              { type: Array, default: () => [] },
+    eligibleChildProducts:         { type: Array, default: () => [] },
+    childProducts:                 { type: Array, default: () => [] },
+    requiredProductablesByProduct: { type: Object, default: () => ({}) },
 });
 
 const editing = ref(false);

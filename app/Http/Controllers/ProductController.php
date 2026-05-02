@@ -9,6 +9,7 @@ use App\Models\ProductType;
 use App\Models\Customer;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreUpdateRequest;
+use App\Services\ProductableService;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -128,6 +129,7 @@ class ProductController extends Controller
             'productRelations'      => ProductRelation::orderBy('name')->get(['id', 'name']),
             'eligibleChildProducts' => $eligibleChildProducts,
             'childProducts'         => $childProductsWithPivot,
+            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
         ]);
     }
 

@@ -122,6 +122,40 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
+            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length" class="mt-5">
+                <div class="flex items-center py-3 border-t border-gray-200">
+                    <LinkIcon class="size-5 text-gray-500 mr-2" />
+                    <h3 class="text-sm font-medium">Gerelateerde machines</h3>
+                </div>
+
+                <div v-if="asset.child_asset_relations?.length">
+                    <p class="text-xs text-gray-400 mb-1">Onderdelen</p>
+                    <div v-for="rel in asset.child_asset_relations" :key="rel.id"
+                        class="flex items-center justify-between py-1 border-b border-gray-50">
+                        <div>
+                            <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
+                                {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                            </Link>
+                            <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number }}</span>
+                        </div>
+                        <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                    </div>
+                </div>
+
+                <div v-if="asset.parent_asset_relations?.length" class="mt-2">
+                    <p class="text-xs text-gray-400 mb-1">Onderdeel van</p>
+                    <div v-for="rel in asset.parent_asset_relations" :key="rel.id"
+                        class="flex items-center justify-between py-1 border-b border-gray-50">
+                        <div>
+                            <Link :href="`/assets/${rel.parent_asset.id}`" class="text-blue-600 underline text-sm">
+                                {{ rel.parent_asset.product.brand.name }} {{ rel.parent_asset.product.model }}
+                            </Link>
+                            <span class="text-xs text-gray-400 ml-2">{{ rel.parent_asset.serial_number }}</span>
+                        </div>
+                        <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                    </div>
+                </div>
+            </BoxComponent>
             <BoxComponent class="mt-5">
                 <div class="flex">
                     <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2" />
@@ -172,7 +206,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';

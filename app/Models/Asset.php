@@ -90,4 +90,38 @@ class Asset extends Model
     {
         return $this->hasMany(ServiceJob::class)->where('outcome', ServiceJobOutcomes::nog_geen_uitkomst->value);
     }
+
+    public function childAssetRelations()
+    {
+        return $this->hasMany(AssetRelation::class, 'parent_asset_id');
+    }
+
+    public function parentAssetRelations()
+    {
+        return $this->hasMany(AssetRelation::class, 'child_asset_id');
+    }
+
+    public function childAssets()
+    {
+        return $this->hasManyThrough(
+            Asset::class,
+            AssetRelation::class,
+            'parent_asset_id',
+            'id',
+            'id',
+            'child_asset_id'
+        );
+    }
+
+    public function parentAssets()
+    {
+        return $this->hasManyThrough(
+            Asset::class,
+            AssetRelation::class,
+            'child_asset_id',
+            'id',
+            'id',
+            'parent_asset_id'
+        );
+    }
 }
