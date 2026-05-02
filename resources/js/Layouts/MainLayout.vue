@@ -316,6 +316,7 @@ import {
     ArrowRightOnRectangleIcon,
     WrenchScrewdriverIcon,
     ClipboardDocumentListIcon,
+    LinkIcon,
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -340,6 +341,7 @@ const navigation = ref([
         children: [
             { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false, requiresPermission: 'producttype.read' },
             { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false, requiresPermission: 'brand.read' },
+            { name: 'Relaties', href: '/productrelations', icon: LinkIcon, current: false, requiresPermission: 'productrelation.read' },
         ],
         open: false,
     },
