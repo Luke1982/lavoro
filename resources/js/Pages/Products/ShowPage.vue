@@ -52,6 +52,16 @@
                         <EditableTextField v-model="form.typical_certificate_days" type="input" input-type="number" />
                     </div>
                 </div>
+                <div v-if="hasPermission('product.view_prices')" class="mt-4 flex gap-4">
+                    <div class="w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Verkoopprijs</h3>
+                        <EditableTextField v-model="form.retail_price" type="input" input-type="number" />
+                    </div>
+                    <div class="w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Inkoopprijs</h3>
+                        <EditableTextField v-model="form.purchase_price" type="input" input-type="number" />
+                    </div>
+                </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
                 <div v-if="hasPermission('asset.read') && product.assets.length > 0">
@@ -112,12 +122,16 @@ const form = useForm({
     start_sell: props.product.start_sell,
     end_sell: props.product.end_sell,
     typical_certificate_days: props.product.typical_certificate_days,
+    retail_price: props.product.retail_price,
+    purchase_price: props.product.purchase_price,
     origin: 'showPage'
 });
 
 watch([
     () => form.description,
-    () => form.typical_certificate_days
+    () => form.typical_certificate_days,
+    () => form.retail_price,
+    () => form.purchase_price,
 ], () => {
     form.patch(`/products/${props.product.id}`);
 });
