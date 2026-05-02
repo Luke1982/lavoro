@@ -7,11 +7,12 @@ use App\Models\AssetRelation;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Productable;
-use App\Http\Requests\AssetReadRequest; // unified read
+use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
 use App\Http\Requests\AssetDestroyRequest;
 use App\Services\ProductableService;
+use Illuminate\Support\Facades\DB;
 
 // duplicate imports removed
 
@@ -103,35 +104,39 @@ class AssetController extends Controller
     {
         $validated = $request->validated();
 
-        $asset = Asset::create([
-            'product_id'        => $validated['product_id'],
-            'customer_id'       => $validated['customer_id'],
-            'serial_number'     => $validated['serial_number'] ?? null,
-            'next_service_date' => $validated['next_service_date'] ?? null,
-            'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
-        ]);
-
-        foreach ($validated['child_assets'] ?? [] as $childData) {
-            $productable = Productable::find($childData['productable_id']);
-            if (!$productable || !$productable->is_required) {
-                continue;
-            }
-
-            $childAsset = Asset::create([
-                'product_id'        => $productable->productable_id,
+        $asset = DB::transaction(function () use ($validated) {
+            $asset = Asset::create([
+                'product_id'        => $validated['product_id'],
                 'customer_id'       => $validated['customer_id'],
-                'serial_number'     => $childData['serial_number'],
+                'serial_number'     => $validated['serial_number'] ?? null,
                 'next_service_date' => $validated['next_service_date'] ?? null,
                 'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
             ]);
 
-            AssetRelation::create([
-                'parent_asset_id'     => $asset->id,
-                'child_asset_id'      => $childAsset->id,
-                'productable_id'      => $productable->id,
-                'product_relation_id' => $productable->product_relation_id,
-            ]);
-        }
+            foreach ($validated['child_assets'] ?? [] as $childData) {
+                $productable = Productable::find($childData['productable_id']);
+                if (!$productable || !$productable->is_required) {
+                    continue;
+                }
+
+                $childAsset = Asset::create([
+                    'product_id'        => $productable->productable_id,
+                    'customer_id'       => $validated['customer_id'],
+                    'serial_number'     => $childData['serial_number'],
+                    'next_service_date' => $validated['next_service_date'] ?? null,
+                    'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
+                ]);
+
+                AssetRelation::create([
+                    'parent_asset_id'     => $asset->id,
+                    'child_asset_id'      => $childAsset->id,
+                    'productable_id'      => $productable->id,
+                    'product_relation_id' => $productable->product_relation_id,
+                ]);
+            }
+
+            return $asset;
+        });
 
         $created = $asset->load([
             'product.brand',
@@ -185,10 +190,9 @@ class AssetController extends Controller
                 'parentAssetRelations.parentAsset.product.productType',
                 'parentAssetRelations.productable.productRelation',
             ]),
-            'allProducts' => $all_products,
-            'allCustomers'  => Customer::all(),
+            'allProducts'  => $all_products,
+            'allCustomers' => Customer::orderBy('name')->get(['id', 'name']),
             'customFields' => $asset->allCustomFieldsWithValues(),
-            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
         ]);
     }
 
