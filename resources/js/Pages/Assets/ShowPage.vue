@@ -253,6 +253,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    requiredProductablesByProduct: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 
 const statusOptions = [

@@ -126,9 +126,10 @@ class AssetController extends Controller
             ]);
 
             AssetRelation::create([
-                'parent_asset_id' => $asset->id,
-                'child_asset_id'  => $childAsset->id,
-                'productable_id'  => $productable->id,
+                'parent_asset_id'     => $asset->id,
+                'child_asset_id'      => $childAsset->id,
+                'productable_id'      => $productable->id,
+                'product_relation_id' => $productable->product_relation_id,
             ]);
         }
 
