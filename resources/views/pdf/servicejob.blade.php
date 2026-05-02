@@ -150,14 +150,10 @@
         </tr>
     </table>
 
-    @if(!empty($siblingJobLabels))
-    <div style="margin-bottom: 12px; padding: 8px; background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 4px;">
-        <strong style="font-size: 10px;">Gecombineerde keuring – ook gekeurde onderdelen:</strong>
-        <ul style="margin: 4px 0 0 12px; font-size: 10px;">
-            @foreach($siblingJobLabels as $label)
-                <li>{{ $label }}</li>
-            @endforeach
-        </ul>
+    {{-- Parent context (when this is a child job) --}}
+    @if($isChildJob && $parentJobLabel)
+    <div style="margin-bottom: 12px; padding: 6px 10px; background: #eff6ff; border-left: 3px solid #3b82f6; font-size: 10px;">
+        <strong>Onderdeel van gecombineerde keuring:</strong> {{ $parentJobLabel }}
     </div>
     @endif
 
@@ -288,6 +284,55 @@
                 de {{ $ptNameLower }}, dan dient de inspectie/keuring opnieuw te worden uitgevoerd!</td>
         </tr>
     </table>
+
+    @if(!empty($childJobSections))
+        @foreach($childJobSections as $childSection)
+        <div style="margin-top: 24px; border-top: 2px solid #3b82f6; padding-top: 12px;">
+            <h3 style="font-size: 12px; font-weight: bold; color: #1e40af; margin-bottom: 8px;">
+                Onderdeel: {{ $childSection['asset_label'] }}
+            </h3>
+            @foreach($childSection['groups'] as $group)
+                <h4 style="font-size: 11px; font-weight: bold; margin: 10px 0 4px;">{{ $group['name'] }}</h4>
+                <table style="width:100%; border-collapse:collapse; font-size: 9px;">
+                    <thead>
+                        <tr style="background: #f3f4f6;">
+                            <th style="text-align:left; padding:3px 6px; border:1px solid #e5e7eb;">Keurpunt</th>
+                            <th style="text-align:left; padding:3px 6px; border:1px solid #e5e7eb; width:120px;">Resultaat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($group['items'] as $item)
+                        <tr>
+                            <td style="padding:3px 6px; border:1px solid #e5e7eb;">{{ $item['check_name'] }}</td>
+                            <td style="padding:3px 6px; border:1px solid #e5e7eb;">
+                                @if($item['type'] === 'boolean')
+                                    {{ $item['switch_state'] === true ? 'Ja' : ($item['switch_state'] === false ? 'Nee' : '—') }}
+                                @elseif(!empty($item['values']))
+                                    {{ implode(', ', $item['values']) }}
+                                @elseif($item['description'])
+                                    {{ $item['description'] }}
+                                @else
+                                    —
+                                @endif
+                            </td>
+                        </tr>
+                        @if(!empty($item['remarks']))
+                        <tr>
+                            <td colspan="2" style="padding:2px 6px 4px; border:1px solid #e5e7eb; color:#6b7280; font-style:italic; font-size:8px;">
+                                {{ implode(' | ', $item['remarks']) }}
+                            </td>
+                        </tr>
+                        @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            @endforeach
+            <p style="font-size:9px; margin-top:6px;">
+                <strong>Uitkomst onderdeel:</strong> {{ $childSection['outcome'] }}
+            </p>
+        </div>
+        @endforeach
+    @endif
 
     <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if ($company?->address_line2)
             {{ $company?->address_line2 }}

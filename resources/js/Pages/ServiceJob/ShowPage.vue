@@ -71,18 +71,35 @@
                 </button>
             </div>
         </div>
-        <div v-if="sibling_jobs.length" class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
-            <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
-                Gecombineerde keuring — gerelateerde keuringen in dit werkorder:
-            </p>
-            <ul class="space-y-1">
-                <li v-for="sj in sibling_jobs" :key="sj.id">
-                    <Link :href="`/servicejobs/${sj.id}`" class="text-blue-600 underline text-sm">
-                        {{ sj.asset_label }}
-                    </Link>
-                    <span class="text-xs text-gray-400 ml-2">{{ sj.outcome }}</span>
-                </li>
-            </ul>
+        <!-- Group context banner -->
+        <div v-if="parent_job || child_jobs.length"
+            class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
+
+            <!-- This is a child job — show link back to parent -->
+            <div v-if="parent_job">
+                <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                    Onderdeel van gecombineerde keuring:
+                </p>
+                <Link :href="`/servicejobs/${parent_job.id}`" class="text-blue-600 underline text-sm">
+                    {{ parent_job.asset_label }}
+                </Link>
+                <span class="text-xs text-gray-400 ml-2">{{ parent_job.outcome }}</span>
+            </div>
+
+            <!-- This is a parent job — show child jobs below -->
+            <div v-if="child_jobs.length" :class="parent_job ? 'mt-3' : ''">
+                <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                    Gecombineerde keuring — onderdelen:
+                </p>
+                <ul class="space-y-1">
+                    <li v-for="cj in child_jobs" :key="cj.id" class="flex items-center gap-2">
+                        <Link :href="`/servicejobs/${cj.id}`" class="text-blue-600 underline text-sm">
+                            {{ cj.asset_label }}
+                        </Link>
+                        <span class="text-xs text-gray-400">{{ cj.outcome }}</span>
+                    </li>
+                </ul>
+            </div>
         </div>
         <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
             Keurpunten
@@ -175,7 +192,7 @@ import { watch, ref, computed } from 'vue';
 import { debounce } from 'lodash';
 import { Cog6ToothIcon, InformationCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 
-const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, sibling_jobs } = defineProps({
+const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, parent_job, child_jobs } = defineProps({
     servicejob: {
         type: Object,
         required: true
@@ -196,10 +213,14 @@ const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, sibl
         type: Array,
         required: true
     },
-    sibling_jobs: {
+    parent_job: {
+        type: Object,
+        default: null
+    },
+    child_jobs: {
         type: Array,
         default: () => []
-    }
+    },
 });
 
 const updating = ref(false);

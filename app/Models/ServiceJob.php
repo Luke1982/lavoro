@@ -28,6 +28,7 @@ class ServiceJob extends Model
         'description',
         'completed_on',
         'completed_by',
+        'parent_service_job_id',
     ];
 
     /**
@@ -49,6 +50,16 @@ class ServiceJob extends Model
                 'service_check_id' => $check->id,
             ]));
         });
+    }
+
+    public function parentJob()
+    {
+        return $this->belongsTo(ServiceJob::class, 'parent_service_job_id');
+    }
+
+    public function childJobs()
+    {
+        return $this->hasMany(ServiceJob::class, 'parent_service_job_id');
     }
 
     /**

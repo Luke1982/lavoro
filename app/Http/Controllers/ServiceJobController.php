@@ -74,9 +74,15 @@ class ServiceJobController extends Controller
                     'service_order_id' => $job->service_order_id,
                 ],
                 [
-                    'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
+                    'outcome'               => ServiceJobOutcomes::nog_geen_uitkomst->value,
+                    'parent_service_job_id' => $job->id,
                 ]
             );
+
+            // If the job already existed, ensure the parent link is set
+            if (!$childJob->wasRecentlyCreated && $childJob->parent_service_job_id === null) {
+                $childJob->update(['parent_service_job_id' => $job->id]);
+            }
 
             if ($childJob->wasRecentlyCreated) {
                 $newChildCount++;
@@ -120,6 +126,16 @@ class ServiceJobController extends Controller
             'asset.parentAssetRelations.parentAsset.product.productType',
             'asset.childAssetRelations.childAsset.product.brand',
             'asset.childAssetRelations.childAsset.product.productType',
+            'parentJob.asset.product.brand',
+            'parentJob.asset.product.productType',
+            'parentJob.asset.customer',
+            'childJobs.asset.product.brand',
+            'childJobs.asset.product.productType',
+            'childJobs.checkInstances.serviceCheck.group',
+            'childJobs.checkInstances.serviceCheck.values',
+            'childJobs.checkInstances.values',
+            'childJobs.checkInstances.images',
+            'childJobs.checkInstances.remarks.user',
         ]);
 
         $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
@@ -132,22 +148,26 @@ class ServiceJobController extends Controller
                 'type' => $c->type,
             ]);
 
-        $siblingJobs = $this->siblingServiceJobs($servicejob)
-            ->map(fn($j) => [
-                'id'          => $j->id,
-                'asset_label' => $j->asset->product->brand->name
-                    . ' ' . $j->asset->product->model
-                    . ' (' . ($j->asset->serial_number ?? '-') . ')',
-                'outcome'     => $j->outcome,
-            ]);
-
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
             'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),
             'missing_checks' => $missing,
             'missing_checks_count' => $missing->count(),
-            'sibling_jobs' => $siblingJobs,
+            'parent_job' => $servicejob->parentJob ? [
+                'id'          => $servicejob->parentJob->id,
+                'asset_label' => $servicejob->parentJob->asset->product->brand->name
+                    . ' ' . $servicejob->parentJob->asset->product->model
+                    . ' (' . ($servicejob->parentJob->asset->serial_number ?? '-') . ')',
+                'outcome'     => $servicejob->parentJob->outcome,
+            ] : null,
+            'child_jobs' => $servicejob->childJobs->map(fn($j) => [
+                'id'          => $j->id,
+                'asset_label' => $j->asset->product->brand->name
+                    . ' ' . $j->asset->product->model
+                    . ' (' . ($j->asset->serial_number ?? '-') . ')',
+                'outcome'     => $j->outcome,
+            ])->values()->all(),
         ]);
     }
 
@@ -311,6 +331,17 @@ class ServiceJobController extends Controller
             'checkInstances.remarks.user',
             'serviceOrder.customer',
             'completedBy',
+            'parentJob.asset.product.brand',
+            'parentJob.asset.product.productType',
+            'childJobs.asset.product.brand',
+            'childJobs.asset.product.productType',
+            'childJobs.asset.customer',
+            'childJobs.checkInstances.serviceCheck.group',
+            'childJobs.checkInstances.serviceCheck.values',
+            'childJobs.checkInstances.values',
+            'childJobs.checkInstances.images',
+            'childJobs.checkInstances.remarks.user',
+            'childJobs.asset.product.productType.serviceCheckGroups',
         ]);
 
         $instances = $servicejob->checkInstances;
@@ -379,11 +410,58 @@ class ServiceJobController extends Controller
         $main_company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($main_company);
 
-        $siblingJobLabels = $this->siblingServiceJobs($servicejob)
-            ->map(fn($j) => $j->asset->product->brand->name
-                . ' ' . $j->asset->product->model
-                . ' — ' . ($j->asset->serial_number ?? '-'))
-            ->all();
+        $childJobSections = $servicejob->childJobs->map(function ($childJob) {
+            $childInstances = $childJob->checkInstances;
+            $childPtGroups  = collect($childJob->asset?->product?->productType?->serviceCheckGroups ?? [])
+                ->map(fn($g) => [
+                    'id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? PHP_INT_MAX, 'items' => [],
+                ])
+                ->keyBy('id');
+            $childOther = ['key' => 'other', 'name' => 'Overige keurpunten', 'order' => PHP_INT_MAX, 'items' => []];
+
+            foreach ($childInstances as $ci) {
+                $gid = $ci->serviceCheck?->group?->id;
+                if ($gid && $childPtGroups->has($gid)) {
+                    $group = $childPtGroups->get($gid);
+                    $group['items'][] = $ci;
+                    $childPtGroups->put($gid, $group);
+                } else {
+                    $childOther['items'][] = $ci;
+                }
+            }
+
+            $childGroups = $childPtGroups->filter(fn($g) => count($g['items']) > 0)
+                ->sortBy('order')->values()->all();
+            if (count($childOther['items']) > 0) {
+                $childGroups[] = $childOther;
+            }
+
+            return [
+                'asset_label' => $childJob->asset->product->brand->name
+                    . ' ' . $childJob->asset->product->model
+                    . ' — ' . ($childJob->asset->serial_number ?? '-'),
+                'outcome'     => $childJob->outcome,
+                'groups'      => array_map(function ($g) {
+                    $g['items'] = array_map(fn($ci) => [
+                        'check_name'   => $ci->serviceCheck?->name,
+                        'type'         => $ci->serviceCheck?->type,
+                        'description'  => $ci->description,
+                        'switch_state' => $ci->switch_state ?? null,
+                        'values'       => $ci->values?->pluck('value')->all() ?? [],
+                        'remarks'      => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
+                        'images'       => $ci->images,
+                    ], $g['items']);
+                    return $g;
+                }, $childGroups),
+            ];
+        })->all();
+
+        $isChildJob     = $servicejob->parent_service_job_id !== null;
+        $parentJobLabel = $servicejob->parentJob
+            ? $servicejob->parentJob->asset->product->brand->name
+                . ' ' . $servicejob->parentJob->asset->product->model
+                . ' — ' . ($servicejob->parentJob->asset->serial_number ?? '-')
+            : null;
 
         $pdf = Pdf::loadView('pdf.servicejob', [
             'serviceJob' => $servicejob,
@@ -401,31 +479,11 @@ class ServiceJobController extends Controller
             'isRepair' => $is_repair,
             'logo' => $logo,
             'company' => $main_company,
-            'siblingJobLabels' => $siblingJobLabels,
+            'childJobSections' => $childJobSections,
+            'isChildJob'       => $isChildJob,
+            'parentJobLabel'   => $parentJobLabel,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
         return $pdf;
-    }
-
-    private function siblingServiceJobs(ServiceJob $job): \Illuminate\Support\Collection
-    {
-        if (!$job->service_order_id) {
-            return collect();
-        }
-
-        $relatedAssetIds = collect()
-            ->merge($job->asset->childAssets()->pluck('assets.id'))
-            ->merge($job->asset->parentAssets()->pluck('assets.id'));
-
-        if ($relatedAssetIds->isEmpty()) {
-            return collect();
-        }
-
-        return ServiceJob::query()
-            ->where('service_order_id', $job->service_order_id)
-            ->whereIn('asset_id', $relatedAssetIds)
-            ->where('id', '!=', $job->id)
-            ->with(['asset.product.brand', 'asset.product.productType'])
-            ->get();
     }
 }
