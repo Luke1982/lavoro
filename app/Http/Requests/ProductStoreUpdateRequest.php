@@ -18,6 +18,8 @@ use App\Models\Product;
  * @property string|null $end_sell
  * @property string|null $origin
  * @property int|null $typical_certificate_days
+ * @property string|null $retail_price
+ * @property string|null $purchase_price
  */
 class ProductStoreUpdateRequest extends FormRequest
 {
@@ -69,6 +71,8 @@ class ProductStoreUpdateRequest extends FormRequest
                 'integer',
                 'min:1',
             ],
+            'retail_price'   => 'nullable|numeric|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
         ];
     }
 

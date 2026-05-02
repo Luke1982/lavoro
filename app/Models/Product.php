@@ -25,6 +25,13 @@ class Product extends Model
         'start_sell',
         'end_sell',
         'typical_certificate_days',
+        'retail_price',
+        'purchase_price',
+    ];
+
+    protected $casts = [
+        'retail_price'   => 'decimal:2',
+        'purchase_price' => 'decimal:2',
     ];
 
     /**

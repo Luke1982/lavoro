@@ -99,15 +99,7 @@ class ProductController extends Controller
      */
     public function store(ProductStoreUpdateRequest $request)
     {
-        $product = Product::create([
-            'product_type_id' => $request->product_type_id,
-            'brand_id'        => $request->brand_id,
-            'model'           => $request->model,
-            'description'     => $request->description,
-            'start_sell'      => $request->start_sell,
-            'end_sell'        => $request->end_sell,
-            'typical_certificate_days' => $request->typical_certificate_days,
-        ]);
+        $product = Product::create($request->validated());
 
         return redirect()
             ->route('products.index')
@@ -120,15 +112,7 @@ class ProductController extends Controller
      */
     public function update(ProductStoreUpdateRequest $request, Product $product)
     {
-        $product->update([
-            'product_type_id' => $request->product_type_id,
-            'brand_id'        => $request->brand_id,
-            'model'           => $request->model,
-            'description'     => $request->description,
-            'start_sell'      => $request->start_sell,
-            'end_sell'        => $request->end_sell,
-            'typical_certificate_days' => $request->typical_certificate_days,
-        ]);
+        $product->update($request->validated());
 
         return redirect()
             ->route($request->origin === 'showPage' ? 'products.show' : 'products.index', $product->id)
