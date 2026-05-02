@@ -67,7 +67,7 @@ class ServiceJobController extends Controller
 
         $newChildCount = 0;
 
-        foreach ($parentAsset->childAssets as $childAsset) {
+        foreach ($parentAsset?->childAssets ?? [] as $childAsset) {
             $childJob = ServiceJob::firstOrCreate(
                 [
                     'asset_id'         => $childAsset->id,
@@ -132,28 +132,14 @@ class ServiceJobController extends Controller
                 'type' => $c->type,
             ]);
 
-        $siblingJobs = collect();
-        if ($servicejob->service_order_id) {
-            $relatedAssetIds = collect()
-                ->merge($servicejob->asset->childAssets()->pluck('assets.id'))
-                ->merge($servicejob->asset->parentAssets()->pluck('assets.id'));
-
-            if ($relatedAssetIds->isNotEmpty()) {
-                $siblingJobs = ServiceJob::query()
-                    ->where('service_order_id', $servicejob->service_order_id)
-                    ->whereIn('asset_id', $relatedAssetIds)
-                    ->where('id', '!=', $servicejob->id)
-                    ->with(['asset.product.brand', 'asset.product.productType'])
-                    ->get()
-                    ->map(fn($j) => [
-                        'id'          => $j->id,
-                        'asset_label' => $j->asset->product->brand->name
-                            . ' ' . $j->asset->product->model
-                            . ' (' . ($j->asset->serial_number ?? '-') . ')',
-                        'outcome'     => $j->outcome,
-                    ]);
-            }
-        }
+        $siblingJobs = $this->siblingServiceJobs($servicejob)
+            ->map(fn($j) => [
+                'id'          => $j->id,
+                'asset_label' => $j->asset->product->brand->name
+                    . ' ' . $j->asset->product->model
+                    . ' (' . ($j->asset->serial_number ?? '-') . ')',
+                'outcome'     => $j->outcome,
+            ]);
 
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
@@ -393,26 +379,11 @@ class ServiceJobController extends Controller
         $main_company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($main_company);
 
-        // Sibling job context for PDF
-        $siblingJobLabels = [];
-        if ($servicejob->service_order_id) {
-            $relatedAssetIds = collect()
-                ->merge($servicejob->asset->childAssets()->pluck('assets.id'))
-                ->merge($servicejob->asset->parentAssets()->pluck('assets.id'));
-
-            if ($relatedAssetIds->isNotEmpty()) {
-                $siblingJobLabels = ServiceJob::query()
-                    ->where('service_order_id', $servicejob->service_order_id)
-                    ->whereIn('asset_id', $relatedAssetIds)
-                    ->where('id', '!=', $servicejob->id)
-                    ->with(['asset.product.brand', 'asset.product.productType'])
-                    ->get()
-                    ->map(fn($j) => $j->asset->product->brand->name
-                        . ' ' . $j->asset->product->model
-                        . ' — ' . ($j->asset->serial_number ?? '-'))
-                    ->all();
-            }
-        }
+        $siblingJobLabels = $this->siblingServiceJobs($servicejob)
+            ->map(fn($j) => $j->asset->product->brand->name
+                . ' ' . $j->asset->product->model
+                . ' — ' . ($j->asset->serial_number ?? '-'))
+            ->all();
 
         $pdf = Pdf::loadView('pdf.servicejob', [
             'serviceJob' => $servicejob,
@@ -434,5 +405,27 @@ class ServiceJobController extends Controller
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
         return $pdf;
+    }
+
+    private function siblingServiceJobs(ServiceJob $job): \Illuminate\Support\Collection
+    {
+        if (!$job->service_order_id) {
+            return collect();
+        }
+
+        $relatedAssetIds = collect()
+            ->merge($job->asset->childAssets()->pluck('assets.id'))
+            ->merge($job->asset->parentAssets()->pluck('assets.id'));
+
+        if ($relatedAssetIds->isEmpty()) {
+            return collect();
+        }
+
+        return ServiceJob::query()
+            ->where('service_order_id', $job->service_order_id)
+            ->whereIn('asset_id', $relatedAssetIds)
+            ->where('id', '!=', $job->id)
+            ->with(['asset.product.brand', 'asset.product.productType'])
+            ->get();
     }
 }
