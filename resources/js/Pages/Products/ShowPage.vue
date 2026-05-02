@@ -71,6 +71,100 @@
                     </div>
                     <AssetListComponent :assets="product.assets" />
                 </div>
+
+                <!-- Gerelateerde producten -->
+                <div v-if="hasPermission('productable.read')" class="mt-6">
+                    <div class="flex items-center justify-between py-3 border-t border-gray-200 mt-2">
+                        <div class="flex items-center">
+                            <LinkIcon class="size-5 text-gray-500 mr-2" />
+                            <h3 class="text-sm font-medium">Gerelateerde producten</h3>
+                        </div>
+                        <button
+                            v-if="hasPermission('productable.create') && eligibleChildProducts.length"
+                            @click="addingRelation = !addingRelation"
+                            class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                            <PlusIcon class="size-4" /> Toevoegen
+                        </button>
+                    </div>
+
+                    <!-- Add form -->
+                    <div v-if="addingRelation" class="mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="flex-1 min-w-40">
+                                <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
+                                <ComboBox :options="eligibleChildProducts" v-model="newRelation.child_product_id" placeholder="Selecteer product" />
+                            </div>
+                            <div class="flex-1 min-w-32">
+                                <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                                <ComboBox :options="productRelations" v-model="newRelation.product_relation_id" placeholder="Selecteer type" />
+                            </div>
+                            <div class="w-20">
+                                <label class="block text-xs text-gray-500 mb-1">Aantal</label>
+                                <input type="number" min="1" v-model.number="newRelation.quantity"
+                                    class="w-full rounded border-gray-300 text-sm p-1 border" />
+                            </div>
+                            <div class="flex items-end pb-1">
+                                <label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                                    <input type="checkbox" v-model="newRelation.is_required" class="rounded" />
+                                    Verplicht
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="submitNewRelation"
+                                class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                                Opslaan
+                            </button>
+                            <button @click="addingRelation = false"
+                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                Annuleren
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Existing relations -->
+                    <div v-if="childProducts.length === 0 && !addingRelation" class="text-sm text-gray-400 italic">
+                        Geen gerelateerde producten.
+                    </div>
+                    <table v-if="childProducts.length" class="w-full text-sm">
+                        <thead>
+                            <tr class="text-xs text-gray-400 border-b">
+                                <th class="text-left py-1 font-medium">Product</th>
+                                <th class="text-left py-1 font-medium">Type</th>
+                                <th class="text-center py-1 font-medium">Aantal</th>
+                                <th class="text-center py-1 font-medium">Verplicht</th>
+                                <th class="py-1"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="rel in childProducts" :key="rel.productable_id" class="border-b border-gray-100">
+                                <td class="py-1.5">{{ rel.name }}</td>
+                                <td class="py-1.5 text-gray-500">
+                                    {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '—' }}
+                                </td>
+                                <td class="py-1.5 text-center">{{ rel.quantity }}</td>
+                                <td class="py-1.5 text-center">
+                                    <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
+                                    <span v-else class="text-gray-300 text-xs">—</span>
+                                </td>
+                                <td class="py-1.5 text-right">
+                                    <button
+                                        v-if="hasPermission('productable.delete')"
+                                        @click="removeRelation(rel.productable_id)"
+                                        class="text-red-400 hover:text-red-600"
+                                    >
+                                        <TrashIcon class="size-4" />
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-if="eligibleChildProducts.length === 0 && !childProducts.length"
+                        class="text-xs text-gray-400 mt-1">
+                        Dit producttype heeft geen subtypen, dus er kunnen geen gerelateerde producten worden toegevoegd.
+                    </p>
+                </div>
             </BoxComponent>
         </template>
         <template #sidebar>
@@ -88,9 +182,10 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
-import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
-import { ref, computed, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { ref, reactive, computed, watch } from 'vue';
+import { useForm, router } from '@inertiajs/vue3';
+import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
@@ -109,7 +204,10 @@ const props = defineProps({
     customFields: {
         type: Array,
         default: () => [],
-    }
+    },
+    productRelations:      { type: Array, default: () => [] },
+    eligibleChildProducts: { type: Array, default: () => [] },
+    childProducts:         { type: Array, default: () => [] },
 });
 
 const editing = ref(false);
@@ -139,5 +237,36 @@ watch([
 const currentIcon = computed(() =>
     editing.value ? CheckCircleIcon : PencilSquareIcon
 );
+
+const addingRelation  = ref(false)
+const newRelation     = reactive({
+    child_product_id:    null,
+    product_relation_id: null,
+    quantity:            1,
+    is_required:         false,
+})
+
+function submitNewRelation() {
+    router.post('/productables', {
+        product_id:          props.product.id,
+        child_product_id:    newRelation.child_product_id,
+        product_relation_id: newRelation.product_relation_id,
+        quantity:            newRelation.quantity,
+        is_required:         newRelation.is_required,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            addingRelation.value = false
+            newRelation.child_product_id    = null
+            newRelation.product_relation_id = null
+            newRelation.quantity            = 1
+            newRelation.is_required         = false
+        },
+    })
+}
+
+function removeRelation(productableId) {
+    router.delete(`/productables/${productableId}`, { preserveScroll: true })
+}
 
 </script>

@@ -65,4 +65,25 @@ class Product extends Model
     {
         return $this->hasMany(Asset::class);
     }
+
+    public function childProducts()
+    {
+        return $this->morphedByMany(Product::class, 'productable')
+            ->withPivot(['id', 'product_relation_id', 'quantity', 'is_required'])
+            ->using(Productable::class)
+            ->withTimestamps();
+    }
+
+    public function parentProducts()
+    {
+        return $this->morphToMany(Product::class, 'productable')
+            ->withPivot(['id', 'product_relation_id', 'quantity', 'is_required'])
+            ->using(Productable::class)
+            ->withTimestamps();
+    }
+
+    public function productables()
+    {
+        return $this->hasMany(Productable::class);
+    }
 }

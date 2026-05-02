@@ -70,28 +70,64 @@ class ProductController extends Controller
 
     public function show(ProductReadRequest $request, Product $product)
     {
-        return inertia(
-            'Products/ShowPage',
-            [
-                'product' => $product->load([
-                    'brand',
-                    'productType',
-                    'images',
-                    'documents',
-                    'assets.customer',
-                    'assets.openTickets',
-                    'assets.pendingTickets',
-                    'assets.closedTickets',
-                    'assets.product.productType',
-                    'assets.product.brand',
-                    'customFields',
-                ]),
-                'allCustomers' => Customer::orderBy('name', 'ASC')
-                    ->get(['id', 'name'])
-                    ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
-                'customFields' => $product->allCustomFieldsWithValues(),
-            ]
-        );
+        $product->load([
+            'brand',
+            'productType.children',
+            'images',
+            'documents',
+            'assets.customer',
+            'assets.openTickets',
+            'assets.pendingTickets',
+            'assets.closedTickets',
+            'assets.product.productType',
+            'assets.product.brand',
+            'customFields',
+            'childProducts.brand',
+            'childProducts.productType',
+        ]);
+
+        $childTypeIds = $product->productType
+            ? $product->productType->children()->pluck('id')->all()
+            : [];
+
+        $eligibleChildProducts = [];
+        if (!empty($childTypeIds)) {
+            $eligibleChildProducts = Product::query()
+                ->whereIn('product_type_id', $childTypeIds)
+                ->with(['brand', 'productType'])
+                ->orderBy('model')
+                ->get()
+                ->map(fn($p) => [
+                    'id'   => $p->id,
+                    'name' => $p->brand->name . ' ' . $p->model . ' (' . $p->productType->name . ')',
+                ])
+                ->values()
+                ->all();
+        }
+
+        $childProductsWithPivot = $product->childProducts->map(function ($child) {
+            $pivot = $child->pivot;
+            return [
+                'productable_id'      => $pivot->id,
+                'product_id'          => $child->id,
+                'name'                => $child->brand->name . ' ' . $child->model
+                    . ' (' . $child->productType->name . ')',
+                'product_relation_id' => $pivot->product_relation_id,
+                'quantity'            => $pivot->quantity,
+                'is_required'         => $pivot->is_required,
+            ];
+        })->values()->all();
+
+        return inertia('Products/ShowPage', [
+            'product'               => $product,
+            'allCustomers'          => Customer::orderBy('name', 'ASC')
+                ->get(['id', 'name'])
+                ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
+            'customFields'          => $product->allCustomFieldsWithValues(),
+            'productRelations'      => \App\Models\ProductRelation::orderBy('name')->get(['id', 'name']),
+            'eligibleChildProducts' => $eligibleChildProducts,
+            'childProducts'         => $childProductsWithPivot,
+        ]);
     }
 
     /**

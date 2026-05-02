@@ -32,6 +32,7 @@ use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\ProductRelationController;
+use App\Http\Controllers\ProductableController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -47,6 +48,7 @@ Route::group(
         Route::resource('products', ProductController::class);
         Route::resource('productrelations', ProductRelationController::class)
             ->except(['show', 'edit', 'create']);
+        Route::resource('productables', ProductableController::class)->only(['store', 'update', 'destroy']);
         Route::resource('assets', AssetController::class);
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)
