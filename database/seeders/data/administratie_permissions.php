@@ -43,6 +43,21 @@ return [
     // Pricing
     'product.view_prices',
 
+    // Product relations
+    'productrelation.read',
+    'productrelation.create',
+    'productrelation.update',
+    'productrelation.delete',
+
+    // Productables
+    'productable.read',
+    'productable.create',
+    'productable.delete',
+
+    // Asset relations
+    'assetrelation.create',
+    'assetrelation.delete',
+
     // Dashboard — financial widgets
     'dashboard.see_stats',
     'dashboard.see_open_serviceorders.not_sent',

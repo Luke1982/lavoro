@@ -36,6 +36,8 @@ return [
     // Assets and products (planning context)
     'asset.read',
     'product.read',
+    'productrelation.read',
+    'productable.read',
 
     // Activity list
     'activitylist.read',

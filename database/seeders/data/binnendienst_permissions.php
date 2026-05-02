@@ -21,6 +21,21 @@ return [
     'product.create',
     'product.update',
 
+    // Product relations (read + manage)
+    'productrelation.read',
+    'productrelation.create',
+    'productrelation.update',
+    'productrelation.delete',
+
+    // Productables (read + manage)
+    'productable.read',
+    'productable.create',
+    'productable.delete',
+
+    // Asset relations
+    'assetrelation.create',
+    'assetrelation.delete',
+
     // Master-data CRUD on smaller catalog entities
     'producttype.read',
     'producttype.create',
