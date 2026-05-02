@@ -22,7 +22,6 @@ class AssetRelationController extends Controller
         AssetRelation::create([
             'parent_asset_id'     => $v['parent_asset_id'],
             'child_asset_id'      => $v['child_asset_id'],
-            'productable_id'      => null,
             'product_relation_id' => $v['product_relation_id'] ?? null,
         ]);
 

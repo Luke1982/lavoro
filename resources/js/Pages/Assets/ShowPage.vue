@@ -122,7 +122,7 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || eligibleChildAssets.length" class="mt-5">
+            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (eligibleChildAssets.length && hasPermission('assetrelation.create'))" class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde machines</h3>
@@ -187,7 +187,7 @@
                                 class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
                                 Koppelen
                             </button>
-                            <button @click="addingManualLink = false"
+                            <button @click="addingManualLink = false; manualLink.child_asset_id = null; manualLink.product_relation_id = null"
                                 class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
                                 Annuleren
                             </button>
