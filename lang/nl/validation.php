@@ -218,6 +218,8 @@ return [
         'model' => 'model',
         'start_sell' => 'start verkoop',
         'end_sell' => 'einde verkoop',
+        'retail_price' => 'verkoopprijs',
+        'purchase_price' => 'inkoopprijs',
         'origin' => 'herkomst',
         'executing_user_ids' => 'uitvoerende gebruikers',
         'assigned_user_id' => 'toegewezen gebruiker',
