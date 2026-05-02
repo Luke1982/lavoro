@@ -7,6 +7,8 @@ use App\Models\AssetRelation;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Productable;
+use App\Models\ProductType;
+use App\Models\ProductRelation;
 use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
@@ -170,29 +172,62 @@ class AssetController extends Controller
                     'name' => $product->brand->name . ' ' . $product->model . ' (' . $product->productType->name . ')',
                 ];
             });
+        $asset->load([
+            'images',
+            'tickets',
+            'product.brand',
+            'product.images',
+            'product.productType',
+            'product.productables.childProduct.brand',
+            'product.productables.childProduct.productType',
+            'product.productables.productRelation',
+            'customer',
+            'servicejobs',
+            'customFields',
+            'childAssetRelations.childAsset.product.brand',
+            'childAssetRelations.childAsset.product.productType',
+            'childAssetRelations.productable.productRelation',
+            'parentAssetRelations.parentAsset.product.brand',
+            'parentAssetRelations.parentAsset.product.productType',
+            'parentAssetRelations.productable.productRelation',
+        ]);
+
+        $currentTypeId = $asset->product?->productType?->id;
+
+        $existingChildIds = $asset->childAssetRelations()->pluck('child_asset_id')->all();
+        $eligibleChildAssets = [];
+
+        if ($currentTypeId) {
+            $childTypeIds = ProductType::query()
+                ->where('parent_id', $currentTypeId)
+                ->pluck('id')
+                ->all();
+
+            if (!empty($childTypeIds)) {
+                $eligibleChildAssets = Asset::query()
+                    ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
+                    ->where('customer_id', $asset->customer_id)
+                    ->whereNotIn('id', [...$existingChildIds, $asset->id])
+                    ->with(['product.brand', 'product.productType'])
+                    ->get()
+                    ->map(fn($a) => [
+                        'id'   => $a->id,
+                        'name' => $a->product->brand->name . ' ' . $a->product->model
+                            . ' (' . $a->product->productType->name . ')'
+                            . ' — ' . ($a->serial_number ?? 'geen serienr.'),
+                    ])
+                    ->values()
+                    ->all();
+            }
+        }
+
         return inertia('Assets/ShowPage', [
-            'asset' => $asset->load([
-                'images',
-                'tickets',
-                'product.brand',
-                'product.images',
-                'product.productType',
-                'product.productables.childProduct.brand',
-                'product.productables.childProduct.productType',
-                'product.productables.productRelation',
-                'customer',
-                'servicejobs',
-                'customFields',
-                'childAssetRelations.childAsset.product.brand',
-                'childAssetRelations.childAsset.product.productType',
-                'childAssetRelations.productable.productRelation',
-                'parentAssetRelations.parentAsset.product.brand',
-                'parentAssetRelations.parentAsset.product.productType',
-                'parentAssetRelations.productable.productRelation',
-            ]),
-            'allProducts'  => $all_products,
-            'allCustomers' => Customer::orderBy('name')->get(['id', 'name']),
-            'customFields' => $asset->allCustomFieldsWithValues(),
+            'asset'               => $asset,
+            'allProducts'         => $all_products,
+            'allCustomers'        => Customer::orderBy('name')->get(['id', 'name']),
+            'customFields'        => $asset->allCustomFieldsWithValues(),
+            'eligibleChildAssets' => $eligibleChildAssets,
+            'productRelations'    => ProductRelation::orderBy('name')->get(['id', 'name']),
         ]);
     }
 

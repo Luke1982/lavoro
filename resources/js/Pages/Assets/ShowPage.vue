@@ -122,7 +122,7 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length" class="mt-5">
+            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || eligibleChildAssets.length" class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde machines</h3>
@@ -138,7 +138,13 @@
                             </Link>
                             <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number }}</span>
                         </div>
-                        <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                            <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
+                                class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                <TrashIcon class="size-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -153,6 +159,39 @@
                             <span class="text-xs text-gray-400 ml-2">{{ rel.parent_asset.serial_number }}</span>
                         </div>
                         <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                    </div>
+                </div>
+
+                <div v-if="eligibleChildAssets.length && hasPermission('assetrelation.create')" class="mt-3">
+                    <div v-if="!addingManualLink">
+                        <button @click="addingManualLink = true"
+                            class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                            <PlusIcon class="size-4" /> Machine handmatig koppelen
+                        </button>
+                    </div>
+                    <div v-else class="p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2 mt-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="flex-1 min-w-48">
+                                <label class="block text-xs text-gray-500 mb-1">Machine</label>
+                                <ComboBox :options="eligibleChildAssets" v-model="manualLink.child_asset_id"
+                                    placeholder="Selecteer machine" />
+                            </div>
+                            <div class="flex-1 min-w-32">
+                                <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                                <ComboBox :options="productRelations" v-model="manualLink.product_relation_id"
+                                    placeholder="Selecteer type" />
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="submitManualLink"
+                                class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                                Koppelen
+                            </button>
+                            <button @click="addingManualLink = false"
+                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                Annuleren
+                            </button>
+                        </div>
                     </div>
                 </div>
             </BoxComponent>
@@ -207,10 +246,10 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, useForm, router } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, reactive } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
@@ -253,6 +292,8 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    eligibleChildAssets: { type: Array, default: () => [] },
+    productRelations:    { type: Array, default: () => [] },
 });
 
 const statusOptions = [
@@ -296,5 +337,27 @@ watch(
     ],
     updateAsset
 )
+
+const addingManualLink = ref(false)
+const manualLink = reactive({ child_asset_id: null, product_relation_id: null })
+
+function submitManualLink() {
+    router.post('/assetrelations', {
+        parent_asset_id:     props.asset.id,
+        child_asset_id:      manualLink.child_asset_id,
+        product_relation_id: manualLink.product_relation_id,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            addingManualLink.value = false
+            manualLink.child_asset_id = null
+            manualLink.product_relation_id = null
+        },
+    })
+}
+
+function removeAssetRelation(relationId) {
+    router.delete(`/assetrelations/${relationId}`, { preserveScroll: true })
+}
 
 </script>
