@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Customer;
 use App\Http\Requests\ProductReadRequest;
@@ -124,7 +125,7 @@ class ProductController extends Controller
                 ->get(['id', 'name'])
                 ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
             'customFields'          => $product->allCustomFieldsWithValues(),
-            'productRelations'      => \App\Models\ProductRelation::orderBy('name')->get(['id', 'name']),
+            'productRelations'      => ProductRelation::orderBy('name')->get(['id', 'name']),
             'eligibleChildProducts' => $eligibleChildProducts,
             'childProducts'         => $childProductsWithPivot,
         ]);
