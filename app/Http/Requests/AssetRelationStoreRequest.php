@@ -4,11 +4,16 @@ namespace App\Http\Requests;
 
 use App\Models\Asset;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Validator;
 
 class AssetRelationStoreRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->hasPermission('assetrelation.create');
+    }
 
     public function rules(): array
     {

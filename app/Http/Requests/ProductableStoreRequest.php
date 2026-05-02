@@ -3,10 +3,15 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class ProductableStoreRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->hasPermission('productable.create');
+    }
 
     public function rules(): array
     {

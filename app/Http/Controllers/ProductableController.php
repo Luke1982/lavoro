@@ -13,6 +13,15 @@ class ProductableController extends Controller
     {
         $v = $request->validated();
 
+        $exists = Productable::where('product_id', $v['product_id'])
+            ->where('productable_type', Product::class)
+            ->where('productable_id', $v['child_product_id'])
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()->with('info', 'Dit product is al gekoppeld.');
+        }
+
         Productable::create([
             'product_id'          => $v['product_id'],
             'productable_type'    => Product::class,

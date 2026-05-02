@@ -119,7 +119,7 @@ watch(() => assetForm.product_id, () => {
         productable_id: part.productable_id,
         serial_number: '',
     }))
-})
+}, { immediate: true })
 
 const createAsset = () => {
     assetForm.post('/assets', { preserveScroll: true });
