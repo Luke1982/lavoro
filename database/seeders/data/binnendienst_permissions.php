@@ -30,6 +30,7 @@ return [
     // Productables (read + manage)
     'productable.read',
     'productable.create',
+    'productable.update',
     'productable.delete',
 
     // Asset relations

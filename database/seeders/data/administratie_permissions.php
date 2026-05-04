@@ -52,6 +52,7 @@ return [
     // Productables
     'productable.read',
     'productable.create',
+    'productable.update',
     'productable.delete',
 
     // Asset relations
