@@ -50,6 +50,6 @@ const thumbClass = computed(() => {
     if (normalized.value === null) {
         return base + ' left-1/2 -translate-x-1/2'
     }
-    return base + (normalized.value ? ' left-[calc(100%-1.75rem)]' : ' left-0.5')
+    return base + (normalized.value ? ' left-[calc(100%-1.375rem)]' : ' left-0.5')
 })
 </script>
