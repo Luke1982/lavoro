@@ -74,7 +74,7 @@ class ProductController extends Controller
     {
         $product->load([
             'brand',
-            'productType.children',
+            'productType',
             'images',
             'documents',
             'assets.customer',
@@ -88,24 +88,17 @@ class ProductController extends Controller
             'childProducts.productType',
         ]);
 
-        $childTypeIds = $product->productType
-            ? $product->productType->children()->pluck('id')->all()
-            : [];
-
-        $eligibleChildProducts = [];
-        if (!empty($childTypeIds)) {
-            $eligibleChildProducts = Product::query()
-                ->whereIn('product_type_id', $childTypeIds)
-                ->with(['brand', 'productType'])
-                ->orderBy('model')
-                ->get()
-                ->map(fn($p) => [
-                    'id'   => $p->id,
-                    'name' => $p->brand->name . ' ' . $p->model . ' (' . $p->productType->name . ')',
-                ])
-                ->values()
-                ->all();
-        }
+        $eligibleChildProducts = Product::query()
+            ->where('id', '!=', $product->id)
+            ->with(['brand', 'productType'])
+            ->orderBy('model')
+            ->get()
+            ->map(fn($p) => [
+                'id'   => $p->id,
+                'name' => $p->brand->name . ' ' . $p->model . ' (' . $p->productType->name . ')',
+            ])
+            ->values()
+            ->all();
 
         $childProductsWithPivot = $product->childProducts->map(function ($child) {
             $pivot = $child->pivot;
