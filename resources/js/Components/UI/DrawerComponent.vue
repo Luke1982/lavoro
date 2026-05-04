@@ -41,7 +41,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="relative flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+                                    <div class="relative flex-1 overflow-y-auto">
                                         <slot />
                                     </div>
                                     <div v-if="$slots.footer"
@@ -70,3 +70,18 @@ defineProps({
     maxWidthClass: { type: String, default: 'max-w-md' },
 })
 </script>
+
+<style>
+html .translate-x-full {
+    translate: none !important;
+    transform: translateX(100%) !important;
+    will-change: transform;
+}
+html .translate-x-0 {
+    translate: none !important;
+    transform: translateX(0) !important;
+    will-change: transform;
+}
+</style>
+
+

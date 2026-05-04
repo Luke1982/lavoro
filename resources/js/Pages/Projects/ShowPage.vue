@@ -263,8 +263,8 @@
 
     <DrawerComponent v-model="showMilestoneDrawer" max-width-class="max-w-2xl" title="Nieuwe mijlpaal"
         subtitle="Vul onderstaande velden in om een mijlpaal aan dit project toe te voegen.">
-        <div class="-mx-4 sm:-mx-6 divide-y divide-gray-200 dark:divide-slate-700">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center p-4">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="newMilestoneForm.title" type="text"
@@ -287,8 +287,7 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Toegewezen gebruiker</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="users" v-model="newMilestoneForm.assigned_user_id"
-                        placeholder="Selecteer gebruiker"
-                        :hasError="Boolean(newMilestoneForm.errors.assigned_user_id)"
+                        placeholder="Selecteer gebruiker" :hasError="Boolean(newMilestoneForm.errors.assigned_user_id)"
                         :errorMessage="newMilestoneForm.errors.assigned_user_id" />
                 </div>
             </div>
