@@ -17,6 +17,13 @@ class AssetStoreRequest extends FormRequest
         return $user->hasPermission('asset.create');
     }
 
+    public function messages(): array
+    {
+        return [
+            'child_assets.*.serial_number.required_with' => 'Serienummer is verplicht.',
+        ];
+    }
+
     public function rules(): array
     {
         return [

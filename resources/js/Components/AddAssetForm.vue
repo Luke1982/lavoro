@@ -4,55 +4,56 @@
             <PuzzlePieceIcon class="size-6 text-gray-500 mr-2" />
             <h3 class="text-sm font-semibold">Nieuwe machine toevoegen</h3>
         </div>
-        <div class="grid grid-cols-1 gap-3">
-            <ComboBox v-if="showCustomer" :options="allCustomers" v-model="assetForm.customer_id"
-                placeholder="Selecteer klant" />
-            <p v-if="showCustomer && assetForm.errors.customer_id" class="text-xs text-red-600">{{
-                assetForm.errors.customer_id }}</p>
+        <div>
+            <div class="p-6 grid grid-cols-1 gap-3">
+                <ComboBox v-if="showCustomer" :options="allCustomers" v-model="assetForm.customer_id"
+                    placeholder="Selecteer klant" />
+                <p v-if="showCustomer && assetForm.errors.customer_id" class="text-xs text-red-600">{{
+                    assetForm.errors.customer_id }}</p>
 
-            <ComboBox v-if="showProduct" :options="productOptions" v-model="assetForm.product_id"
-                placeholder="Selecteer product" />
-            <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
-                assetForm.errors.product_id }}</p>
+                <ComboBox v-if="showProduct" :options="productOptions" v-model="assetForm.product_id"
+                    placeholder="Selecteer product" />
+                <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
+                    assetForm.errors.product_id }}</p>
 
-            <TextInput v-model="assetForm.serial_number" placeholder="Serienummer"
-                :class="assetForm.errors.serial_number ? 'border-red-500' : ''" />
-            <p v-if="assetForm.errors.serial_number" class="text-xs text-red-600">{{ assetForm.errors.serial_number }}
-            </p>
-
-            <template v-if="requiredParts.length">
-                <div class="mt-3 border-t pt-3">
-                    <p class="text-xs font-medium text-gray-500 mb-2">
-                        Serienummers vereiste onderdelen
-                    </p>
-                    <div v-for="(part, i) in requiredParts" :key="part.productable_id" class="mb-2">
-                        <label class="block text-xs text-gray-500 mb-1">
-                            {{ part.relation_name }}: {{ part.name }}
-                            <span v-if="part.quantity > 1">(×{{ part.quantity }})</span>
-                        </label>
-                        <TextInput
-                            v-model="assetForm.child_assets[i].serial_number"
-                            :placeholder="'Serienummer ' + part.name"
-                            class="w-full"
-                        />
-                    </div>
-                </div>
-            </template>
-
-            <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
-                :class="assetForm.errors.next_service_date ? 'border-red-500' : ''" />
-            <p v-if="assetForm.errors.next_service_date" class="text-xs text-red-600">{{
-                assetForm.errors.next_service_date }}</p>
-
-            <div class="flex items-center gap-2">
-                <SwitchComponent v-model="assetForm.is_active" />
-                <label class="text-sm">Actief</label>
+                <TextInput v-model="assetForm.serial_number" placeholder="Serienummer"
+                    :has-error="!!assetForm.errors.serial_number"
+                    :error-message="assetForm.errors.serial_number ?? ''" />
             </div>
-            <p v-if="assetForm.errors.is_active" class="text-xs text-red-600">{{ assetForm.errors.is_active }}</p>
-            <button @click="createAsset"
-                class="px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
-                Machine toevoegen
-            </button>
+            <div class="border-t border-gray-200 my-3"></div>
+            <div class="p-6 grid grid-cols-1 gap-3">
+                <template v-if="requiredParts.length">
+                    <div class="">
+                        <p class="text-xs font-medium text-gray-500 mb-2">
+                            Serienummers vereiste onderdelen
+                        </p>
+                        <div v-for="slot in childAssetSlots" :key="slot.idx" class="mb-4">
+                            <label class="block text-xs text-gray-500 mb-1">
+                                {{ slot.part.relation_name }}: {{ slot.part.name }}
+                                <span v-if="slot.part.quantity > 1">({{ slot.q + 1 }}/{{ slot.part.quantity }})</span>
+                            </label>
+                            <TextInput v-model="assetForm.child_assets[slot.idx].serial_number"
+                                :placeholder="'Serienummer ' + slot.part.name" class="w-full"
+                                :has-error="!!assetForm.errors[`child_assets.${slot.idx}.serial_number`]"
+                                :error-message="assetForm.errors[`child_assets.${slot.idx}.serial_number`] ?? ''" />
+                        </div>
+                    </div>
+                </template>
+
+                <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
+                    :has-error="!!assetForm.errors.next_service_date"
+                    :error-message="assetForm.errors.next_service_date ?? ''" />
+
+                <div class="flex items-center gap-2">
+                    <SwitchComponent v-model="assetForm.is_active" />
+                    <label class="text-sm">Actief</label>
+                </div>
+                <p v-if="assetForm.errors.is_active" class="text-xs text-red-600">{{ assetForm.errors.is_active }}</p>
+                <button @click="createAsset"
+                    class="px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
+                    Machine toevoegen
+                </button>
+            </div>
         </div>
     </component>
 </template>
@@ -120,11 +121,20 @@ const requiredParts = computed(() => {
     return props.requiredProductablesByProduct[pid] ?? []
 })
 
+const childAssetSlots = computed(() => {
+    let idx = 0
+    return requiredParts.value.flatMap(part =>
+        Array.from({ length: part.quantity }, (_, q) => ({ part, idx: idx++, q }))
+    )
+})
+
 watch(() => assetForm.product_id, () => {
-    assetForm.child_assets = requiredParts.value.map(part => ({
-        productable_id: part.productable_id,
-        serial_number: '',
-    }))
+    assetForm.child_assets = requiredParts.value.flatMap(part =>
+        Array.from({ length: part.quantity }, () => ({
+            productable_id: part.productable_id,
+            serial_number: '',
+        }))
+    )
 }, { immediate: true })
 
 const createAsset = () => {
