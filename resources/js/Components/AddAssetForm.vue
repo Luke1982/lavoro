@@ -22,8 +22,15 @@
             </div>
             <div class="border-t border-gray-200 my-3"></div>
             <div class="p-6 grid grid-cols-1 gap-3">
-                <template v-if="requiredParts.length">
-                    <div class="">
+                <Transition
+                    enter-active-class="transition-all duration-300 ease-out"
+                    enter-from-class="opacity-0 translate-y-2"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition-all duration-200 ease-in"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 translate-y-2"
+                >
+                    <div v-if="requiredParts.length">
                         <p class="text-xs font-medium text-gray-500 mb-2">
                             Serienummers vereiste onderdelen
                         </p>
@@ -38,7 +45,7 @@
                                 :error-message="assetForm.errors[`child_assets.${slot.idx}.serial_number`] ?? ''" />
                         </div>
                     </div>
-                </template>
+                </Transition>
 
                 <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
                     :has-error="!!assetForm.errors.next_service_date"

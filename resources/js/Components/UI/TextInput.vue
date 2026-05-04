@@ -7,7 +7,7 @@
                 <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400 dark:text-gray-300" aria-hidden="true"
                     v-bind="iconLeftProps" />
             </div>
-            <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" :class="{
+            <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" class="transition-colors duration-200" :class="{
                 'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
                 'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 ring-1 ring-inset ring-red-300 placeholder:text-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 border-red-500': hasError,
                 'pl-10': iconLeft,
@@ -18,7 +18,16 @@
                 <ExclamationCircleIcon v-if="hasError" class="h-5 w-5 text-red-500" aria-hidden="true" />
             </div>
         </div>
-        <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
+        <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+        >
+            <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
+        </Transition>
     </div>
 </template>
 
