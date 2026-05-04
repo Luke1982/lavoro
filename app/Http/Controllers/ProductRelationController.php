@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductRelation;
 use App\Http\Requests\ProductRelationStoreUpdateRequest;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductRelationDestroyRequest;
 
 class ProductRelationController extends Controller
 {
@@ -37,7 +38,7 @@ class ProductRelationController extends Controller
         return redirect()->back()->with('success', 'Relatietype bijgewerkt.');
     }
 
-    public function destroy(ProductRelation $productrelation)
+    public function destroy(ProductRelationDestroyRequest $request, ProductRelation $productrelation)
     {
         $productrelation->delete();
 

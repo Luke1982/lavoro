@@ -3,16 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Models\Asset;
+use App\Models\AssetRelation;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Validator;
 
 class AssetRelationStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && $user->hasPermission('assetrelation.create');
+        return $this->user()->can('create', AssetRelation::class);
     }
 
     public function rules(): array
@@ -28,7 +27,9 @@ class AssetRelationStoreRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                if ($validator->errors()->isNotEmpty()) return;
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
 
                 $parent = Asset::with('product.productType')->find($this->parent_asset_id);
                 $child  = Asset::with('product.productType')->find($this->child_asset_id);

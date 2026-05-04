@@ -6,7 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ProductableUpdateRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', $this->route('productable'));
+    }
 
     public function rules(): array
     {

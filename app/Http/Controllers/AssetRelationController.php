@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AssetRelation;
 use App\Http\Requests\AssetRelationStoreRequest;
+use App\Http\Requests\AssetRelationDestroyRequest;
 
 class AssetRelationController extends Controller
 {
@@ -28,7 +29,7 @@ class AssetRelationController extends Controller
         return redirect()->back()->with('success', 'Machine gekoppeld.');
     }
 
-    public function destroy(AssetRelation $assetrelation)
+    public function destroy(AssetRelationDestroyRequest $request, AssetRelation $assetrelation)
     {
         $assetrelation->delete();
 

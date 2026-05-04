@@ -2,15 +2,18 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ProductRelation;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class ProductRelationStoreUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && $user->hasPermission('productrelation.create');
+        $productRelation = $this->route('productrelation');
+
+        return $productRelation
+            ? $this->user()->can('update', $productRelation)
+            : $this->user()->can('create', ProductRelation::class);
     }
 
     public function rules(): array

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Productable;
 use App\Http\Requests\ProductableStoreRequest;
 use App\Http\Requests\ProductableUpdateRequest;
+use App\Http\Requests\ProductableDestroyRequest;
 
 class ProductableController extends Controller
 {
@@ -41,7 +42,7 @@ class ProductableController extends Controller
         return redirect()->back()->with('success', 'Productrelatie bijgewerkt.');
     }
 
-    public function destroy(Productable $productable)
+    public function destroy(ProductableDestroyRequest $request, Productable $productable)
     {
         $productable->delete();
 
