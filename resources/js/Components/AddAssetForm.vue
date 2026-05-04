@@ -1,6 +1,6 @@
 <template>
-    <BoxComponent class="mt-4">
-        <div class="flex items-center mb-3">
+    <component :is="bare ? 'div' : BoxComponent" :class="bare ? '' : 'mt-4'">
+        <div v-if="!bare" class="flex items-center mb-3">
             <PuzzlePieceIcon class="size-6 text-gray-500 mr-2" />
             <h3 class="text-sm font-semibold">Nieuwe machine toevoegen</h3>
         </div>
@@ -54,7 +54,7 @@
                 Machine toevoegen
             </button>
         </div>
-    </BoxComponent>
+    </component>
 </template>
 
 <script setup>
@@ -65,6 +65,8 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+
+const emit = defineEmits(['created']);
 
 const props = defineProps({
     allCustomers: {
@@ -86,6 +88,10 @@ const props = defineProps({
     requiredProductablesByProduct: {
         type: Object,
         default: () => ({})
+    },
+    bare: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -122,6 +128,9 @@ watch(() => assetForm.product_id, () => {
 }, { immediate: true })
 
 const createAsset = () => {
-    assetForm.post('/assets', { preserveScroll: true });
+    assetForm.post('/assets', {
+        preserveScroll: true,
+        onSuccess: () => emit('created'),
+    });
 };
 </script>

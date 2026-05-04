@@ -1,6 +1,7 @@
 <template>
     <TwoThirdsOneThird>
         <template #main>
+            <!-- Box 1: Main product info -->
             <BoxComponent>
                 <div class="flex border-b border-gray-200 items-center">
                     <div class="flex justify-between w-full">
@@ -64,149 +65,172 @@
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
-                <div v-if="hasPermission('asset.read') && product.assets.length > 0">
-                    <div class="flex items-center py-3 border-t border-gray-200 mt-5">
-                        <PuzzlePieceIcon class="size-6 text-gray-500" />
-                        <h3 class="text-sm font-medium ml-2">Machines</h3>
+            </BoxComponent>
+
+            <!-- Box 2: Machines -->
+            <BoxComponent class="mt-4" v-if="hasPermission('asset.read') || hasPermission('asset.create')">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                    <div class="flex items-center">
+                        <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
+                        <h3 class="text-sm font-medium">Machines</h3>
                     </div>
-                    <AssetListComponent :assets="product.assets" />
+                    <button
+                        v-if="hasPermission('asset.create')"
+                        @click="addAssetDrawerOpen = true"
+                        class="text-blue-600 hover:text-blue-800"
+                        v-tooltip="'Nieuwe machine toevoegen'"
+                    >
+                        <PlusIcon class="size-4" />
+                    </button>
+                </div>
+                <AssetListComponent v-if="product.assets.length" :assets="product.assets" class="mt-2" />
+                <p v-else class="text-sm text-gray-400 italic mt-3">Geen machines gekoppeld.</p>
+            </BoxComponent>
+
+            <!-- Box 3: Related products -->
+            <BoxComponent class="mt-4" v-if="hasPermission('productable.read')">
+                <div class="flex items-center pb-3 border-b border-gray-200">
+                    <LinkIcon class="size-5 text-gray-500 mr-2" />
+                    <h3 class="text-sm font-medium">Gerelateerde producten</h3>
+                    <button
+                        v-if="hasPermission('productable.create') && eligibleChildProducts.length"
+                        @click="addingRelation = !addingRelation"
+                        class="ml-2 text-blue-600 hover:text-blue-800"
+                        v-tooltip="'Gerelateerd product toevoegen'"
+                    >
+                        <PlusIcon class="size-4" />
+                    </button>
                 </div>
 
-                <!-- Gerelateerde producten -->
-                <div v-if="hasPermission('productable.read')" class="mt-6">
-                    <div class="flex items-center py-3 border-t border-gray-200 mt-2">
-                        <LinkIcon class="size-5 text-gray-500 mr-2" />
-                        <h3 class="text-sm font-medium">Gerelateerde producten</h3>
-                        <button
-                            v-if="hasPermission('productable.create') && eligibleChildProducts.length"
-                            @click="addingRelation = !addingRelation"
-                            class="ml-2 text-blue-600 hover:text-blue-800"
-                            v-tooltip="'Gerelateerd product toevoegen'"
-                        >
-                            <PlusIcon class="size-4" />
+                <!-- Add form -->
+                <div v-auto-animate>
+                <div v-if="addingRelation" class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                    <div class="flex gap-2 flex-wrap">
+                        <div class="flex-1 min-w-40">
+                            <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
+                            <ComboBox :options="eligibleChildProducts" v-model="newRelation.child_product_id" placeholder="Selecteer product" />
+                        </div>
+                        <div class="flex-1 min-w-32">
+                            <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                            <ComboBox :options="productRelations" v-model="newRelation.product_relation_id" placeholder="Selecteer type" />
+                        </div>
+                        <div class="w-20">
+                            <label class="block text-xs text-gray-500 mb-1">Aantal</label>
+                            <input type="number" min="1" v-model.number="newRelation.quantity"
+                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
+                            <SwitchComponent v-model="newRelation.is_required" />
+                        </div>
+                    </div>
+                    <div class="flex gap-2 justify-end">
+                        <button @click="addingRelation = false"
+                            class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                            Annuleren
+                        </button>
+                        <button @click="submitNewRelation"
+                            class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                            Opslaan
                         </button>
                     </div>
-
-                    <!-- Add form -->
-                    <div v-auto-animate>
-                    <div v-if="addingRelation" class="mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
-                        <div class="flex gap-2 flex-wrap">
-                            <div class="flex-1 min-w-40">
-                                <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
-                                <ComboBox :options="eligibleChildProducts" v-model="newRelation.child_product_id" placeholder="Selecteer product" />
-                            </div>
-                            <div class="flex-1 min-w-32">
-                                <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
-                                <ComboBox :options="productRelations" v-model="newRelation.product_relation_id" placeholder="Selecteer type" />
-                            </div>
-                            <div class="w-20">
-                                <label class="block text-xs text-gray-500 mb-1">Aantal</label>
-                                <input type="number" min="1" v-model.number="newRelation.quantity"
-                                    class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
-                                <SwitchComponent v-model="newRelation.is_required" />
-                            </div>
-                        </div>
-                        <div class="flex gap-2 justify-end">
-                            <button @click="addingRelation = false"
-                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
-                                Annuleren
-                            </button>
-                            <button @click="submitNewRelation"
-                                class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
-                                Opslaan
-                            </button>
-                        </div>
-                    </div>
-                    </div>
-
-                    <!-- Existing relations -->
-                    <div v-if="childProducts.length === 0 && !addingRelation" class="text-sm text-gray-400 italic">
-                        Geen gerelateerde producten.
-                    </div>
-                    <table v-if="childProducts.length" class="w-full text-sm">
-                        <thead>
-                            <tr class="text-xs text-gray-400 border-b">
-                                <th class="text-left py-1 font-medium">Product</th>
-                                <th class="text-left py-1 font-medium">Type</th>
-                                <th class="text-left py-1 font-medium">Aantal</th>
-                                <th class="text-center py-1 font-medium">Verplicht</th>
-                                <th class="py-1"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template v-for="rel in childProducts" :key="rel.productable_id">
-                                <!-- Edit row -->
-                                <tr v-if="editingId === rel.productable_id" class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
-                                    <td class="py-1.5 pr-2">{{ rel.name }}</td>
-                                    <td class="py-1.5 pr-2">
-                                        <ComboBox :options="productRelations" v-model="editForm.product_relation_id" placeholder="Selecteer type" />
-                                    </td>
-                                    <td class="py-1.5 pr-2">
-                                        <input type="number" min="1" v-model.number="editForm.quantity"
-                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
-                                    </td>
-                                    <td class="py-1.5 text-center">
-                                        <SwitchComponent v-model="editForm.is_required" />
-                                    </td>
-                                    <td class="py-1.5 text-right">
-                                        <div class="flex justify-end gap-1">
-                                            <button @click="cancelEdit" class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
-                                            <button @click="saveEdit" class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <!-- Read row -->
-                                <tr v-else class="border-b border-gray-100">
-                                    <td class="py-1.5">{{ rel.name }}</td>
-                                    <td class="py-1.5 text-gray-500">
-                                        {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '—' }}
-                                    </td>
-                                    <td class="py-1.5">{{ rel.quantity }}</td>
-                                    <td class="py-1.5 text-center">
-                                        <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
-                                        <span v-else class="text-gray-300 text-xs">—</span>
-                                    </td>
-                                    <td class="py-1.5 text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <button
-                                                v-if="hasPermission('productable.update')"
-                                                @click="startEdit(rel)"
-                                                class="text-gray-400 hover:text-gray-600"
-                                            >
-                                                <PencilIcon class="size-4" />
-                                            </button>
-                                            <button
-                                                v-if="hasPermission('productable.delete')"
-                                                @click="removeRelation(rel.productable_id)"
-                                                class="text-red-400 hover:text-red-600"
-                                            >
-                                                <TrashIcon class="size-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                    <p v-if="eligibleChildProducts.length === 0 && !childProducts.length"
-                        class="text-xs text-gray-400 mt-1">
-                        Dit producttype heeft geen subtypen, dus er kunnen geen gerelateerde producten worden toegevoegd.
-                    </p>
                 </div>
+                </div>
+
+                <!-- Existing relations -->
+                <div v-if="childProducts.length === 0 && !addingRelation" class="text-sm text-gray-400 italic mt-3">
+                    Geen gerelateerde producten.
+                </div>
+                <table v-if="childProducts.length" class="w-full text-sm mt-3">
+                    <thead>
+                        <tr class="text-xs text-gray-400 border-b">
+                            <th class="text-left py-1 font-medium">Product</th>
+                            <th class="text-left py-1 font-medium">Type</th>
+                            <th class="text-left py-1 font-medium">Aantal</th>
+                            <th class="text-center py-1 font-medium">Verplicht</th>
+                            <th class="py-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="rel in childProducts" :key="rel.productable_id">
+                            <!-- Edit row -->
+                            <tr v-if="editingId === rel.productable_id" class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
+                                <td class="py-1.5 pr-2">{{ rel.name }}</td>
+                                <td class="py-1.5 pr-2">
+                                    <ComboBox :options="productRelations" v-model="editForm.product_relation_id" placeholder="Selecteer type" />
+                                </td>
+                                <td class="py-1.5 pr-2">
+                                    <input type="number" min="1" v-model.number="editForm.quantity"
+                                        class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                                </td>
+                                <td class="py-1.5 text-center">
+                                    <SwitchComponent v-model="editForm.is_required" />
+                                </td>
+                                <td class="py-1.5 text-right">
+                                    <div class="flex justify-end gap-1">
+                                        <button @click="cancelEdit" class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                        <button @click="saveEdit" class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Read row -->
+                            <tr v-else class="border-b border-gray-100">
+                                <td class="py-1.5">{{ rel.name }}</td>
+                                <td class="py-1.5 text-gray-500">
+                                    {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '—' }}
+                                </td>
+                                <td class="py-1.5">{{ rel.quantity }}</td>
+                                <td class="py-1.5 text-center">
+                                    <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
+                                    <span v-else class="text-gray-300 text-xs">—</span>
+                                </td>
+                                <td class="py-1.5 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button
+                                            v-if="hasPermission('productable.update')"
+                                            @click="startEdit(rel)"
+                                            class="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <PencilIcon class="size-4" />
+                                        </button>
+                                        <button
+                                            v-if="hasPermission('productable.delete')"
+                                            @click="removeRelation(rel.productable_id)"
+                                            class="text-red-400 hover:text-red-600"
+                                        >
+                                            <TrashIcon class="size-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <p v-if="eligibleChildProducts.length === 0 && !childProducts.length"
+                    class="text-xs text-gray-400 mt-1">
+                    Dit producttype heeft geen subtypen, dus er kunnen geen gerelateerde producten worden toegevoegd.
+                </p>
             </BoxComponent>
         </template>
+
         <template #sidebar>
             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                 imageable-type="\App\Models\Product" />
             <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
                 documentable-type="\App\Models\Product" class="mt-4" />
-            <AddAssetForm :allCustomers="allCustomers" :productId="product.id" v-if="hasPermission('asset.create')"
-                :required-productables-by-product="requiredProductablesByProduct" />
         </template>
     </TwoThirdsOneThird>
+
+    <!-- Add asset drawer -->
+    <DrawerComponent v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen">
+        <AddAssetForm
+            :allCustomers="allCustomers"
+            :productId="product.id"
+            :required-productables-by-product="requiredProductablesByProduct"
+            :bare="true"
+            @created="addAssetDrawerOpen = false"
+        />
+    </DrawerComponent>
 </template>
 
 <script setup>
@@ -214,6 +238,7 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, computed, watch } from 'vue';
@@ -272,6 +297,8 @@ const currentIcon = computed(() =>
     editing.value ? CheckCircleIcon : PencilSquareIcon
 );
 
+const addAssetDrawerOpen = ref(false);
+
 const addingRelation  = ref(false)
 const newRelation     = reactive({
     child_product_id:    null,
@@ -327,5 +354,4 @@ function saveEdit() {
         onSuccess: () => { editingId.value = null },
     })
 }
-
 </script>
