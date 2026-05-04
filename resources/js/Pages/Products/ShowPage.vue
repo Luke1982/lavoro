@@ -222,7 +222,7 @@
     </TwoThirdsOneThird>
 
     <!-- Add asset drawer -->
-    <DrawerComponent v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen">
+    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
         <AddAssetForm
             :allCustomers="allCustomers"
             :productId="product.id"

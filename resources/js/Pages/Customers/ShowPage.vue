@@ -100,7 +100,17 @@
                 <CustomFieldsComponent v-if="customFields.length" model-type="customer" :model-id="customer.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
-            <div class="mt-5 px-1">
+            <div class="mt-5 px-1 flex items-center justify-between">
+                <h3 class="text-sm font-medium flex items-center">
+                    <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
+                    Machines
+                </h3>
+                <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
+                    class="text-blue-600 hover:text-blue-800" v-tooltip="'Nieuwe machine toevoegen'">
+                    <PlusIcon class="size-4" />
+                </button>
+            </div>
+            <div class="mt-3 px-1">
                 <div class="flex flex-col md:flex-row md:items-start md:gap-4">
                     <div class="w-full md:w-72">
                         <ComboBox :options="productTypeOptions" v-model="selectedProductTypeIds" multiple
@@ -131,7 +141,6 @@
             <div class="mt-4" v-if="canReadAssets && hasAssetsFiltered">
                 <AssetListComponent :assets="assetsFiltered" />
             </div>
-            <AddAssetForm :customerId="customer.id" :allProducts="allProducts" v-if="hasPermission('asset.create')" />
 
         </template>
 
@@ -229,11 +238,17 @@
             </div>
         </template>
     </TwoThirdsOneThird>
+
+    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${customer.name}`">
+        <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :bare="true"
+            @created="addAssetDrawerOpen = false" />
+    </DrawerComponent>
 </template>
 
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, XCircleIcon, PencilSquareIcon, FolderIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon, XCircleIcon, PencilSquareIcon, FolderIcon } from '@heroicons/vue/24/outline';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
@@ -276,6 +291,8 @@ const props = defineProps({
         default: () => [],
     }
 });
+
+const addAssetDrawerOpen = ref(false);
 
 const form = useForm({
     ...props.customer,
