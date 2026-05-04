@@ -122,7 +122,7 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (eligibleChildAssets.length && hasPermission('assetrelation.create'))" class="mt-5">
+            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (productHasChildTypes && hasPermission('assetrelation.create'))" class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde machines</h3>
@@ -160,6 +160,10 @@
                         </div>
                         <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
                     </div>
+                </div>
+
+                <div v-if="productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
+                    Er zijn geen machines van de juiste subtypes gevonden bij deze klant om te koppelen. Voeg eerst een onderdeel-machine toe aan de klant.
                 </div>
 
                 <div v-if="eligibleChildAssets.length && hasPermission('assetrelation.create')" class="mt-3">
@@ -292,8 +296,9 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    eligibleChildAssets: { type: Array, default: () => [] },
-    productRelations:    { type: Array, default: () => [] },
+    eligibleChildAssets:    { type: Array,   default: () => [] },
+    productHasChildTypes:   { type: Boolean, default: false },
+    productRelations:       { type: Array,   default: () => [] },
 });
 
 const statusOptions = [

@@ -192,33 +192,31 @@ class AssetController extends Controller
             'parentAssetRelations.productable.productRelation',
         ]);
 
-        $currentTypeId = $asset->product?->productType?->id;
-
+        $currentTypeId    = $asset->product?->productType?->id;
         $existingChildIds = $asset->childAssetRelations()->pluck('child_asset_id')->all();
-        $eligibleChildAssets = [];
+        $eligibleChildAssets  = [];
 
-        if ($currentTypeId) {
-            $childTypeIds = ProductType::query()
-                ->where('parent_id', $currentTypeId)
-                ->pluck('id')
+        $childTypeIds = $currentTypeId
+            ? ProductType::query()->where('parent_id', $currentTypeId)->pluck('id')->all()
+            : [];
+
+        $productHasChildTypes = !empty($childTypeIds);
+
+        if ($productHasChildTypes) {
+            $eligibleChildAssets = Asset::query()
+                ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
+                ->where('customer_id', $asset->customer_id)
+                ->whereNotIn('id', [...$existingChildIds, $asset->id])
+                ->with(['product.brand', 'product.productType'])
+                ->get()
+                ->map(fn($a) => [
+                    'id'   => $a->id,
+                    'name' => $a->product->brand->name . ' ' . $a->product->model
+                        . ' (' . $a->product->productType->name . ')'
+                        . ' — ' . ($a->serial_number ?? 'geen serienr.'),
+                ])
+                ->values()
                 ->all();
-
-            if (!empty($childTypeIds)) {
-                $eligibleChildAssets = Asset::query()
-                    ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
-                    ->where('customer_id', $asset->customer_id)
-                    ->whereNotIn('id', [...$existingChildIds, $asset->id])
-                    ->with(['product.brand', 'product.productType'])
-                    ->get()
-                    ->map(fn($a) => [
-                        'id'   => $a->id,
-                        'name' => $a->product->brand->name . ' ' . $a->product->model
-                            . ' (' . $a->product->productType->name . ')'
-                            . ' — ' . ($a->serial_number ?? 'geen serienr.'),
-                    ])
-                    ->values()
-                    ->all();
-            }
         }
 
         return inertia('Assets/ShowPage', [
@@ -226,8 +224,9 @@ class AssetController extends Controller
             'allProducts'         => $all_products,
             'allCustomers'        => Customer::orderBy('name')->get(['id', 'name']),
             'customFields'        => $asset->allCustomFieldsWithValues(),
-            'eligibleChildAssets' => $eligibleChildAssets,
-            'productRelations'    => ProductRelation::orderBy('name')->get(['id', 'name']),
+            'eligibleChildAssets'    => $eligibleChildAssets,
+            'productHasChildTypes'   => $productHasChildTypes,
+            'productRelations'       => ProductRelation::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
