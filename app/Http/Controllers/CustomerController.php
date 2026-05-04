@@ -12,6 +12,7 @@ use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
+use App\Services\ProductableService;
 
 class CustomerController extends Controller
 {
@@ -115,6 +116,7 @@ class CustomerController extends Controller
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),
             'customFields' => $customer->allCustomFieldsWithValues(),
+            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
         ]);
     }
 

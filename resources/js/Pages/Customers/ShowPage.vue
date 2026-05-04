@@ -241,6 +241,7 @@
 
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${customer.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :bare="true"
+            :required-productables-by-product="requiredProductablesByProduct"
             @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
@@ -289,7 +290,11 @@ const props = defineProps({
     customFields: {
         type: Array,
         default: () => [],
-    }
+    },
+    requiredProductablesByProduct: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 
 const addAssetDrawerOpen = ref(false);
