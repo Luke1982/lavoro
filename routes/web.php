@@ -112,6 +112,10 @@ Route::group(
             'servicejobs/{servicejob}/add-missing-instances',
             [ServiceJobController::class, 'addMissingInstances']
         )->name('servicejobs.addMissingInstances');
+        Route::post(
+            'servicejobs/{servicejob}/bulk-complete',
+            [ServiceJobController::class, 'bulkComplete']
+        )->name('servicejobs.bulkComplete');
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::resource('remarks', RemarkController::class)

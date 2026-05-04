@@ -71,112 +71,162 @@
                 </button>
             </div>
         </div>
-        <!-- Group context banner -->
-        <div v-if="parent_job || child_jobs.length"
+        <!-- Child job: link back to parent -->
+        <div v-if="parent_job"
             class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
-
-            <!-- This is a child job — show link back to parent -->
-            <div v-if="parent_job">
-                <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
-                    Onderdeel van gecombineerde keuring:
-                </p>
-                <Link :href="`/servicejobs/${parent_job.id}`" class="text-blue-600 underline text-sm">
-                    {{ parent_job.asset_label }}
-                </Link>
-                <span class="text-xs text-gray-400 ml-2">{{ parent_job.outcome }}</span>
-            </div>
-
-            <!-- This is a parent job — show child jobs below -->
-            <div v-if="child_jobs.length" :class="parent_job ? 'mt-3' : ''">
-                <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
-                    Gecombineerde keuring — onderdelen:
-                </p>
-                <ul class="space-y-1">
-                    <li v-for="cj in child_jobs" :key="cj.id" class="flex items-center gap-2">
-                        <Link :href="`/servicejobs/${cj.id}`" class="text-blue-600 underline text-sm">
-                            {{ cj.asset_label }}
-                        </Link>
-                        <span class="text-xs text-gray-400">{{ cj.outcome }}</span>
-                    </li>
-                </ul>
-            </div>
+            <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Onderdeel van gecombineerde keuring:</p>
+            <Link :href="`/servicejobs/${parent_job.id}`" class="text-blue-600 underline text-sm">{{ parent_job.asset_label }}</Link>
+            <span class="text-xs text-gray-400 ml-2">{{ parent_job.outcome }}</span>
         </div>
-        <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
-            Keurpunten
-        </h2>
-        <div class="flex flex-col gap-6">
-            <div v-for="group in groupedChecks" :key="group.key" class="w-full">
-                <h3 v-if="group.name"
-                    class="text-lg font-semibold text-gray-900 dark:text-slate-200 mb-2 flex items-center gap-2">
-                    {{ group.name }}
-                </h3>
-                <div class="flex flex-wrap">
-                    <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
-                        :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
-                        class="w-full md:w-1/2 xle:w-1/3" :readonly="servicejob.completed_on !== null" />
+
+        <!-- Bulk-save strip (parent job with children only) -->
+        <div v-if="child_jobs.length"
+            class="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-md">
+            <p class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">
+                Gecombineerde keuring — sla alle assets tegelijk op met dezelfde uitkomst
+            </p>
+            <div class="flex flex-wrap gap-3 items-end">
+                <div class="flex-1 min-w-40">
+                    <ComboBox label="Uitkomst" :options="possibleOutcomes" v-model="bulkOutcomeId" />
                 </div>
+                <div v-if="bulkOutcomeId === 'tijdelijk_goedkeur'" class="w-32">
+                    <TextInput v-model="bulkForm.days_temporary_approval" label="Dagen tijdelijk" type="number" />
+                </div>
+                <div class="flex flex-col">
+                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op</label>
+                    <input type="date" v-model="bulkForm.completed_on" lang="nl"
+                        class="border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-1 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100" />
+                </div>
+                <button @click="saveBulk" :disabled="bulkSaving"
+                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 disabled:bg-gray-400 self-end">
+                    <span v-if="!bulkSaving">Sla alle keuringen op</span>
+                    <span v-else>Bezig...</span>
+                </button>
             </div>
         </div>
-        <div class="border-t-1 border-gray-200 dark:border-slate-700/60">
-            <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">
-                Afronding
+
+        <!-- ── PARENT ASSET SECTION ── -->
+        <div :class="child_jobs.length ? 'border-l-4 border-blue-500 pl-4' : ''">
+            <h2 v-if="child_jobs.length" class="text-base font-bold text-blue-700 dark:text-blue-300 mb-3">
+                {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
+                <span class="font-normal text-gray-500 text-sm ml-1">({{ servicejob.asset.serial_number }})</span>
             </h2>
-            <div class="grid grid-cols-12 md:flex mt-4 justify-center" v-auto-animate>
-                <ComboBox :label="'Uitkomst van de keuring'" :options="possibleOutcomes" v-model="currentOutcomeId"
-                    class="col-span-6 mr-2 md:mr-0 flex flex-col justify-end"
-                    :disabled="servicejob.completed_on !== null"></ComboBox>
-                <TextInput v-model="form.days_temporary_approval" :label="'Aantal dagen tijdelijk goedgekeurd'"
-                    class="col-span-6 ml-2 md:ml-4 flex flex-col justify-between" type="number"
-                    v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
-                <div class="col-span-6 ml-0 md:ml-4 mr-2 md:mr-0 flex flex-col justify-between mt-4 md:mt-0">
-                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond
-                        op:</label>
-                    <input type="date" v-model="form.completed_on" lang="nl"
-                        class="w-full border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">Keurpunten</h2>
+            <div class="flex flex-col gap-6">
+                <div v-for="group in groupedChecks" :key="group.key" class="w-full">
+                    <h3 v-if="group.name"
+                        class="text-lg font-semibold text-gray-900 dark:text-slate-200 mb-2 flex items-center gap-2">
+                        {{ group.name }}
+                    </h3>
+                    <div class="flex flex-wrap">
+                        <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
+                            :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
+                            class="w-full md:w-1/2 xle:w-1/3" :readonly="servicejob.completed_on !== null" />
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-slate-700/60 mt-6">
+                <h2 class="text-xl font-bold my-4 text-center dark:text-slate-100">Afronding</h2>
+                <div class="grid grid-cols-12 md:flex mt-4 justify-center" v-auto-animate>
+                    <ComboBox :label="'Uitkomst van de keuring'" :options="possibleOutcomes" v-model="currentOutcomeId"
+                        class="col-span-6 mr-2 md:mr-0 flex flex-col justify-end"
                         :disabled="servicejob.completed_on !== null" />
+                    <TextInput v-model="form.days_temporary_approval" :label="'Aantal dagen tijdelijk goedgekeurd'"
+                        class="col-span-6 ml-2 md:ml-4 flex flex-col justify-between" type="number"
+                        v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
+                    <div class="col-span-6 ml-0 md:ml-4 mr-2 md:mr-0 flex flex-col justify-between mt-4 md:mt-0">
+                        <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op:</label>
+                        <input type="date" v-model="form.completed_on" lang="nl"
+                            class="w-full border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                            :disabled="servicejob.completed_on !== null" />
+                    </div>
+                    <button @click="updating = true; updateJob()" :disabled="updating" v-auto-animate
+                        v-if="servicejob.completed_on === null"
+                        class="block md:flex w-full md:w-auto mt-2 md:ml-4 col-span-12 justify-around bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
+                        <span>Opslaan</span>
+                        <Cog6ToothIcon v-if="updating" class="inline size-5 mt-0 md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
+                    </button>
+                    <div v-else class="flex col-span-12 w-full md:w-auto mt-2 md:ml-4 mr-2 md:mr-0 justify-center">
+                        <InformationCircleIcon class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
+                            v-tooltip="{ html: true, content: `<span class='block w-100'>Deze keuring is afgerond op <strong>${nlDate(servicejob.completed_on)}</strong>. Klik op het slot om opnieuw te kunnen opslaan.</span>` }" />
+                        <LockClosedIcon class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
+                            @click="clearCompletedOn" />
+                    </div>
                 </div>
-                <button @click="updating = true; updateJob()" :disabled="updating" v-auto-animate
-                    v-if="servicejob.completed_on === null"
-                    class="block md:flex w-full md:w-auto mt-2 md:ml-4 col-span-12 justify-around bg-blue-500 text-white px-4 py-1.5 rounded-md hover:bg-blue-600 disabled:bg-gray-500 transition-colors cursor-pointer self-end">
-                    <span> Opslaan </span>
-                    <Cog6ToothIcon v-if="updating"
-                        class="inline size-5 mt-0 md:mt-1 ml-0 md:ml-1 text-white animate-spin" />
-                </button>
-                <div v-else class="flex col-span-12 w-full md:w-auto mt-2 md:ml-4 mr-2 md:mr-0 justify-center">
-                    <InformationCircleIcon
-                        class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
-                        v-tooltip="{
-                            html: true,
-                            content: `<span class='block w-100'>Deze keuring is afgerond op <strong>${nlDate(servicejob.completed_on)}</strong>, dus je kunt hem niet meer opslaan. Wil je de datum leegmaken en de keuring opnieuw kunnen opslaan? Klik dan op het slot hiernaast.</span>`
-                        }" />
-                    <LockClosedIcon
-                        class="inline size-6 ml-2 text-gray-500 dark:text-slate-400 self-end mb-2 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
-                        @click="clearCompletedOn" />
+                <div class="mt-4">
+                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200 mb-2">Opmerkingen:</label>
+                    <textarea v-model="form.description" rows="3"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                        placeholder="Eventuele opmerkingen over de keuring..."
+                        :disabled="servicejob.completed_on !== null"></textarea>
                 </div>
             </div>
-            <div class="mt-4">
-                <label
-                    class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200 mb-2">Opmerkingen:</label>
-                <textarea v-model="form.description" rows="3"
-                    class="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
-                    placeholder="Eventuele opmerkingen over de keuring..."
-                    :disabled="servicejob.completed_on !== null"></textarea>
+        </div>
+
+        <!-- ── CHILD ASSET SECTIONS ── -->
+        <div v-for="cj in child_jobs" :key="cj.id" class="mt-8 border-l-4 border-emerald-500 pl-4">
+            <h2 class="text-base font-bold text-emerald-700 dark:text-emerald-300 mb-3">
+                {{ cj.asset_label }}
+                <Link :href="`/assets/${cj.asset_id}`" class="text-xs font-normal text-blue-500 underline ml-2">machine</Link>
+                <Link :href="`/servicejobs/${cj.id}`" class="text-xs font-normal text-blue-500 underline ml-2">volledige keuring</Link>
+            </h2>
+            <div class="flex flex-col gap-6">
+                <div v-for="group in groupsForChildJob(cj)" :key="group.key" class="w-full">
+                    <h3 v-if="group.name"
+                        class="text-lg font-semibold text-gray-900 dark:text-slate-200 mb-2">{{ group.name }}</h3>
+                    <div class="flex flex-wrap">
+                        <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
+                            :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
+                            class="w-full md:w-1/2 xle:w-1/3" :readonly="cj.completed_on !== null" />
+                    </div>
+                </div>
             </div>
-            <div class="mt-4 flex flex-col md:flex-row gap-2">
-                <Link :href="`/serviceorders/${servicejob.service_order.id}`"
-                    class="flex-1 text-white text-center py-4 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-400 transition-colors rounded-md">
+            <div class="mt-4 p-3 bg-gray-50 dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700">
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-40">
+                        <ComboBox label="Uitkomst" :options="possibleOutcomes" v-model="childForms[cj.id].outcomeId"
+                            :disabled="cj.completed_on !== null" />
+                    </div>
+                    <div v-if="childForms[cj.id].outcomeId === 'tijdelijk_goedkeur'" class="w-32">
+                        <TextInput v-model="childForms[cj.id].days_temporary_approval" label="Dagen tijdelijk" type="number"
+                            :disabled="cj.completed_on !== null" />
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op</label>
+                        <input type="date" v-model="childForms[cj.id].completed_on" lang="nl"
+                            class="border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-1 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-900"
+                            :disabled="cj.completed_on !== null" />
+                    </div>
+                    <button v-if="cj.completed_on === null" @click="saveChildJob(cj.id)" :disabled="childSaving[cj.id]"
+                        class="px-4 py-2 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:bg-gray-400 self-end">
+                        <span v-if="!childSaving[cj.id]">Opslaan</span>
+                        <span v-else>Bezig...</span>
+                    </button>
+                    <span v-else class="text-xs text-gray-400 self-end pb-1">Afgerond op {{ nlDate(cj.completed_on) }}</span>
+                </div>
+                <div class="mt-2">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-slate-300 mb-1">Opmerkingen</label>
+                    <textarea v-model="childForms[cj.id].description" rows="2"
+                        class="w-full border border-gray-300 dark:border-slate-600 rounded p-1.5 text-sm disabled:bg-gray-100 dark:disabled:bg-slate-900 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                        :disabled="cj.completed_on !== null"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-col md:flex-row gap-2">
+            <Link :href="`/serviceorders/${servicejob.service_order.id}`"
+                class="flex-1 text-white text-center py-4 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-400 transition-colors rounded-md">
                 Terug naar de werkbon
-                </Link>
-                <button v-if="hasPermission('servicejob.export_pdf')" @click="openPdf"
-                    class="py-4 px-4 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 dark:hover:bg-red-500">
-                    PDF Export
-                </button>
-                <button v-if="hasPermission('servicejob.mail_pdf')" @click="emailPdf" :disabled="emailing"
-                    class="py-4 px-4 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 dark:hover:bg-green-500 disabled:bg-gray-500 dark:disabled:bg-slate-600/50">
-                    <span v-if="!emailing">Mail PDF</span>
-                    <span v-else>Versturen...</span>
-                </button>
-            </div>
+            </Link>
+            <button v-if="hasPermission('servicejob.export_pdf')" @click="openPdf"
+                class="py-4 px-4 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 dark:hover:bg-red-500">
+                PDF Export
+            </button>
+            <button v-if="hasPermission('servicejob.mail_pdf')" @click="emailPdf" :disabled="emailing"
+                class="py-4 px-4 bg-green-600 text-white text-xs font-semibold rounded hover:bg-green-700 dark:hover:bg-green-500 disabled:bg-gray-500 dark:disabled:bg-slate-600/50">
+                <span v-if="!emailing">Mail PDF</span>
+                <span v-else>Versturen...</span>
+            </button>
         </div>
     </BoxComponent>
 </template>
@@ -187,8 +237,8 @@ import ServiceCheckInstanceComponent from '@/Components/ServiceCheckInstanceComp
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { nlDate, hasPermission } from '@/Utilities/Utilities';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { watch, ref, computed } from 'vue';
+import { Link, useForm, usePage, router } from '@inertiajs/vue3';
+import { watch, ref, computed, reactive } from 'vue';
 import { debounce } from 'lodash';
 import { Cog6ToothIcon, InformationCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 
@@ -227,10 +277,12 @@ const updating = ref(false);
 const emailing = ref(false);
 const addingMissing = ref(false);
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 const form = useForm({
     outcome: '',
     days_temporary_approval: servicejob.days_temporary_approval || 0,
-    completed_on: servicejob.completed_on || new Date().toISOString().slice(0, 10),
+    completed_on: servicejob.completed_on || today(),
     description: servicejob.description || ''
 });
 
@@ -287,20 +339,71 @@ const addMissing = () => {
     });
 };
 
+// ── Bulk save (parent + all children same outcome) ──
+const bulkOutcomeId = ref(possibleOutcomes.find(o => o.name === servicejob.outcome)?.id ?? possibleOutcomes[0]?.id);
+const bulkForm = reactive({
+    completed_on: today(),
+    days_temporary_approval: 0,
+});
+const bulkSaving = ref(false);
+
+function saveBulk() {
+    bulkSaving.value = true;
+    const outcome = possibleOutcomes.find(o => o.id === bulkOutcomeId.value)?.name ?? '';
+    router.post(`/servicejobs/${servicejob.id}/bulk-complete`, {
+        outcome,
+        completed_on:            bulkForm.completed_on,
+        days_temporary_approval: bulkForm.days_temporary_approval,
+        description:             form.description,
+    }, {
+        preserveScroll: true,
+        onFinish: () => { bulkSaving.value = false; },
+    });
+}
+
+// ── Per-child-job forms ──
+const childForms = reactive(
+    Object.fromEntries(child_jobs.map(cj => [
+        cj.id,
+        {
+            outcomeId:               possibleOutcomes.find(o => o.name === cj.outcome)?.id ?? possibleOutcomes[0]?.id,
+            completed_on:            cj.completed_on ?? today(),
+            days_temporary_approval: cj.days_temporary_approval ?? 0,
+            description:             cj.description ?? '',
+        },
+    ]))
+);
+const childSaving = reactive(Object.fromEntries(child_jobs.map(cj => [cj.id, false])));
+
+function saveChildJob(jobId) {
+    childSaving[jobId] = true;
+    const f = childForms[jobId];
+    const outcome = possibleOutcomes.find(o => o.id === f.outcomeId)?.name ?? '';
+    router.patch(`/servicejobs/${jobId}`, {
+        outcome,
+        completed_on:            f.completed_on,
+        days_temporary_approval: f.days_temporary_approval,
+        description:             f.description,
+    }, {
+        preserveScroll: true,
+        onFinish: () => { childSaving[jobId] = false; },
+    });
+}
+
 // Group the service checks by Product Type groups; checks in groups not attached to
 // the product type are placed under an "Overige keurpunten" section at the end.
-const groupedChecks = computed(() => {
-    const instances = (servicejob.check_instances || []).slice();
-    // Always order checks within a group by their own order
-    instances.sort((a, b) => (a.service_check?.order ?? 0) - (b.service_check?.order ?? 0));
+function buildCheckGroups(instances, ptGroups) {
+    const sorted = (instances || []).slice()
+        .sort((a, b) => (a.service_check?.order ?? 0) - (b.service_check?.order ?? 0));
 
-    const ptGroups = (servicejob.asset?.product?.product_type?.service_check_groups || [])
-        .map(g => ({ id: g.id, name: g.name, order: g.order ?? Number.MAX_SAFE_INTEGER }));
-    const allowed = new Map(ptGroups.map(g => [g.id, { key: g.id, name: g.name, order: g.order, items: [] }]));
-
+    const allowed = new Map(
+        (ptGroups || [])
+            .map(g => ({ id: g.id, name: g.name, order: g.order ?? Number.MAX_SAFE_INTEGER }))
+            .map(g => [g.id, { key: g.id, name: g.name, order: g.order, items: [] }])
+    );
     const other = { key: 'other', name: 'Overige keurpunten', order: Number.MAX_SAFE_INTEGER, items: [] };
 
-    for (const ci of instances) {
+    for (const ci of sorted) {
         const gid = ci.service_check?.group?.id ?? null;
         if (gid && allowed.has(gid)) {
             allowed.get(gid).items.push(ci);
@@ -316,6 +419,13 @@ const groupedChecks = computed(() => {
         result.push(other);
     }
     return result;
-});
+}
+
+const groupsForChildJob = (cj) => buildCheckGroups(cj.check_instances, cj.product_type?.service_check_groups);
+
+const groupedChecks = computed(() => buildCheckGroups(
+    servicejob.check_instances,
+    servicejob.asset?.product?.product_type?.service_check_groups,
+));
 
 </script>

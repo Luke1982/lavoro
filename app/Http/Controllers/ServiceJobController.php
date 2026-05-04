@@ -13,7 +13,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
@@ -158,13 +160,110 @@ class ServiceJobController extends Controller
                 'outcome'     => $servicejob->parentJob->outcome,
             ] : null,
             'child_jobs' => $servicejob->childJobs->map(fn($j) => [
-                'id'          => $j->id,
-                'asset_label' => $j->asset->product->brand->name
+                'id'                      => $j->id,
+                'asset_label'             => $j->asset->product->brand->name
                     . ' ' . $j->asset->product->model
                     . ' (' . ($j->asset->serial_number ?? '-') . ')',
-                'outcome'     => $j->outcome,
+                'asset_id'                => $j->asset->id,
+                'outcome'                 => $j->outcome,
+                'completed_on'            => $j->completed_on,
+                'days_temporary_approval' => $j->days_temporary_approval,
+                'description'             => $j->description,
+                'check_instances'         => $j->checkInstances->map(fn($ci) => [
+                    'id'               => $ci->id,
+                    'description'      => $ci->description,
+                    'switch_state'     => $ci->switch_state,
+                    'service_check_id' => $ci->service_check_id,
+                    'service_check'    => $ci->serviceCheck ? [
+                        'id'    => $ci->serviceCheck->id,
+                        'name'  => $ci->serviceCheck->name,
+                        'type'  => $ci->serviceCheck->type,
+                        'order' => $ci->serviceCheck->order ?? 0,
+                        'group' => $ci->serviceCheck->group ? [
+                            'id'    => $ci->serviceCheck->group->id,
+                            'name'  => $ci->serviceCheck->group->name,
+                            'order' => $ci->serviceCheck->group->order ?? 0,
+                        ] : null,
+                    ] : null,
+                    'values'  => $ci->values?->pluck('value')->all() ?? [],
+                    'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
+                    'images'  => $ci->images ?? [],
+                ])->values()->all(),
+                'product_type' => [
+                    'name'                => $j->asset->product->productType?->name ?? '',
+                    'service_check_groups' => ($j->asset->product->productType?->serviceCheckGroups ?? collect())
+                        ->map(fn($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? 0])
+                        ->values()->all(),
+                ],
             ])->values()->all(),
         ]);
+    }
+
+    public function bulkComplete(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
+    {
+        if ($noOutcomeError = $this->guardNoOutcomeWithDate($request)) {
+            return $noOutcomeError;
+        }
+
+        $jobs = $servicejob->childJobs->prepend($servicejob);
+        $this->ensureAllChecksComplete($jobs);
+
+        $data = $request->validated();
+        $data['completed_by'] = Auth::user()->id;
+
+        DB::transaction(function () use ($jobs, $data, $request) {
+            foreach ($jobs as $job) {
+                $job->update($data);
+                $this->advanceServiceDate($job, $request->days_temporary_approval);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Alle keuringen opgeslagen.');
+    }
+
+    private function advanceServiceDate(ServiceJob $job, ?int $tmpDays): ?int
+    {
+        $days = $job->getDaysToAdvanceNextServiceDate($tmpDays);
+        if ($days === null) {
+            return null;
+        }
+        $job->asset->update([
+            'next_service_date' => Carbon::parse($job->asset->next_service_date)->addDays($days),
+        ]);
+        return $days;
+    }
+
+    private function guardNoOutcomeWithDate(ServiceJobUpdateRequest $request)
+    {
+        if (
+            $request->outcome === ServiceJobOutcomeEnum::nog_geen_uitkomst->value &&
+            $request->completed_on
+        ) {
+            return redirect()->back()->with(
+                'error',
+                'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
+            );
+        }
+        return null;
+    }
+
+    private function ensureAllChecksComplete($jobs): void
+    {
+        $messages = [];
+        foreach ($jobs as $job) {
+            $incomplete = $job->incompleteCheckInstances();
+            if ($incomplete->isEmpty()) {
+                continue;
+            }
+            $names = $incomplete->map(fn($ci) => $ci->serviceCheck?->name)->filter()->unique()->values();
+            $messages[] = '"' . $job->asset->product->brand->name . ' ' . $job->asset->product->model
+                . '" (' . $incomplete->count() . ' open): ' . $names->implode(', ');
+        }
+        if (!empty($messages)) {
+            throw ValidationException::withMessages([
+                'service_checks' => 'Niet alle keurpunten zijn ingevuld — ' . implode(' | ', $messages),
+            ]);
+        }
     }
 
     public function addMissingInstances(ServiceJob $servicejob)
@@ -197,34 +296,22 @@ class ServiceJobController extends Controller
      */
     public function update(ServiceJobUpdateRequest $request, ServiceJob $servicejob)
     {
-        if (
-            $request->outcome === ServiceJobOutcomeEnum::nog_geen_uitkomst->value &&
-            $request->completed_on
-        ) {
-            return redirect()->back()->with(
-                'error',
-                'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
-            );
+        if ($noOutcomeError = $this->guardNoOutcomeWithDate($request)) {
+            return $noOutcomeError;
         }
+
         $data = $request->validated();
         $data['completed_by'] = Auth::user()->id;
         $servicejob->update($data);
-        $message = '';
-        $days = $servicejob->getDaysToAdvanceNextServiceDate(
-            $request->days_temporary_approval
-        );
 
-        if ($days !== null) {
-            $servicejob->asset->update([
-                'next_service_date' => Carbon::parse($servicejob->asset->next_service_date)
-                    ->addDays($days),
-            ]);
-            $message = sprintf(
+        $days = $this->advanceServiceDate($servicejob, $request->days_temporary_approval);
+        $message = $days !== null
+            ? sprintf(
                 'De verloopdatum is met %d dagen verlengd naar %s.',
                 $days,
                 Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
-            );
-        }
+            )
+            : '';
 
         return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt. ' . $message);
     }

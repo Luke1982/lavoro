@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\ServiceJobOutcomes;
-use App\Models\ServiceJob;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -51,37 +50,22 @@ class ServiceJobUpdateRequest extends FormRequest
         if (!$job) {
             return;
         }
-        $job->loadMissing('checkInstances.serviceCheck', 'checkInstances.values');
 
-        $incomplete = $job->checkInstances->filter(function ($ci) {
-            $type = $ci->serviceCheck?->type;
-            if ($type === 'boolean') {
-                return $ci->switch_state === null;
-            }
-            if ($type === 'text' || $type === 'number') {
-                return trim((string) ($ci->description ?? '')) === '';
-            }
-            if ($type === 'radio') {
-                return $ci->values->count() !== 1;
-            }
-            if ($type === 'checkgroup') {
-                return $ci->values->count() === 0;
-            }
-            return false;
-        });
-
-        if ($incomplete->isNotEmpty()) {
-            $names = $incomplete
-                ->map(fn($ci) => $ci->serviceCheck?->name)
-                ->filter()
-                ->unique()
-                ->values();
-            $list = $names->implode(', ');
-            $message = 'Niet alle keurpunten zijn ingevuld (' . $incomplete->count() . ' open): ' . $list . '.';
-            throw ValidationException::withMessages([
-                'service_checks' => $message,
-            ]);
+        $incomplete = $job->incompleteCheckInstances();
+        if ($incomplete->isEmpty()) {
+            return;
         }
+
+        $names = $incomplete
+            ->map(fn($ci) => $ci->serviceCheck?->name)
+            ->filter()
+            ->unique()
+            ->values();
+        $message = 'Niet alle keurpunten zijn ingevuld (' . $incomplete->count() . ' open): '
+            . $names->implode(', ') . '.';
+        throw ValidationException::withMessages([
+            'service_checks' => $message,
+        ]);
     }
 
     /**

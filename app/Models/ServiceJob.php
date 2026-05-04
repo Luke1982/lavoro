@@ -121,4 +121,29 @@ class ServiceJob extends Model
     {
         return $this->belongsTo(User::class, 'completed_by');
     }
+
+    /**
+     * Check instances that are not yet filled in for this job.
+     */
+    public function incompleteCheckInstances()
+    {
+        $this->loadMissing('checkInstances.serviceCheck', 'checkInstances.values');
+
+        return $this->checkInstances->filter(function ($ci) {
+            $type = $ci->serviceCheck?->type;
+            if ($type === 'boolean') {
+                return $ci->switch_state === null;
+            }
+            if ($type === 'text' || $type === 'number') {
+                return trim((string) ($ci->description ?? '')) === '';
+            }
+            if ($type === 'radio') {
+                return $ci->values->count() !== 1;
+            }
+            if ($type === 'checkgroup') {
+                return $ci->values->count() === 0;
+            }
+            return false;
+        });
+    }
 }
