@@ -12,7 +12,8 @@
         </div>
 
         <BoxComponent padding="px-0 py-0">
-            <EditableGridComponent :headers="headers" :items="innerRoles" @update="onCellUpdate" />
+            <EditableGridComponent :headers="headers" :items="innerRoles" @update="onCellUpdate"
+                />
         </BoxComponent>
     </div>
 

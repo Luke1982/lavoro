@@ -29,6 +29,7 @@
             :items="relations.data"
             url-base="productrelations"
             :has-detail-pages="false"
+           
             @update="onCellUpdate"
         />
         <PaginationComponent
@@ -42,7 +43,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue'
@@ -55,6 +56,7 @@ defineProps({
 })
 
 const formRef = ref(null)
+const updateForm = useForm({ name: '' })
 
 const fields = [
     { key: 'name', label: 'Naam', type: 'text' },
@@ -65,7 +67,7 @@ const headers = [
 ]
 
 function onCellUpdate({ item }) {
-    router.patch(`/productrelations/${item.id}`, { name: item.name }, {
+    updateForm.transform(() => ({ name: item.name })).patch(`/productrelations/${item.id}`, {
         preserveScroll: true,
         preserveState: true,
     })

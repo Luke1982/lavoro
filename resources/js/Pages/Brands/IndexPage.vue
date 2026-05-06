@@ -9,7 +9,8 @@
             add-button-label="Voeg merk toe" submit-label="Toevoegen" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="innerBrands" @update="onCellUpdate" urlBase="brands" />
+        <EditableGridComponent :headers="headers" :items="innerBrands" @update="onCellUpdate"
+            urlBase="brands" />
         <PaginationComponent v-if="innerBrands.length > 0" :paginator="brands" class="border-t border-gray-200 pt-2" />
         <div v-else class="text-center text-gray-500 p-4">
             <p>Geen merken gevonden.</p>

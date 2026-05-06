@@ -7,7 +7,8 @@
         <CreateRecordForm ref="categoryFormRef" external-trigger action="/materialcategories" :fields="categoryFields"
             add-button-label="Voeg categorie toe" submit-label="Toevoegen" />
     </div>
-    <EditableGridComponent :headers="headers" :items="innerCategories" @update="onCellUpdate" :urlBase="urlBase" />
+    <EditableGridComponent :headers="headers" :items="innerCategories" @update="onCellUpdate"
+        :urlBase="urlBase" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';

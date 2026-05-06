@@ -1,5 +1,6 @@
 <template>
-    <EditableGridComponent :headers="headers" :items="innerTypes" @update="onCellUpdate" :urlBase="urlBase" />
+    <EditableGridComponent :headers="headers" :items="innerTypes" @update="onCellUpdate"
+        :urlBase="urlBase" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';

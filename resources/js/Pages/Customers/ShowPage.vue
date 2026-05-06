@@ -100,13 +100,14 @@
                 <CustomFieldsComponent v-if="customFields.length" model-type="customer" :model-id="customer.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
-            <div class="mt-5 px-1 flex items-center justify-between">
+            <div class="mt-5 px-1 flex items-center justify-left">
                 <h3 class="text-sm font-medium flex items-center">
                     <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
                     Machines
                 </h3>
                 <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
-                    class="text-blue-600 hover:text-blue-800" v-tooltip="'Nieuwe machine toevoegen'">
+                    class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
+                    v-tooltip="'Nieuwe machine toevoegen'">
                     <PlusIcon class="size-4" />
                 </button>
             </div>
@@ -241,8 +242,7 @@
 
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${customer.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :bare="true"
-            :required-productables-by-product="requiredProductablesByProduct"
-            @created="addAssetDrawerOpen = false" />
+            :required-productables-by-product="requiredProductablesByProduct" @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
 

@@ -11,7 +11,8 @@
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <EditableGridComponent :headers="headers" :items="innerTypes" @update="onCellUpdate"
-            @add-child="onAddChild" urlBase="producttypes" :nestable="treeMode" depthKey="_depth" />
+            @add-child="onAddChild" urlBase="producttypes" :nestable="treeMode"
+            depthKey="_depth" />
         <div v-if="!innerTypes.length" class="text-center text-gray-500 p-4">
             <p>Geen producttypen gevonden.</p>
             <p>Probeer een andere zoekterm of voeg een nieuw producttype toe.</p>

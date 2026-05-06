@@ -77,12 +77,14 @@ function resetFilter() {
     productTypeToShow.value = null
 }
 
+const updateForm = useForm({})
+
 function onCellUpdate({ item }) {
     const payload = { ...item }
     payload.product_type_ids = Array.isArray(item.product_type_ids)
         ? item.product_type_ids
         : (Array.isArray(item.product_types) ? item.product_types.map(pt => pt.id) : [])
-    useForm(payload).put(`/servicecheckgroups/${item.id}`, {
+    updateForm.transform(() => payload).put(`/servicecheckgroups/${item.id}`, {
         preserveScroll: true,
     })
 }

@@ -15,7 +15,8 @@
             add-button-label="Voeg materiaal toe" submit-label="Toevoegen" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate" urlBase="materials" />
+        <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate"
+            urlBase="materials" />
         <PaginationComponent v-if="innerMaterials.length" :paginator="materials"
             class="border-t border-gray-200 dark:border-slate-700 pt-2 mt-2" />
     </BoxComponent>
@@ -62,7 +63,7 @@ const innerMaterials = computed(() => materials?.data || [])
 const materialFields = [
     { key: 'name', label: 'Naam', type: 'text' },
     { key: 'code', label: 'Code', type: 'text' },
-    { key: 'price', label: 'Prijs', type: 'number', default: 0 },
+    { key: 'price', label: 'Prijs', type: 'currency', default: 0 },
     { key: 'material_category_id', label: 'Categorie', type: 'combobox', options: categories, initialId: categories[0]?.id },
     { key: 'material_usage_unit_id', label: 'Gebruikseenheid', type: 'combobox', options: usageUnits, initialId: usageUnits[0]?.id },
     { key: 'divisable', label: 'Deelbaar', type: 'boolean', class: 'w-auto' },
@@ -71,7 +72,7 @@ const materialFields = [
 const headers = [
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 22 },
     { key: 'code', label: 'Code', fieldtype: 'text', width: 12 },
-    { key: 'price', label: 'Prijs', fieldtype: 'number', width: 12 },
+    { key: 'price', label: 'Prijs', fieldtype: 'currency', width: 12 },
     { key: 'divisable', label: 'Deelbaar', fieldtype: 'boolean', width: 8 },
     { key: 'is_active', label: 'Actief', fieldtype: 'boolean', width: 8 },
     { key: 'material_category_id', label: 'Categorie', fieldtype: 'combobox', width: 20, combovalues: categories },

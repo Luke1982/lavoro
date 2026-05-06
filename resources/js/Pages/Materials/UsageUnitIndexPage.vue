@@ -7,7 +7,8 @@
         <CreateRecordForm ref="unitFormRef" external-trigger action="/materialusageunits" :fields="unitFields"
             add-button-label="Voeg gebruikseenheid toe" submit-label="Toevoegen" />
     </div>
-    <EditableGridComponent :headers="headers" :items="innerUnits" @update="onCellUpdate" :urlBase="urlBase" />
+    <EditableGridComponent :headers="headers" :items="innerUnits" @update="onCellUpdate"
+        :urlBase="urlBase" />
 </template>
 <script setup>
 import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
