@@ -51,6 +51,8 @@ Route::group(
             ->except(['show', 'edit', 'create']);
         Route::resource('productables', ProductableController::class)->only(['store', 'update', 'destroy']);
         Route::resource('assets', AssetController::class);
+        Route::post('assets/{asset}/child', [AssetController::class, 'storeChild'])
+            ->name('assets.storeChild');
         Route::resource('assetrelations', AssetRelationController::class)->only(['store', 'destroy']);
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)

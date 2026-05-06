@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Productable;
 use App\Models\ProductType;
 use App\Models\ProductRelation;
+use App\Http\Requests\AssetChildStoreRequest;
 use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
@@ -228,6 +229,30 @@ class AssetController extends Controller
             'productHasChildTypes'   => $productHasChildTypes,
             'productRelations'       => ProductRelation::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    public function storeChild(AssetChildStoreRequest $request, Asset $asset)
+    {
+        $productable = Productable::find($request->productable_id);
+
+        DB::transaction(function () use ($asset, $productable, $request) {
+            $child = Asset::create([
+                'product_id'        => $productable->productable_id,
+                'customer_id'       => $asset->customer_id,
+                'serial_number'     => $request->serial_number,
+                'next_service_date' => null,
+                'status'            => 'Actief',
+            ]);
+
+            AssetRelation::create([
+                'parent_asset_id'     => $asset->id,
+                'child_asset_id'      => $child->id,
+                'productable_id'      => $productable->id,
+                'product_relation_id' => $productable->product_relation_id,
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Onderdeel-machine aangemaakt en gekoppeld.');
     }
 
     /**
