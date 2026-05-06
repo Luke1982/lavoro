@@ -25,6 +25,25 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+            // Safety net: convert MySQL "Numeric value out of range" (SQLSTATE
+            // 22003 / errno 1264) into a 422 validation error so users see a
+            // meaningful message instead of a 500. The DbRange rule catches
+            // this proactively, but this guards against any field we forgot.
+            $exceptions->render(function (\Illuminate\Database\QueryException $e, Request $request) {
+                $sqlState = $e->getCode();
+                $errno    = $e->errorInfo[1] ?? null;
+                if ($sqlState !== '22003' && $errno !== 1264) {
+                    return null;
+                }
+                preg_match("/column '([^']+)'/i", $e->getMessage(), $m);
+                $field   = $m[1] ?? 'value';
+                $message = "De waarde voor '{$field}' is buiten het toegestane bereik.";
+                return back()
+                    ->withErrors([$field => $message])
+                    ->with('error', $message)
+                    ->withInput();
+            });
+
             $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
                 if (!app()->environment(['local', 'development', 'testing']) && in_array($response->getStatusCode(), [500, 503, 404, 403])) {
                     $messages = [

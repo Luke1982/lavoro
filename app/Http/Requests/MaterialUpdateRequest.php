@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\DbRange;
 
 class MaterialUpdateRequest extends FormRequest
 {
@@ -26,17 +27,17 @@ class MaterialUpdateRequest extends FormRequest
             'description'   => 'nullable|string|max:1000',
             'material_category_id'   => 'nullable|exists:material_categories,id',
             'material_usage_unit_id' => 'nullable|exists:material_usage_units,id',
-            'price'         => 'nullable|numeric|min:0',
+            'price'         => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'snelstart_id'  => 'nullable|uuid',
             'code'          => 'nullable|string|max:255',
             'vendor_code'   => 'nullable|string|max:255',
-            'cost_price'    => 'nullable|numeric|min:0',
+            'cost_price'    => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'divisable'     => 'boolean',
             'is_active'     => 'boolean',
             'is_service'    => 'boolean',
-            'stock'         => 'required|numeric',
-            'min_stock'     => 'required|numeric|min:0',
-            'max_stock'     => 'required|numeric|min:0',
+            'stock'         => ['required', 'numeric', DbRange::decimal(10, 2)],
+            'min_stock'     => ['required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'max_stock'     => ['required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
         ];
     }
 }
