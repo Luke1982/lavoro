@@ -13,93 +13,63 @@
                 <div class="flex flex-wrap mt-4 gap-y-3">
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Merk en model</div>
-                        <div :class="[editing.product_id ? '' : 'pr-5', 'w-2/3 relative mr-0 md:mr-3']">
-                            <span v-if="!editing.product_id">
-                                {{ asset.product.brand.name }}
-                                <Link class="underline" :href="`/products/${asset.product.id}`">{{ asset.product.model
-                                }}</Link>
-                            </span>
-                            <ComboBox v-if="editing.product_id" :options="allProducts" v-model="form.product_id"
-                                @update:modelValue="updateAsset"
-                                :hasError="Boolean(form.errors.product_id)"
-                                :errorMessage="form.errors.product_id" />
-                            <PencilSquareIcon v-if="canUpdate && !editing.product_id"
-                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
-                                @click="edit('product_id')" />
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField type="combobox" v-model="form.product_id" :options="allProducts"
+                                :readonly="!canUpdate" :error="form.errors.product_id"
+                                @revert="form.clearErrors('product_id')">
+                                <template #display>
+                                    {{ asset.product.brand.name }}
+                                    <Link class="underline" :href="`/products/${asset.product.id}`">
+                                        {{ asset.product.model }}
+                                    </Link>
+                                </template>
+                            </EditableTextField>
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Serienummer</div>
-                        <div :class="[editing.serial_number ? '' : 'pr-5', 'w-2/3 relative']">
-                            <span v-if="!editing.serial_number">{{ asset.serial_number }} </span>
-                            <div class="flex" v-if="editing.serial_number">
-                                <TextInput v-model="form.serial_number" class="rounded-l" />
-                                <button @click="updateAsset"
-                                    class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-5 h-5"
-                                        fill="currentColor">
-                                        <path
-                                            d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <PencilSquareIcon v-if="canUpdate && !editing.serial_number"
-                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
-                                @click="edit('serial_number')" />
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
+                                :error="form.errors.serial_number"
+                                @revert="form.clearErrors('serial_number')" />
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Verloopdatum</div>
-                        <div :class="[editing.next_service_date ? '' : 'pr-5', 'w-2/3 relative mr-0 md:mr-3']">
-                            <span v-if="!editing.next_service_date">{{ nlDate(asset.next_service_date) }} </span>
-                            <div class="flex" v-if="editing.next_service_date">
-                                <input type="date" v-model="form.next_service_date"
-                                    class="rounded-md border-gray-300 border-1 p-2" />
-                                <button @click="updateAsset"
-                                    class="px-3 py-1 bg-green-600 text-white rounded-r cursor-pointer hover:bg-green-700">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-5 h-5"
-                                        fill="currentColor">
-                                        <path
-                                            d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <PencilSquareIcon v-if="canUpdate && !editing.next_service_date"
-                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
-                                @click="edit('next_service_date')" />
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField v-model="form.next_service_date" inputType="date"
+                                :readonly="!canUpdate" :error="form.errors.next_service_date"
+                               
+                                @revert="form.clearErrors('next_service_date')" />
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Status</div>
-                        <div :class="[editing.status ? '' : 'pr-5', 'w-2/3 relative']">
-                            <div v-if="!editing.status">
-                                <span v-if="asset.status === 'Actief'"
-                                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                                <span v-else
-                                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                                        asset.status }}</span>
-                            </div>
-                            <ComboBox v-if="editing.status" :options="statusOptions" v-model="form.status"
-                                :hasError="Boolean(form.errors.status)"
-                                :errorMessage="form.errors.status" />
-                            <PencilSquareIcon v-if="canUpdate && !editing.status"
-                                class="w-5 h-5 text-gray-500 absolute right-0 top-0 transform -translate-y-1/2 cursor-pointer"
-                                @click="edit('status')" />
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField type="combobox" v-model="form.status" :options="statusOptions"
+                                :readonly="!canUpdate" :error="form.errors.status"
+                                @revert="form.clearErrors('status')">
+                                <template #display>
+                                    <span v-if="asset.status === 'Actief'"
+                                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                                    <span v-else
+                                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
+                                </template>
+                            </EditableTextField>
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Klant</div>
-                        <div class="w-2/3 relative">
-                            <Link :href="`/customers/${asset.customer.id}`" v-if="!editingCustomer"
-                                class="text-blue-600 underline">
-                            {{ asset.customer.name }}
-                            </Link>
-                            <PencilSquareIcon v-if="canUpdate && !editingCustomer"
-                                class="w-5 h-5 text-gray-500 absolute right-0 md:right-3 top-2 transform -translate-y-1/2 cursor-pointer"
-                                @click="editingCustomer = true" />
-                            <ComboBox v-if="editingCustomer" :options="allCustomers" v-model="form.customer_id"
-                                :hasError="Boolean(form.errors.customer_id)"
-                                :errorMessage="form.errors.customer_id" />
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField type="combobox" v-model="form.customer_id" :options="allCustomers"
+                                :readonly="!canUpdate" :error="form.errors.customer_id"
+                               
+                                @revert="form.clearErrors('customer_id')">
+                                <template #display>
+                                    <Link :href="`/customers/${asset.customer.id}`"
+                                        class="text-blue-600 underline">{{ asset.customer.name }}</Link>
+                                </template>
+                            </EditableTextField>
                         </div>
                     </div>
                 </div>
@@ -122,13 +92,98 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (productHasChildTypes && hasPermission('assetrelation.create'))" class="mt-5">
+            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))" class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde machines</h3>
                 </div>
 
-                <div v-if="asset.child_asset_relations?.length">
+                <!-- Per-slot view when product has defined related products -->
+                <div v-if="asset.product.productables?.length">
+                    <p class="text-xs text-gray-400 mb-2">Onderdelen</p>
+                    <div v-for="slot in asset.product.productables" :key="slot.id"
+                        class="mb-3 border border-gray-100 dark:border-slate-700 rounded-md p-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                    {{ slot.child_product.brand.name }} {{ slot.child_product.model }}
+                                </span>
+                                <span v-if="slot.product_relation" class="text-xs text-gray-400">
+                                    ({{ slot.product_relation.name }})
+                                </span>
+                                <span v-if="slot.is_required"
+                                    class="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/30 rounded px-1">
+                                    verplicht
+                                </span>
+                            </div>
+                            <span class="text-xs"
+                                :class="childRelationsForSlot(slot.id).length >= slot.quantity ? 'text-gray-400' : 'text-blue-500'">
+                                {{ childRelationsForSlot(slot.id).length }} / {{ slot.quantity }}
+                            </span>
+                        </div>
+                        <div v-for="rel in childRelationsForSlot(slot.id)" :key="rel.id"
+                            class="flex items-center justify-between py-1 pl-2 border-b border-gray-100 dark:border-slate-600">
+                            <div>
+                                <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
+                                    {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                                </Link>
+                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number ?? '—' }}</span>
+                            </div>
+                            <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
+                                class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                <TrashIcon class="size-4" />
+                            </button>
+                        </div>
+                        <div v-if="hasPermission('assetrelation.create') && childRelationsForSlot(slot.id).length < slot.quantity"
+                            class="mt-1.5 pl-2">
+                            <div v-if="creatingForSlot !== slot.id">
+                                <button @click="openNewChildForm(slot.id)"
+                                    class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                                    <PlusIcon class="size-3" /> Nieuwe machine aanmaken
+                                </button>
+                            </div>
+                            <div v-else class="flex gap-2 items-start mt-1">
+                                <div class="flex-1">
+                                    <TextInput v-model="newChildForm.serial_number" label="Serienummer"
+                                        :hasError="Boolean(newChildForm.errors.serial_number)"
+                                        :errorMessage="newChildForm.errors.serial_number" />
+                                </div>
+                                <button @click="submitNewChild(slot.id)"
+                                    class="mt-8 px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                                    Aanmaken
+                                </button>
+                                <button @click="cancelNewChild"
+                                    class="mt-8 px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                    Annuleren
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relations linked without a productable slot (manual links) -->
+                    <div v-if="unslottedChildRelations.length" class="mt-2">
+                        <p class="text-xs text-gray-400 mb-1">Overige koppelingen</p>
+                        <div v-for="rel in unslottedChildRelations" :key="rel.id"
+                            class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
+                            <div>
+                                <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
+                                    {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                                </Link>
+                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                                <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
+                                    class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                    <TrashIcon class="size-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flat list fallback when product has no defined related products -->
+                <div v-else-if="asset.child_asset_relations?.length">
                     <p class="text-xs text-gray-400 mb-1">Onderdelen</p>
                     <div v-for="rel in asset.child_asset_relations" :key="rel.id"
                         class="flex items-center justify-between py-1 border-b border-gray-50">
@@ -151,7 +206,7 @@
                 <div v-if="asset.parent_asset_relations?.length" class="mt-2">
                     <p class="text-xs text-gray-400 mb-1">Onderdeel van</p>
                     <div v-for="rel in asset.parent_asset_relations" :key="rel.id"
-                        class="flex items-center justify-between py-1 border-b border-gray-50">
+                        class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
                         <div>
                             <Link :href="`/assets/${rel.parent_asset.id}`" class="text-blue-600 underline text-sm">
                                 {{ rel.parent_asset.product.brand.name }} {{ rel.parent_asset.product.model }}
@@ -162,7 +217,7 @@
                     </div>
                 </div>
 
-                <div v-if="productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
+                <div v-if="!asset.product.productables?.length && productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
                     Er zijn geen machines van de juiste subtypes gevonden bij deze klant om te koppelen. Voeg eerst een onderdeel-machine toe aan de klant.
                 </div>
 
@@ -249,35 +304,18 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PencilSquareIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
-import { nlDate } from '@/Utilities/Utilities';
 import TicketCard from '@/Components/TicketCard.vue';
 import { ref, watch, computed, reactive } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission } from '@/Utilities/Utilities';
 
-const editing = ref({
-    product: false,
-    serial_number: false,
-    next_service_date: false,
-    status: false,
-    customer: false,
-})
-
 const openNewTicketForm = ref(false);
-const editingCustomer = ref(false);
-
-const edit = (key) => {
-    for (const k in editing.value) {
-        editing.value[k] = false;
-    }
-    editing.value[key] = true;
-}
 
 const props = defineProps({
     asset: {
@@ -319,14 +357,7 @@ const canDelete = computed(() => hasPermission('asset.delete'))
 
 const updateAsset = () => {
     if (!canUpdate.value) return;
-    form.put(`/assets/${props.asset.id}`, {
-        onSuccess: () => {
-            for (const key in editing.value) {
-                editing.value[key] = false;
-            }
-            editingCustomer.value = false;
-        },
-    });
+    form.put(`/assets/${props.asset.id}`);
 };
 
 const deleteForm = useForm({});
@@ -337,14 +368,51 @@ const deleteAsset = () => {
 
 watch(
     [
+        () => form.product_id,
         () => form.status,
         () => form.customer_id,
+        () => form.serial_number,
+        () => form.next_service_date,
     ],
     updateAsset
 )
 
 const addingManualLink = ref(false)
 const manualLink = reactive({ child_asset_id: null, product_relation_id: null })
+
+const creatingForSlot = ref(null)
+const newChildForm = useForm({ productable_id: null, serial_number: '' })
+
+function childRelationsForSlot(productableId) {
+    return props.asset.child_asset_relations?.filter(r => r.productable_id === productableId) ?? []
+}
+
+const unslottedChildRelations = computed(() =>
+    props.asset.child_asset_relations?.filter(r => !r.productable_id) ?? []
+)
+
+function openNewChildForm(slotId) {
+    creatingForSlot.value = slotId
+    newChildForm.reset()
+    newChildForm.clearErrors()
+}
+
+function cancelNewChild() {
+    creatingForSlot.value = null
+    newChildForm.reset()
+    newChildForm.clearErrors()
+}
+
+function submitNewChild(productableId) {
+    newChildForm.productable_id = productableId
+    newChildForm.post(`/assets/${props.asset.id}/child`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            creatingForSlot.value = null
+            newChildForm.reset()
+        },
+    })
+}
 
 function submitManualLink() {
     router.post('/assetrelations', {
