@@ -21,36 +21,51 @@
                         <span class="text-xs font-bold">Omschrijving</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.description" type="textarea" class="w-full" />
+                        <EditableTextField v-model="form.description" type="textarea"
+                            class="w-full" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Klant</span>
                     </div>
                     <div class="col-span-10 md:col-span-4">
-                        <ComboBox :options="customers" v-model="form.customer_id" :initialId="project.customer?.id"
-                            placeholder="Selecteer klant" :hasError="Boolean(form.errors.customer_id)"
-                            :errorMessage="form.errors.customer_id" />
+                        <EditableTextField type="combobox" v-model="form.customer_id" :options="customers"
+                            :error="form.errors.customer_id"
+                            @revert="form.clearErrors('customer_id')">
+                            <template #display>
+                                <Link v-if="project.customer" :href="`/customers/${project.customer.id}`"
+                                    class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    {{ project.customer.name }}
+                                </Link>
+                                <span v-else class="text-gray-400">Selecteer klant</span>
+                            </template>
+                        </EditableTextField>
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Projectleider</span>
                     </div>
                     <div class="col-span-10 md:col-span-4">
-                        <ComboBox :options="users" v-model="form.project_manager_id"
-                            :initialId="project.project_manager?.id" placeholder="Selecteer projectleider"
-                            :hasError="Boolean(form.errors.project_manager_id)"
-                            :errorMessage="form.errors.project_manager_id" />
+                        <EditableTextField type="combobox" v-model="form.project_manager_id" :options="users"
+                            :error="form.errors.project_manager_id"
+                            @revert="form.clearErrors('project_manager_id')">
+                            <template #display>
+                                <span v-if="project.project_manager">{{ project.project_manager.name }}</span>
+                                <span v-else class="text-gray-400">Selecteer projectleider</span>
+                            </template>
+                        </EditableTextField>
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Startdatum</span>
                     </div>
                     <div class="col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.start_date" type="input" input-type="date" class="w-full" />
+                        <EditableTextField v-model="form.start_date" type="input" input-type="date"
+                            class="w-full" />
                     </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Einddatum</span>
                     </div>
                     <div class="col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.end_date" type="input" input-type="date" class="w-full" />
+                        <EditableTextField v-model="form.end_date" type="input" input-type="date"
+                            class="w-full" />
                     </div>
                 </div>
                 <div class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
@@ -221,33 +236,39 @@
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Omschrijving</span>
                                                     <EditableTextField v-model="editForms[ms.id].description"
-                                                        type="textarea" class="w-full" />
+                                                        type="textarea"
+                                                        class="w-full" />
                                                 </div>
                                                 <div>
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Toegewezen
                                                         gebruiker</span>
-                                                    <ComboBox :options="users"
-                                                        :modelValue="editForms[ms.id].assigned_user_id"
-                                                        @update:modelValue="(val) => { editForms[ms.id].assigned_user_id = val; patchMilestoneField(ms.id, 'assigned_user_id', val) }"
-                                                        :initialId="ms.assigned_user?.id"
-                                                        placeholder="Selecteer gebruiker"
-                                                        :hasError="Boolean(milestoneForm.errors.assigned_user_id)"
-                                                        :errorMessage="milestoneForm.errors.assigned_user_id" />
+                                                    <EditableTextField type="combobox"
+                                                        v-model="editForms[ms.id].assigned_user_id" :options="users"
+                                                        :error="milestoneForm.errors.assigned_user_id"
+                                                       
+                                                        @revert="milestoneForm.clearErrors('assigned_user_id')">
+                                                        <template #display>
+                                                            <span v-if="ms.assigned_user">{{ ms.assigned_user.name }}</span>
+                                                            <span v-else class="text-gray-400">Selecteer gebruiker</span>
+                                                        </template>
+                                                    </EditableTextField>
                                                 </div>
                                                 <div>
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Geplande
                                                         datum</span>
                                                     <EditableTextField v-model="editForms[ms.id].projected_date"
-                                                        type="input" input-type="date" class="w-full" />
+                                                        type="input" input-type="date"
+                                                        class="w-full" />
                                                 </div>
                                                 <div>
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Werkelijke
                                                         datum</span>
                                                     <EditableTextField v-model="editForms[ms.id].actual_date"
-                                                        type="input" input-type="date" class="w-full" />
+                                                        type="input" input-type="date"
+                                                        class="w-full" />
                                                 </div>
                                             </div>
                                         </div>
@@ -449,7 +470,7 @@ function toggleEditMilestone(ms) {
         assigned_user_id: ms.assigned_user_id,
     })
 
-        ;['title', 'description', 'projected_date', 'actual_date'].forEach(field => {
+        ;['title', 'description', 'projected_date', 'actual_date', 'assigned_user_id'].forEach(field => {
             const stop = watch(() => editForms[ms.id]?.[field], (val, oldVal) => {
                 if (val === oldVal) return
                 patchMilestoneField(ms.id, field, val)
