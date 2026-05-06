@@ -7,25 +7,24 @@
                 <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400 dark:text-gray-300" aria-hidden="true"
                     v-bind="iconLeftProps" />
             </div>
-            <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete" class="transition-colors duration-200" :class="{
-                'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6': !hasError,
-                'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 ring-1 ring-inset ring-red-300 placeholder:text-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 border-red-500': hasError,
-                'pl-10': iconLeft,
-                'pl-2': !iconLeft,
-                'rounded-r-none': !rightCorners,
-            }" :aria-invalid="hasError" :aria-describedby="errorId" ref="inputRef" :placeholder="placeholder" />
+            <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete"
+                class="transition-colors duration-200 focus:outline-none" :class="{
+                    'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 sm:text-sm sm:leading-6': !hasError,
+                    'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError,
+                    'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 placeholder:text-red-300 sm:text-sm sm:leading-6 border-red-500': hasError,
+                    'ring-1 ring-inset ring-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500': hasError && ring,
+                    'pl-10': iconLeft,
+                    'pl-2': !iconLeft,
+                    'rounded-r-none': !rightCorners,
+                }" :aria-invalid="hasError" :aria-describedby="errorId" ref="inputRef" :placeholder="placeholder" />
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <ExclamationCircleIcon v-if="hasError" class="h-5 w-5 text-red-500" aria-hidden="true" />
             </div>
         </div>
-        <Transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 -translate-y-1"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 -translate-y-1"
-        >
+        <Transition enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1">
             <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
         </Transition>
     </div>
@@ -98,6 +97,10 @@ export default {
             default: ''
         },
         rightCorners: {
+            type: Boolean,
+            default: true
+        },
+        ring: {
             type: Boolean,
             default: true
         }
