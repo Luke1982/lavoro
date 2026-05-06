@@ -88,6 +88,8 @@ class ProductController extends Controller
             'childProducts.productType',
         ]);
 
+        $typePaths = ProductType::pathMap();
+
         $eligibleChildProducts = Product::query()
             ->where('id', '!=', $product->id)
             ->with(['brand', 'productType'])
@@ -95,18 +97,19 @@ class ProductController extends Controller
             ->get()
             ->map(fn($p) => [
                 'id'   => $p->id,
-                'name' => $p->brand->name . ' ' . $p->model . ' (' . $p->productType->name . ')',
+                'name' => $p->brand->name . ' ' . $p->model
+                    . ' (' . ($typePaths[$p->product_type_id] ?? $p->productType->name) . ')',
             ])
             ->values()
             ->all();
 
-        $childProductsWithPivot = $product->childProducts->map(function ($child) {
+        $childProductsWithPivot = $product->childProducts->map(function ($child) use ($typePaths) {
             $pivot = $child->pivot;
             return [
                 'productable_id'      => $pivot->id,
                 'product_id'          => $child->id,
                 'name'                => $child->brand->name . ' ' . $child->model
-                    . ' (' . $child->productType->name . ')',
+                    . ' (' . ($typePaths[$child->product_type_id] ?? $child->productType->name) . ')',
                 'product_relation_id' => $pivot->product_relation_id,
                 'quantity'            => $pivot->quantity,
                 'is_required'         => $pivot->is_required,

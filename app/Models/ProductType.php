@@ -26,19 +26,28 @@ class ProductType extends Model
         return $this->hasMany(Product::class);
     }
 
-    public static function flatListWithPath(): array
+    /** Returns [ typeId => 'Grandparent → Parent → Name' ] for every type. */
+    public static function pathMap(): array
     {
-        $all = static::orderBy('name')->get()->keyBy('id');
-
-        $result = [];
-        foreach ($all as $item) {
-            $path    = [$item->name];
-            $current = $item;
+        $all   = static::orderBy('name')->get()->keyBy('id');
+        $paths = [];
+        foreach ($all as $type) {
+            $path    = [$type->name];
+            $current = $type;
             while ($current->parent_id && isset($all[$current->parent_id])) {
                 $current = $all[$current->parent_id];
                 array_unshift($path, $current->name);
             }
-            $result[] = ['id' => $item->id, 'name' => implode(' → ', $path)];
+            $paths[$type->id] = implode(' → ', $path);
+        }
+        return $paths;
+    }
+
+    public static function flatListWithPath(): array
+    {
+        $result = [];
+        foreach (static::pathMap() as $id => $name) {
+            $result[] = ['id' => $id, 'name' => $name];
         }
 
         usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
