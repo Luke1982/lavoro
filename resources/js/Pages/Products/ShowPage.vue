@@ -27,17 +27,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 flex">
+                <div class="mt-4 flex gap-4">
                     <div class="flex flex-col w-1/2">
-                        <div class="flex">
-                            <h3 class="text-sm font-semibold mb-3">Beschrijving</h3>
-                            <component :is="currentIcon"
-                                :class="[editing ? 'text-green-700' : 'text-gray-600', 'ml-2 inline h-5 w-5 mr-2 cursor-pointer']"
-                                @click="editing = !editing" />
-                        </div>
-                        <p class="text-gray-600" v-if="!editing">{{ form.description }}</p>
-                        <textarea v-if="editing" v-model="form.description"
-                            class="w-full p-2 border rounded"></textarea>
+                        <h3 class="text-sm font-semibold mb-3">Beschrijving</h3>
+                        <EditableTextField v-model="form.description" type="textarea"
+                            :error="form.errors.description"
+                            @revert="form.clearErrors('description')" />
                     </div>
                     <div class="w-1/2">
                         <h3 class="text-sm font-semibold mb-3">
@@ -50,17 +45,23 @@
                                 gebruiken. Als je hier iets invult overschrijft dat de waarde die op het type is ingesteld.</span>`
                             }" />
                         </h3>
-                        <EditableTextField v-model="form.typical_certificate_days" type="input" input-type="number" />
+                        <EditableTextField v-model="form.typical_certificate_days" type="input"
+                            :error="form.errors.typical_certificate_days"
+                            @revert="form.clearErrors('typical_certificate_days')" />
                     </div>
                 </div>
                 <div v-if="hasPermission('product.view_prices')" class="mt-4 flex gap-4">
                     <div class="w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Verkoopprijs</h3>
-                        <EditableTextField v-model="form.retail_price" type="input" input-type="number" />
+                        <EditableTextField v-model="form.retail_price" type="input" inputType="currency"
+                            :error="form.errors.retail_price"
+                            @revert="form.clearErrors('retail_price')" />
                     </div>
                     <div class="w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Inkoopprijs</h3>
-                        <EditableTextField v-model="form.purchase_price" type="input" input-type="number" />
+                        <EditableTextField v-model="form.purchase_price" type="input" inputType="currency"
+                            :error="form.errors.purchase_price"
+                            @revert="form.clearErrors('purchase_price')" />
                     </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
@@ -69,17 +70,14 @@
 
             <!-- Box 2: Machines -->
             <BoxComponent class="mt-4" v-if="hasPermission('asset.read') || hasPermission('asset.create')">
-                <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                <div class="flex items-center justify-start pb-3 border-b border-gray-200">
                     <div class="flex items-center">
                         <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
                         <h3 class="text-sm font-medium">Machines</h3>
                     </div>
-                    <button
-                        v-if="hasPermission('asset.create')"
-                        @click="addAssetDrawerOpen = true"
-                        class="text-blue-600 hover:text-blue-800"
-                        v-tooltip="'Nieuwe machine toevoegen'"
-                    >
+                    <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
+                        class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
+                        v-tooltip="'Nieuwe machine toevoegen'">
                         <PlusIcon class="size-4" />
                     </button>
                 </div>
@@ -92,49 +90,50 @@
                 <div class="flex items-center pb-3 border-b border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde producten</h3>
-                    <button
-                        v-if="hasPermission('productable.create') && eligibleChildProducts.length"
+                    <button v-if="hasPermission('productable.create') && eligibleChildProducts.length"
                         @click="addingRelation = !addingRelation"
-                        class="ml-2 text-blue-600 hover:text-blue-800"
-                        v-tooltip="'Gerelateerd product toevoegen'"
-                    >
+                        class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
+                        v-tooltip="'Gerelateerd product toevoegen'">
                         <PlusIcon class="size-4" />
                     </button>
                 </div>
 
                 <!-- Add form -->
                 <div v-auto-animate>
-                <div v-if="addingRelation" class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
-                    <div class="flex gap-2 flex-wrap">
-                        <div class="flex-1 min-w-40">
-                            <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
-                            <ComboBox :options="eligibleChildProducts" v-model="newRelation.child_product_id" placeholder="Selecteer product" />
+                    <div v-if="addingRelation"
+                        class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="flex-1 min-w-40">
+                                <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
+                                <ComboBox :options="eligibleChildProducts" v-model="newRelation.child_product_id"
+                                    placeholder="Selecteer product" />
+                            </div>
+                            <div class="flex-1 min-w-32">
+                                <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                                <ComboBox :options="productRelations" v-model="newRelation.product_relation_id"
+                                    placeholder="Selecteer type" />
+                            </div>
+                            <div class="w-20">
+                                <label class="block text-xs text-gray-500 mb-1">Aantal</label>
+                                <input type="number" min="1" v-model.number="newRelation.quantity"
+                                    class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
+                                <SwitchComponent v-model="newRelation.is_required" />
+                            </div>
                         </div>
-                        <div class="flex-1 min-w-32">
-                            <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
-                            <ComboBox :options="productRelations" v-model="newRelation.product_relation_id" placeholder="Selecteer type" />
-                        </div>
-                        <div class="w-20">
-                            <label class="block text-xs text-gray-500 mb-1">Aantal</label>
-                            <input type="number" min="1" v-model.number="newRelation.quantity"
-                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
-                        </div>
-                        <div class="flex flex-col">
-                            <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
-                            <SwitchComponent v-model="newRelation.is_required" />
+                        <div class="flex gap-2 justify-end">
+                            <button @click="addingRelation = false"
+                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                Annuleren
+                            </button>
+                            <button @click="submitNewRelation"
+                                class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                                Opslaan
+                            </button>
                         </div>
                     </div>
-                    <div class="flex gap-2 justify-end">
-                        <button @click="addingRelation = false"
-                            class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
-                            Annuleren
-                        </button>
-                        <button @click="submitNewRelation"
-                            class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
-                            Opslaan
-                        </button>
-                    </div>
-                </div>
                 </div>
 
                 <!-- Existing relations -->
@@ -154,10 +153,12 @@
                     <tbody>
                         <template v-for="rel in childProducts" :key="rel.productable_id">
                             <!-- Edit row -->
-                            <tr v-if="editingId === rel.productable_id" class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
+                            <tr v-if="editingId === rel.productable_id"
+                                class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
                                 <td class="py-1.5 pr-2">{{ rel.name }}</td>
                                 <td class="py-1.5 pr-2">
-                                    <ComboBox :options="productRelations" v-model="editForm.product_relation_id" placeholder="Selecteer type" />
+                                    <ComboBox :options="productRelations" v-model="editForm.product_relation_id"
+                                        placeholder="Selecteer type" />
                                 </td>
                                 <td class="py-1.5 pr-2">
                                     <input type="number" min="1" v-model.number="editForm.quantity"
@@ -168,8 +169,10 @@
                                 </td>
                                 <td class="py-1.5 text-right">
                                     <div class="flex justify-end gap-1">
-                                        <button @click="cancelEdit" class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
-                                        <button @click="saveEdit" class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
+                                        <button @click="cancelEdit"
+                                            class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                        <button @click="saveEdit"
+                                            class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
                                     </div>
                                 </td>
                             </tr>
@@ -177,7 +180,7 @@
                             <tr v-else class="border-b border-gray-100">
                                 <td class="py-1.5">{{ rel.name }}</td>
                                 <td class="py-1.5 text-gray-500">
-                                    {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '—' }}
+                                    {{productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '—'}}
                                 </td>
                                 <td class="py-1.5">{{ rel.quantity }}</td>
                                 <td class="py-1.5 text-center">
@@ -186,18 +189,13 @@
                                 </td>
                                 <td class="py-1.5 text-right">
                                     <div class="flex justify-end gap-2">
-                                        <button
-                                            v-if="hasPermission('productable.update')"
-                                            @click="startEdit(rel)"
-                                            class="text-gray-400 hover:text-gray-600"
-                                        >
+                                        <button v-if="hasPermission('productable.update')" @click="startEdit(rel)"
+                                            class="text-gray-400 hover:text-gray-600">
                                             <PencilIcon class="size-4" />
                                         </button>
-                                        <button
-                                            v-if="hasPermission('productable.delete')"
+                                        <button v-if="hasPermission('productable.delete')"
                                             @click="removeRelation(rel.productable_id)"
-                                            class="text-red-400 hover:text-red-600"
-                                        >
+                                            class="text-red-400 hover:text-red-600">
                                             <TrashIcon class="size-4" />
                                         </button>
                                     </div>
@@ -223,13 +221,9 @@
 
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
-        <AddAssetForm
-            :allCustomers="allCustomers"
-            :productId="product.id"
-            :required-productables-by-product="requiredProductablesByProduct"
-            :bare="true"
-            @created="addAssetDrawerOpen = false"
-        />
+        <AddAssetForm :allCustomers="allCustomers" :productId="product.id"
+            :required-productables-by-product="requiredProductablesByProduct" :bare="true"
+            @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
 
@@ -239,9 +233,9 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
-import { CubeIcon, PencilSquareIcon, CheckCircleIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
@@ -263,13 +257,12 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    productRelations:              { type: Array, default: () => [] },
-    eligibleChildProducts:         { type: Array, default: () => [] },
-    childProducts:                 { type: Array, default: () => [] },
+    productRelations: { type: Array, default: () => [] },
+    eligibleChildProducts: { type: Array, default: () => [] },
+    childProducts: { type: Array, default: () => [] },
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
 });
 
-const editing = ref(false);
 const form = useForm({
     description: props.product.description,
     id: props.product.id,
@@ -293,35 +286,31 @@ watch([
     form.patch(`/products/${props.product.id}`);
 });
 
-const currentIcon = computed(() =>
-    editing.value ? CheckCircleIcon : PencilSquareIcon
-);
-
 const addAssetDrawerOpen = ref(false);
 
-const addingRelation  = ref(false)
-const newRelation     = reactive({
-    child_product_id:    null,
+const addingRelation = ref(false)
+const newRelation = reactive({
+    child_product_id: null,
     product_relation_id: null,
-    quantity:            1,
-    is_required:         false,
+    quantity: 1,
+    is_required: false,
 })
 
 function submitNewRelation() {
     router.post('/productables', {
-        product_id:          props.product.id,
-        child_product_id:    newRelation.child_product_id,
+        product_id: props.product.id,
+        child_product_id: newRelation.child_product_id,
         product_relation_id: newRelation.product_relation_id,
-        quantity:            newRelation.quantity,
-        is_required:         newRelation.is_required,
+        quantity: newRelation.quantity,
+        is_required: newRelation.is_required,
     }, {
         preserveScroll: true,
         onSuccess: () => {
             addingRelation.value = false
-            newRelation.child_product_id    = null
+            newRelation.child_product_id = null
             newRelation.product_relation_id = null
-            newRelation.quantity            = 1
-            newRelation.is_required         = false
+            newRelation.quantity = 1
+            newRelation.is_required = false
         },
     })
 }
@@ -330,14 +319,14 @@ function removeRelation(productableId) {
     router.delete(`/productables/${productableId}`, { preserveScroll: true })
 }
 
-const editingId  = ref(null)
-const editForm   = reactive({ product_relation_id: null, quantity: 1, is_required: false })
+const editingId = ref(null)
+const editForm = reactive({ product_relation_id: null, quantity: 1, is_required: false })
 
 function startEdit(rel) {
-    editingId.value               = rel.productable_id
-    editForm.product_relation_id  = rel.product_relation_id
-    editForm.quantity             = rel.quantity
-    editForm.is_required          = rel.is_required
+    editingId.value = rel.productable_id
+    editForm.product_relation_id = rel.product_relation_id
+    editForm.quantity = rel.quantity
+    editForm.is_required = rel.is_required
 }
 
 function cancelEdit() {
@@ -347,8 +336,8 @@ function cancelEdit() {
 function saveEdit() {
     router.patch(`/productables/${editingId.value}`, {
         product_relation_id: editForm.product_relation_id,
-        quantity:            editForm.quantity,
-        is_required:         editForm.is_required,
+        quantity: editForm.quantity,
+        is_required: editForm.is_required,
     }, {
         preserveScroll: true,
         onSuccess: () => { editingId.value = null },
