@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Models\Product;
+use App\Rules\DbRange;
 
 /**
  * @method \App\Models\Product|null route(string $key = null)
@@ -42,12 +43,16 @@ class ProductStoreUpdateRequest extends FormRequest
             'brand_id'        => ['required', 'exists:brands,id'],
             'model'           => ['required', 'string', 'max:255'],
             'description'     => ['nullable', 'string'],
-            'start_sell'      => ['required', 'date'],
-            'end_sell'        => [
-                'required',
+            'start_sell'      => ['nullable', 'date'],
+            'end_sell'        => array_filter([
+                'nullable',
                 'date',
-                'after_or_equal:start_sell',
+                $startSell ? 'after_or_equal:start_sell' : null,
                 function ($attribute, $value, $fail) use ($brandId, $typeId, $modelName, $productId, $startSell) {
+                    if (!$value || !$startSell) {
+                        return;
+                    }
+
                     $overlap = Product::query()
                         ->where('brand_id', $brandId)
                         ->where('product_type_id', $typeId)
@@ -61,7 +66,7 @@ class ProductStoreUpdateRequest extends FormRequest
                         $fail('Er bestaat al een product met deze combinatie van merk, producttype en model dat valt binnen de opgegeven verkoopdatums.');
                     }
                 },
-            ],
+            ]),
             'origin'       => [
                 'nullable',
                 'string',
@@ -70,9 +75,10 @@ class ProductStoreUpdateRequest extends FormRequest
                 'nullable',
                 'integer',
                 'min:1',
+                DbRange::int(),
             ],
-            'retail_price'   => 'nullable|numeric|min:0',
-            'purchase_price' => 'nullable|numeric|min:0',
+            'retail_price'   => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'purchase_price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
         ];
     }
 
@@ -89,8 +95,12 @@ class ProductStoreUpdateRequest extends FormRequest
             'description.string'               => 'De beschrijving moet een geldige tekenreeks zijn.',
             'start_sell.date'                  => 'De startdatum van verkoop moet een geldige datum zijn.',
             'end_sell.date'                    => 'De einddatum van verkoop moet een geldige datum zijn.',
-            'start_sell.required'              => 'De startdatum van verkoop moet een geldige datum zijn.',
-            'end_sell.required'                => 'De einddatum van verkoop moet een geldige datum zijn.',
+            'retail_price.numeric'             => 'De verkoopprijs moet een geldig getal zijn.',
+            'retail_price.min'                 => 'De verkoopprijs mag niet negatief zijn.',
+            'purchase_price.numeric'           => 'De inkoopprijs moet een geldig getal zijn.',
+            'purchase_price.min'               => 'De inkoopprijs mag niet negatief zijn.',
+            'typical_certificate_days.integer' => 'De certificeringstermijn moet een geheel getal zijn.',
+            'typical_certificate_days.min'     => 'De certificeringstermijn moet minimaal 1 dag zijn.',
         ];
     }
 }

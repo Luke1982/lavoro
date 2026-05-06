@@ -39,10 +39,10 @@
                     class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[24%]">
                     Producttype</div>
                 <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[26%]">
+                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:flex-grow">
                     Verkoopperiode</div>
                 <div
-                    class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md flex-grow flex items-center justify-end gap-3">
+                    class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md shrink-0 flex items-center justify-end gap-3">
                     <span class="text-white text-sm font-semibold opacity-0">Acties</span>
                 </div>
             </div>
@@ -91,7 +91,7 @@
 
                     <!-- Verkoopperiode -->
                     <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:w-[26%]">
+                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:flex-grow">
                         <span
                             class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Verkoopperiode</span>
                         <div v-if="product.open" class="grid grid-cols-2 gap-2 pt-1">
@@ -116,7 +116,7 @@
                     </div>
 
                     <!-- Acties -->
-                    <div class="px-4 py-2 text-right flex items-center justify-end gap-3 col-span-12 lg:flex-grow">
+                    <div class="px-4 py-2 text-right flex items-center justify-end gap-3 col-span-12 lg:shrink-0">
                         <button v-if="!product.open" @click="toggleRecord(product.id)"
                             class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
                             <PencilSquareIcon class="inline h-5 w-5 mr-2" />
@@ -171,8 +171,10 @@ const productFields = [
     { key: 'brand_id', label: 'Merk', type: 'combobox', options: brands, initialId: brands[0]?.id },
     { key: 'model', label: 'Model', type: 'text' },
     { key: 'description', label: 'Beschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
-    { key: 'start_sell', label: 'Start verkoop', type: 'date' },
-    { key: 'end_sell', label: 'Einde verkoop', type: 'date' },
+    { key: 'start_sell', label: 'Start verkoop', type: 'date', placeholder: 'Optioneel' },
+    { key: 'end_sell', label: 'Einde verkoop', type: 'date', placeholder: 'Optioneel' },
+    { key: 'retail_price', label: 'Verkoopprijs', type: 'currency', placeholder: 'Optioneel' },
+    { key: 'purchase_price', label: 'Inkoopprijs', type: 'currency', placeholder: 'Optioneel' },
 ]
 
 const deleteProduct = (id) => {
