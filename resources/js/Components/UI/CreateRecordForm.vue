@@ -15,6 +15,12 @@
                         :errorMessage="form.errors[field.key]" />
                 </div>
 
+                <div v-else-if="field.type === 'currency'" :class="['col-span-1', field.class]">
+                    <CurrencyInput v-model="form[field.key]" :label="field.label"
+                        :placeholder="field.placeholder || ''" :hasError="Boolean(form.errors[field.key])"
+                        :errorMessage="form.errors[field.key]" />
+                </div>
+
                 <div v-else-if="field.type === 'textarea'" :class="['col-span-1', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ field.label
                     }}</label>
@@ -66,6 +72,7 @@ import { useForm } from '@inertiajs/vue3'
 import { ref, watchEffect, computed } from 'vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 
 const props = defineProps({

@@ -30,7 +30,7 @@
                         :style="{ ...styleForIndex(cIndex), ...(cIndex === 0 && nestable && (item[depthKey ?? '_depth'] as number) > 0 ? { paddingLeft: `${(item[depthKey ?? '_depth'] as number) * 1.5}rem` } : {}) }">
                         <span class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400"
                             v-if="column.fieldtype !== 'combobox'">{{ column.label }}</span>
-                        <div v-if="column.fieldtype === 'text' || column.fieldtype === 'number'"
+                        <div v-if="column.fieldtype === 'text' || column.fieldtype === 'number' || column.fieldtype === 'currency'"
                             class="flex items-center gap-1">
                             <span v-if="cIndex === 0 && nestable && (item[depthKey ?? '_depth'] as number) > 0"
                                 class="shrink-0 font-mono text-gray-500 dark:text-slate-400 select-none text-sm leading-none font-semibold mr-0.5">└─</span>
