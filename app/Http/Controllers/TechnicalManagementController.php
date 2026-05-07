@@ -14,7 +14,7 @@ class TechnicalManagementController extends Controller
 {
     public function index(Request $request)
     {
-        if (!$request->user()?->hasPermission('technical.management')) {
+        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
             abort(403);
         }
 
@@ -23,7 +23,7 @@ class TechnicalManagementController extends Controller
 
     public function sendTestMail(Request $request)
     {
-        if (!$request->user()?->hasPermission('technical.management')) {
+        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
             abort(403);
         }
 

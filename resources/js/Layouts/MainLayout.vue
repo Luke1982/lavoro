@@ -343,7 +343,7 @@ import GlobalNotification from '@/Components/GlobalNotification.vue'
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
-const isTechnischBeheer = computed(() => hasPermission('technical.management'))
+const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)
