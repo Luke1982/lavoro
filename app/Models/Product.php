@@ -27,6 +27,7 @@ class Product extends Model
         'typical_certificate_days',
         'retail_price',
         'purchase_price',
+        'part_no',
     ];
 
     protected $casts = [

@@ -79,6 +79,7 @@ class ProductStoreUpdateRequest extends FormRequest
             ],
             'retail_price'   => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'purchase_price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'part_no'        => ['nullable', 'string', 'max:255'],
         ];
     }
 

@@ -175,6 +175,7 @@ const productFields = [
     { key: 'end_sell', label: 'Einde verkoop', type: 'date', placeholder: 'Optioneel' },
     { key: 'retail_price', label: 'Verkoopprijs', type: 'currency', placeholder: 'Optioneel' },
     { key: 'purchase_price', label: 'Inkoopprijs', type: 'currency', placeholder: 'Optioneel' },
+    { key: 'part_no', label: 'Artikelnummer', type: 'text', placeholder: 'Optioneel' },
 ]
 
 const deleteProduct = (id) => {
