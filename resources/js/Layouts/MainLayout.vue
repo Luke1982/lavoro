@@ -125,6 +125,15 @@
                                                     Rollen
                                                 </Link>
                                             </div>
+                                            <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
+                                                <Link @click="sidebarOpen = false" :href="'/technical-management'" :class="[
+                                                    currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <WrenchScrewdriverIcon class="size-6 shrink-0" />
+                                                    Technisch beheer
+                                                </Link>
+                                            </div>
                                             <Link @click="sidebarOpen = false" :href="'/me/edit'"
                                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                                                 <div
@@ -242,6 +251,15 @@
                                     Rollen
                                 </Link>
                             </div>
+                            <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
+                                <Link :href="'/technical-management'" :class="[
+                                    currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <WrenchScrewdriverIcon class="size-6 shrink-0" />
+                                    Technisch beheer
+                                </Link>
+                            </div>
                             <Link :href="'/me/edit'"
                                 class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
                                 <div
@@ -325,6 +343,7 @@ import GlobalNotification from '@/Components/GlobalNotification.vue'
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
+const isTechnischBeheer = computed(() => hasPermission('technical.management'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)

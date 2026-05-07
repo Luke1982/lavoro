@@ -34,6 +34,7 @@ use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\ProductRelationController;
 use App\Http\Controllers\ProductableController;
 use App\Http\Controllers\AssetRelationController;
+use App\Http\Controllers\TechnicalManagementController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -141,6 +142,10 @@ Route::group(
             ->name('upcomingactivities.map'); // requires activitylist.read
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+        Route::get('technical-management', [TechnicalManagementController::class, 'index'])
+            ->name('technical-management.index');
+        Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
+            ->name('technical-management.sendTestMail');
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
                 ->name('companies.inline');

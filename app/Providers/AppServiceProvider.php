@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Listeners\CopyMailToSentFolder;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Transport\Dsn;
 use Illuminate\Support\Facades\Mail;
@@ -37,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
                 logger: app('log')->channel()
             );
         });
+
+        Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
         Inertia::share('company', function () {
             $company = Company::where('is_main', true)->first();
