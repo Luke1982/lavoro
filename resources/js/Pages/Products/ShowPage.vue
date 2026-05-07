@@ -54,7 +54,8 @@
                         <h3 class="text-sm font-semibold mb-3">Producttype</h3>
                         <EditableTextField type="combobox" v-model="form.product_type_id" :options="productTypes"
                             :error="form.errors.product_type_id" @revert="form.clearErrors('product_type_id')">
-                            <template #display>{{ productTypes.find(t => t.id === form.product_type_id)?.name ?? product.product_type.name }}</template>
+                            <template #display>{{productTypes.find(t => t.id === form.product_type_id)?.name ??
+                                product.product_type.name}}</template>
                         </EditableTextField>
                     </div>
                     <div class="w-full md:w-1/2">
@@ -223,10 +224,12 @@
         </template>
 
         <template #sidebar>
-            <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
-                imageable-type="\App\Models\Product" />
-            <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
-                documentable-type="\App\Models\Product" class="mt-4" />
+            <div class="mt-4 md:mt-0">
+                <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
+                    imageable-type="\App\Models\Product" />
+                <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
+                    documentable-type="\App\Models\Product" class="mt-4" />
+            </div>
         </template>
     </TwoThirdsOneThird>
 
