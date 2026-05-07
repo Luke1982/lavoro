@@ -64,9 +64,10 @@ const props = defineProps({
 const editing = ref(false);
 const local = ref(model.value);
 const rootRef = ref(null);
-// null = no save attempted in this edit session.
-// non-null = the value we last submitted (and whose result we may still be waiting for).
-const lastSubmittedValue = ref(null);
+// NO_SAVE = no save attempted in this edit session.
+// anything else = the value we last submitted (and whose result we may still be waiting for).
+const NO_SAVE = Symbol('no-save');
+const lastSubmittedValue = ref(NO_SAVE);
 // The model value at the start of the current edit session. Used by revert() —
 // `model` itself is unreliable because save() may have already mutated it with
 // the bad value the user typed.
@@ -74,7 +75,7 @@ const originalValue = ref(model.value);
 
 const inErrorState = computed(() =>
     Boolean(props.error)
-    && lastSubmittedValue.value !== null
+    && lastSubmittedValue.value !== NO_SAVE
     && local.value === lastSubmittedValue.value
 );
 
@@ -111,7 +112,7 @@ function startEdit() {
     editing.value = true;
     local.value = model.value;
     originalValue.value = model.value;
-    lastSubmittedValue.value = null;
+    lastSubmittedValue.value = NO_SAVE;
 }
 
 function onWrapperClick(event) {
@@ -131,10 +132,10 @@ function save() {
 
     clearTimeout(closeTimer);
     closeTimer = setTimeout(() => {
-        if (lastSubmittedValue.value === null) return; // revert ran
+        if (lastSubmittedValue.value === NO_SAVE) return; // revert ran
         if (props.error) return; // validation failed — keep open
         editing.value = false;
-        lastSubmittedValue.value = null;
+        lastSubmittedValue.value = NO_SAVE;
     }, 200);
 }
 
@@ -143,7 +144,7 @@ function revert() {
     local.value = originalValue.value;
     model.value = originalValue.value;
     editing.value = false;
-    lastSubmittedValue.value = null;
+    lastSubmittedValue.value = NO_SAVE;
     emit('revert');
 }
 
@@ -172,13 +173,13 @@ watch(editing, (isEditing) => {
 watch(() => props.error, (err) => {
     if (err) {
         editing.value = true;
-        if (lastSubmittedValue.value === null) {
+        if (lastSubmittedValue.value === NO_SAVE) {
             lastSubmittedValue.value = local.value;
         }
-    } else if (lastSubmittedValue.value !== null) {
+    } else if (lastSubmittedValue.value !== NO_SAVE) {
         // Error cleared after a save we were tracking → success, close the field.
         editing.value = false;
-        lastSubmittedValue.value = null;
+        lastSubmittedValue.value = NO_SAVE;
     }
 }, { flush: 'post' });
 
