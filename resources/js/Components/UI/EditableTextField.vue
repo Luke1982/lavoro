@@ -6,20 +6,20 @@
         </span>
 
         <div class="flex min-w-0" v-if="editing">
-            <CurrencyInput v-if="type === 'input' && inputType === 'currency'" v-model="local"
-                :rightCorners="false" :ring="false" class="flex-grow min-w-0" :placeholder="placeholder"
-                :hasError="Boolean(error)" :errorMessage="error" />
+            <CurrencyInput v-if="type === 'input' && inputType === 'currency'" v-model="local" :rightCorners="false"
+                :ring="false" class="flex-grow min-w-0" :placeholder="placeholder" :hasError="Boolean(error)"
+                :errorMessage="error" />
             <TextInput v-else-if="type === 'input'" v-model="local" :rightCorners="false" :ring="false"
-                class="flex-grow min-w-0" :type="htmlInputType" :placeholder="placeholder"
-                :hasError="Boolean(error)" :errorMessage="error" />
+                class="flex-grow min-w-0" :type="htmlInputType" :placeholder="placeholder" :hasError="Boolean(error)"
+                :errorMessage="error" />
             <textarea v-else-if="type === 'textarea'" v-model="local"
                 :class="['flex-grow p-2 border rounded-l-md', error ? 'border-red-500' : 'border-gray-300']"
                 rows="8"></textarea>
-            <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options"
-                :multiple="multiple" :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
+            <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
+                :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
-            <button v-if="inErrorState" @click.stop="revert"
-                class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">
+            <button v-if="inErrorState" @click.stop="revert" class="px-3 py-1 text-white rounded-r cursor-pointer"
+                v-tooltip="'Wijzigingen ongedaan maken'">
                 <ArrowUturnLeftIcon class="w-5 h-5 text-gray-500 dark:text-gray-200" />
             </button>
             <button v-else-if="type !== 'combobox'" @click.stop="save"
@@ -135,7 +135,7 @@ function save() {
         if (props.error) return; // validation failed — keep open
         editing.value = false;
         lastSubmittedValue.value = null;
-    }, 300);
+    }, 200);
 }
 
 function revert() {
