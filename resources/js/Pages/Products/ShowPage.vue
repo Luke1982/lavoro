@@ -51,6 +51,13 @@
                 </div>
                 <div class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
                     <div class="w-full md:w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Producttype</h3>
+                        <EditableTextField type="combobox" v-model="form.product_type_id" :options="productTypes"
+                            :error="form.errors.product_type_id" @revert="form.clearErrors('product_type_id')">
+                            <template #display>{{ productTypes.find(t => t.id === form.product_type_id)?.name ?? product.product_type.name }}</template>
+                        </EditableTextField>
+                    </div>
+                    <div class="w-full md:w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Artikelnummer</h3>
                         <EditableTextField v-model="form.part_no" type="input" :error="form.errors.part_no"
                             @revert="form.clearErrors('part_no')" />
@@ -261,6 +268,7 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    productTypes: { type: Array, default: () => [] },
     productRelations: { type: Array, default: () => [] },
     eligibleChildProducts: { type: Array, default: () => [] },
     childProducts: { type: Array, default: () => [] },
@@ -288,6 +296,7 @@ watch([
     () => form.retail_price,
     () => form.purchase_price,
     () => form.part_no,
+    () => form.product_type_id,
 ], () => {
     form.patch(`/products/${props.product.id}`);
 });

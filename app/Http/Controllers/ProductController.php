@@ -118,6 +118,7 @@ class ProductController extends Controller
 
         return inertia('Products/ShowPage', [
             'product'               => $product,
+            'productTypes'          => ProductType::flatListWithPath(),
             'allCustomers'          => Customer::orderBy('name', 'ASC')
                 ->get(['id', 'name'])
                 ->map(fn($c) => ['id' => $c->id, 'name' => $c->name]),
