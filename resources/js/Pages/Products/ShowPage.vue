@@ -4,15 +4,15 @@
             <!-- Box 1: Main product info -->
             <BoxComponent>
                 <div class="flex border-b border-gray-200 items-center">
-                    <div class="flex justify-between w-full">
-                        <div class="flex">
+                    <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
+                        <div class="flex w-full">
                             <CubeIcon class="size-12 flex-none object-cover p-2 mb-2" />
                             <div class="flex flex-col">
                                 <span class="text-lg">{{ product.brand.name }} {{ product.model }}</span>
                                 <span class="text-sm text-gray-400">{{ product.product_type.name }}</span>
                             </div>
                         </div>
-                        <div class="flex self-ends">
+                        <div class="flex self-ends w-full">
                             <span class="text-sm text-gray-500 ml-4">Verkocht tussen {{ new
                                 Date(product.start_sell).toLocaleDateString('nl-NL', {
                                     day: '2-digit',
@@ -27,14 +27,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 flex gap-4">
-                    <div class="flex flex-col w-1/2">
+                <div class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
+                    <div class="flex flex-col w-full md:w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Beschrijving</h3>
-                        <EditableTextField v-model="form.description" type="textarea"
-                            :error="form.errors.description"
+                        <EditableTextField v-model="form.description" type="textarea" :error="form.errors.description"
                             @revert="form.clearErrors('description')" />
                     </div>
-                    <div class="w-1/2">
+                    <div class="w-full md:w-1/2">
                         <h3 class="text-sm font-semibold mb-3">
                             Typische certificeringstermijn (dagen)
                             <InformationCircleIcon class="inline h-5 w-5 text-gray-400 ml-1 cursor-pointer" v-tooltip="{
@@ -50,18 +49,23 @@
                             @revert="form.clearErrors('typical_certificate_days')" />
                     </div>
                 </div>
-                <div v-if="hasPermission('product.view_prices')" class="mt-4 flex gap-4">
-                    <div class="w-1/2">
+                <div class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
+                    <div class="w-full md:w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Artikelnummer</h3>
+                        <EditableTextField v-model="form.part_no" type="input" :error="form.errors.part_no"
+                            @revert="form.clearErrors('part_no')" />
+                    </div>
+                </div>
+                <div v-if="hasPermission('product.view_prices')" class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
+                    <div class="w-full md:w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Verkoopprijs</h3>
                         <EditableTextField v-model="form.retail_price" type="input" inputType="currency"
-                            :error="form.errors.retail_price"
-                            @revert="form.clearErrors('retail_price')" />
+                            :error="form.errors.retail_price" @revert="form.clearErrors('retail_price')" />
                     </div>
-                    <div class="w-1/2">
+                    <div class="w-full md:w-1/2">
                         <h3 class="text-sm font-semibold mb-3">Inkoopprijs</h3>
                         <EditableTextField v-model="form.purchase_price" type="input" inputType="currency"
-                            :error="form.errors.purchase_price"
-                            @revert="form.clearErrors('purchase_price')" />
+                            :error="form.errors.purchase_price" @revert="form.clearErrors('purchase_price')" />
                     </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
@@ -274,6 +278,7 @@ const form = useForm({
     typical_certificate_days: props.product.typical_certificate_days,
     retail_price: props.product.retail_price,
     purchase_price: props.product.purchase_price,
+    part_no: props.product.part_no,
     origin: 'showPage'
 });
 
@@ -282,6 +287,7 @@ watch([
     () => form.typical_certificate_days,
     () => form.retail_price,
     () => form.purchase_price,
+    () => form.part_no,
 ], () => {
     form.patch(`/products/${props.product.id}`);
 });
