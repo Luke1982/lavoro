@@ -1,14 +1,21 @@
 <template>
     <div :class="[
-        padding,
-        'bg-white dark:bg-slate-900 shadow-xs dark:shadow-none ring-1 ring-gray-900/5 dark:ring-slate-800 text-gray-800 dark:text-slate-100 sm:rounded-lg lg:col-span-2 lg:row-span-2 lg:row-end-2',
+        'bg-white dark:bg-slate-900 shadow-xs dark:shadow-none ring-1 ring-gray-900/5 dark:ring-slate-800 text-gray-800 dark:text-slate-100 sm:rounded-lg lg:col-span-2 lg:row-span-2 lg:row-end-2 overflow-hidden',
         extraClasses
     ]">
-        <slot />
+        <div v-if="slots.header" class="border-b text-white px-4 py-2 text-sm font-medium bg-emerald-800">
+            <slot name="header"></slot>
+        </div>
+        <div :class="padding">
+            <slot />
+        </div>
     </div>
 </template>
 
 <script setup>
+import { useSlots } from 'vue';
+const slots = useSlots();
+
 defineProps({
     padding: {
         type: String,
