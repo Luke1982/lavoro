@@ -3,9 +3,6 @@
         <template #main>
             <!-- Box 1: Main product info -->
             <BoxComponent>
-                <template #header>
-                    Test
-                </template>
                 <div class="flex border-b border-gray-200 items-center">
                     <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
                         <div class="flex w-full">
