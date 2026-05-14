@@ -81,16 +81,16 @@ class ProductTypeController extends Controller
             ->with('success', 'Producttype bijgewerkt.');
     }
 
-    public function destroy(ProductType $productType)
+    public function destroy(ProductType $producttype)
     {
-        if ($this->hasProducts($productType)) {
+        if ($this->hasProducts($producttype)) {
             return back()->with(
                 'error',
                 'Dit producttype of een van de subtypes heeft nog gekoppelde producten en kan niet verwijderd worden.'
             );
         }
 
-        $this->deleteRecursive($productType);
+        $this->deleteRecursive($producttype);
 
         return redirect()
             ->route('producttypes.index')
