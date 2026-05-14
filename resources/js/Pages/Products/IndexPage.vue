@@ -60,7 +60,7 @@
                         </div>
                         <Link v-else :href="`/products/${product.id}`"
                             class="text-blue-500 dark:text-blue-300 underline">
-                        {{ product.model }}
+                            {{ product.model }}
                         </Link>
                     </div>
 
@@ -100,19 +100,7 @@
                             <input type="date" v-model="product.end_sell"
                                 class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
                         </div>
-                        <span v-else>
-                            {{ new Date(product.start_sell).toLocaleDateString('nl-NL', {
-                                day: '2-digit', month:
-                                    '2-digit',
-                                year: 'numeric'
-                            }) }}
-                            –
-                            {{ new Date(product.end_sell).toLocaleDateString('nl-NL', {
-                                day: '2-digit', month:
-                                    '2-digit',
-                                year: 'numeric'
-                            }) }}
-                        </span>
+                        <span v-else>{{ formatProductSalePeriod(product.start_sell, product.end_sell, 'index') }}</span>
                     </div>
 
                     <!-- Acties -->
@@ -147,6 +135,7 @@ import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { formatProductSalePeriod } from '@/Utilities/Utilities'
 
 const { products, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
@@ -209,5 +198,7 @@ const saveRecord = (product) => {
 function resetFilter() {
     productTypeToShow.value = null
 }
+
+
 
 </script>

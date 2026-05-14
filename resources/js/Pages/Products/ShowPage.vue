@@ -13,17 +13,8 @@
                             </div>
                         </div>
                         <div class="flex self-ends w-full">
-                            <span class="text-sm text-gray-500 ml-4">Verkocht tussen {{ new
-                                Date(product.start_sell).toLocaleDateString('nl-NL', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                }) }} en {{
-                                    new Date(product.end_sell).toLocaleDateString('nl-NL', {
-                                        day: '2-digit', month:
-                                            '2-digit',
-                                        year: 'numeric'
-                                    }) }}</span>
+                            <span v-if="sale_period_text" class="text-sm text-gray-500 ml-4">{{ sale_period_text
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -249,14 +240,14 @@ import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, watch, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { hasPermission } from '@/Utilities/Utilities';
+import { hasPermission, formatProductSalePeriod } from '@/Utilities/Utilities';
 
 const props = defineProps({
     product: {
@@ -292,6 +283,9 @@ const form = useForm({
     part_no: props.product.part_no,
     origin: 'showPage'
 });
+
+const sale_period_text = computed(() => formatProductSalePeriod(props.product.start_sell, props.product.end_sell, 'show'))
+
 
 watch([
     () => form.description,
@@ -361,4 +355,5 @@ function saveEdit() {
         onSuccess: () => { editingId.value = null },
     })
 }
+
 </script>

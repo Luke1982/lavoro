@@ -6,6 +6,18 @@ export const nlDate = (date) => {
     });
 };
 
+export const nlDateOrEmpty = (date) => {
+    if (!date || date === "0000-00-00") return "";
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "";
+    if (parsed.getFullYear() < 1900) return "";
+    return parsed.toLocaleDateString("nl-NL", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+};
+
 export const formatLocalDateAsISO = (date) => {
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
@@ -105,4 +117,18 @@ export const projectStatusClass = (status) => {
         Geannuleerd: "text-red-600 dark:text-red-400",
     };
     return map[status] || "";
+};
+
+export const formatProductSalePeriod = (startDate, endDate) => {
+    const start = nlDateOrEmpty(startDate);
+    const end = nlDateOrEmpty(endDate);
+
+    if (!start && !end) return "";
+    if (start && !end) {
+        return `van ${start} tot nu`;
+    }
+    if (!start && end) {
+        return `tot ${end}`;
+    }
+    return `Verkocht tussen ${start} en ${end}`;
 };
