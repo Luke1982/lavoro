@@ -6,13 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('service_jobs', function (Blueprint $table) {
-            $table->foreignId('parent_service_job_id')
-                ->nullable()
-                ->after('service_order_id')
-                ->constrained('service_jobs')
+            $table->dropForeign(['parent_service_job_id']);
+            $table->foreign('parent_service_job_id')
+                ->references('id')->on('service_jobs')
                 ->nullOnDelete();
         });
     }
@@ -21,7 +23,9 @@ return new class extends Migration
     {
         Schema::table('service_jobs', function (Blueprint $table) {
             $table->dropForeign(['parent_service_job_id']);
-            $table->dropColumn('parent_service_job_id');
+            $table->foreign('parent_service_job_id')
+                ->references('id')->on('service_jobs')
+                ->restrictOnDelete();
         });
     }
 };
