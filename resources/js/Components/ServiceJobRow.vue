@@ -1,6 +1,8 @@
 <template>
-    <div
-        :class="`grid-cols-${asset ? 12 : 10} grid gap-4 text-sm odd:bg-gray-50 dark:odd:bg-slate-800/40 p-5 md:px-0 md:py-2 relative rounded-md`">
+    <div :class="['odd:bg-gray-50 dark:odd:bg-slate-800/40 rounded-md flex items-start', isChild ? 'pl-6' : '']">
+        <span v-if="isChild"
+            class="shrink-0 select-none text-gray-400 dark:text-slate-500 font-mono leading-9 pr-1">└─</span>
+        <div :class="`flex-1 grid-cols-${asset ? 12 : 10} grid gap-4 text-sm p-5 md:px-0 md:py-2 relative`">
         <div class="col-span-6 lg:col-span-5 flex flex-col" v-if="asset">
             <span class="font-bold block lg:hidden">Machine</span>
             <Link :href="`/products/${servicejob.asset.product.id}`"
@@ -43,7 +45,7 @@
                 class="size-7 lg:size-5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                 @click="deleteServiceJob" v-tooltip="'Verwijder deze keuring'" />
         </div>
-
+        </div>
     </div>
 </template>
 
@@ -62,6 +64,10 @@ const props = defineProps({
         type: Object,
         required: false,
         default: null,
+    },
+    isChild: {
+        type: Boolean,
+        default: false,
     },
 });
 

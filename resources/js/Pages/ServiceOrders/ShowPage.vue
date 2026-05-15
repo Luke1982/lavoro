@@ -146,8 +146,8 @@
                         <div class="col-span-2">Tijdelijke goedkeur</div>
                         <div class="col-span-2">Afgerond op</div>
                     </div>
-                    <ServiceJobRow v-for="job in serviceOrder.servicejobs" :key="job.id" :servicejob="job" class="mt-4"
-                        :asset="job.asset" />
+                    <ServiceJobRow v-for="item in sortedServiceJobs" :key="item.job.id" :servicejob="item.job" class="mt-4"
+                        :asset="item.job.asset" :is-child="item.isChild" />
                 </div>
                 <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
@@ -452,6 +452,29 @@ const props = defineProps({
 });
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
+
+const sortedServiceJobs = computed(() => {
+    const jobs = props.serviceOrder.servicejobs;
+    const childrenByParent = {};
+    jobs.forEach(j => {
+        if (j.parent_service_job_id) {
+            if (!childrenByParent[j.parent_service_job_id]) childrenByParent[j.parent_service_job_id] = [];
+            childrenByParent[j.parent_service_job_id].push(j);
+        }
+    });
+    const result = [];
+    const included = new Set();
+    jobs.filter(j => !j.parent_service_job_id).forEach(parent => {
+        result.push({ job: parent, isChild: false });
+        included.add(parent.id);
+        (childrenByParent[parent.id] || []).forEach(child => {
+            result.push({ job: child, isChild: true });
+            included.add(child.id);
+        });
+    });
+    jobs.forEach(j => { if (!included.has(j.id)) result.push({ job: j, isChild: false }); });
+    return result;
+});
 
 const internalMaterials = computed(() => {
     return props.allMaterials.slice().sort((a, b) =>
