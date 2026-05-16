@@ -131,7 +131,7 @@
                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
                         Naar werkbon
                     </a>
-                    <a href="/events"
+                    <a :href="createdEvent ? `/events?gotodate=${encodeURIComponent(createdEvent.start.split('T')[0])}&highlightevent=${encodeURIComponent(createdEvent.id)}` : '/events'"
                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
                         Naar kalender
                     </a>
@@ -179,6 +179,7 @@ const form = useForm({
 
 const planningModalOpen = ref(false);
 const eventSuccessfullyCreated = ref(false);
+const createdEvent = ref(null);
 
 const eventForm = useForm({
     service_order_id: null,
@@ -279,8 +280,9 @@ const submitEvent = () => {
     };
 
     axios.post('/api/events', eventData)
-        .then(() => {
+        .then((response) => {
             usePage().props.flash.success = 'Werkbon succesvol ingepland.';
+            createdEvent.value = response.data;
             eventSuccessfullyCreated.value = true;
         })
         .catch(error => {
@@ -296,6 +298,7 @@ const submitEvent = () => {
 const closePlanningModal = () => {
     planningModalOpen.value = false;
     eventSuccessfullyCreated.value = false;
+    createdEvent.value = null;
     eventForm.reset();
     eventForm.clearErrors();
 };
