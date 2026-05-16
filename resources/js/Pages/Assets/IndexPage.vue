@@ -16,8 +16,41 @@
     </div>
     <div class="mb-4" v-auto-animate v-if="canCreate">
         <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
-            add-button-label="Voeg machine toe" submit-label="Toevoegen" />
+            add-button-label="Voeg machine toe" submit-label="Toevoegen" :before-submit="handleBeforeSubmit" />
     </div>
+
+    <ModalDialog v-model:open="showChildModal" title="Vereiste serienummers" max-width-class="sm:max-w-lg">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Dit product vereist de volgende onderdelen. Voer voor elk onderdeel het serienummer in.
+        </p>
+        <div class="mt-4 space-y-4">
+            <div v-for="(child, index) in pendingChildren" :key="index">
+                <TextInput
+                    v-model="child.serial_number"
+                    :label="`${child.relation_name}: ${child.name}`"
+                    placeholder="Serienummer"
+                />
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex gap-3 justify-end">
+                <button
+                    type="button"
+                    class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
+                    @click="cancelChildModal"
+                >
+                    Annuleren
+                </button>
+                <button
+                    type="button"
+                    class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    @click="confirmChildModal"
+                >
+                    Toevoegen
+                </button>
+            </div>
+        </template>
+    </ModalDialog>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <ul role="list"
             class="divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden bg-white dark:bg-slate-900 shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
@@ -82,6 +115,8 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import ModalDialog from '@/Components/UI/ModalDialog.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { hasPermission } from '@/Utilities/Utilities';
 const assetFormRef = ref(null)
 
@@ -92,6 +127,7 @@ const props = defineProps({
     },
     allProducts: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
+    requiredProductablesByProduct: { type: Object, default: () => ({}) },
 });
 
 // no per-page search state needed; SearchComponent handles it
@@ -125,5 +161,47 @@ const assetFields = [
 
 const canCreate = computed(() => hasPermission('asset.create'))
 
+const showChildModal = ref(false)
+const pendingChildren = ref([])
+let resolveChildModal = null
 
+function handleBeforeSubmit(formData) {
+    const required = props.requiredProductablesByProduct[formData.product_id]
+    if (!required || required.length === 0) return {}
+
+    pendingChildren.value = required.flatMap(item =>
+        Array.from({ length: item.quantity }, () => ({
+            productable_id: item.productable_id,
+            name: item.name,
+            relation_name: item.relation_name,
+            serial_number: '',
+        }))
+    )
+    showChildModal.value = true
+
+    return new Promise((resolve) => {
+        resolveChildModal = resolve
+    })
+}
+
+function confirmChildModal() {
+    if (resolveChildModal) {
+        resolveChildModal({
+            child_assets: pendingChildren.value.map(c => ({
+                productable_id: c.productable_id,
+                serial_number: c.serial_number,
+            })),
+        })
+        resolveChildModal = null
+    }
+    showChildModal.value = false
+}
+
+function cancelChildModal() {
+    if (resolveChildModal) {
+        resolveChildModal(false)
+        resolveChildModal = null
+    }
+    showChildModal.value = false
+}
 </script>

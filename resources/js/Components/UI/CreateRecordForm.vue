@@ -81,6 +81,7 @@ const props = defineProps({
     addButtonLabel: { type: String, default: 'Voeg toe' },
     submitLabel: { type: String, default: 'Opslaan' },
     externalTrigger: { type: Boolean, default: false },
+    beforeSubmit: { type: Function, default: null },
 })
 
 const emit = defineEmits(['closed'])
@@ -128,8 +129,16 @@ watchEffect(() => {
 
 const hasFileField = computed(() => props.fields.some(f => f.type === 'file'))
 
-function submit() {
-    form.post(props.action, {
+async function submit() {
+    let extraData = {}
+
+    if (props.beforeSubmit) {
+        const result = await props.beforeSubmit({ ...form.data() })
+        if (result === false) return
+        if (result && typeof result === 'object') extraData = result
+    }
+
+    form.transform(data => ({ ...data, ...extraData })).post(props.action, {
         preserveScroll: true,
         forceFormData: hasFileField.value,
         onSuccess: () => {
