@@ -310,6 +310,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import { ref, watch, computed, reactive } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobRow from '@/Components/ServiceJobRow.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
