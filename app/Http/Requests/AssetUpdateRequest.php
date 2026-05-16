@@ -25,6 +25,13 @@ class AssetUpdateRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+    public function messages(): array
+    {
+        return [
+            'serial_number.unique' => 'Er bestaat al een machine met dit serienummer voor dit product.',
+        ];
+    }
+
     public function rules(): array
     {
         return [

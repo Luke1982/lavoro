@@ -20,6 +20,7 @@ class AssetStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'serial_number.unique'                       => 'Er bestaat al een machine met dit serienummer voor dit product.',
             'child_assets.*.serial_number.required_with' => 'Serienummer is verplicht.',
         ];
     }
