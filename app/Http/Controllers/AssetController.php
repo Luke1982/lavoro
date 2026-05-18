@@ -72,8 +72,10 @@ class AssetController extends Controller
             ->get()
             ->map(function ($product) {
                 return [
-                    'id' => $product->id,
-                    'name' => $product->brand->name . ' ' . $product->model . ' (' . $product->productType->name . ')',
+                    'id'     => $product->id,
+                    'name'   => $product->brand->name . ' ' . $product->model .
+                        ' (' . $product->productType->name . ')',
+                    'bundle' => $product->bundle,
                 ];
             });
 
@@ -169,8 +171,10 @@ class AssetController extends Controller
             ->get()
             ->map(function ($product) {
                 return [
-                    'id' => $product->id,
-                    'name' => $product->brand->name . ' ' . $product->model . ' (' . $product->productType->name . ')',
+                    'id'     => $product->id,
+                    'name'   => $product->brand->name . ' ' .
+                        $product->model . ' (' . $product->productType->name . ')',
+                    'bundle' => $product->bundle,
                 ];
             });
         $asset->load([
@@ -214,12 +218,13 @@ class AssetController extends Controller
                     'id'   => $a->id,
                     'name' => $a->product->brand->name . ' ' . $a->product->model
                         . ' (' . $a->product->productType->name . ')'
-                        . ' — ' . ($a->serial_number ?? 'geen serienr.'),
+                        . ' — ' . ($a->product->bundle ? 'Bundel' : ($a->serial_number ?? 'geen serienr.')),
                 ])
                 ->values()
                 ->all();
         }
 
+        /** @disregard P1005 */
         return inertia('Assets/ShowPage', [
             'asset'               => $asset,
             'allProducts'         => $all_products,
@@ -233,6 +238,7 @@ class AssetController extends Controller
 
     public function storeChild(AssetChildStoreRequest $request, Asset $asset)
     {
+        /** @disregard P1005 */
         $productable = Productable::find($request->productable_id);
 
         DB::transaction(function () use ($asset, $productable, $request) {
@@ -279,6 +285,7 @@ class AssetController extends Controller
      */
     public function destroy(AssetDestroyRequest $request, Asset $asset)
     {
+        /** @disregard P1005 */
         $asset->delete();
 
         return redirect()

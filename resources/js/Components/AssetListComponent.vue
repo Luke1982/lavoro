@@ -12,8 +12,8 @@
                 <div class="flex flex-col text-sm">
                     <Link :href="`/assets/${asset.id}`"
                         class="font-medium text-gray-900 dark:text-slate-100 hover:text-gray-700 dark:hover:text-slate-300 leading-snug line-clamp-2">
-                    {{
-                        asset.product.brand.name }} {{ asset.product.model }}</Link>
+                        {{
+                            asset.product.brand.name }} {{ asset.product.model }}</Link>
                 </div>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-600 dark:text-slate-400">
                     <div class="flex items-center gap-1">
@@ -26,8 +26,10 @@
                     <div class="flex items-center gap-1">
                         <HashtagIcon class="h-3.5 w-3.5 text-gray-500 dark:text-slate-500" />
                         <span
-                            class="bg-yellow-100 dark:bg-yellow-900/40 text-gray-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium tracking-tight">SN
-                            {{ asset.serial_number }}</span>
+                            class="bg-yellow-100 dark:bg-yellow-900/40 text-gray-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium tracking-tight">
+                            <template v-if="asset.product.bundle">Bundel</template>
+                            <template v-else>SN {{ asset.serial_number }}</template>
+                        </span>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-3">

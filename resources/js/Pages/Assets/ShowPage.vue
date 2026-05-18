@@ -29,17 +29,16 @@
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Serienummer</div>
                         <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
-                                :error="form.errors.serial_number"
-                                @revert="form.clearErrors('serial_number')" />
+                            <span v-if="asset.product.bundle" class="text-sm text-gray-500 italic">Bundel</span>
+                            <EditableTextField v-else v-model="form.serial_number" :readonly="!canUpdate"
+                                :error="form.errors.serial_number" @revert="form.clearErrors('serial_number')" />
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Verloopdatum</div>
                         <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField v-model="form.next_service_date" inputType="date"
-                                :readonly="!canUpdate" :error="form.errors.next_service_date"
-                               
+                            <EditableTextField v-model="form.next_service_date" inputType="date" :readonly="!canUpdate"
+                                :error="form.errors.next_service_date"
                                 @revert="form.clearErrors('next_service_date')" />
                         </div>
                     </div>
@@ -47,13 +46,13 @@
                         <div class="w-1/3 text-xs">Status</div>
                         <div class="w-2/3 mr-0 md:mr-3">
                             <EditableTextField type="combobox" v-model="form.status" :options="statusOptions"
-                                :readonly="!canUpdate" :error="form.errors.status"
-                                @revert="form.clearErrors('status')">
+                                :readonly="!canUpdate" :error="form.errors.status" @revert="form.clearErrors('status')">
                                 <template #display>
                                     <span v-if="asset.status === 'Actief'"
                                         class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
                                     <span v-else
-                                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
+                                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                                        asset.status }}</span>
                                 </template>
                             </EditableTextField>
                         </div>
@@ -63,11 +62,10 @@
                         <div class="w-2/3 mr-0 md:mr-3">
                             <EditableTextField type="combobox" v-model="form.customer_id" :options="allCustomers"
                                 :readonly="!canUpdate" :error="form.errors.customer_id"
-                               
                                 @revert="form.clearErrors('customer_id')">
                                 <template #display>
-                                    <Link :href="`/customers/${asset.customer.id}`"
-                                        class="text-blue-600 underline">{{ asset.customer.name }}</Link>
+                                    <Link :href="`/customers/${asset.customer.id}`" class="text-blue-600 underline">{{
+                                        asset.customer.name }}</Link>
                                 </template>
                             </EditableTextField>
                         </div>
@@ -92,7 +90,9 @@
                 <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
-            <BoxComponent v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))" class="mt-5">
+            <BoxComponent
+                v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
+                class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
                     <h3 class="text-sm font-medium">Gerelateerde machines</h3>
@@ -127,7 +127,8 @@
                                 <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
                                     {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number ?? '—' }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
+                                    (rel.child_asset.serial_number ?? '—') }}</span>
                             </div>
                             <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
@@ -169,12 +170,15 @@
                                 <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
                                     {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
+                                    rel.child_asset.serial_number }}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
-                                <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
-                                    class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
+                                    }}</span>
+                                <button v-if="hasPermission('assetrelation.delete')"
+                                    @click="removeAssetRelation(rel.id)" class="text-red-400 hover:text-red-600"
+                                    v-tooltip="'Koppeling verwijderen'">
                                     <TrashIcon class="size-4" />
                                 </button>
                             </div>
@@ -191,10 +195,12 @@
                             <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
                                 {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
+                                rel.child_asset.serial_number }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                            <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
+                                }}</span>
                             <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
@@ -211,14 +217,17 @@
                             <Link :href="`/assets/${rel.parent_asset.id}`" class="text-blue-600 underline text-sm">
                                 {{ rel.parent_asset.product.brand.name }} {{ rel.parent_asset.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ rel.parent_asset.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ rel.parent_asset.product?.bundle ? 'Bundel' :
+                                rel.parent_asset.serial_number }}</span>
                         </div>
                         <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
                     </div>
                 </div>
 
-                <div v-if="!asset.product.productables?.length && productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
-                    Er zijn geen machines van de juiste subtypes gevonden bij deze klant om te koppelen. Voeg eerst een onderdeel-machine toe aan de klant.
+                <div v-if="!asset.product.productables?.length && productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')"
+                    class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
+                    Er zijn geen machines van de juiste subtypes gevonden bij deze klant om te koppelen. Voeg eerst een
+                    onderdeel-machine toe aan de klant.
                 </div>
 
                 <div v-if="eligibleChildAssets.length && hasPermission('assetrelation.create')" class="mt-3">
@@ -228,7 +237,8 @@
                             <PlusIcon class="size-4" /> Machine handmatig koppelen
                         </button>
                     </div>
-                    <div v-else class="p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2 mt-2">
+                    <div v-else
+                        class="p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2 mt-2">
                         <div class="flex gap-2 flex-wrap">
                             <div class="flex-1 min-w-48">
                                 <label class="block text-xs text-gray-500 mb-1">Machine</label>
@@ -246,7 +256,8 @@
                                 class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
                                 Koppelen
                             </button>
-                            <button @click="addingManualLink = false; manualLink.child_asset_id = null; manualLink.product_relation_id = null"
+                            <button
+                                @click="addingManualLink = false; manualLink.child_asset_id = null; manualLink.product_relation_id = null"
                                 class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
                                 Annuleren
                             </button>
@@ -288,7 +299,7 @@
                     <CubeIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
                     Foto's van het
                     <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">
-                    product
+                        product
                     </Link>:
                 </h2>
                 <div class="grid grid-cols-2 gap-6 items-center mt-4">
@@ -335,9 +346,9 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    eligibleChildAssets:    { type: Array,   default: () => [] },
-    productHasChildTypes:   { type: Boolean, default: false },
-    productRelations:       { type: Array,   default: () => [] },
+    eligibleChildAssets: { type: Array, default: () => [] },
+    productHasChildTypes: { type: Boolean, default: false },
+    productRelations: { type: Array, default: () => [] },
 });
 
 const statusOptions = [
@@ -417,8 +428,8 @@ function submitNewChild(productableId) {
 
 function submitManualLink() {
     router.post('/assetrelations', {
-        parent_asset_id:     props.asset.id,
-        child_asset_id:      manualLink.child_asset_id,
+        parent_asset_id: props.asset.id,
+        child_asset_id: manualLink.child_asset_id,
         product_relation_id: manualLink.product_relation_id,
     }, {
         preserveScroll: true,

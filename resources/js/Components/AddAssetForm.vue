@@ -16,20 +16,17 @@
                 <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
                     assetForm.errors.product_id }}</p>
 
-                <TextInput v-model="assetForm.serial_number" placeholder="Serienummer"
-                    :has-error="!!assetForm.errors.serial_number"
+                <TextInput v-model="assetForm.serial_number"
+                    :placeholder="isSelectedBundle ? 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden' : 'Serienummer'"
+                    :disabled="isSelectedBundle" :has-error="!!assetForm.errors.serial_number"
                     :error-message="assetForm.errors.serial_number ?? ''" />
             </div>
             <div class="border-t border-gray-200 my-3"></div>
             <div class="p-6 grid grid-cols-1 gap-3">
-                <Transition
-                    enter-active-class="transition-all duration-300 ease-out"
-                    enter-from-class="opacity-0 translate-y-2"
-                    enter-to-class="opacity-100 translate-y-0"
+                <Transition enter-active-class="transition-all duration-300 ease-out"
+                    enter-from-class="opacity-0 translate-y-2" enter-to-class="opacity-100 translate-y-0"
                     leave-active-class="transition-all duration-200 ease-in"
-                    leave-from-class="opacity-100 translate-y-0"
-                    leave-to-class="opacity-0 translate-y-2"
-                >
+                    leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-2">
                     <div v-if="requiredParts.length">
                         <p class="text-xs font-medium text-gray-500 mb-2">
                             Serienummers vereiste onderdelen
@@ -101,10 +98,21 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    isBundle: {
+        type: Boolean,
+        default: null,
+    },
 });
 
 const showCustomer = computed(() => !props.customerId);
 const showProduct = computed(() => !props.productId);
+
+const isSelectedBundle = computed(() => {
+    if (props.isBundle !== null) return props.isBundle;
+    const pid = assetForm.product_id;
+    const product = props.allProducts.find(p => p.id === pid);
+    return product?.bundle === true;
+});
 
 const productOptions = computed(() => {
     return (props.allProducts || []).map(p => ({
@@ -136,6 +144,7 @@ const childAssetSlots = computed(() => {
 })
 
 watch(() => assetForm.product_id, () => {
+    assetForm.serial_number = ''
     assetForm.child_assets = requiredParts.value.flatMap(part =>
         Array.from({ length: part.quantity }, () => ({
             productable_id: part.productable_id,

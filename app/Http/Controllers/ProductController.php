@@ -86,12 +86,15 @@ class ProductController extends Controller
             'customFields',
             'childProducts.brand',
             'childProducts.productType',
+            'parentProducts.brand',
+            'parentProducts.productType',
         ]);
 
         $typePaths = ProductType::pathMap();
 
         $eligibleChildProducts = Product::query()
             ->where('id', '!=', $product->id)
+            ->where('bundle', false)
             ->with(['brand', 'productType'])
             ->orderBy('model')
             ->get()
@@ -116,6 +119,19 @@ class ProductController extends Controller
             ];
         })->values()->all();
 
+        $parentProductsWithPivot = $product->parentProducts->map(function ($parent) use ($typePaths) {
+            $pivot = $parent->pivot;
+            return [
+                'productable_id'      => $pivot->id,
+                'product_id'          => $parent->id,
+                'name'                => $parent->brand->name . ' ' . $parent->model
+                    . ' (' . ($typePaths[$parent->product_type_id] ?? $parent->productType->name) . ')',
+                'product_relation_id' => $pivot->product_relation_id,
+                'quantity'            => $pivot->quantity,
+                'is_required'         => $pivot->is_required,
+            ];
+        })->values()->all();
+
         return inertia('Products/ShowPage', [
             'product'               => $product,
             'productTypes'          => ProductType::flatListWithPath(),
@@ -126,6 +142,7 @@ class ProductController extends Controller
             'productRelations'      => ProductRelation::orderBy('name')->get(['id', 'name']),
             'eligibleChildProducts' => $eligibleChildProducts,
             'childProducts'         => $childProductsWithPivot,
+            'parentProducts'        => $parentProductsWithPivot,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
         ]);
     }

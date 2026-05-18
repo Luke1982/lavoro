@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Productable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Models\Product;
 use App\Rules\DbRange;
+use Illuminate\Validation\Validator;
 
 /**
  * @method \App\Models\Product|null route(string $key = null)
@@ -80,6 +82,58 @@ class ProductStoreUpdateRequest extends FormRequest
             'retail_price'   => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'purchase_price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'part_no'        => ['nullable', 'string', 'max:255'],
+            'bundle'         => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                if (!$this->boolean('bundle')) {
+                    return;
+                }
+
+                $productId = $this->route('product')?->id;
+                if (!$productId) {
+                    return;
+                }
+
+                // Check if any parent of this product is also a bundle.
+                // In productables: product_id = child, productable_id = parent (when type = Product).
+                $bundleParent = Productable::where('product_id', $productId)
+                    ->where('productable_type', Product::class)
+                    ->join('products', 'products.id', '=', 'productables.productable_id')
+                    ->where('products.bundle', true)
+                    ->select('products.model')
+                    ->first();
+
+                if ($bundleParent) {
+                    $validator->errors()->add(
+                        'bundle',
+                        'Dit product kan niet als bundel worden ingesteld omdat het al onderdeel is van het gebundelde product "' . $bundleParent->model . '".'
+                    );
+                    return;
+                }
+
+                // Check if any child of this product is also a bundle.
+                $hasBundleChild = Productable::where('productables.productable_type', Product::class)
+                    ->where('productables.productable_id', $productId)
+                    ->join('products', 'products.id', '=', 'productables.product_id')
+                    ->where('products.bundle', true)
+                    ->exists();
+
+                if ($hasBundleChild) {
+                    $validator->errors()->add(
+                        'bundle',
+                        'Dit product kan niet als bundel worden ingesteld omdat een van zijn onderdelen al een gebundeld product is.'
+                    );
+                }
+            },
         ];
     }
 

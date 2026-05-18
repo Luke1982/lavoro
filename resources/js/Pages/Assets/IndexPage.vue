@@ -25,27 +25,20 @@
         </p>
         <div class="mt-4 space-y-4">
             <div v-for="(child, index) in pendingChildren" :key="index">
-                <TextInput
-                    v-model="child.serial_number"
-                    :label="`${child.relation_name}: ${child.name}`"
-                    placeholder="Serienummer"
-                />
+                <TextInput v-model="child.serial_number" :label="`${child.relation_name}: ${child.name}`"
+                    placeholder="Serienummer" />
             </div>
         </div>
         <template #footer>
             <div class="flex gap-3 justify-end">
-                <button
-                    type="button"
+                <button type="button"
                     class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
-                    @click="cancelChildModal"
-                >
+                    @click="cancelChildModal">
                     Annuleren
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    @click="confirmChildModal"
-                >
+                    @click="confirmChildModal">
                     Toevoegen
                 </button>
             </div>
@@ -152,12 +145,21 @@ function updateLocalStorageStatus(val) {
     localStorage.setItem('selectedAssetStatus', val);
 }
 
-const assetFields = [
+const assetFields = computed(() => [
     { key: 'product_id', label: 'Product', type: 'combobox', options: props.allProducts, initialId: props.allProducts[0]?.id },
     { key: 'customer_id', label: 'Klant', type: 'combobox', options: props.allCustomers, initialId: props.allCustomers[0]?.id },
-    { key: 'serial_number', label: 'Serie nr.', type: 'text' },
+    {
+        key: 'serial_number',
+        label: 'Serie nr.',
+        type: 'text',
+        disabledWhen: (form) => {
+            const product = props.allProducts.find(p => p.id === form.product_id)
+            return product?.bundle === true
+        },
+        disabledPlaceholder: 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden',
+    },
     { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
-]
+])
 
 const canCreate = computed(() => hasPermission('asset.create'))
 

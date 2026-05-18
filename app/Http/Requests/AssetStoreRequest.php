@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -17,27 +18,40 @@ class AssetStoreRequest extends FormRequest
         return $user->hasPermission('asset.create');
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('serial_number') && $this->input('serial_number') === '') {
+            $this->merge(['serial_number' => null]);
+        }
+    }
+
     public function messages(): array
     {
         return [
             'serial_number.unique'                       => 'Er bestaat al een machine met dit serienummer voor dit product.',
+            'serial_number.required'                     => 'Serienummer is verplicht.',
             'child_assets.*.serial_number.required_with' => 'Serienummer is verplicht.',
         ];
     }
 
     public function rules(): array
     {
-        return [
-            'product_id'    => ['required', 'exists:products,id'],
-            'customer_id'   => ['required', 'exists:customers,id'],
-            'serial_number' => [
+        $product   = Product::find($this->input('product_id'));
+        $is_bundle = $product?->bundle ?? false;
+
+        $serial_rules = $is_bundle
+            ? ['nullable', 'string', 'max:255']
+            : [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('assets', 'serial_number')->where(function ($q) {
-                    return $q->where('product_id', request()->input('product_id'));
-                }),
-            ],
+                Rule::unique('assets', 'serial_number')->where(fn($q) => $q->where('product_id', $this->input('product_id'))),
+            ];
+
+        return [
+            'product_id'    => ['required', 'exists:products,id'],
+            'customer_id'   => ['required', 'exists:customers,id'],
+            'serial_number' => $serial_rules,
             'is_active'     => ['nullable', 'boolean'],
             'next_service_date' => ['nullable', 'date'],
             'child_assets'                    => ['nullable', 'array'],

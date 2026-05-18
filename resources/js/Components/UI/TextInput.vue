@@ -1,16 +1,17 @@
 <template>
     <div>
         <label :for="id" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ label
-            }}</label>
+        }}</label>
         <div :class="[label === '' ? '' : 'mt-2', 'relative']">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <iconLeft v-if="iconLeft" class="h-5 w-5 text-gray-400 dark:text-gray-300" aria-hidden="true"
                     v-bind="iconLeftProps" />
             </div>
             <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete"
-                class="transition-colors duration-200 focus:outline-none" :class="{
+                :disabled="disabled" class="transition-colors duration-200 focus:outline-none" :class="{
                     'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 sm:text-sm sm:leading-6': !hasError,
-                    'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError,
+                    'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError && !disabled,
+                    'ring-1 ring-inset ring-gray-200 dark:ring-slate-600 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed': disabled && !hasError,
                     'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 placeholder:text-red-300 sm:text-sm sm:leading-6 border-red-500': hasError,
                     'ring-1 ring-inset ring-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500': hasError && ring,
                     'pl-10': iconLeft,
@@ -103,6 +104,10 @@ export default {
         ring: {
             type: Boolean,
             default: true
+        },
+        disabled: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {

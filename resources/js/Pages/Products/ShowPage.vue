@@ -14,7 +14,7 @@
                         </div>
                         <div class="flex self-ends w-full">
                             <span v-if="sale_period_text" class="text-sm text-gray-500 ml-4">{{ sale_period_text
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
                 </div>
@@ -65,6 +65,19 @@
                         <h3 class="text-sm font-semibold mb-3">Inkoopprijs</h3>
                         <EditableTextField v-model="form.purchase_price" type="input" inputType="currency"
                             :error="form.errors.purchase_price" @revert="form.clearErrors('purchase_price')" />
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
+                    <div class="w-full md:w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Bundel</h3>
+                        <div class="flex items-center gap-3">
+                            <SwitchComponent v-model="form.bundle" />
+                            <span class="text-sm text-gray-600 dark:text-slate-400">
+                                <template v-if="form.bundle">Dit is een gebundeld product (geen serienummer vereist)</template>
+                                <template v-else>Normaal product</template>
+                            </span>
+                        </div>
+                        <p v-if="form.errors.bundle" class="text-sm text-red-600 mt-1">{{ form.errors.bundle }}</p>
                     </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
@@ -211,6 +224,38 @@
                     class="text-xs text-gray-400 mt-1">
                     Dit producttype heeft geen subtypen, dus er kunnen geen gerelateerde producten worden toegevoegd.
                 </p>
+
+                <!-- Parent products -->
+                <div v-if="parentProducts.length" class="mt-4 border-t border-gray-100 pt-3">
+                    <p class="text-xs font-medium text-gray-400 mb-2">Onderdeel van</p>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-xs text-gray-400 border-b">
+                                <th class="text-left py-1 font-medium">Product</th>
+                                <th class="text-left py-1 font-medium">Type</th>
+                                <th class="text-left py-1 font-medium">Aantal</th>
+                                <th class="text-center py-1 font-medium">Verplicht</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="rel in parentProducts" :key="rel.productable_id"
+                                class="border-b border-gray-100">
+                                <td class="py-1.5">
+                                    <Link :href="`/products/${rel.product_id}`"
+                                        class="text-blue-500 underline">{{ rel.name }}</Link>
+                                </td>
+                                <td class="py-1.5 text-gray-500">
+                                    {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '\u2014' }}
+                                </td>
+                                <td class="py-1.5">{{ rel.quantity }}</td>
+                                <td class="py-1.5 text-center">
+                                    <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
+                                    <span v-else class="text-gray-300 text-xs">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </BoxComponent>
         </template>
 
@@ -226,7 +271,7 @@
 
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
-        <AddAssetForm :allCustomers="allCustomers" :productId="product.id"
+        <AddAssetForm :allCustomers="allCustomers" :productId="product.id" :isBundle="product.bundle"
             :required-productables-by-product="requiredProductablesByProduct" :bare="true"
             @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
@@ -241,7 +286,7 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
@@ -266,6 +311,7 @@ const props = defineProps({
     productRelations: { type: Array, default: () => [] },
     eligibleChildProducts: { type: Array, default: () => [] },
     childProducts: { type: Array, default: () => [] },
+    parentProducts: { type: Array, default: () => [] },
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
 });
 
@@ -281,6 +327,7 @@ const form = useForm({
     retail_price: props.product.retail_price,
     purchase_price: props.product.purchase_price,
     part_no: props.product.part_no,
+    bundle: props.product.bundle ?? false,
     origin: 'showPage'
 });
 
@@ -294,6 +341,7 @@ watch([
     () => form.purchase_price,
     () => form.part_no,
     () => form.product_type_id,
+    () => form.bundle,
 ], () => {
     form.patch(`/products/${props.product.id}`);
 });
