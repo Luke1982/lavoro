@@ -1,21 +1,25 @@
 <template>
     <div class="w-full">
         <label v-if="label" class="block text-sm font-medium text-gray-900 dark:text-gray-300">{{ label }}</label>
-        <div :class="[label ? 'mt-2' : '', 'relative rounded-md shadow-sm']">
+        <div :class="[label ? 'mt-2' : '', 'relative rounded-md border-gray-200 border-1']">
             <TextInput :id="inputId" v-model="internalValue" :placeholder="placeholder" :disabled="inAction"
-                :iconLeft="inAction ? ArrowPathIcon : MagnifyingGlassIcon" :iconLeftProps="{
+                :ring="false" :iconLeft="inAction ? LoaderCircle : Search" :iconLeftProps="{
                     class: (inAction ? 'animate-spin ' : '') + 'h-5 w-5 text-gray-400'
-                }" class="w-full bg-white rounded-md" type="search" />
+                }" class="w-full bg-white rounded-md pr-20 py-1" type="search" />
+            <div
+                class="rounded-sm absolute bg-gray-100 right-2 inset-y-2 text-xs p-1 w-12 text-gray-500 text-center flex items-center justify-center pointer-events-none">
+                <SquareChevronUpIcon class="inline h-4 w-4 mr-1" />K
+            </div>
         </div>
     </div>
 
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { ArrowPathIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import { Search, LoaderCircle, SquareChevronUpIcon } from '@lucide/vue'
 import debounce from 'lodash/debounce'
 
 const props = defineProps({
@@ -65,7 +69,7 @@ const doSearch = debounce((term) => {
             })
         }
     })
-}, 100)
+}, 500)
 
 watch(internalValue, (val) => {
     doSearch(val)
@@ -86,5 +90,15 @@ onMounted(() => {
         localStorage.removeItem(props.localStorageKey)
         nextTick(() => document.getElementById(props.inputId)?.focus())
     }
+
+    function onKeydown(e) {
+        if (e.ctrlKey && e.key === 'k') {
+            e.preventDefault()
+            document.getElementById(props.inputId)?.focus()
+        }
+    }
+
+    window.addEventListener('keydown', onKeydown)
+    onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 })
 </script>

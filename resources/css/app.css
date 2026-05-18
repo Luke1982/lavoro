@@ -1,1 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap');
 @import 'tailwindcss';
+
+@theme {
+    --color-lavoro-blue: #2563ff;
+    --color-lavoro-dark: #081020;
+    --color-lavoro-green: #c6ff00;
+    --color-lavoro-lightgray: #e6ebf1;
+    --default-font-family: 'Sora', sans-serif;
+    --color-lavoro-box: 1px solid rgba(15, 23, 42, 0.06);
+    --shadow-lavoro-box: 0 1px 2px rgba(15,23,42,0.03), 0px 0px 6px rgba(15,23,42,0.04);
+    --radius-lavoro-lg: 24px;
+    --radius-lavoro-md: 16px;
+    --radius-lavoro-sm: 8px;
+}
+
+@utility bg-svg {
+    position: relative;
+    isolation: isolate;
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('/img/bg.jpg');
+        background-size: cover;
+        background-repeat: no-repeat;
+        opacity: 0.2;
+        z-index: -1;
+    }
+}

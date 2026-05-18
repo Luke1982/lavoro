@@ -1,27 +1,33 @@
 <template>
-    <div class="mb-4">
-        <div class="sm:flex justify-between items-center flex-wrap mb-4">
+    <div class="flex justify-between items-center">
+        <div class="flex flex-col">
+            <span class="text-lg font-semibold">{{ title }}</span>
+            <span class="text-xs">{{ subtitle }}</span>
+        </div>
+        <div class="flex justify-end gap-x-4">
             <div>
-                <h1 class="text-base font-semibold">{{ title }}</h1>
-                <p v-if="subtitle" class="text-sm text-gray-700 dark:text-slate-400">{{ subtitle }}</p>
+                <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
+                    :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
+            <button v-if="slots.filters" @click="filtersVisible = !filtersVisible"
+                class="rounded-md border-gray-200 border-1 px-4 bg-white text-sm flex items-center gap-x-1 text-gray-800 cursor-pointer">
+                <FilterIcon class="h-5 w-5 text-gray-500" />Filters
+            </button>
             <button v-if="addLabel" @click="$emit('add')"
-                class="cursor-pointer inline-flex items-center px-3 py-2 border border-green-900 text-green-900 bg-green-100 rounded-md text-sm dark:border-green-800 dark:text-green-800 dark:bg-green-200 hover:bg-green-200 hover:text-green-950 hover:dark:bg-green-300 hover:dark:text-green-900">
-                <PlusCircleIcon class="h-5 w-5 mr-1" />
+                class="cursor-pointer inline-flex items-center px-3 py-2 bg-lavoro-blue rounded-md text-white text-xs">
+                <PlusIcon class="h-5 w-5 mr-2" />
                 {{ addLabel }}
             </button>
         </div>
-
-        <div v-if="showSearch" class="flex flex-wrap items-end">
-            <div class="w-full md:w-2/3">
-                <SearchComponent :url="searchUrl" :param="searchParam" :label="searchLabel"
-                    :placeholder="searchPlaceholder" :other-params="searchOtherParams"
-                    :local-storage-key="localStorageKey" :input-id="inputId" />
-            </div>
-            <div class="w-full md:w-1/3 md:pl-4 mt-4 md:mt-0 flex items-start">
-                <slot name="right" />
-            </div>
+    </div>
+    <div v-auto-animate>
+        <div v-if="slots.filters && filtersVisible" class="mt-4">
+            <BoxComponent class="mt-4">
+                <slot name="filters" />
+            </BoxComponent>
         </div>
+    </div>
+    <div class="mb-4">
         <PaginationComponent v-if="paginator" :paginator="paginator" :params="paginationParams"
             class="border-b border-gray-200 pb-2 mt-4 dark:border-slate-700" />
     </div>
@@ -29,9 +35,11 @@
 </template>
 
 <script setup>
-import { PlusCircleIcon } from '@heroicons/vue/24/outline'
 import SearchComponent from '@/Components/UI/SearchComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import { FilterIcon, PlusIcon } from '@lucide/vue'
+import BoxComponent from '../BoxComponent.vue'
+import { useSlots, ref } from 'vue'
 
 defineProps({
     title: { type: String, required: true },
@@ -51,6 +59,9 @@ defineProps({
     paginator: { type: Object, default: null },
     paginationParams: { type: Object, default: () => ({}) },
 })
+
+const slots = useSlots();
+const filtersVisible = ref(false)
 
 defineEmits(['add'])
 </script>

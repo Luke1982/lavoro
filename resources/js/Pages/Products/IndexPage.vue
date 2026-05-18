@@ -1,36 +1,33 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
-            search-label="Zoek binnen producten" search-placeholder="bijv. 'Model X'"
-            :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
-            @add="() => productFormRef?.show()">
-            <template #right>
-                <div class="w-full">
-                    <label class="block text-sm font-medium mb-2">Filter op type</label>
-                    <div class="flex items-center gap-2">
-                        <ComboBox :options="productTypes" v-model="productTypeToShow"
-                            placeholder="Selecteer producttype" class="w-full" />
-                        <button type="button" @click="resetFilter"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
-                            v-tooltip="'Reset filter op producttype'">
-                            <XCircleIcon class="h-5 w-5" />
-                        </button>
-                    </div>
+    <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
+        search-label="Zoek binnen producten" search-placeholder="Zoek op model, merk, omschrijving of artikelnummer"
+        :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
+        @add="() => productFormRef?.show()">
+        <template #filters>
+            <div class="w-full">
+                <label class="block text-sm font-medium mb-2">Filter op type</label>
+                <div class="flex items-center gap-2">
+                    <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
+                        class="w-full" />
+                    <button type="button" @click="resetFilter"
+                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                        v-tooltip="'Reset filter op producttype'">
+                        <XCircleIcon class="h-5 w-5" />
+                    </button>
                 </div>
-            </template>
-        </IndexHeaderComponent>
-    </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="productFormRef" external-trigger action="/products" :fields="productFields"
             add-button-label="Voeg product toe" submit-label="Opslaan" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="displayProducts.length"
-            class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-px transition-colors"
+        <div v-if="displayProducts.length" class="mt-3 sm:-mx-0 bg-white dark:bg-slate-900 p-px transition-colors"
             role="table">
             <div class="hidden lg:flex" role="row">
                 <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 rounded-tl-md lg:w-[28%]">
+                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[28%]">
                     Model</div>
                 <div role="columnheader"
                     class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[22%]">
@@ -41,8 +38,7 @@
                 <div role="columnheader"
                     class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:flex-grow">
                     Verkoopperiode</div>
-                <div
-                    class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md shrink-0 flex items-center justify-end gap-3">
+                <div class="px-4 py-2 bg-gray-600 dark:bg-slate-700 shrink-0 flex items-center justify-end gap-3">
                     <span class="text-white text-sm font-semibold opacity-0">Acties</span>
                 </div>
             </div>

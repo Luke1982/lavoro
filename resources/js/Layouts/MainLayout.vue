@@ -126,10 +126,11 @@
                                                 </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
-                                                <Link @click="sidebarOpen = false" :href="'/technical-management'" :class="[
-                                                    currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
+                                                <Link @click="sidebarOpen = false" :href="'/technical-management'"
+                                                    :class="[
+                                                        currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                    ]">
                                                     <WrenchScrewdriverIcon class="size-6 shrink-0" />
                                                     Technisch beheer
                                                 </Link>
@@ -141,7 +142,7 @@
                                                     <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                         class="object-cover w-full h-full" />
                                                     <span v-else class="text-xs font-medium text-white">{{ initials
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                                 <span class="sr-only">Profiel</span>
                                                 <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -300,7 +301,7 @@
 
         </div>
 
-        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-white/0 dark:bg-transparent']">
+        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-svg']">
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
