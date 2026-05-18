@@ -224,7 +224,6 @@ class AssetController extends Controller
                 ->all();
         }
 
-        /** @disregard P1005 */
         return inertia('Assets/ShowPage', [
             'asset'               => $asset,
             'allProducts'         => $all_products,
@@ -238,7 +237,6 @@ class AssetController extends Controller
 
     public function storeChild(AssetChildStoreRequest $request, Asset $asset)
     {
-        /** @disregard P1005 */
         $productable = Productable::find($request->productable_id);
 
         DB::transaction(function () use ($asset, $productable, $request) {
@@ -285,7 +283,6 @@ class AssetController extends Controller
      */
     public function destroy(AssetDestroyRequest $request, Asset $asset)
     {
-        /** @disregard P1005 */
         $asset->delete();
 
         return redirect()

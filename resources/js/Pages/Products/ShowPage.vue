@@ -14,7 +14,7 @@
                         </div>
                         <div class="flex self-ends w-full">
                             <span v-if="sale_period_text" class="text-sm text-gray-500 ml-4">{{ sale_period_text
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -73,7 +73,8 @@
                         <div class="flex items-center gap-3">
                             <SwitchComponent v-model="form.bundle" />
                             <span class="text-sm text-gray-600 dark:text-slate-400">
-                                <template v-if="form.bundle">Dit is een gebundeld product (geen serienummer vereist)</template>
+                                <template v-if="form.bundle">Dit is een gebundeld product (geen serienummer
+                                    vereist)</template>
                                 <template v-else>Normaal product</template>
                             </span>
                         </div>
@@ -241,11 +242,12 @@
                             <tr v-for="rel in parentProducts" :key="rel.productable_id"
                                 class="border-b border-gray-100">
                                 <td class="py-1.5">
-                                    <Link :href="`/products/${rel.product_id}`"
-                                        class="text-blue-500 underline">{{ rel.name }}</Link>
+                                    <Link :href="`/products/${rel.product_id}`" class="text-blue-500 underline">{{
+                                        rel.name }}
+                                    </Link>
                                 </td>
                                 <td class="py-1.5 text-gray-500">
-                                    {{ productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '\u2014' }}
+                                    {{productRelations.find(r => r.id === rel.product_relation_id)?.name ?? '\u2014'}}
                                 </td>
                                 <td class="py-1.5">{{ rel.quantity }}</td>
                                 <td class="py-1.5 text-center">
