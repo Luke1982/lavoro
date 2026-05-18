@@ -1,20 +1,52 @@
 <template>
     <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
         search-label="Zoek binnen producten" search-placeholder="Zoek op model, merk, omschrijving of artikelnummer"
-        :search-other-params="{ onlyType: productTypeToShow }" :paginator="products" add-label="Voeg product toe"
+        :search-other-params="filterParams" :paginator="products" add-label="Voeg product toe"
         @add="() => productFormRef?.show()">
         <template #filters>
-            <div class="w-full">
-                <label class="block text-sm font-medium mb-2">Filter op type</label>
-                <div class="flex items-center gap-2">
-                    <ComboBox :options="productTypes" v-model="productTypeToShow" placeholder="Selecteer producttype"
-                        class="w-full" />
-                    <button type="button" @click="resetFilter"
-                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
-                        v-tooltip="'Reset filter op producttype'">
-                        <XCircleIcon class="h-5 w-5" />
-                    </button>
+            <div class="flex">
+                <div class="flex-grow">
+                    <div class="flex items-end gap-2">
+                        <ComboBox :options="productTypes" v-model="productTypeToShow" multiple
+                            placeholder="Selecteer producttype" class="w-full" label="Filter op type" />
+                        <button type="button" @click="productTypeToShow = []"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            v-tooltip="'Reset filter op producttype'">
+                            <XCircleIcon class="h-5 w-5" />
+                        </button>
+                    </div>
                 </div>
+                <div class="flex-grow">
+                    <div class="flex items-end gap-2">
+                        <ComboBox :options="brands" v-model="brandToShow" multiple placeholder="Selecteer merk"
+                            class="w-full" label="Filter op merk" />
+                        <button type="button" @click="brandToShow = []"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            v-tooltip="'Reset filter op merk'">
+                            <XCircleIcon class="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+                <div class="w-1/6 flex items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                    @click="clearAllFilters">
+                    <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
+                </div>
+            </div>
+            <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>
+                <span v-for="filter in activeFilters" :key="filter.key"
+                    class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    <span class="text-gray-400 dark:text-slate-400">{{ filter.label }}:</span>
+                    {{ filter.value }}
+                    <button type="button" @click="filter.clear()"
+                        class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+                        <span class="sr-only">Verwijder filter</span>
+                        <svg viewBox="0 0 14 14"
+                            class="h-3.5 w-3.5 stroke-gray-600/75 group-hover:stroke-gray-600 dark:stroke-slate-400 dark:group-hover:stroke-slate-300">
+                            <path d="M4 4l6 6m0-6l-6 6" />
+                        </svg>
+                        <span class="absolute -inset-1" />
+                    </button>
+                </span>
             </div>
         </template>
     </IndexHeaderComponent>
@@ -23,9 +55,22 @@
             add-button-label="Voeg product toe" submit-label="Opslaan" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
+        <div v-if="displayProducts.length"
+            class="border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+            <div class="grid grid-cols-12 font-bold text-sm">
+                <div class="col-span-4">Model</div>
+                <div class="col-span-2">Merk</div>
+                <div class="col-span-2">Producttype</div>
+                <div class="col-span-2">Verkoopperiode</div>
+                <div class="col-span-1">Bundel</div>
+                <div class="col-span-1">Acties</div>
+            </div>
+        </div>
+    </BoxComponent>
+    <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProducts.length" class="mt-3 sm:-mx-0 bg-white dark:bg-slate-900 p-px transition-colors"
             role="table">
-            <div class="hidden lg:flex" role="row">
+            <!-- <div class="hidden lg:flex" role="row">
                 <div role="columnheader"
                     class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[28%]">
                     Model</div>
@@ -41,7 +86,9 @@
                 <div class="px-4 py-2 bg-gray-600 dark:bg-slate-700 shrink-0 flex items-center justify-end gap-3">
                     <span class="text-white text-sm font-semibold opacity-0">Acties</span>
                 </div>
-            </div>
+            </div> -->
+
+
 
             <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
                 <div v-for="product in displayProducts" :key="product.id" role="row"
@@ -132,6 +179,7 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { formatProductSalePeriod } from '@/Utilities/Utilities'
+import { RotateCcwIcon } from '@lucide/vue'
 
 const { products, brands, productTypes } = defineProps({
     products: { type: Object, required: true },
@@ -147,9 +195,38 @@ const displayProducts = computed(() => (products.data || []).map(p => ({
 })))
 // product type filter
 const typeFromURL = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('onlyType')
-    : null
-const productTypeToShow = ref(typeFromURL ? Number(typeFromURL) : null)
+    ? (new URLSearchParams(window.location.search).get('onlyType') || '').split(',').map(Number).filter(Boolean)
+    : []
+const productTypeToShow = ref(typeFromURL)
+
+// brand filter
+const brandFromURL = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('onlyBrand') || '').split(',').map(Number).filter(Boolean)
+    : []
+const brandToShow = ref(brandFromURL)
+
+const filterParams = computed(() => ({
+    onlyType: productTypeToShow.value.join(','),
+    onlyBrand: brandToShow.value.join(','),
+}))
+
+const activeFilters = computed(() => {
+    const filters = []
+    productTypeToShow.value.forEach(id => {
+        const match = productTypes.find(t => t.id === id)
+        if (match) filters.push({ key: `type-${id}`, label: 'Type', value: match.name, clear: () => { productTypeToShow.value = productTypeToShow.value.filter(x => x !== id) } })
+    })
+    brandToShow.value.forEach(id => {
+        const match = brands.find(b => b.id === id)
+        if (match) filters.push({ key: `brand-${id}`, label: 'Merk', value: match.name, clear: () => { brandToShow.value = brandToShow.value.filter(x => x !== id) } })
+    })
+    return filters
+})
+
+function clearAllFilters() {
+    productTypeToShow.value = []
+    brandToShow.value = []
+}
 
 const productFields = [
     { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
@@ -190,11 +267,4 @@ const saveRecord = (product) => {
         }
     })
 }
-
-function resetFilter() {
-    productTypeToShow.value = null
-}
-
-
-
 </script>

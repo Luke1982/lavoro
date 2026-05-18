@@ -1,6 +1,6 @@
 <template>
     <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id">
-        <ComboboxLabel v-if="label" class="block text-xs font-light mb-1.5 text-gray-600 dark:text-slate-300">
+        <ComboboxLabel v-if="label" class="block text-xs font-bold mb-1.5 text-gray-600 dark:text-slate-300">
             {{ label }}
             <ListBulletIcon v-if="multiple" class="inline size-5 ml-1 text-gray-400"
                 v-tooltip="'Meerdere selecties mogelijk'" />

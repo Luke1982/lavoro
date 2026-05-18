@@ -26,9 +26,14 @@ class ProductController extends Controller
             $products = self::getByTerm($search);
         }
 
-        $onlyType = $request->input('onlyType');
-        if ($onlyType !== null && $onlyType !== '') {
-            $products->where('product_type_id', $onlyType);
+        $onlyType = array_values(array_filter(explode(',', $request->input('onlyType', '')), fn($v) => $v !== ''));
+        if (count($onlyType)) {
+            $products->whereIn('product_type_id', $onlyType);
+        }
+
+        $onlyBrand = array_values(array_filter(explode(',', $request->input('onlyBrand', '')), fn($v) => $v !== ''));
+        if (count($onlyBrand)) {
+            $products->whereIn('brand_id', $onlyBrand);
         }
 
         return inertia(
@@ -42,6 +47,7 @@ class ProductController extends Controller
                 'brands'       => Brand::all(),
                 'productTypes' => ProductType::flatListWithPath(),
                 'onlyType'     => $onlyType,
+                'onlyBrand'    => $onlyBrand,
             ]
         );
     }

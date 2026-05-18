@@ -28,6 +28,7 @@
                             <div
                                 class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
                                 <div class="flex h-16 shrink-0 items-center">
+                                    <img src="/img/logo-neg.svg" alt="">
                                     <img v-if="companyLogo" class="h-8 w-auto" :src="companyLogo"
                                         :alt="companyName || 'Bedrijf'" />
                                 </div>
@@ -166,8 +167,8 @@
 
         <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
             <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6">
-                <div class="flex h-16 shrink-0 items-center">
-                    <img v-if="companyLogo" class="h-8 w-auto" :src="companyLogo" :alt="companyName || 'Bedrijf'" />
+                <div class="flex shrink-0 flex-col items-start">
+                    <img src="/img/logo-neg.svg" alt="" class="h-15 mt-3">
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
@@ -229,6 +230,8 @@
                         </li>
 
                         <li class="-mx-6 mt-auto">
+                            <img v-if="companyLogo" class="h-8 w-auto ml-8 mb-3" :src="companyLogo"
+                                :alt="companyName || 'Bedrijf'" />
                             <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
                                 <Link :href="'/companies'" :class="[
                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
@@ -301,7 +304,7 @@
 
         </div>
 
-        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-svg']">
+        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-svg min-h-[100vh]']">
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
