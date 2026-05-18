@@ -1,29 +1,24 @@
 <template>
-    <div>
-        <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm"
-            v-auto-animate>
-            <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
-                search-url="/servicechecks" search-label="Zoek binnen keurpunten"
-                search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
-                :search-other-params="{ onlyType: productTypeToShow }" add-label="Voeg keurpunt toe"
-                :paginator="serviceChecks" @add="() => serviceCheckFormRef?.show()">
-                <template #right>
-                    <div class="w-full flex items-end gap-2">
-                        <div class="flex-grow mt-1">
-                            <label class="block text-xs font-medium text-gray-900 dark:text-gray-300">Filter op
-                                type</label>
-                            <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
-                                placeholder="Selecteer producttype" class="w-full mt-2" />
-                        </div>
-                        <button type="button"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 mb-[2px]"
-                            @click="productTypeToShow = null" v-tooltip="'Reset filter op producttype'">
-                            <XCircleIcon class="h-5 w-5" />
-                        </button>
-                    </div>
-                </template>
-            </IndexHeaderComponent>
-        </div>
+    <IndexHeaderComponent title="Keurpunten" subtitle="Overzicht van alle keurpunten"
+        search-url="/servicechecks" search-label="Zoek binnen keurpunten"
+        search-placeholder="bijv. 'Valt de speling binnen de tolerantie'"
+        :search-other-params="{ onlyType: productTypeToShow }" add-label="Voeg keurpunt toe"
+        :paginator="serviceChecks" @add="() => serviceCheckFormRef?.show()">
+        <template #filters>
+            <div class="w-full">
+                <label class="block text-sm font-medium mb-2">Filter op type</label>
+                <div class="flex items-center gap-2">
+                    <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
+                        placeholder="Selecteer producttype" class="w-full" />
+                    <button type="button"
+                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
+                        @click="productTypeToShow = null" v-tooltip="'Reset filter op producttype'">
+                        <XCircleIcon class="h-5 w-5" />
+                    </button>
+                </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
 
         <div class="mb-6" v-auto-animate>
             <CreateRecordForm ref="serviceCheckFormRef" external-trigger action="/servicechecks"
@@ -156,7 +151,6 @@
                 class="border-t border-gray-200 dark:border-slate-700 pt-2" />
             <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen service checks gevonden.</p>
         </BoxComponent>
-    </div>
 </template>
 
 <script setup>

@@ -1,9 +1,7 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Merken" subtitle="Hieronder een lijst van alle merken" search-url="/brands"
-            search-label="Zoek binnen merken" search-placeholder="bijv. 'Verloop'" add-label="Voeg merk toe"
-            :paginator="brands" @add="() => brandFormRef?.show()" />
-    </div>
+    <IndexHeaderComponent title="Merken" subtitle="Hieronder een lijst van alle merken" search-url="/brands"
+        search-label="Zoek binnen merken" search-placeholder="bijv. 'Verloop'" add-label="Voeg merk toe"
+        :paginator="brands" @add="() => brandFormRef?.show()" />
     <div v-auto-animate class="mb-4">
         <CreateRecordForm ref="brandFormRef" external-trigger action="/brands" :fields="brandFields"
             add-button-label="Voeg merk toe" submit-label="Toevoegen" />

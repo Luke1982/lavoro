@@ -1,16 +1,14 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent
-            title="Relatietypes"
-            subtitle="Overzicht van alle productrelatietypes"
-            search-url="/productrelations"
-            search-label="Zoek binnen relatietypes"
-            search-placeholder="bijv. 'Onderdeel'"
-            :paginator="relations"
-            add-label="Voeg relatietype toe"
-            @add="() => formRef?.show()"
-        />
-    </div>
+    <IndexHeaderComponent
+        title="Relatietypes"
+        subtitle="Overzicht van alle productrelatietypes"
+        search-url="/productrelations"
+        search-label="Zoek binnen relatietypes"
+        search-placeholder="bijv. 'Onderdeel'"
+        :paginator="relations"
+        add-label="Voeg relatietype toe"
+        @add="() => formRef?.show()"
+    />
 
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm

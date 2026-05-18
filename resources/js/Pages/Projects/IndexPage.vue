@@ -1,9 +1,7 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Projecten" subtitle="Overzicht van alle projecten" search-url="/projects"
-            search-label="Zoek binnen projecten" search-placeholder="Zoek op titel, klant of projectleider"
-            :paginator="projects" add-label="Voeg project toe" @add="() => projectFormRef?.show()" />
-    </div>
+    <IndexHeaderComponent title="Projecten" subtitle="Overzicht van alle projecten" search-url="/projects"
+        search-label="Zoek binnen projecten" search-placeholder="Zoek op titel, klant of projectleider"
+        :paginator="projects" add-label="Voeg project toe" @add="() => projectFormRef?.show()" />
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="projectFormRef" external-trigger action="/projects" :fields="projectFields"
             add-button-label="Voeg project toe" submit-label="Opslaan" />

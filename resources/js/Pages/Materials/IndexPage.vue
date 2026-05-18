@@ -1,15 +1,15 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
-            search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
-            add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()">
-            <template #right>
+    <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
+        search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
+        add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()">
+        <template #filters>
+            <div>
                 <button @click="importMaterials" :disabled="importingMaterials"
                     class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400">SnelStart
                     materialen importeren</button>
-            </template>
-        </IndexHeaderComponent>
-    </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="materialFormRef" external-trigger action="/materials" :fields="materialFields"
             add-button-label="Voeg materiaal toe" submit-label="Toevoegen" />

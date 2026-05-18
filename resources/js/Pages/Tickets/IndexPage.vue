@@ -18,24 +18,22 @@
         </div>
     </div>
 
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 dark:border-slate-800 border border-gray-200 shadow-sm">
-        <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
-            search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
-            :search-other-params="computedOtherParams">
-            <template #right>
-                <div class="flex flex-col md:flex-row gap-4 w-full">
-                    <div class="flex-1">
-                        <ComboBox :options="statusOptions" v-model="selectedStatuses" multiple label="Statussen"
-                            placeholder="Filter op status" :initial-ids="selectedStatuses" />
-                    </div>
-                    <div class="flex-1">
-                        <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
-                            placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
-                    </div>
+    <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
+        search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
+        :search-other-params="computedOtherParams">
+        <template #filters>
+            <div class="flex flex-col md:flex-row gap-4 w-full">
+                <div class="flex-1">
+                    <ComboBox :options="statusOptions" v-model="selectedStatuses" multiple label="Statussen"
+                        placeholder="Filter op status" :initial-ids="selectedStatuses" />
                 </div>
-            </template>
-        </IndexHeaderComponent>
-    </div>
+                <div class="flex-1">
+                    <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
+                        placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
+                </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="tickets.data.length"

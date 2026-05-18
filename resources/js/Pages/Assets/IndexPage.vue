@@ -1,19 +1,16 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
-            search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
-            :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && assetFormRef?.show()">
-            <template #right>
-                <div class="flex items-end w-full">
-                    <div class="flex-grow">
-                        <ComboBox :options="statusOptions" v-model="selectedStatus"
-                            placeholder="Laat alleen status zien"
-                            @update:modelValue="val => { updateLocalStorageStatus(val) }" />
-                    </div>
-                </div>
-            </template>
-        </IndexHeaderComponent>
-    </div>
+    <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
+        search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
+        :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && assetFormRef?.show()">
+        <template #filters>
+            <div class="w-full">
+                <label class="block text-sm font-medium mb-2">Filter op status</label>
+                <ComboBox :options="statusOptions" v-model="selectedStatus"
+                    placeholder="Laat alleen status zien" class="w-full"
+                    @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+            </div>
+        </template>
+    </IndexHeaderComponent>
     <div class="mb-4" v-auto-animate v-if="canCreate">
         <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
             add-button-label="Voeg machine toe" submit-label="Toevoegen" :before-submit="handleBeforeSubmit" />

@@ -1,10 +1,8 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Extra velden" subtitle="Beheer extra velden voor klanten, machines, etc."
-            search-url="/customfields" search-label="Zoek binnen extra velden"
-            search-placeholder="bijv. 'Contactpersoon'" add-label="Voeg veld toe"
-            :paginator="customFields" @add="() => formRef?.show()" />
-    </div>
+    <IndexHeaderComponent title="Extra velden" subtitle="Beheer extra velden voor klanten, machines, etc."
+        search-url="/customfields" search-label="Zoek binnen extra velden"
+        search-placeholder="bijv. 'Contactpersoon'" add-label="Voeg veld toe"
+        :paginator="customFields" @add="() => formRef?.show()" />
     <div v-auto-animate class="mb-4">
         <CreateRecordForm ref="formRef" external-trigger action="/customfields" :fields="createFields"
             add-button-label="Voeg veld toe" submit-label="Toevoegen" />

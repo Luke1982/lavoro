@@ -1,21 +1,23 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Keurpuntgroepen" subtitle="Overzicht van alle keurpuntgroepen"
-            search-url="/servicecheckgroups" search-label="Zoek binnen groepen" search-placeholder="bijv. 'Inspectie'"
-            :search-other-params="{ onlyType: productTypeToShow }" :paginator="groups" add-label="Voeg groep toe"
-            @add="() => groupFormRef?.show()">
-            <template #right>
-                <div class="flex-grow mt-1">
-                    <label class="block text-xs font-medium text-gray-900 dark:text-gray-300">Filter op type</label>
+    <IndexHeaderComponent title="Keurpuntgroepen" subtitle="Overzicht van alle keurpuntgroepen"
+        search-url="/servicecheckgroups" search-label="Zoek binnen groepen" search-placeholder="bijv. 'Inspectie'"
+        :search-other-params="{ onlyType: productTypeToShow }" :paginator="groups" add-label="Voeg groep toe"
+        @add="() => groupFormRef?.show()">
+        <template #filters>
+            <div class="w-full">
+                <label class="block text-sm font-medium mb-2">Filter op type</label>
+                <div class="flex items-center gap-2">
                     <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
-                        placeholder="Selecteer producttype" class="w-full mt-2" />
+                        placeholder="Selecteer producttype" class="w-full" />
+                    <button type="button" @click="resetFilter"
+                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                        v-tooltip="'Reset filter op producttype'">
+                        <XCircleIcon class="h-5 w-5" />
+                    </button>
                 </div>
-                <XCircleIcon
-                    class="h-8 w-8 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer ml-2 mb-1"
-                    @click="resetFilter" v-tooltip="'Reset filter op producttype'" />
-            </template>
-        </IndexHeaderComponent>
-    </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
 
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="groupFormRef" external-trigger action="/servicecheckgroups" :fields="groupFields"

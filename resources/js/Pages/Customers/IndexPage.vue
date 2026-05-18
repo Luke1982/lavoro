@@ -1,15 +1,15 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Klanten" :addLabel="canCreate ? 'Nieuwe klant' : null"
-            search-placeholder="Zoek klant... " search-url="/customers"
-            @add="() => canCreate && customerFormRef?.show()">
-            <template #right>
+    <IndexHeaderComponent title="Klanten" :addLabel="canCreate ? 'Nieuwe klant' : null"
+        search-placeholder="Zoek klant... " search-url="/customers"
+        @add="() => canCreate && customerFormRef?.show()">
+        <template #filters>
+            <div>
                 <button @click="importCustomers" :disabled="importingCustomers"
                     class="ml-auto px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">SnelStart
                     klanten importeren</button>
-            </template>
-        </IndexHeaderComponent>
-    </div>
+            </div>
+        </template>
+    </IndexHeaderComponent>
 
     <div class="mb-4" v-auto-animate v-if="canCreate">
         <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"

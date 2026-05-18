@@ -1,10 +1,8 @@
 <template>
-    <div class="p-4 bg-white rounded-md mb-3 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
-        <IndexHeaderComponent title="Producttypen" subtitle="Hieronder een lijst van alle producttypen"
-            search-url="/producttypes" search-label="Zoek binnen producttypen"
-            search-placeholder="bijv. 'Viergastester'" add-label="Voeg producttype toe"
-            @add="() => typeFormRef?.show()" />
-    </div>
+    <IndexHeaderComponent title="Producttypen" subtitle="Hieronder een lijst van alle producttypen"
+        search-url="/producttypes" search-label="Zoek binnen producttypen"
+        search-placeholder="bijv. 'Viergastester'" add-label="Voeg producttype toe"
+        @add="() => typeFormRef?.show()" />
     <div class="mt-0 mb-4" v-auto-animate>
         <CreateRecordForm ref="typeFormRef" external-trigger action="/producttypes" :fields="typeFields"
             add-button-label="Voeg producttype toe" submit-label="Toevoegen" />
