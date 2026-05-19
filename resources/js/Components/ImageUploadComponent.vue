@@ -2,17 +2,26 @@
     <div class="w-full mx-auto" v-if="hasPermission('image.upload') || hasPermission('image.see')">
         <ul v-if="props.existing.length > 0" class="flex flex-wrap gap-3 mb-4">
             <li v-for="image in props.existing" :key="image.id"
-                class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden">
-                <img :src="`/storage/${image.path}`" :alt="image.path" class="object-contain"
+                class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden"
+                :class="image.pivot?.main ? 'ring-2 ring-yellow-400' : ''">
+                <img :src="`/storage/${image.path}`" :alt="image.path" class="object-cover w-full h-48"
                     @click="hasPermission('image.edit') && openEditor(image)">
                 <div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent text-center text-white pb-4 pt-8"
                     @click="hasPermission('image.update') && changeTitle(image.name, image.id)">
                     {{ image.name }}
                 </div>
-                <a :href="`/storage/${image.path}`"
-                    class="glightbox absolute top-2 left-2 text-black font-bold bg-white rounded-full p-2">
-                    <MagnifyingGlassIcon class="h-5 w-5" />
-                </a>
+                <div class="flex absolute top-2 left-2 gap-x-2">
+                    <a :href="`/storage/${image.path}`"
+                        class="glightbox text-black font-bold bg-white rounded-full p-2">
+                        <MagnifyingGlassIcon class="h-5 w-5" />
+                    </a>
+                    <button v-if="hasPermission('image.update')" @click.stop="setMain(image.id, image.pivot?.main)"
+                        class="font-bold bg-white rounded-full p-2"
+                        :class="image.pivot?.main ? 'text-yellow-400' : 'text-gray-400'"
+                        :title="image.pivot?.main ? 'Dit is de hoofdafbeelding' : 'Instellen als hoofdafbeelding'">
+                        <StarIcon class="h-5 w-5" :class="image.pivot?.main ? 'fill-yellow-400' : ''" />
+                    </button>
+                </div>
                 <button @click.stop="deleteImage(image.id)" v-if="hasPermission('image.delete')"
                     class="absolute top-2 right-2 text-red-500 font-bold bg-white rounded-full p-2"
                     title="Verwijder deze afbeelding">
@@ -79,9 +88,10 @@ import {
 
 } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import ImageEditor from 'tui-image-editor';
 import 'tui-image-editor/dist/tui-image-editor.min.css';
-import { TrashIcon } from '@heroicons/vue/24/solid';
+import { TrashIcon, StarIcon } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { hasPermission } from '@/Utilities/Utilities.js';
@@ -222,6 +232,14 @@ const deleteImage = (id) => {
         preserveScroll: true,
     });
     emit('imageDeleted', id);
+}
+
+const setMain = (id, isCurrentlyMain) => {
+    router.post(`/images/${id}/set-main`, {
+        imageable_id: props.imageableId,
+        imageable_type: props.imageableType,
+        currently_main: isCurrentlyMain,
+    }, { preserveScroll: true });
 }
 
 // Clean up object URLs on component unmount

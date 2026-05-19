@@ -14,7 +14,7 @@
                         </div>
                         <div class="flex self-ends w-full">
                             <span v-if="sale_period_text" class="text-sm text-gray-500 ml-4">{{ sale_period_text
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
                 </div>
@@ -265,11 +265,64 @@
             <div class="mt-4 md:mt-0">
                 <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                     imageable-type="\App\Models\Product" />
+                <button v-if="hasPermission('image.upload')" @click="openGoogleImagesDialog"
+                    class="mt-2 w-full flex items-center justify-center gap-2 text-sm text-blue-600 border border-blue-300 rounded-md px-3 py-2 hover:bg-blue-50">
+                    <MagnifyingGlassIcon class="h-4 w-4" />
+                    Zoek op Google Afbeeldingen
+                </button>
                 <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
                     documentable-type="\App\Models\Product" class="mt-4" />
             </div>
         </template>
     </TwoThirdsOneThird>
+
+    <!-- Google Images dialog -->
+    <div v-if="googleDialog.open" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+        @click.self="googleDialog.open = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold">Afbeelding via Google importeren</h2>
+                <button @click="googleDialog.open = false" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Google Afbeeldingen wordt geopend in een nieuw tabblad. Klik met de rechtermuisknop op een afbeelding en
+                kies
+                <strong>"Afbeeldingsadres kopiëren"</strong> (URL) of <strong>"Afbeelding kopiëren"</strong> (plak
+                direct
+                hieronder met Ctrl+V).
+            </p>
+            <a :href="googleDialog.searchUrl" target="_blank" rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 text-sm text-blue-600 underline mb-4">
+                <MagnifyingGlassIcon class="h-4 w-4" />
+                Open Google Afbeeldingen: {{ product.brand.name }} {{ product.model }}
+            </a>
+            <div class="mt-2">
+                <label class="block text-xs text-gray-500 mb-1">Afbeeldings-URL of geplakte afbeelding</label>
+                <div class="relative">
+                    <input v-model="googleDialog.url" type="text"
+                        placeholder="https://... of Ctrl+V om een gekopieerde afbeelding te plakken"
+                        class="w-full rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10"
+                        @paste.prevent="handleImagePaste" />
+                    <span v-if="googleDialog.pastedPreview"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 text-xs font-semibold">✓
+                        afbeelding</span>
+                </div>
+                <div v-if="googleDialog.pastedPreview" class="mt-2">
+                    <img :src="googleDialog.pastedPreview" class="max-h-20 rounded border border-gray-200"
+                        alt="Voorbeeld" />
+                </div>
+            </div>
+            <div v-if="googleDialog.error" class="text-red-500 text-xs mt-2">{{ googleDialog.error }}</div>
+            <div class="flex justify-end gap-2 mt-4">
+                <button @click="googleDialog.open = false"
+                    class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuleren</button>
+                <button @click="importGoogleImage" :disabled="!googleDialog.url || googleDialog.importing"
+                    class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                    {{ googleDialog.importing ? 'Bezig…' : 'Importeren' }}
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
@@ -285,10 +338,11 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
-import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch, computed } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
+import axios from 'axios';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
@@ -330,7 +384,6 @@ const form = useForm({
     purchase_price: props.product.purchase_price,
     part_no: props.product.part_no,
     bundle: props.product.bundle ?? false,
-    origin: 'showPage'
 });
 
 const sale_period_text = computed(() => formatProductSalePeriod(props.product.start_sell, props.product.end_sell, 'show'))
@@ -404,6 +457,64 @@ function saveEdit() {
         preserveScroll: true,
         onSuccess: () => { editingId.value = null },
     })
+}
+
+const googleDialog = reactive({
+    open: false,
+    url: '',
+    error: null,
+    importing: false,
+    searchUrl: '',
+    pastedPreview: null,
+})
+
+function openGoogleImagesDialog() {
+    const query = encodeURIComponent(`${props.product.brand.name} ${props.product.model}`)
+    googleDialog.searchUrl = `https://www.google.com/search?q=${query}&tbm=isch`
+    googleDialog.open = true
+    googleDialog.url = ''
+    googleDialog.error = null
+    googleDialog.importing = false
+    googleDialog.pastedPreview = null
+}
+
+function handleImagePaste(event) {
+    const items = event.clipboardData?.items ?? []
+    for (const item of items) {
+        if (item.type.startsWith('image/')) {
+            const file = item.getAsFile()
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                googleDialog.url = e.target.result
+                googleDialog.pastedPreview = e.target.result
+            }
+            reader.readAsDataURL(file)
+            return
+        }
+    }
+    // Fallback: plain text URL pasted
+    const text = event.clipboardData?.getData('text') ?? ''
+    googleDialog.url = text
+    googleDialog.pastedPreview = null
+}
+
+async function importGoogleImage() {
+    googleDialog.importing = true
+    googleDialog.error = null
+
+    try {
+        await axios.post('/images/import-from-url', {
+            url: googleDialog.url,
+            imageable_id: props.product.id,
+            imageable_type: '\\App\\Models\\Product',
+            name: `${props.product.brand.name} ${props.product.model}`,
+        })
+        googleDialog.open = false
+        router.reload({ preserveScroll: true })
+    } catch (e) {
+        googleDialog.importing = false
+        googleDialog.error = e.response?.data?.message ?? 'De afbeelding kon niet worden geïmporteerd.'
+    }
 }
 
 </script>

@@ -8,7 +8,8 @@ use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Customer;
 use App\Http\Requests\ProductReadRequest;
-use App\Http\Requests\ProductStoreUpdateRequest;
+use App\Http\Requests\ProductStoreRequest;
+use App\Http\Requests\ProductUpdateRequest;
 use App\Services\ProductableService;
 use Illuminate\Http\Request;
 
@@ -40,14 +41,15 @@ class ProductController extends Controller
             'Products/IndexPage',
             [
                 'products'     => $products
-                    ->with(['brand', 'productType'])
+                    ->with(['brand', 'productType', 'mainImage'])
                     ->orderBy('model')
-                    ->paginate(20),
+                    ->paginate(max(1, min(100, (int)$request->input('perPage', 20)))),
                 'search'       => $search,
                 'brands'       => Brand::all(),
                 'productTypes' => ProductType::flatListWithPath(),
                 'onlyType'     => $onlyType,
                 'onlyBrand'    => $onlyBrand,
+                'perPage'      => max(1, min(100, (int)$request->input('perPage', 20))),
             ]
         );
     }
@@ -57,13 +59,14 @@ class ProductController extends Controller
      */
     private static function getByTerm($term)
     {
-        $query = Product::with(['brand', 'productType']);
+        $query = Product::with(['brand', 'productType', 'mainImage']);
 
         $words = preg_split('/\s+/', trim($term));
 
         foreach ($words as $word) {
             $query->where(function ($q) use ($word) {
                 $q->where('model', 'like', '%' . $word . '%')
+                    ->orWhere('part_no', 'like', '%' . $word . '%')
                     ->orWhereHas('brand', function ($qb) use ($word) {
                         $qb->where('name', 'like', '%' . $word . '%');
                     })
@@ -156,7 +159,7 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ProductStoreUpdateRequest $request)
+    public function store(ProductStoreRequest $request)
     {
         $product = Product::create($request->validated());
 
@@ -169,12 +172,12 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(ProductStoreUpdateRequest $request, Product $product)
+    public function update(ProductUpdateRequest $request, Product $product)
     {
         $product->update($request->validated());
 
         return redirect()
-            ->route($request->origin === 'showPage' ? 'products.show' : 'products.index', $product->id)
+            ->back()
             ->with('success', 'Product bijgewerkt.')
             ->with('extra', $product->load(['brand', 'productType']));
     }

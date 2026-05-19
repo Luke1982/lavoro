@@ -47,6 +47,7 @@ class Material extends Model
 
     public function images()
     {
-        return $this->morphToMany(Image::class, 'imageable');
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main']);
     }
 }

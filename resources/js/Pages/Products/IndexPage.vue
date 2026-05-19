@@ -1,10 +1,10 @@
 <template>
     <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
         search-label="Zoek binnen producten" search-placeholder="Zoek op model, merk, omschrijving of artikelnummer"
-        :search-other-params="filterParams" :paginator="products" add-label="Voeg product toe"
-        @add="() => productFormRef?.show()">
+        :search-other-params="filterParams" :paginator="false" add-label="Voeg product toe"
+        @add="showProductDrawer = true">
         <template #filters>
-            <div class="flex">
+            <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
                     <div class="flex items-end gap-2">
                         <ComboBox :options="productTypes" v-model="productTypeToShow" multiple
@@ -27,14 +27,14 @@
                         </button>
                     </div>
                 </div>
-                <div class="w-1/6 flex items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
             </div>
             <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>
                 <span v-for="filter in activeFilters" :key="filter.key"
-                    class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    class="inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
                     <span class="text-gray-400 dark:text-slate-400">{{ filter.label }}:</span>
                     {{ filter.value }}
                     <button type="button" @click="filter.clear()"
@@ -47,147 +47,276 @@
                         <span class="absolute -inset-1" />
                     </button>
                 </span>
+                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                    v-if="activeFilters.length" @click="clearAllFilters">
+                    <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
+                </div>
             </div>
         </template>
     </IndexHeaderComponent>
-    <div class="mb-4" v-auto-animate>
-        <CreateRecordForm ref="productFormRef" external-trigger action="/products" :fields="productFields"
-            add-button-label="Voeg product toe" submit-label="Opslaan" />
-    </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="displayProducts.length"
-            class="border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
-            <div class="grid grid-cols-12 font-bold text-sm">
+        <div v-if="displayProducts.length">
+            <div
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-4">Model</div>
                 <div class="col-span-2">Merk</div>
                 <div class="col-span-2">Producttype</div>
                 <div class="col-span-2">Verkoopperiode</div>
                 <div class="col-span-1">Bundel</div>
-                <div class="col-span-1">Acties</div>
+                <div class="col-span-1 text-right">Acties</div>
             </div>
-        </div>
-    </BoxComponent>
-    <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="displayProducts.length" class="mt-3 sm:-mx-0 bg-white dark:bg-slate-900 p-px transition-colors"
-            role="table">
-            <!-- <div class="hidden lg:flex" role="row">
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[28%]">
-                    Model</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[22%]">
-                    Merk</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:w-[24%]">
-                    Producttype</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 lg:flex-grow">
-                    Verkoopperiode</div>
-                <div class="px-4 py-2 bg-gray-600 dark:bg-slate-700 shrink-0 flex items-center justify-end gap-3">
-                    <span class="text-white text-sm font-semibold opacity-0">Acties</span>
-                </div>
-            </div> -->
-
-
-
-            <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
-                <div v-for="product in displayProducts" :key="product.id" role="row"
-                    class="even:bg-gray-50 dark:even:bg-slate-800/70 dark:bg-slate-900 grid grid-cols-12 py-3 lg:flex lg:flex-row lg:items-stretch border-b border-gray-100 dark:border-slate-800/60 last:border-b-0">
-                    <!-- Model -->
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:w-[28%]">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Model</span>
-                        <div v-if="product.open">
-                            <TextInput v-model="product.model" />
-                        </div>
-                        <Link v-else :href="`/products/${product.id}`"
-                            class="text-blue-500 dark:text-blue-300 underline">
-                            {{ product.model }}
+            <div v-for="product in displayProducts" :key="product.id" role="row"
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
+                    <div
+                        class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
+                        <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
+                            alt="">
+                    </div>
+                    <div class="flex flex-col">
+                        <Link :href="`/products/${product.id}`" class="font-bold mb-1">
+                            {{ product.brand.name }} {{ product.model }}
                         </Link>
-                    </div>
-
-                    <!-- Merk -->
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:w-[22%]">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Merk</span>
-                        <div v-if="product.open">
-                            <ComboBox :options="brands" v-model="product.brand_id" :initialId="product.brand?.id"
-                                placeholder="Selecteer merk" class="pt-1" />
+                        <span class="text-slate-600">{{ product.part_no }}</span>
+                        <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
+                            {{ product.product_type?.name }}
+                            <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
+                                {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                            </BadgeComponent>
                         </div>
-                        <span v-else>{{ product.brand?.name }}</span>
                     </div>
-
-                    <!-- Producttype -->
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:w-[24%]">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Producttype</span>
-                        <div v-if="product.open">
-                            <ComboBox :options="productTypes" v-model="product.product_type_id"
-                                :initialId="product.product_type?.id" placeholder="Selecteer producttype"
-                                class="pt-1" />
+                </div>
+                <div class="col-span-2 items-center pr-2 hidden sm:flex">
+                    <EditableTextField type="combobox" :model-value="product.brand_id" :options="brands"
+                        :decoration="false"
+                        @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true })">
+                        <template #display>{{ product.brand?.name }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden sm:flex pr-2">
+                    <EditableTextField type="combobox" :model-value="product.product_type_id" :options="productTypes"
+                        :decoration="false"
+                        @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true })">
+                        <template #display>{{ product.product_type?.name }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden sm:flex pr-2">
+                    <EditableTextField :decoration="false"
+                        @open="saleEdits[product.id] = { start_sell: product.start_sell ?? '', end_sell: product.end_sell ?? '' }">
+                        <template #display>{{ formatProductSalePeriod(product.start_sell,
+                            product.end_sell, 'index') }}</template>
+                        <template #open="{ close }">
+                            <div class="flex flex-col gap-2 w-full" @click.stop>
+                                <input type="date" v-model="saleEdits[product.id].start_sell"
+                                    class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
+                                <input type="date" v-model="saleEdits[product.id].end_sell"
+                                    class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
+                                <button @click.stop="saveSalePeriod(product.id, close)"
+                                    class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 font-medium text-left">Opslaan</button>
+                            </div>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-1 items-center hidden sm:flex pr-2">
+                    <EditableTextField :decoration="false" @open="bundleEdits[product.id] = { bundle: product.bundle }">
+                        <template #display>
+                            <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
+                                {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                            </BadgeComponent>
+                        </template>
+                        <template #open="{ close }">
+                            <div class="flex flex-col gap-2" @click.stop>
+                                <SwitchComponent v-model="bundleEdits[product.id].bundle"
+                                    @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
+                            </div>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
+                    <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
+                        <div class="pb-2 sm:pb-0">
+                            <Link :href="`/products/${product.id}`" class="text-sm text-lavoro-darkerblue">
+                                <EyeIcon class="h-5 w-5" />
+                            </Link>
                         </div>
-                        <span v-else>{{ product.product_type?.name }}</span>
-                    </div>
-
-                    <!-- Verkoopperiode -->
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 text-gray-800 dark:text-slate-200 lg:flex-grow">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Verkoopperiode</span>
-                        <div v-if="product.open" class="grid grid-cols-2 gap-2 pt-1">
-                            <input type="date" v-model="product.start_sell"
-                                class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
-                            <input type="date" v-model="product.end_sell"
-                                class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
+                        <div v-if="hasPermission('product.delete')"
+                            class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0">
+                            <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteProduct(product.id)" />
                         </div>
-                        <span v-else>{{ formatProductSalePeriod(product.start_sell, product.end_sell, 'index') }}</span>
-                    </div>
-
-                    <!-- Acties -->
-                    <div class="px-4 py-2 text-right flex items-center justify-end gap-3 col-span-12 lg:shrink-0">
-                        <button v-if="!product.open" @click="toggleRecord(product.id)"
-                            class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
-                            <PencilSquareIcon class="inline h-5 w-5 mr-2" />
-                        </button>
-                        <button v-else @click="saveRecord(product)"
-                            class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
-                            Opslaan
-                        </button>
-                        <TrashIcon
-                            class="inline h-5 w-5 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
-                            @click.stop="deleteProduct(product.id)" />
                     </div>
                 </div>
             </div>
+            <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
+                <PageRecordCountComponent :total="products.total" :per-page="perPage" label="producten" />
+                <PaginationComponent v-if="products.data.length" :paginator="products" />
+            </div>
         </div>
-        <PaginationComponent v-if="displayProducts.length" :paginator="products"
-            class="border-t border-gray-200 pt-2 dark:border-slate-700/60" />
-        <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen producten gevonden.</p>
+        <div v-else class="p-6 text-center">
+            <div class="text-gray-400">
+                <BoxIcon class="h-12 w-12 mx-auto mb-3" />
+                <p class="text-sm">Geen producten gevonden</p>
+            </div>
+        </div>
     </BoxComponent>
+
+    <DrawerComponent v-model="showProductDrawer" title="Nieuw product toevoegen"
+        subtitle="Vul onderstaande velden in om een nieuw product toe te voegen." max-width-class="max-w-2xl">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Producttype</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="productTypes" v-model="newProductForm.product_type_id"
+                        placeholder="Selecteer producttype" :hasError="Boolean(newProductForm.errors.product_type_id)"
+                        :errorMessage="newProductForm.errors.product_type_id" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Merk</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="brands" v-model="newProductForm.brand_id" placeholder="Selecteer merk"
+                        :hasError="Boolean(newProductForm.errors.brand_id)"
+                        :errorMessage="newProductForm.errors.brand_id" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Model</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newProductForm.model" type="text"
+                        :hasError="Boolean(newProductForm.errors.model)" :errorMessage="newProductForm.errors.model" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-start">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 sm:pt-2">Beschrijving</label>
+                <div class="sm:col-span-2">
+                    <textarea v-model="newProductForm.description" rows="3"
+                        class="block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm p-2"
+                        placeholder="Optioneel"></textarea>
+                    <p v-if="newProductForm.errors.description" class="text-red-600 text-sm mt-1">{{
+                        newProductForm.errors.description }}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Artikelnummer</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newProductForm.part_no" type="text" placeholder="Optioneel"
+                        :hasError="Boolean(newProductForm.errors.part_no)"
+                        :errorMessage="newProductForm.errors.part_no" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Start verkoop</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newProductForm.start_sell" type="date"
+                        :hasError="Boolean(newProductForm.errors.start_sell)"
+                        :errorMessage="newProductForm.errors.start_sell" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einde verkoop</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newProductForm.end_sell" type="date"
+                        :hasError="Boolean(newProductForm.errors.end_sell)"
+                        :errorMessage="newProductForm.errors.end_sell" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Verkoopprijs</label>
+                <div class="sm:col-span-2">
+                    <CurrencyInput v-model="newProductForm.retail_price" placeholder="Optioneel"
+                        :hasError="Boolean(newProductForm.errors.retail_price)"
+                        :errorMessage="newProductForm.errors.retail_price" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Inkoopprijs</label>
+                <div class="sm:col-span-2">
+                    <CurrencyInput v-model="newProductForm.purchase_price" placeholder="Optioneel"
+                        :hasError="Boolean(newProductForm.errors.purchase_price)"
+                        :errorMessage="newProductForm.errors.purchase_price" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 flex">
+                    Bundel
+                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
+                        v-tooltip="'Een gebundeld product wordt gebruikt om andere producten te groeperen. Machines die van bundels gemaakt worden krijgen geen serienummer.'" />
+                </label>
+                <div class="sm:col-span-2">
+                    <SwitchComponent v-model="newProductForm.bundle" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeProductDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewProduct" :disabled="newProductForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
-import TextInput from '@/Components/UI/TextInput.vue'
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import { Link, useForm, router } from '@inertiajs/vue3'
+import { ref, computed, reactive } from 'vue'
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import TextInput from '@/Components/UI/TextInput.vue'
+import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
-import { XCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import { formatProductSalePeriod } from '@/Utilities/Utilities'
-import { RotateCcwIcon } from '@lucide/vue'
+import { XCircleIcon } from '@heroicons/vue/24/outline'
+import { formatProductSalePeriod, hasPermission } from '@/Utilities/Utilities'
+import { EyeIcon, InfoIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
+import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 
-const { products, brands, productTypes } = defineProps({
+const { products, brands, productTypes, perPage } = defineProps({
     products: { type: Object, required: true },
     brands: { type: Array, default: () => [] },
-    productTypes: { type: Array, default: () => [] }
+    productTypes: { type: Array, default: () => [] },
+    perPage: { type: Number, default: 20 },
 })
 
-const productFormRef = ref(null)
+const showProductDrawer = ref(false)
+
+const newProductForm = useForm({
+    product_type_id: null,
+    brand_id: null,
+    model: '',
+    description: '',
+    part_no: '',
+    start_sell: null,
+    end_sell: null,
+    retail_price: null,
+    purchase_price: null,
+    bundle: false,
+})
+
+function submitNewProduct() {
+    newProductForm.post('/products', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showProductDrawer.value = false
+            newProductForm.reset()
+        },
+    })
+}
+
+function closeProductDrawer() {
+    showProductDrawer.value = false
+    newProductForm.reset()
+    newProductForm.clearErrors()
+}
+
 const openIds = ref(new Set())
 const displayProducts = computed(() => (products.data || []).map(p => ({
     ...p,
@@ -228,43 +357,24 @@ function clearAllFilters() {
     brandToShow.value = []
 }
 
-const productFields = [
-    { key: 'product_type_id', label: 'Producttype', type: 'combobox', options: productTypes, initialId: productTypes[0]?.id },
-    { key: 'brand_id', label: 'Merk', type: 'combobox', options: brands, initialId: brands[0]?.id },
-    { key: 'model', label: 'Model', type: 'text' },
-    { key: 'description', label: 'Beschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
-    { key: 'start_sell', label: 'Start verkoop', type: 'date', placeholder: 'Optioneel' },
-    { key: 'end_sell', label: 'Einde verkoop', type: 'date', placeholder: 'Optioneel' },
-    { key: 'retail_price', label: 'Verkoopprijs', type: 'currency', placeholder: 'Optioneel' },
-    { key: 'purchase_price', label: 'Inkoopprijs', type: 'currency', placeholder: 'Optioneel' },
-    { key: 'part_no', label: 'Artikelnummer', type: 'text', placeholder: 'Optioneel' },
-]
+const saleEdits = reactive({})
+const bundleEdits = reactive({})
+
+function updateProduct(product_id, data, close = null) {
+    router.patch(`/products/${product_id}`, data, {
+        preserveScroll: true,
+        onSuccess: () => close?.()
+    })
+}
+
+function saveSalePeriod(productId, close) {
+    const edit = saleEdits[productId]
+    updateProduct(productId, { start_sell: edit.start_sell, end_sell: edit.end_sell }, close)
+}
 
 const deleteProduct = (id) => {
     if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return
     useForm({}).delete(`/products/${id}`, { preserveScroll: true })
 }
 
-const toggleRecord = (id) => {
-    const currentlyOpen = displayProducts.value.find(p => p.open)
-    if (currentlyOpen && currentlyOpen.id !== id) {
-        const updateForm = useForm({ ...currentlyOpen })
-        updateForm.patch(`/products/${currentlyOpen.id}`, { preserveScroll: true })
-        openIds.value.delete(currentlyOpen.id)
-    }
-    if (openIds.value.has(id)) openIds.value.delete(id)
-    else openIds.value.add(id)
-}
-
-
-const saveRecord = (product) => {
-    const form = useForm({ ...product })
-
-    form.patch(`/products/${product.id}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            openIds.value.delete(product.id)
-        }
-    })
-}
 </script>

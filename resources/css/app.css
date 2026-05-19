@@ -3,9 +3,11 @@
 
 @theme {
     --color-lavoro-blue: #2563ff;
+    --color-lavoro-darkblue: rgb(6,20,43);
     --color-lavoro-dark: #081020;
     --color-lavoro-green: #c6ff00;
     --color-lavoro-lightgray: rgb(249,251,253);
+    --color-lavoro-gray-150: rgb(246,248,250);
     --color-lavoro-darkergray: #bdbebf;
     --default-font-family: 'Sora', sans-serif;
     --color-lavoro-box: 1px solid rgba(15, 23, 42, 0.06);

@@ -26,14 +26,9 @@
                             </TransitionChild>
 
                             <div
-                                class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
-                                <div class="flex h-16 shrink-0 items-center">
-                                    <img src="/img/logo-neg.svg" alt="">
-                                    <img v-if="companyLogo" class="h-8 w-auto" :src="companyLogo"
-                                        :alt="companyName || 'Bedrijf'" />
-                                </div>
+                                class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6 pb-2 ring-1 ring-white/10">
 
-                                <nav class="flex flex-1 flex-col">
+                                <nav class="flex flex-1 flex-col mt-4">
                                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
                                         <li>
                                             <ul role="list" class="-mx-2 space-y-1">
@@ -104,6 +99,9 @@
 
                                         <li class="-mx-6 mt-auto">
                                             <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
+                                                <img v-if="companyLogo" class="h-8 w-auto ml-2 mb-2" :src="companyLogo"
+                                                    :alt="companyName || 'Bedrijf'" />
+
                                                 <Link :href="'/companies'" @click="sidebarOpen = false" :class="[
                                                     isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -143,7 +141,7 @@
                                                     <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                         class="object-cover w-full h-full" />
                                                     <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                        }}</span>
                                                 </div>
                                                 <span class="sr-only">Profiel</span>
                                                 <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -166,7 +164,7 @@
         </TransitionRoot>
 
         <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6">
+            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6">
                 <div class="flex shrink-0 flex-col items-start">
                     <img src="/img/logo-neg.svg" alt="" class="h-15 mt-3">
                 </div>
@@ -294,6 +292,7 @@
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
             <div class="flex-1 text-sm/6 font-semibold text-white">{{ currentTopTitle }}</div>
+            <img src="/img/logo-neg.svg" class="h-6" alt="">
             <Link :href="'/me/edit'">
                 <span class="sr-only">Profiel</span>
                 <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
@@ -304,7 +303,7 @@
 
         </div>
 
-        <main :class="[page.props.noPadding ? '' : 'py-10', 'lg:pl-72', 'bg-svg min-h-[100vh]']">
+        <main :class="[page.props.noPadding ? '' : 'pt-4 pb-10', 'lg:pl-72', 'bg-svg min-h-[100vh]']">
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>

@@ -48,4 +48,5 @@ return [
         'auth_url'         => env('SNELSTART_AUTH_URL'),
         'api_base'         => env('SNELSTART_API_BASE'),
     ],
+
 ];

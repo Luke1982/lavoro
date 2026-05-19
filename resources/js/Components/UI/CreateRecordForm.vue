@@ -22,7 +22,7 @@
 
                 <div v-else-if="field.type === 'textarea'" :class="['col-span-1', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ field.label
-                        }}</label>
+                    }}</label>
                     <textarea v-model="form[field.key]" :rows="field.rows || 3"
                         class="mt-2 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm p-2"
                         :placeholder="field.placeholder || ''"></textarea>
@@ -31,7 +31,7 @@
 
                 <div v-else-if="field.type === 'combobox'" :class="['col-span-1', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ field.label
-                    }}</label>
+                        }}</label>
                     <ComboBox class="mt-2" :options="field.options || []" v-model="form[field.key]"
                         :placeholder="field.placeholder || ''" :initialId="field.initialId"
                         :initialIds="field.initialIds" :multiple="field.multiple === true"
@@ -41,7 +41,7 @@
 
                 <div v-else-if="field.type === 'boolean'" :class="['col-span-1 flex flex-col', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ field.label
-                    }}</label>
+                        }}</label>
                     <div class="mt-2 h-9 flex items-center">
                         <SwitchComponent v-model="form[field.key]" />
                     </div>

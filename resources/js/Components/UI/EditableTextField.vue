@@ -1,14 +1,16 @@
 <template>
-    <div ref="rootRef" :class="[editing ? '' : 'pr-5', 'relative border-b-1 border-b-gray-300 pb-2']"
+    <div ref="rootRef"
+        :class="{ 'pr-5': !editing, 'relative pb-2 cursor-pointer w-full': true, 'border-b-1 border-b-gray-300': decoration }"
         @click="onWrapperClick" v-auto-animate>
         <span v-if="!editing" class="pr-4">
             <slot name="display">{{ displayValue }}</slot>
         </span>
 
         <div class="flex min-w-0" v-if="editing">
-            <CurrencyInput v-if="type === 'input' && inputType === 'currency'" v-model="local" :rightCorners="false"
-                :ring="false" class="flex-grow min-w-0" :placeholder="placeholder" :hasError="Boolean(error)"
-                :errorMessage="error" />
+            <slot v-if="$slots.open" name="open" :close="close" />
+            <CurrencyInput v-else-if="type === 'input' && inputType === 'currency'" v-model="local"
+                :rightCorners="false" :ring="false" class="flex-grow min-w-0" :placeholder="placeholder"
+                :hasError="Boolean(error)" :errorMessage="error" />
             <TextInput v-else-if="type === 'input'" v-model="local" :rightCorners="false" :ring="false"
                 class="flex-grow min-w-0" :type="htmlInputType" :placeholder="placeholder" :hasError="Boolean(error)"
                 :errorMessage="error" />
@@ -18,11 +20,11 @@
             <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
                 :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
-            <button v-if="inErrorState" @click.stop="revert" class="px-3 py-1 text-white rounded-r cursor-pointer"
-                v-tooltip="'Wijzigingen ongedaan maken'">
+            <button v-if="!$slots.open && inErrorState" @click.stop="revert"
+                class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">
                 <ArrowUturnLeftIcon class="w-5 h-5 text-gray-500 dark:text-gray-200" />
             </button>
-            <button v-else-if="type !== 'combobox'" @click.stop="save"
+            <button v-else-if="!$slots.open && type !== 'combobox'" @click.stop="save"
                 class="px-3 py-1 text-white rounded-r cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"
                     class="w-5 h-5 text-gray-500 dark:text-gray-200" fill="currentColor">
@@ -32,21 +34,21 @@
             </button>
         </div>
 
-        <PencilSquareIcon v-if="!editing && !readonly"
+        <PencilSquareIcon v-if="!editing && !readonly && decoration"
             class="size-4 text-gray-400 dark:text-gray-300 absolute right-2 top-4 transform -translate-y-1/2 cursor-pointer"
             @click="startEdit" />
     </div>
 </template>
 
 <script setup>
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue';
+import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
 import { ArrowUturnLeftIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import TextInput from './TextInput.vue';
 import ComboBox from './ComboBox.vue';
 import CurrencyInput from './CurrencyInput.vue';
 import { nlDate } from '@/Utilities/Utilities';
 
-const emit = defineEmits(['update', 'revert']);
+const emit = defineEmits(['update', 'revert', 'open']);
 
 const model = defineModel();
 const props = defineProps({
@@ -59,11 +61,14 @@ const props = defineProps({
     // Combobox-only:
     options: { type: Array, default: () => [] },
     multiple: { type: Boolean, default: false },
+    decoration: { type: Boolean, default: true },
 });
 
 const editing = ref(false);
 const local = ref(model.value);
 const rootRef = ref(null);
+const slots = useSlots();
+const close = () => { editing.value = false; };
 // NO_SAVE = no save attempted in this edit session.
 // anything else = the value we last submitted (and whose result we may still be waiting for).
 const NO_SAVE = Symbol('no-save');
@@ -109,6 +114,7 @@ watchEffect(() => {
 });
 
 function startEdit() {
+    emit('open');
     editing.value = true;
     local.value = model.value;
     originalValue.value = model.value;
@@ -158,7 +164,11 @@ function onComboBoxSelect(value) {
 function handleOutsideClick(e) {
     if (rootRef.value && !rootRef.value.contains(e.target)) {
         if (inErrorState.value) return;
-        save();
+        if (slots.open) {
+            editing.value = false;
+        } else {
+            save();
+        }
     }
 }
 

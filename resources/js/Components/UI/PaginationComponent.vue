@@ -3,18 +3,18 @@
         v-if="middleLinks.length > 1 || prevUrl || nextUrl">
         <div class="flex-1">
             <Link v-if="prevUrl" :href="appendParams(prevUrl)"
-                class="inline-flex items-center text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
+                class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
                 preserve-scroll>
-            « Vorige
+                <ChevronLeftIcon class="h-4 w-4" />
             </Link>
         </div>
         <div class="hidden md:flex space-x-1">
             <template v-for="link in middleLinks" :key="(link.url || '') + '-' + link.label">
                 <Link v-if="link.url" :href="appendParams(link.url)"
-                    class="px-3 py-1 text-sm font-medium border rounded hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
-                    :class="link.active ? 'border-indigo-500 text-indigo-600 dark:border-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-300'"
+                    class="px-4 py-2 text-sm font-medium border rounded-md"
+                    :class="link.active ? 'bg-lavoro-blue text-white' : 'border-transparent text-gray-500 dark:text-gray-300'"
                     preserve-scroll>
-                <span v-html="decodeEntities(link.label)"></span>
+                    <span v-html="decodeEntities(link.label)"></span>
                 </Link>
                 <span v-else class="px-3 py-1 text-sm font-medium border rounded"
                     :class="link.active ? 'border-indigo-500 text-indigo-600 dark:border-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-300'">
@@ -24,9 +24,9 @@
         </div>
         <div class="flex-1 text-right">
             <Link v-if="nextUrl" :href="appendParams(nextUrl)"
-                class="inline-flex items-center text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
+                class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
                 preserve-scroll>
-            Volgende »
+                <ChevronRightIcon class="h-4 w-4" />
             </Link>
         </div>
     </nav>
@@ -35,6 +35,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 
 const props = defineProps({
     paginator: { type: Object, required: true },

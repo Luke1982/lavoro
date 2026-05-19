@@ -56,7 +56,16 @@ class Product extends Model
     public function images()
     {
         return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main'])
             ->withTimestamps();
+    }
+
+    public function mainImage()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main'])
+            ->wherePivot('main', true)
+            ->limit(1);
     }
 
     public function documents()

@@ -121,6 +121,8 @@ Route::group(
         )->name('servicejobs.bulkComplete');
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
+        Route::post('images/{image}/set-main', [ImageController::class, 'setMain'])->name('images.setMain');
+        Route::post('images/import-from-url', [ImageController::class, 'importFromUrl'])->name('images.importFromUrl');
         Route::resource('remarks', RemarkController::class)
             ->only(['store', 'destroy']);
         Route::resource('documents', DocumentController::class)

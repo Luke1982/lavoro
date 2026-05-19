@@ -4,21 +4,25 @@
             <span class="text-lg font-semibold">{{ title }}</span>
             <span class="text-xs">{{ subtitle }}</span>
         </div>
-        <div class="flex justify-end gap-x-4">
-            <div>
+        <div class="flex justify-end gap-x-2 sm:gap-x-4">
+            <div class="hidden sm:block">
                 <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
                     :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
             <button v-if="slots.filters" @click="filtersVisible = !filtersVisible"
-                class="rounded-md border-gray-200 border-1 px-4 bg-white text-sm flex items-center gap-x-1 text-gray-800 cursor-pointer">
-                <FilterIcon class="h-5 w-5 text-gray-500" />Filters
+                class="rounded-md border-gray-200 border-1 px-2 sm:px-4 bg-white text-sm flex items-center gap-x-1 text-gray-800 cursor-pointer">
+                <FilterIcon class="h-5 w-5 text-gray-500" /><span class="hidden sm:inline">Filters</span>
             </button>
             <button v-if="addLabel" @click="$emit('add')"
                 class="cursor-pointer inline-flex items-center px-3 py-2 bg-lavoro-blue rounded-md text-white text-xs">
-                <PlusIcon class="h-5 w-5 mr-2" />
-                {{ addLabel }}
+                <PlusIcon class="h-5 w-5 mr-0 sm:mr-2" />
+                <span class="hidden sm:inline">{{ addLabel }}</span>
             </button>
         </div>
+    </div>
+    <div class="mt-2 block sm:hidden">
+        <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
+            :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
     </div>
     <div v-auto-animate>
         <div v-if="slots.filters && filtersVisible" class="mt-4">
