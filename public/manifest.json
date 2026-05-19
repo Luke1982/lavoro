@@ -4,7 +4,7 @@
     "description": "Service CRM voor werkbonnen, keuringen en materiaalbeheer.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#f5f5f5",
+    "background_color": "#081020",
     "theme_color": "#4f46e5",
     "orientation": "portrait",
     "scope": "/",
