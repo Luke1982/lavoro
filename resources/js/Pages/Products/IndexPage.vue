@@ -2,7 +2,7 @@
     <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
         search-label="Zoek binnen producten" search-placeholder="Zoek op model, merk, omschrijving of artikelnummer"
         :search-other-params="filterParams" :paginator="false" add-label="Voeg product toe"
-        @add="showProductDrawer = true">
+        :has-active-filters="activeFilters.length > 0" @add="showProductDrawer = true">
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
