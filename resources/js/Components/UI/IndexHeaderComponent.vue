@@ -14,7 +14,7 @@
                 <FilterIcon class="h-5 w-5 text-gray-500" /><span class="hidden sm:inline">Filters</span>
                 <div v-if="hasActiveFilters" class="absolute right-2 top-2 bg-green-500 rounded-full h-2 w-2"></div>
             </button>
-            <button v-if="addLabel" @click="$emit('add')"
+            <button v-if="addLabel && canAdd" @click="$emit('add')"
                 class="cursor-pointer inline-flex items-center px-3 py-2 bg-lavoro-blue rounded-md text-white text-xs">
                 <PlusIcon class="h-5 w-5 mr-0 sm:mr-2" />
                 <span class="hidden sm:inline">{{ addLabel }}</span>
@@ -50,6 +50,7 @@ defineProps({
     title: { type: String, required: true },
     subtitle: { type: String, default: '' },
     addLabel: { type: String, default: '' },
+    canAdd: { type: Boolean, default: true },
     inAction: { type: Boolean, default: false },
     searchLabel: { type: String, default: '' },
     searchPlaceholder: { type: String, default: '' },
