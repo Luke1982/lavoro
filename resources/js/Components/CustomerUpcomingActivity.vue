@@ -1,12 +1,18 @@
 <template>
-    <div>
-        <div
-            class="sticky top-16 lg:top-0 z-2 bg-white dark:bg-slate-800 dark:text-slate-100 border border-transparent dark:border-slate-700 rounded-md px-4 py-2">
-            <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal"
-                class="bg-white dark:bg-transparent py-4 lg:py-2" />
+    <BoxComponent>
+        <div class="sticky top-16 lg:top-0 z-2 bg-white">
+            <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal" class="" :counters="{
+                assets: mainAsset.customer.upcoming_assets.length,
+                openTickets: mainAsset.customer.upcoming_assets.reduce((sum, asset) => sum + asset.open_tickets.length, 0),
+                pendingTickets: mainAsset.customer.upcoming_assets.reduce((sum, asset) => sum + asset.pending_tickets.length, 0)
+            }" :has-expired="isExpired" />
+            <div v-if="isExpired" class="absolute right-2 top-2 text-red-700"
+                v-tooltip="'Deze klant heeft minimaal één machine die al verlopen is'">
+                <ClockAlert />
+            </div>
         </div>
         <div
-            class="grid grid-cols-12 text-xs lg:text-sm font-medium bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300 p-2 rounded-tl-md rounded-tr-md mt-3 border border-gray-300 dark:border-slate-700 border-b-0 tracking-wide">
+            class="grid grid-cols-12 text-xs bg-lavoro-gray-150 -ml-6 -mr-6 px-6 py-3 text-gray-400 uppercase border-t-1 border-gray-200 border-b-1 mb-3">
             <div class="col-span-1">
                 <input type="checkbox" :checked="customerState(mainAsset.customer.id).all"
                     v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
@@ -21,8 +27,7 @@
             <div class="col-span-11 xl:hidden text-gray-600 dark:text-slate-400">Activa en storingen, klik links om
                 alles van deze klant te selecteren</div>
         </div>
-        <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id"
-            class="grid grid-cols-12 px-2 py-2 lg:py-1 last:rounded-bl-md last:rounded-br-md border-l border-gray-200 dark:border-slate-700/60 border-r last:border-b dark:last:border-slate-700/60 bg-white even:bg-gray-50 dark:bg-slate-900 even:dark:bg-slate-800/70 hover:dark:bg-slate-700/70 transition-colors text-gray-800 dark:text-slate-200">
+        <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id" class="grid grid-cols-12 ">
             <div class="col-span-1">
                 <input type="checkbox" :id="`assetcheckbox-${asset.id}`" :checked="isAssetSelected(asset.id)"
                     @change="toggleAssetSelection({ id: asset.id, customer_id: mainAsset.customer.id })"
@@ -35,22 +40,34 @@
                 <div v-if="asset.pending_service_jobs.length > 0 || asset.has_past_planned_event">
                     <span class="text-xs text-gray-600 dark:text-slate-400">Er zijn nog openstaande keuringen voor
                         deze machine:</span>
-                    <span v-for="job in asset.pending_service_jobs" :key="job.id">
-                        <BadgeComponent :text="`Keuring ${job.id}`" color="orange" :url="`/servicejobs/${job.id}`"
-                            :tooltip="`Ga direct naar keuring ${job.id}`" />
-                        <span class="text-xs dark:text-slate-300">op</span>
-                        <BadgeComponent
-                            :text="`Werkbon ${job.service_order.id} ${job.service_order?.coming_events?.length > 0 ? ' gepland op ' + nlDate(job.service_order.coming_events[0]?.start) : ''}`"
-                            color="blue" :url="`/serviceorders/${job.service_order.id}`"
-                            :tooltip="`Ga direct naar werkbon ${job.service_order.id}`" />
-                    </span>
+                    <ul>
+                        <li v-for="job in asset.pending_service_jobs" :key="job.id" class="py-1">
+                            <BadgeComponent color="orange" :url="`/servicejobs/${job.id}`"
+                                :tooltip="`Ga direct naar keuring ${job.id}`"> Keuring {{ job.id }}</BadgeComponent>
+                            <span class="text-xs dark:text-slate-300 mx-1">op</span>
+                            <BadgeComponent
+                                :text="`Werkbon ${job.service_order.id} ${job.service_order?.coming_events?.length > 0 ? ' gepland op ' + nlDate(job.service_order.coming_events[0]?.start) : ''}`"
+                                color="blue" :url="`/serviceorders/${job.service_order.id}`"
+                                :tooltip="`Ga direct naar werkbon ${job.service_order.id}`">
+                                <Calendar1 class="inline-block size-4 mr-1" aria-hidden="true" />
+                                Werkbon {{ job.service_order.id }}
+                                {{ job.service_order?.coming_events?.length > 0 ? ' gepland op ' +
+                                    nlDate(job.service_order.coming_events[0]?.start) : '' }}
+                            </BadgeComponent>
+                        </li>
+                    </ul>
                     <template v-if="asset.has_past_planned_event">
                         <span class="text-xs text-gray-600 dark:text-slate-400 block mt-1">Eerder ingepland:</span>
-                        <span v-for="(ev, idx) in asset.earlier_planned_events" :key="idx" class="mr-1">
-                            <BadgeComponent :text="`Werkbon ${ev.service_order_id} op ${nlDate(ev.start)}`" color="red"
-                                :url="`/events?gotodate=${encodeURIComponent((typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start)}&highlightevent=${encodeURIComponent(ev.event_id ?? '')}`"
-                                :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)" />
-                        </span>
+                        <ul>
+                            <li v-for="(ev, idx) in asset.earlier_planned_events" :key="idx" class="¨mt-1">
+                                <BadgeComponent color="red"
+                                    :url="`/events?gotodate=${encodeURIComponent((typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start)}&highlightevent=${encodeURIComponent(ev.event_id ?? '')}`"
+                                    :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)">
+                                    <Calendar1 class="inline-block size-4 mr-1" aria-hidden="true" />
+                                    Werkbon {{ ev.service_order_id }} op {{ nlDate(ev.start) }}
+                                </BadgeComponent>
+                            </li>
+                        </ul>
                     </template>
                 </div>
             </div>
@@ -59,7 +76,7 @@
                 <span class="text-xs font-bold xl:hidden">Serienummer</span>
                 <Link :href="`/assets/${asset.id}`"
                     class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300">
-                {{ asset.serial_number }}</Link>
+                    {{ asset.serial_number }}</Link>
             </div>
             <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
                 <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
@@ -119,7 +136,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </BoxComponent>
 </template>
 
 <script setup>
@@ -128,6 +145,8 @@ import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
+import BoxComponent from './BoxComponent.vue';
+import { Calendar1, ClockAlert } from '@lucide/vue';
 
 const props = defineProps({
     mainAsset: { type: Object, required: true },
@@ -136,6 +155,7 @@ const props = defineProps({
     customerState: { type: Function, required: true },
     getNonPlannedTickets: { type: Function, required: true },
     getPlannedTickets: { type: Function, required: true },
+    isExpired: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:selectedAssets', 'update:selectedTickets', 'selectAll']);

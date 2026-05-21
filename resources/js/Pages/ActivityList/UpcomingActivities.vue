@@ -14,29 +14,27 @@
             </div>
         </template>
     </IndexHeaderComponent>
-    <BoxComponent>
-        <div v-if="expiredAssets.length > 0" class="mb-8">
-            <h3 class="text-lg font-medium text-red-600 dark:text-red-400 mb-4">Klanten met vervallen machines</h3>
-            <div v-for="mainAsset in expiredAssets" :key="`expiredAsset${mainAsset.id}`"
-                :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
-                <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
-                    v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
-                    :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
-                    @select-all="selectAllFor" />
-            </div>
+    <div v-if="expiredAssets.length > 0" class="mb-8">
+        <h3 class="text-lg font-medium text-red-600 dark:text-red-400 mb-4">Klanten met vervallen machines</h3>
+        <div v-for="mainAsset in expiredAssets" :key="`expiredAsset${mainAsset.id}`"
+            :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
+            <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
+                v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
+                :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
+                @select-all="selectAllFor" :is-expired="true" />
         </div>
-        <div v-if="upcomingAssets.length > 0" class="mb-8">
-            <h3 class="text-lg font-medium text-green-600 dark:text-green-400 mb-4">Klanten met aankomende machines</h3>
+    </div>
+    <div v-if="upcomingAssets.length > 0" class="mb-8">
+        <h3 class="text-lg font-medium text-green-600 dark:text-green-400 mb-4">Klanten met aankomende machines</h3>
 
-            <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
-                :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
-                <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
-                    v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
-                    :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
-                    @select-all="selectAllFor" />
-            </div>
+        <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
+            :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
+            <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
+                v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
+                :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
+                @select-all="selectAllFor" />
         </div>
-    </BoxComponent>
+    </div>
     <div class="fixed right-4 bottom-4 z-30">
         <div v-auto-animate class="flex flex-col gap-2">
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
@@ -140,7 +138,6 @@
 </template>
 
 <script setup>
-import BoxComponent from '@/Components/BoxComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
