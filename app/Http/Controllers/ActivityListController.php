@@ -18,79 +18,94 @@ class ActivityListController extends Controller
         $days   = (int) $request->input('days', 60);
         $search = $request->filled('search') ? trim($request->input('search')) : null;
 
-        $upcoming_assets = $this->getAssetsForListView(
-            $this->applySearchFilter($this->getUpcomingAssetsQuery($days), $search)
-        );
-        $expired_assets = $this->getAssetsForListView(
-            $this->applySearchFilter($this->getExpiredAssetsQuery(), $search)
-        );
-
-        $this->prepareAssetData($upcoming_assets, $days, 'upcoming');
-        $this->prepareAssetData($expired_assets, $days, 'expired');
-
         return inertia('ActivityList/UpcomingActivities', [
-            'upcomingAssets' => $upcoming_assets,
-            'expiredAssets' => $expired_assets,
+            'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search),
+            'expiredAssets'  => $this->buildCustomerAssetList('expired', $days, $search),
             'eventTypes' => EventType::all(),
             'allUsers' => User::all(['id', 'name']),
         ]);
     }
 
-    private function getAssetsForListView(Builder $query)
+    private function buildCustomerAssetList(string $type, int $days, ?string $search)
     {
-        return $query
+        $matching_query = $type === 'upcoming'
+            ? $this->getUpcomingAssetsQuery($days)
+            : $this->getExpiredAssetsQuery();
+
+        // Outer: one asset per customer, with customer eager-loaded. Drives ordering of customers on the page.
+        $main_assets = $this->applySearchFilter($matching_query, $search)
             ->with(['customer'])
             ->orderBy('next_service_date')
             ->get()
-            ->unique(fn($asset) => $asset->customer?->id)
+            ->unique(fn($a) => $a->customer?->id)
             ->values();
+
+        if ($main_assets->isEmpty()) {
+            return collect();
+        }
+
+        $customer_ids = $main_assets->pluck('customer.id')->filter()->unique();
+
+        // Inner: all relevant assets for those customers, with deep relations.
+        // IMPORTANT: do NOT eager-load `customer` here. The outer "main asset" and the asset
+        // inside customer.upcomingAssets with the same id must be different PHP instances —
+        // otherwise Laravel's toArray() recursion guard drops the relations on the inner copy
+        // and the Vue chokes on `asset.product.brand`.
+        $inner_query = Asset::query()
+            ->whereIn('customer_id', $customer_ids)
+            ->where('status', 'Actief')
+            ->with([
+                'product.brand',
+                'product.productType',
+                'openTickets',
+                'pendingTickets',
+                'pendingServiceJobs.serviceOrder.pastOpenEvents',
+                'pendingServiceJobs.serviceOrder.comingEvents',
+            ]);
+
+        if ($type === 'upcoming') {
+            $inner_query
+                ->where('next_service_date', '>=', now())
+                ->where('next_service_date', '<=', now()->addDays($days))
+                ->orderBy('next_service_date');
+        } else {
+            $inner_query
+                ->where('next_service_date', '<', now())
+                ->orderBy('next_service_date', 'desc');
+        }
+
+        $inner_by_customer = $inner_query->get()->groupBy('customer_id');
+
+        foreach ($main_assets as $main) {
+            if (!$main->customer) {
+                continue;
+            }
+            $assets = $inner_by_customer->get($main->customer->id, collect());
+            $assets->each(fn($a) => $this->attachEarlierPlannedEvents($a));
+
+            $main->customer->upcoming_asset_days = $days;
+            $main->customer->setRelation('upcomingAssets', $assets->values());
+        }
+
+        return $main_assets;
     }
 
-    private function prepareAssetData($assets, int $days, string $type)
+    private function attachEarlierPlannedEvents(Asset $asset): void
     {
-        foreach ($assets as $asset) {
-            if ($asset->customer) {
-                $asset->customer->upcoming_asset_days = $days;
-
-                $asset_query = match ($type) {
-                    'upcoming' => $asset->customer->upcomingAssets(),
-                    'expired' => $asset->customer->expiredAssets(),
-                    default => $asset->customer->upcomingAssets(),
-                };
-
-                $upcoming_assets_for_customer = $asset_query->with([
-                    'product.brand',
-                    'openTickets',
-                    'pendingTickets',
-                    'product.productType',
-                    'pendingServiceJobs.serviceOrder.pastOpenEvents',
-                    'pendingServiceJobs.serviceOrder.comingEvents',
-                ])->get();
-
-                $upcoming_assets_for_customer->each(function ($a) {
-                    $earlier = [];
-                    foreach ($a->pendingServiceJobs as $job) {
-                        $order_id = $job->serviceOrder?->id;
-                        $past_events = $job->serviceOrder?->pastOpenEvents ?? collect();
-                        foreach ($past_events as $ev) {
-                            $start = $ev->start;
-                            $earlier[] = [
-                                'start' => \Carbon\Carbon::parse($start)->toIso8601String(),
-                                'service_order_id' => $order_id,
-                                'event_id' => $ev->id,
-                            ];
-                        }
-                    }
-                    usort($earlier, function ($a, $b) {
-                        return strcmp($b['start'], $a['start']);
-                    });
-                    $a->has_past_planned_event = !empty($earlier);
-                    $a->earlier_planned_events = $earlier;
-                });
-
-                $asset->customer->setRelation('upcomingAssets', $upcoming_assets_for_customer);
+        $earlier = [];
+        foreach ($asset->pendingServiceJobs as $job) {
+            $order_id = $job->serviceOrder?->id;
+            foreach (($job->serviceOrder?->pastOpenEvents ?? collect()) as $ev) {
+                $earlier[] = [
+                    'start' => Carbon::parse($ev->start)->toIso8601String(),
+                    'service_order_id' => $order_id,
+                    'event_id' => $ev->id,
+                ];
             }
         }
+        usort($earlier, fn($a, $b) => strcmp($b['start'], $a['start']));
+        $asset->has_past_planned_event = !empty($earlier);
+        $asset->earlier_planned_events = $earlier;
     }
 
     private function applySearchFilter(Builder $query, ?string $search): Builder
