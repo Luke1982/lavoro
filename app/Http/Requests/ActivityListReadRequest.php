@@ -28,7 +28,8 @@ class ActivityListReadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'days' => ['sometimes','integer','min:1','max:365'],
+            'days'   => ['sometimes', 'integer', 'min:1', 'max:365'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:200'],
         ];
     }
 }

@@ -15,10 +15,15 @@ class ActivityListController extends Controller
 {
     public function getUpcomingActivities(ActivityListReadRequest $request)
     {
-        $days = (int)$request->input('days', 60);
+        $days   = (int) $request->input('days', 60);
+        $search = $request->filled('search') ? trim($request->input('search')) : null;
 
-        $upcoming_assets = $this->getAssetsForListView($this->getUpcomingAssetsQuery($days));
-        $expired_assets = $this->getAssetsForListView($this->getExpiredAssetsQuery());
+        $upcoming_assets = $this->getAssetsForListView(
+            $this->applySearchFilter($this->getUpcomingAssetsQuery($days), $search)
+        );
+        $expired_assets = $this->getAssetsForListView(
+            $this->applySearchFilter($this->getExpiredAssetsQuery(), $search)
+        );
 
         $this->prepareAssetData($upcoming_assets, $days, 'upcoming');
         $this->prepareAssetData($expired_assets, $days, 'expired');
@@ -37,7 +42,7 @@ class ActivityListController extends Controller
             ->with(['customer'])
             ->orderBy('next_service_date')
             ->get()
-            ->unique(fn ($asset) => $asset->customer?->id)
+            ->unique(fn($asset) => $asset->customer?->id)
             ->values();
     }
 
@@ -88,6 +93,22 @@ class ActivityListController extends Controller
         }
     }
 
+    private function applySearchFilter(Builder $query, ?string $search): Builder
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($search) {
+            $q->whereHas('customer', fn(Builder $c) => $c->where('name', 'like', "%{$search}%"))
+                ->orWhere('serial_number', 'like', "%{$search}%")
+                ->orWhereHas('product', function (Builder $p) use ($search) {
+                    $p->where('model', 'like', "%{$search}%")
+                        ->orWhereHas('brand', fn(Builder $b) => $b->where('name', 'like', "%{$search}%"));
+                });
+        });
+    }
+
     private function getUpcomingAssetsQuery(int $days)
     {
         return Asset::upcomingAndUnplanned($days);
@@ -114,7 +135,7 @@ class ActivityListController extends Controller
 
         $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-              ->with(['product.productType']);
+                ->with(['product.productType']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 
         $now = Carbon::now();

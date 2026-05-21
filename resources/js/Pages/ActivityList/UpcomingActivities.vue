@@ -1,22 +1,21 @@
 <template>
-    <BoxComponent>
-        <div class="flex flex-wrap mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between">
-            <div class="flex w-full lg:w-auto justify-center mb-2 lg:mb-0">
-                <CalendarDateRangeIcon class="size-6 flex-none text-gray-500 dark:text-slate-400 mr-2" />
-                <h2 class="font-regular text-xl text-gray-800 dark:text-slate-100 tracking-wide">Aankomende activiteiten
-                </h2>
-            </div>
-            <div class="flex gap-2 items-start w-full lg:w-auto">
-                <ComboBox
-                    :options="[{ id: '60', name: 'Aankomende 60 dagen' }, { id: '90', name: 'Aankomende 90 dagen' }, { id: '180', name: 'Aankomende 180 dagen' }, { id: '365', name: 'Aankomende 365 dagen' }]"
-                    class="w-full lg:w-64 z-20" placeholder="Filter op periode" v-model="form.days"
-                    :initial-id="form.days" />
+    <IndexHeaderComponent title="Aankomende activiteiten" subtitle="Machines en storingen die gepland moeten worden"
+        :icon="CalendarCogIcon" search-url="/upcomingactivities"
+        search-placeholder="Zoek op klantnaam, merk, model of serienummer" :search-other-params="{ days: form.days }"
+        local-storage-key="upcomingActivitiesSearch" input-id="upcomingActivitiesSearchInput">
+        <template #actions>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-end">
+                <SelectMenuComponent v-model="form.days" :icon="daysIcon" :spin="loading" :options="daysOptions" />
                 <button type="button" @click="openMap"
-                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded text-xs font-semibold">
+                    class="rounded-lavoro-sm bg-lavoro-blue text-white px-5 py-3 cursor-pointer text-sm flex items-center">
+                    <MapIcon class="size-5 inline-block mr-2" />
                     Kaart
+
                 </button>
             </div>
-        </div>
+        </template>
+    </IndexHeaderComponent>
+    <BoxComponent>
         <div v-if="expiredAssets.length > 0" class="mb-8">
             <h3 class="text-lg font-medium text-red-600 dark:text-red-400 mb-4">Klanten met vervallen machines</h3>
             <div v-for="mainAsset in expiredAssets" :key="`expiredAsset${mainAsset.id}`"
@@ -144,13 +143,16 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
-import { CalendarDateRangeIcon, ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
-import { useForm, usePage } from '@inertiajs/vue3';
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
+import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
+import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon } from '@lucide/vue';
+import { useForm, usePage, router } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import TextInput from '@/Components/UI/TextInput.vue';
 import axios from 'axios';
 import CustomerUpcomingActivity from '@/Components/CustomerUpcomingActivity.vue';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 
 const { upcomingAssets, expiredAssets, eventTypes, allUsers } = defineProps({
     upcomingAssets: {
@@ -177,6 +179,7 @@ const form = useForm({
     selectedTickets: [],
 });
 
+const loading = ref(false);
 const planningModalOpen = ref(false);
 const eventSuccessfullyCreated = ref(false);
 const createdEvent = ref(null);
@@ -194,12 +197,31 @@ const eventForm = useForm({
     status: 'Gepland',
 });
 
+const daysIcon = computed(() => loading.value ? LoaderCircle : CalendarDaysIcon);
+
 const canCreateWorkOrder = ref('no');
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
+const daysOptions = [
+    { value: '60', title: 'Aankomende 60 dagen' },
+    { value: '90', title: 'Aankomende 90 dagen' },
+    { value: '180', title: 'Aankomende 180 dagen' },
+    { value: '365', title: 'Aankomende 365 dagen' },
+]
+
 watch(() => form.days, (newValue) => {
-    form.get('/upcomingactivities', { days: newValue }, { preserveScroll: true });
+    loading.value = true;
+    const search = new URL(window.location.href).searchParams.get('search') ?? '';
+    const params = { days: newValue };
+    if (search) params.search = search;
+    router.get('/upcomingactivities', params, {
+        preserveScroll: true,
+        onFinish: () => {
+            loading.value = false;
+            usePage().props.flash.success = `Activiteiten voor de aankomende ${newValue} dagen zijn geladen.`;
+        },
+    });
 });
 
 watch(
