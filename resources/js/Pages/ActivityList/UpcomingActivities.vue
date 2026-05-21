@@ -7,7 +7,7 @@
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-end">
                 <SelectMenuComponent v-model="form.days" :icon="daysIcon" :spin="loading" :options="daysOptions" />
                 <button type="button" @click="openMap"
-                    class="rounded-lavoro-sm bg-lavoro-blue text-white px-5 py-3 cursor-pointer text-sm flex items-center">
+                    class="rounded-lavoro-sm bg-lavoro-blue text-white pl-3 pr-2 sm:px-5 py-3 cursor-pointer text-sm flex items-center">
                     <MapIcon class="size-5 inline-block mr-2" />
                     <span class="hidden sm:inline">Kaart</span>
                 </button>
