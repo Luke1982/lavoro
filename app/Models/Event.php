@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Enums\EventStatusses;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Traits\HasOwner;
 use App\Models\Traits\HasExecutingUsers;
+use App\Models\Traits\HasOwner;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model
 {
     use HasOwner;
     use HasExecutingUsers;
+    use SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -20,6 +22,12 @@ class Event extends Model
         'end',
         'status',
         'location',
+        'origin',
+    ];
+
+    protected $casts = [
+        'start' => 'datetime',
+        'end' => 'datetime',
     ];
 
     public static function statusses()

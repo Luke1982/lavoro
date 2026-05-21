@@ -35,6 +35,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user_data = null;
+        if ($request->user()) {
+            $integration = $request->user()->hasPermission('google_calendar.connect')
+                ? $request->user()->googleCalendarIntegration
+                : null;
+
+            $user_data = array_merge(
+                $request->user()->only(['id', 'name', 'email', 'avatar']),
+                [
+                    'google_integration' => $integration
+                        ? [
+                            'email' => $integration->google_account_email,
+                            'disabled_at' => $integration->disabled_at,
+                        ]
+                        : null,
+                ]
+            );
+        }
+
         return [
             ...parent::share($request),
             'flash' => [
@@ -43,7 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'extra' => $request->session()->get('extra'),
             ],
             'auth' => [
-                'user' => $request->user() ? $request->user()->only('id', 'name', 'email', 'avatar') : null,
+                'user' => $user_data,
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
             ],

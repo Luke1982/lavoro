@@ -92,6 +92,7 @@ return [
     'serviceorder.email_pdf_with_jobs',
     'servicejob.read',
     'event.read',
+    'google_calendar.connect',
 
     // Documents and images — full curation
     'document.see',

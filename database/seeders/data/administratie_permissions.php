@@ -29,6 +29,7 @@ return [
     'ticket.read',
     'ticket.see_all',
     'event.read',
+    'google_calendar.connect',
 
     // Documents — see + upload invoices + update (no delete)
     'document.see',

@@ -4,6 +4,7 @@ return [
     'servicejob.update',
     'servicejob.read',
     'event.read',
+    'google_calendar.connect',
     'ticket.read',
     'serviceorder.close',
     'servicejob.export_pdf',

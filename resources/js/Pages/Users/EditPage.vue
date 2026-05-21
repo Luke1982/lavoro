@@ -65,6 +65,8 @@
                 </div>
             </section>
 
+            <GoogleCalendarSection v-if="isSelfEdit" />
+
             <div class="flex items-center gap-3">
                 <button @click="submit" :disabled="form.processing || !canSubmit"
                     class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -88,6 +90,7 @@ import { initials } from '@/Utilities/Utilities'
 import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
 
 const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] } })
 
@@ -95,6 +98,7 @@ const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
 
 const isEdit = computed(() => !!props.user)
+const isSelfEdit = computed(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/me'))
 
 const form = useForm({ name: props.user?.name || '', email: props.user?.email || '', password: '', avatar: null, role_ids: (props.user?.roles || []).map(r => r.id) })
 

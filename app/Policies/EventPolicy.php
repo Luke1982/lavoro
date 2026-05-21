@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Event;
+use App\Models\User;
+
+class EventPolicy
+{
+    public function create(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('event.create');
+    }
+
+    public function createOthers(User $user, User $owner_user): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($owner_user->id === $user->id) {
+            return $user->hasPermission('event.create');
+        }
+        return $user->hasPermission('event.create_others');
+    }
+
+    public function update(User $user, Event $event): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+        $owner = $event->owner();
+        $is_owner = $owner && $owner->id === $user->id;
+        if ($is_owner && $user->hasPermission('event.update')) {
+            return true;
+        }
+        return $user->hasPermission('event.update_others');
+    }
+
+    public function delete(User $user, Event $event): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+        $owner = $event->owner();
+        $is_owner = $owner && $owner->id === $user->id;
+        if ($is_owner && $user->hasPermission('event.delete')) {
+            return true;
+        }
+        return $user->hasPermission('event.delete_others');
+    }
+}

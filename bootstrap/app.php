@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
         ]);
         $middleware->statefulApi();
+        $middleware->validateCsrfTokens(except: ['google/webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
             // Safety net: convert MySQL "Numeric value out of range" (SQLSTATE

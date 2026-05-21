@@ -162,4 +162,19 @@ class User extends Authenticatable
             $q->where('users.id', $this->id);
         });
     }
+
+    public function googleCalendarIntegration()
+    {
+        return $this->hasOne(GoogleCalendarIntegration::class);
+    }
+
+    public function calendarGrantsOwned()
+    {
+        return $this->hasMany(CalendarGrant::class, 'owner_user_id');
+    }
+
+    public function calendarGrantsReceived()
+    {
+        return $this->hasMany(CalendarGrant::class, 'viewer_user_id');
+    }
 }

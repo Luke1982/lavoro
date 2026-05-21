@@ -7,6 +7,7 @@ return [
     'event.update',
     'event.delete',
     'event.see_all',
+    'google_calendar.connect',
 
     // Service orders
     'serviceorder.read',

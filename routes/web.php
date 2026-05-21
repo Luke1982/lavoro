@@ -35,6 +35,8 @@ use App\Http\Controllers\ProductRelationController;
 use App\Http\Controllers\ProductableController;
 use App\Http\Controllers\AssetRelationController;
 use App\Http\Controllers\TechnicalManagementController;
+use App\Http\Controllers\GoogleOAuthController;
+use App\Http\Controllers\GoogleWebhookController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -144,6 +146,13 @@ Route::group(
             ->name('upcomingactivities.map'); // requires activitylist.read
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+
+        Route::get('google/oauth/start', [GoogleOAuthController::class, 'start'])
+            ->name('google.oauth.start');
+        Route::get('google/oauth/callback', [GoogleOAuthController::class, 'callback'])
+            ->name('google.oauth.callback');
+        Route::delete('google/integration', [GoogleOAuthController::class, 'destroy'])
+            ->name('google.integration.destroy');
         Route::get('technical-management', [TechnicalManagementController::class, 'index'])
             ->name('technical-management.index');
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
@@ -159,6 +168,19 @@ Route::group(
             Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
             Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);
+
+            Route::get(
+                'admin/calendar-grants',
+                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'index'],
+            )->name('admin.calendar-grants.index');
+            Route::post(
+                'admin/calendar-grants',
+                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'store'],
+            )->name('admin.calendar-grants.store');
+            Route::delete(
+                'admin/calendar-grants/{calendar_grant}',
+                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'destroy'],
+            )->name('admin.calendar-grants.destroy');
         });
     }
 );
@@ -166,3 +188,7 @@ Route::group(
 Route::get('login', [AuthController::class, 'create'])->name('login');
 Route::post('login', [AuthController::class, 'store'])->name('login.store');
 Route::get('logout', [AuthController::class, 'destroy'])->name('logout');
+
+Route::post('google/webhook', [GoogleWebhookController::class, 'handle'])
+    ->name('google.webhook')
+    ->middleware('throttle:60,1');

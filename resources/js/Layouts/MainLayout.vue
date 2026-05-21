@@ -123,6 +123,13 @@
                                                     <UsersIcon class="size-6 shrink-0" />
                                                     Rollen
                                                 </Link>
+                                                <Link @click="sidebarOpen = false" :href="'/admin/calendar-grants'" :class="[
+                                                    currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <CalendarIcon class="size-6 shrink-0" />
+                                                    Agenda-toegang
+                                                </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
                                                 <Link @click="sidebarOpen = false" :href="'/technical-management'"
@@ -252,6 +259,13 @@
                                     <UsersIcon class="size-6 shrink-0" />
                                     Rollen
                                 </Link>
+                                <Link :href="'/admin/calendar-grants'" :class="[
+                                    currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <CalendarIcon class="size-6 shrink-0" />
+                                    Agenda-toegang
+                                </Link>
                             </div>
                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
                                 <Link :href="'/technical-management'" :class="[
@@ -304,6 +318,14 @@
         </div>
 
         <main :class="[page.props.noPadding ? '' : 'pt-4 pb-10', 'lg:pl-72', 'bg-svg min-h-[100vh]']">
+            <div v-if="showGoogleReconnectBanner"
+                class="bg-amber-100 border-b border-amber-300 px-4 py-2 text-sm text-amber-900 flex items-center justify-between dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                <span>Je Google Agenda synchronisatie is gepauzeerd.</span>
+                <span class="flex items-center gap-3">
+                    <a href="/google/oauth/start" class="underline">Opnieuw koppelen</a>
+                    <button type="button" class="text-lg leading-none" @click="dismissGoogleBanner">&times;</button>
+                </span>
+            </div>
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
@@ -346,6 +368,15 @@ import GlobalNotification from '@/Components/GlobalNotification.vue'
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
 const isAdmin = computed(() => !!page.props.auth.isAdmin)
+
+const googleBannerDismissed = ref(typeof window !== 'undefined' && window.sessionStorage?.getItem('google_banner_dismissed') === '1')
+const showGoogleReconnectBanner = computed(() => !!authUser.value?.google_integration?.disabled_at && !googleBannerDismissed.value)
+const dismissGoogleBanner = () => {
+    googleBannerDismissed.value = true
+    if (typeof window !== 'undefined') {
+        window.sessionStorage?.setItem('google_banner_dismissed', '1')
+    }
+}
 const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
