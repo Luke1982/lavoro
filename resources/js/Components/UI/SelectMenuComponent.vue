@@ -9,22 +9,14 @@
                     class="inline-flex items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
                     <component :is="icon" v-if="icon"
                         :class="['ml-0.5 size-5 mr-1 shrink-0', spin ? 'animate-spin' : '']" aria-hidden="true" />
-                    <Transition enter-active-class="transition duration-150 ease-out"
-                        enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition duration-100 ease-in"
-                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
-                        mode="out-in">
-                        <p class="sm:hidden text-sm font-medium whitespace-nowrap" :key="currentLabel.short">{{
-                            currentLabel.short }}</p>
-                    </Transition>
-                    <Transition enter-active-class="transition duration-150 ease-out"
-                        enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition duration-100 ease-in"
-                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
-                        mode="out-in">
-                        <p :key="currentLabel.long" class="hidden sm:inline text-sm font-medium whitespace-nowrap">{{
-                            currentLabel.long }}</p>
-                    </Transition>
+                    <div class="relative">
+                        <Transition :name="transitionName">
+                            <p :key="currentLabel" class="text-sm font-medium whitespace-nowrap">
+                                <span class="sm:hidden">{{ currentShortLabel }}</span>
+                                <span class="hidden sm:inline">{{ currentLabel }}</span>
+                            </p>
+                        </Transition>
+                    </div>
                 </div>
                 <ListboxButton
                     class="inline-flex items-center rounded-l-none rounded-r-md bg-white p-2  dark:bg-lavoro-dark dark:text-white ring-1 ring-gray-200">
@@ -67,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from '@headlessui/vue'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/vue/20/solid'
 
@@ -99,8 +91,15 @@ const listboxValue = computed(() => {
     return model.value
 })
 
+const direction = ref('down')
+
+const transitionName = computed(() => `select-label-${direction.value}`)
+
 function onListboxUpdate(val) {
     if (props.options.length) {
+        const oldIndex = props.options.findIndex(o => o.value === model.value)
+        const newIndex = props.options.findIndex(o => o.value === val?.value)
+        direction.value = newIndex > oldIndex ? 'down' : 'up'
         model.value = val?.value ?? null
     } else {
         model.value = val
@@ -109,7 +108,47 @@ function onListboxUpdate(val) {
 
 const currentLabel = computed(() => {
     const option = props.options.length ? props.options.find(o => o.value === model.value) : null
-    const long = option?.title ?? props.label
-    return { long, short: option?.shortTitle ?? long }
+    return option?.title ?? props.label
+})
+
+const currentShortLabel = computed(() => {
+    const option = props.options.length ? props.options.find(o => o.value === model.value) : null
+    return option?.shortTitle ?? currentLabel.value
 })
 </script>
+
+<style scoped>
+.select-label-down-enter-active,
+.select-label-down-leave-active,
+.select-label-up-enter-active,
+.select-label-up-leave-active {
+    transition: opacity 0.15s ease, transform 0.35s ease;
+}
+
+.select-label-down-leave-active,
+.select-label-up-leave-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Going down: new comes from below, old exits upward */
+.select-label-down-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.select-label-down-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Going up: new comes from above, old exits downward */
+.select-label-up-enter-from {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+.select-label-up-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+}
+</style>
