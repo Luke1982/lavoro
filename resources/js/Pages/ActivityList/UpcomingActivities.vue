@@ -9,8 +9,7 @@
                 <button type="button" @click="openMap"
                     class="rounded-lavoro-sm bg-lavoro-blue text-white px-5 py-3 cursor-pointer text-sm flex items-center">
                     <MapIcon class="size-5 inline-block mr-2" />
-                    Kaart
-
+                    <span class="hidden sm:inline">Kaart</span>
                 </button>
             </div>
         </template>
@@ -204,10 +203,10 @@ const canCreateWorkOrder = ref('no');
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
 const daysOptions = [
-    { value: '60', title: 'Aankomende 60 dagen' },
-    { value: '90', title: 'Aankomende 90 dagen' },
-    { value: '180', title: 'Aankomende 180 dagen' },
-    { value: '365', title: 'Aankomende 365 dagen' },
+    { value: '60', title: 'Aankomende 60 dagen', shortTitle: '60' },
+    { value: '90', title: 'Aankomende 90 dagen', shortTitle: '90' },
+    { value: '180', title: 'Aankomende 180 dagen', shortTitle: '180' },
+    { value: '365', title: 'Aankomende 365 dagen', shortTitle: '365' },
 ]
 
 watch(() => form.days, (newValue) => {

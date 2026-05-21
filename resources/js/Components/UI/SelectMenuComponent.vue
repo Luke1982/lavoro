@@ -14,7 +14,16 @@
                         leave-active-class="transition duration-100 ease-in"
                         leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
                         mode="out-in">
-                        <p :key="currentLabel" class="text-sm font-medium whitespace-nowrap">{{ currentLabel }}</p>
+                        <p class="sm:hidden text-sm font-medium whitespace-nowrap" :key="currentLabel.short">{{
+                            currentLabel.short }}</p>
+                    </Transition>
+                    <Transition enter-active-class="transition duration-150 ease-out"
+                        enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
+                        leave-active-class="transition duration-100 ease-in"
+                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
+                        mode="out-in">
+                        <p :key="currentLabel.long" class="hidden sm:inline text-sm font-medium whitespace-nowrap">{{
+                            currentLabel.long }}</p>
                     </Transition>
                 </div>
                 <ListboxButton
@@ -99,9 +108,8 @@ function onListboxUpdate(val) {
 }
 
 const currentLabel = computed(() => {
-    if (props.options.length) {
-        return props.options.find(o => o.value === model.value)?.title ?? props.label
-    }
-    return props.label
+    const option = props.options.length ? props.options.find(o => o.value === model.value) : null
+    const long = option?.title ?? props.label
+    return { long, short: option?.shortTitle ?? long }
 })
 </script>

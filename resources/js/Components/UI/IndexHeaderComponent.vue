@@ -7,7 +7,7 @@
             </span>
             <span class="text-xs">{{ subtitle }}</span>
         </div>
-        <div class="flex justify-end gap-x-2 sm:gap-x-4">
+        <div class="flex w-full sm:w-auto justify-end gap-x-2 sm:gap-x-4">
             <div class="hidden sm:block">
                 <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
                     :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
