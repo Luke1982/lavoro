@@ -217,7 +217,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { formatLocalDateAsISO, hasPermission, nlDate, nlTime, initials } from '@/Utilities/Utilities'
+import { formatLocalDateAsISO, formatUtcDatetime, localToUtcDatetime, hasPermission, nlDate, nlTime, initials } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 
 const props = defineProps({
@@ -341,8 +341,8 @@ const createEvent = async () => {
     try {
         const response = await axios.post('/api/events', {
             ...form,
-            start: form.start_date + ' ' + form.start_time,
-            end: form.end_date + ' ' + form.end_time,
+            start: localToUtcDatetime(form.start_date, form.start_time),
+            end: localToUtcDatetime(form.end_date, form.end_time),
             executing_user_ids: form.executing_user_ids,
         })
         if (response.status !== 201) {
@@ -367,8 +367,8 @@ const updateEvent = async () => {
     try {
         const response = await axios.put(`/api/events/${form.id}`, {
             ...form,
-            start: form.start_date + ' ' + form.start_time,
-            end: form.end_date + ' ' + form.end_time,
+            start: localToUtcDatetime(form.start_date, form.start_time),
+            end: localToUtcDatetime(form.end_date, form.end_time),
             executing_user_ids: form.executing_user_ids,
         })
         if (response.status !== 200) {
@@ -403,8 +403,8 @@ const onSelect = (selectInfo) => {
 
 const getEvents = async (fetchInfo, successCallback, failureCallback) => {
     await axios.get('sanctum/csrf-cookie')
-    const startParam = `${formatLocalDateAsISO(fetchInfo.start)} ${nlTime(fetchInfo.start)}`
-    const endParam = `${formatLocalDateAsISO(fetchInfo.end)} ${nlTime(fetchInfo.end)}`
+    const startParam = formatUtcDatetime(fetchInfo.start)
+    const endParam = formatUtcDatetime(fetchInfo.end)
     const response = await axios.get(`/api/events?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`)
 
     if (response.status !== 200) {
@@ -458,11 +458,9 @@ const getMilestones = (fetchInfo, successCallback) => {
 
 const updateTimes = async (event) => {
     await axios.get('sanctum/csrf-cookie')
-    const startParam = `${formatLocalDateAsISO(event.start)} ${nlTime(event.start)}`
-    const endParam = `${formatLocalDateAsISO(event.end)} ${nlTime(event.end)}`
     const response = await axios.put(`/api/events/${event.id}`, {
-        start: startParam,
-        end: endParam,
+        start: formatUtcDatetime(event.start),
+        end: formatUtcDatetime(event.end),
     })
     if (response.status !== 200) {
         console.error('Error updating event times:', response.data)

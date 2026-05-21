@@ -25,6 +25,14 @@ export const formatLocalDateAsISO = (date) => {
     )}`;
 };
 
+export const formatUtcDatetime = (date) => {
+    return date.toISOString().slice(0, 19).replace('T', ' ')
+};
+
+export const localToUtcDatetime = (dateStr, timeStr) => {
+    return formatUtcDatetime(new Date(`${dateStr}T${timeStr}:00`))
+};
+
 export const nlTime = (date) => {
     return new Date(date).toLocaleTimeString("nl-NL", {
         hour: "2-digit",
