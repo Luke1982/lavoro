@@ -54,6 +54,12 @@ class GoogleOAuthController extends Controller
             return redirect()->route('me.edit')->with('error', __('google.oauth_token_exchange_failed'));
         }
 
+        $granted_scopes = explode(' ', $token_set['scope'] ?? '');
+        if (!in_array('https://www.googleapis.com/auth/calendar', $granted_scopes, true)) {
+            $this->revokeAccessToken($token_set['access_token'] ?? null);
+            return redirect()->route('me.edit')->with('error', __('google.oauth_missing_calendar_scope'));
+        }
+
         $client->setAccessToken($token_set);
         $oauth = new \Google\Service\Oauth2($client);
         $userinfo = $oauth->userinfo->get();
