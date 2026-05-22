@@ -14,7 +14,7 @@
                         </div>
                         <div class="flex self-ends w-full">
                             <span v-if="sale_period_text" class="text-sm text-gray-500 ml-4">{{ sale_period_text
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
                 </div>

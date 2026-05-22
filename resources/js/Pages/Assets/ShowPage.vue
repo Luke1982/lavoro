@@ -38,8 +38,7 @@
                         <div class="w-1/3 text-xs">In gebruikname</div>
                         <div class="w-2/3 mr-0 md:mr-3">
                             <EditableTextField v-model="form.date_in_service" inputType="date" :readonly="!canUpdate"
-                                :error="form.errors.date_in_service"
-                                @revert="form.clearErrors('date_in_service')" />
+                                :error="form.errors.date_in_service" @revert="form.clearErrors('date_in_service')" />
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
@@ -60,7 +59,7 @@
                                         class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
                                     <span v-else
                                         class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                                        asset.status }}</span>
+                                            asset.status }}</span>
                                 </template>
                             </EditableTextField>
                         </div>
@@ -183,7 +182,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
-                                    }}</span>
+                                }}</span>
                                 <button v-if="hasPermission('assetrelation.delete')"
                                     @click="removeAssetRelation(rel.id)" class="text-red-400 hover:text-red-600"
                                     v-tooltip="'Koppeling verwijderen'">
@@ -208,7 +207,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
-                                }}</span>
+                            }}</span>
                             <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />

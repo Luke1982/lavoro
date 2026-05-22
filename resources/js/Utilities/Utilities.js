@@ -144,9 +144,10 @@ export const formatProductSalePeriod = (startDate, endDate) => {
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export const nextServiceIso = (product, fallbackDays = 365) => {
-    const days = product?.typical_certificate_days
-        ?? product?.product_type_typical_certificate_days
-        ?? fallbackDays;
+    const days =
+        product?.typical_certificate_days ??
+        product?.product_type_typical_certificate_days ??
+        fallbackDays;
     const d = new Date();
     d.setDate(d.getDate() + days);
     return d.toISOString().slice(0, 10);

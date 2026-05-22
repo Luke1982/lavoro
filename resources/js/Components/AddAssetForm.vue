@@ -45,13 +45,11 @@
                 </Transition>
 
                 <TextInput v-model="assetForm.date_in_service" type="date" label="In gebruikname"
-                    placeholder="In gebruikname"
-                    :has-error="!!assetForm.errors.date_in_service"
+                    placeholder="In gebruikname" :has-error="!!assetForm.errors.date_in_service"
                     :error-message="assetForm.errors.date_in_service ?? ''" />
 
                 <TextInput v-model="assetForm.next_service_date" type="date" label="Volgende keuring"
-                    placeholder="Volgende keuring"
-                    :has-error="!!assetForm.errors.next_service_date"
+                    placeholder="Volgende keuring" :has-error="!!assetForm.errors.next_service_date"
                     :error-message="assetForm.errors.next_service_date ?? ''" />
 
                 <div class="flex items-center gap-2">

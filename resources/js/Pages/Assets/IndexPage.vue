@@ -5,9 +5,8 @@
         <template #filters>
             <div class="w-full">
                 <label class="block text-sm font-medium mb-2">Filter op status</label>
-                <ComboBox :options="statusOptions" v-model="selectedStatus"
-                    placeholder="Laat alleen status zien" class="w-full"
-                    @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+                <ComboBox :options="statusOptions" v-model="selectedStatus" placeholder="Laat alleen status zien"
+                    class="w-full" @update:modelValue="val => { updateLocalStorageStatus(val) }" />
             </div>
         </template>
     </IndexHeaderComponent>
