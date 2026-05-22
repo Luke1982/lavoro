@@ -35,7 +35,15 @@
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Verloopdatum</div>
+                        <div class="w-1/3 text-xs">In gebruikname</div>
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField v-model="form.date_in_service" inputType="date" :readonly="!canUpdate"
+                                :error="form.errors.date_in_service"
+                                @revert="form.clearErrors('date_in_service')" />
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2 flex">
+                        <div class="w-1/3 text-xs">Volgende keuring</div>
                         <div class="w-2/3 mr-0 md:mr-3">
                             <EditableTextField v-model="form.next_service_date" inputType="date" :readonly="!canUpdate"
                                 :error="form.errors.next_service_date"
@@ -360,6 +368,7 @@ const form = useForm({
     product_id: props.asset.product.id,
     serial_number: props.asset.serial_number,
     next_service_date: props.asset.next_service_date,
+    date_in_service: props.asset.date_in_service,
     status: props.asset.status,
     customer_id: props.asset.customer.id,
 });
@@ -385,6 +394,7 @@ watch(
         () => form.customer_id,
         () => form.serial_number,
         () => form.next_service_date,
+        () => form.date_in_service,
     ],
     updateAsset
 )

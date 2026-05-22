@@ -44,7 +44,13 @@
                     </div>
                 </Transition>
 
-                <TextInput v-model="assetForm.next_service_date" type="date" placeholder="Volgende keuringsdatum"
+                <TextInput v-model="assetForm.date_in_service" type="date" label="In gebruikname"
+                    placeholder="In gebruikname"
+                    :has-error="!!assetForm.errors.date_in_service"
+                    :error-message="assetForm.errors.date_in_service ?? ''" />
+
+                <TextInput v-model="assetForm.next_service_date" type="date" label="Volgende keuring"
+                    placeholder="Volgende keuring"
                     :has-error="!!assetForm.errors.next_service_date"
                     :error-message="assetForm.errors.next_service_date ?? ''" />
 
@@ -70,6 +76,7 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import { todayIso, nextServiceIso } from '@/Utilities/Utilities';
 
 const emit = defineEmits(['created']);
 
@@ -102,6 +109,14 @@ const props = defineProps({
         type: Boolean,
         default: null,
     },
+    productTypicalDays: {
+        type: Number,
+        default: null,
+    },
+    productTypeTypicalDays: {
+        type: Number,
+        default: null,
+    },
 });
 
 const showCustomer = computed(() => !props.customerId);
@@ -121,11 +136,18 @@ const productOptions = computed(() => {
     }));
 });
 
+function resolveNextServiceDate(productId) {
+    const product = props.allProducts.find(p => p.id === productId)
+    const fallback = props.productTypicalDays ?? props.productTypeTypicalDays ?? 365
+    return nextServiceIso(product, fallback)
+}
+
 const assetForm = useForm({
     product_id: props.productId ?? null,
     customer_id: props.customerId ?? null,
     serial_number: '',
-    next_service_date: null,
+    date_in_service: todayIso(),
+    next_service_date: resolveNextServiceDate(props.productId ?? null),
     is_active: true,
     child_assets: [],
 });
@@ -143,8 +165,9 @@ const childAssetSlots = computed(() => {
     )
 })
 
-watch(() => assetForm.product_id, () => {
+watch(() => assetForm.product_id, (productId) => {
     assetForm.serial_number = ''
+    assetForm.next_service_date = resolveNextServiceDate(productId)
     assetForm.child_assets = requiredParts.value.flatMap(part =>
         Array.from({ length: part.quantity }, () => ({
             productable_id: part.productable_id,

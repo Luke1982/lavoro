@@ -155,7 +155,7 @@ function close() {
 
 function show() { open.value = true }
 function hide() { close() }
-defineExpose({ show, hide })
+defineExpose({ show, hide, form })
 
 function isFieldDisabled(field) {
     if (typeof field.disabledWhen === 'function') {

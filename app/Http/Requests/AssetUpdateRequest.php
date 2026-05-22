@@ -53,6 +53,7 @@ class AssetUpdateRequest extends FormRequest
             'product_id'        => 'required|exists:products,id',
             'serial_number'     => $serial_rules,
             'next_service_date' => 'nullable|date',
+            'date_in_service'   => 'nullable|date',
             'customer_id'       => 'required|exists:customers,id',
             'status'            => 'required|in:Actief,Niet actief',
         ];

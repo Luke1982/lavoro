@@ -54,6 +54,7 @@ class AssetStoreRequest extends FormRequest
             'serial_number' => $serial_rules,
             'is_active'     => ['nullable', 'boolean'],
             'next_service_date' => ['nullable', 'date'],
+            'date_in_service'   => ['nullable', 'date'],
             'child_assets'                    => ['nullable', 'array'],
             'child_assets.*.productable_id'   => ['required_with:child_assets', 'integer', 'exists:productables,id'],
             'child_assets.*.serial_number'    => ['required_with:child_assets', 'string', 'max:255'],

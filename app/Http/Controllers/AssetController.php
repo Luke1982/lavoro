@@ -72,10 +72,12 @@ class AssetController extends Controller
             ->get()
             ->map(function ($product) {
                 return [
-                    'id'     => $product->id,
-                    'name'   => $product->brand->name . ' ' . $product->model .
+                    'id'                                  => $product->id,
+                    'name'                                => $product->brand->name . ' ' . $product->model .
                         ' (' . $product->productType->name . ')',
-                    'bundle' => $product->bundle,
+                    'bundle'                              => $product->bundle,
+                    'typical_certificate_days'            => $product->typical_certificate_days,
+                    'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
                 ];
             });
 
@@ -115,6 +117,7 @@ class AssetController extends Controller
                 'customer_id'       => $validated['customer_id'],
                 'serial_number'     => $validated['serial_number'] ?? null,
                 'next_service_date' => $validated['next_service_date'] ?? null,
+                'date_in_service'   => $validated['date_in_service'] ?? null,
                 'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
             ]);
 
@@ -175,6 +178,8 @@ class AssetController extends Controller
                     'name'   => $product->brand->name . ' ' .
                         $product->model . ' (' . $product->productType->name . ')',
                     'bundle' => $product->bundle,
+                    'typical_certificate_days'              => $product->typical_certificate_days,
+                    'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
                 ];
             });
         $asset->load([

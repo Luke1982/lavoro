@@ -344,6 +344,8 @@
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
         <AddAssetForm :allCustomers="allCustomers" :productId="product.id" :isBundle="product.bundle"
+            :productTypicalDays="product.typical_certificate_days"
+            :productTypeTypicalDays="product.product_type?.typical_certificate_days"
             :required-productables-by-product="requiredProductablesByProduct" :bare="true"
             @created="addAssetDrawerOpen = false" />
     </DrawerComponent>

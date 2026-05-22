@@ -20,6 +20,7 @@ class Asset extends Model
         'customer_id',
         'serial_number',
         'next_service_date',
+        'date_in_service',
         'status',
     ];
 

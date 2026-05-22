@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { Link } from '@inertiajs/vue3';
@@ -107,8 +107,15 @@ import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { hasPermission } from '@/Utilities/Utilities';
+import { hasPermission, todayIso, nextServiceIso } from '@/Utilities/Utilities';
 const assetFormRef = ref(null)
+
+watch(() => assetFormRef.value?.form?.product_id, (productId) => {
+    if (productId && assetFormRef.value?.form) {
+        const product = props.allProducts.find(p => p.id === productId)
+        assetFormRef.value.form.next_service_date = nextServiceIso(product)
+    }
+})
 
 const props = defineProps({
     assets: {
@@ -155,6 +162,8 @@ const assetFields = computed(() => [
         },
         disabledPlaceholder: 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden',
     },
+    { key: 'date_in_service', label: 'In gebruikname', type: 'date', default: todayIso() },
+    { key: 'next_service_date', label: 'Volgende keuring', type: 'date', default: nextServiceIso(props.allProducts[0]) },
     { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
 ])
 
