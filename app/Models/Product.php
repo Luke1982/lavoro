@@ -12,6 +12,15 @@ class Product extends Model
     use HasFactory;
     use HasCustomFields;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Product $product): void {
+            Productable::where('productable_type', Product::class)
+                ->where('productable_id', $product->id)
+                ->delete();
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
