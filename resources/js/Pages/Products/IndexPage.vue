@@ -79,6 +79,13 @@
                             {{ product.brand.name }} {{ product.model }}
                         </Link>
                         <span class="text-slate-600">{{ product.part_no }}</span>
+                        <div v-if="product.attribute_value_map" class="mt-1">
+                            <div v-for="(value, key) in product.attribute_value_map" :key="key"
+                                class="grid grid-cols-3 text-xs text-gray-500 mt-0.5">
+                                <div class="col-span-1 pr-2 font-bold">{{ key }}</div>
+                                <div class="col-span-2">{{ value }}</div>
+                            </div>
+                        </div>
                         <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
                             {{ product.product_type?.name }}
                             <BadgeComponent :color="product.bundle ? 'green' : 'gray'">

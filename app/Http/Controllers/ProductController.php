@@ -42,9 +42,19 @@ class ProductController extends Controller
             'Products/IndexPage',
             [
                 'products'     => $products
-                    ->with(['brand', 'productType', 'mainImage'])
+                    ->with([
+                        'brand',
+                        'productType',
+                        'mainImage',
+                        'productAttributeValueables.productAttribute',
+                        'productAttributeValueables.value',
+                    ])
                     ->orderBy('model')
-                    ->paginate(max(1, min(100, (int)$request->input('perPage', 20)))),
+                    ->paginate(max(1, min(100, (int)$request->input('perPage', 20))))
+                    ->through(function ($p) {
+                        $p->setAttribute('attribute_value_map', $p->attributeValueMap());
+                        return $p;
+                    }),
                 'search'       => $search,
                 'brands'       => Brand::all(),
                 'productTypes' => ProductType::flatListWithPath(),
@@ -60,7 +70,13 @@ class ProductController extends Controller
      */
     private static function getByTerm($term)
     {
-        $query = Product::with(['brand', 'productType', 'mainImage']);
+        $query = Product::with([
+            'brand',
+            'productType',
+            'mainImage',
+            'productAttributeValueables.productAttribute',
+            'productAttributeValueables.value',
+        ]);
 
         $words = preg_split('/\s+/', trim($term));
 

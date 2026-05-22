@@ -112,4 +112,14 @@ class Product extends Model
     {
         return $this->morphMany(ProductAttributeValueable::class, 'productattributevalueable');
     }
+
+    public function attributeValueMap(): array
+    {
+        return $this->productAttributeValueables
+            ->mapWithKeys(fn($pvable) => [
+                $pvable->productAttribute->name => $pvable->value?->value,
+            ])
+            ->filter(fn($v) => $v !== null)
+            ->all();
+    }
 }
