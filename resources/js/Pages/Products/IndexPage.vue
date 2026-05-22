@@ -33,6 +33,21 @@
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
             </div>
+            <div v-if="productAttributes.length" class="flex flex-wrap gap-4 mt-4">
+                <div v-for="attr in productAttributes" :key="attr.id" class="flex-grow min-w-48">
+                    <div class="flex items-end gap-2">
+                        <ComboBox :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
+                            v-model="attrValuesSelected[attr.id]" multiple
+                            :placeholder="`Selecteer ${attr.name.toLowerCase()}`" class="w-full"
+                            :label="`Filter op ${attr.name.toLowerCase()}`" />
+                        <button type="button" @click="attrValuesSelected[attr.id] = []"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            v-tooltip="`Reset filter op ${attr.name.toLowerCase()}`">
+                            <XCircleIcon class="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>
                 <span v-for="filter in activeFilters" :key="filter.key"
                     class="inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
@@ -287,10 +302,11 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 
-const { products, brands, productTypes, perPage } = defineProps({
+const { products, brands, productTypes, productAttributes, perPage } = defineProps({
     products: { type: Object, required: true },
     brands: { type: Array, default: () => [] },
     productTypes: { type: Array, default: () => [] },
+    productAttributes: { type: Array, default: () => [] },
     perPage: { type: Number, default: 20 },
 })
 
@@ -342,9 +358,22 @@ const brandFromURL = typeof window !== 'undefined'
     : []
 const brandToShow = ref(brandFromURL)
 
+// attribute values filter — one selection array per attribute
+const attrValFromURL = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('onlyAttributeValues') || '').split(',').map(Number).filter(Boolean)
+    : []
+const attrValuesSelected = reactive(
+    productAttributes.reduce((acc, attr) => {
+        const attrValueIds = new Set(attr.values.map(v => v.id))
+        acc[attr.id] = attrValFromURL.filter(id => attrValueIds.has(id))
+        return acc
+    }, {})
+)
+
 const filterParams = computed(() => ({
     onlyType: productTypeToShow.value.join(','),
     onlyBrand: brandToShow.value.join(','),
+    onlyAttributeValues: Object.values(attrValuesSelected).flat().join(','),
 }))
 
 const activeFilters = computed(() => {
@@ -357,12 +386,19 @@ const activeFilters = computed(() => {
         const match = brands.find(b => b.id === id)
         if (match) filters.push({ key: `brand-${id}`, label: 'Merk', value: match.name, clear: () => { brandToShow.value = brandToShow.value.filter(x => x !== id) } })
     })
+    productAttributes.forEach(attr => {
+        ; (attrValuesSelected[attr.id] || []).forEach(id => {
+            const val = attr.values.find(v => v.id === id)
+            if (val) filters.push({ key: `attrval-${id}`, label: attr.name, value: val.value, clear: () => { attrValuesSelected[attr.id] = attrValuesSelected[attr.id].filter(x => x !== id) } })
+        })
+    })
     return filters
 })
 
 function clearAllFilters() {
     productTypeToShow.value = []
     brandToShow.value = []
+    productAttributes.forEach(attr => { attrValuesSelected[attr.id] = [] })
 }
 
 const saleEdits = reactive({})

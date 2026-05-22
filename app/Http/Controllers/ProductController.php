@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductAttribute;
+use App\Models\ProductAttributeValue;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Customer;
@@ -38,6 +39,17 @@ class ProductController extends Controller
             $products->whereIn('brand_id', $onlyBrand);
         }
 
+        $onlyAttributeValues = array_values(array_filter(explode(',', $request->input('onlyAttributeValues', '')), fn($v) => $v !== ''));
+        if (count($onlyAttributeValues)) {
+            $values_by_attr = [];
+            foreach (ProductAttributeValue::whereIn('id', $onlyAttributeValues)->get(['id', 'product_attribute_id']) as $av) {
+                $values_by_attr[$av->product_attribute_id][] = (int) $av->id;
+            }
+            foreach ($values_by_attr as $val_ids) {
+                $products->whereHas('productAttributeValueables', fn($q) => $q->whereIn('product_attribute_value_id', $val_ids));
+            }
+        }
+
         return inertia(
             'Products/IndexPage',
             [
@@ -55,12 +67,22 @@ class ProductController extends Controller
                         $p->setAttribute('attribute_value_map', $p->attributeValueMap());
                         return $p;
                     }),
-                'search'       => $search,
-                'brands'       => Brand::all(),
-                'productTypes' => ProductType::flatListWithPath(),
-                'onlyType'     => $onlyType,
-                'onlyBrand'    => $onlyBrand,
-                'perPage'      => max(1, min(100, (int)$request->input('perPage', 20))),
+                'search'              => $search,
+                'brands'              => Brand::all(),
+                'productTypes'        => ProductType::flatListWithPath(),
+                'productAttributes'   => ProductAttribute::with('values')
+                    ->get()
+                    ->filter(fn($attr) => $attr->values->isNotEmpty())
+                    ->map(fn($attr) => [
+                        'id'     => $attr->id,
+                        'name'   => $attr->name,
+                        'values' => $attr->values->map(fn($v) => ['id' => $v->id, 'value' => $v->value])->values(),
+                    ])
+                    ->values(),
+                'onlyType'            => $onlyType,
+                'onlyBrand'           => $onlyBrand,
+                'onlyAttributeValues' => $onlyAttributeValues,
+                'perPage'             => max(1, min(100, (int)$request->input('perPage', 20))),
             ]
         );
     }
