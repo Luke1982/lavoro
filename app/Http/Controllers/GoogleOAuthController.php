@@ -12,9 +12,7 @@ use Illuminate\Support\Str;
 
 class GoogleOAuthController extends Controller
 {
-    public function __construct(private GoogleClientFactory $client_factory)
-    {
-    }
+    public function __construct(private GoogleClientFactory $client_factory) {}
 
     public function start(Request $request): RedirectResponse
     {
