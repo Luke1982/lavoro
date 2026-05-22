@@ -1,4 +1,4 @@
-const CACHE_NAME = "wh-crm-cache-1e2d44d"; // bump version
+const CACHE_NAME = "wh-crm-cache-c32eba8"; // bump version
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
@@ -6,7 +6,7 @@ self.addEventListener("install", (event) => {
         caches
             .open(CACHE_NAME)
             .then((cache) => cache.addAll(urlsToCache))
-            .then(() => self.skipWaiting())
+            .then(() => self.skipWaiting()),
     );
 });
 
@@ -21,10 +21,10 @@ self.addEventListener("activate", (event) => {
                         if (!cacheWhitelist.includes(cacheName)) {
                             return caches.delete(cacheName);
                         }
-                    })
-                )
+                    }),
+                ),
             )
-            .then(() => self.clients.claim())
+            .then(() => self.clients.claim()),
     );
 });
 
@@ -66,7 +66,7 @@ self.addEventListener("fetch", (event) => {
                         })
                     );
                 }
-            })()
+            })(),
         );
         return;
     }
@@ -86,11 +86,11 @@ self.addEventListener("fetch", (event) => {
                     caches
                         .open(CACHE_NAME)
                         .then((cache) =>
-                            cache.put(event.request, responseToCache)
+                            cache.put(event.request, responseToCache),
                         );
                 }
                 return networkResponse;
             });
-        })
+        }),
     );
 });
