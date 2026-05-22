@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Class ProductTypeStoreUpdateRequest
@@ -28,8 +29,10 @@ class ProductTypeStoreUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $ignore_id = $this->route('producttype')?->id;
+
         return [
-            'name'                     => 'required|string|max:255',
+            'name'                     => ['required', 'string', 'max:255', Rule::unique('product_types', 'name')->ignore($ignore_id)],
             'typical_certificate_days' => 'nullable|integer|min:1',
             'parent_id'                => 'nullable|integer|exists:product_types,id',
         ];
