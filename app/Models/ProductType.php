@@ -64,4 +64,9 @@ class ProductType extends Model
     {
         return $this->morphedByMany(ServiceCheckGroup::class, 'producttypeable');
     }
+
+    public function productAttributes()
+    {
+        return $this->morphedByMany(ProductAttribute::class, 'producttypeable');
+    }
 }

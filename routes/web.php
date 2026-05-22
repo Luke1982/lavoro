@@ -33,6 +33,10 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\ProductRelationController;
 use App\Http\Controllers\ProductableController;
+use App\Http\Controllers\ProductAttributeController;
+use App\Http\Controllers\ProductAttributeValueController;
+use App\Http\Controllers\ProductAttributeProductTypeController;
+use App\Http\Controllers\ProductAttributeValueableController;
 use App\Http\Controllers\AssetRelationController;
 use App\Http\Controllers\TechnicalManagementController;
 use App\Http\Controllers\GoogleOAuthController;
@@ -53,6 +57,21 @@ Route::group(
         Route::resource('productrelations', ProductRelationController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('productables', ProductableController::class)->only(['store', 'update', 'destroy']);
+        Route::resource('productattributes', ProductAttributeController::class)->except(['edit', 'create']);
+        Route::post('productattributes/{productattribute}/producttypes/{producttype}', [ProductAttributeProductTypeController::class, 'store'])
+            ->name('productattributes.producttypes.store');
+        Route::delete('productattributes/{productattribute}/producttypes/{producttype}', [ProductAttributeProductTypeController::class, 'destroy'])
+            ->name('productattributes.producttypes.destroy');
+        Route::post('productattributes/{productattribute}/producttypes', [ProductAttributeProductTypeController::class, 'sync'])
+            ->name('productattributes.producttypes.sync');
+        Route::post('productattributes/{productattribute}/values', [ProductAttributeValueController::class, 'store'])
+            ->name('productattributevalues.store');
+        Route::patch('productattributevalues/{productattributevalue}', [ProductAttributeValueController::class, 'update'])
+            ->name('productattributevalues.update');
+        Route::delete('productattributevalues/{productattributevalue}', [ProductAttributeValueController::class, 'destroy'])
+            ->name('productattributevalues.destroy');
+        Route::post('productattributevalueables', [ProductAttributeValueableController::class, 'store'])
+            ->name('productattributevalueables.store');
         Route::resource('assets', AssetController::class);
         Route::post('assets/{asset}/child', [AssetController::class, 'storeChild'])
             ->name('assets.storeChild');

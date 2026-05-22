@@ -107,4 +107,9 @@ class Product extends Model
     {
         return $this->hasMany(Productable::class);
     }
+
+    public function productAttributeValueables()
+    {
+        return $this->morphMany(ProductAttributeValueable::class, 'productattributevalueable');
+    }
 }

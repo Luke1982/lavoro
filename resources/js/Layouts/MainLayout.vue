@@ -123,10 +123,11 @@
                                                     <UsersIcon class="size-6 shrink-0" />
                                                     Rollen
                                                 </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/admin/calendar-grants'" :class="[
-                                                    currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
+                                                <Link @click="sidebarOpen = false" :href="'/admin/calendar-grants'"
+                                                    :class="[
+                                                        currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                    ]">
                                                     <CalendarIcon class="size-6 shrink-0" />
                                                     Agenda-toegang
                                                 </Link>
@@ -148,7 +149,7 @@
                                                     <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                         class="object-cover w-full h-full" />
                                                     <span v-else class="text-xs font-medium text-white">{{ initials
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                                 <span class="sr-only">Profiel</span>
                                                 <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -360,6 +361,7 @@ import {
     WrenchScrewdriverIcon,
     ClipboardDocumentListIcon,
     LinkIcon,
+    TagIcon,
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -394,6 +396,7 @@ const navigation = ref([
         children: [
             { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false, requiresPermission: 'producttype.read' },
             { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false, requiresPermission: 'brand.read' },
+            { name: 'Kenmerken', href: '/productattributes', icon: TagIcon, current: false, requiresPermission: 'productattribute.read' },
             { name: 'Relatietypes', href: '/productrelations', icon: LinkIcon, current: false, requiresPermission: 'productrelation.read' },
         ],
         open: false,

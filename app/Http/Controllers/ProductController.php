@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\ProductAttribute;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Customer;
@@ -153,6 +154,11 @@ class ProductController extends Controller
             'childProducts'         => $childProductsWithPivot,
             'parentProducts'        => $parentProductsWithPivot,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'productAttributes'     => ProductAttribute::whereHas('productTypes', function ($q) use ($product) {
+                $q->where('product_type_id', $product->product_type_id);
+            })->with('values')->orderBy('name')->get(),
+            'selectedAttributeValues' => $product->productAttributeValueables()
+                ->pluck('product_attribute_value_id', 'product_attribute_id'),
         ]);
     }
 

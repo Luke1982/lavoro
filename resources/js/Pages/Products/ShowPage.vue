@@ -83,6 +83,23 @@
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
+
+                <!-- Attribute values -->
+                <div v-if="productAttributes.length" class="mt-6 border-t border-gray-100 pt-4">
+                    <h3 class="text-sm font-semibold mb-3">Kenmerken</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div v-for="attr in productAttributes" :key="attr.id">
+                            <h3 class="text-sm font-semibold mb-3">{{ attr.name }}</h3>
+                            <EditableTextField type="combobox" :model-value="selectedValues[attr.id] ?? null"
+                                :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
+                                @update:model-value="(val) => setAttributeValue(attr.id, val)">
+                                <template #display>
+                                    {{attr.values.find(v => v.id === selectedValues[attr.id])?.value ?? '—'}}
+                                </template>
+                            </EditableTextField>
+                        </div>
+                    </div>
+                </div>
             </BoxComponent>
 
             <!-- Box 2: Machines -->
@@ -369,6 +386,8 @@ const props = defineProps({
     childProducts: { type: Array, default: () => [] },
     parentProducts: { type: Array, default: () => [] },
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
+    productAttributes: { type: Array, default: () => [] },
+    selectedAttributeValues: { type: Object, default: () => ({}) },
 });
 
 const form = useForm({
@@ -402,6 +421,17 @@ watch([
 });
 
 const addAssetDrawerOpen = ref(false);
+
+const selectedValues = reactive({ ...props.selectedAttributeValues })
+
+function setAttributeValue(attribute_id, value_id) {
+    selectedValues[attribute_id] = value_id
+    router.post('/productattributevalueables', {
+        product_id: props.product.id,
+        product_attribute_id: attribute_id,
+        product_attribute_value_id: value_id,
+    }, { preserveScroll: true })
+}
 
 const addingRelation = ref(false)
 const newRelation = reactive({
