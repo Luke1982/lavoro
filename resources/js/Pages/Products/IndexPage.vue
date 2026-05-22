@@ -375,7 +375,7 @@ function saveSalePeriod(productId, close) {
 
 const deleteProduct = (id) => {
     if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return
-    useForm({}).delete(`/products/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/products/${id}`, { preserveScroll: true, preserveState: true })
 }
 
 </script>
