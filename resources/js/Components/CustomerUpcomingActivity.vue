@@ -48,7 +48,7 @@
                             <span class="text-sm">{{ asset.product.brand.name }} {{ asset.product.model }}
                             </span>
                             <!-- Mobile -->
-                            <div class="text-xs">
+                            <div class="text-xs block sm:hidden">
                                 <span class="inline text-gray-600 font-bold">{{ asset.product.product_type.name }}
                                     met s/n </span>
                                 <Link :href="`/assets/${asset.id}`"
@@ -56,7 +56,7 @@
                                     {{ asset.serial_number }}</Link>,
                                 <span> verloopt op {{
                                     nlDate(asset.next_service_date)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>
@@ -107,7 +107,7 @@
                 <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer text-gray-700 dark:text-slate-300">{{
                     nlDate(asset.next_service_date)
-                    }}</label>
+                }}</label>
             </div>
             <div class="col-span-1 xl:hidden"></div>
             <div class="col-span-11 xl:col-span-4 flex flex-col mt-5 xl:mt-0">
