@@ -124,6 +124,7 @@ class ProductController extends Controller
             'brand',
             'productType',
             'images',
+            'mainImage',
             'documents',
             'assets.customer',
             'assets.openTickets',
@@ -192,9 +193,8 @@ class ProductController extends Controller
             'childProducts'         => $childProductsWithPivot,
             'parentProducts'        => $parentProductsWithPivot,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
-            'productAttributes'     => ProductAttribute::whereHas('productTypes', function ($q) use ($product) {
-                $q->where('product_type_id', $product->product_type_id);
-            })->with('values')->orderBy('name')->get(),
+            'productAttributes'     => $product->productType->productAttributes()
+                ->with('values')->orderBy('name')->get(),
             'selectedAttributeValues' => $product->productAttributeValueables()
                 ->pluck('product_attribute_value_id', 'product_attribute_id'),
         ]);

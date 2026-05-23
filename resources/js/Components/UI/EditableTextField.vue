@@ -1,8 +1,11 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'pr-5': !editing, 'relative pb-2 cursor-pointer w-full': true, 'border-b-1 border-b-gray-300': decoration }"
+        :class="{ 'pr-5': !editing, 'relative pb-2 cursor-pointer w-full': true, 'border-b-1 border-b-gray-200/70': decoration }"
         @click="onWrapperClick" v-auto-animate>
-        <span v-if="!editing" class="pr-4">
+        <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
+            <slot name="label-suffix" />
+        </h3>
+        <span v-if="!editing" class="pr-4 font-semibold">
             <slot name="display">{{ displayValue }}</slot>
         </span>
 
@@ -62,6 +65,7 @@ const props = defineProps({
     options: { type: Array, default: () => [] },
     multiple: { type: Boolean, default: false },
     decoration: { type: Boolean, default: true },
+    label: { type: String, default: '' },
 });
 
 const editing = ref(false);

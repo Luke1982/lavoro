@@ -3,6 +3,7 @@
 
 @theme {
     --color-lavoro-blue: #2563ff;
+    --color-lavoro-lightblue: rgb(231, 239, 254);
     --color-lavoro-darkblue: rgb(6,20,43);
     --color-lavoro-dark: #081020;
     --color-lavoro-green: #c6ff00;
