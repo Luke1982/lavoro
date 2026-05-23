@@ -5,7 +5,8 @@
         <span class="text-slate-800 font-bold text-sm">{{ product.brand.name }} {{ product.model }}</span>
     </div>
     <div class="flex flex-col sm:flex-row mt-6 mb-4">
-        <BoxComponent class="w-full h-auto sm:w-70 sm:h-70 mr-8" v-if="product.main_image?.[0]">
+        <BoxComponent class="w-full h-auto sm:w-70 sm:min-h-70 mr-8 flex items-center justify-around"
+            v-if="product.main_image?.[0]">
             <img :src="`/storage/${product.main_image[0].path}`" alt="Productafbeelding"
                 class="object-cover rounded w-full">
         </BoxComponent>
