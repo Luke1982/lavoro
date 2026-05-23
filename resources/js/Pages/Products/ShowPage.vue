@@ -80,6 +80,24 @@
                         </div>
                         <p v-if="form.errors.bundle" class="text-sm text-red-600 mt-1">{{ form.errors.bundle }}</p>
                     </div>
+                    <div class="w-full md:w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Actief</h3>
+                        <div class="flex items-center gap-3">
+                            <SwitchComponent v-model="form.active" />
+                            <span class="text-sm text-gray-600 dark:text-slate-400">
+                                <template v-if="form.active">Product is actief</template>
+                                <template v-else>Product is inactief</template>
+                            </span>
+                        </div>
+                        <p v-if="form.errors.active" class="text-sm text-red-600 mt-1">{{ form.errors.active }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-4 flex-wrap md:flex-nowrap">
+                    <div class="w-full md:w-1/2">
+                        <h3 class="text-sm font-semibold mb-3">Garantie</h3>
+                        <EditableTextField v-model="form.warranty" type="input" :error="form.errors.warranty"
+                            @revert="form.clearErrors('warranty')" />
+                    </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="product" :model-id="product.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
@@ -405,6 +423,8 @@ const form = useForm({
     purchase_price: props.product.purchase_price,
     part_no: props.product.part_no,
     bundle: props.product.bundle ?? false,
+    active: props.product.active ?? true,
+    warranty: props.product.warranty,
 });
 
 const sale_period_text = computed(() => formatProductSalePeriod(props.product.start_sell, props.product.end_sell, 'show'))
@@ -418,6 +438,8 @@ watch([
     () => form.part_no,
     () => form.product_type_id,
     () => form.bundle,
+    () => form.active,
+    () => form.warranty,
 ], () => {
     form.patch(`/products/${props.product.id}`);
 });

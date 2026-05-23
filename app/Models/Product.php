@@ -38,12 +38,15 @@ class Product extends Model
         'purchase_price',
         'part_no',
         'bundle',
+        'active',
+        'warranty',
     ];
 
     protected $casts = [
         'retail_price'   => 'decimal:2',
         'purchase_price' => 'decimal:2',
         'bundle'         => 'boolean',
+        'active'         => 'boolean',
     ];
 
     /**

@@ -51,6 +51,8 @@ class ProductStoreRequest extends ProductRequest
             'purchase_price'           => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'part_no'                  => ['nullable', 'string', 'max:255'],
             'bundle'                   => ['nullable', 'boolean'],
+            'active'                   => ['nullable', 'boolean'],
+            'warranty'                 => ['nullable', 'string', 'max:255'],
         ];
     }
 }

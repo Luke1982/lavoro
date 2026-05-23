@@ -59,6 +59,8 @@ class ProductUpdateRequest extends ProductRequest
             'purchase_price'           => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'part_no'                  => ['sometimes', 'nullable', 'string', 'max:255'],
             'bundle'                   => ['sometimes', 'nullable', 'boolean'],
+            'active'                   => ['sometimes', 'nullable', 'boolean'],
+            'warranty'                 => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 
