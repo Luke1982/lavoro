@@ -20,22 +20,46 @@
                     class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500" />
             </div>
             <div class="hidden xl:block col-span-3">Merk en model</div>
-            <div class="hidden xl:block col-span-1">Serienummer</div>
-            <div class="hidden xl:block col-span-1">Verloopdatum</div>
-            <div class="hidden xl:block col-span-2">Soort product</div>
-            <div class="hidden xl:block col-span-4">Storingen</div>
+            <div class="hidden xl:block col-span-2">Type en Serienummer</div>
+            <div class="hidden xl:block col-span-2">Verloopdatum</div>
+            <div class="hidden xl:block col-span-3">Storingen</div>
             <div class="col-span-11 xl:hidden text-gray-600 dark:text-slate-400">Activa en storingen, klik links om
                 alles van deze klant te selecteren</div>
         </div>
-        <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id" class="grid grid-cols-12 ">
-            <div class="col-span-1">
+        <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id" class="grid grid-cols-12 mb-7">
+            <div class="flex col-span-1">
                 <input type="checkbox" :id="`assetcheckbox-${asset.id}`" :checked="isAssetSelected(asset.id)"
                     @change="toggleAssetSelection({ id: asset.id, customer_id: mainAsset.customer.id })"
                     class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500">
+                <div
+                    class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 items-center justify-center ml-2 hidden sm:flex">
+                    <img :src="asset.product.main_image?.[0] ? `/storage/${asset.product.main_image[0].path}` : '/img/placeholder.png'"
+                        alt="">
+                </div>
             </div>
             <div class="col-span-11 xl:col-span-3 pr-5">
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer dark:text-slate-100">
-                    {{ asset.product.brand.name }} {{ asset.product.model }}
+                    <div class="flex">
+                        <div class="w-20 min-w-15 justify-center items-start mr-2 flex sm:hidden">
+                            <img :src="asset.product.main_image?.[0] ? `/storage/${asset.product.main_image[0].path}` : '/img/placeholder.png'"
+                                alt="">
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm">{{ asset.product.brand.name }} {{ asset.product.model }}
+                            </span>
+                            <!-- Mobile -->
+                            <div class="text-xs">
+                                <span class="inline text-gray-600 font-bold">{{ asset.product.product_type.name }}
+                                    met s/n </span>
+                                <Link :href="`/assets/${asset.id}`"
+                                    class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300 inline">
+                                    {{ asset.serial_number }}</Link>,
+                                <span> verloopt op {{
+                                    nlDate(asset.next_service_date)
+                                }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </label>
                 <div v-if="asset.pending_service_jobs.length > 0 || asset.has_past_planned_event">
                     <span class="text-xs text-gray-600 dark:text-slate-400">Er zijn nog openstaande keuringen voor
@@ -72,21 +96,18 @@
                 </div>
             </div>
             <div class="col-span-1 xl:hidden"></div>
-            <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
+            <div class="col-span-3 xl:col-span-2 sm:flex flex-col mt-5 xl:mt-0 hidden">
                 <span class="text-xs font-bold xl:hidden">Serienummer</span>
+                <span class="inline text-sm">{{ asset.product.product_type.name }} met s/n</span>
                 <Link :href="`/assets/${asset.id}`"
-                    class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300">
+                    class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300 inline">
                     {{ asset.serial_number }}</Link>
             </div>
-            <div class="col-span-3 xl:col-span-1 flex flex-col mt-5 xl:mt-0">
+            <div class="col-span-3 xl:col-span-2 sm:flex flex-col mt-5 xl:mt-0 hidden">
                 <span class="text-xs font-bold xl:hidden">Verloopdatum</span>
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer text-gray-700 dark:text-slate-300">{{
                     nlDate(asset.next_service_date)
-                }}</label>
-            </div>
-            <div class="col-span-5 xl:col-span-2 flex flex-col mt-5 xl:mt-0">
-                <span class="text-xs font-bold xl:hidden">Soort product</span>
-                <span class="text-gray-700 dark:text-slate-300">{{ asset.product.product_type.name }}</span>
+                    }}</label>
             </div>
             <div class="col-span-1 xl:hidden"></div>
             <div class="col-span-11 xl:col-span-4 flex flex-col mt-5 xl:mt-0">

@@ -57,6 +57,7 @@ class ActivityListController extends Controller
             ->with([
                 'product.brand',
                 'product.productType',
+                'product.mainImage',
                 'openTickets',
                 'pendingTickets',
                 'pendingServiceJobs.serviceOrder.pastOpenEvents',
