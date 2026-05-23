@@ -4,35 +4,42 @@
         <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
         <span class="text-slate-800 font-bold text-sm">{{ product.brand.name }} {{ product.model }}</span>
     </div>
-    <div class="flex mt-6 mb-4">
-        <BoxComponent class="w-70 h-70 mr-8" v-if="product.main_image?.[0]">
+    <div class="flex flex-col sm:flex-row mt-6 mb-4">
+        <BoxComponent class="w-full h-auto sm:w-70 sm:h-70 mr-8" v-if="product.main_image?.[0]">
             <img :src="`/storage/${product.main_image[0].path}`" alt="Productafbeelding"
                 class="object-cover rounded w-full">
         </BoxComponent>
-        <div class="flex flex-col justify-around flex-grow items-start py-10">
+        <div class="flex flex-col justify-around flex-grow items-start pt-2 sm:py-10 gap-3 sm:gap-0">
             <h1 class="text-2xl font-bold flex items-center gap-2">
                 {{ product.brand.name }} {{ product.model }}
                 <BadgeComponent :color="product.active ? 'green' : 'red'">
                     {{ product.active ? 'Actief' : 'Inactief' }}
                 </BadgeComponent>
             </h1>
-            <BadgeComponent color="blue" :hasDot="false">{{ product.product_type.name }}</BadgeComponent>
-            <div class="flex gap-15 flex-wrap">
-                <TitleValueIconComponent :icon="HashIcon" title="Artikelnummer" :value="product.part_no || '—'" />
-                <TitleValueIconComponent :icon="FingerPrintIcon" title="Merk" :value="product.brand.name" />
-                <TitleValueIconComponent :icon="EuroIcon" title="Verkoopprijs"
+            <BadgeComponent color="blue" :hasDot="false">{{ product.product_type.name }}
+            </BadgeComponent>
+            <div class="flex gap-0 sm:gap-15 flex-wrap">
+                <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="HashIcon" title="Artikelnummer"
+                    :value="product.part_no || '—'" />
+                <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="FingerPrintIcon" title="Merk"
+                    :value="product.brand.name" />
+                <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="EuroIcon" title="Verkoopprijs"
                     :value="product.retail_price ? `${Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(product.retail_price)}` : '—'" />
-                <TitleValueIconComponent :icon="ClockIcon" title="Aangemaakt op" :value="nlDate(product.created_at)" />
-                <TitleValueIconComponent :icon="CalendarIcon" title="Laatst bijgewerkt op"
+                <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="ClockIcon" title="Aangemaakt op"
+                    :value="nlDate(product.created_at)" />
+                <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="CalendarIcon" title="Laatst bijgewerkt op"
                     :value="nlDate(product.updated_at)" />
-                <TitleValueIconComponent v-if="product.start_sell" :icon="CalendarArrowUpIcon" title="Verkocht sinds"
-                    :value="nlDate(product.start_sell)" />
-                <TitleValueIconComponent v-if="product.end_sell" :icon="CalendarArrowDownIcon" title="Einde verkoop"
-                    :value="nlDate(product.end_sell)" />
+                <TitleValueIconComponent v-if="product.start_sell" class="w-1/2 sm:w-auto" :icon="CalendarArrowUpIcon"
+                    title="Verkocht sinds" :value="nlDate(product.start_sell)" />
+                <TitleValueIconComponent v-if="product.end_sell" class="w-1/2 sm:w-auto" :icon="CalendarArrowDownIcon"
+                    title="Einde verkoop" :value="nlDate(product.end_sell)" />
             </div>
         </div>
     </div>
-    <div class="flex mb-5 relative border-b-2 border-gray-200">
+    <div class="flex sm:hidden mb-5 justify-end">
+        <SelectMenuComponent v-model="activeChapter" :options="chapterOptions" />
+    </div>
+    <div class="hidden sm:flex mb-5 relative border-b-2 border-gray-200">
         <button v-for="(chapter, index) in chapters" :key="index" :ref="el => { if (el) tabRefs[index] = el }" :class="[
             'text-sm px-8 py-5 font-semibold cursor-pointer transition-colors duration-300',
             activeChapter === index ? 'text-lavoro-blue' : 'text-slate-500 hover:text-slate-700'
@@ -144,7 +151,7 @@
                                             @update:model-value="(val) => setAttributeValue(attr.id, val)">
                                             <template #display>
                                                 {{attr.values.find(v => v.id === selectedValues[attr.id])?.value ??
-                                                '—'}}
+                                                    '—'}}
                                             </template>
                                         </EditableTextField>
                                     </div>
@@ -278,7 +285,7 @@
                                         <td class="py-1.5">{{ rel.name }}</td>
                                         <td class="py-1.5 text-gray-500">
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
-                                            '—'}}
+                                                '—'}}
                                         </td>
                                         <td class="py-1.5">{{ rel.quantity }}</td>
                                         <td class="py-1.5 text-center">
@@ -329,7 +336,7 @@
                                         </td>
                                         <td class="py-1.5 text-gray-500">
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
-                                            '—'}}
+                                                '—'}}
                                         </td>
                                         <td class="py-1.5">{{ rel.quantity }}</td>
                                         <td class="py-1.5 text-center">
@@ -416,6 +423,7 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, ChevronRightIcon, FingerPrintIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue';
@@ -426,7 +434,7 @@ import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { hasPermission, formatProductSalePeriod, nlDate } from '@/Utilities/Utilities';
+import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon } from '@lucide/vue';
@@ -471,8 +479,6 @@ const form = useForm({
     warranty: props.product.warranty,
 });
 
-const sale_period_text = computed(() => formatProductSalePeriod(props.product.start_sell, props.product.end_sell, 'show'))
-
 const chapters = [
     'Overzicht',
     `Machines (${props.product.assets.length})`,
@@ -480,6 +486,8 @@ const chapters = [
     `Documenten (${props.product.documents.length})`,
 ]
 const activeChapter = ref(0)
+
+const chapterOptions = computed(() => chapters.map((chapter, index) => ({ value: index, title: chapter })))
 
 const tabRefs = []
 const indicatorLeft = ref(0)
@@ -513,7 +521,7 @@ watch([
     () => form.active,
     () => form.warranty,
 ], () => {
-    form.patch(`/products/${props.product.id}`);
+    form.patch(`/products/${props.product.id}`, { preserveScroll: true });
 });
 
 const addAssetDrawerOpen = ref(false);
