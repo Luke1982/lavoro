@@ -146,8 +146,8 @@ async function save() {
     await axios.get('sanctum/csrf-cookie')
     const payload = {
         ...form,
-        start: localToUtcDatetime(form.start_date, form.start_time),
-        end: localToUtcDatetime(form.end_date, form.end_time),
+        start: localToUtcDatetime(form.start_date, form.start_time).slice(0, 16),
+        end: localToUtcDatetime(form.end_date, form.end_time).slice(0, 16),
         executing_user_ids: form.executing_user_ids,
     }
     try {

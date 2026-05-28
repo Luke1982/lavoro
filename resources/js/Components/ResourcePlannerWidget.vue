@@ -724,8 +724,8 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
     }
     try {
         const payload = {
-            start: formatUtcDatetime(newStart),
-            end: formatUtcDatetime(newEnd),
+            start: formatUtcDatetime(newStart).slice(0, 16),
+            end: formatUtcDatetime(newEnd).slice(0, 16),
         }
         if (replaceWithUserId) {
             payload.executing_user_ids = ev.executing_user_ids
