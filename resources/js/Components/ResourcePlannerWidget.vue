@@ -330,7 +330,21 @@ function shiftWeek(direction) {
 }
 
 function goToday() {
-    weekStart.value = startOfWeek(new Date())
+    const today = new Date()
+    weekStart.value = startOfWeek(today)
+    nextTick(() => scrollToDate(today))
+}
+
+function scrollToDate(date) {
+    const grid = gridScrollRef.value
+    if (!grid) return
+    const startOfDay = new Date(date)
+    startOfDay.setHours(0, 0, 0, 0)
+    const weekStartDay = new Date(weekStart.value)
+    weekStartDay.setHours(0, 0, 0, 0)
+    const dayIndex = Math.round((startOfDay - weekStartDay) / 86400000)
+    if (dayIndex < 0 || dayIndex > 6) return
+    grid.scrollTo({ left: dayIndex * dayWidthPx.value, behavior: 'smooth' })
 }
 
 function scrollToWorkdayStart() {
