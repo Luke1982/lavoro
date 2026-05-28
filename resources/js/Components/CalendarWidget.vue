@@ -212,8 +212,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import nlLocale from '@fullcalendar/core/locales/nl'
 import timeGridPlugin from '@fullcalendar/timegrid'
-import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { CheckIcon, ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
@@ -303,14 +302,14 @@ onMounted(async () => {
 })
 
 const getView = () => {
-    return window.innerWidth < 1366 ? 'listWeek' : 'resourceTimelineWeek'
+    return window.innerWidth < 1366 ? 'listWeek' : 'timeGridWeek'
 }
 
 const getHeaderToolbar = () => {
     return {
         left: 'prev,next today',
         center: 'title',
-        right: window.innerWidth < 1366 ? '' : 'resourceTimelineWeek,resourceTimelineDay'
+        right: window.innerWidth < 1366 ? '' : 'timeGridWeek,timeGridDay'
     }
 }
 
@@ -400,10 +399,6 @@ const onSelect = (selectInfo) => {
     form.end_date = formatLocalDateAsISO(selectInfo.end)
     form.start_time = nlTime(selectInfo.start)
     form.end_time = nlTime(selectInfo.end)
-    const resourceId = selectInfo.resource?.id
-    if (resourceId && resourceId !== 'unassigned') {
-        form.executing_user_ids = [parseInt(resourceId)]
-    }
 }
 
 const getEvents = async (fetchInfo, successCallback, failureCallback) => {
@@ -422,9 +417,6 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
         start: event.start,
         end: event.end,
         color: event.event_type.color,
-        resourceIds: event.executing_users?.length
-            ? event.executing_users.map(u => String(u.id))
-            : ['unassigned'],
         extendedProps: {
             kind: 'event',
             id: event.id,
@@ -553,16 +545,9 @@ const deleteEvent = async (eventId) => {
     }
 }
 
-const resources = computed(() => [
-    ...props.allUsers.map(u => ({ id: String(u.id), title: u.name })),
-    { id: 'unassigned', title: 'Niet toegewezen' },
-])
-
 const calendarOptions = ref({
-    plugins: [resourceTimelinePlugin, timeGridPlugin, interactionPlugin, listPlugin],
-    schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+    plugins: [timeGridPlugin, interactionPlugin, listPlugin],
     initialView: getView(),
-    resources: resources.value,
     eventSources: [
         { events: getEvents },
         { events: getProjects, editable: false },
