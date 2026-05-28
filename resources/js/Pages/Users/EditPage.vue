@@ -62,6 +62,16 @@
                         <div v-if="form.errors.role_ids" class="text-xs text-red-600 mt-1">{{ form.errors.role_ids }}
                         </div>
                     </div>
+                    <div v-if="isAdmin">
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <input v-model="form.plannable" type="checkbox"
+                                class="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-600 bg-white dark:bg-slate-800" />
+                            <span class="text-xs font-medium text-gray-700 dark:text-slate-300">Inplanbaar (zichtbaar als
+                                rij in de planner)</span>
+                        </label>
+                        <div v-if="form.errors.plannable" class="text-xs text-red-600 mt-1">{{ form.errors.plannable }}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -100,7 +110,14 @@ const isAdmin = computed(() => !!page.props.auth?.isAdmin)
 const isEdit = computed(() => !!props.user)
 const isSelfEdit = computed(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/me'))
 
-const form = useForm({ name: props.user?.name || '', email: props.user?.email || '', password: '', avatar: null, role_ids: (props.user?.roles || []).map(r => r.id) })
+const form = useForm({
+    name: props.user?.name || '',
+    email: props.user?.email || '',
+    password: '',
+    avatar: null,
+    role_ids: (props.user?.roles || []).map(r => r.id),
+    plannable: !!props.user?.plannable,
+})
 
 const canSubmit = computed(() => form.name && form.email && (!isEdit.value ? form.password.length >= 8 : true))
 

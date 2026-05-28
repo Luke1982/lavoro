@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\PlannerController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\TicketController;
@@ -150,6 +151,10 @@ Route::group(
             ->only(['store', 'update', 'destroy']);
         Route::resource('events', EventController::class)
             ->only(['index']);
+        Route::get('planner', [PlannerController::class, 'index'])
+            ->name('planner.index');
+        Route::get('events-test', [PlannerController::class, 'index'])
+            ->name('events-test');
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('customfields', CustomFieldController::class)

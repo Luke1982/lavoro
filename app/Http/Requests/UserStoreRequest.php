@@ -20,6 +20,7 @@ class UserStoreRequest extends FormRequest
             'avatar' => 'nullable|image|max:3072',
             'role_ids' => 'sometimes|array',
             'role_ids.*' => 'integer|exists:roles,id',
+            'plannable' => 'sometimes|boolean',
         ];
     }
 }

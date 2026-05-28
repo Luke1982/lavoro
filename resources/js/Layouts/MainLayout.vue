@@ -432,7 +432,10 @@ const navigation = ref([
         icon: CalendarIcon,
         current: false,
         requiresPermission: 'event.read',
-        children: [{ name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' }],
+        children: [
+            { name: 'Planner', href: '/planner', icon: CalendarIcon, current: false, requiresPermission: 'event.read' },
+            { name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' },
+        ],
         open: false,
     },
     { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },

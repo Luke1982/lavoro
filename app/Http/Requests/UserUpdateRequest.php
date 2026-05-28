@@ -34,6 +34,7 @@ class UserUpdateRequest extends FormRequest
         if ($request_user && method_exists($request_user, 'isAdmin') && $request_user->isAdmin()) {
             $rules['role_ids'] = 'sometimes|array';
             $rules['role_ids.*'] = 'integer|exists:roles,id';
+            $rules['plannable'] = 'sometimes|boolean';
         }
 
         return $rules;
