@@ -2,7 +2,7 @@
     <div class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100"
         @pointermove="onWindowPointerMove" @pointerup="onWindowPointerUp">
         <!-- Top toolbar -->
-        <div class="flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap">
+        <div class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap bg-white dark:bg-slate-900">
             <h1 class="text-xl font-bold pr-4">Planning</h1>
             <button class="rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="goToday">Vandaag</button>
@@ -17,13 +17,9 @@
             <div class="font-semibold text-sm">{{ weekTitle }}</div>
 
             <div class="ml-auto flex items-center gap-2">
-                <label class="text-xs text-gray-500 dark:text-slate-400">Slot</label>
-                <select v-model.number="slotMinutes"
-                    class="rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm px-2 py-1">
-                    <option :value="15">15 min</option>
-                    <option :value="30">30 min</option>
-                    <option :value="60">60 min</option>
-                </select>
+                <SelectMenuComponent v-model="slotMinutes" :options="slotOptions" :icon="Squares2X2Icon">
+                    <template #sr-label>Slotgrootte</template>
+                </SelectMenuComponent>
                 <label class="text-xs text-gray-500 dark:text-slate-400 ml-2">Dag</label>
                 <select v-model.number="dayStartHour"
                     class="rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm px-2 py-1">
@@ -132,9 +128,11 @@
                                 :day-start-hour="dayStartHour"
                                 :day-end-hour="dayEndHour"
                                 :row-height="rowHeight"
+                                :event-padding-y="eventPaddingY"
                                 :is-locked="ev.executing_user_ids.length > 1"
                                 :is-being-dragged="drag.eventId === ev.id"
                                 @click="handleEventClick(ev)"
+                                @contextmenu="onEventContextMenu($event, ev)"
                                 @pointerdown-on-event="onEventPointerDown($event, ev, user)"
                                 @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
 
@@ -180,12 +178,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
-import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime } from '@/Utilities/Utilities'
+import { ChevronLeftIcon, ChevronRightIcon, Squares2X2Icon } from '@heroicons/vue/24/outline'
+import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import PlannerEvent from './Planner/PlannerEvent.vue'
 import EventEditModal from './Planner/EventEditModal.vue'
+import SelectMenuComponent from './UI/SelectMenuComponent.vue'
+import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -200,7 +200,9 @@ const props = defineProps({
     defaultDayStartHour: { type: Number, default: 7 },
     defaultDayEndHour: { type: Number, default: 18 },
     /** Row height in px (so we can keep rows equal as the screenshot requires) */
-    rowHeight: { type: Number, default: 96 },
+    rowHeight: { type: Number, default: 120 },
+    /** Vertical padding around event cards within each lane */
+    eventPaddingY: { type: Number, default: 14 },
 })
 
 const page = usePage()
@@ -226,12 +228,21 @@ const selectRect = ref(null)
 let suppressClickUntil = 0
 
 const HOUR_PX_MIN = 60
+const SLOT_PX_MIN = 56
 const dayHeaderHeight = 44
 const hourHeaderHeight = 44
 const headerHeight = dayHeaderHeight + hourHeaderHeight
 
+const slotOptions = [
+    { value: 15, title: '15 min per slot', shortTitle: '15 min', description: 'Bredere kolommen, ideaal voor korte afspraken' },
+    { value: 30, title: '30 min per slot', shortTitle: '30 min', description: 'Standaard slotgrootte' },
+    { value: 60, title: '60 min per slot', shortTitle: '60 min', description: 'Compactere weergave, voor lange afspraken' },
+]
+
 const hourCount = computed(() => Math.max(1, dayEndHour.value - dayStartHour.value))
-const dayWidthPx = computed(() => Math.max(HOUR_PX_MIN, 64) * hourCount.value)
+const slotsPerHour = computed(() => 60 / slotMinutes.value)
+const hourWidthPx = computed(() => Math.max(HOUR_PX_MIN, slotsPerHour.value * SLOT_PX_MIN))
+const dayWidthPx = computed(() => hourWidthPx.value * hourCount.value)
 const gridMinWidth = computed(() => dayWidthPx.value * 7)
 const dayGridTemplate = computed(() => `repeat(7, minmax(${dayWidthPx.value}px, 1fr))`)
 
@@ -345,22 +356,27 @@ async function fetchEvents() {
             `/api/events?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )
         if (response.status !== 200) return
-        events.value = response.data.map(ev => ({
-            id: ev.id,
-            title: ev.event_type?.name || ev.name || 'Afspraak',
-            name: ev.name,
-            description: ev.description,
-            status: ev.status,
-            color: ev.event_type?.color || '#3b82f6',
-            event_type_id: ev.event_type?.id,
-            start: new Date(ev.start),
-            end: new Date(ev.end),
-            executing_user_ids: (ev.executing_users || []).map(u => u.id),
-            executing_users: ev.executing_users || [],
-            eventable_id: ev.service_orders?.[0]?.id ?? null,
-            eventable_type: '\\App\\Models\\ServiceOrder',
-            customer_id: ev.service_orders?.[0]?.customer_id ?? null,
-        }))
+        events.value = response.data.map(ev => {
+            const customer_id = ev.service_orders?.[0]?.customer_id ?? null
+            const customer = customer_id ? props.allCustomers.find(c => c.id === customer_id) : null
+            return {
+                id: ev.id,
+                title: ev.event_type?.name || ev.name || 'Afspraak',
+                name: ev.name,
+                description: ev.description,
+                status: ev.status,
+                color: ev.event_type?.color || '#3b82f6',
+                event_type_id: ev.event_type?.id,
+                start: new Date(ev.start),
+                end: new Date(ev.end),
+                executing_user_ids: (ev.executing_users || []).map(u => u.id),
+                executing_users: ev.executing_users || [],
+                eventable_id: ev.service_orders?.[0]?.id ?? null,
+                eventable_type: '\\App\\Models\\ServiceOrder',
+                customer_id,
+                customer_name: customer?.name || null,
+            }
+        })
     } catch (e) {
         console.error('Failed to fetch events for planner', e)
     }
@@ -571,9 +587,9 @@ function updateGhost(clientX, clientY) {
         userName: (drag.value.mode === 'move' && targetUser && targetUser.id !== ev.executing_user_ids[0]) ? targetUser.name : null,
         style: {
             left: leftPx + 'px',
-            top: (topPx + 4) + 'px',
+            top: (topPx + props.eventPaddingY) + 'px',
             width: Math.max(40, widthPx) + 'px',
-            height: (props.rowHeight - 8) + 'px',
+            height: (props.rowHeight - 2 * props.eventPaddingY) + 'px',
             borderColor: ev.color || '#3b82f6',
             color: ev.color || '#3b82f6',
         },
@@ -614,6 +630,86 @@ async function onWindowPointerUp() {
 function handleEventClick(ev) {
     if (Date.now() < suppressClickUntil) return
     openEdit(ev)
+}
+
+function onEventContextMenu(e, ev) {
+    drag.value = { eventId: null, mode: null }
+    dragGhost.value = null
+    injectTypeColorStyles()
+    const items = [
+        {
+            label: 'Wijzig type',
+            children: props.eventTypes.map(t => ({
+                label: ev.event_type_id === t.id ? `${t.name}  ✓` : t.name,
+                customClass: 'planner-cm-type-' + t.id,
+                onClick: () => changeEventType(ev, t),
+            })),
+        },
+        { label: 'Bewerken…', onClick: () => openEdit(ev) },
+    ]
+    if (ev.eventable_id) {
+        items.push({
+            label: `Open werkbon #${ev.eventable_id}`,
+            divided: true,
+            onClick: () => router.visit(`/serviceorders/${ev.eventable_id}`),
+        })
+    }
+    if (ev.customer_id && hasPermission('customer.read')) {
+        const customer = props.allCustomers.find(c => c.id === ev.customer_id)
+        items.push({
+            label: `Open klant${customer?.name ? ` — ${customer.name}` : ''}`,
+            onClick: () => router.visit(`/customers/${ev.customer_id}`),
+        })
+    }
+    items.push({ label: 'Verwijderen', divided: true, onClick: () => deleteEvent(ev) })
+    ContextMenu.showContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items,
+    })
+}
+
+let typeStyleEl = null
+function injectTypeColorStyles() {
+    if (typeStyleEl) return
+    typeStyleEl = document.createElement('style')
+    typeStyleEl.textContent = props.eventTypes.map(t =>
+        `.mx-context-menu-item.planner-cm-type-${t.id} .label::before { content: "● "; color: ${t.color || '#3b82f6'}; font-weight: 700; }`
+    ).join('\n')
+    document.head.appendChild(typeStyleEl)
+}
+
+async function changeEventType(ev, type) {
+    const original = { event_type_id: ev.event_type_id, title: ev.title, color: ev.color }
+    ev.event_type_id = type.id
+    ev.title = type.name
+    ev.color = type.color || ev.color
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.put(`/api/events/${ev.id}`, { event_type_id: type.id })
+        if (r.status !== 200) throw new Error('bad response')
+        page.props.flash.success = `Afspraaktype gewijzigd naar "${type.name}"`
+    } catch (e) {
+        console.error('Failed to change event type', e)
+        ev.event_type_id = original.event_type_id
+        ev.title = original.title
+        ev.color = original.color
+        page.props.flash.error = e.response?.data?.message || 'Kon afspraaktype niet wijzigen'
+    }
+}
+
+async function deleteEvent(ev) {
+    if (!confirm(`Weet je zeker dat je afspraak #${ev.id} wilt verwijderen?`)) return
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.delete(`/api/events/${ev.id}`)
+        if (r.status !== 204) throw new Error('bad response')
+        events.value = events.value.filter(x => x.id !== ev.id)
+        page.props.flash.success = 'Afspraak verwijderd'
+    } catch (e) {
+        console.error('Failed to delete event', e)
+        page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet verwijderen'
+    }
 }
 
 async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {

@@ -3,7 +3,9 @@ import { createInertiaApp } from "@inertiajs/vue3";
 import MainLayout from "./Layouts/MainLayout.vue";
 import FloatingVue from "floating-vue";
 import { autoAnimatePlugin } from "@formkit/auto-animate/vue";
+import ContextMenu from "@imengyu/vue3-context-menu";
 import "floating-vue/dist/style.css";
+import "@imengyu/vue3-context-menu/lib/vue3-context-menu.css";
 
 createInertiaApp({
     resolve: async (name) => {
@@ -19,6 +21,7 @@ createInertiaApp({
             .use(plugin)
             .use(FloatingVue)
             .use(autoAnimatePlugin)
+            .use(ContextMenu)
             .mount(el);
     },
 });
