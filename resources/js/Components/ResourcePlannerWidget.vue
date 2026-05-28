@@ -659,6 +659,18 @@ function onEventContextMenu(e, ev) {
                 onClick: () => changeEventType(ev, t),
             })),
         },
+        {
+            label: `Monteurs (${ev.executing_user_ids.length})`,
+            children: props.allUsers.map(u => {
+                const assigned = ev.executing_user_ids.includes(u.id)
+                const isLast = assigned && ev.executing_user_ids.length === 1
+                return {
+                    label: assigned ? `${u.name}  ✓` : u.name,
+                    disabled: isLast,
+                    onClick: () => toggleExecutingUser(ev, u),
+                }
+            }),
+        },
         { label: 'Bewerken…', onClick: () => openEdit(ev) },
     ]
     if (ev.eventable_id) {
@@ -691,6 +703,35 @@ function injectTypeColorStyles() {
         `.mx-context-menu-item.planner-cm-type-${t.id} .label::before { content: "● "; color: ${t.color || '#3b82f6'}; font-weight: 700; }`
     ).join('\n')
     document.head.appendChild(typeStyleEl)
+}
+
+async function toggleExecutingUser(ev, user) {
+    const wasAssigned = ev.executing_user_ids.includes(user.id)
+    const original = {
+        ids: [...ev.executing_user_ids],
+        users: [...ev.executing_users],
+    }
+    const next_ids = wasAssigned
+        ? ev.executing_user_ids.filter(id => id !== user.id)
+        : [...ev.executing_user_ids, user.id]
+    if (next_ids.length === 0) return
+    ev.executing_user_ids = next_ids
+    ev.executing_users = wasAssigned
+        ? ev.executing_users.filter(u => u.id !== user.id)
+        : [...ev.executing_users, { id: user.id, name: user.name, avatar: user.avatar }]
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.put(`/api/events/${ev.id}`, { executing_user_ids: next_ids })
+        if (r.status !== 200) throw new Error('bad response')
+        page.props.flash.success = wasAssigned
+            ? `${user.name} verwijderd van afspraak`
+            : `${user.name} toegevoegd aan afspraak`
+    } catch (e) {
+        console.error('Failed to update executing users', e)
+        ev.executing_user_ids = original.ids
+        ev.executing_users = original.users
+        page.props.flash.error = e.response?.data?.message || 'Kon monteurs niet bijwerken'
+    }
 }
 
 async function changeEventType(ev, type) {
