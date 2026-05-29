@@ -64,7 +64,8 @@
             </div>
 
             <!-- Time grid -->
-            <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll">
+            <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
+                @dragleave="onGridDragLeave">
                 <!-- Headers (sticky) -->
                 <div class="sticky top-0 z-20 bg-white dark:bg-slate-900">
                     <div class="grid border-b border-gray-200 dark:border-slate-800"
@@ -204,6 +205,8 @@ const props = defineProps({
     /** Vertical padding around event cards within each lane */
     eventPaddingY: { type: Number, default: 14 },
 })
+
+const emit = defineEmits(['service-order-planned'])
 
 const page = usePage()
 
@@ -801,13 +804,68 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
     }
 }
 
+const DROP_DURATION_MIN = 120
+
+/** Snapped, day-clamped start minute for an incoming drop of the given duration. */
+function dropStartMinutes(info, durationMin) {
+    const snapped = snapMinutes(info.minutes)
+    const maxStart = Math.max(0, info.totalMin - durationMin)
+    return Math.max(0, Math.min(maxStart, snapped))
+}
+
 function onDragOver(e) {
-    if (e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload')) {
-        e.dataTransfer.dropEffect = 'copy'
+    if (!(e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload'))) return
+    e.dataTransfer.dropEffect = 'copy'
+    updateExternalDropGhost(e.clientX, e.clientY)
+}
+
+function onGridDragLeave(e) {
+    // Only clear when the cursor actually leaves the grid, not when crossing child cells.
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+        dragGhost.value = null
+    }
+}
+
+function updateExternalDropGhost(clientX, clientY) {
+    const info = cellInfoFromPoint(clientX, clientY)
+    if (!info || !bodyRef.value) {
+        dragGhost.value = null
+        return
+    }
+    const startMin = dropStartMinutes(info, DROP_DURATION_MIN)
+    const start = dateFromDayIsoAndMinutes(info.dayIso, startMin)
+    const end = new Date(start.getTime() + DROP_DURATION_MIN * 60000)
+    const targetUser = props.plannableUsers.find(u => u.id === info.userId)
+    const targetCell = document.querySelector(
+        `[data-user-id="${info.userId}"][data-day-iso="${info.dayIso}"]`
+    )
+    if (!targetCell) {
+        dragGhost.value = null
+        return
+    }
+    const cellRect = targetCell.getBoundingClientRect()
+    const bodyRect = bodyRef.value.getBoundingClientRect()
+    const leftPx = (cellRect.left - bodyRect.left) + (startMin / info.totalMin) * cellRect.width
+    const topPx = cellRect.top - bodyRect.top
+    const widthPx = (DROP_DURATION_MIN / info.totalMin) * cellRect.width
+    dragGhost.value = {
+        title: 'Nieuwe afspraak (2 uur)',
+        start,
+        end,
+        userName: targetUser?.name || null,
+        style: {
+            left: leftPx + 'px',
+            top: (topPx + props.eventPaddingY) + 'px',
+            width: Math.max(40, widthPx) + 'px',
+            height: (props.rowHeight - 2 * props.eventPaddingY) + 'px',
+            borderColor: '#2563ff',
+            color: '#2563ff',
+        },
     }
 }
 
 function onExternalDrop(e, user, day) {
+    dragGhost.value = null
     const raw = e.dataTransfer?.getData('application/x-planner-payload')
     if (!raw) return
     let payload
@@ -815,20 +873,45 @@ function onExternalDrop(e, user, day) {
 
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
-    const startMin = snapMinutes(info.minutes)
-    const duration = payload.duration_minutes || 60
+    const duration = payload.duration_minutes || DROP_DURATION_MIN
+    const startMin = dropStartMinutes(info, duration)
     const start = dateFromDayIsoAndMinutes(day.iso, startMin)
     const end = new Date(start.getTime() + duration * 60000)
-    openCreate({
-        start,
-        end,
-        userId: user.id,
+    createEventFromDrop({ start, end, userId: user.id, payload })
+}
+
+async function createEventFromDrop({ start, end, userId, payload }) {
+    if (!hasPermission('event.create')) {
+        page.props.flash.error = 'Je hebt geen rechten om afspraken te maken'
+        return
+    }
+    const eventTypeId = props.eventTypes[0]?.id
+    if (!eventTypeId) {
+        page.props.flash.error = 'Geen afspraaktype beschikbaar om in te plannen'
+        return
+    }
+    const body = {
+        event_type_id: eventTypeId,
         name: payload.name || '',
         description: payload.description || '',
+        status: 'Gepland',
+        start: formatUtcDatetime(start).slice(0, 16),
+        end: formatUtcDatetime(end).slice(0, 16),
         eventable_type: payload.eventable_type || '\\App\\Models\\ServiceOrder',
         eventable_id: payload.eventable_id || null,
-        customer_id: payload.customer_id || null,
-    })
+        executing_user_ids: [userId],
+    }
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.post('/api/events', body)
+        if (r.status !== 201) throw new Error('bad response')
+        page.props.flash.success = 'Werkbon ingepland (2 uur)'
+        if (body.eventable_id) emit('service-order-planned', body.eventable_id)
+        fetchEvents()
+    } catch (err) {
+        console.error('Failed to create event from drop', err)
+        page.props.flash.error = err.response?.data?.message || 'Kon werkbon niet inplannen'
+    }
 }
 
 function openCreate(initial) {

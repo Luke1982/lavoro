@@ -19,6 +19,10 @@ class PlannerController extends Controller
             'noPadding' => true,
             'allCustomers' => Customer::all(),
             'allServiceOrders' => ServiceOrder::with('customer')->get(),
+            'unplannedServiceOrders' => ServiceOrder::with('customer')
+                ->doesntHave('events')
+                ->orderByDesc('created_at')
+                ->get(),
             'allUsers' => User::select('id', 'name')->get(),
             'plannableUsers' => User::where('plannable', true)
                 ->select('id', 'name')
