@@ -147,18 +147,22 @@
 
                             <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
                             <div v-if="track.serviceOrders.length"
-                                class="absolute flex flex-wrap content-start gap-1"
+                                class="absolute"
                                 :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
-                                <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
-                                    draggable="true"
-                                    @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                    @dragend="onProjectServiceOrderDragEnd"
-                                    :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                    class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
-                                    :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                    <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
-                                    <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                    <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
+                                <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
+                                <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
+                                    :style="{ maxWidth: track.width + 'px' }">
+                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
+                                        draggable="true"
+                                        @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                        @dragend="onProjectServiceOrderDragEnd"
+                                        :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
+                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                        :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                        <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                        <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </template>
