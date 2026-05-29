@@ -1,6 +1,6 @@
 <template>
     <div data-planner-event
-        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 overflow-visible text-gray-900"
+        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 overflow-hidden text-gray-900"
         :class="[
             isBeingDragged ? 'opacity-30' : '',
             isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60' : '',
@@ -11,14 +11,15 @@
         @contextmenu.prevent.stop="$emit('contextmenu', $event)">
         <VDropdown :triggers="popoverTriggers" :disabled="!isShort || isBeingDragged"
             :delay="{ show: 200, hide: 80 }" placement="top">
-            <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden">
+            <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden"
+                :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate">
                     #{{ event.id }} {{ event.name || event.title }}
                 </div>
-                <div v-if="event.customer_name" class="text-[11px] text-gray-600 truncate">
+                <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 truncate">
                     {{ event.customer_name }}
                 </div>
-                <div class="text-[11px] text-gray-600 flex items-center gap-1">
+                <div v-if="!isCompact" class="text-[11px] text-gray-600 flex items-center gap-1">
                     <ClockIcon class="size-3 shrink-0" />
                     <span class="truncate">{{ formatTime(event.start) }} – {{ formatTime(event.end) }}</span>
                     <span v-if="isLocked" class="ml-1" v-tooltip="'Vergrendeld – meerdere monteurs delen dit'">🔒</span>
@@ -81,6 +82,8 @@ function minutesFromDayStart(date) {
 
 const durationMinutes = computed(() => (props.event.end - props.event.start) / 60000)
 const isShort = computed(() => durationMinutes.value < 60)
+// Lane is collapsed/compact — show only the title so nothing overflows the short card.
+const isCompact = computed(() => props.rowHeight < 70)
 
 const style = computed(() => {
     const startMin = Math.max(0, minutesFromDayStart(props.event.start))
@@ -95,6 +98,7 @@ const style = computed(() => {
         bottom: props.eventPaddingY + 'px',
         backgroundColor: `color-mix(in srgb, ${color} 18%, white)`,
         borderColor: color,
+        transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',
     }
 })
 

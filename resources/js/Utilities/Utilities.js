@@ -1,52 +1,27 @@
-export const nlDate = (date) => {
-    return new Date(date).toLocaleDateString("nl-NL", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    });
-};
+import dayjs from "./dayjs";
+
+export const nlDate = (date) => dayjs(date).format("DD-MM-YYYY");
 
 export const nlDateOrEmpty = (date) => {
     if (!date || date === "0000-00-00") return "";
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return "";
-    if (parsed.getFullYear() < 1900) return "";
-    return parsed.toLocaleDateString("nl-NL", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    });
+    const parsed = dayjs(date);
+    if (!parsed.isValid() || parsed.year() < 1900) return "";
+    return parsed.format("DD-MM-YYYY");
 };
 
-export const parseYmd = (str) => {
-    const [y, m, d] = String(str)
-        .slice(0, 10)
-        .split("-")
-        .map((n) => parseInt(n, 10));
-    return new Date(y, m - 1, d);
-};
+/** Parse a "YYYY-MM-DD" (or ISO) string into a local-midnight Date. */
+export const parseYmd = (str) =>
+    dayjs(String(str).slice(0, 10), "YYYY-MM-DD").toDate();
 
-export const formatLocalDateAsISO = (date) => {
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-        date.getDate(),
-    )}`;
-};
+export const formatLocalDateAsISO = (date) => dayjs(date).format("YYYY-MM-DD");
 
-export const formatUtcDatetime = (date) => {
-    return date.toISOString().slice(0, 19).replace("T", " ");
-};
+export const formatUtcDatetime = (date) =>
+    dayjs(date).utc().format("YYYY-MM-DD HH:mm:ss");
 
-export const localToUtcDatetime = (dateStr, timeStr) => {
-    return formatUtcDatetime(new Date(`${dateStr}T${timeStr}:00`));
-};
+export const localToUtcDatetime = (dateStr, timeStr) =>
+    dayjs(`${dateStr}T${timeStr}`).utc().format("YYYY-MM-DD HH:mm:ss");
 
-export const nlTime = (date) => {
-    return new Date(date).toLocaleTimeString("nl-NL", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-};
+export const nlTime = (date) => dayjs(date).format("HH:mm");
 
 export const mapsLinkFromCustomer = (customer) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(

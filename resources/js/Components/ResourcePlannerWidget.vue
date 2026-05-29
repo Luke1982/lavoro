@@ -36,28 +36,47 @@
         <div class="flex flex-1 min-h-0">
             <!-- Resource sidebar -->
             <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 flex flex-col">
-                <div class="border-b border-gray-200 dark:border-slate-800 px-4 flex items-end pb-2 text-xs text-gray-500 dark:text-slate-400"
+                <div class="border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
-                    Monteurs ({{ plannableUsers.length }})
+                    <span>Monteurs ({{ plannableUsers.length }})</span>
+                    <button v-if="plannableUsers.length"
+                        @click="toggleAllRows"
+                        class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
+                        <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
+                        <ChevronRightIcon v-else class="size-3.5" />
+                        {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
+                    </button>
                 </div>
                 <div class="flex-1 overflow-y-auto" ref="sidebarScrollRef">
-                    <div v-if="allDay.height"
-                        :style="{ height: allDay.height + 'px' }"
-                        class="border-b border-gray-200 dark:border-slate-800 px-4 py-2 text-xs font-medium text-gray-500 dark:text-slate-400 flex items-start bg-gray-50/40 dark:bg-slate-800/40">
-                        Projecten ({{ allDay.tracks.length }})
+                    <div v-if="allDayLaneHeight"
+                        :style="{ height: allDayLaneHeight + 'px' }"
+                        class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
+                        <button class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            @click="toggleAllDay" :aria-label="allDayCollapsed ? 'Projecten uitklappen' : 'Projecten inklappen'">
+                            <ChevronDownIcon v-if="!allDayCollapsed" class="size-4" />
+                            <ChevronRightIcon v-else class="size-4" />
+                        </button>
+                        <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
                     </div>
                     <div v-for="(user, idx) in plannableUsers" :key="user.id"
-                        :style="{ height: rowHeight + 'px' }"
-                        class="flex items-center gap-3 px-4 border-b border-gray-100 dark:border-slate-800"
+                        :style="{ height: rowHeightFor(user.id) + 'px' }"
+                        class="relative flex items-center gap-2 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
-                        <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700">
+                        <button class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                            @click="toggleUserRow(user.id)"
+                            :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
+                            <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
+                            <ChevronRightIcon v-else class="size-4" />
+                        </button>
+                        <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
+                            :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
                             <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
                                 :alt="user.name" />
                             <span v-else>{{ initials(user.name) }}</span>
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="text-sm font-semibold truncate">{{ user.name }}</div>
-                            <div class="text-xs text-gray-500 dark:text-slate-400">{{ userHoursLabel(user.id) }}</div>
+                            <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">{{ userHoursLabel(user.id) }}</div>
                         </div>
                     </div>
                     <div v-if="plannableUsers.length === 0"
@@ -100,9 +119,9 @@
                 <!-- Body rows -->
                 <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                     <!-- All-day project band -->
-                    <div v-if="allDay.height"
-                        class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30"
-                        :style="{ height: allDay.height + 'px', minWidth: gridMinWidth + 'px' }">
+                    <div v-if="allDayLaneHeight"
+                        class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                        :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
                         <!-- Day gridlines -->
                         <div class="absolute inset-0 grid pointer-events-none"
                             :style="{ gridTemplateColumns: dayGridTemplate }">
@@ -110,7 +129,7 @@
                                 class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
                         </div>
 
-                        <template v-for="track in allDay.tracks" :key="'track-' + track.id">
+                        <template v-for="track in visibleTracks" :key="'track-' + track.id">
                             <!-- Project bar (background spans full range; label sticks to the viewport) -->
                             <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
                                 :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
@@ -126,31 +145,28 @@
                                 </div>
                             </div>
 
-                            <!-- Unplanned service orders hanging below the project -->
+                            <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
                             <div v-if="track.serviceOrders.length"
-                                class="absolute"
+                                class="absolute flex flex-wrap content-start gap-1"
                                 :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
-                                <div class="sticky left-0 flex flex-col gap-1 pl-2 border-l-2 border-dashed border-indigo-300 dark:border-indigo-800"
-                                    :style="{ width: track.cardWidth + 'px' }">
-                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
-                                        draggable="true"
-                                        @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                        @dragend="onProjectServiceOrderDragEnd"
-                                        :style="{ height: SO_CARD_H + 'px' }"
-                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
-                                        :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                        <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
-                                        <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
-                                    </div>
+                                <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
+                                    draggable="true"
+                                    @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                    @dragend="onProjectServiceOrderDragEnd"
+                                    :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
+                                    class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                    :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                    <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                    <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                    <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
                                 </div>
                             </div>
                         </template>
                     </div>
 
                     <div v-for="(user, idx) in plannableUsers" :key="'row-' + user.id"
-                        class="grid relative"
-                        :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeight + 'px' }"
+                        class="grid relative transition-[height] duration-200 ease-in-out"
+                        :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
 
                         <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
@@ -182,8 +198,8 @@
                                 :slot-minutes="slotMinutes"
                                 :day-start-hour="dayStartHour"
                                 :day-end-hour="dayEndHour"
-                                :row-height="rowHeight"
-                                :event-padding-y="eventPaddingY"
+                                :row-height="rowHeightFor(user.id)"
+                                :event-padding-y="paddingYFor(user.id)"
                                 :is-locked="ev.executing_user_ids.length > 1"
                                 :is-being-dragged="drag.eventId === ev.id"
                                 @click="handleEventClick(ev)"
@@ -235,9 +251,10 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, Squares2X2Icon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
-import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission, parseYmd } from '@/Utilities/Utilities'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
+import dayjs from '@/Utilities/dayjs'
 import PlannerEvent from './Planner/PlannerEvent.vue'
 import EventEditModal from './Planner/EventEditModal.vue'
 import SelectMenuComponent from './UI/SelectMenuComponent.vue'
@@ -309,59 +326,98 @@ const dayGridTemplate = computed(() => `repeat(7, minmax(${dayWidthPx.value}px, 
 // --- All-day project band (row above the resource lanes) ---
 const PROJECT_BAR_H = 38
 const SO_CARD_H = 34
+const SO_CARD_W = 150 // hanging service-order card width
 const SO_GAP = 4
 const TRACK_TOP_PAD = 6
 const TRACK_BOTTOM_PAD = 10
-const SO_CARD_W = 220
+const COLLAPSED_LANE_H = 32 // all-day lane height when collapsed
+const COLLAPSED_ROW_H = 40 // resource row height when collapsed
+
+const allDayCollapsed = ref(false)
+const collapsedUsers = ref(new Set())
 
 /** One horizontal track per project, positioned within the visible week. */
 const allDay = computed(() => {
-    const ws = new Date(weekStart.value)
-    ws.setHours(0, 0, 0, 0)
-    const wsMs = ws.getTime()
-    const weekEndMs = wsMs + 7 * 86400000 // exclusive: start of the day after the week
+    const ws = dayjs(weekStart.value).startOf('day')
+    const weekEnd = ws.add(7, 'day') // exclusive: start of the day after the week
     const tracks = []
     let top = TRACK_TOP_PAD
     for (const p of props.projects) {
         if (!p.start_date || !p.end_date) continue
-        const startMs = parseYmd(p.start_date).getTime()
-        const endExclusiveMs = parseYmd(p.end_date).getTime() + 86400000 // through end of end_date (23:59)
-        if (endExclusiveMs <= wsMs || startMs >= weekEndMs) continue // not visible this week
-        const clampedStart = Math.max(startMs, wsMs)
-        const clampedEnd = Math.min(endExclusiveMs, weekEndMs)
-        const startDay = Math.round((clampedStart - wsMs) / 86400000)
-        const endDayExclusive = Math.round((clampedEnd - wsMs) / 86400000)
+        const start = dayjs(p.start_date).startOf('day')
+        const endExclusive = dayjs(p.end_date).startOf('day').add(1, 'day') // through end of end_date (23:59)
+        if (!endExclusive.isAfter(ws) || !start.isBefore(weekEnd)) continue // not visible this week
+        const visibleStart = start.isAfter(ws) ? start : ws
+        const visibleEnd = endExclusive.isBefore(weekEnd) ? endExclusive : weekEnd
+        const startDay = Math.round(visibleStart.diff(ws, 'day', true))
+        const endDayExclusive = Math.round(visibleEnd.diff(ws, 'day', true))
+        const width = (endDayExclusive - startDay) * dayWidthPx.value
         const serviceOrders = p.service_orders || []
-        const hangingHeight = serviceOrders.length
-            ? serviceOrders.length * (SO_CARD_H + SO_GAP) + SO_GAP
-            : 0
+        // Hanging cards sit side by side and wrap within the project width.
+        const perRow = Math.max(1, Math.floor((width + SO_GAP) / (SO_CARD_W + SO_GAP)))
+        const rows = serviceOrders.length ? Math.ceil(serviceOrders.length / perRow) : 0
+        const hangingHeight = rows ? rows * (SO_CARD_H + SO_GAP) + SO_GAP : 0
         tracks.push({
             id: p.id,
             project: p,
             title: p.title || `Project #${p.id}`,
             customerName: p.customer?.name || '',
             left: startDay * dayWidthPx.value,
-            width: (endDayExclusive - startDay) * dayWidthPx.value,
+            width,
             top,
             hangingTop: top + PROJECT_BAR_H,
-            cardWidth: Math.min(SO_CARD_W, (endDayExclusive - startDay) * dayWidthPx.value),
             serviceOrders,
-            continuesLeft: startMs < wsMs,
-            continuesRight: endExclusiveMs > weekEndMs,
+            continuesLeft: start.isBefore(ws),
+            continuesRight: endExclusive.isAfter(weekEnd),
         })
         top += PROJECT_BAR_H + hangingHeight + TRACK_BOTTOM_PAD
     }
     return { tracks, height: tracks.length ? top : 0 }
 })
 
+// Effective lane height honoring the collapse toggle.
+const allDayLaneHeight = computed(() => {
+    if (!allDay.value.height) return 0
+    return allDayCollapsed.value ? COLLAPSED_LANE_H : allDay.value.height
+})
+
+// Tracks to actually render (none while the lane is collapsed).
+const visibleTracks = computed(() => (allDayCollapsed.value ? [] : allDay.value.tracks))
+
+function toggleAllDay() {
+    allDayCollapsed.value = !allDayCollapsed.value
+}
+
+function rowHeightFor(userId) {
+    return collapsedUsers.value.has(userId) ? COLLAPSED_ROW_H : props.rowHeight
+}
+
+function paddingYFor(userId) {
+    return collapsedUsers.value.has(userId) ? 4 : props.eventPaddingY
+}
+
+function toggleUserRow(userId) {
+    const next = new Set(collapsedUsers.value)
+    next.has(userId) ? next.delete(userId) : next.add(userId)
+    collapsedUsers.value = next
+}
+
+const allRowsCollapsed = computed(() =>
+    props.plannableUsers.length > 0 && props.plannableUsers.every(u => collapsedUsers.value.has(u.id))
+)
+
+function toggleAllRows() {
+    collapsedUsers.value = allRowsCollapsed.value
+        ? new Set()
+        : new Set(props.plannableUsers.map(u => u.id))
+}
+
 const weekDays = computed(() => {
-    const out = []
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(weekStart.value)
-        d.setDate(d.getDate() + i)
-        out.push({ date: d, iso: formatLocalDateAsISO(d) })
-    }
-    return out
+    const start = dayjs(weekStart.value)
+    return Array.from({ length: 7 }, (_, i) => {
+        const d = start.add(i, 'day')
+        return { date: d.toDate(), iso: d.format('YYYY-MM-DD') }
+    })
 })
 
 const weekTitle = computed(() => {
@@ -381,26 +437,16 @@ const weekTitle = computed(() => {
 })
 
 function startOfWeek(date) {
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    const day = d.getDay()
-    const diff = (day === 0 ? -6 : 1 - day)
-    d.setDate(d.getDate() + diff)
-    return d
+    return dayjs(date).startOf('isoWeek').toDate()
 }
 
 function dayLabel(date) {
     const days = ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA']
-    const dd = String(date.getDate()).padStart(2, '0')
-    const mm = String(date.getMonth() + 1).padStart(2, '0')
-    return `${days[date.getDay()]} ${dd}-${mm}`
+    return `${days[date.getDay()]} ${dayjs(date).format('DD-MM')}`
 }
 
 function isToday(date) {
-    const t = new Date()
-    return date.getFullYear() === t.getFullYear() &&
-        date.getMonth() === t.getMonth() &&
-        date.getDate() === t.getDate()
+    return dayjs(date).isSame(dayjs(), 'day')
 }
 
 const nowOffsetPercent = ref(null)
@@ -432,9 +478,7 @@ watch([dayStartHour, dayEndHour], () => updateNow())
 watch(weekStart, () => fetchEvents())
 
 function shiftWeek(direction) {
-    const d = new Date(weekStart.value)
-    d.setDate(d.getDate() + direction * 7)
-    weekStart.value = d
+    weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
 }
 
 function goToday() {
@@ -446,11 +490,7 @@ function goToday() {
 function scrollToDate(date) {
     const grid = gridScrollRef.value
     if (!grid) return
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const weekStartDay = new Date(weekStart.value)
-    weekStartDay.setHours(0, 0, 0, 0)
-    const dayIndex = Math.round((startOfDay - weekStartDay) / 86400000)
+    const dayIndex = Math.round(dayjs(date).startOf('day').diff(dayjs(weekStart.value).startOf('day'), 'day', true))
     if (dayIndex < 0 || dayIndex > 6) return
     grid.scrollTo({ left: dayIndex * dayWidthPx.value, behavior: 'smooth' })
 }
@@ -469,11 +509,8 @@ function onGridScroll(e) {
 async function fetchEvents() {
     try {
         await axios.get('sanctum/csrf-cookie')
-        const start = new Date(weekStart.value)
-        const end = new Date(weekStart.value)
-        end.setDate(end.getDate() + 7)
-        const startParam = formatUtcDatetime(start)
-        const endParam = formatUtcDatetime(end)
+        const startParam = formatUtcDatetime(weekStart.value)
+        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
         const response = await axios.get(
             `/api/events?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )
@@ -623,11 +660,10 @@ function onResizePointerDown(e, ev, user, edge) {
 }
 
 function dateFromDayIsoAndMinutes(dayIso, minutes) {
-    const [y, m, d] = dayIso.split('-').map(n => parseInt(n, 10))
-    const totalMin = dayStartHour.value * 60 + minutes
-    const hours = Math.floor(totalMin / 60)
-    const mins = totalMin % 60
-    return new Date(y, m - 1, d, hours, mins, 0, 0)
+    return dayjs(dayIso)
+        .startOf('day')
+        .add(dayStartHour.value * 60 + minutes, 'minute')
+        .toDate()
 }
 
 function onWindowPointerMove(e) {
@@ -698,6 +734,7 @@ function updateGhost(clientX, clientY) {
     const bodyRect = bodyRef.value.getBoundingClientRect()
     const startMin = minutesFromDayStart(previewStart)
     const totalMin = info.totalMin
+    const padY = paddingYFor(previewUserId)
     const leftPx = (cellRect.left - bodyRect.left) + (startMin / totalMin) * cellRect.width
     const topPx = cellRect.top - bodyRect.top
     const widthPx = ((previewEnd - previewStart) / 60000 / totalMin) * cellRect.width
@@ -709,9 +746,9 @@ function updateGhost(clientX, clientY) {
         userName: (drag.value.mode === 'move' && targetUser && targetUser.id !== ev.executing_user_ids[0]) ? targetUser.name : null,
         style: {
             left: leftPx + 'px',
-            top: (topPx + props.eventPaddingY) + 'px',
+            top: (topPx + padY) + 'px',
             width: Math.max(40, widthPx) + 'px',
-            height: (props.rowHeight - 2 * props.eventPaddingY) + 'px',
+            height: (rowHeightFor(previewUserId) - 2 * padY) + 'px',
             borderColor: ev.color || '#3b82f6',
             color: ev.color || '#3b82f6',
         },
@@ -953,6 +990,7 @@ function updateExternalDropGhost(clientX, clientY) {
     }
     const cellRect = targetCell.getBoundingClientRect()
     const bodyRect = bodyRef.value.getBoundingClientRect()
+    const padY = paddingYFor(info.userId)
     const leftPx = (cellRect.left - bodyRect.left) + (startMin / info.totalMin) * cellRect.width
     const topPx = cellRect.top - bodyRect.top
     const widthPx = (DROP_DURATION_MIN / info.totalMin) * cellRect.width
@@ -963,9 +1001,9 @@ function updateExternalDropGhost(clientX, clientY) {
         userName: targetUser?.name || null,
         style: {
             left: leftPx + 'px',
-            top: (topPx + props.eventPaddingY) + 'px',
+            top: (topPx + padY) + 'px',
             width: Math.max(40, widthPx) + 'px',
-            height: (props.rowHeight - 2 * props.eventPaddingY) + 'px',
+            height: (rowHeightFor(info.userId) - 2 * padY) + 'px',
             borderColor: '#2563ff',
             color: '#2563ff',
         },
