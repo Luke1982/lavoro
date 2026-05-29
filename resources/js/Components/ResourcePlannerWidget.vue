@@ -41,6 +41,11 @@
                     Monteurs ({{ plannableUsers.length }})
                 </div>
                 <div class="flex-1 overflow-y-auto" ref="sidebarScrollRef">
+                    <div v-if="allDay.height"
+                        :style="{ height: allDay.height + 'px' }"
+                        class="border-b border-gray-200 dark:border-slate-800 px-4 py-2 text-xs font-medium text-gray-500 dark:text-slate-400 flex items-start bg-gray-50/40 dark:bg-slate-800/40">
+                        Projecten ({{ allDay.tracks.length }})
+                    </div>
                     <div v-for="(user, idx) in plannableUsers" :key="user.id"
                         :style="{ height: rowHeight + 'px' }"
                         class="flex items-center gap-3 px-4 border-b border-gray-100 dark:border-slate-800"
@@ -94,6 +99,55 @@
 
                 <!-- Body rows -->
                 <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
+                    <!-- All-day project band -->
+                    <div v-if="allDay.height"
+                        class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30"
+                        :style="{ height: allDay.height + 'px', minWidth: gridMinWidth + 'px' }">
+                        <!-- Day gridlines -->
+                        <div class="absolute inset-0 grid pointer-events-none"
+                            :style="{ gridTemplateColumns: dayGridTemplate }">
+                            <div v-for="day in weekDays" :key="'adg-' + day.iso"
+                                class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
+                        </div>
+
+                        <template v-for="track in allDay.tracks" :key="'track-' + track.id">
+                            <!-- Project bar (background spans full range; label sticks to the viewport) -->
+                            <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
+                                :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
+                                :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
+                                <div class="sticky left-0 inline-block max-w-full px-2 py-1">
+                                    <div class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
+                                        {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{ track.continuesRight ? ' ▸' : '' }}
+                                    </div>
+                                    <div v-if="track.customerName"
+                                        class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
+                                        {{ track.customerName }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Unplanned service orders hanging below the project -->
+                            <div v-if="track.serviceOrders.length"
+                                class="absolute"
+                                :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
+                                <div class="sticky left-0 flex flex-col gap-1 pl-2 border-l-2 border-dashed border-indigo-300 dark:border-indigo-800"
+                                    :style="{ width: track.cardWidth + 'px' }">
+                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
+                                        draggable="true"
+                                        @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                        @dragend="onProjectServiceOrderDragEnd"
+                                        :style="{ height: SO_CARD_H + 'px' }"
+                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                        :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                        <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                        <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
                     <div v-for="(user, idx) in plannableUsers" :key="'row-' + user.id"
                         class="grid relative"
                         :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeight + 'px' }"
@@ -181,8 +235,9 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, Squares2X2Icon } from '@heroicons/vue/24/outline'
-import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
+import { ChevronLeftIcon, ChevronRightIcon, Squares2X2Icon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission, parseYmd } from '@/Utilities/Utilities'
+import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import PlannerEvent from './Planner/PlannerEvent.vue'
 import EventEditModal from './Planner/EventEditModal.vue'
 import SelectMenuComponent from './UI/SelectMenuComponent.vue'
@@ -195,6 +250,8 @@ const props = defineProps({
     eventStatusses: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
     plannableUsers: { type: Array, default: () => [] },
+    /** Projects rendered as all-day bars in the row above the resource lanes */
+    projects: { type: Array, default: () => [] },
     /** Default slot snap in minutes */
     defaultSlotMinutes: { type: Number, default: 30 },
     /** Default visible day hours */
@@ -206,7 +263,7 @@ const props = defineProps({
     eventPaddingY: { type: Number, default: 14 },
 })
 
-const emit = defineEmits(['service-order-planned'])
+const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
 
 const page = usePage()
 
@@ -248,6 +305,54 @@ const hourWidthPx = computed(() => Math.max(HOUR_PX_MIN, slotsPerHour.value * SL
 const dayWidthPx = computed(() => hourWidthPx.value * hourCount.value)
 const gridMinWidth = computed(() => dayWidthPx.value * 7)
 const dayGridTemplate = computed(() => `repeat(7, minmax(${dayWidthPx.value}px, 1fr))`)
+
+// --- All-day project band (row above the resource lanes) ---
+const PROJECT_BAR_H = 38
+const SO_CARD_H = 34
+const SO_GAP = 4
+const TRACK_TOP_PAD = 6
+const TRACK_BOTTOM_PAD = 10
+const SO_CARD_W = 220
+
+/** One horizontal track per project, positioned within the visible week. */
+const allDay = computed(() => {
+    const ws = new Date(weekStart.value)
+    ws.setHours(0, 0, 0, 0)
+    const wsMs = ws.getTime()
+    const weekEndMs = wsMs + 7 * 86400000 // exclusive: start of the day after the week
+    const tracks = []
+    let top = TRACK_TOP_PAD
+    for (const p of props.projects) {
+        if (!p.start_date || !p.end_date) continue
+        const startMs = parseYmd(p.start_date).getTime()
+        const endExclusiveMs = parseYmd(p.end_date).getTime() + 86400000 // through end of end_date (23:59)
+        if (endExclusiveMs <= wsMs || startMs >= weekEndMs) continue // not visible this week
+        const clampedStart = Math.max(startMs, wsMs)
+        const clampedEnd = Math.min(endExclusiveMs, weekEndMs)
+        const startDay = Math.round((clampedStart - wsMs) / 86400000)
+        const endDayExclusive = Math.round((clampedEnd - wsMs) / 86400000)
+        const serviceOrders = p.service_orders || []
+        const hangingHeight = serviceOrders.length
+            ? serviceOrders.length * (SO_CARD_H + SO_GAP) + SO_GAP
+            : 0
+        tracks.push({
+            id: p.id,
+            project: p,
+            title: p.title || `Project #${p.id}`,
+            customerName: p.customer?.name || '',
+            left: startDay * dayWidthPx.value,
+            width: (endDayExclusive - startDay) * dayWidthPx.value,
+            top,
+            hangingTop: top + PROJECT_BAR_H,
+            cardWidth: Math.min(SO_CARD_W, (endDayExclusive - startDay) * dayWidthPx.value),
+            serviceOrders,
+            continuesLeft: startMs < wsMs,
+            continuesRight: endExclusiveMs > weekEndMs,
+        })
+        top += PROJECT_BAR_H + hangingHeight + TRACK_BOTTOM_PAD
+    }
+    return { tracks, height: tracks.length ? top : 0 }
+})
 
 const weekDays = computed(() => {
     const out = []
@@ -763,6 +868,9 @@ async function deleteEvent(ev) {
         const r = await axios.delete(`/api/events/${ev.id}`)
         if (r.status !== 204) throw new Error('bad response')
         events.value = events.value.filter(x => x.id !== ev.id)
+        if (ev.eventable_id && ev.eventable_type === '\\App\\Models\\ServiceOrder') {
+            emit('service-order-unplanned', ev.eventable_id)
+        }
         page.props.flash.success = 'Afspraak verwijderd'
     } catch (e) {
         console.error('Failed to delete event', e)
@@ -862,6 +970,15 @@ function updateExternalDropGhost(clientX, clientY) {
             color: '#2563ff',
         },
     }
+}
+
+function onProjectServiceOrderDragStart(e, so) {
+    setServiceOrderDragData(e, so)
+    e.currentTarget.classList.add('opacity-40')
+}
+
+function onProjectServiceOrderDragEnd(e) {
+    e.currentTarget.classList.remove('opacity-40')
 }
 
 function onExternalDrop(e, user, day) {

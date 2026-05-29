@@ -18,6 +18,14 @@ export const nlDateOrEmpty = (date) => {
     });
 };
 
+export const parseYmd = (str) => {
+    const [y, m, d] = String(str)
+        .slice(0, 10)
+        .split("-")
+        .map((n) => parseInt(n, 10));
+    return new Date(y, m - 1, d);
+};
+
 export const formatLocalDateAsISO = (date) => {
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(

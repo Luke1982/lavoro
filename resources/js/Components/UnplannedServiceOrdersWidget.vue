@@ -43,22 +43,14 @@
 import BoxComponent from './BoxComponent.vue'
 import { ArrowsRightLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { nlDate } from '@/Utilities/Utilities'
+import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 
 defineProps({
     serviceOrders: { type: Array, default: () => [] },
 })
 
 function onDragStart(e, so) {
-    const payload = {
-        name: so.description ? so.description.slice(0, 255) : `Werkbon #${so.id}`,
-        description: so.description || '',
-        duration_minutes: 120,
-        eventable_type: '\\App\\Models\\ServiceOrder',
-        eventable_id: so.id,
-        customer_id: so.customer_id ?? so.customer?.id ?? null,
-    }
-    e.dataTransfer.setData('application/x-planner-payload', JSON.stringify(payload))
-    e.dataTransfer.effectAllowed = 'copy'
+    setServiceOrderDragData(e, so)
     e.currentTarget.classList.add('opacity-40')
 }
 
