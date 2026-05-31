@@ -1,20 +1,17 @@
 <template>
-    <div class="h-[calc(100vh-0px)] flex flex-col lg:flex-row">
-        <div class="flex-1 min-h-0 min-w-0 order-2 lg:order-1">
-            <ResourcePlannerWidget
-                :event-types="eventTypes"
-                :all-customers="allCustomers"
-                :all-service-orders="allServiceOrders"
-                :event-statusses="eventStatusses"
-                :all-users="allUsers"
-                :plannable-users="plannableUsers"
-                :projects="projects"
-                @service-order-planned="onServiceOrderPlanned"
-                @service-order-unplanned="onServiceOrderUnplanned"
-            />
+    <div class="grid grid-cols-12 gap-x-3 p-3">
+        <div class="col-span-12 md:col-span-10">
+            <BoxComponent padding="p-0">
+                <ResourcePlannerWidget :event-types="eventTypes" :all-customers="allCustomers"
+                    :all-service-orders="allServiceOrders" :event-statusses="eventStatusses" :all-users="allUsers"
+                    :plannable-users="plannableUsers" :projects="projects"
+                    @service-order-planned="onServiceOrderPlanned" @service-order-unplanned="onServiceOrderUnplanned" />
+            </BoxComponent>
         </div>
-        <div class="shrink-0 order-1 lg:order-2 h-72 lg:h-full lg:w-80 p-3 lg:pl-0">
-            <UnplannedServiceOrdersWidget :service-orders="unplanned" />
+        <div class="col-span-12 md:col-span-2">
+            <BoxComponent padding="p-0">
+                <UnplannedServiceOrdersWidget :service-orders="unplanned" />
+            </BoxComponent>
         </div>
     </div>
 </template>
@@ -23,6 +20,7 @@
 import { ref, computed } from 'vue'
 import ResourcePlannerWidget from '@/Components/ResourcePlannerWidget.vue'
 import UnplannedServiceOrdersWidget from '@/Components/UnplannedServiceOrdersWidget.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
 
 const props = defineProps({
     eventTypes: { type: Array, required: true },

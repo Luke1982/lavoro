@@ -1,16 +1,20 @@
 <template>
-    <div class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100"
+    <div class="flex flex-col h-full  dark:bg-slate-900 text-gray-900 dark:text-slate-100"
         @pointermove="onWindowPointerMove" @pointerup="onWindowPointerUp">
         <!-- Top toolbar -->
-        <div class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap bg-white dark:bg-slate-900">
+        <div
+            class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap  dark:bg-slate-900">
             <h1 class="text-xl font-bold pr-4">Planning</h1>
-            <button class="rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
+            <button
+                class="rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="goToday">Vandaag</button>
-            <button class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
+            <button
+                class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="shiftWeek(-1)" aria-label="Vorige week">
                 <ChevronLeftIcon class="size-4" />
             </button>
-            <button class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
+            <button
+                class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="shiftWeek(1)" aria-label="Volgende week">
                 <ChevronRightIcon class="size-4" />
             </button>
@@ -22,12 +26,12 @@
                 </SelectMenuComponent>
                 <label class="text-xs text-gray-500 dark:text-slate-400 ml-2">Dag</label>
                 <select v-model.number="dayStartHour"
-                    class="rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm px-2 py-1">
+                    class="rounded-md border border-gray-300 dark:border-slate-700  dark:bg-slate-800 text-sm px-2 py-1">
                     <option v-for="h in 12" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
                 </select>
                 <span class="text-xs">tot</span>
                 <select v-model.number="dayEndHour"
-                    class="rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm px-2 py-1">
+                    class="rounded-md border border-gray-300 dark:border-slate-700  dark:bg-slate-800 text-sm px-2 py-1">
                     <option v-for="h in 24" :key="h" :value="h">{{ String(h).padStart(2, '0') }}:00</option>
                 </select>
             </div>
@@ -39,8 +43,7 @@
                 <div class="border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
                     <span>Monteurs ({{ plannableUsers.length }})</span>
-                    <button v-if="plannableUsers.length"
-                        @click="toggleAllRows"
+                    <button v-if="plannableUsers.length" @click="toggleAllRows"
                         class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
                         <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
                         <ChevronRightIcon v-else class="size-3.5" />
@@ -48,11 +51,12 @@
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto" ref="sidebarScrollRef">
-                    <div v-if="allDayLaneHeight"
-                        :style="{ height: allDayLaneHeight + 'px' }"
+                    <div v-if="allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                         class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
-                        <button class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
-                            @click="toggleAllDay" :aria-label="allDayCollapsed ? 'Projecten uitklappen' : 'Projecten inklappen'">
+                        <button
+                            class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            @click="toggleAllDay"
+                            :aria-label="allDayCollapsed ? 'Projecten uitklappen' : 'Projecten inklappen'">
                             <ChevronDownIcon v-if="!allDayCollapsed" class="size-4" />
                             <ChevronRightIcon v-else class="size-4" />
                         </button>
@@ -62,7 +66,8 @@
                         :style="{ height: rowHeightFor(user.id) + 'px' }"
                         class="relative flex items-center gap-2 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
-                        <button class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                        <button
+                            class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
                             @click="toggleUserRow(user.id)"
                             :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
                             <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
@@ -76,11 +81,12 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="text-sm font-semibold truncate">{{ user.name }}</div>
-                            <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">{{ userHoursLabel(user.id) }}</div>
+                            <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">
+                                {{
+                                    userHoursLabel(user.id) }}</div>
                         </div>
                     </div>
-                    <div v-if="plannableUsers.length === 0"
-                        class="p-4 text-xs text-gray-500 dark:text-slate-400">
+                    <div v-if="plannableUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
                         Geen inplanbare monteurs.
                         Schakel "Inplanbaar" in op een gebruiker via Gebruikers.
                     </div>
@@ -91,7 +97,7 @@
             <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
                 @dragleave="onGridDragLeave">
                 <!-- Headers (sticky) -->
-                <div class="sticky top-0 z-20 bg-white dark:bg-slate-900">
+                <div class="sticky top-0 z-20  dark:bg-slate-900">
                     <div class="grid border-b border-gray-200 dark:border-slate-800"
                         :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
                         <div v-for="day in weekDays" :key="'dh-' + day.iso"
@@ -103,7 +109,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="grid border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
+                    <div class="grid border-b border-gray-200 dark:border-slate-800  dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
                         :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: hourHeaderHeight + 'px' }">
                         <div v-for="day in weekDays" :key="'hh-' + day.iso"
                             class="grid border-l border-gray-200 dark:border-slate-800 first:border-l-0 relative"
@@ -135,8 +141,10 @@
                                 :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
                                 :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
                                 <div class="sticky left-0 inline-block max-w-full px-2 py-1">
-                                    <div class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
-                                        {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{ track.continuesRight ? ' ▸' : '' }}
+                                    <div
+                                        class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
+                                        {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{ track.continuesRight ?
+                                            ' ▸' : '' }}
                                     </div>
                                     <div v-if="track.customerName"
                                         class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
@@ -146,22 +154,22 @@
                             </div>
 
                             <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
-                            <div v-if="track.serviceOrders.length"
-                                class="absolute"
+                            <div v-if="track.serviceOrders.length" class="absolute"
                                 :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
                                 <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
                                 <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
                                     :style="{ maxWidth: track.width + 'px' }">
-                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
-                                        draggable="true"
+                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id" draggable="true"
                                         @dragstart="onProjectServiceOrderDragStart($event, so)"
                                         @dragend="onProjectServiceOrderDragEnd"
                                         :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
                                         :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                        <ArrowsRightLeftIcon class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                        <ArrowsRightLeftIcon
+                                            class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
                                         <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{ so.description || 'Werkbon' }}</span>
+                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
+                                            so.description || 'Werkbon' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -175,8 +183,7 @@
 
                         <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
                             class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
-                            :data-user-id="user.id"
-                            :data-day-iso="day.iso"
+                            :data-user-id="user.id" :data-day-iso="day.iso"
                             @pointerdown="onCellPointerDown($event, user, day)"
                             @dragover.prevent="onDragOver($event, user, day)"
                             @drop.prevent="onExternalDrop($event, user, day)">
@@ -196,18 +203,11 @@
 
                             <!-- Events for this user/day -->
                             <PlannerEvent v-for="ev in eventsFor(user.id, day.iso)" :key="ev.id + '-' + user.id"
-                                :event="ev"
-                                :user-id="user.id"
-                                :day="day"
-                                :slot-minutes="slotMinutes"
-                                :day-start-hour="dayStartHour"
-                                :day-end-hour="dayEndHour"
-                                :row-height="rowHeightFor(user.id)"
-                                :event-padding-y="paddingYFor(user.id)"
-                                :is-locked="ev.executing_user_ids.length > 1"
-                                :is-being-dragged="drag.eventId === ev.id"
-                                @click="handleEventClick(ev)"
-                                @contextmenu="onEventContextMenu($event, ev)"
+                                :event="ev" :user-id="user.id" :day="day" :slot-minutes="slotMinutes"
+                                :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
+                                :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
+                                :is-locked="ev.executing_user_ids.length > 1" :is-being-dragged="drag.eventId === ev.id"
+                                @click="handleEventClick(ev)" @contextmenu="onEventContextMenu($event, ev)"
                                 @pointerdown-on-event="onEventPointerDown($event, ev, user)"
                                 @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
 
@@ -215,7 +215,8 @@
                             <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
                                 class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
                                 :style="{ left: selectRect.left + '%', width: selectRect.width + '%' }">
-                                <div class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-white dark:bg-slate-900 rounded px-1">
+                                <div
+                                    class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300  dark:bg-slate-900 rounded px-1">
                                     {{ formatTimeFromMinutes(selectRect.startMinutes) }} –
                                     {{ formatTimeFromMinutes(selectRect.endMinutes) }}
                                 </div>
@@ -225,7 +226,7 @@
 
                     <!-- Drag ghost (floats above grid) -->
                     <div v-if="dragGhost"
-                        class="absolute pointer-events-none rounded-md border-2 border-dashed bg-white/90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
+                        class="absolute pointer-events-none rounded-md border-2 border-dashed /90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
                         :style="dragGhost.style">
                         <div class="font-semibold truncate">{{ dragGhost.title }}</div>
                         <div class="text-[11px]">
@@ -238,16 +239,9 @@
         </div>
 
         <!-- Create/edit modal -->
-        <EventEditModal v-if="modalOpen"
-            :event-types="eventTypes"
-            :event-statusses="eventStatusses"
-            :all-customers="allCustomers"
-            :all-service-orders="allServiceOrders"
-            :all-users="allUsers"
-            :initial="modalInitial"
-            :editing-existing="editingExistingEvent"
-            @close="closeModal"
-            @saved="onSaved" />
+        <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
+            :all-customers="allCustomers" :all-service-orders="allServiceOrders" :all-users="allUsers"
+            :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
     </div>
 </template>
 

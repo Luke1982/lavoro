@@ -1,18 +1,10 @@
 <template>
-    <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto p-3">
-        <template #header>
-            <div class="flex items-center justify-between">
-                <span>Niet ingeplande werkbonnen</span>
-                <span class="rounded-full bg-emerald-900/60 px-2 py-0.5 text-xs">{{ serviceOrders.length }}</span>
-            </div>
-        </template>
-
+    <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto">
         <div class="flex flex-col gap-2">
-            <div v-for="so in serviceOrders" :key="so.id"
-                draggable="true"
-                @dragstart="onDragStart($event, so)"
+            <div class="text-xs px-3 text-lavoro-dark pt-2">Niet ingeplande werkbonnen</div>
+            <div v-for="so in serviceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
                 @dragend="onDragEnd"
-                class="group cursor-grab active:cursor-grabbing select-none rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 shadow-sm hover:border-lavoro-blue hover:shadow transition"
+                class="group cursor-grab active:cursor-grabbing select-none border-b-1 p-3 border-b-lavoro-gray-150 transition"
                 :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-semibold text-gray-900 dark:text-slate-100">#{{ so.id }}</span>
