@@ -36,6 +36,7 @@ class ServiceOrder extends Model
         'external_purchaseorder_no',
         'actual_start_time',
         'actual_end_time',
+        'service_order_stage_id',
     ];
 
     protected $casts = [
@@ -58,6 +59,11 @@ class ServiceOrder extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function serviceOrderStage()
+    {
+        return $this->belongsTo(ServiceOrderStage::class);
     }
 
     public function serviceJobs()
