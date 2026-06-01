@@ -17,8 +17,11 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'  => ['required', 'string', 'max:255'],
-            'order' => ['nullable', 'integer', 'min:0'],
+            'name'               => ['sometimes', 'required', 'string', 'max:255'],
+            'order'              => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'is_planned_state'   => ['sometimes', 'boolean'],
+            'is_closed_state'    => ['sometimes', 'boolean'],
+            'is_plannable_state' => ['sometimes', 'boolean'],
         ];
     }
 }
