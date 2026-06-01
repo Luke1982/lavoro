@@ -13,42 +13,40 @@
                 <div class="col-span-7 text-gray-900 dark:text-gray-300">Naam</div>
                 <div class="col-span-2"></div>
             </div>
-            <draggable v-model="internalStages" item-key="id" handle=".draghandle" :animation="200" @change="onReorder">
-                <template #item="{ element: stage }">
-                    <div :key="stage.id"
-                        class="odd:bg-white even:bg-gray-100 dark:odd:bg-slate-800 dark:even:bg-slate-900">
-                        <div class="relative pt-5 md:pt-0 md:grid grid-cols-12 break-all">
-                            <div class="flex items-center px-4 py-2 col-span-1">
-                                <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
-                                    v-tooltip="'Sleep om de volgorde aan te passen'" />
+            <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
+                <div v-for="stage in internalStages" :key="stage.id"
+                    class="odd:bg-white even:bg-gray-100 dark:odd:bg-slate-800 dark:even:bg-slate-900">
+                    <div class="relative pt-5 md:pt-0 md:grid grid-cols-12 break-all">
+                        <div class="flex items-center px-4 py-2 col-span-1">
+                            <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
+                                v-tooltip="'Sleep om de volgorde aan te passen'" />
+                        </div>
+                        <div class="flex flex-col px-4 py-2 col-span-2">
+                            <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Volgorde</span>
+                            <span class="text-gray-800 dark:text-slate-200">{{ stage.order }}</span>
+                        </div>
+                        <div class="flex flex-col px-4 py-2 col-span-7">
+                            <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Naam</span>
+                            <div v-if="stage.open">
+                                <TextInput v-model="stage.name" />
                             </div>
-                            <div class="flex flex-col px-4 py-2 col-span-2">
-                                <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Volgorde</span>
-                                <span class="text-gray-800 dark:text-slate-200">{{ stage.order }}</span>
-                            </div>
-                            <div class="flex flex-col px-4 py-2 col-span-7">
-                                <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Naam</span>
-                                <div v-if="stage.open">
-                                    <TextInput v-model="stage.name" />
-                                </div>
-                                <span v-else class="text-gray-800 dark:text-slate-200">{{ stage.name }}</span>
-                            </div>
-                            <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium col-span-2">
-                                <button v-if="!stage.open" @click="toggleRecord(stage.id)"
-                                    v-tooltip="'Bewerk deze fase'">
-                                    <PencilSquareIcon class="size-6 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100" />
-                                </button>
-                                <button v-else @click="saveRecord(stage)" class="text-green-600 hover:text-green-800"
-                                    v-tooltip="'Opslaan'">
-                                    <CheckIcon class="size-6" />
-                                </button>
-                                <button @click.stop="deleteStage(stage.id)" v-tooltip="'Verwijder deze fase'">
-                                    <TrashIcon class="size-6 text-red-400 hover:text-red-600" />
-                                </button>
-                            </div>
+                            <span v-else class="text-gray-800 dark:text-slate-200">{{ stage.name }}</span>
+                        </div>
+                        <div class="px-4 py-2 flex items-start justify-end gap-2 text-sm font-medium col-span-2">
+                            <button v-if="!stage.open" @click="toggleRecord(stage.id)"
+                                v-tooltip="'Bewerk deze fase'">
+                                <PencilSquareIcon class="size-6 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100" />
+                            </button>
+                            <button v-else @click="saveRecord(stage)" class="text-green-600 hover:text-green-800"
+                                v-tooltip="'Opslaan'">
+                                <CheckIcon class="size-6" />
+                            </button>
+                            <button @click.stop="deleteStage(stage.id)" v-tooltip="'Verwijder deze fase'">
+                                <TrashIcon class="size-6 text-red-400 hover:text-red-600" />
+                            </button>
                         </div>
                     </div>
-                </template>
+                </div>
             </draggable>
         </div>
         <PaginationComponent v-if="internalStages.length" :paginator="stages"
