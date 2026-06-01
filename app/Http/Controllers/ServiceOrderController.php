@@ -148,13 +148,40 @@ class ServiceOrderController extends Controller
             'customFields',
         ])->findOrFail($id);
 
+        $stages = ServiceOrderStage::orderBy('order')
+            ->with(['activities' => function ($q) use ($service_order) {
+                $q->whereHas('serviceOrders', fn ($qq) => $qq->whereKey($service_order->id))
+                    ->with('user:id,name')
+                    ->orderByDesc('activities.created_at');
+            }])
+            ->get();
+        $first_stage_id = $stages->first()?->id;
+
+        $stages_with_meta = $stages->map(function ($stage) use ($service_order, $first_stage_id) {
+            $latest = $stage->activities->first();
+
+            $reached_at = $latest?->created_at;
+            $reached_by = $latest?->user?->name;
+
+            if (!$reached_at && $stage->id === $first_stage_id) {
+                $reached_at = $service_order->created_at;
+            }
+
+            $stage->unsetRelation('activities');
+
+            return array_merge($stage->toArray(), [
+                'reached_at' => $reached_at,
+                'reached_by' => $reached_by,
+            ]);
+        });
+
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder'  => $service_order,
             'allMaterials'  => Material::all()->load([
                 'usageUnit',
             ]),
             'customFields'  => $service_order->allCustomFieldsWithValues(),
-            'stages'        => ServiceOrderStage::orderBy('order')->get(),
+            'stages'        => $stages_with_meta,
             'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
         ]);
     }
@@ -198,7 +225,10 @@ class ServiceOrderController extends Controller
             } else {
                 $new_stage = $serviceorder->serviceOrderStage;
                 if ($new_stage) {
-                    $serviceorder->logActivity("Fase gewijzigd naar: {$new_stage->name}");
+                    $serviceorder->logActivity(
+                        "Fase gewijzigd naar: {$new_stage->name}",
+                        also_attach_to: [$new_stage]
+                    );
                 }
             }
         }

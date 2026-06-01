@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasActivities;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ServiceOrderStage extends Model
 {
     use HasFactory;
+    use HasActivities;
 
     protected $fillable = [
         'name',
