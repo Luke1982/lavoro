@@ -3,12 +3,7 @@
         search-url="/serviceorderstages" search-label="Zoek binnen fases"
         search-placeholder="bijv. 'Voorbereiding'"
         :paginator="stages" add-label="Voeg fase toe"
-        @add="() => stageFormRef?.show()" />
-
-    <div class="mb-4" v-auto-animate>
-        <CreateRecordForm ref="stageFormRef" external-trigger action="/serviceorderstages"
-            :fields="stageFields" add-button-label="Voeg fase toe" submit-label="Opslaan" />
-    </div>
+        @add="showStageDrawer = true" />
 
     <BoxComponent padding="md:mx-0 px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalStages.length" class="mt-3">
@@ -60,6 +55,32 @@
             class="border-t border-gray-200 dark:border-slate-700 pt-2" />
         <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen fases gevonden.</p>
     </BoxComponent>
+
+    <DrawerComponent v-model="showStageDrawer" title="Nieuwe fase"
+        subtitle="Vul een naam in om een nieuwe werkbonfase toe te voegen.">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Naam</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newStageForm.name" type="text"
+                        :hasError="Boolean(newStageForm.errors.name)"
+                        :errorMessage="newStageForm.errors.name" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeStageDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewStage" :disabled="newStageForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Aanmaken
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
 </template>
 
 <script setup>
@@ -74,7 +95,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
@@ -83,10 +104,24 @@ const { stages } = defineProps({
     search: { type: String, default: '' },
 })
 
-const stageFormRef = ref(null)
-const stageFields = [
-    { key: 'name', label: 'Naam', type: 'text' },
-]
+const showStageDrawer = ref(false)
+const newStageForm = useForm({ name: '' })
+
+function submitNewStage() {
+    newStageForm.post('/serviceorderstages', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showStageDrawer.value = false
+            newStageForm.reset()
+        },
+    })
+}
+
+function closeStageDrawer() {
+    showStageDrawer.value = false
+    newStageForm.reset()
+    newStageForm.clearErrors()
+}
 
 const internalStages = ref(
     (stages.data || []).map(s => ({ ...s, open: false }))
