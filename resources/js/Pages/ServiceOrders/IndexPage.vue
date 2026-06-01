@@ -120,8 +120,8 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
-import { XCircleIcon } from '@heroicons/vue/24/outline'
-import { EyeIcon, RotateCcwIcon, ClipboardDocumentListIcon } from '@lucide/vue'
+import { XCircleIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
+import { EyeIcon, RotateCcwIcon } from '@lucide/vue'
 import { nlDate, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 
 const { serviceOrders, stages, perPage } = defineProps({

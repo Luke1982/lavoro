@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ServiceOrderStage;
 use App\Http\Requests\ServiceOrderStageReadRequest;
 use App\Http\Requests\ServiceOrderStageStoreUpdateRequest;
+use App\Http\Requests\ServiceOrderStageDeleteRequest;
 use App\Http\Requests\ServiceOrderStageReorderRequest;
 use Illuminate\Support\Facades\DB;
 
@@ -47,8 +48,10 @@ class ServiceOrderStageController extends Controller
             ->with('success', 'Fase is bijgewerkt');
     }
 
-    public function destroy(ServiceOrderStage $serviceorderstage)
-    {
+    public function destroy(
+        ServiceOrderStageDeleteRequest $request,
+        ServiceOrderStage $serviceorderstage
+    ) {
         $serviceorderstage->delete();
         return redirect()->back()->with('success', 'Fase is verwijderd');
     }
