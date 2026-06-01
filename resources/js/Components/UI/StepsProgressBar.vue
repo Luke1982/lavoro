@@ -8,52 +8,42 @@
         </div>
 
         <nav aria-label="Progress" class="hidden md:block">
-            <ol role="list"
-                class="rounded-md border border-gray-300 flex dark:border-white/15">
-                <li v-for="(step, stepIdx) in steps" :key="step.id" class="relative flex flex-1 py-1">
-                    <button v-if="stepStatus(stepIdx) === 'complete'" @click="$emit('update:modelValue', step.id)"
-                        class="group flex w-full items-center cursor-pointer">
-                        <span class="flex items-center px-3 py-1.5 text-xs font-medium">
-                            <span
-                                class="flex size-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 group-hover:bg-indigo-800 dark:bg-indigo-500 dark:group-hover:bg-indigo-400">
-                                <CheckIcon class="size-3.5 text-white" aria-hidden="true" />
-                            </span>
-                            <span class="ml-2 text-xs font-medium text-gray-900 dark:text-white">{{ step.name }}</span>
+            <ol role="list" class="flex items-start">
+                <li v-for="(step, stepIdx) in steps" :key="step.id"
+                    class="relative flex flex-1 flex-col items-center">
+                    <div class="relative flex h-8 w-full items-center justify-center">
+                        <span v-if="stepIdx !== steps.length - 1"
+                            class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-gray-200 dark:bg-white/15"
+                            :style="{ left: 'calc(50% + 1rem)', right: 'calc(-50% + 1rem)' }">
+                            <span class="block h-full bg-lavoro-blue"
+                                :style="segmentFillStyle(stepIdx)" />
                         </span>
-                    </button>
-                    <button v-else-if="stepStatus(stepIdx) === 'current'"
-                        class="flex items-center px-3 py-1.5 text-xs font-medium cursor-default" aria-current="step">
-                        <span
-                            class="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600 dark:border-indigo-400">
-                            <span class="text-[10px] text-indigo-600 dark:text-indigo-400">{{ String(stepIdx +
-                                1).padStart(2, '0') }}</span>
-                        </span>
-                        <span class="ml-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">{{ step.name
-                            }}</span>
-                    </button>
-                    <button v-else @click="$emit('update:modelValue', step.id)"
-                        class="group flex items-center cursor-pointer">
-                        <span class="flex items-center px-3 py-1.5 text-xs font-medium">
-                            <span
-                                class="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 group-hover:border-gray-400 dark:border-white/15 dark:group-hover:border-white/25">
-                                <span
-                                    class="text-[10px] text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">{{
-                                        String(stepIdx + 1).padStart(2, '0') }}</span>
-                            </span>
-                            <span
-                                class="ml-2 text-xs font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">{{
-                                    step.name }}</span>
-                        </span>
-                    </button>
-                    <template v-if="stepIdx !== steps.length - 1">
-                        <div class="absolute top-0 right-0 h-full w-5" aria-hidden="true">
-                            <svg class="size-full text-gray-300 dark:text-white/15" viewBox="0 0 22 80" fill="none"
-                                preserveAspectRatio="none">
-                                <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </div>
-                    </template>
+                        <button type="button"
+                            :ref="el => circleRefs[stepIdx] = el"
+                            @click="onStepClick(step, stepIdx)"
+                            :disabled="stepStatus(stepIdx) === 'current'"
+                            :aria-current="stepStatus(stepIdx) === 'current' ? 'step' : undefined"
+                            :class="circleClasses(stepIdx)"
+                            :style="{ transitionDelay: circleDelay(stepIdx) + 'ms' }"
+                            class="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-200">
+                            <Check class="size-4 transition-colors duration-200"
+                                :class="checkColorClasses(stepIdx)"
+                                :style="{ transitionDelay: circleDelay(stepIdx) + 'ms' }"
+                                aria-hidden="true" />
+                        </button>
+                    </div>
+                    <span class="mt-2 text-sm font-semibold text-center"
+                        :class="labelColorClasses(stepIdx)">{{ step.name }}</span>
+                    <span v-if="step.reached_at"
+                        class="text-xs text-gray-500 dark:text-slate-400 text-center mt-0.5">
+                        {{ nlDate(step.reached_at) }} {{ nlTime(step.reached_at) }}
+                    </span>
+                    <span v-else-if="anyStepHasMeta"
+                        class="text-xs text-gray-400 dark:text-slate-500 text-center mt-0.5">-</span>
+                    <span v-if="step.reached_by"
+                        class="text-xs text-gray-500 dark:text-slate-400 text-center">
+                        {{ step.reached_by }}
+                    </span>
                 </li>
             </ol>
         </nav>
@@ -61,9 +51,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { CheckIcon } from '@heroicons/vue/24/solid'
+import { computed, ref, watch, onMounted, nextTick } from 'vue'
+import { Check } from '@lucide/vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
+import { nlDate, nlTime } from '@/Utilities/Utilities.js'
+
+const SEGMENT_DURATION = 280
+const BOUNCE_DURATION = 320
 
 const props = defineProps({
     steps: { type: Array, required: true },
@@ -72,7 +66,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const circleRefs = ref([])
+const previousIndex = ref(-1)
+const hasMounted = ref(false)
+
 const currentIndex = computed(() => props.steps.findIndex(s => s.id === props.modelValue))
+
+const anyStepHasMeta = computed(() => props.steps.some(s => s.reached_at))
 
 const selectOptions = computed(() => props.steps.map(s => ({
     value: s.id,
@@ -80,10 +80,114 @@ const selectOptions = computed(() => props.steps.map(s => ({
     description: s.description,
 })))
 
+onMounted(() => {
+    previousIndex.value = currentIndex.value
+    nextTick(() => { hasMounted.value = true })
+})
+
+watch(() => props.modelValue, (newVal, oldVal) => {
+    const prev = props.steps.findIndex(s => s.id === oldVal)
+    const curr = props.steps.findIndex(s => s.id === newVal)
+    previousIndex.value = prev
+
+    if (!hasMounted.value || prev === -1 || curr === -1 || prev === curr) return
+
+    if (curr > prev) {
+        for (let i = prev + 1; i <= curr; i++) {
+            bounceCircle(i, (i - prev) * SEGMENT_DURATION)
+        }
+    } else {
+        bounceCircle(curr, (prev - curr) * SEGMENT_DURATION)
+    }
+}, { flush: 'pre' })
+
 function stepStatus(idx) {
     if (currentIndex.value === -1) return 'upcoming'
     if (idx < currentIndex.value) return 'complete'
     if (idx === currentIndex.value) return 'current'
     return 'upcoming'
+}
+
+function circleDelay(idx) {
+    if (!hasMounted.value) return 0
+    const prev = previousIndex.value
+    const curr = currentIndex.value
+    if (prev === -1 || curr === -1 || prev === curr) return 0
+
+    if (curr > prev) {
+        if (idx > prev && idx <= curr) return (idx - prev) * SEGMENT_DURATION
+        return 0
+    }
+    if (idx === curr) return (prev - curr) * SEGMENT_DURATION
+    if (idx > curr && idx <= prev) return (prev - idx + 1) * SEGMENT_DURATION
+    return 0
+}
+
+function segmentDelay(idx) {
+    if (!hasMounted.value) return 0
+    const prev = previousIndex.value
+    const curr = currentIndex.value
+    if (prev === -1 || curr === -1 || prev === curr) return 0
+
+    if (curr > prev) {
+        if (idx >= prev && idx < curr) return (idx - prev) * SEGMENT_DURATION
+        return 0
+    }
+    if (idx < prev && idx >= curr) return (prev - 1 - idx) * SEGMENT_DURATION
+    return 0
+}
+
+function segmentFillStyle(idx) {
+    return {
+        width: currentIndex.value > idx ? '100%' : '0%',
+        transitionProperty: hasMounted.value ? 'width' : 'none',
+        transitionDuration: SEGMENT_DURATION + 'ms',
+        transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+        transitionDelay: segmentDelay(idx) + 'ms',
+    }
+}
+
+function circleClasses(idx) {
+    const status = stepStatus(idx)
+    if (status === 'complete') {
+        return 'bg-lavoro-blue hover:bg-lavoro-blue/85 cursor-pointer'
+    }
+    if (status === 'current') {
+        return 'bg-white dark:bg-lavoro-darkblue border-2 border-lavoro-blue ring-4 ring-lavoro-blue/15 cursor-default'
+    }
+    return 'bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/15 cursor-pointer'
+}
+
+function checkColorClasses(idx) {
+    const status = stepStatus(idx)
+    if (status === 'complete') return 'text-white'
+    if (status === 'current') return 'text-lavoro-blue'
+    return 'text-gray-400 dark:text-slate-500'
+}
+
+function labelColorClasses(idx) {
+    const status = stepStatus(idx)
+    if (status === 'complete' || status === 'current') {
+        return 'text-lavoro-blue'
+    }
+    return 'text-gray-600 dark:text-slate-400'
+}
+
+function onStepClick(step, idx) {
+    if (stepStatus(idx) === 'current') return
+    emit('update:modelValue', step.id)
+}
+
+function bounceCircle(idx, delay) {
+    const el = circleRefs.value[idx]
+    if (!el || typeof el.animate !== 'function') return
+    el.animate(
+        [
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.2)' },
+            { transform: 'scale(1)' },
+        ],
+        { duration: BOUNCE_DURATION, delay, easing: 'ease-out' }
+    )
 }
 </script>

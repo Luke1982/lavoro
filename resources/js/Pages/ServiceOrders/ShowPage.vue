@@ -115,7 +115,7 @@
                     </div>
                 </div>
                 <div v-if="stages.length > 1" class="mb-4"
-                    :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed }">
+                    :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
                     <StepsProgressBar :steps="stages"
                         :model-value="serviceOrder.service_order_stage_id"
                         @update:modelValue="onStageChange" />
