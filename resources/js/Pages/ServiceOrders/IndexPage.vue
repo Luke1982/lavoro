@@ -51,7 +51,7 @@
                 <div class="col-span-3">Klant</div>
                 <div class="col-span-3">Beschrijving</div>
                 <div class="col-span-2">Fase</div>
-                <div class="col-span-2">Status</div>
+                <div class="col-span-2">Verzending</div>
                 <div class="col-span-1">Aangemaakt</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>

@@ -332,7 +332,7 @@
                         </a>
                     </div>
                     <div class="flex items-center justify-between py-2">
-                        <span class="text-gray-500 dark:text-slate-400">Status</span>
+                        <span class="text-gray-500 dark:text-slate-400">Verzending</span>
                         <span class="px-2 py-0.5 text-xs rounded border"
                             :class="serviceOrderPillColorClasses(serviceOrder)">{{ serviceOrderPillText(serviceOrder)
                             }}</span>
