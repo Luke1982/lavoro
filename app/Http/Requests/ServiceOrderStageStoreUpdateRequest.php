@@ -10,16 +10,8 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        if ($user->isAdmin()) {
-            return true;
-        }
-        $permission = $this->isMethod('post')
-            ? 'serviceorderstage.create'
-            : 'serviceorderstage.update';
-        return $user->hasPermission($permission);
+        $permission = $this->isMethod('post') ? 'serviceorderstage.create' : 'serviceorderstage.update';
+        return $user && ($user->isAdmin() || $user->hasPermission($permission));
     }
 
     public function rules(): array
