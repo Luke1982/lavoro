@@ -30,53 +30,53 @@
                                     class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-slate-800 shadow-lg outline-1 outline-black/5 dark:outline-slate-700/60 focus:outline-none">
                                     <div class="py-1 text-sm">
                                         <MenuItem v-if="hasPermission('serviceorder.export_pdf')" v-slot="{ active }">
-                                        <button type="button" @click="openPdf"
-                                            :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
-                                            <span class="inline-flex items-center">
-                                                <span
-                                                    class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                Exporteer PDF voorbeeld
-                                            </span>
-                                        </button>
+                                            <button type="button" @click="openPdf"
+                                                :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
+                                                <span class="inline-flex items-center">
+                                                    <span
+                                                        class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                    Exporteer PDF voorbeeld
+                                                </span>
+                                            </button>
                                         </MenuItem>
                                         <MenuItem v-if="hasPermission('serviceorder.email_pdf')" v-slot="{ active }">
-                                        <button type="button" @click="emailPdf" :disabled="emailing"
-                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
-                                            <span class="inline-flex items-center" v-if="!emailing">
-                                                <span
-                                                    class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                E-mail PDF
-                                            </span>
-                                            <span v-else>Versturen...</span>
-                                        </button>
+                                            <button type="button" @click="emailPdf" :disabled="emailing"
+                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
+                                                <span class="inline-flex items-center" v-if="!emailing">
+                                                    <span
+                                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                    E-mail PDF
+                                                </span>
+                                                <span v-else>Versturen...</span>
+                                            </button>
                                         </MenuItem>
                                         <MenuItem
                                             v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
                                             v-slot="{ active }">
-                                        <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
-                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
-                                            <span class="inline-flex items-center" v-if="!emailingCombined">
-                                                <span
-                                                    class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                E-mail PDF + keuringen
-                                            </span>
-                                            <span v-else>Versturen...</span>
-                                        </button>
+                                            <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
+                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
+                                                <span class="inline-flex items-center" v-if="!emailingCombined">
+                                                    <span
+                                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                                    E-mail PDF + keuringen
+                                                </span>
+                                                <span v-else>Versturen...</span>
+                                            </button>
                                         </MenuItem>
                                         <MenuItem
-                                            v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                                            v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
                                             v-slot="{ active }">
-                                        <button type="button" @click="sendToSnelStart"
-                                            :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2']">
-                                            Verstuur naar SnelStart
-                                        </button>
+                                            <button type="button" @click="sendToSnelStart"
+                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2']">
+                                                Verstuur naar SnelStart
+                                            </button>
                                         </MenuItem>
                                         <MenuItem
                                             v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
                                             v-slot="{ active }">
-                                        <span
-                                            :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
-                                            naar administratie</span>
+                                            <span
+                                                :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
+                                                naar administratie</span>
                                         </MenuItem>
                                     </div>
                                 </MenuItems>
@@ -116,8 +116,7 @@
                 </div>
                 <div v-if="stages.length > 1" class="mb-4"
                     :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
-                    <StepsProgressBar :steps="stages"
-                        :model-value="serviceOrder.service_order_stage_id"
+                    <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
                         @update:modelValue="onStageChange" />
                 </div>
                 <h2
@@ -125,8 +124,8 @@
                     Uitgevoerde werkzaamheden</h2>
                 <div class="grid grid-cols-12 mt-2">
                     <div class="col-span-12">
-                        <EditableTextField type="textarea" v-model="form.description"
-                            :readonly="serviceOrder.is_closed" @update="val => { form.description = val; }"
+                        <EditableTextField type="textarea" v-model="form.description" :readonly="serviceOrder.is_closed"
+                            @update="val => { form.description = val; }"
                             placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
                     </div>
                 </div>
@@ -152,8 +151,8 @@
                         <div class="col-span-2">Tijdelijke goedkeur</div>
                         <div class="col-span-2">Afgerond op</div>
                     </div>
-                    <ServiceJobRow v-for="item in sortedServiceJobs" :key="item.job.id" :servicejob="item.job" class="mt-4"
-                        :asset="item.job.asset" :is-child="item.isChild" />
+                    <ServiceJobRow v-for="item in sortedServiceJobs" :key="item.job.id" :servicejob="item.job"
+                        class="mt-4" :asset="item.job.asset" :is-child="item.isChild" />
                 </div>
                 <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
@@ -178,8 +177,7 @@
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Materialen</h2>
                 <div class="grid grid-cols-12 mt-4">
-                    <div class="col-span-12 flex flex-col md:flex-row items-start"
-                        v-if="!serviceOrder.is_closed">
+                    <div class="col-span-12 flex flex-col md:flex-row items-start" v-if="!serviceOrder.is_closed">
                         <div class="flex flex-grow w-full">
                             <div class="flex flex-col flex-grow">
                                 <span class="text-sm mb-2">Kies een materiaal</span>
@@ -269,8 +267,7 @@
                                 @click="editingSignature = true" />
                         </div>
                         <div class="relative" v-if="editingSignature">
-                            <SignaturePad v-model="form.signature_base64"
-                                :readonly="serviceOrder.is_closed" />
+                            <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
                             <XMarkIcon
                                 class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
                                 @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
@@ -282,12 +279,10 @@
                             :comments="serviceOrder.remarks" class="mt-8" />
                     </div>
                 </div>
-                <CustomFieldsComponent v-if="customFields.length" model-type="service_order"
-                    :model-id="serviceOrder.id" :custom-fields="customFields"
-                    :can-edit="hasPermission('customfield.update')" class="mt-6" />
+                <CustomFieldsComponent v-if="customFields.length" model-type="service_order" :model-id="serviceOrder.id"
+                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
-            <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700"
-                @click="closeViaStage"
+            <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700" @click="closeViaStage"
                 v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')">Werkbon
                 afsluiten</button>
             <button class="w-full p-4 rounded-md bg-blue-500 text-white mt-3" @click="reopenViaStage"
@@ -409,7 +404,8 @@
                             class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                         E-mail PDF + keuringen
                     </button>
-                    <button v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                    <button
+                        v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
                         @click="sendToSnelStart"
                         class="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm w-full">Verstuur
                         naar SnelStart</button>
