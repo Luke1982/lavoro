@@ -89,6 +89,11 @@ Route::group(
             ->only(['store', 'update', 'destroy']);
         Route::resource('servicecheckgroups', ServiceCheckGroupController::class)
             ->except(['show', 'edit', 'create']);
+        Route::resource('serviceorderstages', \App\Http\Controllers\ServiceOrderStageController::class)
+            ->except(['show', 'edit', 'create']);
+        Route::post('serviceorderstages/reorder', [
+            \App\Http\Controllers\ServiceOrderStageController::class, 'updateOrder',
+        ])->name('serviceorderstages.reorder');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);
