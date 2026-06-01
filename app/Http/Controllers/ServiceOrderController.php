@@ -8,6 +8,7 @@ use App\Models\Activity;
 use App\Models\Material;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderStage;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Enums\ServiceJobOutcomes;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use App\Mail\ServiceOrderWithJobsPdfMail;
+use App\Http\Requests\ServiceOrderIndexRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
@@ -28,9 +30,35 @@ class ServiceOrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(ServiceOrderIndexRequest $request)
     {
-        //
+        $search = $request->get('search', '');
+        $only_stage = $request->get('onlyStage');
+        $per_page = (int) ($request->get('perPage') ?: 25);
+
+        $query = ServiceOrder::with(['customer', 'serviceOrderStage']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($only_stage) {
+            $query->where('service_order_stage_id', $only_stage);
+        }
+
+        return inertia('ServiceOrders/IndexPage', [
+            'serviceOrders' => $query->orderByDesc('created_at')->paginate($per_page)->withQueryString(),
+            'stages'        => ServiceOrderStage::orderBy('order')->get(),
+            'search'        => $search,
+            'onlyStage'     => $only_stage,
+            'perPage'       => $per_page,
+        ]);
     }
 
     /**
@@ -103,6 +131,7 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'customer.assets.product.brand',
             'customer.assets.product.productType',
+            'serviceOrderStage',
             'customer.assets.product.images',
             'servicejobs.asset.product.brand',
             'customer.tickets.asset.product.brand',
@@ -125,6 +154,7 @@ class ServiceOrderController extends Controller
                 'usageUnit',
             ]),
             'customFields' => $service_order->allCustomFieldsWithValues(),
+            'stages'       => ServiceOrderStage::orderBy('order')->get(),
         ]);
     }
 
@@ -145,7 +175,24 @@ class ServiceOrderController extends Controller
         if ($serviceorder->status !== 'closed' && $request->input('status') === 'closed') {
             $data['closed_on'] = now();
         }
+
+        $previous_stage_id = $serviceorder->service_order_stage_id;
         $serviceorder->update($data);
+
+        if (
+            array_key_exists('service_order_stage_id', $data)
+            && $data['service_order_stage_id'] != $previous_stage_id
+        ) {
+            if ($data['service_order_stage_id'] === null) {
+                $serviceorder->logActivity('Fase verwijderd');
+            } else {
+                $new_stage = ServiceOrderStage::find($data['service_order_stage_id']);
+                if ($new_stage) {
+                    $serviceorder->logActivity("Fase gewijzigd naar: {$new_stage->name}");
+                }
+            }
+        }
+
         return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
     }
 
