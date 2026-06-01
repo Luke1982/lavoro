@@ -43,21 +43,27 @@
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
                                 <div class="flex flex-col gap-6 md:pr-8">
-                                    <EditableTextField
-                                        v-if="hasPermission('serviceorder.update')"
-                                        type="combobox"
-                                        label="Klant"
-                                        v-model="form.customer_id"
-                                        :options="internalCustomers"
-                                    >
+                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')" type="combobox"
+                                        label="Klant" v-model="form.customer_id" :options="internalCustomers">
                                         <template #display>
-                                            <component
-                                                :is="hasPermission('customer.read') ? Link : 'span'"
-                                                :href="`/customers/${selectedCustomer.id}`"
-                                                :class="{
-                                                    'underline hover:text-gray-600 dark:hover:text-slate-400': hasPermission('customer.read')
-                                                }"
-                                            >{{ selectedCustomer.name }}</component>
+                                            <component :is="hasPermission('customer.read') ? Link : 'span'"
+                                                :href="`/customers/${selectedCustomer.id}`" :class="{
+                                                    'underline text-lavoro-blue': hasPermission('customer.read')
+                                                }">{{ selectedCustomer.name }}</component>
+                                        </template>
+                                    </EditableTextField>
+                                </div>
+                                <!-- Right column -->
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70">
+                                    <EditableTextField :disabled="true" label="Adres">
+                                        <template #display>
+                                            <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
+                                                class="underline text-lavoro-blue dark:text-slate-200 ">{{
+                                                    serviceOrder.customer.address
+                                                }}, {{
+                                                    serviceOrder.customer.postal_code }} {{
+                                                    serviceOrder.customer.city }}
+                                            </a>
                                         </template>
                                     </EditableTextField>
                                 </div>
@@ -79,7 +85,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
