@@ -362,6 +362,8 @@ import {
     ClipboardDocumentListIcon,
     LinkIcon,
     TagIcon,
+    DocumentTextIcon,
+    Bars4Icon,
 } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -403,6 +405,17 @@ const navigation = ref([
     },
     { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false, requiresPermission: 'asset.read' },
     { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false, requiresPermission: 'ticket.see_all' },
+    {
+        name: 'Werkbonnen',
+        href: '/serviceorders',
+        icon: DocumentTextIcon,
+        current: false,
+        requiresPermission: 'serviceorder.read',
+        children: [
+            { name: 'Fases', href: '/serviceorderstages', icon: Bars4Icon, current: false, requiresPermission: 'serviceorderstage.read' },
+        ],
+        open: false,
+    },
     {
         name: 'Keurpunten',
         href: '/servicechecks',
