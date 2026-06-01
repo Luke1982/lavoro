@@ -32,7 +32,6 @@ class ServiceOrder extends Model
         'signature_base64',
         'sent_to_administration',
         'sent_to_customer',
-        'status',
         'external_purchaseorder_no',
         'actual_start_time',
         'actual_end_time',
@@ -42,13 +41,15 @@ class ServiceOrder extends Model
     protected $casts = [
         'sent_to_administration' => 'boolean',
         'sent_to_customer' => 'boolean',
-        'status' => 'string',
     ];
+
+    protected $appends = ['is_closed'];
+
+    protected $with = ['serviceOrderStage'];
 
     public function getIsClosedAttribute(): bool
     {
-        $status = is_string($this->status) ? strtolower($this->status) : null;
-        return $status === 'closed';
+        return $this->serviceOrderStage?->is_closed_state === true;
     }
 
     public function customer()
@@ -64,6 +65,21 @@ class ServiceOrder extends Model
     public function serviceOrderStage()
     {
         return $this->belongsTo(ServiceOrderStage::class);
+    }
+
+    public function advanceToPlannedStage(): void
+    {
+        $planned = ServiceOrderStage::where('is_planned_state', true)->first();
+        if (!$planned) {
+            return;
+        }
+        $current = $this->serviceOrderStage;
+        if ($current && $current->order >= $planned->order) {
+            return;
+        }
+        $this->service_order_stage_id = $planned->id;
+        $this->save();
+        $this->logActivity("Fase gewijzigd naar: {$planned->name} (door koppeling agenda)");
     }
 
     public function serviceJobs()
