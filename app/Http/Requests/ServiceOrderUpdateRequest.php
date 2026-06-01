@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderStage;
 
 /**
  * Class ServiceOrderUpdateRequest
@@ -13,7 +14,6 @@ use App\Models\ServiceOrder;
  * @property string|null $description
  * @property string|null $signed_by
  * @property string|null $signature_base64
- * @property string|null $status
  */
 class ServiceOrderUpdateRequest extends FormRequest
 {
@@ -21,15 +21,25 @@ class ServiceOrderUpdateRequest extends FormRequest
     {
         $user = Auth::user();
         $serviceorder = request()->route('serviceorder');
-        if ($user && $serviceorder instanceof ServiceOrder) {
-            $new = $this->status ?? null;
-            $current = $serviceorder->status;
-            if ($new === 'closed' && $current !== 'closed') {
-                return $user->hasPermission('serviceorder.close');
-            }
-            if ($new === 'open' && $current !== 'open') {
-                return $user->hasPermission('serviceorder.reopen');
-            }
+        if (!$user || !$serviceorder instanceof ServiceOrder) {
+            return true;
+        }
+        if (!$this->has('service_order_stage_id')) {
+            return true;
+        }
+
+        $new_stage_id = $this->input('service_order_stage_id');
+        $new_stage = $new_stage_id === null
+            ? null
+            : ServiceOrderStage::find($new_stage_id);
+        $new_is_closed = $new_stage?->is_closed_state === true;
+        $current_is_closed = $serviceorder->is_closed;
+
+        if ($new_is_closed && !$current_is_closed) {
+            return $user->hasPermission('serviceorder.close');
+        }
+        if (!$new_is_closed && $current_is_closed) {
+            return $user->hasPermission('serviceorder.reopen');
         }
         return true;
     }
@@ -42,7 +52,6 @@ class ServiceOrderUpdateRequest extends FormRequest
             'closed_on' => 'nullable|date',
             'signed_by' => 'nullable|string|max:100',
             'signature_base64' => 'nullable|string',
-            'status' => 'nullable|in:open,closed',
             'external_purchaseorder_no' => 'nullable|string|max:255',
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
@@ -59,7 +68,6 @@ class ServiceOrderUpdateRequest extends FormRequest
             'closed_on.date' => 'Gesloten op moet een geldige datum zijn.',
             'signed_by.max' => 'Ondertekend door mag maximaal 100 tekens bevatten.',
             'signature_base64.string' => 'Handtekening moet een geldige string zijn.',
-            'status.in' => 'Ongeldige status opgegeven.',
             'actual_end_time.after' => 'Eindtijd moet later zijn dan de starttijd.',
         ];
     }
