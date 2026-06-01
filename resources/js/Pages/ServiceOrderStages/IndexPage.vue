@@ -9,9 +9,12 @@
         <div v-if="internalStages.length">
             <div class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-1"></div>
-                <div class="col-span-2">Volgorde</div>
-                <div class="col-span-7">Naam</div>
-                <div class="col-span-2 text-right">Acties</div>
+                <div class="col-span-1">Volgorde</div>
+                <div class="col-span-4">Naam</div>
+                <div class="col-span-2 text-center">Plannen</div>
+                <div class="col-span-2 text-center">Sluiten</div>
+                <div class="col-span-1 text-center">Plannable</div>
+                <div class="col-span-1 text-right">Acties</div>
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
                 <div v-for="stage in internalStages" :key="stage.id" role="row"
@@ -20,14 +23,26 @@
                         <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
                             v-tooltip="'Sleep om de volgorde aan te passen'" />
                     </div>
-                    <div class="col-span-2 text-gray-800 dark:text-slate-200">
+                    <div class="col-span-1 text-gray-800 dark:text-slate-200">
                         {{ stage.order }}
                     </div>
-                    <div class="col-span-7 pr-4">
+                    <div class="col-span-4 pr-4">
                         <EditableTextField type="input" :decoration="false" :model-value="stage.name"
-                            @update="(val) => saveStage(stage.id, val)" />
+                            @update="(val) => saveStage(stage.id, { name: val })" />
                     </div>
-                    <div class="col-span-2 flex justify-end">
+                    <div class="col-span-2 flex items-center justify-center">
+                        <SwitchComponent :model-value="stage.is_planned_state"
+                            @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
+                    </div>
+                    <div class="col-span-2 flex items-center justify-center">
+                        <SwitchComponent :model-value="stage.is_closed_state"
+                            @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
+                    </div>
+                    <div class="col-span-1 flex items-center justify-center">
+                        <SwitchComponent :model-value="stage.is_plannable_state"
+                            @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
+                    </div>
+                    <div class="col-span-1 flex justify-end">
                         <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
                             <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
                                 v-tooltip="'Verwijder deze fase'" />
@@ -88,6 +103,7 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 
 const { stages, perPage } = defineProps({
     stages: { type: Object, required: true },
@@ -130,8 +146,8 @@ function onReorder() {
     reorderForm.post('/serviceorderstages/reorder', { preserveScroll: true })
 }
 
-function saveStage(id, name) {
-    router.patch(`/serviceorderstages/${id}`, { name }, { preserveScroll: true })
+function saveStage(id, payload) {
+    router.patch(`/serviceorderstages/${id}`, payload, { preserveScroll: true })
 }
 
 function deleteStage(id) {
