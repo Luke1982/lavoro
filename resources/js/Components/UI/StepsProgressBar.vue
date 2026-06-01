@@ -1,42 +1,10 @@
 <template>
     <div>
         <div class="md:hidden">
-            <Listbox :modelValue="selectedStep" @update:modelValue="onSelect">
-                <ListboxLabel class="sr-only">Status wijzigen</ListboxLabel>
-                <div class="relative">
-                    <ListboxButton
-                        class="w-full inline-flex items-center justify-between gap-2 rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-indigo-400 dark:bg-indigo-500 dark:hover:bg-indigo-400">
-                        <span class="inline-flex items-center gap-1.5 min-w-0">
-                            <CheckIcon class="size-5 shrink-0" aria-hidden="true" />
-                            <span class="text-sm font-semibold truncate">{{ selectedStep?.name ?? 'Selecteer' }}</span>
-                        </span>
-                        <ChevronDownIcon class="size-5 shrink-0" aria-hidden="true" />
-                    </ListboxButton>
-                    <transition leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
-                        leave-to-class="opacity-0">
-                        <ListboxOptions
-                            class="absolute left-0 right-0 z-10 mt-2 divide-y divide-gray-200 overflow-hidden rounded-md bg-white shadow-lg outline-1 outline-black/5 dark:divide-white/10 dark:bg-gray-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10">
-                            <ListboxOption as="template" v-for="option in steps" :key="option.id" :value="option"
-                                v-slot="{ active, selected }">
-                                <li
-                                    :class="[active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-white', 'cursor-pointer p-3 text-sm select-none']">
-                                    <div class="flex items-center justify-between">
-                                        <p :class="selected ? 'font-semibold' : 'font-normal'">{{ option.name }}</p>
-                                        <span v-if="selected"
-                                            :class="active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'">
-                                            <CheckIcon class="size-5" aria-hidden="true" />
-                                        </span>
-                                    </div>
-                                    <p v-if="option.description"
-                                        :class="[active ? 'text-indigo-200 dark:text-indigo-100' : 'text-gray-500 dark:text-gray-400', 'mt-1.5 text-xs']">
-                                        {{ option.description }}
-                                    </p>
-                                </li>
-                            </ListboxOption>
-                        </ListboxOptions>
-                    </transition>
-                </div>
-            </Listbox>
+            <SelectMenuComponent
+                :options="selectOptions"
+                :model-value="modelValue"
+                @update:modelValue="(v) => $emit('update:modelValue', v)" />
         </div>
 
         <nav aria-label="Progress" class="hidden md:block">
@@ -94,9 +62,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from '@headlessui/vue'
 import { CheckIcon } from '@heroicons/vue/24/solid'
-import { ChevronDownIcon } from '@heroicons/vue/20/solid'
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 
 const props = defineProps({
     steps: { type: Array, required: true },
@@ -107,16 +74,16 @@ const emit = defineEmits(['update:modelValue'])
 
 const currentIndex = computed(() => props.steps.findIndex(s => s.id === props.modelValue))
 
-const selectedStep = computed(() => props.steps[currentIndex.value] ?? null)
+const selectOptions = computed(() => props.steps.map(s => ({
+    value: s.id,
+    title: s.name,
+    description: s.description,
+})))
 
 function stepStatus(idx) {
     if (currentIndex.value === -1) return 'upcoming'
     if (idx < currentIndex.value) return 'complete'
     if (idx === currentIndex.value) return 'current'
     return 'upcoming'
-}
-
-function onSelect(step) {
-    emit('update:modelValue', step.id)
 }
 </script>
