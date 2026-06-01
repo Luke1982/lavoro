@@ -41,10 +41,10 @@ class ServiceOrderController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                    ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search) {
-                        $cq->where('name', 'like', "%{$search}%");
-                    });
+                  ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -156,7 +156,6 @@ class ServiceOrderController extends Controller
             'customFields'  => $service_order->allCustomFieldsWithValues(),
             'stages'        => ServiceOrderStage::orderBy('order')->get(),
             'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
-            'snelStartEnabled' => env('SNELSTART_CLIENT_KEY', '') !== '',
         ]);
     }
 
