@@ -1,19 +1,18 @@
 <template>
     <IndexHeaderComponent title="Werkbonfases" subtitle="Overzicht en volgorde van werkbonfases"
-        search-url="/serviceorderstages" search-label="Zoek binnen fases"
-        search-placeholder="bijv. 'Voorbereiding'"
-        :paginator="false" add-label="Voeg fase toe"
-        @add="showStageDrawer = true" />
+        search-url="/serviceorderstages" search-label="Zoek binnen fases" search-placeholder="bijv. 'Voorbereiding'"
+        :paginator="false" add-label="Voeg fase toe" @add="showStageDrawer = true" />
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalStages.length">
-            <div class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+            <div
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-1"></div>
                 <div class="col-span-1">Volgorde</div>
                 <div class="col-span-4">Naam</div>
-                <div class="col-span-2 text-center">Plannen</div>
-                <div class="col-span-2 text-center">Sluiten</div>
-                <div class="col-span-1 text-center">Plannable</div>
+                <div class="col-span-2 text-center">Gepland fase</div>
+                <div class="col-span-2 text-center">Gesloten fase</div>
+                <div class="col-span-1 text-center">Planbare fase</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
@@ -69,8 +68,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Naam</label>
                 <div class="sm:col-span-2">
-                    <TextInput v-model="newStageForm.name" type="text"
-                        :hasError="Boolean(newStageForm.errors.name)"
+                    <TextInput v-model="newStageForm.name" type="text" :hasError="Boolean(newStageForm.errors.name)"
                         :errorMessage="newStageForm.errors.name" />
                 </div>
             </div>
