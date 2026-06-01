@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Activity extends Model
 {
@@ -12,10 +14,21 @@ class Activity extends Model
     protected $fillable = [
         'category',
         'description',
+        'user_id',
     ];
 
-    public function activityables()
+    public function serviceOrders(): MorphToMany
     {
-        return $this->morphedByMany(Model::class, 'activityable');
+        return $this->morphedByMany(ServiceOrder::class, 'activityable')->withTimestamps();
+    }
+
+    public function serviceOrderStages(): MorphToMany
+    {
+        return $this->morphedByMany(ServiceOrderStage::class, 'activityable')->withTimestamps();
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
