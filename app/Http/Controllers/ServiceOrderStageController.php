@@ -34,7 +34,18 @@ class ServiceOrderStageController extends Controller
         if (!isset($data['order'])) {
             $data['order'] = (ServiceOrderStage::max('order') ?? 0) + 1;
         }
-        ServiceOrderStage::create($data);
+
+        DB::transaction(function () use ($data) {
+            if (!empty($data['is_planned_state'])) {
+                ServiceOrderStage::where('is_planned_state', true)
+                    ->update(['is_planned_state' => false]);
+            }
+            if (!empty($data['is_closed_state'])) {
+                ServiceOrderStage::where('is_closed_state', true)
+                    ->update(['is_closed_state' => false]);
+            }
+            ServiceOrderStage::create($data);
+        });
 
         return redirect()->route('serviceorderstages.index')
             ->with('success', 'Fase is aangemaakt');
@@ -44,7 +55,21 @@ class ServiceOrderStageController extends Controller
         ServiceOrderStageStoreUpdateRequest $request,
         ServiceOrderStage $serviceorderstage
     ) {
-        $serviceorderstage->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $serviceorderstage) {
+            if (!empty($data['is_planned_state'])) {
+                ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
+                    ->where('is_planned_state', true)
+                    ->update(['is_planned_state' => false]);
+            }
+            if (!empty($data['is_closed_state'])) {
+                ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
+                    ->where('is_closed_state', true)
+                    ->update(['is_closed_state' => false]);
+            }
+            $serviceorderstage->update($data);
+        });
 
         return redirect()->route('serviceorderstages.index')
             ->with('success', 'Fase is bijgewerkt');
