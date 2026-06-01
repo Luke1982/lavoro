@@ -94,10 +94,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3';
-import EditableTextField from './EditableTextField.vue';
-import SwitchComponent from './SwitchComponent.vue';
-import ComboBox from './ComboBox.vue';
-import ColorPickerComponent from './ColorPickerComponent.vue';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+import ColorPickerComponent from '@/Components/UI/ColorPickerComponent.vue';
 import { TrashIcon, PlusCircleIcon } from '@heroicons/vue/24/outline'
 
 type Item = {

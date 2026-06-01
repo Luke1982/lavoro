@@ -18,8 +18,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import ResourcePlannerWidget from '@/Components/ResourcePlannerWidget.vue'
-import UnplannedServiceOrdersWidget from '@/Components/UnplannedServiceOrdersWidget.vue'
+import ResourcePlannerWidget from '@/Components/Planner/ResourcePlannerWidget.vue'
+import UnplannedServiceOrdersWidget from '@/Components/Planner/UnplannedServiceOrdersWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 
 const props = defineProps({

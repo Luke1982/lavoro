@@ -166,7 +166,7 @@ import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
-import BoxComponent from './BoxComponent.vue';
+import BoxComponent from '@/Components/BoxComponent.vue';
 import { Calendar1, ClockAlert } from '@lucide/vue';
 
 const props = defineProps({

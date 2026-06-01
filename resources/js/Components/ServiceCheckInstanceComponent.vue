@@ -147,7 +147,7 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
 import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon, CameraIcon } from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
-import ImageUploadComponent from './ImageUploadComponent.vue';
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
     serviceCheckInstance: { type: Object, required: true },

@@ -46,9 +46,9 @@
 <script setup>
 import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
 import { ArrowUturnLeftIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
-import TextInput from './TextInput.vue';
-import ComboBox from './ComboBox.vue';
-import CurrencyInput from './CurrencyInput.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
 import { nlDate } from '@/Utilities/Utilities';
 
 const emit = defineEmits(['update', 'revert', 'open']);

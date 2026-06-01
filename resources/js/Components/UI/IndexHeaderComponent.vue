@@ -47,7 +47,7 @@
 import SearchComponent from '@/Components/UI/SearchComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import { FilterIcon, PlusIcon } from '@lucide/vue'
-import BoxComponent from '../BoxComponent.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
 import { useSlots, ref } from 'vue'
 
 defineProps({

@@ -62,7 +62,7 @@ import { CalendarDateRangeIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, Clock
 import { Link } from '@inertiajs/vue3';
 import { nlDate } from '@/Utilities/Utilities';
 import { useForm } from '@inertiajs/vue3';
-import { ticketPriorities } from './data/TicketData';
+import { ticketPriorities } from '@/Components/data/TicketData';
 import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({

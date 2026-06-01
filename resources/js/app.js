@@ -1,6 +1,6 @@
 import { createApp, h } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
-import MainLayout from "./Layouts/MainLayout.vue";
+import MainLayout from '@/Layouts/MainLayout.vue';
 import FloatingVue from "floating-vue";
 import { autoAnimatePlugin } from "@formkit/auto-animate/vue";
 import ContextMenu from "@imengyu/vue3-context-menu";

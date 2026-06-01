@@ -253,9 +253,9 @@ import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, Arr
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
-import PlannerEvent from './Planner/PlannerEvent.vue'
-import EventEditModal from './Planner/EventEditModal.vue'
-import SelectMenuComponent from './UI/SelectMenuComponent.vue'
+import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
+import EventEditModal from '@/Components/Planner/EventEditModal.vue'
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({

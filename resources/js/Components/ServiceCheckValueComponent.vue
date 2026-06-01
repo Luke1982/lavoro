@@ -22,7 +22,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import { defineModel, defineEmits } from 'vue';
-import TextInput from './UI/TextInput.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { Bars4Icon, TrashIcon } from '@heroicons/vue/24/outline';
 
 const emits = defineEmits(['delete']);

@@ -1,4 +1,4 @@
-import dayjs from "./dayjs";
+import dayjs from '@/Utilities/dayjs';
 
 export const nlDate = (date) => dayjs(date).format("DD-MM-YYYY");
 

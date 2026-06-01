@@ -32,9 +32,9 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import TextInput from './UI/TextInput.vue';
-import ComboBox from './UI/ComboBox.vue';
-import { ticketStatusses, ticketPriorities } from './data/TicketData';
+import TextInput from '@/Components/UI/TextInput.vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+import { ticketStatusses, ticketPriorities } from '@/Components/data/TicketData';
 import { defineEmits } from 'vue';
 
 const props = defineProps({

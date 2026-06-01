@@ -115,7 +115,7 @@ import { useForm } from '@inertiajs/vue3'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
-import EditModal from './Partials/EditCompanyModal.vue'
+import EditModal from '@/Pages/Companies/Partials/EditCompanyModal.vue'
 import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 defineProps({

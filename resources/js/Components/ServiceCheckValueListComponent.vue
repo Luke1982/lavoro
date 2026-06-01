@@ -8,7 +8,7 @@
 <script setup>
 import { defineModel } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import ServiceCheckValueComponent from './ServiceCheckValueComponent.vue';
+import ServiceCheckValueComponent from '@/Components/ServiceCheckValueComponent.vue';
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 
 const { allServiceChecks, parentServiceCheckId } = defineProps({

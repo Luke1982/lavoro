@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import BoxComponent from './BoxComponent.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
 import { ArrowsRightLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { nlDate } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
