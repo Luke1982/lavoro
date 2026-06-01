@@ -46,6 +46,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'external_purchaseorder_no' => 'nullable|string|max:255',
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
+            'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
         ];
     }
 
