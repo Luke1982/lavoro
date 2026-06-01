@@ -41,10 +41,10 @@ class ServiceOrderController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function ($cq) use ($search) {
-                      $cq->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -149,12 +149,14 @@ class ServiceOrderController extends Controller
         ])->findOrFail($id);
 
         return inertia('ServiceOrders/ShowPage', [
-            'serviceOrder' => $service_order,
-            'allMaterials' => Material::all()->load([
+            'serviceOrder'  => $service_order,
+            'allMaterials'  => Material::all()->load([
                 'usageUnit',
             ]),
-            'customFields' => $service_order->allCustomFieldsWithValues(),
-            'stages'       => ServiceOrderStage::orderBy('order')->get(),
+            'customFields'  => $service_order->allCustomFieldsWithValues(),
+            'stages'        => ServiceOrderStage::orderBy('order')->get(),
+            'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
+            'snelStartEnabled' => env('SNELSTART_CLIENT_KEY', '') !== '',
         ]);
     }
 
@@ -172,12 +174,21 @@ class ServiceOrderController extends Controller
     public function update(ServiceOrderUpdateRequest $request, ServiceOrder $serviceorder)
     {
         $data = $request->validated();
-        if ($serviceorder->status !== 'closed' && $request->input('status') === 'closed') {
-            $data['closed_on'] = now();
-        }
 
         $previous_stage_id = $serviceorder->service_order_stage_id;
+        $previous_is_closed = $serviceorder->is_closed;
+
         $serviceorder->update($data);
+        $serviceorder->load('serviceOrderStage');
+        $new_is_closed = $serviceorder->is_closed;
+
+        if ($new_is_closed && !$previous_is_closed) {
+            $serviceorder->closed_on = now();
+            $serviceorder->save();
+        } elseif (!$new_is_closed && $previous_is_closed) {
+            $serviceorder->closed_on = null;
+            $serviceorder->save();
+        }
 
         if (
             array_key_exists('service_order_stage_id', $data)
@@ -186,7 +197,7 @@ class ServiceOrderController extends Controller
             if ($data['service_order_stage_id'] === null) {
                 $serviceorder->logActivity('Fase verwijderd');
             } else {
-                $new_stage = ServiceOrderStage::find($data['service_order_stage_id']);
+                $new_stage = $serviceorder->serviceOrderStage;
                 if ($new_stage) {
                     $serviceorder->logActivity("Fase gewijzigd naar: {$new_stage->name}");
                 }
@@ -210,10 +221,10 @@ class ServiceOrderController extends Controller
      */
     public function emailPdf(ServiceOrderEmailPdfRequest $request, ServiceOrder $serviceorder)
     {
-        if ($serviceorder->status !== 'closed') {
+        $serviceorder->load(['customer', 'serviceOrderStage']);
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with('error', 'Sluit de werkbon af voordat je de PDF kunt e-mailen.');
         }
-        $serviceorder->load(['customer']);
         $recipients = array_unique(array_filter([
             $serviceorder->customer?->email,
             $serviceorder->customer?->invoice_email,
@@ -238,13 +249,13 @@ class ServiceOrderController extends Controller
 
     public function emailPdfWithJobs(ServiceOrderEmailPdfWithChecksRequest $request, ServiceOrder $serviceorder)
     {
-        if ($serviceorder->status !== 'closed') {
+        $serviceorder->load(['customer', 'serviceJobs.asset.customer', 'serviceOrderStage']);
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with(
                 'error',
                 'Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.'
             );
         }
-        $serviceorder->load(['customer', 'serviceJobs.asset.customer']);
         $recipients = array_unique(array_filter([
             $serviceorder->customer?->email,
             $serviceorder->customer?->invoice_email,
@@ -288,10 +299,10 @@ class ServiceOrderController extends Controller
         if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
-        if ($serviceorder->status !== 'closed') {
+        $serviceorder->load(['customer.billingCustomer', 'materials', 'serviceOrderStage']);
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with('error', 'Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         }
-        $serviceorder->load(['customer.billingCustomer', 'materials']);
         if ($serviceorder->materials->isEmpty()) {
             return redirect()->back()->with('error', 'Geen materialen gekoppeld aan deze werkbon.');
         }
