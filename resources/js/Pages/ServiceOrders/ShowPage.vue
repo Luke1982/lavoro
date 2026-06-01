@@ -114,6 +114,12 @@
                         </a>
                     </div>
                 </div>
+                <div v-if="stages.length > 1" class="mb-4"
+                    :class="{ 'pointer-events-none opacity-60': serviceOrder.status === 'closed' }">
+                    <StepsProgressBar :steps="stages"
+                        :model-value="serviceOrder.service_order_stage_id"
+                        @update:modelValue="onStageChange" />
+                </div>
                 <h2
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Uitgevoerde werkzaamheden</h2>
@@ -433,6 +439,7 @@ import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
+import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 
@@ -448,7 +455,8 @@ const props = defineProps({
     customFields: {
         type: Array,
         default: () => [],
-    }
+    },
+    stages: { type: Array, default: () => [] },
 });
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
@@ -552,6 +560,14 @@ const updateStatus = (newStatus) => {
 const materialsForm = useForm({
     quantity: 1,
 });
+
+function onStageChange(stage_id) {
+    const form = useForm({
+        customer_id: props.serviceOrder.customer.id,
+        service_order_stage_id: stage_id,
+    })
+    form.patch(`/serviceorders/${props.serviceOrder.id}`, { preserveScroll: true })
+}
 
 const newServicejobForm = useForm({
     service_order_id: props.serviceOrder.id,
