@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $customers = Customer::with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-              ->with(['product.productType']);
+                ->with(['product.productType']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 
         $now = Carbon::now();
@@ -44,10 +44,9 @@ class DashboardController extends Controller
         ];
 
         $openServiceOrders = ServiceOrder::with('customer')
-            ->where('status', 'closed')
             ->where(function ($q) {
                 $q->where('sent_to_administration', false)
-                  ->orWhere('sent_to_customer', false);
+                    ->orWhere('sent_to_customer', false);
             })
             ->orderByDesc('updated_at')
             ->get([
@@ -57,7 +56,6 @@ class DashboardController extends Controller
                 'closed_on',
                 'sent_to_administration',
                 'sent_to_customer',
-                'status',
             ]);
 
         $upcomingJobs = ServiceJob::with(['serviceOrder.customer'])
