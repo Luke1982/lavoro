@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'pr-5': !editing, 'relative pb-2 cursor-pointer w-full': true, 'border-b-1 border-b-gray-200/70': decoration }"
+        :class="{ 'pr-5': !editing, 'relative pb-2 w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />
@@ -37,7 +37,7 @@
             </button>
         </div>
 
-        <PencilSquareIcon v-if="!editing && !readonly && decoration"
+        <PencilSquareIcon v-if="!editing && !readonly && !disabled && decoration"
             class="size-4 text-gray-400 dark:text-gray-300 absolute right-2 top-4 transform -translate-y-1/2 cursor-pointer"
             @click="startEdit" />
     </div>
@@ -66,6 +66,7 @@ const props = defineProps({
     multiple: { type: Boolean, default: false },
     decoration: { type: Boolean, default: true },
     label: { type: String, default: '' },
+    disabled: { type: Boolean, default: false },
 });
 
 const editing = ref(false);
@@ -126,7 +127,7 @@ function startEdit() {
 }
 
 function onWrapperClick(event) {
-    if (editing.value || props.readonly) return;
+    if (editing.value || props.readonly || props.disabled) return;
     // If the click landed on (or inside) a link, let the navigation happen without
     // entering edit mode — flashing the editor open milliseconds before unmounting is bad UX.
     if (event.target.closest('a')) return;
