@@ -14,6 +14,7 @@ class ServiceOrderStageController extends Controller
     public function index(ServiceOrderStageReadRequest $request)
     {
         $search = $request->get('search', '');
+        $per_page = (int) ($request->get('perPage') ?: 25);
         $query = ServiceOrderStage::query();
 
         if ($search) {
@@ -21,8 +22,9 @@ class ServiceOrderStageController extends Controller
         }
 
         return inertia('ServiceOrderStages/IndexPage', [
-            'stages' => $query->orderBy('order')->paginate(25),
-            'search' => $search,
+            'stages'  => $query->orderBy('order')->paginate($per_page)->withQueryString(),
+            'search'  => $search,
+            'perPage' => $per_page,
         ]);
     }
 
