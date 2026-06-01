@@ -77,9 +77,15 @@
                     <span class="line-clamp-2">{{ so.description || '—' }}</span>
                 </div>
                 <div class="col-span-2 items-center hidden sm:flex pr-2">
-                    <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
-                        {{ so.service_order_stage?.name ?? 'Geen fase' }}
-                    </BadgeComponent>
+                    <EditableTextField type="combobox" :model-value="so.service_order_stage_id" :options="stages"
+                        :decoration="false"
+                        @update="(val) => updateStage(so, val)">
+                        <template #display>
+                            <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
+                                {{ so.service_order_stage?.name ?? 'Geen fase' }}
+                            </BadgeComponent>
+                        </template>
+                    </EditableTextField>
                 </div>
                 <div class="col-span-2 items-center hidden sm:flex pr-2">
                     <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
@@ -112,12 +118,13 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import { XCircleIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
@@ -159,6 +166,13 @@ const activeFilters = computed(() => {
 
 function clearAllFilters() {
     stageFilter.value = null
+}
+
+function updateStage(so, stage_id) {
+    router.patch(`/serviceorders/${so.id}`, {
+        customer_id: so.customer_id,
+        service_order_stage_id: stage_id,
+    }, { preserveScroll: true })
 }
 
 function badgeColorFor(so) {
