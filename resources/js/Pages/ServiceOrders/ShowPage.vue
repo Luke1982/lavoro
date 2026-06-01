@@ -115,7 +115,7 @@
                     </div>
                 </div>
                 <div v-if="stages.length > 1" class="mb-4"
-                    :class="{ 'pointer-events-none opacity-60': serviceOrder.status === 'closed' }">
+                    :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed }">
                     <StepsProgressBar :steps="stages"
                         :model-value="serviceOrder.service_order_stage_id"
                         @update:modelValue="onStageChange" />
@@ -126,7 +126,7 @@
                 <div class="grid grid-cols-12 mt-2">
                     <div class="col-span-12">
                         <EditableTextField type="textarea" v-model="form.description"
-                            :readonly="serviceOrder.status === 'closed'" @update="val => { form.description = val; }"
+                            :readonly="serviceOrder.is_closed" @update="val => { form.description = val; }"
                             placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
                     </div>
                 </div>
@@ -135,7 +135,7 @@
                         class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                         Keuringen</h2>
                     <div class="grid grid-cols-12 mt-4"
-                        v-if="hasPermission('servicejob.create') && serviceOrder.status !== 'closed'">
+                        v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed">
                         <div class="col-span-12 flex">
                             <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
                                 :with-images="true" />
@@ -159,7 +159,7 @@
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Storingen</h2>
                 <div class="grid grid-cols-12 mt-4"
-                    v-if="hasPermission('ticket.add_to_serviceorder') && serviceOrder.status !== 'closed'">
+                    v-if="hasPermission('ticket.add_to_serviceorder') && !serviceOrder.is_closed">
                     <div class="col-span-12 flex flex-col md:flex-row">
                         <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
                         <button @click="attachTicket"
@@ -179,7 +179,7 @@
                     Materialen</h2>
                 <div class="grid grid-cols-12 mt-4">
                     <div class="col-span-12 flex flex-col md:flex-row items-start"
-                        v-if="serviceOrder.status !== 'closed'">
+                        v-if="!serviceOrder.is_closed">
                         <div class="flex flex-grow w-full">
                             <div class="flex flex-col flex-grow">
                                 <span class="text-sm mb-2">Kies een materiaal</span>
@@ -217,7 +217,7 @@
                                         :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancialUi ? 'md:col-span-2' : 'md:col-span-3')">
                                         <span class="font-bold text-xs block lg:hidden">Aantal</span>
                                         <template
-                                            v-if="!serviceOrder.sent_to_administration && serviceOrder.status !== 'closed'">
+                                            v-if="!serviceOrder.sent_to_administration && !serviceOrder.is_closed">
                                             <EditableTextField inputType="number" v-model="material.pivot.quantity"
                                                 class="w-full" @update="val => {
                                                     materialsForm.quantity = val;
@@ -238,7 +238,7 @@
                                                 Number(material.price)).toFixed(2) }}
                                     </div>
                                     <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1"
-                                        v-if="!serviceOrder.sent_to_administration && serviceOrder.status !== 'closed'">
+                                        v-if="!serviceOrder.sent_to_administration && !serviceOrder.is_closed">
                                         <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
                                             @click="detachMaterial(material.pivot.id)"
                                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
@@ -260,17 +260,17 @@
                 <div class="flex flex-wrap">
                     <div class="w-full md:w-1/2 flex flex-col pr-0 md:pr-3">
                         <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                            :readonly="serviceOrder.status === 'closed'" @update="val => { form.signed_by = val; }"
+                            :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }"
                             placeholder="Voer de naam van degene in die de werkbon tekent" />
                         <div class="relative" v-if="!editingSignature">
                             <img :src="serviceOrder.signature_base64" alt="">
-                            <PencilSquareIcon v-if="serviceOrder.status !== 'closed'"
+                            <PencilSquareIcon v-if="!serviceOrder.is_closed"
                                 class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
                                 @click="editingSignature = true" />
                         </div>
                         <div class="relative" v-if="editingSignature">
                             <SignaturePad v-model="form.signature_base64"
-                                :readonly="serviceOrder.status === 'closed'" />
+                                :readonly="serviceOrder.is_closed" />
                             <XMarkIcon
                                 class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
                                 @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
@@ -278,7 +278,7 @@
                     </div>
                     <div class="w-full md:w-1/2 pl-0 md:pl-3 mt-4 md:mt-0">
                         <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
-                            :disabled="serviceOrder.status === 'closed'" :remarkable-id="serviceOrder.id"
+                            :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                             :comments="serviceOrder.remarks" class="mt-8" />
                     </div>
                 </div>
@@ -287,11 +287,11 @@
                     :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700"
-                @click="updateStatus('closed')"
-                v-if="serviceOrder.status !== 'closed' && hasPermission('serviceorder.close')">Werkbon
+                @click="closeViaStage"
+                v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')">Werkbon
                 afsluiten</button>
-            <button class="w-full p-4 rounded-md bg-blue-500 text-white mt-3" @click="updateStatus('open')"
-                v-else-if="serviceOrder.status !== 'open' && hasPermission('serviceorder.reopen')">Werkbon
+            <button class="w-full p-4 rounded-md bg-blue-500 text-white mt-3" @click="reopenViaStage"
+                v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')">Werkbon
                 heropenen</button>
         </template>
         <template #sidebar>
@@ -457,6 +457,7 @@ const props = defineProps({
         default: () => [],
     },
     stages: { type: Array, default: () => [] },
+    closedStageId: { type: [Number, null], default: null },
 });
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
@@ -539,23 +540,20 @@ const form = useForm({
     actual_end_time: props.serviceOrder.actual_end_time ? props.serviceOrder.actual_end_time.substring(0, 5) : null,
 });
 
-const updateStatus = (newStatus) => {
-    if (newStatus === form.status) return;
-
-    if (newStatus === 'closed') {
-        if (!canClose.value) {
-            alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.');
-            return;
-        }
-        if (!confirm(`Weet je zeker dat je de werkbon wilt sluiten ? Je kunt er daarna geen wijzigingen meer in aanbrengen.`)) {
-            return;
-        }
+function closeViaStage() {
+    if (!canClose.value) {
+        alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.')
+        return
     }
-    form.status = newStatus;
-    form.put(`/serviceorders/ ${props.serviceOrder.id} `, {
-        preserveScroll: true,
-    });
-};
+    if (!confirm('Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.')) {
+        return
+    }
+    onStageChange(props.closedStageId)
+}
+
+function reopenViaStage() {
+    onStageChange(null)
+}
 
 const materialsForm = useForm({
     quantity: 1,
@@ -641,7 +639,7 @@ const detachMaterial = (materiableId) => {
 
 const emailPdf = () => {
     if (emailing.value) return;
-    if (props.serviceOrder.status !== 'closed') {
+    if (!props.serviceOrder.is_closed) {
         alert('Sluit de werkbon af voordat je de PDF kunt e-mailen.');
         return;
     }
@@ -660,7 +658,7 @@ const openPdf = () => {
 
 const emailPdfWithJobs = () => {
     if (emailingCombined.value) return;
-    if (props.serviceOrder.status !== 'closed') {
+    if (!props.serviceOrder.is_closed) {
         alert('Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.');
         return;
     }
@@ -685,7 +683,7 @@ const sendToSnelStart = () => {
     if (props.serviceOrder.sent_to_administration) {
         return;
     }
-    if (props.serviceOrder.status !== 'closed') {
+    if (!props.serviceOrder.is_closed) {
         alert('Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         return;
     }
