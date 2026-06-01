@@ -7,7 +7,12 @@
                 class="group cursor-grab active:cursor-grabbing select-none border-b-1 p-3 border-b-lavoro-gray-150 transition"
                 :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-sm font-semibold text-gray-900 dark:text-slate-100">#{{ so.id }}</span>
+                    <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-1">
+                        #{{ so.id }}
+                        <ExclamationTriangleIcon v-if="so.events_count > 0"
+                            class="size-4 text-amber-500"
+                            v-tooltip="`Let op: deze werkbon heeft al ${so.events_count} eerdere afspra(a)k(en) gekoppeld`" />
+                    </span>
                     <span class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{ nlDate(so.created_at) }}</span>
                 </div>
                 <div v-if="so.customer" class="text-xs font-medium text-lavoro-blue truncate">
@@ -33,7 +38,7 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue'
-import { ArrowsRightLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { nlDate } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 

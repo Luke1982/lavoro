@@ -21,9 +21,12 @@ class PlannerController extends Controller
             'allCustomers' => Customer::all(),
             'allServiceOrders' => ServiceOrder::with('customer')->get(),
             'unplannedServiceOrders' => ServiceOrder::with(['customer', 'serviceOrderStage'])
-                ->doesntHave('events')
+                ->withCount('events')
                 ->whereNull('project_id')
-                ->whereHas('serviceOrderStage', fn ($q) => $q->where('is_plannable_state', true))
+                ->whereHas('serviceOrderStage', function ($q) {
+                    $q->where('is_plannable_state', true)
+                        ->where('is_planned_state', false);
+                })
                 ->orderByDesc('created_at')
                 ->get(),
             'projects' => Project::query()
