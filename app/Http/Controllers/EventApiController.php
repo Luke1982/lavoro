@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\EventStoreRequest;
@@ -55,6 +56,9 @@ class EventApiController extends Controller
         $class = $request->eventable_type;
         $model = $class::findOrFail($request->eventable_id);
         $model->events()->attach($event->id);
+        if ($model instanceof ServiceOrder) {
+            $model->advanceToPlannedStage();
+        }
 
         $executing_user_ids = $request['executing_user_ids'] ?? [];
         if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
@@ -87,6 +91,9 @@ class EventApiController extends Controller
                 ->delete();
 
             $model->events()->attach($event->id);
+            if ($model instanceof ServiceOrder) {
+                $model->advanceToPlannedStage();
+            }
         }
 
         if ($request->has('executing_user_ids')) {
