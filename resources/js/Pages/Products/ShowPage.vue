@@ -37,27 +37,16 @@
             </div>
         </div>
     </div>
-    <div class="flex sm:hidden mb-5 justify-end">
-        <SelectMenuComponent v-model="activeChapter" :options="chapterOptions" />
-    </div>
-    <div class="hidden sm:flex mb-5 relative border-b-2 border-gray-200">
-        <button v-for="(chapter, index) in chapters" :key="index" :ref="el => { if (el) tabRefs[index] = el }" :class="[
-            'text-sm px-8 py-5 font-semibold cursor-pointer transition-colors duration-300',
-            activeChapter === index ? 'text-lavoro-blue' : 'text-slate-500 hover:text-slate-700'
-        ]" @click="activeChapter = index">
-            {{ chapter }}
-        </button>
-        <div class="flex-grow"></div>
-        <div class="absolute bottom-[-2px] h-[3px] bg-lavoro-blue rounded-full transition-all duration-300 ease-in-out"
-            :style="{ left: indicatorLeft + 'px', width: indicatorWidth + 'px' }"></div>
-    </div>
-
-    <!-- Chapters content -->
-    <div class="relative overflow-x-hidden">
-        <Transition :name="slideDirection">
-            <div :key="activeChapter">
-                <!-- Chapter 0: Productinformatie -->
-                <TwoThirdsOneThird v-if="activeChapter === 0">
+    <ChaptersComponent>
+        <ChapterHeaders>
+            <ChapterHeader v-for="(chapter, index) in chapters" :key="index" :index="index">
+                {{ chapter }}
+            </ChapterHeader>
+        </ChapterHeaders>
+        <ChapterContents>
+            <!-- Chapter 0: Productinformatie -->
+            <template #chapter-0>
+                <TwoThirdsOneThird>
                     <template #main>
                         <BoxComponent>
                             <div class="flex items-center">
@@ -172,9 +161,11 @@
                         </div>
                     </template>
                 </TwoThirdsOneThird>
+            </template>
 
-                <!-- Chapter 1: Machines -->
-                <div v-else-if="activeChapter === 1">
+            <!-- Chapter 1: Machines -->
+            <template #chapter-1>
+                <div>
                     <BoxComponent v-if="hasPermission('asset.read') || hasPermission('asset.create')">
                         <div class="flex items-center justify-start pb-3 border-b border-gray-200">
                             <div class="flex items-center">
@@ -191,9 +182,11 @@
                         <p v-else class="text-sm text-gray-400 italic mt-3">Geen machines gekoppeld.</p>
                     </BoxComponent>
                 </div>
+            </template>
 
-                <!-- Chapter 2: Gerelateerde producten -->
-                <div v-else-if="activeChapter === 2">
+            <!-- Chapter 2: Gerelateerde producten -->
+            <template #chapter-2>
+                <div>
                     <BoxComponent v-if="hasPermission('productable.read')">
                         <div class="flex items-center pb-3 border-b border-gray-200">
                             <LinkIcon class="size-5 text-gray-500 mr-2" />
@@ -350,15 +343,15 @@
                         </div>
                     </BoxComponent>
                 </div>
+            </template>
 
-                <!-- Chapter 3: Documenten -->
-                <div v-else-if="activeChapter === 3">
-                    <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
-                        documentable-type="\App\Models\Product" />
-                </div>
-            </div>
-        </Transition>
-    </div>
+            <!-- Chapter 3: Documenten -->
+            <template #chapter-3>
+                <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
+                    documentable-type="\App\Models\Product" />
+            </template>
+        </ChapterContents>
+    </ChaptersComponent>
 
     <!-- Google Images dialog -->
     <div v-if="googleDialog.open" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
@@ -424,10 +417,13 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
-import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
+import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
+import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
+import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
+import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, ChevronRightIcon, FingerPrintIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
-import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import ComboBox from '@/Components/UI/ComboBox.vue';
@@ -486,31 +482,6 @@ const chapters = [
     `Gerelateerde producten (${props.product.child_products.length})`,
     `Documenten (${props.product.documents.length})`,
 ]
-const activeChapter = ref(0)
-
-const chapterOptions = computed(() => chapters.map((chapter, index) => ({ value: index, title: chapter })))
-
-const tabRefs = []
-const indicatorLeft = ref(0)
-const indicatorWidth = ref(0)
-
-function updateIndicator() {
-    const tab = tabRefs[activeChapter.value]
-    if (tab) {
-        indicatorLeft.value = tab.offsetLeft
-        indicatorWidth.value = tab.offsetWidth
-    }
-}
-
-onMounted(updateIndicator)
-const previousChapter = ref(0)
-const slideDirection = computed(() => previousChapter.value < activeChapter.value ? 'slide-left' : 'slide-right')
-
-watch(activeChapter, (newVal, oldVal) => {
-    previousChapter.value = oldVal
-    nextTick(updateIndicator)
-})
-
 watch([
     () => form.description,
     () => form.typical_certificate_days,
@@ -653,39 +624,3 @@ async function importGoogleImage() {
 }
 
 </script>
-
-<style>
-.slide-left-enter-active,
-.slide-left-leave-active,
-.slide-right-enter-active,
-.slide-right-leave-active {
-    transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.slide-left-leave-active,
-.slide-right-leave-active {
-    position: absolute;
-    width: 100%;
-    top: 0;
-}
-
-.slide-left-enter-from {
-    opacity: 0;
-    transform: translateX(32px);
-}
-
-.slide-left-leave-to {
-    opacity: 0;
-    transform: translateX(-32px);
-}
-
-.slide-right-enter-from {
-    opacity: 0;
-    transform: translateX(-32px);
-}
-
-.slide-right-leave-to {
-    opacity: 0;
-    transform: translateX(32px);
-}
-</style>

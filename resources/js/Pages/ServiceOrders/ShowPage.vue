@@ -1,4 +1,74 @@
 <template>
+    <div class="flex items-center">
+        <Link href="/serviceorders" class="text-slate-400 text-sm font-medium">Werkbonnen</Link>
+        <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
+        <span class="text-slate-800 font-bold text-sm">Werkbon #{{ serviceOrder.id }} van {{
+            nlDate(serviceOrder.created_at) }}
+            voor {{ serviceOrder.customer.name }}</span>
+    </div>
+    <h1 class="text-2xl font-bold flex items-center gap-2 my-4">
+        Werkbon #{{ serviceOrder.id }}
+        <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
+            {{ serviceOrder.service_order_stage.name }}
+        </BadgeComponent>
+    </h1>
+    <ChaptersComponent>
+        <ChapterHeaders>
+            <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
+                {{ header }}
+            </ChapterHeader>
+        </ChapterHeaders>
+        <ChapterContents>
+            <template #chapter-0>
+                <TwoThirdsOneThird>
+                    <template #main>
+                        <BoxComponent class="mb-4">
+                            <div v-if="stages.length > 1" class="mb-4"
+                                :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
+                                <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
+                                    @update:modelValue="onStageChange" />
+                            </div>
+                        </BoxComponent>
+                        <BoxComponent>
+                            <div class="flex items-center">
+                                <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
+                                    <div class="flex w-full items-center">
+                                        <DocumentTextIcon class="size-6 mr-2 flex-none object-cover" />
+                                        <div class="flex flex-col">
+                                            <span class="text-md font-bold">Details</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
+                                <!-- Left column -->
+                                <div class="flex flex-col gap-6 md:pr-8">
+                                    <EditableTextField
+                                        v-if="hasPermission('serviceorder.update')"
+                                        type="combobox"
+                                        label="Klant"
+                                        v-model="form.customer_id"
+                                        :options="internalCustomers"
+                                    >
+                                        <template #display>
+                                            <component
+                                                :is="hasPermission('customer.read') ? Link : 'span'"
+                                                :href="`/customers/${selectedCustomer.id}`"
+                                                :class="{
+                                                    'underline hover:text-gray-600 dark:hover:text-slate-400': hasPermission('customer.read')
+                                                }"
+                                            >{{ selectedCustomer.name }}</component>
+                                        </template>
+                                    </EditableTextField>
+                                </div>
+                            </div>
+                        </BoxComponent>
+                    </template>
+                </TwoThirdsOneThird>
+            </template>
+        </ChapterContents>
+    </ChaptersComponent>
+    <div class="mt-100"></div>
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent class="dark:bg-slate-900">
@@ -114,11 +184,7 @@
                         </a>
                     </div>
                 </div>
-                <div v-if="stages.length > 1" class="mb-4"
-                    :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
-                    <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
-                        @update:modelValue="onStageChange" />
-                </div>
+
                 <h2
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                     Uitgevoerde werkzaamheden</h2>
@@ -429,7 +495,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { mapsLinkFromCustomer, nlDate, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
@@ -438,6 +504,12 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
+import { ChevronRightIcon } from '@lucide/vue';
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
+import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
+import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
+import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 
 const props = defineProps({
     serviceOrder: {
@@ -454,7 +526,10 @@ const props = defineProps({
     },
     stages: { type: Array, default: () => [] },
     closedStageId: { type: [Number, null], default: null },
+    customers: { type: Array, default: () => [] },
 });
+
+const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
 
@@ -480,6 +555,14 @@ const sortedServiceJobs = computed(() => {
     jobs.forEach(j => { if (!included.has(j.id)) result.push({ job: j, isChild: false }); });
     return result;
 });
+
+const internalCustomers = computed(() =>
+    props.customers.map(c => ({ id: c.id, name: c.name }))
+);
+
+const selectedCustomer = computed(() =>
+    props.customers.find(c => c.id === form.customer_id) ?? props.serviceOrder.customer
+);
 
 const internalMaterials = computed(() => {
     return props.allMaterials.slice().sort((a, b) =>
@@ -586,6 +669,7 @@ watch(
         () => form.external_purchaseorder_no,
         () => form.actual_start_time,
         () => form.actual_end_time,
+        () => form.customer_id,
     ],
     () => {
         if (isReverting.value) {

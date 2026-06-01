@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Ticket;
 use App\Models\Company;
 use App\Models\Activity;
+use App\Models\Customer;
 use App\Models\Material;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
@@ -177,6 +178,7 @@ class ServiceOrderController extends Controller
 
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder'  => $service_order,
+            'customers'     => Customer::orderBy('name')->get(['id', 'name']),
             'allMaterials'  => Material::all()->load([
                 'usageUnit',
             ]),
