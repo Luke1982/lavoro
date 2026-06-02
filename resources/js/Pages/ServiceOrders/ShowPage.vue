@@ -69,6 +69,8 @@
                                 </div>
                             </div>
                         </BoxComponent>
+                        <TaskInstancesWidget :service-order-id="serviceOrder.id"
+                            :instances="serviceOrder.task_instances" :available-tasks="availableTasks" class="my-4" />
                     </template>
                 </TwoThirdsOneThird>
             </template>
@@ -85,7 +87,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -318,10 +320,11 @@
                         </div>
                     </div>
                 </div>
+
                 <div
                     class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
-                    <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2>
-                    <button v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
+                    <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2> <button
+                        v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
                         class="text-gray-500 hover:text-gray-700"
                         v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
                         <span class="text-xl leading-none select-none">$</span>
@@ -510,6 +513,7 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
+import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import { ChevronRightIcon } from '@lucide/vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
@@ -533,6 +537,7 @@ const props = defineProps({
     stages: { type: Array, default: () => [] },
     closedStageId: { type: [Number, null], default: null },
     customers: { type: Array, default: () => [] },
+    availableTasks: { type: Array, default: () => [] },
 });
 
 const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
@@ -645,6 +650,10 @@ const materialsForm = useForm({
 });
 
 function onStageChange(stage_id) {
+    if (!hasPermission('serviceorderstage.update')) {
+        usePage().props.flash.error = 'Je hebt geen toestemming om de werkbon status te wijzigen.';
+        return;
+    }
     const form = useForm({
         customer_id: props.serviceOrder.customer.id,
         service_order_stage_id: stage_id,

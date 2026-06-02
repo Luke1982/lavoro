@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\Company;
-use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Material;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
+use App\Models\ServiceOrderTask;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Enums\ServiceJobOutcomes;
@@ -42,10 +42,10 @@ class ServiceOrderController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function ($cq) use ($search) {
-                      $cq->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -147,11 +147,12 @@ class ServiceOrderController extends Controller
             'events.eventType',
             'events.executingUsers:id,name',
             'customFields',
+            'taskInstances.serviceOrderTask',
         ])->findOrFail($id);
 
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
-                $q->whereHas('serviceOrders', fn ($qq) => $qq->whereKey($service_order->id))
+                $q->whereHas('serviceOrders', fn($qq) => $qq->whereKey($service_order->id))
                     ->with('user:id,name')
                     ->orderByDesc('activities.created_at');
             }])
@@ -177,14 +178,15 @@ class ServiceOrderController extends Controller
         });
 
         return inertia('ServiceOrders/ShowPage', [
-            'serviceOrder'  => $service_order,
-            'customers'     => Customer::orderBy('name')->get(['id', 'name']),
-            'allMaterials'  => Material::all()->load([
+            'serviceOrder'   => $service_order,
+            'customers'      => Customer::orderBy('name')->get(['id', 'name']),
+            'allMaterials'   => Material::all()->load([
                 'usageUnit',
             ]),
-            'customFields'  => $service_order->allCustomFieldsWithValues(),
-            'stages'        => $stages_with_meta,
-            'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
+            'customFields'   => $service_order->allCustomFieldsWithValues(),
+            'stages'         => $stages_with_meta,
+            'closedStageId'  => ServiceOrderStage::where('is_closed_state', true)->value('id'),
+            'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
         ]);
     }
 

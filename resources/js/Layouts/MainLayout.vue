@@ -149,7 +149,7 @@
                                                     <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                         class="object-cover w-full h-full" />
                                                     <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
+                                                        }}</span>
                                                 </div>
                                                 <span class="sr-only">Profiel</span>
                                                 <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -365,6 +365,7 @@ import {
     DocumentTextIcon,
     Bars4Icon,
 } from '@heroicons/vue/24/outline'
+import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
@@ -413,6 +414,7 @@ const navigation = ref([
         requiresPermission: 'serviceorder.read',
         children: [
             { name: 'Fases', href: '/serviceorderstages', icon: Bars4Icon, current: false, requiresPermission: 'serviceorderstage.read' },
+            { name: 'Taken', href: '/serviceordertasks', icon: ClipboardListIcon, current: false, requiresPermission: 'serviceordertask.read' },
         ],
         open: false,
     },

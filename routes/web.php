@@ -42,6 +42,8 @@ use App\Http\Controllers\AssetRelationController;
 use App\Http\Controllers\TechnicalManagementController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
+use App\Http\Controllers\ServiceOrderTaskController;
+use App\Http\Controllers\ServiceOrderTaskInstanceController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -92,8 +94,17 @@ Route::group(
         Route::resource('serviceorderstages', \App\Http\Controllers\ServiceOrderStageController::class)
             ->except(['show', 'edit', 'create']);
         Route::post('serviceorderstages/reorder', [
-            \App\Http\Controllers\ServiceOrderStageController::class, 'updateOrder',
+            \App\Http\Controllers\ServiceOrderStageController::class,
+            'updateOrder',
         ])->name('serviceorderstages.reorder');
+        Route::resource('serviceordertasks', ServiceOrderTaskController::class)
+            ->except(['show', 'edit', 'create']);
+        Route::resource('serviceordertaskinstances', ServiceOrderTaskInstanceController::class)
+            ->only(['store', 'update', 'destroy']);
+        Route::patch(
+            'serviceordertaskinstances/{serviceordertaskinstance}/toggle',
+            [ServiceOrderTaskInstanceController::class, 'toggle']
+        )->name('serviceordertaskinstances.toggle');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

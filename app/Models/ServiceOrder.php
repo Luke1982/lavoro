@@ -67,6 +67,11 @@ class ServiceOrder extends Model
         return $this->belongsTo(ServiceOrderStage::class);
     }
 
+    public function taskInstances()
+    {
+        return $this->hasMany(ServiceOrderTaskInstance::class);
+    }
+
     public function advanceToPlannedStage(): void
     {
         $planned = ServiceOrderStage::where('is_planned_state', true)->first();
