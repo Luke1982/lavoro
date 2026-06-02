@@ -15,10 +15,10 @@
                     transition: bgFading ? `opacity ${BG_MS}ms ease` : 'none',
                 }"
             />
-            <!-- Grey/green track ring -->
+            <!-- Grey/green track ring — stays grey while ring is animating -->
             <circle cx="14" cy="14" r="12"
                 fill="none"
-                :stroke="isChecked ? 'var(--color-lavoro-green)' : '#d1d5db'"
+                :stroke="trackGreen ? 'var(--color-lavoro-green)' : '#d1d5db'"
                 stroke-width="2"
                 style="transition: stroke 0.15s"
             />
@@ -49,9 +49,9 @@
 <script setup>
 import { ref, watch } from 'vue'
 
-const RING_MS  = 420
-const BG_MS    = 180
-const CHECK_MS = 260
+const RING_MS   = 420
+const BG_MS     = 180
+const CHECK_MS  = 260
 const BOUNCE_MS = 320
 
 const props = defineProps({
@@ -61,6 +61,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const isChecked      = ref(props.modelValue)
+const trackGreen     = ref(props.modelValue)
 const ringing        = ref(false)
 const bgVisible      = ref(props.modelValue)
 const bgFading       = ref(false)
@@ -72,6 +73,7 @@ let animating = false
 watch(() => props.modelValue, (newVal) => {
     if (animating) return
     isChecked.value = newVal
+    trackGreen.value = newVal
     bgVisible.value = newVal
     showCheck.value = newVal
     checkAnimating.value = false
@@ -82,6 +84,7 @@ function toggle() {
 
     if (isChecked.value) {
         isChecked.value = false
+        trackGreen.value = false
         bgVisible.value = false
         bgFading.value = false
         showCheck.value = false
@@ -94,12 +97,13 @@ function toggle() {
     isChecked.value = true
     emit('update:modelValue', true)
 
-    // Phase 1 — ring sweeps around
+    // Phase 1 — ring sweeps around (track stays grey so the green ring is visible)
     ringing.value = true
 
     setTimeout(() => {
-        // Phase 2 — ring done, bg fades in
+        // Phase 2 — ring done, track turns green, bg fades in
         ringing.value = false
+        trackGreen.value = true
         bgFading.value = true
         bgVisible.value = true
 
@@ -172,11 +176,6 @@ function toggle() {
 
 .checkbox-btn--bounce {
     animation: checkbox-bounce v-bind(BOUNCE_MS + 'ms') ease forwards;
-}
-
-@keyframes bg-fade {
-    from { opacity: 0; }
-    to   { opacity: 1; }
 }
 
 @keyframes ring-fill {

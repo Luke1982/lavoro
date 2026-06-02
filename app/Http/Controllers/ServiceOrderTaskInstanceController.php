@@ -28,6 +28,16 @@ class ServiceOrderTaskInstanceController extends Controller
     {
         $serviceordertaskinstance->update($request->validated());
 
+        $title  = $serviceordertaskinstance->title
+            ?? $serviceordertaskinstance->serviceOrderTask?->title
+            ?? 'Taak';
+        $action = $request->validated()['is_complete'] ? 'voltooid' : 'heropend';
+
+        $serviceordertaskinstance->serviceOrder->logActivity(
+            "Taak \"{$title}\" {$action}",
+            category: 'status',
+        );
+
         return redirect()->back()->with('success', 'Taakstatus bijgewerkt');
     }
 

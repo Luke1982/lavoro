@@ -120,7 +120,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
-import CheckboxComponent from '@/Components/UI/CheckboxComponent.vue'
+import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },

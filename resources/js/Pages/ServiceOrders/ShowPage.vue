@@ -52,6 +52,17 @@
                                                 }">{{ selectedCustomer.name }}</component>
                                         </template>
                                     </EditableTextField>
+                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')" type="combobox"
+                                        label="Project" v-model="form.project_id" :options="internalProjects">
+                                        <template #display>
+                                            <component v-if="selectedProject"
+                                                :is="hasPermission('project.read') ? Link : 'span'"
+                                                :href="`/projects/${selectedProject.id}`" :class="{
+                                                    'underline text-lavoro-blue': hasPermission('project.read')
+                                                }">{{ selectedProject.title }}</component>
+                                            <span v-else class="text-gray-400">—</span>
+                                        </template>
+                                    </EditableTextField>
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70">
@@ -66,11 +77,24 @@
                                             </a>
                                         </template>
                                     </EditableTextField>
+                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')"
+                                        label="Externe referentie" v-model="form.external_purchaseorder_no"
+                                        @update="val => { form.external_purchaseorder_no = val; }"
+                                        placeholder="Externe referentie" />
                                 </div>
                             </div>
                         </BoxComponent>
                         <TaskInstancesWidget :service-order-id="serviceOrder.id"
                             :instances="serviceOrder.task_instances" :available-tasks="availableTasks" class="my-4" />
+                    </template>
+                    <template #sidebar>
+                        <BoxComponent v-if="timelineItems.length" class="mt-6 md:mt-0">
+                            <div class="flex">
+                                <TimelineIcon class="size-6 mr-2 flex-none object-cover" />
+                                <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
+                            </div>
+                            <TimelineComponent :activities="timelineItems" />
+                        </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
             </template>
@@ -448,11 +472,6 @@
                             (serviceOrder.actual_end_time || '').substring(0, 5) || '—' }}</span>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
-                    v-if="timelineItems.length">
-                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
-                    <TimelineComponent :activities="timelineItems" />
-                </div>
                 <div v-if="hasPermission('serviceorder.export_pdf')
                     || hasPermission('serviceorder.email_pdf')
                     || (serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks'))
@@ -514,7 +533,7 @@ import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
-import { ChevronRightIcon } from '@lucide/vue';
+import { ChevronRightIcon, TimelineIcon } from '@lucide/vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
@@ -538,6 +557,7 @@ const props = defineProps({
     closedStageId: { type: [Number, null], default: null },
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
+    projects: { type: Array, default: () => [] },
 });
 
 const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
@@ -569,6 +589,14 @@ const sortedServiceJobs = computed(() => {
 
 const internalCustomers = computed(() =>
     props.customers.map(c => ({ id: c.id, name: c.name }))
+);
+
+const internalProjects = computed(() =>
+    props.projects.map(p => ({ id: p.id, name: p.title }))
+);
+
+const selectedProject = computed(() =>
+    props.projects.find(p => p.id === form.project_id) ?? props.serviceOrder.project
 );
 
 const selectedCustomer = computed(() =>
@@ -685,6 +713,7 @@ watch(
         () => form.actual_start_time,
         () => form.actual_end_time,
         () => form.customer_id,
+        () => form.project_id,
     ],
     () => {
         if (isReverting.value) {
@@ -813,6 +842,7 @@ const timelineItems = computed(() => {
         category: a.category || 'other',
         description: a.description,
         created_at: a.created_at,
+        executing_users: a.user ? [a.user] : [],
     }));
     const evts = (props.serviceOrder.events || []).map(e => ({
         id: `evt-${e.id}`,

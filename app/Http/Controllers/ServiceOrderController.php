@@ -9,6 +9,7 @@ use App\Models\Material;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
+use App\Models\Project;
 use App\Models\ServiceOrderTask;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -141,13 +142,14 @@ class ServiceOrderController extends Controller
             'tickets.asset.product.productType',
             'materials',
             'activities' => function ($q) {
-                $q->orderByDesc('activityables.created_at');
+                $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },
             'remarks.user',
             'events.eventType',
             'events.executingUsers:id,name',
             'customFields',
             'taskInstances.serviceOrderTask',
+            'project:id,title',
         ])->findOrFail($id);
 
         $stages = ServiceOrderStage::orderBy('order')
@@ -187,6 +189,7 @@ class ServiceOrderController extends Controller
             'stages'         => $stages_with_meta,
             'closedStageId'  => ServiceOrderStage::where('is_closed_state', true)->value('id'),
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
+            'projects'       => Project::orderBy('title')->get(['id', 'title']),
         ]);
     }
 
