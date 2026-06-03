@@ -47,6 +47,8 @@
                             :label="column.comboLabel ? column.label : ''" />
                         <ColorPickerComponent v-else-if="column.fieldtype === 'colorpicker'" v-model="item[column.key]"
                             @update:modelValue="onCellChange(item.id, column.key, $event)" />
+                        <LucideIconPicker v-else-if="column.fieldtype === 'iconpicker'" v-model="item[column.key]"
+                            @update:modelValue="onCellChange(item.id, column.key, $event)" />
                         <span v-else-if="column.fieldtype === 'count'"
                             v-tooltip="item[column.tooltipKey ?? ''] ? { html: true, content: item[column.tooltipKey ?? ''], placement: 'top' } : undefined"
                             class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 tabular-nums cursor-default select-none ring-1 ring-gray-200 dark:ring-slate-600 self-start">
@@ -98,6 +100,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import ColorPickerComponent from '@/Components/UI/ColorPickerComponent.vue';
+import LucideIconPicker from '@/Components/UI/LucideIconPicker.vue';
 import { TrashIcon, PlusCircleIcon } from '@heroicons/vue/24/outline'
 
 type Item = {

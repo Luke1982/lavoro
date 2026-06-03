@@ -4,7 +4,7 @@
             <div class="flex">
                 <ClipboardListIcon class="size-6 mr-2 flex-none object-cover" />
                 <h2 class="text-base font-semibold text-gray-800 dark:text-slate-200">
-                    Uitgevoerde werkzaamheden / taken
+                    Uit te voeren werkzaamheden / taken
                 </h2>
             </div>
             <button v-if="canCreate" type="button" @click="addDrawerOpen = true"

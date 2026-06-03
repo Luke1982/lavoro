@@ -1,11 +1,12 @@
 <template>
-    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id">
+    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id"
+        v-slot="{ open }">
         <ComboboxLabel v-if="label" class="block text-xs font-bold mb-1.5 text-gray-600 dark:text-slate-300">
             {{ label }}
             <ListBulletIcon v-if="multiple" class="inline size-5 ml-1 text-gray-400"
                 v-tooltip="'Meerdere selecties mogelijk'" />
         </ComboboxLabel>
-        <div :class="[label ? 'mt-2' : '', 'relative']">
+        <div :class="[label ? 'mt-2' : '', 'relative']" ref="wrapperRef">
             <ComboboxInput :class="{
                 'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': !hasError,
                 'w-full rounded-md border-0 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-10 text-red-900 dark:text-red-500 placeholder:text-red-400 dark:placeholder:text-red-600 ring-1 ring-inset ring-red-300 dark:ring-red-500 focus:ring-2 focus:ring-inset focus:ring-red-600 dark:focus:ring-red-500 sm:text-sm sm:leading-6 disabled:bg-gray-100 dark:disabled:bg-slate-700': hasError,
@@ -20,36 +21,41 @@
                 class="absolute inset-y-0 right-0 h-5 w-5 text-gray-400 dark:text-slate-400 animate-spin mr-2 mt-2"
                 aria-hidden="true" />
 
-            <ComboboxOptions v-if="filteredOptions.length > 0"
-                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
-                <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"
-                    v-slot="{ active, selected }">
-                    <li
-                        :class="['relative cursor-default select-none py-2 pl-3 pr-9', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-slate-100']">
-                        <div class="flex items-center">
-                            <img v-if="withImages && option.image_url" :src="option.image_url" alt=""
-                                class="h-10 w-10 flex-shrink-0 rounded-full" />
-                            <div v-else-if="withImages"
-                                class="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 dark:bg-slate-700"></div>
-                            <span :class="['ml-3 block', selected && 'font-semibold']">
-                                {{ option.name }}
-                            </span>
-                        </div>
-
-                        <span v-if="selected"
-                            :class="['absolute inset-y-0 right-0 flex items-start pt-2 pr-2', active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400']">
-                            <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                        </span>
-                    </li>
-                </ComboboxOption>
-            </ComboboxOptions>
+            <Teleport to="body">
+                <div v-if="open && filteredOptions.length > 0" ref="floatingRef" :style="dropdownStyle">
+                    <ComboboxOptions
+                        class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
+                        <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option"
+                            as="template" v-slot="{ active, selected }">
+                            <li
+                                :class="['relative cursor-default select-none py-2 pl-3 pr-9', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-slate-100']">
+                                <div class="flex items-center">
+                                    <img v-if="withImages && option.image_url" :src="option.image_url" alt=""
+                                        class="h-10 w-10 flex-shrink-0 rounded-full" />
+                                    <div v-else-if="withImages"
+                                        class="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 dark:bg-slate-700">
+                                    </div>
+                                    <span :class="['ml-3 block', selected && 'font-semibold']">
+                                        {{ option.name }}
+                                    </span>
+                                </div>
+                                <span v-if="selected"
+                                    :class="['absolute inset-y-0 right-0 flex items-start pt-2 pr-2', active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400']">
+                                    <CheckIcon class="h-5 w-5" aria-hidden="true" />
+                                </span>
+                            </li>
+                        </ComboboxOption>
+                    </ComboboxOptions>
+                </div>
+            </Teleport>
         </div>
         <p v-if="hasError" class="mt-2 text-sm text-red-600">{{ errorMessage }}</p>
     </Combobox>
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, nextTick } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computePosition, autoUpdate, flip, offset } from '@floating-ui/dom'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 import {
     Combobox,
@@ -110,6 +116,29 @@ const props = defineProps({
 })
 
 const inputRef = ref(null)
+const wrapperRef = ref(null)
+const floatingRef = ref(null)
+const dropdownStyle = ref({ position: 'fixed', zIndex: 9999 })
+let stopAutoUpdate = null
+
+async function updatePosition() {
+    const reference = wrapperRef.value
+    const floating = floatingRef.value?.$el ?? floatingRef.value
+    if (!reference || !floating) return
+    const { x, y } = await computePosition(reference, floating, {
+        placement: 'bottom-start',
+        strategy: 'fixed',
+        middleware: [offset(4), flip()],
+    })
+    dropdownStyle.value = {
+        position: 'fixed',
+        zIndex: 9999,
+        top: `${y}px`,
+        left: `${x}px`,
+        width: `${reference.offsetWidth}px`,
+    }
+}
+
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const internalSearching = ref(props.searching)
@@ -175,12 +204,30 @@ const filteredOptions = computed(() =>
 
 // display logic
 const isFocused = ref(false)
+
+watch(floatingRef, (newVal) => {
+    stopAutoUpdate?.()
+    stopAutoUpdate = null
+    if (!newVal || !wrapperRef.value) return
+    const floating = newVal.$el ?? newVal
+    stopAutoUpdate = autoUpdate(wrapperRef.value, floating, updatePosition)
+})
+
+onBeforeUnmount(() => {
+    stopAutoUpdate?.()
+})
+
+const showSelectedOnFocus = ref(false)
+
 function onFocus() {
+    if (!showSelectedOnFocus.value) {
+        query.value = ''
+    }
     isFocused.value = true
-    query.value = ''
 }
 function onBlur() {
     isFocused.value = false
+    showSelectedOnFocus.value = false
     query.value = ''
 }
 const displayValue = option => {
@@ -189,6 +236,7 @@ const displayValue = option => {
         const arr = Array.isArray(option) ? option : internalValue.value
         return Array.isArray(arr) ? arr.map(o => o?.name).filter(Boolean).join(', ') : ''
     }
+    if (isFocused.value && showSelectedOnFocus.value) return option?.name ?? ''
     return isFocused.value ? '' : option?.name
 }
 
@@ -198,6 +246,7 @@ const debouncedEmitChange = debounce((value) => {
 
 watch(() => query.value, (newVal) => {
     if (newVal !== '') {
+        showSelectedOnFocus.value = false
         internalSearching.value = true
         debouncedEmitChange(newVal)
     }
@@ -210,16 +259,18 @@ function onSelect(newOption) {
         if (wasSelected) {
             internalValue.value = null
             emit('update:modelValue', null)
+            showSelectedOnFocus.value = false
         } else {
             internalValue.value = newOption
             emit('update:modelValue', newPayload)
+            showSelectedOnFocus.value = true
         }
         query.value = ''
         nextTick(() => {
-            setTimeout(() => {
-                if (!inputRef.value) return
-                inputRef.value.el.blur()
-            }, 100)
+            if (!inputRef.value) return
+            const el = inputRef.value.el
+            el.focus()
+            nextTick(() => el.select())
         })
     } else {
         internalValue.value = newOption

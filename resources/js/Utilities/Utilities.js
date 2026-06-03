@@ -126,6 +126,9 @@ export const formatProductSalePeriod = (startDate, endDate) => {
 
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
+const _currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
+export const nlCurrency = (value) => _currencyFormatter.format(Number(value) || 0);
+
 export const nextServiceIso = (product, fallbackDays = 365) => {
     const days =
         product?.typical_certificate_days ??

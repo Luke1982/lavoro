@@ -137,9 +137,13 @@ function onWrapperClick(event) {
 let closeTimer = null;
 
 function save() {
-    lastSubmittedValue.value = local.value;
-    model.value = local.value;
-    emit('update', local.value);
+    let value = local.value;
+    if (props.inputType === 'number' && typeof value === 'string') {
+        value = value.replace(',', '.');
+    }
+    lastSubmittedValue.value = value;
+    model.value = value;
+    emit('update', value);
 
     clearTimeout(closeTimer);
     closeTimer = setTimeout(() => {

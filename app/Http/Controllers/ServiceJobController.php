@@ -353,6 +353,7 @@ class ServiceJobController extends Controller
      */
     public function destroy(ServiceJob $servicejob)
     {
+        $servicejob->childJobs()->delete();
         $servicejob->delete();
         return redirect()->back()->with('success', 'Keuring succesvol verwijderd.');
     }

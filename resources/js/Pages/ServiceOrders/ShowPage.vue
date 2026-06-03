@@ -1,17 +1,24 @@
 <template>
-    <div class="flex items-center">
-        <Link href="/serviceorders" class="text-slate-400 text-sm font-medium">Werkbonnen</Link>
-        <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
-        <span class="text-slate-800 font-bold text-sm">Werkbon #{{ serviceOrder.id }} van {{
-            nlDate(serviceOrder.created_at) }}
-            voor {{ serviceOrder.customer.name }}</span>
+    <div class="flex items-center justify-between">
+        <div class="flex items-center">
+            <Link href="/serviceorders" class="text-slate-400 text-sm font-medium">Werkbonnen</Link>
+            <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
+            <span class="text-slate-800 font-bold text-sm">Werkbon #{{ serviceOrder.id }} van {{
+                nlDate(serviceOrder.created_at) }}
+                voor {{ serviceOrder.customer.name }}</span>
+        </div>
+        <SelectMenuComponent v-if="hasPermission('serviceorder.update')" v-model="form.type" :options="typeOptions"
+            label="Type" />
     </div>
-    <h1 class="text-2xl font-bold flex items-center gap-2 my-4">
-        Werkbon #{{ serviceOrder.id }}
-        <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
-            {{ serviceOrder.service_order_stage.name }}
-        </BadgeComponent>
-    </h1>
+    <div class="flex items-center justify-between my-4">
+        <h1 class="text-2xl font-bold flex items-center gap-2">
+            Werkbon #{{ serviceOrder.id }}
+            <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
+                {{ serviceOrder.service_order_stage.name }}
+            </BadgeComponent>
+        </h1>
+
+    </div>
     <ChaptersComponent>
         <ChapterHeaders>
             <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
@@ -86,14 +93,64 @@
                         </BoxComponent>
                         <TaskInstancesWidget :service-order-id="serviceOrder.id"
                             :instances="serviceOrder.task_instances" :available-tasks="availableTasks" class="my-4" />
+                        <BoxComponent class="my-4">
+                            <div class="flex items-center gap-x-3 mb-3 justify-between">
+                                <div class="flex gap-x-3">
+                                    <div
+                                        class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
+                                        <BadgeCheck class="h-5 w-5 text-white" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <h3
+                                            class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-x-2">
+                                            Keuringen
+                                        </h3>
+                                        <div class="text-slate-400 text-xs">Beheer en maak keuringen voor dit apparaat
+                                        </div>
+                                    </div>
+                                </div>
+                                <button v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
+                                    @click="addServiceJobFromSelectedAsset" :disabled="!selectedAsset"
+                                    :class="['px-4 py-2 rounded text-sm font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
+                                    + Keuring toevoegen
+                                </button>
+                            </div>
+                            <div
+                                class="flex justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
+                                <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets" class="p-4 w-1/4" />
+                                <TitleValueIconComponent :icon="CalendarDaysIcon" title="Datum ingebruikname"
+                                    :value="selectedAsset?.date_in_service ?? '—'" class="p-4 w-1/4 justify-center" />
+                                <TitleValueIconComponent :icon="CalendarDaysIcon" title="Volgende keuring"
+                                    :value="selectedAsset?.next_service_date ?? '—'" class="p-4 w-1/4 justify-center" />
+                                <TitleValueIconComponent :icon="ClipboardDocumentListIcon" title="Totaal keuringen"
+                                    :value="selectedAsset ? String(selectedAsset.total_servicejobs) : '—'"
+                                    class="p-4 w-1/4 justify-center" />
+                            </div>
+                            <ServiceJobsTable :servicejobs="serviceOrder.servicejobs" class="mt-4" />
+                        </BoxComponent>
+                        <BoxComponent>
+                            <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
+                                :all-materials="allMaterials" :is-closed="serviceOrder.is_closed"
+                                :sent-to-administration="serviceOrder.sent_to_administration"
+                                :type="serviceOrder.type" />
+                        </BoxComponent>
                     </template>
                     <template #sidebar>
-                        <BoxComponent v-if="timelineItems.length" class="mt-6 md:mt-0">
+                        <BoxComponent padding="p-0" extra-classes="overflow-hidden">
+                            <OpenStreetMapWidget
+                                :address="`${serviceOrder.customer.address}, ${serviceOrder.customer.postal_code} ${serviceOrder.customer.city}`" />
+                        </BoxComponent>
+                        <BoxComponent v-if="timelineItems.length" class="mt-6">
                             <div class="flex">
                                 <TimelineIcon class="size-6 mr-2 flex-none object-cover" />
                                 <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
                             </div>
                             <TimelineComponent :activities="timelineItems" />
+                        </BoxComponent>
+                        <BoxComponent class="mt-6">
+                            <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
+                                :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
+                                :comments="serviceOrder.remarks" />
                         </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
@@ -111,7 +168,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                        }}</h1>
+                    }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -227,7 +284,7 @@
                             placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
                     </div>
                 </div>
-                <div v-auto-animate class="my-4" v-if="hasPermission('servicejob.read')">
+                <div class="my-4" v-if="hasPermission('servicejob.read')">
                     <h2 v-if="serviceOrder.servicejobs.length > 0"
                         class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
                         Keuringen</h2>
@@ -242,15 +299,6 @@
                             </button>
                         </div>
                     </div>
-                    <div v-if="serviceOrder.servicejobs.length > 0"
-                        class="grid-cols-12 lg:grid mt-6 text-xs gap-4 font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 hidden dark:text-slate-300">
-                        <div class="col-span-5">Machine</div>
-                        <div class="col-span-2">Uitkomst</div>
-                        <div class="col-span-2">Tijdelijke goedkeur</div>
-                        <div class="col-span-2">Afgerond op</div>
-                    </div>
-                    <ServiceJobRow v-for="item in sortedServiceJobs" :key="item.job.id" :servicejob="item.job"
-                        class="mt-4" :asset="item.job.asset" :is-child="item.isChild" />
                 </div>
                 <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
                     class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
@@ -271,79 +319,7 @@
                         <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
                     </div>
                 </div>
-                <h2
-                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                    Materialen</h2>
-                <div class="grid grid-cols-12 mt-4">
-                    <div class="col-span-12 flex flex-col md:flex-row items-start" v-if="!serviceOrder.is_closed">
-                        <div class="flex flex-grow w-full">
-                            <div class="flex flex-col flex-grow">
-                                <span class="text-sm mb-2">Kies een materiaal</span>
-                                <ComboBox :options="internalMaterials" class="flex-grow" v-model="materialToAdd" />
-                            </div>
-                            <div class="flex flex-col w-30 ml-2">
-                                <span class="text-sm mb-2">Aantal</span>
-                                <TextInput v-model="materialsForm.quantity" type="number" placeholder="Aantal" />
-                            </div>
-                        </div>
-                        <button @click="attachMaterial" :disabled="serviceOrder.sent_to_administration"
-                            :class="'self-end mt-2 md:mt-0 ml-2 px-4 py-2 w-full md:w-50 rounded text-sm ' + ((serviceOrder.sent_to_administration) ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer')">
-                            Voeg toe
-                        </button>
-                    </div>
-                    <div class="col-span-12 flex mt-5">
-                        <div class="w-full">
-                            <div v-if="serviceOrder.materials.length > 0"
-                                class="hidden md:grid grid-cols-12 text-xs font-bold border-b-1 border-gray-300 dark:border-slate-700/60 pb-3 dark:text-slate-300">
-                                <div :class="showFinancialUi ? 'col-span-5' : 'col-span-7'" class="pl-4">Materiaal</div>
-                                <div :class="showFinancialUi ? 'col-span-2' : 'col-span-3'">Aantal</div>
-                                <div v-if="showFinancialUi" class="col-span-2">Prijs per stuk</div>
-                                <div v-if="showFinancialUi" class="col-span-2">Totaal</div>
-                                <div class="col-span-1">Acties</div>
-                            </div>
-                            <div v-auto-animate>
-                                <div v-for="material in serviceOrder.materials" :key="material.id"
-                                    class="grid grid-cols-12 py-4 md:py-2 items-center odd:bg-gray-50 dark:odd:bg-slate-800/40 px-4 md:px-0 relative">
-                                    <div
-                                        :class="'col-span-12 flex flex-col md:pl-4 ' + (showFinancialUi ? 'md:col-span-5' : 'md:col-span-7')">
-                                        <span class="font-bold text-xs block lg:hidden">Materiaal</span>
-                                        {{ material.name }}
-                                    </div>
-                                    <div
-                                        :class="'col-span-12 flex flex-col mt-2 md:mt-0 ' + (showFinancialUi ? 'md:col-span-2' : 'md:col-span-3')">
-                                        <span class="font-bold text-xs block lg:hidden">Aantal</span>
-                                        <template
-                                            v-if="!serviceOrder.sent_to_administration && !serviceOrder.is_closed">
-                                            <EditableTextField inputType="number" v-model="material.pivot.quantity"
-                                                class="w-full" @update="val => {
-                                                    materialsForm.quantity = val;
-                                                    updateMaterialQuantity(material.pivot.id);
-                                                }" />
-                                        </template>
-                                        <span v-else class="text-sm">{{ material.pivot.quantity }}</span>
-                                    </div>
-                                    <div v-if="showFinancialUi"
-                                        class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
-                                        <span class="font-bold text-xs block lg:hidden">Prijs pst.</span>
-                                        € {{ Number(material.price).toFixed(2) }}
-                                    </div>
-                                    <div v-if="showFinancialUi"
-                                        class="col-span-6 md:col-span-2 flex flex-col mt-2 md:mt-0">
-                                        <span class="font-bold text-xs block lg:hidden">Totaal</span>€ {{
-                                            (Number(material.pivot.quantity) *
-                                                Number(material.price)).toFixed(2) }}
-                                    </div>
-                                    <div class="absolute md:relative top-3 right-3 lg:top-0 lg:right-0 col-span-1"
-                                        v-if="!serviceOrder.sent_to_administration && !serviceOrder.is_closed">
-                                        <TrashIcon class="size-6 md:size-5 text-red-500 cursor-pointer"
-                                            @click="detachMaterial(material.pivot.id)"
-                                            v-tooltip="'Verwijder dit materiaal van de werkbon'" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div
                     class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
@@ -373,9 +349,6 @@
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 pl-0 md:pl-3 mt-4 md:mt-0">
-                        <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
-                            :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
-                            :comments="serviceOrder.remarks" class="mt-8" />
                     </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="service_order" :model-id="serviceOrder.id"
@@ -516,14 +489,14 @@
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import ServiceJobRow from '@/Components/ServiceJobRow.vue';
+import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
 import { mapsLinkFromCustomer, nlDate, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { DocumentTextIcon, PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, PencilSquareIcon, XMarkIcon, CalendarDaysIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline';
+import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
@@ -532,8 +505,12 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
+import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
-import { ChevronRightIcon, TimelineIcon } from '@lucide/vue';
+import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
+import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
+import { BadgeCheck, ChevronRightIcon, TimelineIcon } from '@lucide/vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
@@ -564,28 +541,6 @@ const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
 
 const editingSignature = ref(props.serviceOrder.signature_base64 === null);
 
-const sortedServiceJobs = computed(() => {
-    const jobs = props.serviceOrder.servicejobs;
-    const childrenByParent = {};
-    jobs.forEach(j => {
-        if (j.parent_service_job_id) {
-            if (!childrenByParent[j.parent_service_job_id]) childrenByParent[j.parent_service_job_id] = [];
-            childrenByParent[j.parent_service_job_id].push(j);
-        }
-    });
-    const result = [];
-    const included = new Set();
-    jobs.filter(j => !j.parent_service_job_id).forEach(parent => {
-        result.push({ job: parent, isChild: false });
-        included.add(parent.id);
-        (childrenByParent[parent.id] || []).forEach(child => {
-            result.push({ job: child, isChild: true });
-            included.add(child.id);
-        });
-    });
-    jobs.forEach(j => { if (!included.has(j.id)) result.push({ job: j, isChild: false }); });
-    return result;
-});
 
 const internalCustomers = computed(() =>
     props.customers.map(c => ({ id: c.id, name: c.name }))
@@ -602,19 +557,6 @@ const selectedProject = computed(() =>
 const selectedCustomer = computed(() =>
     props.customers.find(c => c.id === form.customer_id) ?? props.serviceOrder.customer
 );
-
-const internalMaterials = computed(() => {
-    return props.allMaterials.slice().sort((a, b) =>
-        a.name.localeCompare(b.name)
-    ).map((material) => {
-        let label = `${material.name}, code ${material.code}, voorraad ${material.stock}${hasPermission('serviceorder.see_financials') ? ', prijs € ' + material.price : ''}`;
-        return {
-            id: material.id,
-            name: label,
-        };
-    });
-});
-const materialToAdd = ref(internalMaterials.value[0]?.id || null);
 
 const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
     a.product.product_type.name.localeCompare(b.product.product_type.name)
@@ -649,6 +591,26 @@ watch(
     { deep: true, immediate: true }
 )
 
+const customerAssets = computed(() =>
+    props.serviceOrder.customer.assets.map(asset => {
+        const jobs = asset.servicejobs ?? []
+        const completed = jobs.map(j => j.completed_on).filter(Boolean).sort()
+        return {
+            id: asset.id,
+            name: `${asset.product.brand.name} ${asset.product.model}`,
+            category: asset.product.product_type.name,
+            article_number: asset.product.part_no,
+            serial_number: asset.serial_number,
+            is_bundle: !!asset.product.bundle,
+            next_service_date: asset.next_service_date ? nlDate(asset.next_service_date) : null,
+            last_service_date: completed.length ? nlDate(completed[completed.length - 1]) : null,
+            total_servicejobs: jobs.length,
+            thumbnail_url: asset.product.images.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
+        }
+    })
+);
+const selectedAsset = ref(customerAssets.value[0] ?? null);
+
 const assetToCheck = ref(internalAssets[0]?.id || null);
 const ticketToSolve = ref(internalTickets.value[0]?.id || null);
 
@@ -672,10 +634,6 @@ function closeViaStage() {
 function reopenViaStage() {
     onStageChange(null)
 }
-
-const materialsForm = useForm({
-    quantity: 1,
-});
 
 function onStageChange(stage_id) {
     if (!hasPermission('serviceorderstage.update')) {
@@ -702,7 +660,19 @@ const addServiceJob = () => {
     })
 };
 
+const addServiceJobFromSelectedAsset = () => {
+    if (!selectedAsset.value) return;
+    newServicejobForm.asset_id = selectedAsset.value.id;
+    newServicejobForm.post(`/servicejobs`, { preserveScroll: true });
+};
+
 const isReverting = ref(false);
+
+const typeOptions = [
+    { value: 'installation', title: 'Installatie' },
+    { value: 'service', title: 'Service' },
+    { value: 'mixed', title: 'Gemengd' },
+]
 
 watch(
     [
@@ -714,6 +684,7 @@ watch(
         () => form.actual_end_time,
         () => form.customer_id,
         () => form.project_id,
+        () => form.type,
     ],
     () => {
         if (isReverting.value) {
@@ -747,20 +718,6 @@ const attachTicket = () => {
     });
 };
 
-const attachMaterial = () => {
-    if (!materialToAdd.value || materialsForm.quantity <= 0) return;
-
-    materialsForm.post(`/serviceorders/ ${props.serviceOrder.id} /materials/${materialToAdd.value} `, {
-        preserveScroll: true,
-    });
-};
-
-const detachMaterial = (materiableId) => {
-    materialsForm.delete(`/serviceorders/ ${props.serviceOrder.id} /materials/${materiableId} `, {
-        preserveScroll: true,
-    });
-};
-
 const emailPdf = () => {
     if (emailing.value) return;
     if (!props.serviceOrder.is_closed) {
@@ -790,15 +747,6 @@ const emailPdfWithJobs = () => {
     form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf-with-jobs`, {
         preserveScroll: true,
         onFinish: () => { emailingCombined.value = false; }
-    });
-};
-
-const updateMaterialQuantity = (materiableId) => {
-    materialsForm.put(`/serviceorders/${props.serviceOrder.id}/materials/${materiableId}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            materialsForm.reset()
-        }
     });
 };
 

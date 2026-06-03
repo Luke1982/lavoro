@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Enums\ServiceOrderTypes;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 
@@ -56,6 +57,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
             'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
+            'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
         ];
     }
 

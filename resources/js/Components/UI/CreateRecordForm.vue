@@ -48,6 +48,14 @@
                     <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
                 </div>
 
+                <div v-else-if="field.type === 'iconpicker'" :class="['col-span-1 flex flex-col', field.class]">
+                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">{{ field.label }}</label>
+                    <div class="mt-2">
+                        <LucideIconPicker v-model="form[field.key]" />
+                    </div>
+                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
+                </div>
+
                 <div v-else-if="field.type === 'file'" :class="['col-span-1 flex flex-col', field.class]">
                     <label class="block text-sm font-medium leading-6 text-gray-900">{{ field.label }}</label>
                     <input type="file" class="mt-2 text-sm" @change="e => form[field.key] = e.target.files[0]" />
@@ -73,6 +81,7 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import LucideIconPicker from '@/Components/UI/LucideIconPicker.vue'
 
 const props = defineProps({
     action: { type: String, required: true },
@@ -106,6 +115,7 @@ const initialState = () => {
                 }
                 break
             case 'file':
+            case 'iconpicker':
                 state[f.key] = null
                 break
             default:

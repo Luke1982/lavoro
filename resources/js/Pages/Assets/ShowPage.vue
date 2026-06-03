@@ -277,17 +277,7 @@
                     <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2" />
                     <h1 class="text-l font-bold">Keuringen</h1>
                 </div>
-                <div v-if="asset.servicejobs.length"
-                    class="hidden lg:grid grid-cols-10 mt-3 text-xs gap-4 font-bold border-b-1 border-gray-300 pb-3">
-                    <div class="col-span-2">Uitkomst</div>
-                    <div class="col-span-2">Tijdelijke goedkeur</div>
-                    <div class="col-span-2">Afgerond op</div>
-                </div>
-                <div v-auto-animate>
-                    <ServiceJobRow v-for="servicejob in asset.servicejobs" :key="servicejob.id" :servicejob="servicejob"
-                        class="mt-4" />
-                </div>
-                <p v-if="!asset.servicejobs.length" class="text-sm text-gray-500 mt-3">Geen keuringen gevonden.</p>
+                <ServiceJobsTable :servicejobs="asset.servicejobs" class="mt-3" />
             </BoxComponent>
         </template>
 
@@ -329,7 +319,7 @@ import { ref, watch, computed, reactive } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import ServiceJobRow from '@/Components/ServiceJobRow.vue';
+import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission } from '@/Utilities/Utilities';

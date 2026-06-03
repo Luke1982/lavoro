@@ -12,5 +12,6 @@ class MaterialCategory extends Model
 
     protected $fillable = [
         'name',
+        'icon',
     ];
 }

@@ -30,9 +30,11 @@ const urlBase = 'materialcategories';
 
 const categoryFields = [
     { key: 'name', label: 'Naam', type: 'text' },
+    { key: 'icon', label: 'Icoon', type: 'iconpicker' },
 ]
 
 const headers = [
+    { key: 'icon', label: 'Icoon', fieldtype: 'iconpicker' },
     { key: 'name', label: 'Naam', fieldtype: 'text', width: 'w-full' },
 ];
 

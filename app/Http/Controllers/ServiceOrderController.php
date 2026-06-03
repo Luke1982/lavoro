@@ -24,6 +24,8 @@ use App\Http\Requests\ServiceOrderIndexRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
+use App\Http\Requests\ServiceOrderAttachMaterialRequest;
+use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 
@@ -133,6 +135,7 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'customer.assets.product.brand',
             'customer.assets.product.productType',
+            'customer.assets.servicejobs:id,asset_id,completed_on',
             'serviceOrderStage',
             'customer.assets.product.images',
             'servicejobs.asset.product.brand',
@@ -140,7 +143,8 @@ class ServiceOrderController extends Controller
             'customer.tickets.asset.product.productType',
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
-            'materials',
+            'materials.category',
+            'materials.usageUnit',
             'activities' => function ($q) {
                 $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },
@@ -566,10 +570,15 @@ class ServiceOrderController extends Controller
     /**
      * Attach a material to a service order.
      */
-    public function attachMaterial(Request $request, ServiceOrder $serviceorder, Material $material)
-    {
+    public function attachMaterial(
+        ServiceOrderAttachMaterialRequest $request,
+        ServiceOrder $serviceorder,
+        Material $material
+    ) {
+        $validated = $request->validated();
         $serviceorder->materials()->attach($material, [
-            'quantity' => $request->input('quantity', 1),
+            'quantity'  => $validated['quantity'],
+            'unforseen' => $validated['unforseen'] ?? false,
         ]);
         $serviceorder->logActivity(sprintf(
             'Materiaal toegevoegd: %s (aantal %s)',
@@ -602,30 +611,37 @@ class ServiceOrderController extends Controller
             ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
     }
 
-    public function updateMateriable(Request $request, ServiceOrder $serviceorder, string $materiable_id)
-    {
+    public function updateMateriable(
+        ServiceOrderUpdateMateriableRequest $request,
+        ServiceOrder $serviceorder,
+        string $materiable_id
+    ) {
         $pivotQuery = $serviceorder
             ->materials()
             ->newPivotQuery()
             ->where('materiables.id', $materiable_id);
 
         $record = $pivotQuery->first();
-        $material = null;
-        if ($record) {
-            $material = Material::find($record->material_id);
-        }
+        $material = $record ? Material::find($record->material_id) : null;
 
-        $pivotQuery->update([
-            'quantity' => $request->input('quantity', 1),
-            'material_role_id' => $request->input('material_role_id', null),
-        ]);
+        $validated = $request->validated();
+        $pivotQuery->update($validated);
 
         if ($material) {
-            $serviceorder->logActivity(sprintf(
-                'Materiaal hoeveelheid aangepast: %s naar %s',
-                $material->name,
-                $request->input('quantity', 1)
-            ));
+            if (array_key_exists('quantity', $validated)) {
+                $serviceorder->logActivity(sprintf(
+                    'Materiaal hoeveelheid aangepast: %s naar %s',
+                    $material->name,
+                    $validated['quantity']
+                ));
+            }
+            if (array_key_exists('unforseen', $validated)) {
+                $serviceorder->logActivity(sprintf(
+                    'Materiaal gemarkeerd als %s: %s',
+                    $validated['unforseen'] ? 'onvoorzien' : 'voorzien',
+                    $material->name
+                ));
+            }
         }
 
         return redirect()->back()

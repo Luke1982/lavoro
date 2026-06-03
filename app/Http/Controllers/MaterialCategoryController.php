@@ -34,6 +34,7 @@ class MaterialCategoryController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:100',
         ]);
 
         $category = MaterialCategory::create($data);
@@ -66,6 +67,7 @@ class MaterialCategoryController extends Controller
     {
         $materialcategory->update($request->validate([
             'name' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:100',
         ]));
 
         return redirect()->back()->with('success', 'Materiaal categorie is bijgewerkt.');

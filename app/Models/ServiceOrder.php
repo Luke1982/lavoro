@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RemarkableTrait;
-use App\Models\Activity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\HasOwner;
@@ -12,6 +11,7 @@ use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasActivities;
 use Carbon\Carbon;
 use App\Enums\EventStatusses;
+use App\Enums\ServiceOrderTypes;
 
 class ServiceOrder extends Model
 {
@@ -36,11 +36,13 @@ class ServiceOrder extends Model
         'actual_start_time',
         'actual_end_time',
         'service_order_stage_id',
+        'type',
     ];
 
     protected $casts = [
         'sent_to_administration' => 'boolean',
         'sent_to_customer' => 'boolean',
+        'type' => ServiceOrderTypes::class,
     ];
 
     protected $appends = ['is_closed'];
@@ -104,7 +106,7 @@ class ServiceOrder extends Model
             'materiable',
         )->withPivot(
             'quantity',
-            'material_role_id',
+            'unforseen',
             'id'
         )->withTimestamps();
     }
