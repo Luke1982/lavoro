@@ -29,16 +29,18 @@
                             as="template" v-slot="{ active, selected }">
                             <li
                                 :class="['relative cursor-default select-none py-2 pl-3 pr-9', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-slate-100']">
-                                <div class="flex items-center">
-                                    <img v-if="withImages && option.image_url" :src="option.image_url" alt=""
-                                        class="h-10 w-10 flex-shrink-0 rounded-full" />
-                                    <div v-else-if="withImages"
-                                        class="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 dark:bg-slate-700">
+                                <slot name="option" :option="option" :active="active" :selected="selected">
+                                    <div class="flex items-center">
+                                        <img v-if="withImages && option.image_url" :src="option.image_url" alt=""
+                                            class="h-10 w-10 flex-shrink-0 rounded-full" />
+                                        <div v-else-if="withImages"
+                                            class="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 dark:bg-slate-700">
+                                        </div>
+                                        <span :class="['ml-3 block', selected && 'font-semibold']">
+                                            {{ option.name }}
+                                        </span>
                                     </div>
-                                    <span :class="['ml-3 block', selected && 'font-semibold']">
-                                        {{ option.name }}
-                                    </span>
-                                </div>
+                                </slot>
                                 <span v-if="selected"
                                     :class="['absolute inset-y-0 right-0 flex items-start pt-2 pr-2', active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400']">
                                     <CheckIcon class="h-5 w-5" aria-hidden="true" />

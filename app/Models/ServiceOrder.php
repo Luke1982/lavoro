@@ -49,6 +49,18 @@ class ServiceOrder extends Model
 
     protected $with = ['serviceOrderStage'];
 
+    protected static function booted(): void
+    {
+        static::creating(function (ServiceOrder $service_order) {
+            if ($service_order->service_order_stage_id === null) {
+                $first_stage = ServiceOrderStage::orderBy('order')->first();
+                if ($first_stage) {
+                    $service_order->service_order_stage_id = $first_stage->id;
+                }
+            }
+        });
+    }
+
     public function getIsClosedAttribute(): bool
     {
         return $this->serviceOrderStage?->is_closed_state === true;

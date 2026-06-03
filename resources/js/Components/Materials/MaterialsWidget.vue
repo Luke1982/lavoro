@@ -8,8 +8,8 @@
                 </div>
                 <div class="flex flex-col">
                     <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100">Materialen</h2>
-                    <p class="text-sm text-gray-500 dark:text-slate-400">Overzicht van gebruikte materialen voor dit
-                        werk.</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-400">Overzicht van gebruikte materialen voor deze
+                        bon.</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -64,7 +64,8 @@
             <!-- Column headers (hidden on mobile) -->
             <div class="hidden md:grid text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 pt-3 pb-4 dark:border-slate-700 mb-1"
                 :class="showFinancial ? 'grid-cols-12' : 'grid-cols-12'">
-                <div :class="(showFinancial && showUnforseen) ? 'col-span-4' : 'col-span-5'" class="pl-17">Materiaal</div>
+                <div :class="(showFinancial && showUnforseen) ? 'col-span-4' : 'col-span-5'" class="pl-17">Materiaal
+                </div>
                 <div :class="showFinancial ? 'col-span-2' : (showUnforseen ? 'col-span-5' : 'col-span-6')">Aantal</div>
                 <div v-if="showUnforseen" class="col-span-1 text-center">Onv.</div>
                 <div v-if="showFinancial" class="col-span-2 pl-3">Prijs per stuk</div>
@@ -75,7 +76,7 @@
             <!-- Rows -->
             <div v-auto-animate>
                 <div v-for="material in materials" :key="material.id"
-                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors px-1">
+                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-1">
 
                     <!-- Icon + name + code -->
                     <div :class="(showFinancial && showUnforseen) ? 'md:col-span-4' : 'md:col-span-5'"
@@ -114,11 +115,9 @@
 
                     <!-- Unforseen toggle -->
                     <div v-if="showUnforseen" class="col-span-12 md:col-span-1 flex justify-center mt-2 md:mt-0">
-                        <SwitchComponent
-                            :model-value="!!material.pivot.unforseen"
+                        <SwitchComponent :model-value="!!material.pivot.unforseen"
                             @update:model-value="val => updateUnforseen(material.pivot.id, val)"
-                            v-tooltip="material.pivot.unforseen ? 'Onvoorzien' : 'Voorzien'"
-                        />
+                            v-tooltip="material.pivot.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
 
                     <!-- Price per unit -->
@@ -149,13 +148,17 @@
             class="flex items-center justify-between mt-3 font-semibold rounded-lavoro-sm bg-gray-100/50 py-5 px-3 text-xs text-gray-500 dark:text-slate-400">
             <span v-if="showUnforseen">
                 {{ materials.length }} materialen,
-                {{ materials.filter(m => !m.pivot.unforseen).length }} voorzien en
-                {{ materials.filter(m => !!m.pivot.unforseen).length }} onvoorzien
+                {{materials.filter(m => !m.pivot.unforseen).length}} voorzien en
+                {{materials.filter(m => !!m.pivot.unforseen).length}} onvoorzien
             </span>
             <span v-else>{{ materials.length }} materialen</span>
             <span v-if="showFinancial && showUnforseen" class="flex flex-col items-end gap-1">
-                <span>Voorzien <span class="text-lg text-gray-700 dark:text-slate-200 ml-2">{{ nlCurrency(forseenSubtotal) }}</span></span>
-                <span>Onvoorzien <span class="text-lg text-gray-700 dark:text-slate-200 ml-2">{{ nlCurrency(unforseenSubtotal) }}</span></span>
+                <span>Voorzien <span class="text-lg text-gray-700 dark:text-slate-200 ml-2">{{
+                    nlCurrency(forseenSubtotal)
+                        }}</span></span>
+                <span>Onvoorzien <span class="text-lg text-gray-700 dark:text-slate-200 ml-2">{{
+                    nlCurrency(unforseenSubtotal)
+                        }}</span></span>
             </span>
             <span v-else-if="showFinancial">
                 Totaal materialen

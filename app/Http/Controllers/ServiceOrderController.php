@@ -184,16 +184,15 @@ class ServiceOrderController extends Controller
         });
 
         return inertia('ServiceOrders/ShowPage', [
-            'serviceOrder'   => $service_order,
-            'customers'      => Customer::orderBy('name')->get(['id', 'name']),
-            'allMaterials'   => Material::all()->load([
-                'usageUnit',
-            ]),
-            'customFields'   => $service_order->allCustomFieldsWithValues(),
-            'stages'         => $stages_with_meta,
-            'closedStageId'  => ServiceOrderStage::where('is_closed_state', true)->value('id'),
-            'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
-            'projects'       => Project::orderBy('title')->get(['id', 'title']),
+            'serviceOrder'     => $service_order,
+            'customers'        => Customer::orderBy('name')->get(['id', 'name']),
+            'allMaterials'     => Material::all()->load(['usageUnit']),
+            'customFields'     => $service_order->allCustomFieldsWithValues(),
+            'stages'           => $stages_with_meta,
+            'closedStageId'    => ServiceOrderStage::where('is_closed_state', true)->value('id'),
+            'availableTasks'   => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
+            'projects'         => Project::orderBy('title')->get(['id', 'title']),
+            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
         ]);
     }
 
@@ -212,8 +211,14 @@ class ServiceOrderController extends Controller
     {
         $data = $request->validated();
 
-        $previous_stage_id = $serviceorder->service_order_stage_id;
-        $previous_is_closed = $serviceorder->is_closed;
+        $previous_stage_id    = $serviceorder->service_order_stage_id;
+        $previous_is_closed   = $serviceorder->is_closed;
+        $previous_customer_id = $serviceorder->customer_id;
+        $previous_project_id  = $serviceorder->project_id;
+
+        $serviceorder->load(['customer', 'project']);
+        $previous_customer_name  = $serviceorder->customer?->name;
+        $previous_project_title  = $serviceorder->project?->title;
 
         $serviceorder->update($data);
         $serviceorder->load('serviceOrderStage');
@@ -239,6 +244,26 @@ class ServiceOrderController extends Controller
                     $serviceorder->logActivity(
                         "Fase gewijzigd naar: {$new_stage->name}",
                         also_attach_to: [$new_stage]
+                    );
+                }
+            }
+        }
+
+        if (array_key_exists('customer_id', $data) && $data['customer_id'] != $previous_customer_id) {
+            $new_customer_name = $serviceorder->customer()->value('name');
+            $serviceorder->logActivity("Klant gewijzigd van '{$previous_customer_name}' naar '{$new_customer_name}'");
+        }
+
+        if (array_key_exists('project_id', $data) && $data['project_id'] != $previous_project_id) {
+            if ($data['project_id'] === null) {
+                $serviceorder->logActivity("Project losgekoppeld: '{$previous_project_title}'");
+            } else {
+                $new_project_title = $serviceorder->project()->value('title');
+                if ($previous_project_id === null) {
+                    $serviceorder->logActivity("Project gekoppeld: '{$new_project_title}'");
+                } else {
+                    $serviceorder->logActivity(
+                        "Project gewijzigd van '{$previous_project_title}' naar '{$new_project_title}'"
                     );
                 }
             }

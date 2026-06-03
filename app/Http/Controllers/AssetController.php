@@ -184,7 +184,8 @@ class AssetController extends Controller
             });
         $asset->load([
             'images',
-            'tickets',
+            'tickets.asset.product.brand',
+            'tickets.asset.product.productType',
             'product.brand',
             'product.images',
             'product.productType',

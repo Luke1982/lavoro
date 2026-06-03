@@ -7,7 +7,7 @@
                 nlDate(serviceOrder.created_at) }}
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
-        <SelectMenuComponent v-if="hasPermission('serviceorder.update')" v-model="form.type" :options="typeOptions"
+        <SelectMenuComponent v-if="hasPermission('serviceorder.change_type')" v-model="form.type" :options="typeOptions"
             label="Type" />
     </div>
     <div class="flex items-center justify-between my-4">
@@ -17,7 +17,6 @@
                 {{ serviceOrder.service_order_stage.name }}
             </BadgeComponent>
         </h1>
-
     </div>
     <ChaptersComponent>
         <ChapterHeaders>
@@ -117,7 +116,8 @@
                             </div>
                             <div
                                 class="flex justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
-                                <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets" class="p-4 w-1/4" />
+                                <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets"
+                                    class="p-4 w-1/4 min-w-100" />
                                 <TitleValueIconComponent :icon="CalendarDaysIcon" title="Datum ingebruikname"
                                     :value="selectedAsset?.date_in_service ?? '—'" class="p-4 w-1/4 justify-center" />
                                 <TitleValueIconComponent :icon="CalendarDaysIcon" title="Volgende keuring"
@@ -127,6 +127,110 @@
                                     class="p-4 w-1/4 justify-center" />
                             </div>
                             <ServiceJobsTable :servicejobs="serviceOrder.servicejobs" class="mt-4" />
+                        </BoxComponent>
+                        <BoxComponent class="my-4"
+                            v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
+                            <div class="flex items-center gap-x-3 mb-4 justify-between">
+                                <div class="flex gap-x-3">
+                                    <div
+                                        class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
+                                        <ExclamationTriangleIcon class="h-5 w-5 text-white" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Storingen
+                                        </h3>
+                                        <div class="text-slate-400 text-xs">Koppel een bestaande storing aan dit werk of
+                                            voeg een nieuwe toe.
+                                        </div>
+                                    </div>
+                                </div>
+                                <button v-if="hasPermission('ticket.create') && !serviceOrder.is_closed"
+                                    @click="showNewTicketDrawer = true"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 transition-opacity cursor-pointer">
+                                    + Nieuwe storing aanmaken
+                                </button>
+                            </div>
+
+                            <div v-if="hasPermission('ticket.add_to_serviceorder') && !serviceOrder.is_closed"
+                                class="mb-5">
+                                <label
+                                    class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                    Kies een bestaande storing
+                                    <InformationCircleIcon class="w-4 h-4 text-gray-400"
+                                        v-tooltip="'Selecteer een bestaande storing om deze aan de werkbon te koppelen'" />
+                                </label>
+                                <ComboBox :options="internalTickets" v-model="ticketToSolve"
+                                    placeholder="Zoek op storing, module, serienummer of omschrijving...">
+                                    <template #option="{ option, active }">
+                                        <div class="flex items-start gap-3 py-1">
+                                            <div
+                                                :class="[active ? 'bg-white/20' : ticketPriorityIconBg(option.priority), 'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center']">
+                                                <ExclamationTriangleIcon v-if="option.priority.toLowerCase() === 'hoog'"
+                                                    :class="[active ? 'text-white' : ticketPriorityIconColor(option.priority), 'w-5 h-5']" />
+                                                <ExclamationCircleIcon
+                                                    v-else-if="option.priority.toLowerCase() === 'normaal'"
+                                                    :class="[active ? 'text-white' : ticketPriorityIconColor(option.priority), 'w-5 h-5']" />
+                                                <InformationCircleIcon v-else
+                                                    :class="[active ? 'text-white' : ticketPriorityIconColor(option.priority), 'w-5 h-5']" />
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-semibold text-sm"
+                                                    :class="active ? 'text-white' : 'text-gray-900 dark:text-slate-100'">
+                                                    {{ option.subject }}</p>
+                                                <p class="text-xs mt-0.5 truncate"
+                                                    :class="active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400'">
+                                                    {{ option.product_type }}: {{ option.asset_name }} ({{
+                                                        option.serial_number }})
+                                                </p>
+                                                <p class="text-xs mt-0.5 line-clamp-1"
+                                                    :class="active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-500'">
+                                                    {{ option.description }}</p>
+                                            </div>
+                                            <div class="flex-shrink-0 text-right flex flex-col items-end gap-1">
+                                                <span class="text-xs whitespace-nowrap"
+                                                    :class="active ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'">Sinds
+                                                    {{ nlDate(option.created_at) }}</span>
+                                                <span
+                                                    :class="[active ? 'bg-white/20 text-white' : ticketPriorityBadgeClass(option.priority), 'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap']">
+                                                    Prio {{ option.priority }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </ComboBox>
+                            </div>
+
+                            <div v-if="serviceOrder.tickets.length > 0">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-slate-300">Gekoppelde
+                                        storingen</span>
+                                    <span
+                                        class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold">{{
+                                            serviceOrder.tickets.length }}</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" v-auto-animate>
+                                    <TicketCard v-for="ticket in serviceOrder.tickets" :key="ticket.id" :ticket="ticket"
+                                        :disconnect="'service_order_id'" />
+                                </div>
+                            </div>
+
+                            <div
+                                class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                                    <InformationCircleIcon class="w-4 h-4 text-indigo-500" />
+                                    {{ serviceOrder.tickets.length }} storingen gekoppeld aan dit werk
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span v-if="ticketsLastUpdate"
+                                        class="text-sm text-gray-400 dark:text-slate-500">Laatste update: {{
+                                            nlDate(ticketsLastUpdate) }} om {{ nlTime(ticketsLastUpdate) }}</span>
+                                    <Link href="/tickets"
+                                        class="inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        Storingen beheren
+                                        <ArrowTopRightOnSquareIcon class="w-3.5 h-3.5" />
+                                    </Link>
+                                </div>
+                            </div>
                         </BoxComponent>
                         <BoxComponent>
                             <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
@@ -138,6 +242,7 @@
                     <template #sidebar>
                         <BoxComponent padding="p-0" extra-classes="overflow-hidden">
                             <OpenStreetMapWidget
+                                :key="serviceOrder.customer_id"
                                 :address="`${serviceOrder.customer.address}, ${serviceOrder.customer.postal_code} ${serviceOrder.customer.city}`" />
                         </BoxComponent>
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
@@ -153,26 +258,54 @@
                                 :comments="serviceOrder.remarks" />
                         </BoxComponent>
                         <BoxComponent class="mt-6">
-                            <EditableTextField inputType="time" v-model="form.actual_start_time"
-                                @update="val => { form.actual_start_time = val; }">
-                                <template #display>
-                                    <span class=" text-sm">{{
-                                        (serviceOrder.actual_start_time || '').substring(0, 5) || 'Aankomsttijd'
+                            <div class="flex items-center mb-3">
+                                <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
+                                    <div class="flex w-full items-center">
+                                        <Signature class="size-6 mr-2 flex-none object-cover" />
+                                        <div class="flex flex-col">
+                                            <span class="text-md font-bold">Afronding en handtekening</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="py-2">
+                                <EditableTextField type="textarea" v-model="form.description"
+                                    :readonly="serviceOrder.is_closed" @update="val => { form.description = val; }"
+                                    label="Uitgevoerde werkzaamheden" />
+                            </div>
+                            <div class="py-2">
+                                <EditableTextField inputType="time" v-model="form.actual_start_time"
+                                    @update="val => { form.actual_start_time = val; }">
+                                    <template #display>
+                                        <span class="text-xs">{{
+                                            (serviceOrder.actual_start_time || '').substring(0, 5) || `Klik hier om een
+                                            aankomsttijd in te voeren`
                                         }}</span>
-                                </template>
-                            </EditableTextField>
-                            <EditableTextField inputType="time" v-model="form.actual_end_time"
-                                @update="val => { form.actual_end_time = val; }">
-                                <template #display>
-                                    <span class=" text-sm">{{
-                                        (serviceOrder.actual_end_time || '').substring(0, 5) || 'Vertrektijd'
+                                    </template>
+                                </EditableTextField>
+                            </div>
+                            <div class="py-2">
+                                <EditableTextField inputType="time" v-model="form.actual_end_time"
+                                    @update="val => { form.actual_end_time = val; }">
+                                    <template #display>
+                                        <span class="text-xs">{{
+                                            (serviceOrder.actual_end_time || '').substring(0, 5) || `Klik hier om een
+                                            vertrektijd in te voeren`
                                         }}</span>
-                                </template>
-                            </EditableTextField>
-
-                            <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                                :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }"
-                                placeholder="Voer de naam van degene in die de werkbon tekent" />
+                                    </template>
+                                </EditableTextField>
+                            </div>
+                            <div class="py-2">
+                                <EditableTextField v-model="form.signed_by" class="w-full mb-5"
+                                    :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }">
+                                    <template #display>
+                                        <span class="text-xs">{{
+                                            serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
+                                            in te voeren`
+                                        }}</span>
+                                    </template>
+                                </EditableTextField>
+                            </div>
                             <div class="relative" v-if="!editingSignature">
                                 <img :src="serviceOrder.signature_base64" alt="">
                                 <PencilSquareIcon v-if="!serviceOrder.is_closed"
@@ -185,337 +318,193 @@
                                     class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
                                     @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
                             </div>
+                            <button
+                                v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')"
+                                @click="closeViaStage"
+                                class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm">
+                                Werkbon afsluiten
+                            </button>
+                            <button
+                                v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')"
+                                @click="reopenViaStage"
+                                class="mt-4 w-full p-3 rounded-md bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-semibold text-sm">
+                                Werkbon heropenen
+                            </button>
+                        </BoxComponent>
+                    </template>
+                </TwoThirdsOneThird>
+            </template>
+            <template #chapter-1>
+                <TwoThirdsOneThird>
+                    <template #main>
+                        <div v-if="serviceOrder.sent_to_administration"
+                            class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm font-semibold">
+                            Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
+                        </div>
+                        <BoxComponent v-if="hasPermission('servicejob.read')" class="mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Keuringen</h3>
+                            </div>
+                            <div v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
+                                class="flex gap-2">
+                                <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
+                                    :with-images="true" />
+                                <button @click="addServiceJob"
+                                    class="w-40 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer shrink-0">
+                                    Keuren
+                                </button>
+                            </div>
+                        </BoxComponent>
+                        <BoxComponent v-if="customFields.length">
+                            <CustomFieldsComponent model-type="service_order" :model-id="serviceOrder.id"
+                                :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" />
+                        </BoxComponent>
+                    </template>
+                    <template #sidebar>
+                        <BoxComponent v-if="canSeeFinancials">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Financieel</h3>
+                                <button type="button" @click="showFinancial = !showFinancial"
+                                    class="p-1.5 rounded text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
+                                    <span class="text-xl leading-none select-none">$</span>
+                                </button>
+                            </div>
+                            <div v-if="showFinancialUi" class="text-sm">
+                                <div class="flex justify-between py-1">
+                                    <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
+                                    <span class="dark:text-slate-200">€ {{ materialsSubtotal.toFixed(2) }}</span>
+                                </div>
+                                <div class="flex justify-between py-1">
+                                    <span class="text-gray-500 dark:text-slate-400">BTW (21%)</span>
+                                    <span class="dark:text-slate-200">€ {{ materialsVat.toFixed(2) }}</span>
+                                </div>
+                                <div
+                                    class="flex justify-between py-2 border-t border-gray-200 dark:border-slate-700 mt-2 font-semibold">
+                                    <span class="dark:text-slate-100">Totaal</span>
+                                    <span class="dark:text-slate-100">€ {{ materialsTotal.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </BoxComponent>
+                    </template>
+                </TwoThirdsOneThird>
+            </template>
+
+            <template #chapter-2>
+                <TwoThirdsOneThird>
+                    <template #main>
+                        <BoxComponent
+                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_checks', 'snelstart.send_serviceorder'])">
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Acties</h3>
+                            <div class="flex flex-col gap-3">
+                                <a v-if="hasPermission('serviceorder.export_pdf')"
+                                    :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank"
+                                    rel="noopener"
+                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm font-semibold">
+                                    <span
+                                        class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                    Exporteer PDF voorbeeld
+                                </a>
+                                <button v-if="hasPermission('serviceorder.email_pdf')" @click="emailPdf"
+                                    :disabled="emailing"
+                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+                                    <span
+                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                    {{ emailing ? 'Versturen...' : 'E-mail PDF' }}
+                                </button>
+                                <button
+                                    v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
+                                    @click="emailPdfWithJobs" :disabled="emailingCombined"
+                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+                                    <span
+                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                    {{ emailingCombined ? 'Versturen...' : 'E-mail PDF + keuringen' }}
+                                </button>
+                                <button
+                                    v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
+                                    @click="sendToSnelStart"
+                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold">
+                                    Verstuur naar SnelStart
+                                </button>
+                                <span
+                                    v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
+                                    class="inline-flex items-center justify-center px-4 py-2.5 text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                                    Verzonden naar administratie
+                                </span>
+                            </div>
+                        </BoxComponent>
+                    </template>
+                    <template #sidebar>
+                        <BoxComponent>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-500 dark:text-slate-400">Status verzending</span>
+                                <span class="px-2 py-0.5 text-xs rounded border"
+                                    :class="serviceOrderPillColorClasses(serviceOrder)">
+                                    {{ serviceOrderPillText(serviceOrder) }}
+                                </span>
+                            </div>
                         </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
             </template>
         </ChapterContents>
     </ChaptersComponent>
-    <div class="mt-100"></div>
-    <TwoThirdsOneThird>
-        <template #main>
-            <BoxComponent class="dark:bg-slate-900">
-                <div v-if="serviceOrder.sent_to_administration"
-                    class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 text-amber-800 text-sm font-semibold">
-                    Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
-                </div>
-                <div class="flex items-center justify-between mb-4">
-                    <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
-                        nlDate(serviceOrder.created_at)
-                        }}</h1>
-                    <div class="flex flex-col md:flex-row gap-2">
-                        <Menu as="div" class="relative ml-4 inline-block text-left"
-                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
-                            <div>
-                                <MenuButton
-                                    class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-slate-100 inset-ring-1 inset-ring-gray-300 dark:inset-ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/70">
-                                    Acties
-                                    <ChevronDownIcon class="-mr-1 size-5 text-gray-400" aria-hidden="true" />
-                                </MenuButton>
-                            </div>
-                            <transition enter-active-class="transition ease-out duration-100"
-                                enter-from-class="transform opacity-0 scale-95"
-                                enter-to-class="transform opacity-100 scale-100"
-                                leave-active-class="transition ease-in duration-75"
-                                leave-from-class="transform opacity-100 scale-100"
-                                leave-to-class="transform opacity-0 scale-95">
-                                <MenuItems
-                                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-slate-800 shadow-lg outline-1 outline-black/5 dark:outline-slate-700/60 focus:outline-none">
-                                    <div class="py-1 text-sm">
-                                        <MenuItem v-if="hasPermission('serviceorder.export_pdf')" v-slot="{ active }">
-                                            <button type="button" @click="openPdf"
-                                                :class="[active ? 'opacity-90' : '', 'block w-full text-left px-4 py-2 bg-[#FF0000] text-white font-semibold rounded-sm']">
-                                                <span class="inline-flex items-center">
-                                                    <span
-                                                        class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                    Exporteer PDF voorbeeld
-                                                </span>
-                                            </button>
-                                        </MenuItem>
-                                        <MenuItem v-if="hasPermission('serviceorder.email_pdf')" v-slot="{ active }">
-                                            <button type="button" @click="emailPdf" :disabled="emailing"
-                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailing ? 'opacity-60 cursor-not-allowed' : '']">
-                                                <span class="inline-flex items-center" v-if="!emailing">
-                                                    <span
-                                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                    E-mail PDF
-                                                </span>
-                                                <span v-else>Versturen...</span>
-                                            </button>
-                                        </MenuItem>
-                                        <MenuItem
-                                            v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
-                                            v-slot="{ active }">
-                                            <button type="button" @click="emailPdfWithJobs" :disabled="emailingCombined"
-                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2', emailingCombined ? 'opacity-60 cursor-not-allowed' : '']">
-                                                <span class="inline-flex items-center" v-if="!emailingCombined">
-                                                    <span
-                                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                                    E-mail PDF + keuringen
-                                                </span>
-                                                <span v-else>Versturen...</span>
-                                            </button>
-                                        </MenuItem>
-                                        <MenuItem
-                                            v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
-                                            v-slot="{ active }">
-                                            <button type="button" @click="sendToSnelStart"
-                                                :class="[active ? 'bg-gray-100 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300', 'block w-full text-left px-4 py-2']">
-                                                Verstuur naar SnelStart
-                                            </button>
-                                        </MenuItem>
-                                        <MenuItem
-                                            v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
-                                            v-slot="{ active }">
-                                            <span
-                                                :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-gray-500 cursor-default']">Al
-                                                naar administratie</span>
-                                        </MenuItem>
-                                    </div>
-                                </MenuItems>
-                            </transition>
-                        </Menu>
-                        <span class="ml-2 px-3 py-1.5 inline-flex items-center text-sm rounded border"
-                            :class="serviceOrderPillColorClasses(serviceOrder)">
-                            {{ serviceOrderPillText(serviceOrder) }}
-                        </span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-12 gap-y-2 border-b border-gray-200 dark:border-slate-700/60 pb-4">
-                    <div class="col-span-2 text-xs text-gray-600 dark:text-slate-400">
-                        Naam klant
-                    </div>
-                    <div class="col-span-4">
-                        <component :is="hasPermission('customer.read') ? Link : 'span'"
-                            :href="`/customers/${serviceOrder.customer.id}`" :class="{
-                                'text-gray-800 dark:text-slate-200': true,
-                                'underline dark:hover:text-slate-400 hover:text-gray-600': hasPermission('customer.read')
-                            }">
-                            {{ serviceOrder.customer.name }}
-                        </component>
-                    </div>
-                    <div class="col-span-2 text-xs text-gray-600 dark:text-slate-400">
-                        Adres
-                    </div>
-                    <div class="col-span-4">
-                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
-                            class="underline text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">{{
-                                serviceOrder.customer.address
-                            }}, {{
-                                serviceOrder.customer.postal_code }} {{
-                                serviceOrder.customer.city }}
-                        </a>
-                    </div>
-                </div>
 
-                <h2
-                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                    Uitgevoerde werkzaamheden</h2>
-                <div class="grid grid-cols-12 mt-2">
-                    <div class="col-span-12">
-                        <EditableTextField type="textarea" v-model="form.description" :readonly="serviceOrder.is_closed"
-                            @update="val => { form.description = val; }"
-                            placeholder="Beschrijf hier kort de uitgevoerde werkzaamheden" />
-                    </div>
-                </div>
-                <div class="my-4" v-if="hasPermission('servicejob.read')">
-                    <h2 v-if="serviceOrder.servicejobs.length > 0"
-                        class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                        Keuringen</h2>
-                    <div class="grid grid-cols-12 mt-4"
-                        v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed">
-                        <div class="col-span-12 flex">
-                            <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
-                                :with-images="true" />
-                            <button @click="addServiceJob"
-                                class="w-auto md:w-40 ml-2 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
-                                Keuren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <h2 v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
-                    class="text-lg font-medium my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2 dark:text-slate-200">
-                    Storingen</h2>
-                <div class="grid grid-cols-12 mt-4"
-                    v-if="hasPermission('ticket.add_to_serviceorder') && !serviceOrder.is_closed">
-                    <div class="col-span-12 flex flex-col md:flex-row">
-                        <ComboBox :options="internalTickets" class="flex-grow" v-model="ticketToSolve" />
-                        <button @click="attachTicket"
-                            class="w-full md:w-40 ml-0 md:ml-2 mt-2 md:mt-0 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer">
-                            Voeg storing toe
-                        </button>
-                    </div>
-                </div>
-                <div class="flex flex-wrap" v-auto-animate>
-                    <div class="w-full md:w-1/2 odd:pr-2 even:pl-2 mt-4" v-for="ticket in serviceOrder.tickets"
-                        :key="ticket.id">
-                        <TicketCard :ticket="ticket" :disconnect="'service_order_id'" />
-                    </div>
-                </div>
-
-
-                <div
-                    class="flex items-center justify-between my-4 border-b-gray-200 dark:border-slate-700/60 border-b-1 pb-2">
-                    <h2 class="text-lg font-medium dark:text-slate-200">Afsluiting en opmerkingen</h2> <button
-                        v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
-                        class="text-gray-500 hover:text-gray-700"
-                        v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
-                        <span class="text-xl leading-none select-none">$</span>
-                    </button>
-                </div>
-                <div class="flex flex-wrap">
-                    <div class="w-full md:w-1/2 flex flex-col pr-0 md:pr-3">
-
-                    </div>
-                    <div class="w-full md:w-1/2 pl-0 md:pl-3 mt-4 md:mt-0">
-                    </div>
-                </div>
-                <CustomFieldsComponent v-if="customFields.length" model-type="service_order" :model-id="serviceOrder.id"
-                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
-            </BoxComponent>
-            <button class="w-full p-4 rounded-md bg-green-600 text-white mt-3 hover:bg-green-700" @click="closeViaStage"
-                v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')">Werkbon
-                afsluiten</button>
-            <button class="w-full p-4 rounded-md bg-blue-500 text-white mt-3" @click="reopenViaStage"
-                v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')">Werkbon
-                heropenen</button>
-        </template>
-        <template #sidebar>
-            <div class="space-y-4 mt-6 md:mt-0">
-                <div
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
-                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Werkbon details</h3>
-                    <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
-                        <span class="text-gray-500 dark:text-slate-400">Datum</span>
-                        <span>{{ nlDate(serviceOrder.created_at) }}</span>
-                    </div>
-                    <div
-                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
-                        <span class="text-gray-500 dark:text-slate-400">Externe ref.</span>
-                        <div v-if="hasPermission('serviceorder.update') && !serviceOrder.sent_to_administration"
-                            class=" w-1/2 text-right">
-                            <EditableTextField v-model="form.external_purchaseorder_no"
-                                @update="val => { form.external_purchaseorder_no = val; }"
-                                placeholder="Externe referentie" />
-                        </div>
-                        <span v-else class="text-gray-800 dark:text-slate-200">{{
-                            serviceOrder.external_purchaseorder_no || '—' }}</span>
-                    </div>
-                    <div class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60">
-                        <span class="text-gray-500 dark:text-slate-400">Klant</span>
-                        <component :is="hasPermission('customer.read') ? Link : 'span'"
-                            :href="`/customers/${serviceOrder.customer.id}`" :class="{
-                                'text-gray-800 dark:text-slate-200': true,
-                                'underline dark:hover:text-slate-400 hover:text-gray-600': hasPermission('customer.read')
-                            }">{{ serviceOrder.customer.name }}</component>
-                    </div>
-                    <div class="py-1 border-b border-gray-100 dark:border-slate-800/60">
-                        <span class="text-gray-500 dark:text-slate-400 block">Adres</span>
-                        <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
-                            class="underline text-xs break-words text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400">
-                            {{ serviceOrder.customer.address }}, {{ serviceOrder.customer.postal_code }} {{
-                                serviceOrder.customer.city }}
-                        </a>
-                    </div>
-                    <div class="flex items-center justify-between py-2">
-                        <span class="text-gray-500 dark:text-slate-400">Verzending</span>
-                        <span class="px-2 py-0.5 text-xs rounded border"
-                            :class="serviceOrderPillColorClasses(serviceOrder)">{{ serviceOrderPillText(serviceOrder)
-                            }}</span>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm"
-                    v-if="showFinancialUi">
-                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Materiaaloverzicht</h3>
-                    <div class="flex justify-between py-1">
-                        <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
-                        <span>€ {{ materialsSubtotal.toFixed(2) }}</span>
-                    </div>
-                    <div class="flex justify-between py-1">
-                        <span class="text-gray-500 dark:text-slate-400">BTW (21%)</span>
-                        <span>€ {{ materialsVat.toFixed(2) }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-t mt-2 font-semibold text-base">
-                        <span>Totaal</span>
-                        <span>€ {{ materialsTotal.toFixed(2) }}</span>
-                    </div>
-                </div>
-                <div
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 text-sm">
-                    <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Start- en eindtijd</h3>
-                    <div
-                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
-                        <span class="text-gray-500 dark:text-slate-400">Starttijd</span>
-                        <div v-if="hasPermission('serviceorder.update')" class="w-1/2 text-right">
-                            <EditableTextField inputType="time" v-model="form.actual_start_time"
-                                @update="val => { form.actual_start_time = val; }" class="text-right" />
-                        </div>
-                        <span v-else class="text-gray-800 dark:text-slate-200">{{
-                            (serviceOrder.actual_start_time || '').substring(0, 5) || '—' }}</span>
-                    </div>
-                    <div
-                        class="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800/60 items-center">
-                        <span class="text-gray-500 dark:text-slate-400">Eindtijd</span>
-                        <div v-if="hasPermission('serviceorder.update')" class="w-1/2 text-right">
-                            <EditableTextField inputType="time" v-model="form.actual_end_time"
-                                @update="val => { form.actual_end_time = val; }" class="text-right" />
-                        </div>
-                        <span v-else class="text-gray-800 dark:text-slate-200">{{
-                            (serviceOrder.actual_end_time || '').substring(0, 5) || '—' }}</span>
-                    </div>
-                </div>
-                <div v-if="hasPermission('serviceorder.export_pdf')
-                    || hasPermission('serviceorder.email_pdf')
-                    || (serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks'))
-                    || (!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder'))"
-                    class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-700/60 p-4 flex flex-col gap-2">
-                    <a v-if="hasPermission('serviceorder.export_pdf')"
-                        :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank" rel="noopener"
-                        class="inline-flex items-center justify-center px-3 py-2 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm w-full text-center font-semibold">
-                        <span
-                            class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                        Exporteer PDF voorbeeld
-                    </a>
-                    <button v-if="hasPermission('serviceorder.email_pdf')" @click="emailPdf"
-                        class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full font-semibold">
-                        <span
-                            class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                        E-mail PDF
-                    </button>
-                    <button
-                        v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
-                        @click="emailPdfWithJobs"
-                        class="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm w-full font-semibold">
-                        <span
-                            class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                        E-mail PDF + keuringen
-                    </button>
-                    <button
-                        v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
-                        @click="sendToSnelStart"
-                        class="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm w-full">Verstuur
-                        naar SnelStart</button>
-                    <span
-                        v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
-                        class="px-3 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300 text-center">Verzonden
-                        administratie</span>
-                </div>
+    <DrawerComponent v-model="showNewTicketDrawer" title="Nieuwe storing aanmaken"
+        subtitle="Maak een nieuwe storing aan en koppel deze direct aan de werkbon." max-width-class="max-w-lg">
+        <div class="px-4 sm:px-6 py-6 space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Apparaat</label>
+                <AssetSelectMenu :assets="customerAssets" v-model="newTicketAsset" placeholder="Kies een apparaat..."
+                    :needs-box="true" />
+                <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
+                    newTicketForm.errors.asset_id
+                }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
+                <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
+                <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
+                }}
+                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Prioriteit</label>
+                <ComboBox :options="ticketPriorities" v-model="newTicketForm.priority" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Omschrijving</label>
+                <textarea v-model="newTicketForm.description" rows="4" placeholder="Beschrijf het probleem in detail..."
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
+                <p v-if="newTicketForm.errors.description" class="mt-1 text-sm text-red-600">{{
+                    newTicketForm.errors.description }}</p>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-3">
+                <button @click="showNewTicketDrawer = false"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer">Annuleren</button>
+                <button @click="createAndAttachTicket" :disabled="newTicketForm.processing || attachForm.processing"
+                    class="px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+                    {{ newTicketForm.processing || attachForm.processing ? 'Opslaan...' : 'Opslaan' }}
+                </button>
             </div>
         </template>
-    </TwoThirdsOneThird>
+    </DrawerComponent>
 </template>
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { mapsLinkFromCustomer, nlDate, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { DocumentTextIcon, PencilSquareIcon, XMarkIcon, CalendarDaysIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, PencilSquareIcon, XMarkIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
@@ -529,8 +518,9 @@ import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
+import { ticketPriorities } from '@/Components/data/TicketData';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { BadgeCheck, ChevronRightIcon, TimelineIcon } from '@lucide/vue';
+import { BadgeCheck, ChevronRightIcon, Signature, TimelineIcon } from '@lucide/vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
@@ -555,9 +545,10 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
+    snelStartEnabled: { type: Boolean, default: false },
 });
 
-const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
+const chapterHeaders = ref(['Details', 'Administratie', 'Exporteren'])
 
 const editingSignature = ref(true);
 
@@ -605,6 +596,13 @@ watch(
                 return {
                     id: ticket.id,
                     name: `${ticket.asset.product.product_type.name}: ${ticket.asset.product.brand.name} ${ticket.asset.product.model} (${ticket.asset.serial_number}), ${ticket.subject}`,
+                    subject: ticket.subject,
+                    description: ticket.description,
+                    priority: ticket.priority,
+                    created_at: ticket.created_at,
+                    product_type: ticket.asset.product.product_type.name,
+                    asset_name: `${ticket.asset.product.brand.name} ${ticket.asset.product.model}`,
+                    serial_number: ticket.asset.serial_number,
                 };
             })
     },
@@ -631,8 +629,35 @@ const customerAssets = computed(() =>
 );
 const selectedAsset = ref(customerAssets.value[0] ?? null);
 
+const ticketsLastUpdate = computed(() => {
+    if (!props.serviceOrder.tickets.length) return null;
+    return props.serviceOrder.tickets.reduce((max, t) =>
+        t.updated_at > max ? t.updated_at : max,
+        props.serviceOrder.tickets[0].updated_at
+    );
+});
+
+const ticketPriorityIconBg = (priority) => {
+    const p = priority.toLowerCase();
+    if (p === 'hoog') return 'bg-red-100';
+    if (p === 'normaal') return 'bg-amber-100';
+    return 'bg-green-100';
+};
+const ticketPriorityIconColor = (priority) => {
+    const p = priority.toLowerCase();
+    if (p === 'hoog') return 'text-red-600';
+    if (p === 'normaal') return 'text-amber-600';
+    return 'text-green-600';
+};
+const ticketPriorityBadgeClass = (priority) => {
+    const p = priority.toLowerCase();
+    if (p === 'hoog') return 'bg-red-100 text-red-700';
+    if (p === 'normaal') return 'bg-amber-100 text-amber-700';
+    return 'bg-green-100 text-green-700';
+};
+
 const assetToCheck = ref(internalAssets[0]?.id || null);
-const ticketToSolve = ref(internalTickets.value[0]?.id || null);
+const ticketToSolve = ref(null);
 
 const form = useForm({
     ...props.serviceOrder,
@@ -729,12 +754,53 @@ watch(
 const attachTicket = () => {
     if (!hasPermission('ticket.add_to_serviceorder')) return;
     if (!ticketToSolve.value) return;
-    form.post(`/serviceorders/ ${props.serviceOrder.id} /tickets/${ticketToSolve.value} `, {
+    const id = ticketToSolve.value;
+    ticketToSolve.value = null;
+    form.post(`/serviceorders/${props.serviceOrder.id}/tickets/${id}`, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => {
-            internalTickets.value = internalTickets.value.filter(ticket => ticket.id !== ticketToSolve.value);
+            internalTickets.value = internalTickets.value.filter(ticket => ticket.id !== id);
         }
+    });
+};
+
+watch(ticketToSolve, (id) => {
+    if (id) attachTicket();
+});
+
+const showNewTicketDrawer = ref(false);
+const newTicketAsset = ref(null);
+const newTicketForm = useForm({
+    asset_id: null,
+    subject: '',
+    description: '',
+    priority: 'Normaal',
+    status: 'Open',
+});
+const attachForm = useForm({});
+
+const createAndAttachTicket = () => {
+    newTicketForm.asset_id = newTicketAsset.value?.id ?? null;
+    newTicketForm.post('/tickets', {
+        preserveScroll: true,
+        onSuccess: () => {
+            const newTicket = usePage().props.flash?.extra?.ticket;
+            if (newTicket?.id) {
+                attachForm.post(`/serviceorders/${props.serviceOrder.id}/tickets/${newTicket.id}`, {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        showNewTicketDrawer.value = false;
+                        newTicketForm.reset();
+                        newTicketAsset.value = null;
+                    },
+                });
+            } else {
+                showNewTicketDrawer.value = false;
+                newTicketForm.reset();
+            }
+        },
     });
 };
 
