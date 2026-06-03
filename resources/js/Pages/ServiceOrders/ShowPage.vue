@@ -152,6 +152,40 @@
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.remarks" />
                         </BoxComponent>
+                        <BoxComponent class="mt-6">
+                            <EditableTextField inputType="time" v-model="form.actual_start_time"
+                                @update="val => { form.actual_start_time = val; }">
+                                <template #display>
+                                    <span class=" text-sm">{{
+                                        (serviceOrder.actual_start_time || '').substring(0, 5) || 'Aankomsttijd'
+                                        }}</span>
+                                </template>
+                            </EditableTextField>
+                            <EditableTextField inputType="time" v-model="form.actual_end_time"
+                                @update="val => { form.actual_end_time = val; }">
+                                <template #display>
+                                    <span class=" text-sm">{{
+                                        (serviceOrder.actual_end_time || '').substring(0, 5) || 'Vertrektijd'
+                                        }}</span>
+                                </template>
+                            </EditableTextField>
+
+                            <EditableTextField v-model="form.signed_by" class="w-full mb-5"
+                                :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }"
+                                placeholder="Voer de naam van degene in die de werkbon tekent" />
+                            <div class="relative" v-if="!editingSignature">
+                                <img :src="serviceOrder.signature_base64" alt="">
+                                <PencilSquareIcon v-if="!serviceOrder.is_closed"
+                                    class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
+                                    @click="editingSignature = true" />
+                            </div>
+                            <div class="relative" v-if="editingSignature">
+                                <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
+                                <XMarkIcon
+                                    class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
+                                    @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
+                            </div>
+                        </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
             </template>
@@ -168,7 +202,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold flex-1 uppercase dark:text-slate-100">Werkbon van {{
                         nlDate(serviceOrder.created_at)
-                    }}</h1>
+                        }}</h1>
                     <div class="flex flex-col md:flex-row gap-2">
                         <Menu as="div" class="relative ml-4 inline-block text-left"
                             v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'snelstart.send_serviceorder', 'serviceorder.email_pdf_with_checks'])">
@@ -332,21 +366,7 @@
                 </div>
                 <div class="flex flex-wrap">
                     <div class="w-full md:w-1/2 flex flex-col pr-0 md:pr-3">
-                        <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                            :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }"
-                            placeholder="Voer de naam van degene in die de werkbon tekent" />
-                        <div class="relative" v-if="!editingSignature">
-                            <img :src="serviceOrder.signature_base64" alt="">
-                            <PencilSquareIcon v-if="!serviceOrder.is_closed"
-                                class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
-                                @click="editingSignature = true" />
-                        </div>
-                        <div class="relative" v-if="editingSignature">
-                            <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
-                            <XMarkIcon
-                                class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
-                                @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
-                        </div>
+
                     </div>
                     <div class="w-full md:w-1/2 pl-0 md:pl-3 mt-4 md:mt-0">
                     </div>
@@ -539,7 +559,7 @@ const props = defineProps({
 
 const chapterHeaders = ref(['Details', 'Planning', 'Exporteren'])
 
-const editingSignature = ref(props.serviceOrder.signature_base64 === null);
+const editingSignature = ref(true);
 
 
 const internalCustomers = computed(() =>
