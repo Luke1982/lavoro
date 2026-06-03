@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
+use App\Models\Product;
 use App\Models\ServiceOrderTaskInstance;
 use App\Http\Requests\ServiceOrderTaskInstanceStoreRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
@@ -26,12 +28,41 @@ class ServiceOrderTaskInstanceController extends Controller
 
     public function toggle(ServiceOrderTaskInstanceToggleRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
-        $serviceordertaskinstance->update($request->validated());
+        $data = $request->validated();
+
+        $serviceordertaskinstance->update(['is_complete' => $data['is_complete']]);
+
+        if ($data['is_complete'] && !empty($data['assets'])) {
+            $serviceordertaskinstance->loadMissing('serviceOrder');
+            $customer_id = $serviceordertaskinstance->serviceOrder->customer_id;
+            $today       = now()->toDateString();
+
+            foreach ($data['assets'] as $asset_data) {
+                $product = Product::with('productType')->find($asset_data['product_id']);
+                if (!$product) {
+                    continue;
+                }
+
+                $term_days        = $product->typical_certificate_days
+                    ?? $product->productType?->typical_certificate_days;
+                $next_service_date = $term_days
+                    ? now()->addDays($term_days)->toDateString()
+                    : null;
+
+                Asset::create([
+                    'customer_id'      => $customer_id,
+                    'product_id'       => $product->id,
+                    'serial_number'    => $asset_data['serial_number'],
+                    'date_in_service'  => $today,
+                    'next_service_date' => $next_service_date,
+                ]);
+            }
+        }
 
         $title  = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
-        $action = $request->validated()['is_complete'] ? 'voltooid' : 'heropend';
+        $action = $data['is_complete'] ? 'voltooid' : 'heropend';
 
         $serviceordertaskinstance->serviceOrder->logActivity(
             "Taak \"{$title}\" {$action}",

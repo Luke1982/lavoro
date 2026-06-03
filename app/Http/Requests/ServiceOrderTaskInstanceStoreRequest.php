@@ -18,6 +18,8 @@ class ServiceOrderTaskInstanceStoreRequest extends FormRequest
         return [
             'service_order_id'      => ['required', 'integer', 'exists:service_orders,id'],
             'service_order_task_id' => ['nullable', 'integer', 'exists:service_order_tasks,id'],
+            'product_id'            => ['nullable', 'integer', 'exists:products,id'],
+            'quantity'              => ['nullable', 'integer', 'min:1', 'max:999'],
             'title'                 => ['nullable', 'string', 'max:255'],
             'description'           => ['nullable', 'string', 'max:500'],
             'is_complete'           => ['sometimes', 'boolean'],

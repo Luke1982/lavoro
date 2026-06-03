@@ -18,7 +18,10 @@ class ServiceOrderTaskInstanceToggleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'is_complete' => ['required', 'boolean'],
+            'is_complete'              => ['required', 'boolean'],
+            'assets'                   => ['sometimes', 'array'],
+            'assets.*.product_id'      => ['required_with:assets', 'integer', 'exists:products,id'],
+            'assets.*.serial_number'   => ['required_with:assets', 'string', 'max:255'],
         ];
     }
 }

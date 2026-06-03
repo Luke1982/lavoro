@@ -91,7 +91,8 @@
                             </div>
                         </BoxComponent>
                         <TaskInstancesWidget :service-order-id="serviceOrder.id"
-                            :instances="serviceOrder.task_instances" :available-tasks="availableTasks" class="my-4" />
+                            :instances="serviceOrder.task_instances" :available-tasks="availableTasks"
+                            :products="products" class="my-4" />
                         <BoxComponent class="my-4">
                             <div class="flex items-center gap-x-3 mb-3 justify-between">
                                 <div class="flex gap-x-3">
@@ -241,8 +242,7 @@
                     </template>
                     <template #sidebar>
                         <BoxComponent padding="p-0" extra-classes="overflow-hidden">
-                            <OpenStreetMapWidget
-                                :key="serviceOrder.customer_id"
+                            <OpenStreetMapWidget :key="serviceOrder.customer_id"
                                 :address="`${serviceOrder.customer.address}, ${serviceOrder.customer.postal_code} ${serviceOrder.customer.city}`" />
                         </BoxComponent>
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
@@ -324,8 +324,7 @@
                                 class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm">
                                 Werkbon afsluiten
                             </button>
-                            <button
-                                v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')"
+                            <button v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')"
                                 @click="reopenViaStage"
                                 class="mt-4 w-full p-3 rounded-md bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-semibold text-sm">
                                 Werkbon heropenen
@@ -506,8 +505,6 @@ import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, 
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { DocumentTextIcon, PencilSquareIcon, XMarkIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
-import { ChevronDownIcon } from '@heroicons/vue/20/solid';
-import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
@@ -544,6 +541,7 @@ const props = defineProps({
     closedStageId: { type: [Number, null], default: null },
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
+    products: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     snelStartEnabled: { type: Boolean, default: false },
 });
@@ -819,9 +817,6 @@ const emailPdf = () => {
 
 const emailing = ref(false);
 const emailingCombined = ref(false);
-const openPdf = () => {
-    window.open(`/serviceorders/${props.serviceOrder.id}/export/pdf`, '_blank');
-};
 
 const emailPdfWithJobs = () => {
     if (emailingCombined.value) return;

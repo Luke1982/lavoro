@@ -17,6 +17,8 @@ class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
     {
         return [
             'is_complete' => ['sometimes', 'boolean'],
+            'product_id'  => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
+            'quantity'    => ['sometimes', 'nullable', 'integer', 'min:1', 'max:999'],
             'title'       => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];

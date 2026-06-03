@@ -153,6 +153,10 @@ class ServiceOrderController extends Controller
             'events.executingUsers:id,name',
             'customFields',
             'taskInstances.serviceOrderTask',
+            'taskInstances.product.brand',
+            'taskInstances.product.productType',
+            'taskInstances.product.productables.childProduct.brand',
+            'taskInstances.product.productables.childProduct.productType',
             'project:id,title',
         ])->findOrFail($id);
 
@@ -193,6 +197,14 @@ class ServiceOrderController extends Controller
             'availableTasks'   => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'projects'         => Project::orderBy('title')->get(['id', 'title']),
             'snelStartEnabled' => filled(config('services.snelstart.client_key')),
+            'products'         => \App\Models\Product::with(['brand', 'productType'])
+                ->orderBy('model')
+                ->get()
+                ->map(fn ($p) => [
+                    'id'     => $p->id,
+                    'name'   => "{$p->brand->name} {$p->model} ({$p->productType->name})",
+                    'bundle' => $p->bundle,
+                ]),
         ]);
     }
 
