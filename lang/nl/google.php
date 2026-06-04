@@ -9,4 +9,5 @@ return [
     'oauth_token_exchange_failed' => 'Kon Google-token niet uitwisselen.',
     'oauth_no_refresh_token' => 'Google gaf geen refresh-token terug. Ontkoppel je Lavoro-toegang in je Google-account en koppel opnieuw.',
     'oauth_missing_calendar_scope' => 'Je hebt geen toegang tot Google Agenda verleend. Vink bij het inloggen via Google het vakje "Google Agenda beheren" aan en probeer opnieuw.',
+    'oauth_calendar_setup_failed' => 'Google Agenda kon niet worden aangemaakt. Probeer opnieuw.',
 ];

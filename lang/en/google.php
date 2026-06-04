@@ -8,4 +8,5 @@ return [
     'oauth_no_code' => 'No authorisation code received.',
     'oauth_token_exchange_failed' => 'Could not exchange Google token.',
     'oauth_no_refresh_token' => 'Google did not return a refresh token. Revoke Lavoro access in your Google account and reconnect.',
+    'oauth_calendar_setup_failed' => 'Could not create Google Calendar. Please try again.',
 ];

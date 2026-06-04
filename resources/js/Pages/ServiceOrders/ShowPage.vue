@@ -60,8 +60,10 @@
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
                                 <div class="flex flex-col gap-6 md:pr-8">
-                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')" type="combobox"
-                                        label="Klant" v-model="form.customer_id" :options="internalCustomers">
+                                    <EditableTextField
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        type="combobox" label="Klant" v-model="form.customer_id"
+                                        :options="internalCustomers">
                                         <template #display>
                                             <component :is="hasPermission('customer.read') ? Link : 'span'"
                                                 :href="`/customers/${selectedCustomer.id}`" :class="{
@@ -69,8 +71,10 @@
                                                 }">{{ selectedCustomer.name }}</component>
                                         </template>
                                     </EditableTextField>
-                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')" type="combobox"
-                                        label="Project" v-model="form.project_id" :options="internalProjects">
+                                    <EditableTextField
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        type="combobox" label="Project" v-model="form.project_id"
+                                        :options="internalProjects">
                                         <template #display>
                                             <component v-if="selectedProject"
                                                 :is="hasPermission('project.read') ? Link : 'span'"
@@ -94,7 +98,8 @@
                                             </a>
                                         </template>
                                     </EditableTextField>
-                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    <EditableTextField
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
                                         @update="val => { form.external_purchaseorder_no = val; }"
                                         placeholder="Externe referentie" />
@@ -102,9 +107,9 @@
                             </div>
                         </BoxComponent>
                         <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
-                            :service-order-id="serviceOrder.id"
-                            :instances="serviceOrder.task_instances" :available-tasks="availableTasks"
-                            :products="products" :is-closed="serviceOrder.is_closed" class="my-4" />
+                            :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
+                            :available-tasks="availableTasks" :products="products" :is-closed="serviceOrder.is_closed"
+                            class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
                             <div class="flex items-start sm:items-center gap-x-3 mb-3 justify-between">
                                 <div class="flex gap-x-3">
@@ -289,8 +294,7 @@
                             <div class="py-2">
                                 <EditableTextField type="textarea" v-model="form.description"
                                     :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
-                                    @update="val => { form.description = val; }"
-                                    label="Uitgevoerde werkzaamheden" />
+                                    @update="val => { form.description = val; }" label="Uitgevoerde werkzaamheden" />
                             </div>
                             <div class="py-2">
                                 <EditableTextField inputType="time" v-model="form.actual_start_time"
@@ -300,7 +304,7 @@
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_start_time || '').substring(0, 5) || `Klik hier om een
                                             aankomsttijd in te voeren`
-                                            }}</span>
+                                        }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -312,7 +316,7 @@
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_end_time || '').substring(0, 5) || `Klik hier om een
                                             vertrektijd in te voeren`
-                                            }}</span>
+                                        }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -324,7 +328,7 @@
                                         <span class="text-xs">{{
                                             serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
                                             in te voeren`
-                                            }}</span>
+                                        }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -337,16 +341,22 @@
                             <div v-if="editingSignature && !serviceOrder.is_closed">
                                 <div class="mb-3">
                                     <h3 class="font-bold text-gray-900 dark:text-slate-100">Handtekening</h3>
-                                    <p class="text-sm text-gray-500 dark:text-slate-400">Laat de klant hier ondertekenen ter akkoord van de uitgevoerde werkzaamheden.</p>
+                                    <p class="text-sm text-gray-500 dark:text-slate-400">Laat de klant hier ondertekenen
+                                        ter akkoord van de
+                                        uitgevoerde werkzaamheden.</p>
                                 </div>
                                 <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
                                 <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <div
+                                        class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                                         <Shield class="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-sm text-gray-900 dark:text-slate-100">Juridisch bindend</p>
-                                        <p class="text-sm text-gray-500 dark:text-slate-400">Deze handtekening is juridisch bindend en wordt opgeslagen bij deze werkbon.</p>
+                                        <p class="font-semibold text-sm text-gray-900 dark:text-slate-100">Juridisch
+                                            bindend</p>
+                                        <p class="text-sm text-gray-500 dark:text-slate-400">Deze handtekening is
+                                            juridisch bindend en wordt
+                                            opgeslagen bij deze werkbon.</p>
                                     </div>
                                 </div>
                             </div>
@@ -373,23 +383,9 @@
                             class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm font-semibold">
                             Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                         </div>
-                        <BoxComponent v-if="hasPermission('servicejob.read')" class="mb-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Keuringen</h3>
-                            </div>
-                            <div v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
-                                class="flex gap-2">
-                                <ComboBox :options="internalAssets" class="flex-grow" v-model="assetToCheck"
-                                    :with-images="true" />
-                                <button @click="addServiceJob"
-                                    class="w-40 px-4 py-1.5 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer shrink-0">
-                                    Keuren
-                                </button>
-                            </div>
-                        </BoxComponent>
-                        <BoxComponent v-if="customFields.length">
-                            <CustomFieldsComponent model-type="service_order" :model-id="serviceOrder.id"
-                                :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" />
+                        <BoxComponent>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Materialen</h3>
+                            <MaterialsFinancialOverview :materials="serviceOrder.materials" />
                         </BoxComponent>
                     </template>
                     <template #sidebar>
@@ -491,14 +487,14 @@
                     :needs-box="true" />
                 <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
                     newTicketForm.errors.asset_id
-                    }}</p>
+                }}</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
-                    }}
+                }}
                 </p>
             </div>
             <div>
@@ -539,6 +535,7 @@ import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { DocumentTextIcon, PencilSquareIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Shield, Check } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
+import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';

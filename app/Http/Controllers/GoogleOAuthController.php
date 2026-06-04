@@ -91,24 +91,32 @@ class GoogleOAuthController extends Controller
             $attributes,
         );
 
-        $service_api = app(\App\Services\Google\GoogleCalendarApi::class);
-        $google_cal = $service_api->createCalendar($integration, config('google.calendar_summary_own'));
+        $synced_cal = \App\Models\GoogleSyncedCalendar::where('google_calendar_integration_id', $integration->id)
+            ->where('owner_user_id', $user->id)
+            ->first();
 
-        try {
-            $synced_cal = \Illuminate\Support\Facades\DB::transaction(function () use ($integration, $user, $google_cal) {
-                return \App\Models\GoogleSyncedCalendar::create([
-                    'google_calendar_integration_id' => $integration->id,
-                    'owner_user_id' => $user->id,
-                    'google_calendar_id' => $google_cal->getId(),
-                    'summary' => $google_cal->getSummary(),
-                ]);
-            });
-        } catch (\Throwable $e) {
+        if (!$synced_cal) {
+            $service_api = app(\App\Services\Google\GoogleCalendarApi::class);
+            $google_cal = $service_api->createCalendar($integration, config('google.calendar_summary_own'));
+
             try {
-                $service_api->deleteCalendar($integration, $google_cal->getId());
-            } catch (\Throwable $ignored) {
+                $synced_cal = \Illuminate\Support\Facades\DB::transaction(
+                    function () use ($integration, $user, $google_cal) {
+                        return \App\Models\GoogleSyncedCalendar::create([
+                            'google_calendar_integration_id' => $integration->id,
+                            'owner_user_id' => $user->id,
+                            'google_calendar_id' => $google_cal->getId(),
+                            'summary' => $google_cal->getSummary(),
+                        ]);
+                    }
+                );
+            } catch (\Throwable $e) {
+                try {
+                    $service_api->deleteCalendar($integration, $google_cal->getId());
+                } catch (\Throwable $ignored) {
+                }
+                return redirect()->route('me.edit')->with('error', __('google.oauth_calendar_setup_failed'));
             }
-            throw $e;
         }
 
         \App\Jobs\Google\BackfillCalendarJob::dispatch($synced_cal->id);
