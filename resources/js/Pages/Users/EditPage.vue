@@ -115,7 +115,10 @@ const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
 
 const isEdit = computed(() => !!props.user)
-const isSelfEdit = computed(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/me'))
+const isSelfEdit = computed(() =>
+    (typeof window !== 'undefined' && window.location.pathname.startsWith('/me')) ||
+    (!!props.user?.id && props.user.id === page.props.auth?.user?.id)
+)
 
 const form = useForm({
     name: props.user?.name || '',
