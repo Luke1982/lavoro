@@ -179,4 +179,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(CalendarGrant::class, 'viewer_user_id');
     }
+
+    public function unavailabilities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserUnavailability::class);
+    }
 }

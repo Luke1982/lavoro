@@ -15,9 +15,12 @@
                             </span>
                         </div>
                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                            <div class="min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                                     <span v-html="event.rendered"></span>
+                                </div>
+                                <div v-if="event.user" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
+                                    {{ event.user.name }}
                                 </div>
                                 <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
                                     <div v-for="u in event.executing_users" :key="u.id"
@@ -30,6 +33,10 @@
                                         <span class="text-[11px] leading-none text-gray-600 dark:text-gray-400">{{
                                             u.name }}</span>
                                     </div>
+                                </div>
+                                <div v-if="event.thumbnailPath" class="mt-2">
+                                    <img :src="`/storage/${event.thumbnailPath}`" alt=""
+                                        class="h-16 w-24 object-cover rounded-md border border-gray-200 dark:border-slate-700" />
                                 </div>
                             </div>
                             <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400 relative">
@@ -68,15 +75,14 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 
 const props = defineProps({
-    activities: { type: Array, required: true }, // array of activity models
+    activities: { type: Array, required: true },
     limit: { type: Number, default: 5 }
 });
 
-// Map category => icon + background color
 const CATEGORY_MAP = {
     created: { icon: PlusIcon, bg: 'bg-blue-500' },
     updated: { icon: PencilSquareIcon, bg: 'bg-amber-500' },
@@ -88,13 +94,12 @@ const CATEGORY_MAP = {
     ticket: { icon: TicketIcon, bg: 'bg-cyan-600' },
     email: { icon: EnvelopeIcon, bg: 'bg-purple-600' },
     event: { icon: CalendarDaysIcon, bg: 'bg-slate-500' },
+    image: { icon: PhotoIcon, bg: 'bg-teal-500' },
     other: { icon: EllipsisHorizontalIcon, bg: 'bg-gray-400' },
 };
 
-// Fallback icon
 const fallback = { icon: CheckIcon, bg: 'bg-gray-400' };
 
-// Format: if today => time only, else full NL date + time
 const formatDate = (iso) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -116,7 +121,9 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         iconBackground: meta.bg,
         iconStyle: a.color ? { backgroundColor: a.color } : undefined,
         rendered: a.rendered ?? a.description,
+        user: a.user ?? null,
         executing_users: a.executing_users || [],
+        thumbnailPath: a.metadata?.thumbnail_path ?? null,
         is_event: a.category === 'event',
         completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),
@@ -125,5 +132,4 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
 }));
 
 const toggle = () => expanded.value = !expanded.value;
-
 </script>

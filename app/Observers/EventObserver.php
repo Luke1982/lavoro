@@ -47,6 +47,9 @@ class EventObserver
                 $mapping->google_event_id,
             );
         }
+        foreach ($event->serviceOrders as $service_order) {
+            $service_order->revertToPlanningCancelledStage();
+        }
     }
 
     public function restored(Event $event): void

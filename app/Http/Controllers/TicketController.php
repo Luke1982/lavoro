@@ -180,7 +180,9 @@ class TicketController extends Controller
      */
     public function store(TicketCreateRequest $request)
     {
-        $ticket = Ticket::create($request->validated());
+        $ticket = Ticket::create(array_merge($request->validated(), [
+            'created_by_id' => $request->user()->id,
+        ]));
         return redirect()->back()->with([
             'success' => 'Storing is aangemaakt.',
             'extra' => [
@@ -205,12 +207,19 @@ class TicketController extends Controller
             'images',
             'customFields',
             'closedBy',
+            'createdBy',
+            'activities.user',
+            'serviceOrder.serviceOrderStage',
+            'serviceOrder.events',
+            'serviceOrder.executingUsers',
         ]);
+
+        $ticket->remarks->load('user');
+
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
-            'remarks' => $ticket->remarks->load('user'),
             'customFields' => $ticket->allCustomFieldsWithValues(),
         ]);
     }

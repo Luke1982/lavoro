@@ -14,8 +14,10 @@ use App\Models\Company;
 use Illuminate\Support\Facades\Storage;
 use App\Models\CalendarGrant;
 use App\Models\Event as EventModel;
+use App\Models\UserUnavailability;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
+use App\Policies\UserUnavailabilityPolicy;
 use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
+        Gate::policy(UserUnavailability::class, UserUnavailabilityPolicy::class);
 
         EventModel::observe(\App\Observers\EventObserver::class);
         \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);

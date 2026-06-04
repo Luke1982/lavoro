@@ -66,6 +66,14 @@ class ImageController extends Controller
             $created_images[] = $new_image;
         }
 
+        if (method_exists($imageable_record, 'logActivity') && count($created_images) > 0) {
+            $count = count($created_images);
+            $label = $count === 1 ? 'Afbeelding toegevoegd' : "{$count} afbeeldingen toegevoegd";
+            $imageable_record->logActivity($label, category: 'image', metadata: [
+                'thumbnail_path' => $created_images[0]->path,
+            ]);
+        }
+
         return redirect()->back()->with([
             'success' => 'Afbeelding(en) opgeslagen.',
             'extra' => json_encode($created_images, true),
@@ -146,6 +154,11 @@ class ImageController extends Controller
         $imageable_record = new ($request->imageable_type);
         $imageable_record = $imageable_record->find($request->imageable_id);
         $imageable_record->images()->detach($image->id);
+
+        if (method_exists($imageable_record, 'logActivity')) {
+            $imageable_record->logActivity('Afbeelding verwijderd', category: 'image');
+        }
+
         $image->delete();
         Storage::delete($image->path);
         return redirect()->back()->with('success', 'Afbeelding verwijderd.');

@@ -9,10 +9,11 @@
                 class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-1"></div>
                 <div class="col-span-1">Volgorde</div>
-                <div class="col-span-4">Naam</div>
+                <div class="col-span-3">Naam</div>
                 <div class="col-span-2 text-center">Gepland fase</div>
                 <div class="col-span-2 text-center">Gesloten fase</div>
                 <div class="col-span-1 text-center">Planbare fase</div>
+                <div class="col-span-1 text-center">Geannuleerd</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
@@ -25,7 +26,7 @@
                     <div class="col-span-1 text-gray-800 dark:text-slate-200">
                         {{ stage.order }}
                     </div>
-                    <div class="col-span-4 pr-4">
+                    <div class="col-span-3 pr-4">
                         <EditableTextField type="input" :decoration="false" :model-value="stage.name"
                             @update="(val) => saveStage(stage.id, { name: val })" />
                     </div>
@@ -40,6 +41,10 @@
                     <div class="col-span-1 flex items-center justify-center">
                         <SwitchComponent :model-value="stage.is_plannable_state"
                             @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
+                    </div>
+                    <div class="col-span-1 flex items-center justify-center">
+                        <SwitchComponent :model-value="stage.is_planning_cancelled_state"
+                            @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
                     </div>
                     <div class="col-span-1 flex justify-end">
                         <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">

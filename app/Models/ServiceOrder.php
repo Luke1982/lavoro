@@ -101,6 +101,17 @@ class ServiceOrder extends Model
         $this->logActivity("Fase gewijzigd naar: {$planned->name} (door koppeling agenda)");
     }
 
+    public function revertToPlanningCancelledStage(): void
+    {
+        $cancelled = ServiceOrderStage::where('is_planning_cancelled_state', true)->first();
+        if (!$cancelled) {
+            return;
+        }
+        $this->service_order_stage_id = $cancelled->id;
+        $this->save();
+        $this->logActivity("Fase gewijzigd naar: {$cancelled->name} (agenda item verwijderd)");
+    }
+
     public function serviceJobs()
     {
         return $this->hasMany(ServiceJob::class);

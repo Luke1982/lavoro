@@ -44,6 +44,7 @@ use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
+use App\Http\Controllers\UserUnavailabilityController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -186,6 +187,13 @@ Route::group(
             ->name('upcomingactivities.map'); // requires activitylist.read
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+
+        Route::post('users/{user}/unavailabilities', [UserUnavailabilityController::class, 'store'])
+            ->name('users.unavailabilities.store');
+        Route::delete(
+            'users/{user}/unavailabilities/{unavailability}',
+            [UserUnavailabilityController::class, 'destroy']
+        )->name('users.unavailabilities.destroy');
 
         Route::get('google/oauth/start', [GoogleOAuthController::class, 'start'])
             ->name('google.oauth.start');

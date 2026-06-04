@@ -26,6 +26,7 @@ class Ticket extends Model
         'status_code',
         'closed_on',
         'closed_by_id',
+        'created_by_id',
         'service_order_id',
     ];
 
@@ -37,6 +38,16 @@ class Ticket extends Model
     public function closedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function serviceOrder(): BelongsTo
+    {
+        return $this->belongsTo(ServiceOrder::class);
     }
 
     public function images()

@@ -44,6 +44,10 @@ class ServiceOrderStageController extends Controller
                 ServiceOrderStage::where('is_closed_state', true)
                     ->update(['is_closed_state' => false]);
             }
+            if (!empty($data['is_planning_cancelled_state'])) {
+                ServiceOrderStage::where('is_planning_cancelled_state', true)
+                    ->update(['is_planning_cancelled_state' => false]);
+            }
             ServiceOrderStage::create($data);
         });
 
@@ -67,6 +71,11 @@ class ServiceOrderStageController extends Controller
                 ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
                     ->where('is_closed_state', true)
                     ->update(['is_closed_state' => false]);
+            }
+            if (!empty($data['is_planning_cancelled_state'])) {
+                ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
+                    ->where('is_planning_cancelled_state', true)
+                    ->update(['is_planning_cancelled_state' => false]);
             }
             $serviceorderstage->update($data);
         });

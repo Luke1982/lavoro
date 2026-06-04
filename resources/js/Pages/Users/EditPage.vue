@@ -92,6 +92,12 @@
                 Annuleren</Link>
             </div>
         </form>
+
+        <!-- Roster -->
+        <div v-if="props.user" class="mt-8">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Rooster</h2>
+            <UserRosterWidget :user="props.user" :unavailabilities="props.unavailabilities" />
+        </div>
     </div>
 </template>
 <script setup>
@@ -101,8 +107,9 @@ import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
+import UserRosterWidget from '@/Components/Users/UserRosterWidget.vue'
 
-const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] } })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] } })
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)

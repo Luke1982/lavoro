@@ -17,12 +17,14 @@ class ServiceOrderStage extends Model
         'is_planned_state',
         'is_closed_state',
         'is_plannable_state',
+        'is_planning_cancelled_state',
     ];
 
     protected $casts = [
-        'is_planned_state'   => 'boolean',
-        'is_closed_state'    => 'boolean',
-        'is_plannable_state' => 'boolean',
+        'is_planned_state'            => 'boolean',
+        'is_closed_state'             => 'boolean',
+        'is_plannable_state'          => 'boolean',
+        'is_planning_cancelled_state' => 'boolean',
     ];
 
     public function serviceOrders()

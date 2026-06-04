@@ -32,8 +32,13 @@ class UserController extends Controller
     {
         $user->load('roles:id,name');
         return inertia('Users/EditPage', [
-            'user' => $user,
-            'allRoles' => Role::orderBy('name')->get(['id','name']),
+            'user'             => $user,
+            'allRoles'         => Role::orderBy('name')->get(['id', 'name']),
+            'unavailabilities' => $user->unavailabilities()
+                ->orderBy('type')
+                ->orderBy('day_of_week')
+                ->orderBy('date')
+                ->get(),
         ]);
     }
 
@@ -72,8 +77,13 @@ class UserController extends Controller
         abort_unless($user, 403);
         $user->load('roles:id,name');
         return inertia('Users/EditPage', [
-            'user' => $user,
-            'allRoles' => $user->isAdmin() ? Role::orderBy('name')->get(['id','name']) : [],
+            'user'             => $user,
+            'allRoles'         => $user->isAdmin() ? Role::orderBy('name')->get(['id', 'name']) : [],
+            'unavailabilities' => $user->unavailabilities()
+                ->orderBy('type')
+                ->orderBy('day_of_week')
+                ->orderBy('date')
+                ->get(),
         ]);
     }
 

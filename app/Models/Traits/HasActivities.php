@@ -26,7 +26,8 @@ trait HasActivities
         ?\DateTimeInterface $occurred_at = null,
         ?string $category = null,
         ?User $user = null,
-        array $also_attach_to = []
+        array $also_attach_to = [],
+        ?array $metadata = null
     ): Activity {
         if (!$category) {
             $lower = mb_strtolower($description);
@@ -58,6 +59,7 @@ trait HasActivities
             'description' => $description,
             'category' => $category,
             'user_id' => $resolved_user?->id,
+            'metadata' => $metadata,
         ]);
         $this->activities()->attach($activity->id);
 

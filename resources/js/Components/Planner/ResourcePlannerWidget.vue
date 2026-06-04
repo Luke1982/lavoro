@@ -194,6 +194,20 @@
                                     class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
                             </div>
 
+                            <!-- Unavailability overlays -->
+                            <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)" :key="'block-' + user.id + '-' + day.iso + '-' + oi">
+                                <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
+                                     :style="{
+                                         left: overlay.left + '%',
+                                         width: overlay.width + '%',
+                                         background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
+                                     }">
+                                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
+                                        {{ overlay.label || 'Niet beschikbaar' }}
+                                    </span>
+                                </div>
+                            </template>
+
                             <!-- Now indicator -->
                             <div v-if="isToday(day.date) && nowOffsetPercent !== null"
                                 class="absolute top-0 bottom-0 w-px bg-red-500/70 pointer-events-none z-10"
@@ -287,6 +301,7 @@ const dayStartHour = ref(props.defaultDayStartHour)
 const dayEndHour = ref(props.defaultDayEndHour)
 
 const events = ref([])
+const unavailabilities = ref([])
 const weekStart = ref(startOfWeek(new Date()))
 
 const sidebarScrollRef = ref(null)
@@ -466,6 +481,7 @@ onMounted(() => {
     updateNow()
     nowInterval = setInterval(updateNow, 60_000)
     fetchEvents()
+    fetchUnavailabilities()
     nextTick(() => scrollToWorkdayStart())
 })
 onUnmounted(() => {
@@ -473,7 +489,10 @@ onUnmounted(() => {
 })
 
 watch([dayStartHour, dayEndHour], () => updateNow())
-watch(weekStart, () => fetchEvents())
+watch(weekStart, () => {
+    fetchEvents()
+    fetchUnavailabilities()
+})
 
 function shiftWeek(direction) {
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
@@ -537,6 +556,56 @@ async function fetchEvents() {
     } catch (e) {
         console.error('Failed to fetch events for planner', e)
     }
+}
+
+async function fetchUnavailabilities() {
+    try {
+        const startParam = formatUtcDatetime(weekStart.value)
+        const endParam   = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
+        const response = await axios.get(
+            `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
+        )
+        if (response.status === 200) {
+            unavailabilities.value = response.data
+        }
+    } catch (e) {
+        console.error('Failed to fetch unavailabilities', e)
+    }
+}
+
+function isBlockedAtTime(userId, dayIso, startMin, endMin) {
+    // startMin/endMin are relative to dayStartHour; convert to absolute minutes from midnight
+    const absStart = startMin + dayStartHour.value * 60
+    const absEnd   = endMin   + dayStartHour.value * 60
+    return unavailabilities.value.some(b => {
+        if (b.user_id !== userId || b.date !== dayIso) return false
+        if (b.start_time === null) return true // full day holiday
+        const [sh, sm] = b.start_time.split(':').map(Number)
+        const [eh, em] = b.end_time.split(':').map(Number)
+        return absStart < eh * 60 + em && absEnd > sh * 60 + sm
+    })
+}
+
+function getBlockOverlays(userId, dayIso) {
+    const totalMin = (dayEndHour.value - dayStartHour.value) * 60
+    return unavailabilities.value
+        .filter(b => b.user_id === userId && b.date === dayIso)
+        .map(b => {
+            if (b.start_time === null) {
+                return { left: 0, width: 100, label: b.label }
+            }
+            const [sh, sm] = b.start_time.split(':').map(Number)
+            const [eh, em] = b.end_time.split(':').map(Number)
+            const offsetStart = sh * 60 + sm - dayStartHour.value * 60
+            const offsetEnd   = eh * 60 + em - dayStartHour.value * 60
+            const clampedStart = Math.max(0, offsetStart)
+            const clampedEnd   = Math.min(totalMin, offsetEnd)
+            return {
+                left:  (clampedStart / totalMin) * 100,
+                width: Math.max(0, ((clampedEnd - clampedStart) / totalMin) * 100),
+                label: b.label,
+            }
+        })
 }
 
 function eventsFor(userId, dayIso) {
@@ -604,6 +673,7 @@ function onCellPointerDown(e, user, day) {
     if (e.button !== 0) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
+    if (isBlockedAtTime(user.id, day.iso, snapMinutes(info.minutes), snapMinutes(info.minutes) + slotMinutes.value)) return
     const startMin = snapMinutes(info.minutes)
     selectRect.value = {
         userId: user.id,
@@ -972,6 +1042,15 @@ function dropStartMinutes(info, durationMin) {
 
 function onDragOver(e) {
     if (!(e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload'))) return
+    const info = cellInfoFromPoint(e.clientX, e.clientY)
+    if (info) {
+        const startMin = dropStartMinutes(info, DROP_DURATION_MIN)
+        if (isBlockedAtTime(info.userId, info.dayIso, startMin, startMin + DROP_DURATION_MIN)) {
+            e.dataTransfer.dropEffect = 'none'
+            dragGhost.value = null
+            return
+        }
+    }
     e.dataTransfer.dropEffect = 'copy'
     updateExternalDropGhost(e.clientX, e.clientY)
 }
@@ -1042,8 +1121,9 @@ function onExternalDrop(e, user, day) {
     if (!info) return
     const duration = payload.duration_minutes || DROP_DURATION_MIN
     const startMin = dropStartMinutes(info, duration)
+    if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) return
     const start = dateFromDayIsoAndMinutes(day.iso, startMin)
-    const end = new Date(start.getTime() + duration * 60000)
+    const end   = new Date(start.getTime() + duration * 60000)
     createEventFromDrop({ start, end, userId: user.id, payload })
 }
 

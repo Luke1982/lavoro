@@ -15,6 +15,11 @@ class Activity extends Model
         'category',
         'description',
         'user_id',
+        'metadata',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
     ];
 
     public function serviceOrders(): MorphToMany
