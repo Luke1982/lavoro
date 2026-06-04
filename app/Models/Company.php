@@ -18,6 +18,7 @@ class Company extends Model
         'city',
         'country',
         'logo_path',
+        'logo_negative_path',
         'is_main'
     ];
 
@@ -71,7 +72,7 @@ class Company extends Model
             $style = sprintf('max-width:%dmm; max-height:%dmm; width:auto; height:auto;', $maxWidthMm, $maxHeightMm);
             $spacer = $maxHeightMm + 8;
             return ['data' => $data, 'style' => $style, 'spacer' => $spacer];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return ['data' => null, 'style' => '', 'spacer' => 0];
         }
     }

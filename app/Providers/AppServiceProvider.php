@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
 
         EventModel::observe(\App\Observers\EventObserver::class);
+        \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
             [$model, $relation, $ids] = $payload + [null, null, []];

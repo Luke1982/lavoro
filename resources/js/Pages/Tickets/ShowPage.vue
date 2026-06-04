@@ -46,6 +46,13 @@
                         <EditableTextField v-model="form.description" type="textarea" class="w-full"
                             :readonly="!hasPermission('ticket.update')" />
                     </div>
+                    <div class="col-span-12 md:col-span-2">
+                        <span class="text-xs font-bold">Storingscode</span>
+                    </div>
+                    <div class="col-span-12 md:col-span-10">
+                        <EditableTextField v-model="form.status_code" class="w-full"
+                            :readonly="!hasPermission('ticket.update')" />
+                    </div>
                     <div class="col-span-2">
                         <span class="text-xs font-bold">Status</span>
                     </div>
@@ -77,6 +84,14 @@
                         </fieldset>
                         <span v-else>{{ form.priority }}</span>
                     </div>
+                    <template v-if="ticket.closed_by">
+                        <div class="col-span-12 md:col-span-2">
+                            <span class="text-xs font-bold">Gesloten door</span>
+                        </div>
+                        <div class="col-span-12 md:col-span-10 text-sm text-gray-600 dark:text-slate-300">
+                            {{ ticket.closed_by.name }}
+                        </div>
+                    </template>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="ticket" :model-id="ticket.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
@@ -138,7 +153,8 @@ const form = useForm({
     subject: props.ticket.subject,
     description: props.ticket.description,
     status: initialStatus.id,
-    priority: props.priorities.find(p => p.name === props.ticket.priority).id
+    priority: props.priorities.find(p => p.name === props.ticket.priority).id,
+    status_code: props.ticket.status_code ?? '',
 });
 
 function patchTicketField(field, value) {
@@ -167,5 +183,9 @@ watch(() => form.status, (newVal) => {
 watch(() => form.priority, (newVal) => {
     const priorityName = props.priorities.find(p => p.id === newVal)?.name || newVal;
     patchTicketField('priority', priorityName);
+});
+
+watch(() => form.status_code, (newVal) => {
+    patchTicketField('status_code', newVal);
 });
 </script>

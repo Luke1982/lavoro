@@ -39,6 +39,11 @@ class ServiceOrderTaskInstance extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
+    }
+
     public function getEffectiveDescriptionAttribute(): string
     {
         return $this->description ?? $this->serviceOrderTask?->description ?? '';

@@ -1,6 +1,6 @@
 <template>
     <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
-        search-placeholder="Zoek op merk, model, soort of klant" search-url="/assets" :paginator="assets"
+        search-placeholder="Zoek op serienummer, merk, model, soort of klant" search-url="/assets" :paginator="assets"
         :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && assetFormRef?.show()">
         <template #filters>
             <div class="w-full">

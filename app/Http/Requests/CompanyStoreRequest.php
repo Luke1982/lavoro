@@ -30,6 +30,7 @@ class CompanyStoreRequest extends FormRequest
             'country' => 'nullable|string|size:2',
             'is_main' => 'sometimes|boolean',
             'logo' => 'nullable|image|max:2048',
+            'logo_negative' => 'nullable|image|max:2048',
         ];
     }
 }

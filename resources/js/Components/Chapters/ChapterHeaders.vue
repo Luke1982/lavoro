@@ -1,8 +1,8 @@
 <template>
     <div>
         <!-- Mobile: select menu -->
-        <div class="flex sm:hidden mb-5 justify-end">
-            <SelectMenuComponent v-model="activeChapterWritable" :options="selectOptions" />
+        <div class="flex sm:hidden">
+            <SelectMenuComponent v-model="activeChapterWritable" :options="selectOptions" class="w-full" />
         </div>
 
         <!-- Desktop: tab bar -->

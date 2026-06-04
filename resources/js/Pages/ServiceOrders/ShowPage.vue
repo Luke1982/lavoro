@@ -1,40 +1,51 @@
 <template>
-    <div class="flex items-center justify-between">
-        <div class="flex items-center">
-            <Link href="/serviceorders" class="text-slate-400 text-sm font-medium">Werkbonnen</Link>
-            <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
-            <span class="text-slate-800 font-bold text-sm">Werkbon #{{ serviceOrder.id }} van {{
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div class="inline sm:flex items-center">
+            <Link href="/serviceorders" class="text-slate-400 text-sm font-medium inline">Werkbonnen</Link>
+            <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
+            <span class="text-slate-800 font-bold text-sm inline">Werkbon #{{ serviceOrder.id }} van {{
                 nlDate(serviceOrder.created_at) }}
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
-        <SelectMenuComponent v-if="hasPermission('serviceorder.change_type')" v-model="form.type" :options="typeOptions"
-            label="Type" />
+        <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
+            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
+            <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
+        </div>
     </div>
-    <div class="flex items-center justify-between my-4">
-        <h1 class="text-2xl font-bold flex items-center gap-2">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center my-4 gap-2">
+        <h1 class="text-2xl font-bold">
             Werkbon #{{ serviceOrder.id }}
-            <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
-                {{ serviceOrder.service_order_stage.name }}
-            </BadgeComponent>
         </h1>
+        <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
+            {{ serviceOrder.service_order_stage.name }}
+        </BadgeComponent>
     </div>
     <ChaptersComponent>
-        <ChapterHeaders>
-            <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
-                {{ header }}
-            </ChapterHeader>
-        </ChapterHeaders>
+        <template v-if="chapterHeaders.length > 1">
+            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
+            <ChapterHeaders>
+                <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
+                    {{ header }}
+                </ChapterHeader>
+            </ChapterHeaders>
+        </template>
         <ChapterContents>
             <template #chapter-0>
                 <TwoThirdsOneThird>
                     <template #main>
-                        <BoxComponent class="mb-4">
+                        <BoxComponent class="mb-4 hidden sm:block">
                             <div v-if="stages.length > 1" class="mb-4"
                                 :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
                                 <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
                                     @update:modelValue="onStageChange" />
                             </div>
                         </BoxComponent>
+                        <div v-if="stages.length > 1" class="mb-4 block sm:hidden"
+                            :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
+                            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Fase</span>
+                            <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
+                                @update:modelValue="onStageChange" />
+                        </div>
                         <BoxComponent>
                             <div class="flex items-center">
                                 <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
@@ -49,7 +60,7 @@
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
                                 <div class="flex flex-col gap-6 md:pr-8">
-                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')" type="combobox"
+                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')" type="combobox"
                                         label="Klant" v-model="form.customer_id" :options="internalCustomers">
                                         <template #display>
                                             <component :is="hasPermission('customer.read') ? Link : 'span'"
@@ -58,7 +69,7 @@
                                                 }">{{ selectedCustomer.name }}</component>
                                         </template>
                                     </EditableTextField>
-                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')" type="combobox"
+                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')" type="combobox"
                                         label="Project" v-model="form.project_id" :options="internalProjects">
                                         <template #display>
                                             <component v-if="selectedProject"
@@ -83,18 +94,19 @@
                                             </a>
                                         </template>
                                     </EditableTextField>
-                                    <EditableTextField :disabled="!hasPermission('serviceorder.update')"
+                                    <EditableTextField :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
                                         @update="val => { form.external_purchaseorder_no = val; }"
                                         placeholder="Externe referentie" />
                                 </div>
                             </div>
                         </BoxComponent>
-                        <TaskInstancesWidget :service-order-id="serviceOrder.id"
+                        <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
+                            :service-order-id="serviceOrder.id"
                             :instances="serviceOrder.task_instances" :available-tasks="availableTasks"
-                            :products="products" class="my-4" />
-                        <BoxComponent class="my-4">
-                            <div class="flex items-center gap-x-3 mb-3 justify-between">
+                            :products="products" :is-closed="serviceOrder.is_closed" class="my-4" />
+                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
+                            <div class="flex items-start sm:items-center gap-x-3 mb-3 justify-between">
                                 <div class="flex gap-x-3">
                                     <div
                                         class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
@@ -111,27 +123,29 @@
                                 </div>
                                 <button v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
                                     @click="addServiceJobFromSelectedAsset" :disabled="!selectedAsset"
-                                    :class="['px-4 py-2 rounded text-sm font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
-                                    + Keuring toevoegen
+                                    :class="['px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
+                                    + <span class="hidden sm:inline">Keuring toevoegen</span>
                                 </button>
                             </div>
-                            <div
-                                class="flex justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
+                            <div v-if="hasPermission('servicejob.create')"
+                                class="flex flex-col sm:flex-row justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
                                 <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets"
-                                    class="p-4 w-1/4 min-w-100" />
+                                    class="p-1 sm:p-4 sm:w-1/4 w-full sm:min-w-100" />
                                 <TitleValueIconComponent :icon="CalendarDaysIcon" title="Datum ingebruikname"
-                                    :value="selectedAsset?.date_in_service ?? '—'" class="p-4 w-1/4 justify-center" />
+                                    :value="selectedAsset?.date_in_service ?? '—'"
+                                    class="p-4 w-full sm:w-1/4 justify-center" />
                                 <TitleValueIconComponent :icon="CalendarDaysIcon" title="Volgende keuring"
-                                    :value="selectedAsset?.next_service_date ?? '—'" class="p-4 w-1/4 justify-center" />
+                                    :value="selectedAsset?.next_service_date ?? '—'"
+                                    class="p-4 w-full sm:w-1/4 justify-center" />
                                 <TitleValueIconComponent :icon="ClipboardDocumentListIcon" title="Totaal keuringen"
                                     :value="selectedAsset ? String(selectedAsset.total_servicejobs) : '—'"
-                                    class="p-4 w-1/4 justify-center" />
+                                    class="p-4 w-full sm:w-1/4 justify-center" />
                             </div>
                             <ServiceJobsTable :servicejobs="serviceOrder.servicejobs" class="mt-4" />
                         </BoxComponent>
                         <BoxComponent class="my-4"
                             v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
-                            <div class="flex items-center gap-x-3 mb-4 justify-between">
+                            <div class="flex items-start sm:items-center gap-x-3 mb-4 justify-between">
                                 <div class="flex gap-x-3">
                                     <div
                                         class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
@@ -147,8 +161,8 @@
                                 </div>
                                 <button v-if="hasPermission('ticket.create') && !serviceOrder.is_closed"
                                     @click="showNewTicketDrawer = true"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 transition-opacity cursor-pointer">
-                                    + Nieuwe storing aanmaken
+                                    class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white bg-lavoro-blue hover:opacity-90 transition-opacity cursor-pointer">
+                                    + <span class="hidden sm:inline">Nieuwe storing aanmaken</span>
                                 </button>
                             </div>
 
@@ -174,27 +188,30 @@
                                                 <InformationCircleIcon v-else
                                                     :class="[active ? 'text-white' : ticketPriorityIconColor(option.priority), 'w-5 h-5']" />
                                             </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-sm"
-                                                    :class="active ? 'text-white' : 'text-gray-900 dark:text-slate-100'">
-                                                    {{ option.subject }}</p>
-                                                <p class="text-xs mt-0.5 truncate"
-                                                    :class="active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400'">
-                                                    {{ option.product_type }}: {{ option.asset_name }} ({{
-                                                        option.serial_number }})
-                                                </p>
-                                                <p class="text-xs mt-0.5 line-clamp-1"
-                                                    :class="active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-500'">
-                                                    {{ option.description }}</p>
-                                            </div>
-                                            <div class="flex-shrink-0 text-right flex flex-col items-end gap-1">
-                                                <span class="text-xs whitespace-nowrap"
-                                                    :class="active ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'">Sinds
-                                                    {{ nlDate(option.created_at) }}</span>
-                                                <span
-                                                    :class="[active ? 'bg-white/20 text-white' : ticketPriorityBadgeClass(option.priority), 'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap']">
-                                                    Prio {{ option.priority }}
-                                                </span>
+                                            <div class="flex flex-col sm:flex-row justify-between min-w-0 flex-1">
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="font-semibold text-sm"
+                                                        :class="active ? 'text-white' : 'text-gray-900 dark:text-slate-100'">
+                                                        {{ option.subject }}</p>
+                                                    <p class="text-xs mt-0.5 sm:truncate"
+                                                        :class="active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400'">
+                                                        {{ option.product_type }}: {{ option.asset_name }} ({{
+                                                            option.serial_number }})
+                                                    </p>
+                                                    <p class="text-xs mt-0.5 sm:line-clamp-1"
+                                                        :class="active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-500'">
+                                                        {{ option.description }}</p>
+                                                </div>
+                                                <div
+                                                    class="flex-shrink-0 text-right flex flex-col items-start sm:items-end gap-1">
+                                                    <span class="text-xs whitespace-nowrap"
+                                                        :class="active ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'">Sinds
+                                                        {{ nlDate(option.created_at) }}</span>
+                                                    <span
+                                                        :class="[active ? 'bg-white/20 text-white' : ticketPriorityBadgeClass(option.priority), 'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap']">
+                                                        Prio {{ option.priority }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </template>
@@ -211,21 +228,22 @@
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4" v-auto-animate>
                                     <TicketCard v-for="ticket in serviceOrder.tickets" :key="ticket.id" :ticket="ticket"
-                                        :disconnect="'service_order_id'" />
+                                        :disconnect="'service_order_id'" :readonly="serviceOrder.is_closed" />
                                 </div>
                             </div>
 
                             <div
-                                class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-                                    <InformationCircleIcon class="w-4 h-4 text-indigo-500" />
+                                class="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div
+                                    class="flex items-start sm:items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                                    <InformationCircleIcon class="size-6 sm:size-4 text-lavoro-blue" />
                                     {{ serviceOrder.tickets.length }} storingen gekoppeld aan dit werk
                                 </div>
-                                <div class="flex items-center gap-4">
+                                <div class="flex flex-col sm:flex-row items-center gap-4 mt-2">
                                     <span v-if="ticketsLastUpdate"
                                         class="text-sm text-gray-400 dark:text-slate-500">Laatste update: {{
                                             nlDate(ticketsLastUpdate) }} om {{ nlTime(ticketsLastUpdate) }}</span>
-                                    <Link href="/tickets"
+                                    <Link href="/tickets" v-if="hasPermission('ticket.read')"
                                         class="inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                         Storingen beheren
                                         <ArrowTopRightOnSquareIcon class="w-3.5 h-3.5" />
@@ -233,7 +251,7 @@
                                 </div>
                             </div>
                         </BoxComponent>
-                        <BoxComponent>
+                        <BoxComponent v-if="hasPermission('materiable.read.serviceorder')" class="mb-4 sm:mb-0">
                             <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
                                 :all-materials="allMaterials" :is-closed="serviceOrder.is_closed"
                                 :sent-to-administration="serviceOrder.sent_to_administration"
@@ -270,58 +288,73 @@
                             </div>
                             <div class="py-2">
                                 <EditableTextField type="textarea" v-model="form.description"
-                                    :readonly="serviceOrder.is_closed" @update="val => { form.description = val; }"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    @update="val => { form.description = val; }"
                                     label="Uitgevoerde werkzaamheden" />
                             </div>
                             <div class="py-2">
                                 <EditableTextField inputType="time" v-model="form.actual_start_time"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                     @update="val => { form.actual_start_time = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_start_time || '').substring(0, 5) || `Klik hier om een
                                             aankomsttijd in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
                             <div class="py-2">
                                 <EditableTextField inputType="time" v-model="form.actual_end_time"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                     @update="val => { form.actual_end_time = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_end_time || '').substring(0, 5) || `Klik hier om een
                                             vertrektijd in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
                             <div class="py-2">
                                 <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                                    :readonly="serviceOrder.is_closed" @update="val => { form.signed_by = val; }">
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    @update="val => { form.signed_by = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
                                             serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
                                             in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
                             <div class="relative" v-if="!editingSignature">
                                 <img :src="serviceOrder.signature_base64" alt="">
-                                <PencilSquareIcon v-if="!serviceOrder.is_closed"
+                                <PencilSquareIcon v-if="!serviceOrder.is_closed && hasPermission('serviceorder.update')"
                                     class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
                                     @click="editingSignature = true" />
                             </div>
-                            <div class="relative" v-if="editingSignature">
+                            <div v-if="editingSignature && !serviceOrder.is_closed">
+                                <div class="mb-3">
+                                    <h3 class="font-bold text-gray-900 dark:text-slate-100">Handtekening</h3>
+                                    <p class="text-sm text-gray-500 dark:text-slate-400">Laat de klant hier ondertekenen ter akkoord van de uitgevoerde werkzaamheden.</p>
+                                </div>
                                 <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
-                                <XMarkIcon
-                                    class="absolute top-2 right-2 transform w-5 h-5 text-red-600 dark:text-red-400 cursor-pointer hover:text-red-500 dark:hover:text-red-300"
-                                    @click="editingSignature = false" v-if="serviceOrder.signature_base64" />
+                                <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                        <Shield class="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-sm text-gray-900 dark:text-slate-100">Juridisch bindend</p>
+                                        <p class="text-sm text-gray-500 dark:text-slate-400">Deze handtekening is juridisch bindend en wordt opgeslagen bij deze werkbon.</p>
+                                    </div>
+                                </div>
                             </div>
                             <button
                                 v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')"
                                 @click="closeViaStage"
-                                class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm">
+                                class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
+                                <Check class="w-5 h-5" />
                                 Werkbon afsluiten
                             </button>
                             <button v-else-if="serviceOrder.is_closed && hasPermission('serviceorder.reopen')"
@@ -333,7 +366,7 @@
                     </template>
                 </TwoThirdsOneThird>
             </template>
-            <template #chapter-1>
+            <template v-if="canSeeFinancials" #chapter-1>
                 <TwoThirdsOneThird>
                     <template #main>
                         <div v-if="serviceOrder.sent_to_administration"
@@ -389,11 +422,11 @@
                 </TwoThirdsOneThird>
             </template>
 
-            <template #chapter-2>
+            <template v-if="canExport" v-slot:[exportSlot]>
                 <TwoThirdsOneThird>
                     <template #main>
                         <BoxComponent
-                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_checks', 'snelstart.send_serviceorder'])">
+                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_jobs', 'snelstart.send_serviceorder'])">
                             <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Acties</h3>
                             <div class="flex flex-col gap-3">
                                 <a v-if="hasPermission('serviceorder.export_pdf')"
@@ -412,7 +445,7 @@
                                     {{ emailing ? 'Versturen...' : 'E-mail PDF' }}
                                 </button>
                                 <button
-                                    v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_checks')"
+                                    v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_jobs')"
                                     @click="emailPdfWithJobs" :disabled="emailingCombined"
                                     class="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
                                     <span
@@ -458,14 +491,14 @@
                     :needs-box="true" />
                 <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
                     newTicketForm.errors.asset_id
-                }}</p>
+                    }}</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
-                }}
+                    }}
                 </p>
             </div>
             <div>
@@ -503,7 +536,8 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { DocumentTextIcon, PencilSquareIcon, XMarkIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, PencilSquareIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
+import { Shield, Check } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
@@ -546,9 +580,8 @@ const props = defineProps({
     snelStartEnabled: { type: Boolean, default: false },
 });
 
-const chapterHeaders = ref(['Details', 'Administratie', 'Exporteren'])
 
-const editingSignature = ref(true);
+const editingSignature = ref(!props.serviceOrder.is_closed);
 
 
 const internalCustomers = computed(() =>
@@ -618,6 +651,7 @@ const customerAssets = computed(() =>
             article_number: asset.product.part_no,
             serial_number: asset.serial_number,
             is_bundle: !!asset.product.bundle,
+            date_in_service: asset.date_in_service ? nlDate(asset.date_in_service) : null,
             next_service_date: asset.next_service_date ? nlDate(asset.next_service_date) : null,
             last_service_date: completed.length ? nlDate(completed[completed.length - 1]) : null,
             total_servicejobs: jobs.length,
@@ -729,15 +763,16 @@ watch(
         () => form.project_id,
         () => form.type,
     ],
-    () => {
+    ([, , newSig], [, , oldSig]) => {
         if (isReverting.value) {
             isReverting.value = false;
             return;
         }
+        const signatureChanged = newSig !== oldSig;
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                editingSignature.value = false;
+                if (signatureChanged) editingSignature.value = false;
                 form.defaults();
             },
             onError: () => {
@@ -856,6 +891,15 @@ const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.val
 
 const showFinancial = ref(false);
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'));
+const canExport = computed(() => hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_jobs', 'snelstart.send_serviceorder']));
+
+const chapterHeaders = computed(() => [
+    'Details',
+    ...(canSeeFinancials.value ? ['Administratie'] : []),
+    ...(canExport.value ? ['Exporteren'] : []),
+])
+const exportSlot = computed(() => `chapter-${canSeeFinancials.value ? 2 : 1}`)
+
 const showFinancialUi = computed(() => canSeeFinancials.value && showFinancial.value);
 
 const canClose = computed(() => {

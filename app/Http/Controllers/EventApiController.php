@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Http\Requests\EventStoreRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Http\Requests\EventStoreRequest;
 
 class EventApiController extends Controller
 {
@@ -125,5 +127,35 @@ class EventApiController extends Controller
         $event->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function sendConfirmation(Event $event)
+    {
+        $service_order = $event->serviceOrders()
+            ->with(['customer', 'taskInstances.serviceOrderTask'])
+            ->first();
+
+        if (!$service_order) {
+            return response()->json(['message' => 'Geen werkbon gekoppeld aan deze afspraak.'], 422);
+        }
+
+        $recipients = array_unique(array_filter([
+            $service_order->customer?->email,
+            $service_order->customer?->invoice_email,
+        ]));
+
+        if (empty($recipients)) {
+            return response()->json(['message' => 'Klant heeft geen e-mailadres.'], 422);
+        }
+
+        Mail::to($recipients)->send(new AppointmentConfirmationMail($event, $service_order));
+
+        $service_order->logActivity(
+            'Afspraakbevestiging per e-mail verzonden naar: ' . implode(', ', $recipients)
+        );
+
+        return response()->json([
+            'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),
+        ]);
     }
 }

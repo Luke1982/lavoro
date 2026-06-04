@@ -30,6 +30,14 @@ class ServiceOrderTaskInstanceController extends Controller
     {
         $data = $request->validated();
 
+        if (!$data['is_complete'] && $serviceordertaskinstance->product_id) {
+            if ($serviceordertaskinstance->assets()->exists()) {
+                return redirect()->back()->withErrors([
+                    'task' => 'Deze taak heeft apparatuur geregistreerd en kan niet meer heropend worden.',
+                ]);
+            }
+        }
+
         $serviceordertaskinstance->update(['is_complete' => $data['is_complete']]);
 
         if ($data['is_complete'] && !empty($data['assets'])) {
@@ -43,18 +51,14 @@ class ServiceOrderTaskInstanceController extends Controller
                     continue;
                 }
 
-                $term_days        = $product->typical_certificate_days
-                    ?? $product->productType?->typical_certificate_days;
-                $next_service_date = $term_days
-                    ? now()->addDays($term_days)->toDateString()
-                    : null;
-
                 Asset::create([
-                    'customer_id'      => $customer_id,
-                    'product_id'       => $product->id,
-                    'serial_number'    => $asset_data['serial_number'],
-                    'date_in_service'  => $today,
-                    'next_service_date' => $next_service_date,
+                    'customer_id'                    => $customer_id,
+                    'product_id'                     => $product->id,
+                    'service_order_task_instance_id' => $serviceordertaskinstance->id,
+                    'serial_number'                  => $asset_data['serial_number'],
+                    'date_in_service'                => $today,
+                    'next_service_date'              => now()->addDays($product->effectiveCertificateDays())
+                                                         ->toDateString(),
                 ]);
             }
         }

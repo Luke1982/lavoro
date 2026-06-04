@@ -16,9 +16,11 @@ class TicketListRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'statuses' => ['sometimes', 'nullable', 'string'],
-            'priorities' => ['sometimes', 'nullable', 'string'],
+            'search'             => ['sometimes', 'nullable', 'string', 'max:255'],
+            'statuses'           => ['sometimes', 'nullable', 'string'],
+            'priorities'         => ['sometimes', 'nullable', 'string'],
+            'status_code_search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'closed_by_ids'      => ['sometimes', 'nullable', 'string'],
         ];
     }
 }

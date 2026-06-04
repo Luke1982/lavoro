@@ -822,6 +822,10 @@ function onEventContextMenu(e, ev) {
             divided: true,
             onClick: () => router.visit(`/serviceorders/${ev.eventable_id}`),
         })
+        items.push({
+            label: 'Stuur afspraakbevestiging',
+            onClick: () => sendAppointmentConfirmation(ev),
+        })
     }
     if (ev.customer_id && hasPermission('customer.read')) {
         const customer = props.allCustomers.find(c => c.id === ev.customer_id)
@@ -893,6 +897,16 @@ async function changeEventType(ev, type) {
         ev.title = original.title
         ev.color = original.color
         page.props.flash.error = e.response?.data?.message || 'Kon afspraaktype niet wijzigen'
+    }
+}
+
+async function sendAppointmentConfirmation(ev) {
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.post(`/api/events/${ev.id}/send-confirmation`)
+        page.props.flash.success = r.data.message
+    } catch (e) {
+        page.props.flash.error = e.response?.data?.message || 'Kon bevestiging niet verzenden'
     }
 }
 

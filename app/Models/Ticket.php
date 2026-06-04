@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RemarkableTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ticket extends Model
 {
@@ -13,6 +15,7 @@ class Ticket extends Model
     use HasFactory;
     use RemarkableTrait;
     use HasCustomFields;
+    use HasActivities;
 
     protected $fillable = [
         'asset_id',
@@ -20,13 +23,20 @@ class Ticket extends Model
         'description',
         'status',
         'priority',
+        'status_code',
         'closed_on',
+        'closed_by_id',
         'service_order_id',
     ];
 
-    public function asset()
+    public function asset(): BelongsTo
     {
         return $this->belongsTo(Asset::class);
+    }
+
+    public function closedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closed_by_id');
     }
 
     public function images()

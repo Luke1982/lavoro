@@ -9,7 +9,7 @@ class ServiceOrderAttachMaterialRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('attachMaterial', $this->route('serviceorder'));
     }
 
     public function rules(): array

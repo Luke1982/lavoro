@@ -1,5 +1,5 @@
 <template>
-    <div :class="[getWrapperClasses(ticket.status), 'relative rounded-xl border p-4']">
+    <div :class="[getWrapperClasses(ticket.status), 'relative rounded-xl border p-3 sm:p-4']">
         <div class="flex items-start gap-3">
             <div
                 :class="[getIconBg(ticket.status), 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center']">
@@ -7,18 +7,18 @@
             </div>
 
             <div class="flex-1 min-w-0">
-                <div class="flex items-start justify-between gap-2">
+                <div class="flex flex-col sm:flex-row items-start justify-between gap-2">
                     <h1 class="font-bold text-gray-900 dark:text-slate-100 text-sm leading-tight">{{ ticket.subject }}
                     </h1>
-                    <div class="flex items-center gap-1 flex-shrink-0">
-                        <Menu v-if="hasPermission('ticket.change_status')" as="div" class="relative">
+                    <div class="flex w-full justify-between sm:w-auto items-center gap-2 flex-shrink-0">
+                        <Menu v-if="!readonly && hasPermission('ticket.change_status')" as="div" class="relative">
                             <MenuButton
                                 :class="[getStatusBadgeClass(ticket.status), 'inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full cursor-pointer']">
                                 {{ ticket.status }}
                                 <ChevronDownIcon class="w-3 h-3" />
                             </MenuButton>
                             <MenuItems
-                                class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 shadow-lg rounded-lg border border-gray-200 dark:border-slate-700 focus:outline-none z-20 py-1">
+                                class="absolute left-0 sm:right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 shadow-lg rounded-lg border border-gray-200 dark:border-slate-700 focus:outline-none z-20 py-1">
                                 <MenuItem v-if="ticket.status.toLowerCase() !== 'open'" v-slot="{ active }">
                                     <button @click="setTicketStatusTo('Open')"
                                         :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-slate-200']">Open</button>
@@ -39,7 +39,7 @@
                             {{ ticket.status }}
                         </span>
 
-                        <Menu as="div" class="relative">
+                        <Menu v-if="(!readonly && hasPermission('ticket.change_status')) || (!readonly && disconnect !== null && hasPermission('ticket.detach_from_serviceorder')) || (disconnect === null && modes.find(m => m === 'nodelete') === undefined && hasPermission('ticket.delete'))" as="div" class="relative">
                             <MenuButton
                                 class="bg-white p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-slate-500 cursor-pointer">
                                 <EllipsisVerticalIcon class="w-5 h-5" />
@@ -47,7 +47,7 @@
                             <MenuItems
                                 class="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-800 shadow-lg rounded-lg border border-gray-200 dark:border-slate-700 focus:outline-none z-20 py-1">
                                 <MenuItem
-                                    v-if="ticket.status.toLowerCase() !== 'gesloten' && hasPermission('ticket.change_status')"
+                                    v-if="!readonly && ticket.status.toLowerCase() !== 'gesloten' && hasPermission('ticket.change_status')"
                                     v-slot="{ active }">
                                     <button @click="setTicketStatusTo('Gesloten')"
                                         :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200']">
@@ -56,7 +56,7 @@
                                     </button>
                                 </MenuItem>
                                 <MenuItem
-                                    v-if="ticket.status.toLowerCase() === 'gesloten' && hasPermission('ticket.change_status')"
+                                    v-if="!readonly && ticket.status.toLowerCase() === 'gesloten' && hasPermission('ticket.change_status')"
                                     v-slot="{ active }">
                                     <button @click="setTicketStatusTo('Open')"
                                         :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200']">
@@ -64,7 +64,7 @@
                                         Markeer als niet opgelost
                                     </button>
                                 </MenuItem>
-                                <MenuItem v-if="disconnect !== null && hasPermission('ticket.detach_from_serviceorder')"
+                                <MenuItem v-if="!readonly && disconnect !== null && hasPermission('ticket.detach_from_serviceorder')"
                                     v-slot="{ active }">
                                     <button @click="removeTicketLink"
                                         :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200']">
@@ -101,6 +101,11 @@
                 <p v-if="modes.find(m => m === 'simple') === undefined"
                     class="text-sm text-gray-500 dark:text-slate-400 mt-2">{{ ticket.description }}</p>
 
+                <p v-if="ticket.status_code"
+                    class="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                    Storingscode: {{ ticket.status_code }}
+                </p>
+
                 <div class="mt-3">
                     <Link :href="`/tickets/${ticket.id}`"
                         class="bg-white inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -131,6 +136,10 @@ const props = defineProps({
     modes: {
         type: Array,
         default: () => [],
+    },
+    readonly: {
+        type: Boolean,
+        default: false,
     },
 });
 

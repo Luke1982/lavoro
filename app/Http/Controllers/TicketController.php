@@ -20,16 +20,23 @@ class TicketController extends Controller
      */
     public function index(TicketListRequest $request)
     {
-        $data = method_exists($request, 'validated') ? $request->validated() : [];
-        $search = $data['search'] ?? null;
-        $statuses_param   = $data['statuses'] ?? null;
-        $priorities_param = $data['priorities'] ?? null;
+        $data = $request->validated();
+        $search              = $data['search'] ?? null;
+        $statuses_param      = $data['statuses'] ?? null;
+        $priorities_param    = $data['priorities'] ?? null;
+        $status_code_search  = $data['status_code_search'] ?? null;
+        $closed_by_ids_param = $data['closed_by_ids'] ?? null;
 
         $status_key_collection = collect(explode(',', (string)$statuses_param))
             ->filter(fn($v) => trim($v) !== '')
             ->unique();
         $priority_key_collection = collect(explode(',', (string)$priorities_param))
             ->filter(fn($v) => trim($v) !== '')
+            ->unique();
+        $closed_by_id_collection = collect(explode(',', (string)$closed_by_ids_param))
+            ->filter(fn($v) => trim($v) !== '')
+            ->map(fn($v) => (int)$v)
+            ->filter()
             ->unique();
 
         $status_cases   = collect(TicketStatusses::cases())->keyBy(fn($c) => $c->name);
@@ -61,6 +68,12 @@ class TicketController extends Controller
         if ($active_priority_values->isNotEmpty()) {
             $query->whereIn('priority', $active_priority_values->all());
         }
+        if (is_string($status_code_search) && trim($status_code_search) !== '') {
+            $query->where('status_code', 'like', '%' . $status_code_search . '%');
+        }
+        if ($closed_by_id_collection->isNotEmpty()) {
+            $query->whereIn('closed_by_id', $closed_by_id_collection->all());
+        }
 
         $appends = ['search' => $search];
         if ($statuses_param) {
@@ -69,8 +82,19 @@ class TicketController extends Controller
         if ($priorities_param) {
             $appends['priorities'] = $priorities_param;
         }
+        if ($status_code_search) {
+            $appends['status_code_search'] = $status_code_search;
+        }
+        if ($closed_by_ids_param) {
+            $appends['closed_by_ids'] = $closed_by_ids_param;
+        }
 
         $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
+
+        $closed_by_options = \App\Models\User::whereIn(
+            'id',
+            Ticket::whereNotNull('closed_by_id')->distinct()->pluck('closed_by_id')
+        )->orderBy('name')->get(['id', 'name']);
 
         $open_count    = Ticket::where('status', TicketStatusses::open->value)->count();
         $pending_count = Ticket::where('status', TicketStatusses::in_behandeling->value)->count();
@@ -100,10 +124,13 @@ class TicketController extends Controller
             'openPctVsAvg'          => $open_pct_vs_avg,
             'pendingPctVsAvg'       => $pending_pct_vs_avg,
             'closedPctVsAvg'        => $closed_pct_vs_avg,
-            'activeStatuses'    => $status_key_collection->values()->all(),
-            'activePriorities'  => $priority_key_collection->values()->all(),
-            'statusOptions'     => TicketStatusses::comboBoxArray(),
-            'priorityOptions'   => TicketPriorities::comboBoxArray(),
+            'activeStatuses'         => $status_key_collection->values()->all(),
+            'activePriorities'       => $priority_key_collection->values()->all(),
+            'statusOptions'          => TicketStatusses::comboBoxArray(),
+            'priorityOptions'        => TicketPriorities::comboBoxArray(),
+            'activeStatusCodeSearch' => $status_code_search ?? '',
+            'activeClosedByIds'      => $closed_by_id_collection->values()->all(),
+            'closedByOptions'        => $closed_by_options,
         ]);
     }
 
@@ -171,7 +198,14 @@ class TicketController extends Controller
      */
     public function show(TicketReadRequest $request, Ticket $ticket)
     {
-        $ticket->load(['asset.customer', 'asset.product.productType', 'asset.product.brand', 'images', 'customFields']);
+        $ticket->load([
+            'asset.customer',
+            'asset.product.productType',
+            'asset.product.brand',
+            'images',
+            'customFields',
+            'closedBy',
+        ]);
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,
             'statusses' => TicketStatusses::comboBoxArray(),
@@ -200,12 +234,6 @@ class TicketController extends Controller
             $request->status,
             $request->priority
         );
-
-        if ($request->status && strtolower($request->status) === 'gesloten') {
-            $ticket->update(['closed_on' => now()]);
-        } elseif ($request->status && strtolower($request->status) !== 'gesloten') {
-            $ticket->update(['closed_on' => null]);
-        }
 
         return redirect()->back()->with([
             'success' => $message,

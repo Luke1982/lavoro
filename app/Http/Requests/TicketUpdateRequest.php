@@ -45,6 +45,7 @@ class TicketUpdateRequest extends FormRequest
             'priority' => 'nullable|in:' . implode(',', array_map(fn($prio) => $prio->value, TicketPriorities::cases())),
             'status' => 'nullable|in:' . implode(',', array_map(fn($status) => $status->value, TicketStatusses::cases())),
             'asset_id' => 'nullable|exists:assets,id',
+            'status_code' => 'nullable|string|max:255',
         ];
     }
 

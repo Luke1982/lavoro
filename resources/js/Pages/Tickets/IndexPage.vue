@@ -22,14 +22,25 @@
         search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
         :search-other-params="computedOtherParams">
         <template #filters>
-            <div class="flex flex-col md:flex-row gap-4 w-full">
-                <div class="flex-1">
-                    <ComboBox :options="statusOptions" v-model="selectedStatuses" multiple label="Statussen"
-                        placeholder="Filter op status" :initial-ids="selectedStatuses" />
+            <div class="flex flex-col gap-4 w-full">
+                <div class="flex flex-col md:flex-row gap-4 w-full">
+                    <div class="flex-1">
+                        <ComboBox :options="statusOptions" v-model="selectedStatuses" multiple label="Statussen"
+                            placeholder="Filter op status" :initial-ids="selectedStatuses" />
+                    </div>
+                    <div class="flex-1">
+                        <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
+                            placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
-                        placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
+                <div class="flex flex-col md:flex-row gap-4 w-full">
+                    <div class="flex-1">
+                        <TextInput v-model="statusCodeSearch" label="Storingscode" placeholder="Filter op storingscode" />
+                    </div>
+                    <div class="flex-1">
+                        <ComboBox :options="closedByOptions" v-model="selectedClosedByIds" multiple label="Gesloten door"
+                            placeholder="Filter op gebruiker" :initial-ids="selectedClosedByIds" />
+                    </div>
                 </div>
             </div>
         </template>
@@ -117,6 +128,7 @@ import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import { Link } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { computed, ref } from 'vue';
 import { nlDate } from '@/Utilities/Utilities';
 import StatCard from '@/Components/UI/StatCard.vue';
@@ -135,14 +147,21 @@ const props = defineProps({
     activePriorities: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     priorityOptions: { type: Array, default: () => [] },
+    activeStatusCodeSearch: { type: String, default: '' },
+    activeClosedByIds: { type: Array, default: () => [] },
+    closedByOptions: { type: Array, default: () => [] },
 });
 
 const selectedStatuses = ref(props.activeStatuses.slice());
 const selectedPriorities = ref(props.activePriorities.slice());
+const statusCodeSearch = ref(props.activeStatusCodeSearch);
+const selectedClosedByIds = ref(props.activeClosedByIds.slice());
 
 const computedOtherParams = computed(() => ({
-    statuses: selectedStatuses.value.join(','),
-    priorities: selectedPriorities.value.join(','),
+    statuses:           selectedStatuses.value.join(','),
+    priorities:         selectedPriorities.value.join(','),
+    status_code_search: statusCodeSearch.value,
+    closed_by_ids:      selectedClosedByIds.value.join(','),
 }));
 
 // Adjusted widths so table fits typical desktop widths without horizontal scroll.

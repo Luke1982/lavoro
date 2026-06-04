@@ -116,6 +116,13 @@ class Product extends Model
         return $this->morphMany(ProductAttributeValueable::class, 'productattributevalueable');
     }
 
+    public function effectiveCertificateDays(int $fallback = 365): int
+    {
+        return $this->typical_certificate_days
+            ?? $this->productType?->typical_certificate_days
+            ?? $fallback;
+    }
+
     public function attributeValueMap(): array
     {
         return $this->productAttributeValueables

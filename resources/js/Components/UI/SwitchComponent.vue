@@ -7,11 +7,13 @@
 
 <script setup>
 import { computed } from 'vue'
+const props = defineProps({ disabled: { type: Boolean, default: false } })
 const value = defineModel({ default: null })
 
 const normalized = computed(() => value.value === true ? true : (value.value === false ? false : null))
 
 function toggle() {
+    if (props.disabled) return
     if (normalized.value === null) {
         value.value = true
         return
@@ -38,6 +40,9 @@ const ariaChecked = computed(() => {
 })
 
 const wrapperClass = computed(() => {
+    if (props.disabled) {
+        return 'relative inline-flex w-14 h-6 shrink-0 rounded-full p-0.5 cursor-not-allowed opacity-40 transition-colors duration-200 ' + (normalized.value ? 'bg-green-600' : 'bg-red-400')
+    }
     const base = 'relative inline-flex w-14 h-6 shrink-0 rounded-full p-0.5 cursor-pointer transition-colors duration-200'
     if (normalized.value === null) {
         return base + ' bg-gradient-to-r from-red-400 via-amber-300 to-green-400'

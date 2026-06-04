@@ -25,6 +25,7 @@ use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
+use App\Http\Requests\ServiceOrderDetachMaterialRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
@@ -625,8 +626,11 @@ class ServiceOrderController extends Controller
         return redirect()->back()->with('success', 'Materiaal succesvol gekoppeld aan de werkbon.');
     }
 
-    public function detachMaterial(ServiceOrder $serviceorder, string $materiable_id)
-    {
+    public function detachMaterial(
+        ServiceOrderDetachMaterialRequest $request,
+        ServiceOrder $serviceorder,
+        string $materiable_id
+    ) {
         $pivotQuery = $serviceorder
             ->materials()
             ->newPivotQuery()

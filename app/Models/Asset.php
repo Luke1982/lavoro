@@ -18,6 +18,7 @@ class Asset extends Model
     protected $fillable = [
         'product_id',
         'customer_id',
+        'service_order_task_instance_id',
         'serial_number',
         'next_service_date',
         'date_in_service',
@@ -49,6 +50,11 @@ class Asset extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function serviceOrderTaskInstance()
+    {
+        return $this->belongsTo(ServiceOrderTaskInstance::class);
     }
 
     public function customer()

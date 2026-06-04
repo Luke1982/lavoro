@@ -1,8 +1,8 @@
 <template>
     <div>
         <!-- Header -->
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
+        <div class="flex items-start sm:items-center justify-between mb-4">
+            <div class="flex items-start sm:items-center gap-3">
                 <div class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
                     <Package class="h-5 w-5 text-white" />
                 </div>
@@ -18,19 +18,19 @@
                     v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
                     <EuroIcon class="size-4" />
                 </button>
-                <button v-if="!isClosed" type="button" @click="showAddForm = !showAddForm"
+                <button v-if="canCreate && !isClosed" type="button" @click="showAddForm = !showAddForm"
                     class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
                     <PlusIcon class="size-4" />
-                    Materiaal toevoegen
+                    <span class="hidden sm:inline">Materiaal toevoegen</span>
                 </button>
             </div>
         </div>
 
         <!-- Add form -->
         <div v-auto-animate>
-            <div v-if="showAddForm && !isClosed"
-                class="flex flex-col md:flex-row items-center gap-2 mb-4 p-4 rounded-lavoro-sm dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700">
-                <div class="flex flex-col flex-grow w-full border-r border-r-gray-200/70 pr-4 mr-4 py-2">
+            <div v-if="showAddForm && canCreate && !isClosed"
+                class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
+                <div class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Kies een materiaal</span>
                     <ComboBox :options="comboMaterials" v-model="materialToAdd" />
                 </div>
@@ -76,11 +76,11 @@
             <!-- Rows -->
             <div v-auto-animate>
                 <div v-for="material in materials" :key="material.id"
-                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-1">
+                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
 
                     <!-- Icon + name + code -->
                     <div :class="(showFinancial && showUnforseen) ? 'md:col-span-4' : 'md:col-span-5'"
-                        class="col-span-11 flex items-center gap-3 pl-3">
+                        class="col-span-11 flex items-center gap-3 sm:pl-3">
                         <div
                             class="w-10 h-10 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex-none">
                             <component :is="getMaterialIcon(material)"
@@ -97,7 +97,7 @@
                     <!-- Quantity -->
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-center mt-2 md:mt-0">
-                        <template v-if="!sentToAdministration && !isClosed">
+                        <template v-if="canUpdate && !sentToAdministration && !isClosed">
                             <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-20"
                                 :error="quantityErrors[material.pivot.id]"
                                 @update="val => { form.quantity = Number(val); updateQuantity(material.pivot.id) }">
@@ -114,28 +114,36 @@
                     </div>
 
                     <!-- Unforseen toggle -->
-                    <div v-if="showUnforseen" class="col-span-12 md:col-span-1 flex justify-center mt-2 md:mt-0">
+                    <div v-if="showUnforseen"
+                        class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
+                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!material.pivot.unforseen"
+                            :disabled="!canUpdate || sentToAdministration || isClosed"
                             @update:model-value="val => updateUnforseen(material.pivot.id, val)"
                             v-tooltip="material.pivot.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
 
                     <!-- Price per unit -->
-                    <div v-if="showFinancial" class="col-span-6 md:col-span-2 mt-2 md:mt-0 pl-3">
+                    <div v-if="showFinancial" class="col-span-6 md:col-span-2 mt-2 md:mt-0 pl-0 sm:pl-3">
+                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Prijs per {{
+                            material.usage_unit ? ' ' +
+                                material.usage_unit.name
+                                : 'eenheid' }}</span>
                         <span class="text-sm text-gray-700 dark:text-slate-300">{{ nlCurrency(material.price) }}</span>
                     </div>
 
                     <!-- Line total -->
                     <div v-if="showFinancial" class="col-span-5 md:col-span-2 mt-2 md:mt-0">
+                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Totaal</span>
                         <span class="text-sm font-medium text-gray-900 dark:text-slate-100">
                             {{ nlCurrency(Number(material.pivot.quantity) * Number(material.price)) }}
                         </span>
                     </div>
 
                     <!-- Delete -->
-                    <div class="col-span-1 flex justify-end pr-2">
-                        <TrashIcon v-if="!sentToAdministration && !isClosed"
-                            class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
+                    <div class="col-span-1 flex justify-end pr-0 sm:pr-2">
+                        <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed"
+                            class="size-10 sm:size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
                             @click="detachMaterial(material.pivot.id)"
                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
                     </div>
@@ -145,8 +153,8 @@
 
         <!-- Footer -->
         <div
-            class="flex items-center justify-between mt-3 font-semibold rounded-lavoro-sm bg-gray-100/50 py-5 px-3 text-xs text-gray-500 dark:text-slate-400">
-            <span v-if="showUnforseen">
+            class="flex flex-col sm:flex-row items-center justify-between mt-3 font-semibold rounded-lavoro-sm bg-gray-100/50 py-5 px-3 text-xs text-gray-500 dark:text-slate-400">
+            <span v-if="showUnforseen" class="mb-2 sm:mb-0">
                 {{ materials.length }} materialen,
                 {{materials.filter(m => !m.pivot.unforseen).length}} voorzien en
                 {{materials.filter(m => !!m.pivot.unforseen).length}} onvoorzien
@@ -209,6 +217,9 @@ const props = defineProps({
 const showAddForm = ref(false)
 const showFinancial = ref(false)
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'))
+const canCreate = computed(() => hasPermission('materiable.create.serviceorder'))
+const canUpdate = computed(() => hasPermission('materiable.update.serviceorder'))
+const canDelete = computed(() => hasPermission('materiable.delete.serviceorder'))
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
 
 const materialToAdd = ref(null)

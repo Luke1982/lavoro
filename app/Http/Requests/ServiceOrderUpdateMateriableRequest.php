@@ -9,7 +9,7 @@ class ServiceOrderUpdateMateriableRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('updateMateriable', $this->route('serviceorder'));
     }
 
     public function rules(): array

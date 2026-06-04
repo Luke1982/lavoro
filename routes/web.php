@@ -202,6 +202,8 @@ Route::group(
                 ->name('companies.inline');
             Route::post('companies/{company}/logo', [CompanyController::class, 'logo'])
                 ->name('companies.logo');
+            Route::post('companies/{company}/logo-negative', [CompanyController::class, 'logoNegative'])
+                ->name('companies.logoNegative');
             Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
 
             Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);

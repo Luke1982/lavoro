@@ -56,13 +56,24 @@
                                         <span class="text-sm text-gray-700 dark:text-slate-300">Hoofd bedrijf?</span>
                                     </div>
                                 </div>
-                                <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo</label>
-                                    <input type="file" @change="onFile"
-                                        class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
-                                    <div v-if="company.logo_path" class="mt-2">
-                                        <img :src="`/storage/${company.logo_path}`" class="h-12 object-contain" />
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo</label>
+                                        <input type="file" @change="onFile"
+                                            class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
+                                        <div v-if="company.logo_path" class="mt-2 bg-gray-50 dark:bg-slate-700 p-2 rounded">
+                                            <img :src="`/storage/${company.logo_path}`" class="h-12 object-contain" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Negatief logo <span class="font-normal text-gray-400">(voor donkere achtergrond)</span></label>
+                                        <input type="file" @change="onFileNegative"
+                                            class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
+                                        <div v-if="company.logo_negative_path" class="mt-2 bg-slate-800 p-2 rounded">
+                                            <img :src="`/storage/${company.logo_negative_path}`" class="h-12 object-contain" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="flex justify-end gap-3 pt-6">
@@ -73,9 +84,9 @@
                                     </button>
                                     <button type="submit"
                                         class="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        :disabled="!logoFile">
+                                        :disabled="!logoFile && !logoNegativeFile">
                                         <CheckIcon class="w-4 h-4" />
-                                        Upload logo
+                                        Upload logo('s)
                                     </button>
                                 </div>
                             </form>
@@ -109,9 +120,14 @@ const form = useForm({
 })
 
 const logoFile = ref(null)
+const logoNegativeFile = ref(null)
 
 function onFile(e) {
     logoFile.value = e.target.files[0]
+}
+
+function onFileNegative(e) {
+    logoNegativeFile.value = e.target.files[0]
 }
 
 function inlineSave(field, value) {
@@ -119,9 +135,22 @@ function inlineSave(field, value) {
 }
 
 function uploadLogo() {
-    if (!logoFile.value) return
-    const data = new FormData()
-    data.append('logo', logoFile.value)
-    router.post(`/companies/${props.company.id}/logo`, data, { preserveScroll: true, onSuccess: () => emit('close') })
+    const uploads = []
+    if (logoFile.value) {
+        const data = new FormData()
+        data.append('logo', logoFile.value)
+        uploads.push(() => new Promise(resolve =>
+            router.post(`/companies/${props.company.id}/logo`, data, { preserveScroll: true, onFinish: resolve })
+        ))
+    }
+    if (logoNegativeFile.value) {
+        const data = new FormData()
+        data.append('logo_negative', logoNegativeFile.value)
+        uploads.push(() => new Promise(resolve =>
+            router.post(`/companies/${props.company.id}/logo-negative`, data, { preserveScroll: true, onFinish: resolve })
+        ))
+    }
+    if (!uploads.length) return
+    uploads.reduce((chain, fn) => chain.then(fn), Promise.resolve()).then(() => emit('close'))
 }
 </script>

@@ -30,6 +30,9 @@ class CompanyController extends Controller
         if ($request->hasFile('logo')) {
             $data['logo_path'] = $request->file('logo')->store('company-logos', 'public');
         }
+        if ($request->hasFile('logo_negative')) {
+            $data['logo_negative_path'] = $request->file('logo_negative')->store('company-logos', 'public');
+        }
         Company::create($data);
         return back()->with('success', 'Bedrijf aangemaakt.');
     }
@@ -46,6 +49,12 @@ class CompanyController extends Controller
                 Storage::disk('public')->delete($company->logo_path);
             }
             $data['logo_path'] = $request->file('logo')->store('company-logos', 'public');
+        }
+        if ($request->hasFile('logo_negative')) {
+            if ($company->logo_negative_path) {
+                Storage::disk('public')->delete($company->logo_negative_path);
+            }
+            $data['logo_negative_path'] = $request->file('logo_negative')->store('company-logos', 'public');
         }
         if (array_key_exists('is_main', $data)) {
             $data['is_main'] = $request->boolean('is_main');
@@ -78,15 +87,32 @@ class CompanyController extends Controller
         if ($company->logo_path) {
             Storage::disk('public')->delete($company->logo_path);
         }
-        $logoPath = $request->file('logo')->store('company-logos', 'public');
-        $company->update(['logo_path' => $logoPath]);
+        $logo_path = $request->file('logo')->store('company-logos', 'public');
+        $company->update(['logo_path' => $logo_path]);
         return back()->with('success', 'Logo bijgewerkt.');
+    }
+
+    /**
+     * Negative logo only update.
+     */
+    public function logoNegative(Request $request, Company $company)
+    {
+        $request->validate(['logo_negative' => 'required|image|max:2048']);
+        if ($company->logo_negative_path) {
+            Storage::disk('public')->delete($company->logo_negative_path);
+        }
+        $logo_negative_path = $request->file('logo_negative')->store('company-logos', 'public');
+        $company->update(['logo_negative_path' => $logo_negative_path]);
+        return back()->with('success', 'Negatief logo bijgewerkt.');
     }
 
     public function destroy(Company $company)
     {
         if ($company->logo_path) {
             Storage::disk('public')->delete($company->logo_path);
+        }
+        if ($company->logo_negative_path) {
+            Storage::disk('public')->delete($company->logo_negative_path);
         }
         $company->delete();
         return back()->with('success', 'Bedrijf verwijderd.');

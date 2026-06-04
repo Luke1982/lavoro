@@ -27,6 +27,11 @@ class Activity extends Model
         return $this->morphedByMany(ServiceOrderStage::class, 'activityable')->withTimestamps();
     }
 
+    public function tickets(): MorphToMany
+    {
+        return $this->morphedByMany(Ticket::class, 'activityable')->withTimestamps();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

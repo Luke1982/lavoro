@@ -3,10 +3,10 @@
         <ListboxLabel class="sr-only">
             <slot name="sr-label">Selecteer optie</slot>
         </ListboxLabel>
-        <div class="relative" ref="wrapperRef">
-            <div class="inline-flex divide-x rounded-md outline-hidden">
+        <div class="relative w-full" ref="wrapperRef">
+            <div class="inline-flex divide-x rounded-md outline-hidden w-full">
                 <div
-                    class="inline-flex items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
+                    class="inline-flex flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
                     <component :is="icon" v-if="icon"
                         :class="['ml-0.5 size-5 mr-1 shrink-0', spin ? 'animate-spin' : '']" aria-hidden="true" />
                     <div class="relative">
@@ -39,7 +39,8 @@
                                         :class="[active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-white', 'cursor-default select-none p-4 text-sm']">
                                         <div class="flex flex-col">
                                             <div class="flex justify-between">
-                                                <p :class="isSelected ? 'font-semibold' : 'font-normal'">{{ option.title }}</p>
+                                                <p :class="isSelected ? 'font-semibold' : 'font-normal'">{{ option.title
+                                                }}</p>
                                                 <span v-if="isSelected"
                                                     :class="active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'">
                                                     <CheckIcon class="size-5" aria-hidden="true" />
@@ -167,6 +168,7 @@ const currentShortLabel = computed(() => {
     opacity: 0;
     transform: translateY(10px);
 }
+
 .select-label-down-leave-to {
     opacity: 0;
     transform: translateY(-10px);
@@ -177,6 +179,7 @@ const currentShortLabel = computed(() => {
     opacity: 0;
     transform: translateY(-10px);
 }
+
 .select-label-up-leave-to {
     opacity: 0;
     transform: translateY(10px);

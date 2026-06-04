@@ -105,8 +105,7 @@ class ServiceJob extends Model
 
         if ($this->outcome === ServiceJobOutcomes::goedkeur->value) {
             $this->load('asset.product.productType');
-            $days = $this->asset->product->typical_certificate_days ??
-                $this->asset->product->productType->typical_certificate_days;
+            $days = $this->asset->product->effectiveCertificateDays();
         } elseif ($this->outcome === ServiceJobOutcomes::tijdelijk_goedkeur->value) {
             $days = $tmp_days;
         }
