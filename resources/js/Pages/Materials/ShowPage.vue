@@ -35,6 +35,36 @@
                             :error="form.errors.code" @revert="form.clearErrors('code')" />
                         <EditableTextField v-model="form.vendor_code" type="input" label="Leverancierscode"
                             :error="form.errors.vendor_code" @revert="form.clearErrors('vendor_code')" />
+                        <div>
+                            <h3 class="text-xs font-semibold mb-1 text-slate-500">Deelbaar</h3>
+                            <div class="flex items-center gap-3">
+                                <SwitchComponent v-model="form.divisable" />
+                                <span class="text-sm text-gray-600 dark:text-slate-400">
+                                    <template v-if="form.divisable">Materiaal is deelbaar</template>
+                                    <template v-else>Materiaal is niet deelbaar</template>
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-semibold mb-1 text-slate-500">Actief</h3>
+                            <div class="flex items-center gap-3">
+                                <SwitchComponent v-model="form.is_active" />
+                                <span class="text-sm text-gray-600 dark:text-slate-400">
+                                    <template v-if="form.is_active">Materiaal is actief</template>
+                                    <template v-else>Materiaal is inactief</template>
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-semibold mb-1 text-slate-500">Dienst</h3>
+                            <div class="flex items-center gap-3">
+                                <SwitchComponent v-model="form.is_service" />
+                                <span class="text-sm text-gray-600 dark:text-slate-400">
+                                    <template v-if="form.is_service">Dit is een dienst</template>
+                                    <template v-else>Dit is geen dienst</template>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     <!-- Right column -->
                     <div class="flex flex-col gap-6">
@@ -60,43 +90,6 @@
                             :error="form.errors.min_stock" @revert="form.clearErrors('min_stock')" />
                         <EditableTextField v-model="form.max_stock" type="input" label="Max. voorraad"
                             :error="form.errors.max_stock" @revert="form.clearErrors('max_stock')" />
-                    </div>
-                </div>
-
-                <!-- Switches row -->
-                <div class="mt-6 pt-4 border-t border-gray-100 dark:border-slate-700 flex flex-wrap gap-6">
-                    <div>
-                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Deelbaar</h3>
-                        <div class="flex items-center gap-3">
-                            <SwitchComponent v-model="form.divisable" />
-                            <span class="text-sm text-gray-600 dark:text-slate-400">
-                                <template v-if="form.divisable">Materiaal is deelbaar</template>
-                                <template v-else>Materiaal is niet deelbaar</template>
-                            </span>
-                        </div>
-                        <p v-if="form.errors.divisable" class="text-sm text-red-600 mt-1">{{ form.errors.divisable }}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Actief</h3>
-                        <div class="flex items-center gap-3">
-                            <SwitchComponent v-model="form.is_active" />
-                            <span class="text-sm text-gray-600 dark:text-slate-400">
-                                <template v-if="form.is_active">Materiaal is actief</template>
-                                <template v-else>Materiaal is inactief</template>
-                            </span>
-                        </div>
-                        <p v-if="form.errors.is_active" class="text-sm text-red-600 mt-1">{{ form.errors.is_active }}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Dienst</h3>
-                        <div class="flex items-center gap-3">
-                            <SwitchComponent v-model="form.is_service" />
-                            <span class="text-sm text-gray-600 dark:text-slate-400">
-                                <template v-if="form.is_service">Dit is een dienst</template>
-                                <template v-else>Dit is geen dienst</template>
-                            </span>
-                        </div>
-                        <p v-if="form.errors.is_service" class="text-sm text-red-600 mt-1">{{ form.errors.is_service }}</p>
                     </div>
                 </div>
             </BoxComponent>
