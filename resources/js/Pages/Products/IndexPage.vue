@@ -301,6 +301,82 @@
             </div>
         </template>
     </DrawerComponent>
+
+    <DrawerComponent v-model="bulkEditOpen"
+        title="Kenmerken bewerken"
+        :subtitle="`${selectedIds.length} producten geselecteerd`">
+        <div class="divide-y divide-gray-100 dark:divide-slate-700">
+            <div class="px-4 sm:px-6 py-4">
+                <p class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
+                    Vink de kenmerken aan die je wilt toepassen. Niet-aangevinkte kenmerken worden niet gewijzigd.
+                </p>
+            </div>
+            <div v-for="attr in drawerAttributes" :key="attr.id"
+                class="flex items-start gap-3 px-4 sm:px-6 py-4">
+                <AnimatedCheckbox
+                    v-model="bulkEditChecked[attr.id]"
+                    check-color="#081020"
+                    class="mt-0.5 flex-shrink-0"
+                />
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ attr.name }}</span>
+                        <span v-if="attr.applicableCount < selectedIds.length"
+                            class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 px-2 py-0.5 rounded">
+                            ⚠ Geldt voor {{ attr.applicableCount }} van {{ selectedIds.length }} producten
+                        </span>
+                    </div>
+                    <ComboBox
+                        :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
+                        v-model="bulkEditValues[attr.id]"
+                        :placeholder="`Selecteer ${attr.name.toLowerCase()}`"
+                        :disabled="!bulkEditChecked[attr.id]"
+                    />
+                </div>
+            </div>
+            <div v-if="!drawerAttributes.length" class="px-4 sm:px-6 py-8 text-center text-sm text-gray-400">
+                Geen kenmerken beschikbaar voor de geselecteerde producten.
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="bulkEditOpen = false"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="saveBulkEdit"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
+
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="translate-y-full opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-full opacity-0"
+        >
+            <div v-if="selectedIds.length"
+                class="fixed bottom-0 inset-x-0 z-40 bg-lavoro-dark text-white px-6 py-4 flex items-center justify-between shadow-2xl">
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="font-bold text-base">{{ selectedIds.length }} producten geselecteerd</span>
+                    <button type="button" @click="selectedIds = []"
+                        class="text-xs text-slate-400 underline hover:text-slate-200">
+                        Deselecteer alles
+                    </button>
+                </div>
+                <button type="button" @click="openBulkEditDrawer"
+                    class="bg-white text-lavoro-dark font-bold text-sm px-5 py-2 rounded-md hover:bg-gray-100">
+                    Kenmerken bewerken
+                </button>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <script setup>
@@ -358,6 +434,58 @@ function toggleSelectAll() {
             if (!existing.has(p.id)) selectedIds.value.push(p.id)
         })
     }
+}
+
+const bulkEditOpen    = ref(false)
+const bulkEditChecked = reactive({})
+const bulkEditValues  = reactive({})
+
+const drawerAttributes = computed(() => {
+    if (!selectedIds.value.length) return []
+    const selectedTypeIds = new Set(
+        displayProducts.value
+            .filter(p => selectedIds.value.includes(p.id))
+            .map(p => p.product_type_id)
+    )
+    return productAttributes
+        .filter(attr => attr.product_type_ids.some(tid => selectedTypeIds.has(tid)))
+        .map(attr => {
+            const applicableCount = displayProducts.value.filter(
+                p => selectedIds.value.includes(p.id) &&
+                     attr.product_type_ids.includes(p.product_type_id)
+            ).length
+            return { ...attr, applicableCount }
+        })
+})
+
+function openBulkEditDrawer() {
+    drawerAttributes.value.forEach(attr => {
+        bulkEditChecked[attr.id] = false
+        bulkEditValues[attr.id]  = null
+    })
+    bulkEditOpen.value = true
+}
+
+function saveBulkEdit() {
+    const attributes = drawerAttributes.value
+        .filter(attr => bulkEditChecked[attr.id] && bulkEditValues[attr.id])
+        .map(attr => ({
+            product_attribute_id:       attr.id,
+            product_attribute_value_id: bulkEditValues[attr.id]?.id ?? bulkEditValues[attr.id],
+        }))
+
+    if (!attributes.length) return
+
+    router.post('/products/bulk-update-attributes', {
+        product_ids: selectedIds.value,
+        attributes,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            bulkEditOpen.value = false
+            selectedIds.value  = []
+        },
+    })
 }
 
 const newProductForm = useForm({
