@@ -58,6 +58,7 @@ Route::group(
         Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');
         Route::get('combo/materials', [ComboSearchController::class, 'materials'])->name('combo.materials');
         Route::get('combo/products', [ComboSearchController::class, 'products'])->name('combo.products');
+        Route::get('combo/suppliers', [ComboSearchController::class, 'suppliers'])->name('combo.suppliers');
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
@@ -111,6 +112,15 @@ Route::group(
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);
+        Route::post('materials/{material}/suppliers', [
+            \App\Http\Controllers\MaterialSupplierController::class, 'store',
+        ])->name('materials.suppliers.store');
+        Route::patch('materials/{material}/suppliers/{supplier}', [
+            \App\Http\Controllers\MaterialSupplierController::class, 'update',
+        ])->name('materials.suppliers.update');
+        Route::delete('materials/{material}/suppliers/{supplier}', [
+            \App\Http\Controllers\MaterialSupplierController::class, 'destroy',
+        ])->name('materials.suppliers.destroy');
         Route::resource('materialcategories', MaterialCategoryController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('materialusageunits', MaterialUsageUnitController::class)

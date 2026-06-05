@@ -93,9 +93,28 @@ class MaterialController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(MaterialReadRequest $request, Material $material)
     {
-        //
+        $material->load(['category', 'usageUnit', 'suppliers']);
+
+        $supplier_count = \App\Models\Supplier::count();
+        $all_suppliers  = $supplier_count <= 50
+            ? \App\Models\Supplier::orderBy('name')->get(['id', 'name'])
+            : collect();
+
+        return inertia('Materials/ShowPage', [
+            'material'         => $material,
+            'categories'       => \App\Models\MaterialCategory::orderBy('name')->get(['id', 'name']),
+            'usageUnits'       => \App\Models\MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
+            'materialSuppliers' => $material->suppliers->map(fn ($s) => [
+                'id'             => $s->id,
+                'name'           => $s->name,
+                'article_number' => $s->pivot->article_number,
+                'is_preferred'   => (bool) $s->pivot->is_preferred,
+            ])->values()->all(),
+            'allSuppliers'     => $all_suppliers,
+            'suppliersUseAjax' => $supplier_count > 50,
+        ]);
     }
 
     /**
@@ -113,7 +132,7 @@ class MaterialController extends Controller
     {
         $material->update($request->validated());
 
-        return redirect()->route('materials.index')->with('success', 'Materiaal is bijgewerkt.');
+        return redirect()->back()->with('success', 'Materiaal is bijgewerkt.');
     }
 
     /**
