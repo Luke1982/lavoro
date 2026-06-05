@@ -1,99 +1,165 @@
 <template>
-    <div
-        class="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-500 to-emerald-500 flex items-center justify-center p-4">
-        <div class="w-full max-w-md">
-            <div
-                class="relative bg-white/90 backdrop-blur-md rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
-                <div class="px-8 pt-8 pb-6 text-center">
-                    <div class="mx-auto flex flex-col items-center justify-center gap-3">
-                        <div v-if="companyLogo" class="relative">
-                            <img :src="companyLogo" :alt="companyName || 'Bedrijf'"
-                                class="h-16 w-auto object-contain drop-shadow-sm" />
-                        </div>
-                        <div v-else class="h-16 flex items-center justify-center">
-                            <span class="text-white/80 text-xl font-semibold tracking-wide">Lavoro FSM</span>
+    <div class="min-h-screen flex relative">
+        <!-- Full-screen background (desktop) -->
+        <img src="/img/bg.png" alt="" class="hidden lg:block absolute inset-0 w-full h-full object-cover" />
+
+        <!-- Left panel: marketing copy (desktop only) -->
+        <div class="hidden lg:flex lg:w-[55%] relative flex-col">
+            <div class="relative z-10 flex flex-col justify-between h-full p-12">
+                <img src="/img/logo-neg.svg" alt="Lavoro" class="h-9 w-auto self-start" />
+
+                <div>
+                    <h1 class="text-5xl font-bold text-white leading-tight">
+                        Werk slimmer.<br>
+                        Service <span
+                            class="bg-gradient-to-r from-lavoro-blue to-lavoro-green bg-clip-text text-transparent">beter.</span>
+                    </h1>
+                    <p class="mt-4 text-white/55 text-sm max-w-sm leading-relaxed">
+                        Lavoro helpt serviceteams om werkbonnen, planning en klantinformatie naadloos te beheren.
+                    </p>
+
+                    <div class="mt-10 grid grid-cols-3 gap-6">
+                        <div v-for="feature in features" :key="feature.title">
+                            <component :is="feature.icon" class="h-10 w-10 mb-4" :class="feature.color" />
+                            <p class="text-white text-sm font-semibold">{{ feature.title }}</p>
+                            <p class="text-white/45 text-xs mt-1 leading-relaxed">{{ feature.body }}</p>
                         </div>
                     </div>
-                    <h2 class="mt-6 text-2xl font-semibold tracking-tight text-gray-900">Welkom terug</h2>
-                    <p class="text-sm text-gray-500 mt-1">Log in om verder te gaan</p>
                 </div>
+            </div>
+        </div>
 
-                <form class="px-8 pb-8 space-y-5" @submit.prevent="login">
+        <!-- Right panel: login form -->
+        <div class="flex-1 flex flex-col items-end justify-center p-6 lg:pr-30 relative">
+            <img src="/img/bg-mobile.png" alt="" class="lg:hidden absolute inset-0 w-full h-full object-cover" />
+
+            <div
+                class="w-full max-w-xl relative z-10 lg:bg-lavoro-dark lg:border lg:border-white/10 lg:rounded-2xl lg:p-16 lg:min-h-[calc(100vh-12rem)] lg:flex lg:flex-col lg:justify-center lg:min-w-130">
+                <!-- Mobile logo -->
+                <div class="lg:hidden mb-10">
+                    <img src="/img/logo-neg.svg" alt="Lavoro" class="h-10 mx-auto" />
+                </div>
+                <p class="text-lavoro-green font-medium text-sm mb-1">Welkom terug! 👋</p>
+                <h2 class="text-3xl font-bold text-white leading-snug mb-8">
+                    Log in om verder<br>te gaan in Lavoro
+                </h2>
+
+                <form class="space-y-5" @submit.prevent="login">
+                    <!-- Email -->
                     <div>
-                        <label for="email" class="block text-xs font-medium text-gray-700 mb-1">E-mailadres</label>
-                        <div class="relative">
+                        <label class="block text-sm text-gray-400 mb-2">E-mailadres</label>
+                        <div
+                            class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors">
+                            <EnvelopeIcon class="h-5 w-5 text-gray-500 shrink-0" />
                             <input v-model="loginForm.email" id="email" name="email" type="email" autocomplete="email"
-                                required
-                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
-                                placeholder="you@company.com" />
+                                required placeholder="jouw@email.nl"
+                                class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
                         </div>
                     </div>
 
+                    <!-- Password -->
                     <div>
-                        <label for="password" class="block text-xs font-medium text-gray-700 mb-1">Wachtwoord</label>
-                        <div class="relative">
+                        <label class="block text-sm text-gray-400 mb-2">Wachtwoord</label>
+                        <div
+                            class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors">
+                            <LockClosedIcon class="h-5 w-5 text-gray-500 shrink-0" />
                             <input :type="showPassword ? 'text' : 'password'" v-model="loginForm.password" id="password"
-                                name="password" autocomplete="current-password" required
-                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
-                                placeholder="••••••••" />
+                                name="password" autocomplete="current-password" required placeholder="••••••••"
+                                class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
                             <button type="button" @click="showPassword = !showPassword"
-                                class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
-                                <component :is="showPassword ? EyeSlashIcon : EyeIcon" class="h-5 w-5" />
-                                <span class="sr-only">Toggle password</span>
+                                class="text-gray-500 hover:text-gray-300 transition-colors">
+                                <EyeSlashIcon v-if="showPassword" class="h-5 w-5" />
+                                <EyeIcon v-else class="h-5 w-5" />
                             </button>
                         </div>
                     </div>
 
-                    <div v-if="Object.keys(loginForm.errors || {}).length"
-                        class="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                        <ul class="list-disc list-inside">
+                    <!-- Remember me -->
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
+                            <input type="checkbox" v-model="rememberMe" class="rounded accent-lavoro-blue h-4 w-4" />
+                            Onthoud mij
+                        </label>
+                        <a href="#" class="text-sm text-lavoro-green hover:text-lavoro-green/80 transition-colors">
+                            Wachtwoord vergeten?
+                        </a>
+                    </div>
+
+                    <!-- Errors -->
+                    <div v-if="flatErrors.length"
+                        class="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                        <ul class="list-disc list-inside space-y-0.5">
                             <li v-for="(msg, i) in flatErrors" :key="i">{{ msg }}</li>
                         </ul>
                     </div>
 
-                    <button type="submit" @click="login" :disabled="loginForm.processing"
-                        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:from-indigo-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 disabled:opacity-50">
+                    <!-- Submit -->
+                    <button type="submit" :disabled="loginForm.processing"
+                        class="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-lavoro-blue to-lavoro-green py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-50 transition-opacity">
                         <svg v-if="loginForm.processing" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="4">
+                            stroke="currentColor" stroke-width="3">
                             <circle cx="12" cy="12" r="10" class="opacity-25" />
                             <path d="M4 12a8 8 0 018-8" class="opacity-75" />
                         </svg>
-                        <span>Log in</span>
+                        <span>Inloggen</span>
+                        <ArrowRightIcon v-if="!loginForm.processing" class="h-4 w-4" />
                     </button>
                 </form>
 
-                <div class="px-8 pb-6 text-center text-xs text-gray-500">
-                    <span>© {{ new Date().getFullYear() }} — Lavoro FSM</span>
-                </div>
-
-                <div
-                    class="absolute -inset-x-16 -bottom-16 h-32 bg-gradient-to-r from-indigo-400/20 via-blue-400/20 to-emerald-400/20 blur-2xl pointer-events-none">
-                </div>
+                <p class="mt-8 text-center text-sm text-gray-600">
+                    Nog geen account?
+                    <a href="mailto:" class="text-gray-500 hover:text-gray-400 transition-colors">Neem contact op</a>
+                    met je beheerder.
+                </p>
             </div>
         </div>
     </div>
-
 </template>
 
 <script setup>
-import { useForm, usePage } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
+import {
+    EnvelopeIcon,
+    LockClosedIcon,
+    EyeIcon,
+    EyeSlashIcon,
+    ArrowRightIcon,
+    BoltIcon,
+    ShieldCheckIcon,
+    PresentationChartLineIcon,
+} from '@heroicons/vue/24/outline';
 
 const loginForm = useForm({
     email: '',
     password: '',
 });
+
 const showPassword = ref(false);
+const rememberMe = ref(true);
 
-const page = usePage();
-const companyLogo = computed(() => page.props.company?.logo_url || null);
-const companyName = computed(() => page.props.company?.name || null);
+const flatErrors = computed(() => Object.values(loginForm.errors || {}).flat());
 
-const flatErrors = computed(() => {
-    const e = loginForm.errors || {}
-    return Object.values(e).flat()
-})
+const features = [
+    {
+        icon: BoltIcon,
+        color: 'text-lavoro-green',
+        title: 'Snel en efficiënt',
+        body: 'Minder administratie, meer resultaat.',
+    },
+    {
+        icon: ShieldCheckIcon,
+        color: 'text-lavoro-blue',
+        title: 'Betrouwbaar en veilig',
+        body: 'Jouw data is bij ons in veilige handen.',
+    },
+    {
+        icon: PresentationChartLineIcon,
+        color: 'text-violet-500',
+        title: 'Altijd inzicht',
+        body: 'Real-time overzicht van al je processen.',
+    },
+];
 
 const login = () => loginForm.post('/login');
 </script>
