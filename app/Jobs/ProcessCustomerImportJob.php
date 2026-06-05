@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProcessCustomerImportJob implements ShouldQueue
@@ -21,7 +22,7 @@ class ProcessCustomerImportJob implements ShouldQueue
     public function handle(): void
     {
         foreach ($this->rows as $row) {
-            if ($row['fatal'] || $row['action'] === 'skip') {
+            if (($row['fatal'] ?? false) || ($row['action'] ?? null) === 'skip') {
                 continue;
             }
 
@@ -34,8 +35,13 @@ class ProcessCustomerImportJob implements ShouldQueue
                 $data['postal_code'] = strtoupper(preg_replace('/\s|-/', '', (string) $data['postal_code']));
             }
 
-            if ($row['action'] === 'update') {
-                Customer::where('name', $data['name'])->first()?->update($data);
+            if (($row['action'] ?? null) === 'update') {
+                $customer = Customer::where('name', $data['name'])->first();
+                if ($customer) {
+                    $customer->update($data);
+                } else {
+                    Log::warning('CustomerImport: no customer found for update', ['name' => $data['name']]);
+                }
             } else {
                 $data['snelstart_id'] = (string) Str::uuid();
                 Customer::create($data);
