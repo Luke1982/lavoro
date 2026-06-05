@@ -18,7 +18,7 @@
             <!-- Grey/green track ring — stays grey while ring is animating -->
             <circle cx="14" cy="14" r="12"
                 fill="none"
-                :stroke="trackGreen ? color : '#d1d5db'"
+                :stroke="trackGreen ? (checkColor ?? color) : '#d1d5db'"
                 stroke-width="2"
                 style="transition: stroke 0.15s"
             />
@@ -26,7 +26,7 @@
             <circle v-if="ringing"
                 cx="14" cy="14" r="12"
                 fill="none"
-                :stroke="color"
+                :stroke="checkColor ?? color"
                 stroke-width="2.5"
                 stroke-linecap="round"
                 transform="rotate(-90 14 14)"
@@ -35,7 +35,7 @@
             <!-- Checkmark — drawn in via CSS animation -->
             <path v-if="showCheck"
                 d="M7.5 14 L12 19.5 L20.5 9.5"
-                stroke="white"
+                :stroke="checkColor ?? 'white'"
                 stroke-width="2.5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -55,9 +55,10 @@ const CHECK_MS  = 260
 const BOUNCE_MS = 320
 
 const props = defineProps({
-    modelValue: { type: Boolean, default: false },
-    disabled:   { type: Boolean, default: false },
-    color:      { type: String, default: 'var(--color-lavoro-green)' },
+    modelValue:  { type: Boolean, default: false },
+    disabled:    { type: Boolean, default: false },
+    color:       { type: String, default: 'var(--color-lavoro-green)' },
+    checkColor:  { type: String, default: null },
 })
 const emit = defineEmits(['update:modelValue'])
 
