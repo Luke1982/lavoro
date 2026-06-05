@@ -45,7 +45,8 @@ class CustomerController extends Controller
             ->paginate(25)
             ->appends(['search' => $search]);
         return inertia('Customers/IndexPage', [
-            'customers' => $customers,
+            'customers'       => $customers,
+            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
         ]);
     }
 

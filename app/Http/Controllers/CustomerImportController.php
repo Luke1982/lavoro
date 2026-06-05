@@ -146,8 +146,9 @@ class CustomerImportController extends Controller
         }
 
         return inertia('Customers/IndexPage', [
-            'customers'     => $customers,
-            'importPreview' => $preview_rows,
+            'customers'        => $customers,
+            'importPreview'    => $preview_rows,
+            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
         ]);
     }
 

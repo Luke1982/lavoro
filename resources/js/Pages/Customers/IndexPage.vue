@@ -1,27 +1,24 @@
 <template>
     <IndexHeaderComponent title="Klanten" :addLabel="canCreate && !importPreview ? 'Nieuwe klant' : null"
         search-placeholder="Zoek klant... " search-url="/customers"
-        @add="() => canCreate && customerFormRef?.show()">
-        <template v-if="!importPreview" #filters>
-            <div class="flex flex-wrap gap-2">
-                <button @click="importCustomers" :disabled="importingCustomers"
-                    class="px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">
-                    SnelStart klanten importeren
-                </button>
-                <a v-if="canCreate" href="/customers/import/example"
-                    class="px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
-                    Download voorbeeldbestand
-                </a>
-                <button v-if="canCreate" @click="triggerFileInput" :disabled="previewForm.processing"
-                    class="px-3 py-2 bg-emerald-600 dark:bg-emerald-500 text-white text-xs font-semibold rounded hover:bg-emerald-700 dark:hover:bg-emerald-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition">
-                    {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
-                </button>
-                <input ref="fileInputRef" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileUpload" />
-            </div>
-        </template>
-    </IndexHeaderComponent>
+        @add="() => canCreate && customerFormRef?.show()" />
 
     <div v-if="!importPreview">
+        <div v-if="snelStartEnabled || canCreate" class="flex flex-wrap gap-2 mb-4">
+            <button v-if="snelStartEnabled" @click="importCustomers" :disabled="importingCustomers"
+                class="px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">
+                SnelStart klanten importeren
+            </button>
+            <a v-if="canCreate" href="/customers/import/example"
+                class="px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
+                Download voorbeeldbestand
+            </a>
+            <button v-if="canCreate" @click="triggerFileInput" :disabled="previewForm.processing"
+                class="px-3 py-2 bg-emerald-600 dark:bg-emerald-500 text-white text-xs font-semibold rounded hover:bg-emerald-700 dark:hover:bg-emerald-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition">
+                {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
+            </button>
+            <input ref="fileInputRef" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileUpload" />
+        </div>
         <div class="mb-4" v-auto-animate v-if="canCreate">
             <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
                 add-button-label="Nieuwe klant" submit-label="Opslaan" />
@@ -152,6 +149,10 @@ const props = defineProps({
     importPreview: {
         type: Array,
         default: null,
+    },
+    snelStartEnabled: {
+        type: Boolean,
+        default: false,
     },
 })
 
