@@ -103,8 +103,9 @@
                 </div>
                 </div>
                 <Link :href="`/materials/${mat.id}`"
-                    class="pr-4 shrink-0 text-gray-400 hover:text-lavoro-blue transition-colors">
-                    <ChevronRightIcon class="h-4 w-4" />
+                    class="mx-2 shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-lavoro-blue border border-lavoro-blue/30 hover:bg-lavoro-blue hover:text-white transition-colors">
+                    <ChevronRightIcon class="h-3.5 w-3.5" />
+                    <span class="hidden sm:inline">Details</span>
                 </Link>
             </div>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
