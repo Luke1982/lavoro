@@ -1,24 +1,39 @@
 <template>
     <IndexHeaderComponent title="Klanten" :addLabel="canCreate && !importPreview ? 'Nieuwe klant' : null"
         search-placeholder="Zoek klant... " search-url="/customers"
-        @add="() => canCreate && customerFormRef?.show()" />
+        @add="() => canCreate && customerFormRef?.show()">
+        <template v-if="!importPreview && (snelStartEnabled || canCreate)" #actions>
+            <div class="relative" ref="actionsMenuRef">
+                <button @click="actionsOpen = !actionsOpen"
+                    class="cursor-pointer inline-flex items-center gap-x-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
+                    <ArrowUpTrayIcon class="h-4 w-4" />
+                    <span class="hidden sm:inline">Importeren</span>
+                    <ChevronDownIcon class="h-3 w-3 text-gray-400 dark:text-slate-400 transition-transform" :class="actionsOpen ? 'rotate-180' : ''" />
+                </button>
+                <div v-if="actionsOpen"
+                    class="absolute right-0 top-full mt-1 z-50 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg ring-1 ring-gray-200 dark:ring-slate-700 py-1">
+                    <button v-if="snelStartEnabled" @click="importCustomers(); actionsOpen = false" :disabled="importingCustomers"
+                        class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
+                        <ArrowPathIcon class="h-4 w-4 text-indigo-500 shrink-0" />
+                        SnelStart klanten importeren
+                    </button>
+                    <a v-if="canCreate" href="/customers/import/example" @click="actionsOpen = false"
+                        class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition">
+                        <ArrowDownTrayIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 shrink-0" />
+                        Download voorbeeldbestand
+                    </a>
+                    <button v-if="canCreate" @click="triggerFileInput(); actionsOpen = false" :disabled="previewForm.processing"
+                        class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
+                        <ArrowUpTrayIcon class="h-4 w-4 text-emerald-500 shrink-0" />
+                        {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
+                    </button>
+                </div>
+            </div>
+            <input ref="fileInputRef" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileUpload" />
+        </template>
+    </IndexHeaderComponent>
 
     <div v-if="!importPreview">
-        <div v-if="snelStartEnabled || canCreate" class="flex flex-wrap gap-2 mb-4">
-            <button v-if="snelStartEnabled" @click="importCustomers" :disabled="importingCustomers"
-                class="px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">
-                SnelStart klanten importeren
-            </button>
-            <a v-if="canCreate" href="/customers/import/example"
-                class="px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
-                Download voorbeeldbestand
-            </a>
-            <button v-if="canCreate" @click="triggerFileInput" :disabled="previewForm.processing"
-                class="px-3 py-2 bg-emerald-600 dark:bg-emerald-500 text-white text-xs font-semibold rounded hover:bg-emerald-700 dark:hover:bg-emerald-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition">
-                {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
-            </button>
-            <input ref="fileInputRef" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileUpload" />
-        </div>
         <div class="mb-4" v-auto-animate v-if="canCreate">
             <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
                 add-button-label="Nieuwe klant" submit-label="Opslaan" />
@@ -133,11 +148,11 @@
 </template>
 
 <script setup>
-import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon, ChevronDownIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { Link, router, useForm } from '@inertiajs/vue3';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
@@ -158,6 +173,16 @@ const props = defineProps({
 
 const customerFormRef = ref(null)
 const fileInputRef = ref(null)
+const actionsMenuRef = ref(null)
+const actionsOpen = ref(false)
+
+const handleClickOutside = (e) => {
+    if (actionsMenuRef.value && !actionsMenuRef.value.contains(e.target)) {
+        actionsOpen.value = false
+    }
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 const importingCustomers = ref(false)
 const importForm = useForm({})
