@@ -1,14 +1,32 @@
 <template>
-    <div class="grid grid-cols-12 gap-x-3 p-3">
-        <div class="col-span-12 md:col-span-10">
+    <!-- Mobile (below md) -->
+    <div class="md:hidden">
+        <MobilePlannerView
+            :event-types="eventTypes"
+            :all-customers="allCustomers"
+            :all-service-orders="allServiceOrders"
+            :event-statusses="eventStatusses"
+            :all-users="allUsers"
+            :plannable-users="plannableUsers" />
+    </div>
+
+    <!-- Desktop (md and up) -->
+    <div class="hidden md:grid grid-cols-12 gap-x-3 p-3">
+        <div class="col-span-10">
             <BoxComponent padding="p-0">
-                <ResourcePlannerWidget :event-types="eventTypes" :all-customers="allCustomers"
-                    :all-service-orders="allServiceOrders" :event-statusses="eventStatusses" :all-users="allUsers"
-                    :plannable-users="plannableUsers" :projects="projects"
-                    @service-order-planned="onServiceOrderPlanned" @service-order-unplanned="onServiceOrderUnplanned" />
+                <ResourcePlannerWidget
+                    :event-types="eventTypes"
+                    :all-customers="allCustomers"
+                    :all-service-orders="allServiceOrders"
+                    :event-statusses="eventStatusses"
+                    :all-users="allUsers"
+                    :plannable-users="plannableUsers"
+                    :projects="projects"
+                    @service-order-planned="onServiceOrderPlanned"
+                    @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
-        <div class="col-span-12 md:col-span-2">
+        <div class="col-span-2">
             <BoxComponent padding="p-0">
                 <UnplannedServiceOrdersWidget :service-orders="unplanned" />
             </BoxComponent>
@@ -21,6 +39,7 @@ import { ref, computed } from 'vue'
 import ResourcePlannerWidget from '@/Components/Planner/ResourcePlannerWidget.vue'
 import UnplannedServiceOrdersWidget from '@/Components/Planner/UnplannedServiceOrdersWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
+import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
 
 const props = defineProps({
     eventTypes: { type: Array, required: true },
