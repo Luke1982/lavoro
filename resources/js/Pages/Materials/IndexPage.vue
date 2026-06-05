@@ -102,9 +102,13 @@
                     </BadgeComponent>
                 </div>
                 </div>
-                <Link :href="`/materials/${mat.id}`" class="pr-4 shrink-0 text-lavoro-darkerblue">
-                    <EyeIcon class="h-5 w-5" />
-                </Link>
+                <div class="pr-4 shrink-0">
+                    <div class="border-1 border-lavoro-darkergray rounded-full p-2">
+                        <Link :href="`/materials/${mat.id}`" class="text-sm text-lavoro-darkerblue">
+                            <EyeIcon class="h-5 w-5" />
+                        </Link>
+                    </div>
+                </div>
             </div>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
                 <PageRecordCountComponent :total="materials.total" :per-page="materials.per_page" label="materialen" />
