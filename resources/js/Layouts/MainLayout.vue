@@ -348,9 +348,11 @@ import {
     HomeIcon,
     PuzzlePieceIcon,
     Square3Stack3DIcon,
+    UserIcon,
     UsersIcon,
     XMarkIcon,
     SwatchIcon,
+    TruckIcon,
     ChevronDownIcon,
     Squares2X2Icon,
     FolderIcon,
@@ -389,7 +391,17 @@ const companyName = computed(() => page.props.company?.name || null)
 
 const navigation = ref([
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
-    { name: 'Klanten', href: '/customers', icon: UsersIcon, current: false, requiresPermission: 'customer.read' },
+    {
+        name: 'Klanten',
+        href: '/customers',
+        icon: UsersIcon,
+        current: false,
+        requiresPermission: 'customer.read',
+        children: [
+            { name: 'Contacten', href: '/contacts', icon: UserIcon, current: false, requiresPermission: 'contact.read' },
+        ],
+        open: false,
+    },
     {
         name: 'Producten',
         href: '/products',
@@ -442,13 +454,19 @@ const navigation = ref([
         open: false,
     },
     {
-        name: 'Agenda',
-        href: '/events',
+        name: 'Leveranciers',
+        href: '/suppliers',
+        icon: TruckIcon,
+        current: false,
+        requiresPermission: 'supplier.read',
+    },
+    {
+        name: 'Planner',
+        href: '/planner',
         icon: CalendarIcon,
         current: false,
         requiresPermission: 'event.read',
         children: [
-            { name: 'Planner', href: '/planner', icon: CalendarIcon, current: false, requiresPermission: 'event.read' },
             { name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' },
         ],
         open: false,
@@ -551,8 +569,32 @@ const toggleSidebar = () => {
 }
 
 const currentTopTitle = computed(() => {
-    const activeTop = navigation.value.find(n => n.current)
-    return activeTop ? activeTop.name : 'Dashboard'
+    const path = currentPath.value.split('?')[0]
+
+    for (const item of navigation.value) {
+        if (item.children) {
+            for (const child of item.children) {
+                if (path === child.href || path.startsWith(child.href + '/')) {
+                    return child.name
+                }
+            }
+        }
+    }
+
+    for (const item of navigation.value) {
+        if (item.href === '/') continue
+        if (path === item.href || path.startsWith(item.href + '/')) {
+            return item.name
+        }
+    }
+
+    for (const list of lists) {
+        if (path === list.href || path.startsWith(list.href + '/')) {
+            return list.name
+        }
+    }
+
+    return 'Dashboard'
 })
 
 const logout = async () => {
