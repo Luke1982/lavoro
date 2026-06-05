@@ -10,7 +10,10 @@ class CustomerImportConfirmRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('customer.create'));
+        if (!$user) {
+            return false;
+        }
+        return $user->isAdmin() || $user->hasPermission('customer.create');
     }
 
     public function rules(): array
