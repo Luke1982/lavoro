@@ -350,6 +350,124 @@
                 <DocumentUploadComponent :existing="product.documents" :documentable-id="product.id"
                     documentable-type="\App\Models\Product" />
             </template>
+
+            <!-- Chapter 4: Leveranciers -->
+            <template #chapter-4>
+                <div>
+                    <BoxComponent>
+                        <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700">
+                            <BuildingOfficeIcon class="size-5 text-gray-500 mr-2" />
+                            <h3 class="text-sm font-medium">Leveranciers</h3>
+                            <button v-if="hasPermission('product.update')"
+                                @click="addingSupplier = !addingSupplier"
+                                class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
+                                v-tooltip="'Leverancier koppelen'">
+                                <PlusIcon class="size-4" />
+                            </button>
+                        </div>
+
+                        <!-- Add form -->
+                        <div v-auto-animate>
+                            <div v-if="addingSupplier"
+                                class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                                <div class="flex gap-2 flex-wrap">
+                                    <div class="flex-1 min-w-40">
+                                        <label class="block text-xs text-gray-500 mb-1">Leverancier</label>
+                                        <ComboBox :options="allSuppliers" v-model="newSupplierLink.supplier_id"
+                                            placeholder="Selecteer leverancier" />
+                                    </div>
+                                    <div class="flex-1 min-w-32">
+                                        <label class="block text-xs text-gray-500 mb-1">Artikelnummer</label>
+                                        <input type="text" v-model="newSupplierLink.article_number"
+                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            placeholder="Optioneel" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label class="block text-xs text-gray-500 mb-1">Voorkeur</label>
+                                        <SwitchComponent v-model="newSupplierLink.is_preferred" />
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 justify-end">
+                                    <button @click="addingSupplier = false"
+                                        class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                        Annuleren
+                                    </button>
+                                    <button @click="submitNewSupplier" :disabled="!newSupplierLink.supplier_id"
+                                        class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50">
+                                        Opslaan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p v-if="!productSuppliers.length && !addingSupplier"
+                            class="text-sm text-gray-400 italic mt-3">
+                            Geen leveranciers gekoppeld.
+                        </p>
+
+                        <table v-if="productSuppliers.length" class="w-full text-sm mt-3">
+                            <thead>
+                                <tr class="text-xs text-gray-400 border-b">
+                                    <th class="text-left py-1 font-medium">Leverancier</th>
+                                    <th class="text-left py-1 font-medium">Artikelnummer</th>
+                                    <th class="text-center py-1 font-medium">Voorkeur</th>
+                                    <th class="py-1"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template v-for="s in productSuppliers" :key="s.id">
+                                    <tr v-if="editingSupplierId === s.id"
+                                        class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
+                                        <td class="py-1.5 pr-2">{{ s.name }}</td>
+                                        <td class="py-1.5 pr-2">
+                                            <input type="text" v-model="editSupplierForm.article_number"
+                                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                                                placeholder="Artikelnummer" />
+                                        </td>
+                                        <td class="py-1.5 text-center">
+                                            <SwitchComponent v-model="editSupplierForm.is_preferred" />
+                                        </td>
+                                        <td class="py-1.5 text-right">
+                                            <div class="flex justify-end gap-1">
+                                                <button @click="cancelEditSupplier"
+                                                    class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                                <button @click="saveEditSupplier(s.id)"
+                                                    class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-else class="border-b border-gray-100 dark:border-slate-800">
+                                        <td class="py-1.5">
+                                            <Link :href="`/suppliers/${s.id}`" class="text-blue-500 hover:underline">
+                                                {{ s.name }}
+                                            </Link>
+                                        </td>
+                                        <td class="py-1.5 text-gray-500">{{ s.article_number || '—' }}</td>
+                                        <td class="py-1.5 text-center">
+                                            <span v-if="s.is_preferred" class="text-green-600 text-xs">✓</span>
+                                            <span v-else class="text-gray-300 text-xs">—</span>
+                                        </td>
+                                        <td class="py-1.5 text-right">
+                                            <div class="flex justify-end gap-2">
+                                                <button v-if="hasPermission('product.update')"
+                                                    @click="startEditSupplier(s)"
+                                                    class="text-gray-400 hover:text-gray-600">
+                                                    <PencilIcon class="size-4" />
+                                                </button>
+                                                <button v-if="hasPermission('product.update')"
+                                                    @click="removeSupplier(s.id)"
+                                                    class="text-red-400 hover:text-red-600">
+                                                    <TrashIcon class="size-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </BoxComponent>
+                </div>
+            </template>
         </ChapterContents>
     </ChaptersComponent>
 
@@ -403,7 +521,7 @@
 
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
-        <AddAssetForm :allCustomers="allCustomers" :productId="product.id" :isBundle="product.bundle"
+        <AddAssetForm :allCustomers="allCustomers" :customersUseAjax="customersUseAjax" :productId="product.id" :isBundle="product.bundle"
             :productTypicalDays="product.typical_certificate_days"
             :productTypeTypicalDays="product.product_type?.typical_certificate_days"
             :required-productables-by-product="requiredProductablesByProduct" :bare="true"
@@ -421,7 +539,7 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
-import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, ChevronRightIcon, FingerPrintIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, ChevronRightIcon, FingerPrintIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
@@ -445,6 +563,7 @@ const props = defineProps({
         type: Array,
         required: true
     },
+    customersUseAjax: { type: Boolean, default: false },
     customFields: {
         type: Array,
         default: () => [],
@@ -457,6 +576,9 @@ const props = defineProps({
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
     productAttributes: { type: Array, default: () => [] },
     selectedAttributeValues: { type: Object, default: () => ({}) },
+    productSuppliers:   { type: Array, default: () => [] },
+    allSuppliers:       { type: Array, default: () => [] },
+    suppliersUseAjax:   { type: Boolean, default: false },
 });
 
 const form = useForm({
@@ -481,6 +603,7 @@ const chapters = [
     `Machines (${props.product.assets.length})`,
     `Gerelateerde producten (${props.product.child_products.length})`,
     `Documenten (${props.product.documents.length})`,
+    `Leveranciers (${props.productSuppliers.length})`,
 ]
 watch([
     () => form.description,
@@ -562,6 +685,50 @@ function saveEdit() {
     }, {
         preserveScroll: true,
         onSuccess: () => { editingId.value = null },
+    })
+}
+
+const addingSupplier   = ref(false)
+const newSupplierLink  = reactive({ supplier_id: null, article_number: '', is_preferred: false })
+
+function submitNewSupplier() {
+    router.post(`/products/${props.product.id}/suppliers`, {
+        supplier_id:    newSupplierLink.supplier_id,
+        article_number: newSupplierLink.article_number || null,
+        is_preferred:   newSupplierLink.is_preferred,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            addingSupplier.value           = false
+            newSupplierLink.supplier_id    = null
+            newSupplierLink.article_number = ''
+            newSupplierLink.is_preferred   = false
+        },
+    })
+}
+
+function removeSupplier(supplier_id) {
+    router.delete(`/products/${props.product.id}/suppliers/${supplier_id}`, { preserveScroll: true })
+}
+
+const editingSupplierId = ref(null)
+const editSupplierForm  = reactive({ article_number: '', is_preferred: false })
+
+function startEditSupplier(s) {
+    editingSupplierId.value         = s.id
+    editSupplierForm.article_number = s.article_number || ''
+    editSupplierForm.is_preferred   = s.is_preferred
+}
+
+function cancelEditSupplier() { editingSupplierId.value = null }
+
+function saveEditSupplier(supplier_id) {
+    router.patch(`/products/${props.product.id}/suppliers/${supplier_id}`, {
+        article_number: editSupplierForm.article_number || null,
+        is_preferred:   editSupplierForm.is_preferred,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => { editingSupplierId.value = null },
     })
 }
 
