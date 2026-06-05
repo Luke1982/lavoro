@@ -23,7 +23,11 @@ class CustomerController extends Controller
     public function index(CustomerReadRequest $request)
     {
         $search = $request->input('search');
-        $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
+        $customers = Customer::withCount([
+                'tickets as open_tickets_count' => fn ($q) => $q->where('tickets.status', 'Open'),
+                'tickets as pending_tickets_count' => fn ($q) => $q->where('tickets.status', 'In behandeling'),
+                'tickets as closed_tickets_count' => fn ($q) => $q->where('tickets.status', 'Gesloten'),
+            ])
             ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('invoice_email', 'like', "%{$search}%")

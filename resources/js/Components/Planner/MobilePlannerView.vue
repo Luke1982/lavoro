@@ -171,6 +171,15 @@
             </div>
         </div>
 
+        <!-- FAB: create new event -->
+        <button
+            v-if="canCreate"
+            class="fixed bottom-6 right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+            aria-label="Nieuwe afspraak aanmaken"
+            @click="openCreate">
+            <PlusIcon class="size-7 text-gray-900" />
+        </button>
+
         <!-- Edit modal -->
         <EventEditModal
             v-if="modalOpen"
@@ -199,6 +208,7 @@ import {
     ClockIcon,
     BuildingOfficeIcon,
     ArrowTopRightOnSquareIcon,
+    PlusIcon,
 } from '@heroicons/vue/24/outline'
 import dayjs from '@/Utilities/dayjs'
 import { formatUtcDatetime, hasPermission, initials, nlTime } from '@/Utilities/Utilities'
@@ -403,9 +413,11 @@ function resolveExecutingUsers(ev) {
     })
 }
 
-// ── Tap-to-edit ───────────────────────────────────────────────────────────────
+// ── Tap-to-edit / create ─────────────────────────────────────────────────────
 
 const authUserId = computed(() => page.props.auth.user?.id ?? null)
+
+const canCreate = computed(() => hasPermission('event.create'))
 
 const modalOpen            = ref(false)
 const editingExistingEvent = ref(false)
@@ -434,6 +446,27 @@ function handleEventTap(ev) {
         executing_user_ids:  [...ev.executing_user_ids],
     }
     editingExistingEvent.value = true
+    modalOpen.value = true
+}
+
+function openCreate() {
+    const start = dayjs().add(1, 'hour').startOf('hour').toDate()
+    const end   = dayjs(start).add(1, 'hour').toDate()
+    modalInitial.value = {
+        id:                 null,
+        event_type_id:      null,
+        name:               null,
+        description:        null,
+        status:             null,
+        start,
+        end,
+        eventable_type:     null,
+        eventable_id:       null,
+        customer_id:        null,
+        customer_name:      null,
+        executing_user_ids: authUserId.value ? [authUserId.value] : [],
+    }
+    editingExistingEvent.value = false
     modalOpen.value = true
 }
 

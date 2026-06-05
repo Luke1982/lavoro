@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CustomerSearchRequest;
 use App\Http\Requests\MaterialSearchRequest;
 use App\Http\Requests\ProductSearchRequest;
+use App\Http\Requests\SupplierSearchRequest;
 use App\Models\Customer;
 use App\Models\Material;
 use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 
 class ComboSearchController extends Controller
@@ -62,6 +64,19 @@ class ComboSearchController extends Controller
                 'typical_certificate_days' => $p->typical_certificate_days,
                 'product_type_typical_certificate_days' => $p->productType->typical_certificate_days,
             ]);
+
+        return response()->json($results);
+    }
+
+    public function suppliers(SupplierSearchRequest $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $results = Supplier::query()
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
+            ->orderBy('name')
+            ->limit(25)
+            ->get(['id', 'name']);
 
         return response()->json($results);
     }

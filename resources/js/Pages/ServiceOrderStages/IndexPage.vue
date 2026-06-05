@@ -13,43 +13,84 @@
                 <div class="col-span-2 text-center">Gepland fase</div>
                 <div class="col-span-2 text-center">Gesloten fase</div>
                 <div class="col-span-1 text-center">Planbare fase</div>
-                <div class="col-span-1 text-center">Geannuleerd</div>
+                <div class="col-span-1 text-center">Na annuleren</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
                 <div v-for="stage in internalStages" :key="stage.id" role="row"
-                    class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
-                    <div class="col-span-1 flex items-center">
-                        <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
-                            v-tooltip="'Sleep om de volgorde aan te passen'" />
+                    class="p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                    <!-- Mobile layout -->
+                    <div class="md:hidden">
+                        <div class="flex items-center gap-2">
+                            <Bars4Icon class="size-6 shrink-0 text-gray-500 cursor-move draghandle"
+                                v-tooltip="'Sleep om de volgorde aan te passen'" />
+                            <span class="w-5 shrink-0 text-gray-800 dark:text-slate-200">{{ stage.order }}</span>
+                            <div class="flex-1 min-w-0">
+                                <EditableTextField type="input" :decoration="false" :model-value="stage.name"
+                                    @update="(val) => saveStage(stage.id, { name: val })" />
+                            </div>
+                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex shrink-0">
+                                <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
+                                    v-tooltip="'Verwijder deze fase'" />
+                            </div>
+                        </div>
+                        <div class="mt-3 grid grid-cols-4 gap-1">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-gray-500 text-center leading-tight">Gepland</span>
+                                <SwitchComponent :model-value="stage.is_planned_state"
+                                    @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-gray-500 text-center leading-tight">Gesloten</span>
+                                <SwitchComponent :model-value="stage.is_closed_state"
+                                    @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-gray-500 text-center leading-tight">Planbaar</span>
+                                <SwitchComponent :model-value="stage.is_plannable_state"
+                                    @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-gray-500 text-center leading-tight">Na annu.</span>
+                                <SwitchComponent :model-value="stage.is_planning_cancelled_state"
+                                    @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-span-1 text-gray-800 dark:text-slate-200">
-                        {{ stage.order }}
-                    </div>
-                    <div class="col-span-3 pr-4">
-                        <EditableTextField type="input" :decoration="false" :model-value="stage.name"
-                            @update="(val) => saveStage(stage.id, { name: val })" />
-                    </div>
-                    <div class="col-span-2 flex items-center justify-center">
-                        <SwitchComponent :model-value="stage.is_planned_state"
-                            @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
-                    </div>
-                    <div class="col-span-2 flex items-center justify-center">
-                        <SwitchComponent :model-value="stage.is_closed_state"
-                            @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
-                    </div>
-                    <div class="col-span-1 flex items-center justify-center">
-                        <SwitchComponent :model-value="stage.is_plannable_state"
-                            @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
-                    </div>
-                    <div class="col-span-1 flex items-center justify-center">
-                        <SwitchComponent :model-value="stage.is_planning_cancelled_state"
-                            @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
-                    </div>
-                    <div class="col-span-1 flex justify-end">
-                        <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
-                            <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
-                                v-tooltip="'Verwijder deze fase'" />
+                    <!-- Desktop layout -->
+                    <div class="hidden md:grid grid-cols-12 items-center">
+                        <div class="col-span-1 flex items-center">
+                            <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
+                                v-tooltip="'Sleep om de volgorde aan te passen'" />
+                        </div>
+                        <div class="col-span-1 text-gray-800 dark:text-slate-200">
+                            {{ stage.order }}
+                        </div>
+                        <div class="col-span-3 pr-4">
+                            <EditableTextField type="input" :decoration="false" :model-value="stage.name"
+                                @update="(val) => saveStage(stage.id, { name: val })" />
+                        </div>
+                        <div class="col-span-2 flex items-center justify-center">
+                            <SwitchComponent :model-value="stage.is_planned_state"
+                                @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
+                        </div>
+                        <div class="col-span-2 flex items-center justify-center">
+                            <SwitchComponent :model-value="stage.is_closed_state"
+                                @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
+                        </div>
+                        <div class="col-span-1 flex items-center justify-center">
+                            <SwitchComponent :model-value="stage.is_plannable_state"
+                                @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
+                        </div>
+                        <div class="col-span-1 flex items-center justify-center">
+                            <SwitchComponent :model-value="stage.is_planning_cancelled_state"
+                                @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
+                        </div>
+                        <div class="col-span-1 flex justify-end">
+                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
+                                <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
+                                    v-tooltip="'Verwijder deze fase'" />
+                            </div>
                         </div>
                     </div>
                 </div>
