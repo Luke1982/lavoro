@@ -242,7 +242,7 @@
     @endforeach
 
     {{-- remarks/outcome data supplied by controller --}}
-    <h2>{{ count($groups) + 2 . '. ' }}Resultaat & Verklaring</h2>
+    <h2>{{ count($groups) + 1 . '. ' }}Resultaat & Verklaring</h2>
     <table class="small" style="margin-bottom:14px;">
         <tr>
             <th colspan="3" style="text-align:left;">Opmerkingen:</th>

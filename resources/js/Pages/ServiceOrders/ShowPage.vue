@@ -304,7 +304,7 @@
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_start_time || '').substring(0, 5) || `Klik hier om een
                                             aankomsttijd in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -316,7 +316,7 @@
                                         <span class="text-xs">{{
                                             (serviceOrder.actual_end_time || '').substring(0, 5) || `Klik hier om een
                                             vertrektijd in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -328,7 +328,7 @@
                                         <span class="text-xs">{{
                                             serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
                                             in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -389,6 +389,23 @@
                         </BoxComponent>
                     </template>
                     <template #sidebar>
+                        <BoxComponent v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')" class="mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm text-gray-500 dark:text-slate-400">Status verzending</span>
+                                <span class="px-2 py-0.5 text-xs rounded border"
+                                    :class="serviceOrderPillColorClasses(serviceOrder)">
+                                    {{ serviceOrderPillText(serviceOrder) }}
+                                </span>
+                            </div>
+                            <button v-if="!serviceOrder.sent_to_administration" @click="sendToSnelStart"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold">
+                                Verstuur naar SnelStart
+                            </button>
+                            <span v-else
+                                class="w-full inline-flex items-center justify-center px-4 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                                Verzonden naar administratie
+                            </span>
+                        </BoxComponent>
                         <BoxComponent v-if="canSeeFinancials">
                             <div class="flex items-center justify-between mb-3">
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Financieel</h3>
@@ -419,61 +436,83 @@
             </template>
 
             <template v-if="canExport" v-slot:[exportSlot]>
-                <TwoThirdsOneThird>
-                    <template #main>
-                        <BoxComponent
-                            v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_jobs', 'snelstart.send_serviceorder'])">
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Acties</h3>
-                            <div class="flex flex-col gap-3">
-                                <a v-if="hasPermission('serviceorder.export_pdf')"
-                                    :href="`/serviceorders/${serviceOrder.id}/export/pdf`" target="_blank"
-                                    rel="noopener"
-                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded hover:opacity-90 text-sm font-semibold">
-                                    <span
-                                        class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                    Exporteer PDF voorbeeld
-                                </a>
-                                <button v-if="hasPermission('serviceorder.email_pdf')" @click="emailPdf"
-                                    :disabled="emailing"
-                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
-                                    <span
-                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                    {{ emailing ? 'Versturen...' : 'E-mail PDF' }}
-                                </button>
-                                <button
-                                    v-if="serviceOrder.servicejobs.length > 0 && hasPermission('serviceorder.email_pdf_with_jobs')"
-                                    @click="emailPdfWithJobs" :disabled="emailingCombined"
-                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
-                                    <span
-                                        class="bg-[#FF0000] text-white font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
-                                    {{ emailingCombined ? 'Versturen...' : 'E-mail PDF + keuringen' }}
-                                </button>
-                                <button
-                                    v-if="!serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder') && snelStartEnabled"
-                                    @click="sendToSnelStart"
-                                    class="inline-flex items-center justify-center px-4 py-2.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold">
-                                    Verstuur naar SnelStart
-                                </button>
-                                <span
-                                    v-else-if="serviceOrder.sent_to_administration && hasPermission('snelstart.send_serviceorder')"
-                                    class="inline-flex items-center justify-center px-4 py-2.5 text-sm rounded bg-green-100 text-green-700 border border-green-300">
-                                    Verzonden naar administratie
-                                </span>
-                            </div>
-                        </BoxComponent>
-                    </template>
-                    <template #sidebar>
+                <OneThirdTwoThirds
+                    v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf'])">
+                    <template #narrow>
                         <BoxComponent>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-500 dark:text-slate-400">Status verzending</span>
-                                <span class="px-2 py-0.5 text-xs rounded border"
-                                    :class="serviceOrderPillColorClasses(serviceOrder)">
-                                    {{ serviceOrderPillText(serviceOrder) }}
-                                </span>
+                            <div class="flex flex-col gap-1.5">
+                                <button v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf'])"
+                                    @click="selectExportItem('werkbon')"
+                                    :class="['text-left px-3 py-2 rounded-md text-sm font-medium border transition-colors w-full',
+                                        selectedExportItem?.type === 'werkbon'
+                                            ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300'
+                                            : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700']">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span>Werkbon</span>
+                                        <span v-if="serviceOrder.sent_to_customer"
+                                            class="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded shrink-0">
+                                            Verzonden
+                                        </span>
+                                    </div>
+                                </button>
+
+                                <template v-if="hasAnyPermission(['servicejob.export_pdf', 'servicejob.mail_pdf'])">
+                                    <button v-for="job in serviceOrder.servicejobs" :key="job.id"
+                                        @click="selectExportItem('job', job.id)"
+                                        :class="['text-left px-3 py-2 rounded-md text-sm border transition-colors w-full',
+                                            selectedExportItem?.type === 'job' && selectedExportItem?.id === job.id
+                                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300'
+                                                : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700']">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div>
+                                                <div class="font-medium leading-tight">{{
+                                                    job.asset?.product?.brand?.name }} {{ job.asset?.product?.model }}
+                                                </div>
+                                                <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{
+                                                    job.asset?.serial_number }}</div>
+                                            </div>
+                                            <span v-if="job.sent_to_customer"
+                                                class="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded shrink-0 mt-0.5">
+                                                Verzonden
+                                            </span>
+                                        </div>
+                                    </button>
+                                </template>
                             </div>
                         </BoxComponent>
                     </template>
-                </TwoThirdsOneThird>
+                    <template #wide>
+                        <BoxComponent>
+                            <template v-if="selectedExportItem">
+                                <div
+                                    class="mb-3 rounded-md overflow-hidden border border-gray-200 dark:border-slate-600">
+                                    <iframe :src="selectedExportItem.type === 'werkbon'
+                                        ? `/serviceorders/${serviceOrder.id}/export/pdf`
+                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`"
+                                        class="w-full h-[600px]" frameborder="0" />
+                                </div>
+                                <div class="flex gap-2">
+                                    <a :href="selectedExportItem.type === 'werkbon'
+                                        ? `/serviceorders/${serviceOrder.id}/export/pdf`
+                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`" target="_blank"
+                                        rel="noopener"
+                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90">
+                                        <span
+                                            class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                        Genereer
+                                    </a>
+                                    <button @click="emailSelectedPdf" :disabled="exportEmailing"
+                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        {{ exportEmailing ? 'Versturen...' : 'E-mail PDF' }}
+                                    </button>
+                                </div>
+                            </template>
+                            <p v-else class="text-sm text-gray-400 dark:text-slate-500">
+                                Selecteer een document aan de linkerkant om een voorbeeld te bekijken.
+                            </p>
+                        </BoxComponent>
+                    </template>
+                </OneThirdTwoThirds>
             </template>
         </ChapterContents>
     </ChaptersComponent>
@@ -487,14 +526,14 @@
                     :needs-box="true" />
                 <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
                     newTicketForm.errors.asset_id
-                }}</p>
+                    }}</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
-                }}
+                    }}
                 </p>
             </div>
             <div>
@@ -526,6 +565,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
+import OneThirdTwoThirds from '@/Layouts/OneThirdTwoThirds.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
@@ -541,7 +581,6 @@ import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
-import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
@@ -727,13 +766,6 @@ const newServicejobForm = useForm({
     outcome: 'Nog geen uitkomst',
 });
 
-const addServiceJob = () => {
-    newServicejobForm.asset_id = assetToCheck.value;
-    newServicejobForm.post(`/servicejobs`, {
-        preserveScroll: true
-    })
-};
-
 const addServiceJobFromSelectedAsset = () => {
     if (!selectedAsset.value) return;
     newServicejobForm.asset_id = selectedAsset.value.id;
@@ -834,33 +866,37 @@ const createAndAttachTicket = () => {
     });
 };
 
-const emailPdf = () => {
-    if (emailing.value) return;
-    if (!props.serviceOrder.is_closed) {
-        alert('Sluit de werkbon af voordat je de PDF kunt e-mailen.');
+const selectedExportItem = ref(null);
+const exportEmailing = ref(false);
+const exportEmailForm = useForm({});
+
+const selectExportItem = (type, id = null) => {
+    if (selectedExportItem.value?.type === type && selectedExportItem.value?.id === id) {
+        selectedExportItem.value = null;
         return;
     }
-    emailing.value = true;
-    form.post(`/serviceorders/ ${props.serviceOrder.id}/email-pdf`, {
-        preserveScroll: true,
-        onFinish: () => { emailing.value = false; }
-    });
+    selectedExportItem.value = { type, id };
 };
 
-const emailing = ref(false);
-const emailingCombined = ref(false);
-
-const emailPdfWithJobs = () => {
-    if (emailingCombined.value) return;
-    if (!props.serviceOrder.is_closed) {
-        alert('Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.');
-        return;
+const emailSelectedPdf = () => {
+    if (!selectedExportItem.value || exportEmailing.value) return;
+    if (selectedExportItem.value.type === 'werkbon') {
+        if (!props.serviceOrder.is_closed) {
+            alert('Sluit de werkbon af voordat je de PDF kunt e-mailen.');
+            return;
+        }
+        exportEmailing.value = true;
+        exportEmailForm.post(`/serviceorders/${props.serviceOrder.id}/email-pdf`, {
+            preserveScroll: true,
+            onFinish: () => { exportEmailing.value = false; }
+        });
+    } else {
+        exportEmailing.value = true;
+        exportEmailForm.post(`/servicejobs/${selectedExportItem.value.id}/email-pdf`, {
+            preserveScroll: true,
+            onFinish: () => { exportEmailing.value = false; }
+        });
     }
-    emailingCombined.value = true;
-    form.post(`/serviceorders/${props.serviceOrder.id}/email-pdf-with-jobs`, {
-        preserveScroll: true,
-        onFinish: () => { emailingCombined.value = false; }
-    });
 };
 
 const sendForm = useForm({});
@@ -888,7 +924,7 @@ const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.val
 
 const showFinancial = ref(false);
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'));
-const canExport = computed(() => hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'serviceorder.email_pdf_with_jobs', 'snelstart.send_serviceorder']));
+const canExport = computed(() => hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf', 'snelstart.send_serviceorder']));
 
 const chapterHeaders = computed(() => [
     'Details',

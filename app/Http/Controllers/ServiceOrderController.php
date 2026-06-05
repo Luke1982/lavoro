@@ -356,6 +356,9 @@ class ServiceOrderController extends Controller
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
         }
+        foreach ($serviceorder->serviceJobs as $job) {
+            $job->update(['sent_to_customer' => true]);
+        }
         return redirect()->back()->with('success', 'Werkbon + keuringen verzonden naar: ' . implode(', ', $recipients));
     }
 

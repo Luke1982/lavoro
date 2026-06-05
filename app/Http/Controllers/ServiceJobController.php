@@ -391,6 +391,8 @@ class ServiceJobController extends Controller
 
         Mail::to($recipients)->send(new ServiceJobPdfMail($servicejob, $pdf->output()));
 
+        $servicejob->update(['sent_to_customer' => true]);
+
         if ($servicejob->serviceOrder) {
             $servicejob->serviceOrder->logActivity('Keuring per e-mail verzonden naar: ' . implode(', ', $recipients));
         }

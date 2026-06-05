@@ -29,16 +29,12 @@ class ServiceJob extends Model
         'completed_on',
         'completed_by',
         'parent_service_job_id',
+        'sent_to_customer',
     ];
 
-    /**
-     * Attribute casting.
-     * Ensure completed_on is treated as a date for formatting in views.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'completed_on' => 'date',
+        'completed_on'     => 'date',
+        'sent_to_customer' => 'boolean',
     ];
 
     protected static function booted()
