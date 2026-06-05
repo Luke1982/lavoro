@@ -55,6 +55,12 @@ Route::group(
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
+        Route::post('customers/import/preview', [\App\Http\Controllers\CustomerImportController::class, 'preview'])
+            ->name('customers.import.preview');
+        Route::post('customers/import/confirm', [\App\Http\Controllers\CustomerImportController::class, 'confirm'])
+            ->name('customers.import.confirm');
+        Route::get('customers/import/example', [\App\Http\Controllers\CustomerImportController::class, 'example'])
+            ->name('customers.import.example');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::resource('products', ProductController::class);
