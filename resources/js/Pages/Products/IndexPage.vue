@@ -72,33 +72,35 @@
     </IndexHeaderComponent>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProducts.length">
-            <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
-                <div class="col-span-1 flex items-center">
+            <div class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+                <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox
                         :model-value="allCurrentPageSelected"
                         color="#081020"
                         @update:model-value="toggleSelectAll"
                     />
                 </div>
-                <div class="col-span-3">Model</div>
-                <div class="col-span-2">Merk</div>
-                <div class="col-span-2">Producttype</div>
-                <div class="col-span-2">Verkoopperiode</div>
-                <div class="col-span-1">Bundel</div>
-                <div class="col-span-1 text-right">Acties</div>
+                <div class="flex-1 grid grid-cols-12 p-4">
+                    <div class="col-span-4">Model</div>
+                    <div class="col-span-2">Merk</div>
+                    <div class="col-span-2">Producttype</div>
+                    <div class="col-span-2">Verkoopperiode</div>
+                    <div class="col-span-1">Bundel</div>
+                    <div class="col-span-1 text-right">Acties</div>
+                </div>
             </div>
             <div v-auto-animate>
             <div v-for="product in displayProducts" :key="product.id" role="row"
-                :class="['grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2', selectedIds.includes(product.id) && 'bg-blue-50 dark:bg-slate-800/60']">
-                <div class="col-span-1 flex items-center">
+                :class="['flex items-center text-sm border-b-lavoro-gray-150 border-b-2', selectedIds.includes(product.id) && 'bg-blue-50 dark:bg-slate-800/60']">
+                <div class="w-10 flex-none flex items-center justify-center self-stretch">
                     <AnimatedCheckbox
                         :model-value="selectedIds.includes(product.id)"
                         color="#081020"
                         @update:model-value="toggleSelectProduct(product.id)"
                     />
                 </div>
-                <div class="col-span-9 sm:col-span-3 flex items-center gap-4">
+                <div class="flex-1 grid grid-cols-12 p-4">
+                <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
                     <div
                         class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
                         <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
@@ -182,6 +184,7 @@
                             <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteProduct(product.id)" />
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
             </div>
