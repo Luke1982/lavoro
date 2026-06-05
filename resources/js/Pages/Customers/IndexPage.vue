@@ -6,9 +6,9 @@
             <div class="relative" ref="actionsMenuRef">
                 <button @click="actionsOpen = !actionsOpen"
                     class="cursor-pointer inline-flex items-center gap-x-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
-                    <ArrowUpTrayIcon class="h-4 w-4" />
+                    <ArrowUpTrayIcon class="h-5 w-5" />
                     <span class="hidden sm:inline">Importeren</span>
-                    <ChevronDownIcon class="h-3 w-3 text-gray-400 dark:text-slate-400 transition-transform" :class="actionsOpen ? 'rotate-180' : ''" />
+                    <ChevronDownIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 transition-transform" :class="actionsOpen ? 'rotate-180' : ''" />
                 </button>
                 <div v-if="actionsOpen"
                     class="absolute right-0 top-full mt-1 z-50 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg ring-1 ring-gray-200 dark:ring-slate-700 py-1">
