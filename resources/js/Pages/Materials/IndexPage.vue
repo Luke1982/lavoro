@@ -102,10 +102,8 @@
                     </BadgeComponent>
                 </div>
                 </div>
-                <Link :href="`/materials/${mat.id}`"
-                    class="mx-2 shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-lavoro-blue border border-lavoro-blue/30 hover:bg-lavoro-blue hover:text-white transition-colors">
-                    <ChevronRightIcon class="h-3.5 w-3.5" />
-                    <span class="hidden sm:inline">Details</span>
+                <Link :href="`/materials/${mat.id}`" class="pr-4 shrink-0 text-lavoro-darkerblue">
+                    <EyeIcon class="h-5 w-5" />
                 </Link>
             </div>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
@@ -133,8 +131,7 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
-import { PackageIcon } from '@lucide/vue'
-import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { PackageIcon, EyeIcon } from '@lucide/vue'
 
 const materialFormRef = ref(null)
 const importingMaterials = ref(false)
