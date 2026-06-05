@@ -9,7 +9,7 @@
         <svg viewBox="0 0 28 28" width="28" height="28" style="overflow: visible; display: block;">
             <!-- Green background (fades in after ring completes) -->
             <circle cx="14" cy="14" r="12"
-                fill="var(--color-lavoro-green)"
+                :fill="color"
                 :style="{
                     opacity: bgVisible ? 1 : 0,
                     transition: bgFading ? `opacity ${BG_MS}ms ease` : 'none',
@@ -18,7 +18,7 @@
             <!-- Grey/green track ring — stays grey while ring is animating -->
             <circle cx="14" cy="14" r="12"
                 fill="none"
-                :stroke="trackGreen ? 'var(--color-lavoro-green)' : '#d1d5db'"
+                :stroke="trackGreen ? color : '#d1d5db'"
                 stroke-width="2"
                 style="transition: stroke 0.15s"
             />
@@ -26,7 +26,7 @@
             <circle v-if="ringing"
                 cx="14" cy="14" r="12"
                 fill="none"
-                stroke="var(--color-lavoro-green)"
+                :stroke="color"
                 stroke-width="2.5"
                 stroke-linecap="round"
                 transform="rotate(-90 14 14)"
@@ -57,6 +57,7 @@ const BOUNCE_MS = 320
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
     disabled:   { type: Boolean, default: false },
+    color:      { type: String, default: 'var(--color-lavoro-green)' },
 })
 const emit = defineEmits(['update:modelValue'])
 
