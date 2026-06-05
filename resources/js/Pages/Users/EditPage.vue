@@ -79,7 +79,7 @@
 
             <div class="flex items-center gap-3">
                 <button @click="submit" :disabled="form.processing || !canSubmit"
-                    class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="inline-flex items-center gap-2 rounded-md bg-lavoro-blue px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg v-if="form.processing" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="4">
                         <circle cx="12" cy="12" r="10" class="opacity-25" />

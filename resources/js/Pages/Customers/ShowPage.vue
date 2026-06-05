@@ -307,7 +307,7 @@
                     Annuleren
                 </button>
                 <button type="button" @click="submitNewContact" :disabled="newContactForm.processing"
-                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Opslaan
                 </button>
             </div>

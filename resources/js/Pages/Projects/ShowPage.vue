@@ -70,7 +70,7 @@
                 </div>
                 <div class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
                     <button @click="showMilestoneDrawer = true"
-                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 inline-flex items-center gap-1.5">
+                        class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90 inline-flex items-center gap-1.5">
                         <FlagIcon class="size-4" />
                         Mijlpaal toevoegen
                     </button>
@@ -84,7 +84,7 @@
                         <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Werkbonnen</h3>
                     </div>
                     <button @click="createServiceOrder"
-                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
+                        class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
                         Werkbon aanmaken
                     </button>
                 </div>
@@ -336,7 +336,7 @@
                     Annuleren
                 </button>
                 <button type="button" @click="submitNewMilestone" :disabled="newMilestoneForm.processing"
-                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Aanmaken
                 </button>
             </div>

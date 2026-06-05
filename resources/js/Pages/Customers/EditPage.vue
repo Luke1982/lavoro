@@ -89,7 +89,7 @@
 
             <div class="flex items-center gap-4">
                 <button type="submit" :disabled="form.processing"
-                    class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition ease-in-out duration-150 disabled:opacity-25">
+                    class="inline-flex items-center justify-center px-4 py-2 bg-lavoro-blue border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition ease-in-out duration-150 disabled:opacity-25">
                     <svg v-if="form.processing" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" class="opacity-25" />

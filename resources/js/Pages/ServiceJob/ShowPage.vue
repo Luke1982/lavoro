@@ -98,7 +98,7 @@
                         class="border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-1 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100" />
                 </div>
                 <button @click="saveBulk" :disabled="bulkSaving"
-                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 disabled:bg-gray-400 self-end">
+                    class="px-4 py-2 bg-lavoro-blue text-white text-sm rounded hover:opacity-90 disabled:bg-gray-400 self-end">
                     <span v-if="!bulkSaving">Sla alle keuringen op</span>
                     <span v-else>Bezig...</span>
                 </button>

@@ -5,7 +5,7 @@
         <template #filters>
             <div>
                 <button @click="importMaterials" :disabled="importingMaterials"
-                    class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400">
+                    class="ml-auto px-3 py-2 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90 disabled:bg-gray-400">
                     SnelStart materialen importeren
                 </button>
             </div>

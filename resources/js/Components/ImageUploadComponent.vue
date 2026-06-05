@@ -62,7 +62,7 @@
             </div>
         </div>
         <button v-if="selectedFiles.length > 0" :disabled="uploading"
-            :class="[uploading ? 'bg-slate-500' : 'bg-indigo-500', 'w-full text-white rounded-md p-3 mt-3 font-bold']"
+            :class="[uploading ? 'bg-slate-500' : 'bg-lavoro-blue', 'w-full text-white rounded-md p-3 mt-3 font-bold']"
             @click="uploadPhotos">Verzenden</button>
 
         <div v-if="isEditorOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

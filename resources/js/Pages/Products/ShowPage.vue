@@ -373,8 +373,11 @@
                                 <div class="flex gap-2 flex-wrap">
                                     <div class="flex-1 min-w-40">
                                         <label class="block text-xs text-gray-500 mb-1">Leverancier</label>
-                                        <ComboBox :options="allSuppliers" v-model="newSupplierLink.supplier_id"
-                                            placeholder="Selecteer leverancier" />
+                                        <ComboBox :options="supplierOptions" v-model="newSupplierLink.supplier_id"
+                                            placeholder="Selecteer leverancier"
+                                            :has-external-searching="suppliersUseAjax"
+                                            :searching="supplierSearching"
+                                            @change="searchSuppliers" />
                                     </div>
                                     <div class="flex-1 min-w-32">
                                         <label class="block text-xs text-gray-500 mb-1">Artikelnummer</label>
@@ -512,7 +515,7 @@
                 <button @click="googleDialog.open = false"
                     class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuleren</button>
                 <button @click="importGoogleImage" :disabled="!googleDialog.url || googleDialog.importing"
-                    class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                    class="px-3 py-1.5 text-sm bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-50">
                     {{ googleDialog.importing ? 'Bezig…' : 'Importeren' }}
                 </button>
             </div>
@@ -543,6 +546,7 @@ import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, 
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
+import { useComboSearch } from '@/Composables/useComboSearch';
 import axios from 'axios';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
@@ -580,6 +584,9 @@ const props = defineProps({
     allSuppliers:       { type: Array, default: () => [] },
     suppliersUseAjax:   { type: Boolean, default: false },
 });
+
+const { options: supplierOptions, searching: supplierSearching, search: searchSuppliers } =
+    useComboSearch('suppliers', props.allSuppliers, props.suppliersUseAjax)
 
 const form = useForm({
     description: props.product.description,

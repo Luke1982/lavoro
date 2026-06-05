@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
                     Nog geen Google Agenda gekoppeld.
                 </p>
                 <button type="button"
-                    class="mt-3 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500"
+                    class="mt-3 inline-flex items-center gap-2 rounded-md bg-lavoro-blue px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90"
                     @click="connect">
                     Google Agenda koppelen
                 </button>

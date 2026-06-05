@@ -60,7 +60,7 @@
                 </div>
                 <p v-if="assetForm.errors.is_active" class="text-xs text-red-600">{{ assetForm.errors.is_active }}</p>
                 <button @click="createAsset"
-                    class="px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
+                    class="px-3 py-2 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
                     Machine toevoegen
                 </button>
             </div>

@@ -108,7 +108,7 @@
                     Annuleren
                 </button>
                 <button type="button" @click="submitAsset" :disabled="newAssetForm.processing"
-                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Toevoegen
                 </button>
             </div>
@@ -133,7 +133,7 @@
                     Annuleren
                 </button>
                 <button type="button"
-                    class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    class="inline-flex justify-center rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white shadow-xs hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
                     @click="confirmChildModal">
                     Toevoegen
                 </button>

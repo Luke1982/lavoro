@@ -81,7 +81,7 @@
                         @keyup.escape="addingChildFor = null; childName = ''"
                         class="flex-1 text-sm rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     <button @click="submitChild(item.id)"
-                        class="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md">
+                        class="px-3 py-1 text-xs font-medium bg-lavoro-blue hover:opacity-90 text-white rounded-md">
                         Opslaan
                     </button>
                     <button @click="addingChildFor = null; childName = ''"

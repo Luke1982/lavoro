@@ -43,13 +43,17 @@
                             :multiple="true" :decoration="false"
                             @update="(val) => patchRole(role.id, { user_ids: role.user_ids, permission_ids: val })">
                             <template #display>
-                                <span class="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
+                                <span class="flex flex-col gap-2">
                                     <template v-for="group in groupedPermissions(role.permission_ids)" :key="group.resource">
-                                        <span class="text-xs font-semibold text-gray-500">{{ group.resource }}:</span>
-                                        <BadgeComponent v-for="perm in group.permissions" :key="perm.id" color="green"
-                                            :has-dot="false">
-                                            {{ perm.action }}
-                                        </BadgeComponent>
+                                        <span class="flex flex-col gap-1">
+                                            <span class="text-xs font-bold text-gray-600">{{ group.resource }}</span>
+                                            <span class="flex flex-wrap gap-1">
+                                                <BadgeComponent v-for="perm in group.permissions" :key="perm.id"
+                                                    color="green" :has-dot="false">
+                                                    {{ perm.label }}
+                                                </BadgeComponent>
+                                            </span>
+                                        </span>
                                     </template>
                                     <span v-if="!role.permission_ids.length"
                                         class="text-gray-400 text-xs font-normal italic">Geen permissies</span>
@@ -109,17 +113,16 @@ function groupedPermissions(permission_ids) {
     for (const id of permission_ids) {
         const perm = props.allPermissions.find(p => p.id === id)
         if (!perm) continue
-        const dot = perm.name.indexOf('.')
-        const resource = dot === -1 ? perm.name : perm.name.slice(0, dot)
-        const action = dot === -1 ? perm.name : perm.name.slice(dot + 1)
+        const dot = perm.key.indexOf('.')
+        const resource = dot === -1 ? perm.key : perm.key.slice(0, dot)
         if (!groups[resource]) groups[resource] = []
-        groups[resource].push({ id: perm.id, action })
+        groups[resource].push({ id: perm.id, label: perm.name })
     }
     return Object.keys(groups)
         .sort()
         .map(resource => ({
             resource,
-            permissions: groups[resource].sort((a, b) => a.action.localeCompare(b.action)),
+            permissions: groups[resource].sort((a, b) => a.label.localeCompare(b.label)),
         }))
 }
 </script>

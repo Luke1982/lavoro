@@ -83,7 +83,7 @@
                                         Annuleer
                                     </button>
                                     <button type="submit"
-                                        class="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                        class="inline-flex items-center gap-1 rounded-md bg-lavoro-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
                                         :disabled="!logoFile && !logoNegativeFile">
                                         <CheckIcon class="w-4 h-4" />
                                         Upload logo('s)

@@ -1,6 +1,8 @@
 <template>
-    <IndexHeaderComponent title="Klanten" :addLabel="canCreate && !importPreview ? 'Nieuwe klant' : null"
-        search-placeholder="Zoek klant... " search-url="/customers" @add="() => canCreate && customerFormRef?.show()">
+    <IndexHeaderComponent title="Klanten" subtitle="Zoek en beheer klanten"
+        search-placeholder="Zoek klant..." search-url="/customers" :paginator="false"
+        :add-label="canCreate && !importPreview ? 'Nieuwe klant' : ''"
+        @add="() => canCreate && (addCustomerDrawerOpen = true)">
         <template v-if="!importPreview && (snelStartEnabled || canCreate)" #actions>
             <div class="relative" ref="actionsMenuRef">
                 <button @click="actionsOpen = !actionsOpen"
@@ -35,60 +37,162 @@
         </template>
     </IndexHeaderComponent>
 
-    <div v-if="!importPreview">
-        <div class="mb-4" v-auto-animate v-if="canCreate">
-            <CreateRecordForm ref="customerFormRef" external-trigger action="/customers" :fields="customerFields"
-                add-button-label="Nieuwe klant" submit-label="Opslaan" />
+    <DrawerComponent v-if="canCreate" v-model="addCustomerDrawerOpen" title="Nieuwe klant toevoegen"
+        subtitle="Vul onderstaande velden in om een nieuwe klant toe te voegen.">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Naam <span class="text-red-500">*</span></label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.name" placeholder="Naam klant"
+                        :hasError="Boolean(newCustomerForm.errors.name)"
+                        :errorMessage="newCustomerForm.errors.name" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">E-mail</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.email" type="email" placeholder="info@bedrijf.nl"
+                        :hasError="Boolean(newCustomerForm.errors.email)"
+                        :errorMessage="newCustomerForm.errors.email" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Telefoon</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.phone" placeholder="0612345678"
+                        :hasError="Boolean(newCustomerForm.errors.phone)"
+                        :errorMessage="newCustomerForm.errors.phone" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Adres</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.address" placeholder="Straatnaam 1"
+                        :hasError="Boolean(newCustomerForm.errors.address)"
+                        :errorMessage="newCustomerForm.errors.address" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Postcode / Plaats</label>
+                <div class="sm:col-span-2 grid grid-cols-2 gap-2">
+                    <TextInput v-model="newCustomerForm.postal_code" placeholder="1234AB"
+                        :hasError="Boolean(newCustomerForm.errors.postal_code)"
+                        :errorMessage="newCustomerForm.errors.postal_code" />
+                    <TextInput v-model="newCustomerForm.city" placeholder="Plaats"
+                        :hasError="Boolean(newCustomerForm.errors.city)"
+                        :errorMessage="newCustomerForm.errors.city" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Land</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.country" placeholder="Nederland"
+                        :hasError="Boolean(newCustomerForm.errors.country)"
+                        :errorMessage="newCustomerForm.errors.country" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatiecode</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newCustomerForm.location_code" placeholder="Locatiecode"
+                        :hasError="Boolean(newCustomerForm.errors.location_code)"
+                        :errorMessage="newCustomerForm.errors.location_code" />
+                </div>
+            </div>
         </div>
-        <PaginationComponent v-if="(customers.links || []).length" :paginator="customers"
-            :params="{ search: searchParam }" class="border-b border-gray-200 dark:border-slate-700/60" />
-        <div
-            class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-hidden">
-            <ul role="list" class="divide-y divide-gray-100 dark:divide-slate-800/70">
-                <li v-for="customer in customers.data" :key="customer.id">
-                    <Link :href="`/customers/${customer.id}`"
-                        class="group grid w-full grid-cols-[minmax(0,1fr)_24px] sm:grid-cols-[minmax(0,1fr)_180px_20px] items-start sm:items-center gap-y-2 sm:gap-y-0 gap-x-6 px-4 py-5 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 transition even:bg-gray-50 even:dark:bg-slate-800/40">
-                        <div class="flex min-w-0 gap-x-4 col-start-1 row-start-1">
-                            <span
-                                class="size-12 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-slate-200 select-none">
-                                {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
-                            </span>
-                            <div class="min-w-0 flex-auto">
-                                <p
-                                    class="text-sm font-semibold leading-6 text-gray-900 dark:text-slate-100 group-hover:underline">
-                                    {{ customer.name }}
-                                </p>
-                                <p class="mt-1 truncate text-xs leading-5 text-gray-500 dark:text-slate-400">
-                                    {{ customer.email || 'Geen e-mailadres' }}
-                                </p>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeCustomerDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitCustomer" :disabled="newCustomerForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Toevoegen
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
+
+    <div v-if="!importPreview">
+        <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
+            <div
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                <div class="col-span-4">Klant</div>
+                <div class="col-span-3">Adres</div>
+                <div class="col-span-2">Telefoon</div>
+                <div class="col-span-1 text-center">Open stor.</div>
+                <div class="col-span-1 text-center">Lopend stor.</div>
+                <div class="col-span-1 text-center">Ges. stor.</div>
+            </div>
+            <div v-auto-animate>
+                <div v-for="customer in customers.data" :key="customer.id" role="row"
+                    class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
+                    <div class="col-span-10 lg:col-span-4 flex items-center gap-3">
+                        <span
+                            class="size-10 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-slate-200 select-none">
+                            {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
+                        </span>
+                        <div class="min-w-0">
+                            <Link :href="`/customers/${customer.id}`"
+                                class="font-semibold text-gray-900 dark:text-gray-200 hover:underline">
+                                <span class="absolute inset-0" />
+                                {{ customer.name }}
+                            </Link>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {{ customer.email || 'Geen e-mailadres' }}
                             </div>
                         </div>
-                        <div
-                            class="flex flex-col items-start justify-center col-start-1 row-start-2 sm:col-start-2 sm:row-start-1 pl-16 sm:pl-0">
-                            <p class="text-sm leading-6 text-gray-900 dark:text-slate-200">{{ customer.city || '—' }}
-                            </p>
-                            <p class="mt-1 text-xs leading-5 text-left text-gray-600 dark:text-slate-400">
-                                <span v-if="customer.open_tickets?.length"
-                                    class="text-red-600 dark:text-red-400 font-medium">{{
-                                        customer.open_tickets.length }} open stor.</span>
-                                <span v-else-if="customer.pending_tickets?.length"
-                                    class="text-amber-600 dark:text-amber-400 font-medium">{{
-                                        customer.pending_tickets.length }} in beh.</span>
-                                <span v-else class="text-green-600 dark:text-green-400">Geen open storingen</span>
-                            </p>
-                        </div>
-                        <div class="flex justify-end col-start-2 sm:col-start-3 row-span-2 sm:row-span-1 self-center">
-                            <ChevronRightIcon
-                                class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
-                                aria-hidden="true" />
-                            <span class="sr-only">Bekijk {{ customer.name }}</span>
-                        </div>
-                    </Link>
-                </li>
-            </ul>
-        </div>
-        <PaginationComponent v-if="(customers.links || []).length" :paginator="customers"
-            :params="{ search: searchParam }" class="border-t border-gray-200 dark:border-slate-700/60" />
+                    </div>
+                    <div class="col-span-3 hidden lg:flex flex-col justify-center text-xs text-gray-600 dark:text-gray-300">
+                        <span>{{ customer.city || '—' }}</span>
+                        <span v-if="customer.address"
+                            class="text-gray-400 dark:text-gray-500 truncate">{{ customer.address }}</span>
+                    </div>
+                    <div class="col-span-2 hidden lg:flex items-center text-xs text-gray-600 dark:text-gray-300">
+                        {{ customer.phone || '—' }}
+                    </div>
+                    <div class="col-span-1 hidden lg:flex items-center justify-center">
+                        <span v-if="customer.open_tickets_count > 0"
+                            class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
+                            {{ customer.open_tickets_count }}
+                        </span>
+                        <span v-else class="text-gray-300 text-xs">—</span>
+                    </div>
+                    <div class="col-span-1 hidden lg:flex items-center justify-center">
+                        <span v-if="customer.pending_tickets_count > 0"
+                            class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
+                            {{ customer.pending_tickets_count }}
+                        </span>
+                        <span v-else class="text-gray-300 text-xs">—</span>
+                    </div>
+                    <div class="col-span-1 hidden lg:flex items-center justify-center">
+                        <span v-if="customer.closed_tickets_count > 0"
+                            class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
+                            {{ customer.closed_tickets_count }}
+                        </span>
+                        <span v-else class="text-gray-300 text-xs">—</span>
+                    </div>
+                    <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
+                        <span v-if="customer.open_tickets_count > 0"
+                            class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset">
+                            {{ customer.open_tickets_count }} open
+                        </span>
+                        <span v-else-if="customer.pending_tickets_count > 0"
+                            class="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset">
+                            {{ customer.pending_tickets_count }} lopend
+                        </span>
+                        <span v-else class="text-xs text-gray-300">—</span>
+                    </div>
+                    <ChevronRightIcon class="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-gray-400"
+                        aria-hidden="true" />
+                </div>
+            </div>
+            <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
+                <PageRecordCountComponent :total="customers.total" :per-page="customers.per_page" label="klanten" />
+                <PaginationComponent v-if="customers.data.length" :paginator="customers" />
+            </div>
+        </BoxComponent>
     </div>
 
     <div v-else class="mt-4 space-y-4">
@@ -148,13 +252,13 @@
                 Annuleren
             </button>
             <button @click="handleConfirm" :disabled="confirmForm.processing"
-                class="px-4 py-2 text-sm text-white bg-indigo-600 dark:bg-indigo-500 rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
+                class="px-4 py-2 text-sm text-white bg-lavoro-blue rounded hover:opacity-90 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none transition">
                 {{ confirmForm.processing ? 'Bezig...' : 'Import bevestigen' }}
             </button>
             <span class="text-xs text-gray-500 dark:text-slate-400">
-                {{importPreview.filter(r => !r.fatal).length}} klanten worden verwerkt
+                {{ importPreview.filter(r => !r.fatal).length }} klanten worden verwerkt
                 <span v-if="importPreview.filter(r => r.fatal).length">
-                    · {{importPreview.filter(r => r.fatal).length}} overgeslagen
+                    · {{ importPreview.filter(r => r.fatal).length }} overgeslagen
                 </span>
             </span>
         </div>
@@ -162,13 +266,17 @@
 </template>
 
 <script setup>
-import { ChevronRightIcon, ChevronDownIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon } from '@heroicons/vue/20/solid';
+import { ChevronDownIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import BoxComponent from '@/Components/BoxComponent.vue';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { hasPermission } from '@/Utilities/Utilities';
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
 defineProps({
     customers: {
@@ -185,7 +293,7 @@ defineProps({
     },
 })
 
-const customerFormRef = ref(null)
+const addCustomerDrawerOpen = ref(false)
 const fileInputRef = ref(null)
 const actionsMenuRef = ref(null)
 const actionsOpen = ref(false)
@@ -227,17 +335,29 @@ const handleCancel = () => {
     router.get('/customers')
 }
 
-const customerFields = [
-    { key: 'name', label: 'Naam', type: 'text' },
-    { key: 'email', label: 'E-mail', type: 'text' },
-    { key: 'phone', label: 'Telefoon', type: 'text' },
-    { key: 'address', label: 'Adres', type: 'text' },
-    { key: 'postal_code', label: 'Postcode', type: 'text' },
-    { key: 'city', label: 'Plaats', type: 'text' },
-    { key: 'country', label: 'Land', type: 'text' },
-    { key: 'location_code', label: 'Locatiecode', type: 'text' },
-]
+const newCustomerForm = useForm({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    postal_code: '',
+    city: '',
+    country: '',
+    location_code: '',
+})
 
-const searchParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('search') || '' : ''
+function closeCustomerDrawer() {
+    addCustomerDrawerOpen.value = false
+    newCustomerForm.reset()
+    newCustomerForm.clearErrors()
+}
+
+function submitCustomer() {
+    newCustomerForm.post('/customers', {
+        preserveScroll: true,
+        onSuccess: () => closeCustomerDrawer(),
+    })
+}
+
 const canCreate = computed(() => hasPermission('customer.create'))
 </script>

@@ -29,7 +29,7 @@
                 </div>
 
                 <button type="submit" :disabled="form.processing"
-                    class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 disabled:opacity-50">
+                    class="inline-flex items-center gap-2 rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50">
                     <span v-if="form.processing">Versturen...</span>
                     <span v-else>Test e-mail versturen</span>
                 </button>

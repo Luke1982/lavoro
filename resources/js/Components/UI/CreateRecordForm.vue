@@ -68,7 +68,7 @@
 
             <div class="absolute bottom-2 right-6">
                 <button @click="submit"
-                    class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-white bg-lavoro-blue border border-transparent rounded-md shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2">
                     {{ submitLabel }}
                 </button>
             </div>

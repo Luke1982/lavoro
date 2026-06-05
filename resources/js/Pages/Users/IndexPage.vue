@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between">
             <h1 class="text-xl font-semibold text-gray-900 dark:text-slate-100">Gebruikers</h1>
             <Link href="/users/create"
-                class="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                class="inline-flex items-center gap-1 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90 focus:outline-none focus:ring-2">
             Nieuwe gebruiker</Link>
         </div>
 
@@ -31,7 +31,7 @@
         <div class="flex items-center gap-3" v-if="users.meta?.links">
             <template v-for="(link, i) in users.meta.links" :key="i">
                 <button v-if="link.url" @click="go(link.url)"
-                    :class="['px-3 py-1 rounded text-xs font-medium', link.active ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800']"
+                    :class="['px-3 py-1 rounded text-xs font-medium', link.active ? 'bg-lavoro-blue text-white' : 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800']"
                     v-html="link.label" />
                 <span v-else class="px-3 py-1 rounded text-xs text-gray-400 dark:text-slate-500" v-html="link.label" />
             </template>
