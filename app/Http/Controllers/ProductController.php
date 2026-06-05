@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductBulkUpdateAttributesRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
@@ -15,6 +16,7 @@ use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Services\ProductableService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -248,6 +250,37 @@ class ProductController extends Controller
             ->back()
             ->with('success', 'Product bijgewerkt.')
             ->with('extra', $product->load(['brand', 'productType']));
+    }
+
+    public function bulkUpdateAttributes(ProductBulkUpdateAttributesRequest $request)
+    {
+        DB::transaction(function () use ($request) {
+            $products = Product::whereIn('id', $request->product_ids)
+                ->with('productType.productAttributes')
+                ->get();
+
+            foreach ($request->attributes as $attr) {
+                $attributeId = $attr['product_attribute_id'];
+                $valueId     = $attr['product_attribute_value_id'];
+
+                foreach ($products as $product) {
+                    if (! $product->productType->productAttributes->contains('id', $attributeId)) {
+                        continue;
+                    }
+
+                    $product->productAttributeValueables()
+                        ->where('product_attribute_id', $attributeId)
+                        ->delete();
+
+                    $product->productAttributeValueables()->create([
+                        'product_attribute_id'        => $attributeId,
+                        'product_attribute_value_id'  => $valueId,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Kenmerken bijgewerkt.');
     }
 
     /**

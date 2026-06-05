@@ -86,6 +86,8 @@ Route::group(
         ])->name('products.suppliers.destroy');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
+        Route::post('products/bulk-update-attributes', [ProductController::class, 'bulkUpdateAttributes'])
+            ->name('products.bulk-update-attributes');
         Route::resource('products', ProductController::class);
         Route::resource('productrelations', ProductRelationController::class)
             ->except(['show', 'edit', 'create']);
