@@ -28,7 +28,8 @@
                 <div class="col-span-1">Eenheid</div>
             </div>
             <div v-for="mat in innerMaterials" :key="mat.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                <div class="grid grid-cols-12 flex-1 p-4 items-center">
                 <div class="col-span-10 lg:col-span-3 flex items-center">
                     <EditableTextField :model-value="mat.name" :decoration="false"
                         @update="(val) => updateMaterial(mat, { name: val })">
@@ -100,6 +101,11 @@
                         {{ mat.is_active ? 'Actief' : 'Inactief' }}
                     </BadgeComponent>
                 </div>
+                </div>
+                <Link :href="`/materials/${mat.id}`"
+                    class="pr-4 shrink-0 text-gray-400 hover:text-lavoro-blue transition-colors">
+                    <ChevronRightIcon class="h-4 w-4" />
+                </Link>
             </div>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
                 <PageRecordCountComponent :total="materials.total" :per-page="materials.per_page" label="materialen" />
@@ -116,7 +122,7 @@
 </template>
 
 <script setup>
-import { router, useForm } from '@inertiajs/vue3'
+import { router, useForm, Link } from '@inertiajs/vue3'
 import { computed, reactive, ref } from 'vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
@@ -127,6 +133,7 @@ import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.v
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { PackageIcon } from '@lucide/vue'
+import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 
 const materialFormRef = ref(null)
 const importingMaterials = ref(false)
