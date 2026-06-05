@@ -8,7 +8,7 @@
                     class="px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded hover:bg-indigo-700 dark:hover:bg-indigo-400 disabled:bg-gray-400 dark:disabled:bg-slate-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition">
                     SnelStart klanten importeren
                 </button>
-                <a href="/customers/import/example"
+                <a v-if="canCreate" href="/customers/import/example"
                     class="px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
                     Download voorbeeldbestand
                 </a>
@@ -174,6 +174,7 @@ const handleFileUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
     previewForm.file = file
+    e.target.value = ''
     previewForm.post('/customers/import/preview', { forceFormData: true })
 }
 

@@ -133,11 +133,17 @@ class CustomerImportController extends Controller
 
         session(['customer_import_preview' => $preview_rows]);
 
+        $user = $request->user();
         $search = $request->input('search');
-        $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
-            ->orderBy('name')
-            ->paginate(25)
-            ->appends(['search' => $search]);
+
+        if ($user->isAdmin() || $user->hasPermission('customer.read')) {
+            $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
+                ->orderBy('name')
+                ->paginate(25)
+                ->appends(['search' => $search]);
+        } else {
+            $customers = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25);
+        }
 
         return inertia('Customers/IndexPage', [
             'customers'     => $customers,
