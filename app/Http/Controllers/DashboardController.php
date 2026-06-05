@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatusses;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\Event;
+use App\Models\EventType;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -70,11 +73,20 @@ class DashboardController extends Controller
             ->get(['id', 'asset_id', 'subject', 'status', 'created_at']);
 
         return inertia('Index/DashBoard', [
-            'customers' => $customers,
-            'stats' => $stats,
+            'customers'        => $customers,
+            'stats'            => $stats,
             'openServiceOrders' => $openServiceOrders,
-            'upcomingJobs' => $upcomingJobs,
-            'recentTickets' => $recentTickets,
+            'upcomingJobs'     => $upcomingJobs,
+            'recentTickets'    => $recentTickets,
+            'eventTypes'       => EventType::all(),
+            'eventStatusses'   => Event::statusses(),
+            'allUsers'         => User::select('id', 'name')->get(),
+            'plannableUsers'   => User::where('plannable', true)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'avatar' => $u->avatar]),
+            'allServiceOrders' => ServiceOrder::with('customer')->get(),
         ]);
     }
 }

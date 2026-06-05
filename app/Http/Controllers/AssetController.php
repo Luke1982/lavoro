@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Asset;
-use App\Models\AssetRelation;
-use App\Models\Product;
-use App\Models\Customer;
-use App\Models\Productable;
-use App\Models\ProductType;
-use App\Models\ProductRelation;
 use App\Http\Requests\AssetChildStoreRequest;
+use App\Http\Requests\AssetDestroyRequest;
 use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
 use App\Http\Requests\AssetUpdateRequest;
-use App\Http\Requests\AssetDestroyRequest;
+use App\Models\Asset;
+use App\Models\AssetRelation;
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\Productable;
+use App\Models\ProductRelation;
+use App\Models\ProductType;
 use App\Services\ProductableService;
 use Illuminate\Support\Facades\DB;
+use Inertia\Response;
 
 // duplicate imports removed
 
@@ -27,8 +28,7 @@ class AssetController extends Controller
     /**
      * List assets with optional search filter.
      *
-     * @param AssetReadRequest $request
-     * @return \Inertia\Response
+     * @return Response
      */
     public function index(AssetReadRequest $request)
     {
@@ -41,6 +41,10 @@ class AssetController extends Controller
             'product.images',
             'product.productType',
             'customer',
+        ])->withCount([
+            'tickets as open_tickets_count' => fn ($q) => $q->where('status', 'Open'),
+            'tickets as pending_tickets_count' => fn ($q) => $q->where('status', 'In behandeling'),
+            'tickets as closed_tickets_count' => fn ($q) => $q->where('status', 'Gesloten'),
         ]);
 
         if ($search !== '') {
@@ -73,26 +77,27 @@ class AssetController extends Controller
             ->get()
             ->map(function ($product) {
                 return [
-                    'id'                                  => $product->id,
-                    'name'                                => $product->brand->name . ' ' . $product->model .
-                        ' (' . $product->productType->name . ')',
-                    'bundle'                              => $product->bundle,
-                    'typical_certificate_days'            => $product->typical_certificate_days,
+                    'id' => $product->id,
+                    'name' => $product->brand->name.' '.$product->model.
+                        ' ('.$product->productType->name.')',
+                    'bundle' => $product->bundle,
+                    'typical_certificate_days' => $product->typical_certificate_days,
                     'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
                 ];
             });
 
-        $all_customers = Customer::orderBy('name', 'ASC')
-            ->get(['id', 'name'])
-            ->map(function ($c) {
-                return ['id' => $c->id, 'name' => $c->name];
-            });
+        $customer_count = Customer::count();
+        $product_count = Product::count();
 
         return inertia('Assets/IndexPage', [
-            'assets'        => $assets,
+            'assets' => $assets,
             'initialSearch' => $search,
-            'allProducts'   => $all_products,
-            'allCustomers'  => $all_customers,
+            'allProducts' => $product_count <= 50 ? $all_products : collect(),
+            'productsUseAjax' => $product_count > 50,
+            'allCustomers' => $customer_count <= 50
+                ? Customer::orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'customersUseAjax' => $customer_count > 50,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
         ]);
     }
@@ -114,32 +119,32 @@ class AssetController extends Controller
 
         $asset = DB::transaction(function () use ($validated) {
             $asset = Asset::create([
-                'product_id'        => $validated['product_id'],
-                'customer_id'       => $validated['customer_id'],
-                'serial_number'     => $validated['serial_number'] ?? null,
+                'product_id' => $validated['product_id'],
+                'customer_id' => $validated['customer_id'],
+                'serial_number' => $validated['serial_number'] ?? null,
                 'next_service_date' => $validated['next_service_date'] ?? null,
-                'date_in_service'   => $validated['date_in_service'] ?? null,
-                'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
+                'date_in_service' => $validated['date_in_service'] ?? null,
+                'status' => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
             ]);
 
             foreach ($validated['child_assets'] ?? [] as $childData) {
                 $productable = Productable::find($childData['productable_id']);
-                if (!$productable || !$productable->is_required) {
+                if (! $productable || ! $productable->is_required) {
                     continue;
                 }
 
                 $childAsset = Asset::create([
-                    'product_id'        => $productable->productable_id,
-                    'customer_id'       => $validated['customer_id'],
-                    'serial_number'     => $childData['serial_number'],
+                    'product_id' => $productable->productable_id,
+                    'customer_id' => $validated['customer_id'],
+                    'serial_number' => $childData['serial_number'],
                     'next_service_date' => $validated['next_service_date'] ?? null,
-                    'status'            => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
+                    'status' => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
                 ]);
 
                 AssetRelation::create([
-                    'parent_asset_id'     => $asset->id,
-                    'child_asset_id'      => $childAsset->id,
-                    'productable_id'      => $productable->id,
+                    'parent_asset_id' => $asset->id,
+                    'child_asset_id' => $childAsset->id,
+                    'productable_id' => $productable->id,
                     'product_relation_id' => $productable->product_relation_id,
                 ]);
             }
@@ -162,9 +167,7 @@ class AssetController extends Controller
     /**
      * Show a single asset.
      *
-     * @param AssetReadRequest $request
-     * @param Asset $asset
-     * @return \Inertia\Response
+     * @return Response
      */
     public function show(AssetReadRequest $request, Asset $asset)
     {
@@ -175,11 +178,11 @@ class AssetController extends Controller
             ->get()
             ->map(function ($product) {
                 return [
-                    'id'     => $product->id,
-                    'name'   => $product->brand->name . ' ' .
-                        $product->model . ' (' . $product->productType->name . ')',
+                    'id' => $product->id,
+                    'name' => $product->brand->name.' '.
+                        $product->model.' ('.$product->productType->name.')',
                     'bundle' => $product->bundle,
-                    'typical_certificate_days'              => $product->typical_certificate_days,
+                    'typical_certificate_days' => $product->typical_certificate_days,
                     'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
                 ];
             });
@@ -204,41 +207,51 @@ class AssetController extends Controller
             'parentAssetRelations.productable.productRelation',
         ]);
 
-        $currentTypeId    = $asset->product?->productType?->id;
+        $currentTypeId = $asset->product?->productType?->id;
         $existingChildIds = $asset->childAssetRelations()->pluck('child_asset_id')->all();
-        $eligibleChildAssets  = [];
+        $eligibleChildAssets = [];
 
         $childTypeIds = $currentTypeId
             ? ProductType::query()->where('parent_id', $currentTypeId)->pluck('id')->all()
             : [];
 
-        $productHasChildTypes = !empty($childTypeIds);
+        $productHasChildTypes = ! empty($childTypeIds);
 
         if ($productHasChildTypes) {
             $eligibleChildAssets = Asset::query()
-                ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
+                ->whereHas('product', fn ($q) => $q->whereIn('product_type_id', $childTypeIds))
                 ->where('customer_id', $asset->customer_id)
                 ->whereNotIn('id', [...$existingChildIds, $asset->id])
                 ->with(['product.brand', 'product.productType'])
                 ->get()
-                ->map(fn($a) => [
-                    'id'   => $a->id,
-                    'name' => $a->product->brand->name . ' ' . $a->product->model
-                        . ' (' . $a->product->productType->name . ')'
-                        . ' — ' . ($a->product->bundle ? 'Bundel' : ($a->serial_number ?? 'geen serienr.')),
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->product->brand->name.' '.$a->product->model
+                        .' ('.$a->product->productType->name.')'
+                        .' — '.($a->product->bundle ? 'Bundel' : ($a->serial_number ?? 'geen serienr.')),
                 ])
                 ->values()
                 ->all();
         }
 
+        $customer_count = Customer::count();
+        $product_count = Product::count();
+        $preselected_customer = $asset->customer
+            ? [['id' => $asset->customer->id, 'name' => $asset->customer->name]]
+            : [];
+
         return inertia('Assets/ShowPage', [
-            'asset'               => $asset,
-            'allProducts'         => $all_products,
-            'allCustomers'        => Customer::orderBy('name')->get(['id', 'name']),
-            'customFields'        => $asset->allCustomFieldsWithValues(),
-            'eligibleChildAssets'    => $eligibleChildAssets,
-            'productHasChildTypes'   => $productHasChildTypes,
-            'productRelations'       => ProductRelation::orderBy('name')->get(['id', 'name']),
+            'asset' => $asset,
+            'allProducts' => $product_count <= 50 ? $all_products : collect(),
+            'productsUseAjax' => $product_count > 50,
+            'allCustomers' => $customer_count <= 50
+                ? Customer::orderBy('name')->get(['id', 'name'])
+                : collect($preselected_customer),
+            'customersUseAjax' => $customer_count > 50,
+            'customFields' => $asset->allCustomFieldsWithValues(),
+            'eligibleChildAssets' => $eligibleChildAssets,
+            'productHasChildTypes' => $productHasChildTypes,
+            'productRelations' => ProductRelation::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -248,17 +261,17 @@ class AssetController extends Controller
 
         DB::transaction(function () use ($asset, $productable, $request) {
             $child = Asset::create([
-                'product_id'        => $productable->productable_id,
-                'customer_id'       => $asset->customer_id,
-                'serial_number'     => $request->serial_number,
+                'product_id' => $productable->productable_id,
+                'customer_id' => $asset->customer_id,
+                'serial_number' => $request->serial_number,
                 'next_service_date' => null,
-                'status'            => 'Actief',
+                'status' => 'Actief',
             ]);
 
             AssetRelation::create([
-                'parent_asset_id'     => $asset->id,
-                'child_asset_id'      => $child->id,
-                'productable_id'      => $productable->id,
+                'parent_asset_id' => $asset->id,
+                'child_asset_id' => $child->id,
+                'productable_id' => $productable->id,
                 'product_relation_id' => $productable->product_relation_id,
             ]);
         });

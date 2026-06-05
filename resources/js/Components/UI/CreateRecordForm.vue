@@ -35,7 +35,10 @@
                     <ComboBox class="mt-2" :options="field.options || []" v-model="form[field.key]"
                         :placeholder="field.placeholder || ''" :initialId="field.initialId"
                         :initialIds="field.initialIds" :multiple="field.multiple === true"
-                        :emitValue="field.emitValue === true" />
+                        :emitValue="field.emitValue === true"
+                        :hasExternalSearching="field.hasExternalSearching === true"
+                        :searching="field.searching === true"
+                        @change="field.onSearch?.($event)" />
                     <p v-if="form.errors[field.key]" class="text-red-600 text-sm">{{ form.errors[field.key] }}</p>
                 </div>
 

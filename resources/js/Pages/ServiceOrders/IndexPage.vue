@@ -7,15 +7,8 @@
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
-                    <div class="flex items-end gap-2">
-                        <ComboBox :options="stages" v-model="stageFilter"
-                            placeholder="Selecteer fase" class="w-full" label="Filter op fase" />
-                        <button type="button" @click="stageFilter = null"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
-                            v-tooltip="'Reset filter op fase'">
-                            <XCircleIcon class="h-5 w-5" />
-                        </button>
-                    </div>
+                    <ComboBox :options="stages" v-model="stageFilter" multiple
+                        placeholder="Selecteer fase(n)" class="w-full" label="Filter op fase" />
                 </div>
                 <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
@@ -55,6 +48,7 @@
                 <div class="col-span-1">Aangemaakt</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
+            <div v-auto-animate>
             <div v-for="so in serviceOrders.data" :key="so.id" role="row"
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
                 <div class="col-span-10 sm:col-span-3 flex flex-col">
@@ -103,6 +97,7 @@
                     </div>
                 </div>
             </div>
+            </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4 dark:bg-slate-900">
                 <PageRecordCountComponent :total="serviceOrders.total" :per-page="perPage" label="werkbonnen" />
                 <PaginationComponent :paginator="serviceOrders" />
@@ -119,7 +114,7 @@
 
 <script setup>
 import { Link, router } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -127,7 +122,7 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
-import { XCircleIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
+import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon } from '@lucide/vue'
 import { nlDate, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 
@@ -135,37 +130,47 @@ const { serviceOrders, stages, perPage } = defineProps({
     serviceOrders: { type: Object, required: true },
     stages: { type: Array, default: () => [] },
     search: { type: String, default: '' },
-    onlyStage: { type: [Number, String, null], default: null },
+    onlyStage: { type: Array, default: () => [] },
     perPage: { type: Number, default: 25 },
 })
 
-const stageFromUrl = typeof window !== 'undefined'
-    ? Number(new URLSearchParams(window.location.search).get('onlyStage')) || null
-    : null
-const stageFilter = ref(stageFromUrl)
+const stagesFromUrl = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('onlyStage') || '').split(',').map(Number).filter(Boolean)
+    : []
+const stageFilter = ref(stagesFromUrl)
+
+watch(stageFilter, val => {
+    if (val.length) localStorage.setItem('serviceOrderFilter_stage', val.join(','))
+    else localStorage.removeItem('serviceOrderFilter_stage')
+})
+
+onMounted(() => {
+    if (stagesFromUrl.length) return
+    const ls = (localStorage.getItem('serviceOrderFilter_stage') || '').split(',').map(Number).filter(Boolean)
+    if (!ls.length) return
+    stageFilter.value = ls
+    router.get('/serviceorders', { onlyStage: ls.join(',') }, { replace: true, preserveState: true, preserveScroll: true })
+})
 
 const filterParams = computed(() => ({
-    onlyStage: stageFilter.value ?? '',
+    onlyStage: stageFilter.value.join(','),
 }))
 
 const activeFilters = computed(() => {
-    const out = []
-    if (stageFilter.value) {
-        const match = stages.find(s => s.id === stageFilter.value)
-        if (match) {
-            out.push({
-                key: `stage-${match.id}`,
-                label: 'Fase',
-                value: match.name,
-                clear: () => { stageFilter.value = null },
-            })
-        }
-    }
-    return out
+    return stageFilter.value.flatMap(id => {
+        const match = stages.find(s => s.id === id)
+        return match ? [{
+            key: `stage-${id}`,
+            label: 'Fase',
+            value: match.name,
+            clear: () => { stageFilter.value = stageFilter.value.filter(x => x !== id) },
+        }] : []
+    })
 })
 
 function clearAllFilters() {
-    stageFilter.value = null
+    stageFilter.value = []
+    localStorage.removeItem('serviceOrderFilter_stage')
 }
 
 function updateStage(so, stage_id) {

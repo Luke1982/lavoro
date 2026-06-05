@@ -81,6 +81,7 @@
                 <div class="col-span-1">Bundel</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
+            <div v-auto-animate>
             <div v-for="product in displayProducts" :key="product.id" role="row"
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
                 <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
@@ -168,6 +169,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
                 <PageRecordCountComponent :total="products.total" :per-page="perPage" label="producten" />
@@ -286,7 +288,7 @@
 
 <script setup>
 import { Link, useForm, router } from '@inertiajs/vue3'
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -370,6 +372,31 @@ const attrValuesSelected = reactive(
     }, {})
 )
 
+watch(productTypeToShow, val => localStorage.setItem('productFilter_types', val.join(',')))
+watch(brandToShow, val => localStorage.setItem('productFilter_brands', val.join(',')))
+watch(attrValuesSelected, val => {
+    localStorage.setItem('productFilter_attrValues', Object.values(val).flat().join(','))
+}, { deep: true })
+
+onMounted(() => {
+    if (typeFromURL.length || brandFromURL.length || attrValFromURL.length) return
+    const lsTypes = (localStorage.getItem('productFilter_types') || '').split(',').map(Number).filter(Boolean)
+    const lsBrands = (localStorage.getItem('productFilter_brands') || '').split(',').map(Number).filter(Boolean)
+    const lsAttrVals = (localStorage.getItem('productFilter_attrValues') || '').split(',').map(Number).filter(Boolean)
+    if (!lsTypes.length && !lsBrands.length && !lsAttrVals.length) return
+    productTypeToShow.value = lsTypes
+    brandToShow.value = lsBrands
+    productAttributes.forEach(attr => {
+        const attrValueIds = new Set(attr.values.map(v => v.id))
+        attrValuesSelected[attr.id] = lsAttrVals.filter(id => attrValueIds.has(id))
+    })
+    router.get('/products', {
+        onlyType: lsTypes.join(','),
+        onlyBrand: lsBrands.join(','),
+        onlyAttributeValues: lsAttrVals.join(','),
+    }, { replace: true, preserveState: true, preserveScroll: true })
+})
+
 const filterParams = computed(() => ({
     onlyType: productTypeToShow.value.join(','),
     onlyBrand: brandToShow.value.join(','),
@@ -399,6 +426,9 @@ function clearAllFilters() {
     productTypeToShow.value = []
     brandToShow.value = []
     productAttributes.forEach(attr => { attrValuesSelected[attr.id] = [] })
+    localStorage.removeItem('productFilter_types')
+    localStorage.removeItem('productFilter_brands')
+    localStorage.removeItem('productFilter_attrValues')
 }
 
 const saleEdits = reactive({})

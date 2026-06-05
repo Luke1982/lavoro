@@ -22,9 +22,10 @@
                     <div class="flex items-center gap-4 mt-4 md:mt-0">
                         <div class="md:min-w-60 w-full md:w-auto" v-if="canUpdate">
                             <div class="flex items-end gap-2">
-                                <ComboBox :options="allCustomers" v-model="form.billing_customer_id"
+                                <ComboBox :options="customerOptions" v-model="form.billing_customer_id"
                                     label="Factuurklant" placeholder="Kies naar welke klant de factuur moet"
-                                    @update:modelValue="updateCustomer" class="grow" />
+                                    :has-external-searching="customersUseAjax" :searching="customerSearching"
+                                    @change="searchCustomers" @update:modelValue="updateCustomer" class="grow" />
                                 <XCircleIcon v-if="form.billing_customer_id"
                                     class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
                                     @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
@@ -149,6 +150,37 @@
             <div class="space-y-4 md:ml-5 md:mt-0 ml-0 mt-5">
 
                 <BoxComponent>
+                    <div class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                        <div class="flex items-center">
+                            <UserIcon class="size-6 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                            <h2 class="font-regular text-xl dark:text-slate-200">Contacten</h2>
+                        </div>
+                        <PlusCircleIcon v-if="hasPermission('contact.create')"
+                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                            @click="showContactDrawer = true"
+                            v-tooltip="`Contactpersoon toevoegen aan ${customer.name}`" />
+                    </div>
+
+                    <div v-if="!customer.contacts?.length" class="text-sm text-gray-500 dark:text-slate-400">
+                        Nog geen contacten
+                    </div>
+                    <div v-else class="space-y-2" v-auto-animate>
+                        <div v-for="contact in customer.contacts" :key="contact.id"
+                            class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
+                            <div class="flex items-start justify-between gap-2">
+                                <Link :href="`/contacts/${contact.id}`"
+                                    class="text-gray-800 dark:text-slate-200 font-medium hover:underline text-sm">
+                                    {{ contact.full_name }}
+                                </Link>
+                            </div>
+                            <div v-if="contact.email" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                {{ contact.email }}
+                            </div>
+                        </div>
+                    </div>
+                </BoxComponent>
+
+                <BoxComponent>
                     <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between items-center">
                         <div class="flex items-center">
                             <FolderIcon class="size-6 flex-none text-gray-500 mr-2" />
@@ -240,20 +272,64 @@
         </template>
     </TwoThirdsOneThird>
 
+    <DrawerComponent v-model="showContactDrawer" :title="`Nieuw contact voor ${customer.name}`"
+        subtitle="Vul de gegevens in van het nieuwe contact.">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Voornaam</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.first_name" type="text"
+                        :hasError="Boolean(newContactForm.errors.first_name)"
+                        :errorMessage="newContactForm.errors.first_name" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Achternaam</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.last_name" type="text"
+                        :hasError="Boolean(newContactForm.errors.last_name)"
+                        :errorMessage="newContactForm.errors.last_name" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">E-mail</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.email" type="text"
+                        :hasError="Boolean(newContactForm.errors.email)"
+                        :errorMessage="newContactForm.errors.email" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeContactDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewContact" :disabled="newContactForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
+
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${customer.name}`">
-        <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :bare="true"
-            :required-productables-by-product="requiredProductablesByProduct" @created="addAssetDrawerOpen = false" />
+        <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
+            :bare="true" :required-productables-by-product="requiredProductablesByProduct"
+            @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
 
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon, XCircleIcon, PencilSquareIcon, FolderIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon, XCircleIcon, PencilSquareIcon, FolderIcon, UserIcon } from '@heroicons/vue/24/outline';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import TextInput from '@/Components/UI/TextInput.vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { hasPermission, nlDate, projectStatusClass } from '@/Utilities/Utilities';
@@ -261,6 +337,7 @@ import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
+import { useComboSearch } from '@/Composables/useComboSearch';
 
 const props = defineProps({
     customer: {
@@ -275,10 +352,12 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    customersUseAjax: { type: Boolean, default: false },
     allProducts: {
         type: Array,
         required: true,
     },
+    productsUseAjax: { type: Boolean, default: false },
     users: {
         type: Array,
         default: () => [],
@@ -299,6 +378,9 @@ const props = defineProps({
 
 const addAssetDrawerOpen = ref(false);
 
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
+
 const form = useForm({
     ...props.customer,
     billing_customer_id: props.customer.billing_customer_id || null,
@@ -309,6 +391,33 @@ const newServiceOrderForm = useForm({
 });
 
 const projectFormRef = ref(null)
+
+const showContactDrawer = ref(false)
+
+const newContactForm = useForm({
+    first_name:  '',
+    last_name:   '',
+    email:       '',
+    customer_id: props.customer.id,
+})
+
+function submitNewContact() {
+    newContactForm.post('/contacts', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showContactDrawer.value = false
+            newContactForm.reset()
+            newContactForm.customer_id = props.customer.id
+        },
+    })
+}
+
+function closeContactDrawer() {
+    showContactDrawer.value = false
+    newContactForm.reset()
+    newContactForm.clearErrors()
+    newContactForm.customer_id = props.customer.id
+}
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 const canCreateProject = computed(() => hasPermission('project.create'));

@@ -42,8 +42,8 @@
             <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 flex flex-col">
                 <div class="border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
-                    <span>Monteurs ({{ plannableUsers.length }})</span>
-                    <button v-if="plannableUsers.length" @click="toggleAllRows"
+                    <span>Monteurs ({{ visibleUsers.length }})</span>
+                    <button v-if="visibleUsers.length" @click="toggleAllRows"
                         class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
                         <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
                         <ChevronRightIcon v-else class="size-3.5" />
@@ -51,7 +51,7 @@
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto" ref="sidebarScrollRef">
-                    <div v-if="allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
+                    <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                         class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
                         <button
                             class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
@@ -62,7 +62,7 @@
                         </button>
                         <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
                     </div>
-                    <div v-for="(user, idx) in plannableUsers" :key="user.id"
+                    <div v-for="(user, idx) in visibleUsers" :key="user.id"
                         :style="{ height: rowHeightFor(user.id) + 'px' }"
                         class="relative flex items-center gap-2 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
@@ -86,7 +86,7 @@
                                     userHoursLabel(user.id) }}</div>
                         </div>
                     </div>
-                    <div v-if="plannableUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
+                    <div v-if="visibleUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
                         Geen inplanbare monteurs.
                         Schakel "Inplanbaar" in op een gebruiker via Gebruikers.
                     </div>
@@ -125,7 +125,7 @@
                 <!-- Body rows -->
                 <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                     <!-- All-day project band -->
-                    <div v-if="allDayLaneHeight"
+                    <div v-if="showProjects && allDayLaneHeight"
                         class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
                         :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
                         <!-- Day gridlines -->
@@ -176,7 +176,7 @@
                         </template>
                     </div>
 
-                    <div v-for="(user, idx) in plannableUsers" :key="'row-' + user.id"
+                    <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
                         class="grid relative transition-[height] duration-200 ease-in-out"
                         :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
@@ -254,7 +254,8 @@
 
         <!-- Create/edit modal -->
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
-            :all-customers="allCustomers" :all-service-orders="allServiceOrders" :all-users="allUsers"
+            :all-customers="allCustomers" :customers-use-ajax="customersUseAjax"
+            :all-service-orders="allServiceOrders" :all-users="allUsers"
             :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
     </div>
 </template>
@@ -275,6 +276,7 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     allServiceOrders: { type: Array, default: () => [] },
     eventStatusses: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
@@ -295,6 +297,26 @@ const props = defineProps({
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
 
 const page = usePage()
+
+const authUserId = computed(() => page.props.auth?.user?.id ?? null)
+
+function canEditEvent(ev) {
+    if (hasPermission('event.update_others')) return true
+    return hasPermission('event.update') && ev.executing_user_ids.includes(authUserId.value)
+}
+
+function canDeleteEvent(ev) {
+    if (hasPermission('event.delete_others')) return true
+    return hasPermission('event.delete') && ev.executing_user_ids.includes(authUserId.value)
+}
+
+const visibleUsers = computed(() =>
+    hasPermission('event.see_all')
+        ? props.plannableUsers
+        : props.plannableUsers.filter(u => u.id === authUserId.value)
+)
+
+const showProjects = computed(() => hasPermission('project.read'))
 
 const slotMinutes = ref(props.defaultSlotMinutes)
 const dayStartHour = ref(props.defaultDayStartHour)
@@ -416,13 +438,13 @@ function toggleUserRow(userId) {
 }
 
 const allRowsCollapsed = computed(() =>
-    props.plannableUsers.length > 0 && props.plannableUsers.every(u => collapsedUsers.value.has(u.id))
+    visibleUsers.value.length > 0 && visibleUsers.value.every(u => collapsedUsers.value.has(u.id))
 )
 
 function toggleAllRows() {
     collapsedUsers.value = allRowsCollapsed.value
         ? new Set()
-        : new Set(props.plannableUsers.map(u => u.id))
+        : new Set(visibleUsers.value.map(u => u.id))
 }
 
 const weekDays = computed(() => {
@@ -534,7 +556,6 @@ async function fetchEvents() {
         if (response.status !== 200) return
         events.value = response.data.map(ev => {
             const customer_id = ev.service_orders?.[0]?.customer_id ?? null
-            const customer = customer_id ? props.allCustomers.find(c => c.id === customer_id) : null
             return {
                 id: ev.id,
                 title: ev.event_type?.name || ev.name || 'Afspraak',
@@ -550,7 +571,7 @@ async function fetchEvents() {
                 eventable_id: ev.service_orders?.[0]?.id ?? null,
                 eventable_type: '\\App\\Models\\ServiceOrder',
                 customer_id,
-                customer_name: customer?.name || null,
+                customer_name: ev.service_orders?.[0]?.customer?.name || null,
             }
         })
     } catch (e) {
@@ -691,6 +712,7 @@ function onCellPointerDown(e, user, day) {
 
 function onEventPointerDown(e, ev, user) {
     if (e.button !== 0) return
+    if (!canEditEvent(ev)) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
     const startMin = minutesFromDayStart(ev.start)
@@ -713,6 +735,7 @@ function onEventPointerDown(e, ev, user) {
 
 function onResizePointerDown(e, ev, user, edge) {
     if (e.button !== 0) return
+    if (!canEditEvent(ev)) return
     drag.value = {
         mode: 'resize',
         edge,
@@ -856,6 +879,7 @@ async function onWindowPointerUp() {
 
 function handleEventClick(ev) {
     if (Date.now() < suppressClickUntil) return
+    if (!canEditEvent(ev)) return
     openEdit(ev)
 }
 
@@ -863,16 +887,17 @@ function onEventContextMenu(e, ev) {
     drag.value = { eventId: null, mode: null }
     dragGhost.value = null
     injectTypeColorStyles()
-    const items = [
-        {
+    const items = []
+    if (canEditEvent(ev)) {
+        items.push({
             label: 'Wijzig type',
             children: props.eventTypes.map(t => ({
                 label: ev.event_type_id === t.id ? `${t.name}  ✓` : t.name,
                 customClass: 'planner-cm-type-' + t.id,
                 onClick: () => changeEventType(ev, t),
             })),
-        },
-        {
+        })
+        items.push({
             label: `Monteurs (${ev.executing_user_ids.length})`,
             children: props.allUsers.map(u => {
                 const assigned = ev.executing_user_ids.includes(u.id)
@@ -883,13 +908,13 @@ function onEventContextMenu(e, ev) {
                     onClick: () => toggleExecutingUser(ev, u),
                 }
             }),
-        },
-        { label: 'Bewerken…', onClick: () => openEdit(ev) },
-    ]
+        })
+        items.push({ label: 'Bewerken…', onClick: () => openEdit(ev) })
+    }
     if (ev.eventable_id) {
         items.push({
             label: `Open werkbon #${ev.eventable_id}`,
-            divided: true,
+            divided: items.length > 0,
             onClick: () => router.visit(`/serviceorders/${ev.eventable_id}`),
         })
         items.push({
@@ -898,13 +923,14 @@ function onEventContextMenu(e, ev) {
         })
     }
     if (ev.customer_id && hasPermission('customer.read')) {
-        const customer = props.allCustomers.find(c => c.id === ev.customer_id)
         items.push({
-            label: `Open klant${customer?.name ? ` — ${customer.name}` : ''}`,
+            label: `Open klant${ev.customer_name ? ` — ${ev.customer_name}` : ''}`,
             onClick: () => router.visit(`/customers/${ev.customer_id}`),
         })
     }
-    items.push({ label: 'Verwijderen', divided: true, onClick: () => deleteEvent(ev) })
+    if (canDeleteEvent(ev)) {
+        items.push({ label: 'Verwijderen', divided: items.length > 0, onClick: () => deleteEvent(ev) })
+    }
     ContextMenu.showContextMenu({
         x: e.clientX,
         y: e.clientY,
@@ -1192,6 +1218,7 @@ function openEdit(ev) {
         eventable_type: ev.eventable_type,
         eventable_id: ev.eventable_id,
         customer_id: ev.customer_id,
+        customer_name: ev.customer_name || null,
         executing_user_ids: [...ev.executing_user_ids],
     }
     modalOpen.value = true

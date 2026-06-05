@@ -27,15 +27,10 @@ class ProductTypeController extends Controller
             ]);
         }
 
-        $types = ProductType::whereNull('parent_id')
-            ->with([
-                'children.children.products' => fn($q) => $q
-                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
-                'children.products'          => fn($q) => $q
-                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
-                'products'                   => fn($q) => $q
-                    ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
-            ])
+        $types = ProductType::with([
+            'products' => fn($q) => $q
+                ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
+        ])
             ->orderBy('name')
             ->get();
 

@@ -2,80 +2,41 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\MaterialUsageUnitDestroyRequest;
 use App\Http\Requests\MaterialUsageUnitReadRequest;
+use App\Http\Requests\MaterialUsageUnitStoreRequest;
+use App\Http\Requests\MaterialUsageUnitUpdateRequest;
 use App\Models\MaterialUsageUnit;
 
 class MaterialUsageUnitController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(MaterialUsageUnitReadRequest $request)
     {
         return inertia('Materials/UsageUnitIndexPage', [
-            'usageUnits' => MaterialUsageUnit::all(),
+            'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(MaterialUsageUnitStoreRequest $request)
     {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        $unit = MaterialUsageUnit::create($data);
+        $unit = MaterialUsageUnit::create($request->validated());
 
         return redirect()->back()
-            ->with('success', 'Materiaal gebruikseenheid is aangemaakt.')
+            ->with('success', 'Gebruikseenheid aangemaakt.')
             ->with('extra', $unit);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function update(MaterialUsageUnitUpdateRequest $request, MaterialUsageUnit $materialusageunit)
     {
-        //
+        $materialusageunit->update($request->validated());
+
+        return redirect()->back()->with('success', 'Gebruikseenheid bijgewerkt.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, MaterialUsageUnit $materialusageunit)
-    {
-        $materialusageunit->update($request->validate([
-            'name' => 'required|string|max:255',
-        ]));
-
-        return redirect()->back()->with('success', 'Materiaal eenheid is bijgewerkt.');
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(MaterialUsageUnit $materialusageunit)
+    public function destroy(MaterialUsageUnitDestroyRequest $request, MaterialUsageUnit $materialusageunit)
     {
         $materialusageunit->delete();
-        return redirect()->back();
+
+        return redirect()->back()->with('success', 'Gebruikseenheid verwijderd.');
     }
 }

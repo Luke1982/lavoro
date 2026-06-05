@@ -49,8 +49,11 @@
                         placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
                 </div>
                 <div class="w-full px-4 py-2">
-                    <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
-                        :initial-id="form.customer_id || allCustomers[0]?.id" />
+                    <ComboBox v-model="selectedCustomer" :options="customerOptions" label="Klant" class="w-full"
+                        :initial-id="form.customer_id || customerOptions[0]?.id"
+                        :has-external-searching="customersUseAjax"
+                        :searching="customerSearching"
+                        @change="searchCustomers" />
                 </div>
                 <div class="w-full px-4 py-2">
                     <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
@@ -87,11 +90,13 @@ import { XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate } from '@/Utilities/Utilities'
+import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     eventStatusses: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     allServiceOrders: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
     initial: { type: Object, required: true },
@@ -120,6 +125,15 @@ const form = useForm({
 const initialStatusId = computed(() =>
     props.eventStatusses.find(s => s.name === form.status)?.id || props.eventStatusses[0]?.id || ''
 )
+
+const initialCustomerOptions = props.allCustomers.length
+    ? props.allCustomers
+    : (props.initial.customer_id && props.initial.customer_name
+        ? [{ id: props.initial.customer_id, name: props.initial.customer_name }]
+        : [])
+
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', initialCustomerOptions, props.customersUseAjax)
 
 const selectedCustomer = ref(
     props.initial.customer_id
@@ -152,6 +166,10 @@ async function save() {
     }
     try {
         if (props.editingExisting && form.id) {
+            const authId = page.props.auth?.user?.id ?? null
+            const canUpdate = hasPermission('event.update_others') ||
+                (hasPermission('event.update') && form.executing_user_ids.includes(authId))
+            if (!canUpdate) return
             const r = await axios.put(`/api/events/${form.id}`, payload)
             if (r.status !== 200) throw new Error('bad')
             page.props.flash.success = 'Afspraak succesvol bijgewerkt'

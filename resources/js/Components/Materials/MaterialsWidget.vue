@@ -32,7 +32,9 @@
                 class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
                 <div class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Kies een materiaal</span>
-                    <ComboBox :options="comboMaterials" v-model="materialToAdd" />
+                    <ComboBox :options="comboMaterials" v-model="materialToAdd"
+                        :has-external-searching="materialsUseAjax" :searching="materialSearching"
+                        @change="searchMaterials" />
                 </div>
                 <div class="flex flex-col w-full md:w-28">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
@@ -186,6 +188,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({
     serviceOrderId: {
@@ -200,6 +203,7 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    materialsUseAjax: { type: Boolean, default: false },
     isClosed: {
         type: Boolean,
         default: false,
@@ -226,8 +230,11 @@ const materialToAdd = ref(null)
 
 const form = useForm({ quantity: 1, unforseen: false })
 
+const { options: materialOptions, searching: materialSearching, search: searchMaterials } =
+    useComboSearch('materials', props.allMaterials, props.materialsUseAjax)
+
 const comboMaterials = computed(() => {
-    return props.allMaterials.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
+    return materialOptions.value.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
         const label = canSeeFinancials.value
             ? `${m.name}, code ${m.code}, voorraad ${m.stock}, prijs € ${m.price}`
             : `${m.name}, code ${m.code}, voorraad ${m.stock}`

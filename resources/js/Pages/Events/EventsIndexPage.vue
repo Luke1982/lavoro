@@ -1,6 +1,7 @@
 <template>
     <div class="p-3">
-        <CalendarWidget :eventTypes="eventTypes" :allCustomers="allCustomers" :allServiceOrders="allServiceOrders"
+        <CalendarWidget :eventTypes="eventTypes" :allCustomers="allCustomers"
+            :customersUseAjax="customersUseAjax" :allServiceOrders="allServiceOrders"
             :eventStatusses="eventStatusses" :allUsers="allUsers" :height="'96vh'" :readOnly="false" />
     </div>
 </template>
@@ -9,7 +10,7 @@
 import { defineProps } from 'vue'
 import CalendarWidget from '@/Components/CalendarWidget.vue'
 
-const { eventTypes, allCustomers, allServiceOrders, eventStatusses, allUsers } = defineProps({
+const { eventTypes, allCustomers, customersUseAjax, allServiceOrders, eventStatusses, allUsers } = defineProps({
     eventTypes: {
         type: Array,
         required: true
@@ -17,6 +18,10 @@ const { eventTypes, allCustomers, allServiceOrders, eventStatusses, allUsers } =
     allCustomers: {
         type: Array,
         required: true
+    },
+    customersUseAjax: {
+        type: Boolean,
+        default: false
     },
     allServiceOrders: {
         type: Array,

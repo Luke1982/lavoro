@@ -258,7 +258,8 @@
                         </BoxComponent>
                         <BoxComponent v-if="hasPermission('materiable.read.serviceorder')" class="mb-4 sm:mb-0">
                             <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
-                                :all-materials="allMaterials" :is-closed="serviceOrder.is_closed"
+                                :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+                                :is-closed="serviceOrder.is_closed"
                                 :sent-to-administration="serviceOrder.sent_to_administration"
                                 :type="serviceOrder.type" />
                         </BoxComponent>
@@ -603,6 +604,7 @@ const props = defineProps({
         type: Array,
         required: true
     },
+    materialsUseAjax: { type: Boolean, default: false },
     customFields: {
         type: Array,
         default: () => [],

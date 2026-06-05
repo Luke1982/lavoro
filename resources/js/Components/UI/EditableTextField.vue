@@ -22,6 +22,8 @@
                 rows="8"></textarea>
             <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
                 :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
+                :hasExternalSearching="hasExternalSearching" :searching="searching"
+                @change="$emit('change', $event)"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
             <button v-if="!$slots.open && inErrorState" @click.stop="revert"
                 class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">
@@ -51,7 +53,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
 import { nlDate } from '@/Utilities/Utilities';
 
-const emit = defineEmits(['update', 'revert', 'open']);
+const emit = defineEmits(['update', 'revert', 'open', 'change']);
 
 const model = defineModel();
 const props = defineProps({
@@ -67,6 +69,8 @@ const props = defineProps({
     decoration: { type: Boolean, default: true },
     label: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
+    hasExternalSearching: { type: Boolean, default: false },
+    searching: { type: Boolean, default: false },
 });
 
 const editing = ref(false);

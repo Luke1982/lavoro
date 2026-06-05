@@ -1,6 +1,6 @@
 <template>
-    <div class="flex flex-col bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 min-h-screen">
-        <!-- Sticky header: week navigation + user switcher (added in Task 3) -->
+    <div class="flex flex-col bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <!-- Sticky header: week navigation + user switcher -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
             <div class="flex items-center justify-between px-4 py-3">
                 <button
@@ -17,7 +17,6 @@
                     <ChevronRightIcon class="size-5" />
                 </button>
             </div>
-            <!-- User switcher (event.see_all only) -->
             <div v-if="canSeeAll" class="px-4 pb-3">
                 <SelectMenuComponent v-model="selectedUserId" :options="userOptions" :icon="UsersIcon">
                     <template #sr-label>Monteur selecteren</template>
@@ -25,9 +24,8 @@
             </div>
         </div>
 
-        <!-- User card -->
-        <div v-if="displayUser"
-            class="px-4 py-4 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <!-- User profile (only when a specific user is selected) -->
+        <div v-if="displayUser" class="px-4 pt-4 pb-2 bg-white dark:bg-slate-900">
             <div class="flex items-center gap-3">
                 <div class="size-12 rounded-full bg-gray-200 dark:bg-slate-700 ring-2 ring-white dark:ring-slate-900 flex items-center justify-center overflow-hidden text-sm font-semibold shrink-0">
                     <img v-if="displayUser.avatar" :src="displayUser.avatar"
@@ -39,24 +37,26 @@
                     <div class="text-xs text-gray-500 dark:text-slate-400">Monteur</div>
                 </div>
             </div>
-            <div class="mt-3 flex items-center gap-6 text-sm">
-                <div class="flex items-center gap-2">
-                    <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                        <CalendarDaysIcon class="size-4 text-blue-500" />
-                    </div>
-                    <div>
-                        <div class="font-semibold tabular-nums">{{ filteredEvents.length }}</div>
-                        <div class="text-xs text-gray-500 dark:text-slate-400">Afspraken</div>
-                    </div>
+        </div>
+
+        <!-- Stats bar (always visible) -->
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+                    <CalendarDaysIcon class="size-4 text-blue-500" />
                 </div>
-                <div class="flex items-center gap-2">
-                    <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                        <ClockIcon class="size-4 text-blue-500" />
-                    </div>
-                    <div>
-                        <div class="font-semibold tabular-nums">{{ totalHoursLabel }}</div>
-                        <div class="text-xs text-gray-500 dark:text-slate-400">Gepland</div>
-                    </div>
+                <div>
+                    <div class="font-semibold tabular-nums text-sm">{{ filteredEvents.length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">Afspraken</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+                    <ClockIcon class="size-4 text-blue-500" />
+                </div>
+                <div>
+                    <div class="font-semibold tabular-nums text-sm">{{ totalHoursLabel }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">Gepland</div>
                 </div>
             </div>
         </div>
@@ -68,37 +68,69 @@
                 Geen afspraken deze week
             </div>
 
-            <div v-else class="py-4">
-                <div v-for="(ev, index) in timelineEvents" :key="ev.id" class="flex">
-                    <!-- Left: time + duration -->
-                    <div class="w-16 shrink-0 flex flex-col items-end pr-3 pt-1">
+            <div v-else class="pb-4">
+                <template v-for="group in groupedByDay" :key="group.dayIso">
+                    <!-- Sticky day header -->
+                    <div class="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                        {{ dayLabel(group.dayIso) }}
+                    </div>
+
+                    <div class="pt-4 pl-3">
+                        <div v-for="(ev, index) in group.events" :key="ev.id" class="flex">
+                    <!-- Left: time + duration (narrowed ~20%) -->
+                    <div class="w-[51px] shrink-0 flex flex-col items-end pr-2 pt-1">
                         <div class="text-sm font-semibold tabular-nums leading-none">{{ nlTime(ev.start) }}</div>
                         <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ durationLabel(ev) }}</div>
                     </div>
 
                     <!-- Centre: dot + connecting line -->
-                    <div class="flex flex-col items-center w-5 shrink-0">
-                        <div class="size-3 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-900 mt-1.5 shrink-0 z-10"></div>
-                        <div v-if="index < timelineEvents.length - 1"
-                            class="w-px flex-1 bg-gray-200 dark:bg-slate-700 mt-1"></div>
+                    <div class="relative flex flex-col items-center w-5 shrink-0">
+                        <div v-if="index < group.events.length - 1"
+                            class="absolute bottom-0 w-0.5 bg-blue-300 dark:bg-blue-700"
+                            :class="index === 0 ? 'top-4' : 'top-0'"></div>
+                        <div class="size-3 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-900 mt-1 shrink-0 relative z-10"></div>
                     </div>
 
                     <!-- Right: event card -->
-                    <div class="flex-1 pl-3 pb-5">
+                    <div class="flex-1 pl-3 pr-4 pb-5">
                         <div
-                            class="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden"
-                            :class="canEdit(ev) ? 'cursor-pointer active:bg-gray-50 dark:active:bg-slate-700/60' : ''"
+                            class="rounded-xl overflow-hidden border"
+                            :class="canEdit(ev) ? 'cursor-pointer' : ''"
+                            :style="{
+                                backgroundColor: `color-mix(in srgb, ${ev.color || '#3b82f6'} 6%, white)`,
+                                borderColor: `color-mix(in srgb, ${ev.color || '#3b82f6'} 9%, #e5e7eb)`,
+                            }"
                             @click="handleEventTap(ev)">
-                            <div class="p-3 border-l-4" :style="{ borderLeftColor: ev.color || '#3b82f6' }">
-                                <!-- Title + icon -->
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="font-semibold text-sm leading-tight">{{ ev.name || ev.title }}</div>
-                                    <CalendarIcon class="size-4 shrink-0 text-gray-400 mt-0.5" />
+                            <div class="p-3">
+                                <!-- Title + avatars at top right -->
+                                <div class="flex items-start gap-2">
+                                    <div class="font-semibold text-sm leading-tight flex-1 min-w-0">{{ ev.name || ev.title }}</div>
+                                    <div class="flex items-center flex-shrink-0">
+                                        <span v-if="selectedUserId === null && canSeeAll"
+                                            class="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[7rem]">
+                                            {{ resolveExecutingUsers(ev).map(u => u.name).join(', ') }}
+                                        </span>
+                                        <div v-else class="flex items-center">
+                                            <template v-for="(u, i) in resolveExecutingUsers(ev).slice(0, MAX_AVATARS)" :key="u.id">
+                                                <div
+                                                    class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-[10px] font-semibold overflow-hidden"
+                                                    :style="{ marginLeft: i > 0 ? '-0.375rem' : '0' }">
+                                                    <img v-if="u.avatar" :src="u.avatar"
+                                                        class="w-full h-full object-cover" :alt="u.name" />
+                                                    <span v-else>{{ initials(u.name) }}</span>
+                                                </div>
+                                            </template>
+                                            <div v-if="resolveExecutingUsers(ev).length > MAX_AVATARS"
+                                                class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold -ml-1.5">
+                                                +{{ resolveExecutingUsers(ev).length - MAX_AVATARS }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Customer name -->
                                 <div v-if="ev.customer_name"
-                                    class="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug">
+                                    class="text-xs text-gray-600 dark:text-slate-400 mt-1 leading-snug">
                                     {{ ev.customer_name }}
                                 </div>
 
@@ -108,10 +140,19 @@
                                     {{ resolveAddress(ev) }}
                                 </div>
 
-                                <!-- WB badge + executing users -->
-                                <div class="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                                <!-- Task list -->
+                                <ul v-if="ev.task_titles && ev.task_titles.length" class="mt-1.5 space-y-0.5">
+                                    <li v-for="title in ev.task_titles" :key="title"
+                                        class="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
+                                        <span class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0"></span>
+                                        {{ title }}
+                                    </li>
+                                </ul>
+
+                                <!-- WB badge -->
+                                <div class="mt-2">
                                     <button v-if="ev.eventable_id"
-                                        class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+                                        class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 transition"
                                         @click.stop="router.visit(`/serviceorders/${ev.eventable_id}`)">
                                         <BuildingOfficeIcon class="size-3.5 shrink-0" />
                                         <span>{{ formatWbNumber(ev.eventable_id) }}</span>
@@ -120,34 +161,13 @@
                                     <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
                                         Eigen planning
                                     </span>
-
-                                    <!-- "Alle monteurs" mode: comma-separated names -->
-                                    <span v-if="selectedUserId === null && canSeeAll"
-                                        class="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[10rem]">
-                                        {{ resolveExecutingUsers(ev).map(u => u.name).join(', ') }}
-                                    </span>
-
-                                    <!-- Specific user mode: avatar stack -->
-                                    <div v-else class="flex items-center">
-                                        <template v-for="(u, i) in resolveExecutingUsers(ev).slice(0, MAX_AVATARS)" :key="u.id">
-                                            <div
-                                                class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-[10px] font-semibold overflow-hidden"
-                                                :style="{ marginLeft: i > 0 ? '-0.375rem' : '0' }">
-                                                <img v-if="u.avatar" :src="u.avatar"
-                                                    class="w-full h-full object-cover" :alt="u.name" />
-                                                <span v-else>{{ initials(u.name) }}</span>
-                                            </div>
-                                        </template>
-                                        <div v-if="resolveExecutingUsers(ev).length > MAX_AVATARS"
-                                            class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold -ml-1.5">
-                                            +{{ resolveExecutingUsers(ev).length - MAX_AVATARS }}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </div>
                 </div>
+                </template>
             </div>
         </div>
 
@@ -157,6 +177,7 @@
             :event-types="eventTypes"
             :event-statusses="eventStatusses"
             :all-customers="allCustomers"
+            :customers-use-ajax="customersUseAjax"
             :all-service-orders="allServiceOrders"
             :all-users="allUsers"
             :initial="modalInitial"
@@ -176,7 +197,6 @@ import {
     UsersIcon,
     CalendarDaysIcon,
     ClockIcon,
-    CalendarIcon,
     BuildingOfficeIcon,
     ArrowTopRightOnSquareIcon,
 } from '@heroicons/vue/24/outline'
@@ -187,7 +207,8 @@ import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 
 const props = defineProps({
     eventTypes:       { type: Array, default: () => [] },
-    allCustomers:     { type: Array, default: () => [] },
+    allCustomers:      { type: Array, default: () => [] },
+    customersUseAjax:  { type: Boolean, default: false },
     allServiceOrders: { type: Array, default: () => [] },
     eventStatusses:   { type: Array, default: () => [] },
     allUsers:         { type: Array, default: () => [] },
@@ -247,9 +268,7 @@ async function fetchEvents() {
         if (response.status !== 200) return
         events.value = response.data.map(ev => {
             const customer_id = ev.service_orders?.[0]?.customer_id ?? null
-            const customer    = customer_id
-                ? props.allCustomers.find(c => c.id === customer_id)
-                : null
+            const customer    = ev.service_orders?.[0]?.customer ?? null
             return {
                 id:                  ev.id,
                 title:               ev.event_type?.name || ev.name || 'Afspraak',
@@ -266,6 +285,9 @@ async function fetchEvents() {
                 eventable_type:      '\\App\\Models\\ServiceOrder',
                 customer_id,
                 customer_name:       customer?.name || null,
+                task_titles:         (ev.service_orders?.[0]?.task_instances || [])
+                                         .map(ti => ti.service_order_task?.title)
+                                         .filter(Boolean),
             }
         })
     } catch (e) {
@@ -329,6 +351,28 @@ const timelineEvents = computed(() =>
     [...filteredEvents.value].sort((a, b) => a.start - b.start)
 )
 
+const groupedByDay = computed(() => {
+    const groups = []
+    let currentIso = null
+    let currentGroup = null
+    for (const ev of timelineEvents.value) {
+        const iso = dayjs(ev.start).format('YYYY-MM-DD')
+        if (iso !== currentIso) {
+            currentIso = iso
+            currentGroup = { dayIso: iso, events: [] }
+            groups.push(currentGroup)
+        }
+        currentGroup.events.push(ev)
+    }
+    return groups
+})
+
+const DAY_NAMES = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag']
+
+function dayLabel(dayIso) {
+    return DAY_NAMES[dayjs(dayIso).day()]
+}
+
 function durationLabel(ev) {
     const mins = Math.round((ev.end - ev.start) / 60000)
     const h    = Math.floor(mins / 60)
@@ -346,7 +390,7 @@ function resolveAddress(ev) {
     if (!ev.eventable_id) return null
     const so = props.allServiceOrders.find(s => s.id === ev.eventable_id)
     if (!so) return null
-    const customer = props.allCustomers.find(c => c.id === so.customer_id)
+    const customer = so.customer ?? null
     if (!customer) return null
     const parts = [customer.address, customer.city].filter(Boolean)
     return parts.length ? parts.join(', ') : null
@@ -386,6 +430,7 @@ function handleEventTap(ev) {
         eventable_type:      ev.eventable_type,
         eventable_id:        ev.eventable_id,
         customer_id:         ev.customer_id,
+        customer_name:       ev.customer_name || null,
         executing_user_ids:  [...ev.executing_user_ids],
     }
     editingExistingEvent.value = true

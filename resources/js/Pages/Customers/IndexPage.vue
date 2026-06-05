@@ -1,18 +1,19 @@
 <template>
     <IndexHeaderComponent title="Klanten" :addLabel="canCreate && !importPreview ? 'Nieuwe klant' : null"
-        search-placeholder="Zoek klant... " search-url="/customers"
-        @add="() => canCreate && customerFormRef?.show()">
+        search-placeholder="Zoek klant... " search-url="/customers" @add="() => canCreate && customerFormRef?.show()">
         <template v-if="!importPreview && (snelStartEnabled || canCreate)" #actions>
             <div class="relative" ref="actionsMenuRef">
                 <button @click="actionsOpen = !actionsOpen"
-                    class="cursor-pointer inline-flex items-center gap-x-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
+                    class="cursor-pointer inline-flex items-center gap-x-1.5 px-3 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
                     <ArrowUpTrayIcon class="h-5 w-5" />
                     <span class="hidden sm:inline">Importeren</span>
-                    <ChevronDownIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 transition-transform" :class="actionsOpen ? 'rotate-180' : ''" />
+                    <ChevronDownIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 transition-transform"
+                        :class="actionsOpen ? 'rotate-180' : ''" />
                 </button>
                 <div v-if="actionsOpen"
                     class="absolute right-0 top-full mt-1 z-50 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg ring-1 ring-gray-200 dark:ring-slate-700 py-1">
-                    <button v-if="snelStartEnabled" @click="importCustomers(); actionsOpen = false" :disabled="importingCustomers"
+                    <button v-if="snelStartEnabled" @click="importCustomers(); actionsOpen = false"
+                        :disabled="importingCustomers"
                         class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
                         <ArrowPathIcon class="h-4 w-4 text-indigo-500 shrink-0" />
                         SnelStart klanten importeren
@@ -22,7 +23,8 @@
                         <ArrowDownTrayIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 shrink-0" />
                         Download voorbeeldbestand
                     </a>
-                    <button v-if="canCreate" @click="triggerFileInput(); actionsOpen = false" :disabled="previewForm.processing"
+                    <button v-if="canCreate" @click="triggerFileInput(); actionsOpen = false"
+                        :disabled="previewForm.processing"
                         class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
                         <ArrowUpTrayIcon class="h-4 w-4 text-emerald-500 shrink-0" />
                         {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
@@ -39,62 +41,74 @@
                 add-button-label="Nieuwe klant" submit-label="Opslaan" />
         </div>
         <PaginationComponent v-if="(customers.links || []).length" :paginator="customers"
-            :params="{ search: searchParam }"
-            class="border-b border-gray-200 dark:border-slate-700/60" />
-        <div class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-hidden">
+            :params="{ search: searchParam }" class="border-b border-gray-200 dark:border-slate-700/60" />
+        <div
+            class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-hidden">
             <ul role="list" class="divide-y divide-gray-100 dark:divide-slate-800/70">
                 <li v-for="customer in customers.data" :key="customer.id">
                     <Link :href="`/customers/${customer.id}`"
                         class="group grid w-full grid-cols-[minmax(0,1fr)_24px] sm:grid-cols-[minmax(0,1fr)_180px_20px] items-start sm:items-center gap-y-2 sm:gap-y-0 gap-x-6 px-4 py-5 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 transition even:bg-gray-50 even:dark:bg-slate-800/40">
-                    <div class="flex min-w-0 gap-x-4 col-start-1 row-start-1">
-                        <span
-                            class="size-12 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-slate-200 select-none">
-                            {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
-                        </span>
-                        <div class="min-w-0 flex-auto">
-                            <p class="text-sm font-semibold leading-6 text-gray-900 dark:text-slate-100 group-hover:underline">
-                                {{ customer.name }}
+                        <div class="flex min-w-0 gap-x-4 col-start-1 row-start-1">
+                            <span
+                                class="size-12 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-slate-200 select-none">
+                                {{ (customer.name || '?').slice(0, 2).toUpperCase() }}
+                            </span>
+                            <div class="min-w-0 flex-auto">
+                                <p
+                                    class="text-sm font-semibold leading-6 text-gray-900 dark:text-slate-100 group-hover:underline">
+                                    {{ customer.name }}
+                                </p>
+                                <p class="mt-1 truncate text-xs leading-5 text-gray-500 dark:text-slate-400">
+                                    {{ customer.email || 'Geen e-mailadres' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="flex flex-col items-start justify-center col-start-1 row-start-2 sm:col-start-2 sm:row-start-1 pl-16 sm:pl-0">
+                            <p class="text-sm leading-6 text-gray-900 dark:text-slate-200">{{ customer.city || '—' }}
                             </p>
-                            <p class="mt-1 truncate text-xs leading-5 text-gray-500 dark:text-slate-400">
-                                {{ customer.email || 'Geen e-mailadres' }}
+                            <p class="mt-1 text-xs leading-5 text-left text-gray-600 dark:text-slate-400">
+                                <span v-if="customer.open_tickets?.length"
+                                    class="text-red-600 dark:text-red-400 font-medium">{{
+                                        customer.open_tickets.length }} open stor.</span>
+                                <span v-else-if="customer.pending_tickets?.length"
+                                    class="text-amber-600 dark:text-amber-400 font-medium">{{
+                                        customer.pending_tickets.length }} in beh.</span>
+                                <span v-else class="text-green-600 dark:text-green-400">Geen open storingen</span>
                             </p>
                         </div>
-                    </div>
-                    <div class="flex flex-col items-start justify-center col-start-1 row-start-2 sm:col-start-2 sm:row-start-1 pl-16 sm:pl-0">
-                        <p class="text-sm leading-6 text-gray-900 dark:text-slate-200">{{ customer.city || '—' }}</p>
-                        <p class="mt-1 text-xs leading-5 text-left text-gray-600 dark:text-slate-400">
-                            <span v-if="customer.open_tickets?.length" class="text-red-600 dark:text-red-400 font-medium">{{
-                                customer.open_tickets.length }} open stor.</span>
-                            <span v-else-if="customer.pending_tickets?.length"
-                                class="text-amber-600 dark:text-amber-400 font-medium">{{
-                                    customer.pending_tickets.length }} in beh.</span>
-                            <span v-else class="text-green-600 dark:text-green-400">Geen open storingen</span>
-                        </p>
-                    </div>
-                    <div class="flex justify-end col-start-2 sm:col-start-3 row-span-2 sm:row-span-1 self-center">
-                        <ChevronRightIcon
-                            class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
-                            aria-hidden="true" />
-                        <span class="sr-only">Bekijk {{ customer.name }}</span>
-                    </div>
+                        <div class="flex justify-end col-start-2 sm:col-start-3 row-span-2 sm:row-span-1 self-center">
+                            <ChevronRightIcon
+                                class="size-5 text-gray-400 dark:text-slate-500 group-hover:text-gray-500 dark:group-hover:text-slate-400"
+                                aria-hidden="true" />
+                            <span class="sr-only">Bekijk {{ customer.name }}</span>
+                        </div>
                     </Link>
                 </li>
             </ul>
         </div>
         <PaginationComponent v-if="(customers.links || []).length" :paginator="customers"
-            :params="{ search: searchParam }"
-            class="border-t border-gray-200 dark:border-slate-700/60" />
+            :params="{ search: searchParam }" class="border-t border-gray-200 dark:border-slate-700/60" />
     </div>
 
     <div v-else class="mt-4 space-y-4">
-        <div class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-x-auto">
+        <div
+            class="bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700/60 sm:rounded-lg overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                 <thead class="bg-gray-50 dark:bg-slate-800">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Naam</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actie</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Stad</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Waarschuwingen</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Naam</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Actie</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Stad</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Waarschuwingen</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
@@ -138,9 +152,9 @@
                 {{ confirmForm.processing ? 'Bezig...' : 'Import bevestigen' }}
             </button>
             <span class="text-xs text-gray-500 dark:text-slate-400">
-                {{ importPreview.filter(r => !r.fatal).length }} klanten worden verwerkt
+                {{importPreview.filter(r => !r.fatal).length}} klanten worden verwerkt
                 <span v-if="importPreview.filter(r => r.fatal).length">
-                    · {{ importPreview.filter(r => r.fatal).length }} overgeslagen
+                    · {{importPreview.filter(r => r.fatal).length}} overgeslagen
                 </span>
             </span>
         </div>
@@ -156,7 +170,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 
-const props = defineProps({
+defineProps({
     customers: {
         type: Object,
         required: true,

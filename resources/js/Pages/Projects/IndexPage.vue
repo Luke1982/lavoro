@@ -1,104 +1,93 @@
 <template>
     <IndexHeaderComponent title="Projecten" subtitle="Overzicht van alle projecten" search-url="/projects"
         search-label="Zoek binnen projecten" search-placeholder="Zoek op titel, klant of projectleider"
-        :paginator="projects" add-label="Voeg project toe" @add="() => projectFormRef?.show()" />
+        :paginator="false" add-label="Voeg project toe" @add="() => projectFormRef?.show()"
+        :can-add="hasPermission('project.create')" />
     <div class="mb-4" v-auto-animate>
         <CreateRecordForm ref="projectFormRef" external-trigger action="/projects" :fields="projectFields"
             add-button-label="Voeg project toe" submit-label="Opslaan" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="displayProjects.length"
-            class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-px transition-colors"
-            role="table">
-            <div class="hidden lg:grid lg:grid-cols-[25fr_20fr_18fr_15fr_22fr_56px]" role="row">
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100 rounded-tl-md">
-                    Titel</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100">
-                    Klant</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100">
-                    Projectleider</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100">
-                    Status</div>
-                <div role="columnheader"
-                    class="px-4 py-2 text-left text-sm font-semibold text-white bg-gray-600 dark:bg-slate-700 dark:text-slate-100">
-                    Periode</div>
-                <div class="px-4 py-2 bg-gray-600 dark:bg-slate-700 rounded-tr-md flex items-center justify-end gap-3">
-                    <span class="text-white text-sm font-semibold opacity-0">Acties</span>
+        <div v-if="displayProjects.length">
+            <div
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                <div class="col-span-4">Titel</div>
+                <div class="col-span-2">Klant</div>
+                <div class="col-span-2">Projectleider</div>
+                <div class="col-span-2">Status</div>
+                <div class="col-span-1">Periode</div>
+                <div class="col-span-1 text-right">Acties</div>
+            </div>
+            <div v-for="project in displayProjects" :key="project.id" role="row"
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+                <div class="col-span-10 lg:col-span-4 flex flex-col">
+                    <Link :href="`/projects/${project.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
+                        {{ project.title }}
+                    </Link>
+                    <div class="flex lg:hidden gap-2 mt-1">
+                        <span :class="projectStatusClass(project.status)" class="text-xs">{{ project.status }}</span>
+                    </div>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2 text-slate-700 dark:text-slate-300">
+                    {{ project.customer?.name || '—' }}
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2 text-slate-700 dark:text-slate-300">
+                    {{ project.project_manager?.name || '—' }}
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <EditableTextField type="combobox" :model-value="project.status" :options="statuses"
+                        :decoration="false"
+                        @update="(val) => updateProject(project, { status: val })">
+                        <template #display>
+                            <span :class="projectStatusClass(project.status)">{{ project.status }}</span>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2 text-slate-700 dark:text-slate-300 text-xs">
+                    {{ project.start_date ? formatDate(project.start_date) : '–' }}
+                    <span class="mx-0.5">–</span>
+                    {{ project.end_date ? formatDate(project.end_date) : '–' }}
+                </div>
+                <div class="col-span-2 lg:col-span-1 flex items-center justify-end">
+                    <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
+                        <Link :href="`/projects/${project.id}`" class="text-sm text-lavoro-darkerblue">
+                            <EyeIcon class="h-5 w-5" />
+                        </Link>
+                        <div v-if="hasPermission('project.delete')"
+                            class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0">
+                            <TrashIcon class="h-5 w-5 cursor-pointer text-red-500"
+                                @click="deleteProject(project.id)" />
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
-                <div v-for="project in displayProjects" :key="project.id" role="row"
-                    class="even:bg-gray-50 dark:even:bg-slate-800/70 dark:bg-slate-900 grid grid-cols-12 py-3 lg:grid lg:grid-cols-[25fr_20fr_18fr_15fr_22fr_56px] lg:items-stretch border-b border-gray-100 dark:border-slate-800/60 last:border-b-0">
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:col-span-1 text-gray-800 dark:text-slate-200">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Titel</span>
-                        <Link :href="`/projects/${project.id}`" class="text-blue-500 dark:text-blue-300 underline">
-                            {{ project.title }}
-                        </Link>
-                    </div>
-
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:col-span-1 text-gray-800 dark:text-slate-200">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Klant</span>
-                        <span>{{ project.customer?.name }}</span>
-                    </div>
-
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:col-span-1 text-gray-800 dark:text-slate-200">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Projectleider</span>
-                        <span>{{ project.project_manager?.name }}</span>
-                    </div>
-
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:col-span-1 text-gray-800 dark:text-slate-200">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Status</span>
-                        <span :class="projectStatusClass(project.status)">{{ project.status }}</span>
-                    </div>
-
-                    <div role="cell"
-                        class="px-4 py-2 flex flex-col col-span-12 md:col-span-6 lg:col-span-1 text-gray-800 dark:text-slate-200">
-                        <span
-                            class="text-xs font-light mb-1.5 block lg:hidden text-gray-600 dark:text-slate-400">Periode</span>
-                        <span>
-                            {{ project.start_date ? formatDate(project.start_date) : '–' }}
-                            –
-                            {{ project.end_date ? formatDate(project.end_date) : '–' }}
-                        </span>
-                    </div>
-
-                    <div class="px-4 py-2 text-right flex items-center justify-end gap-3 col-span-12 lg:col-span-1">
-                        <TrashIcon
-                            class="inline h-5 w-5 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
-                            @click.stop="deleteProject(project.id)" />
-                    </div>
-                </div>
+            <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
+                <PageRecordCountComponent :total="projects.total" :per-page="projects.per_page" label="projecten" />
+                <PaginationComponent :paginator="projects" />
             </div>
         </div>
-        <PaginationComponent v-if="displayProjects.length" :paginator="projects"
-            class="border-t border-gray-200 pt-2 dark:border-slate-700/60" />
-        <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen projecten gevonden.</p>
+        <div v-else class="p-6 text-center">
+            <div class="text-gray-400">
+                <FolderKanbanIcon class="h-12 w-12 mx-auto mb-3" />
+                <p class="text-sm">Geen projecten gevonden</p>
+            </div>
+        </div>
     </BoxComponent>
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
-import { computed } from 'vue'
-import { ref } from 'vue'
+import { Link, router, useForm } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
+import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
-import { TrashIcon } from '@heroicons/vue/24/outline'
-import { projectStatusClass } from '@/Utilities/Utilities'
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
+import { EyeIcon, TrashIcon, FolderKanbanIcon } from '@lucide/vue'
+import { hasPermission, projectStatusClass } from '@/Utilities/Utilities'
+
+const projectFormRef = ref(null)
 
 const { projects, customers, users, statuses } = defineProps({
     projects: { type: Object, required: true },
@@ -108,7 +97,6 @@ const { projects, customers, users, statuses } = defineProps({
     search: { type: String, default: '' },
 })
 
-const projectFormRef = ref(null)
 const displayProjects = computed(() => projects?.data || [])
 
 const projectFields = [
@@ -122,7 +110,17 @@ const projectFields = [
 ]
 
 function formatDate(dateStr) {
-    return new Date(dateStr).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return new Date(dateStr).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+function updateProject(project, patch) {
+    router.patch(`/projects/${project.id}`, {
+        title: project.title,
+        customer_id: project.customer_id,
+        project_manager_id: project.project_manager_id,
+        status: project.status,
+        ...patch,
+    }, { preserveScroll: true })
 }
 
 function deleteProject(id) {

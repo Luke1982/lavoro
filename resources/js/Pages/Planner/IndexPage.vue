@@ -1,9 +1,10 @@
 <template>
     <!-- Mobile (below md) -->
-    <div class="md:hidden">
+    <div class="md:hidden h-screen overflow-hidden">
         <MobilePlannerView
             :event-types="eventTypes"
             :all-customers="allCustomers"
+            :customers-use-ajax="customersUseAjax"
             :all-service-orders="allServiceOrders"
             :event-statusses="eventStatusses"
             :all-users="allUsers"
@@ -12,11 +13,12 @@
 
     <!-- Desktop (md and up) -->
     <div class="hidden md:grid grid-cols-12 gap-x-3 p-3">
-        <div class="col-span-10">
+        <div :class="canPlan ? 'col-span-10' : 'col-span-12'">
             <BoxComponent padding="p-0">
                 <ResourcePlannerWidget
                     :event-types="eventTypes"
                     :all-customers="allCustomers"
+                    :customers-use-ajax="customersUseAjax"
                     :all-service-orders="allServiceOrders"
                     :event-statusses="eventStatusses"
                     :all-users="allUsers"
@@ -26,7 +28,7 @@
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
-        <div class="col-span-2">
+        <div v-if="canPlan" class="col-span-2">
             <BoxComponent padding="p-0">
                 <UnplannedServiceOrdersWidget :service-orders="unplanned" />
             </BoxComponent>
@@ -40,10 +42,12 @@ import ResourcePlannerWidget from '@/Components/Planner/ResourcePlannerWidget.vu
 import UnplannedServiceOrdersWidget from '@/Components/Planner/UnplannedServiceOrdersWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
+import { hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     eventTypes: { type: Array, required: true },
     allCustomers: { type: Array, required: true },
+    customersUseAjax: { type: Boolean, default: false },
     allServiceOrders: { type: Array, required: true },
     eventStatusses: { type: Array, required: true },
     allUsers: { type: Array, required: true },
@@ -51,6 +55,8 @@ const props = defineProps({
     unplannedServiceOrders: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
 })
+
+const canPlan = computed(() => hasPermission('serviceorder.plan'))
 
 // Track which (initially-unplanned) service orders are currently planned, so we
 // can hide them while planned and show them again the moment their event is removed.

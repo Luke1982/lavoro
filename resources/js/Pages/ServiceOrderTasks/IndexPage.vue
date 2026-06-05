@@ -11,6 +11,7 @@
                 <div class="col-span-7">Beschrijving</div>
                 <div class="col-span-2 text-right">Acties</div>
             </div>
+            <div v-auto-animate>
             <div v-for="task in internalTasks" :key="task.id" role="row"
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
                 <div class="col-span-3 pr-4">
@@ -27,6 +28,7 @@
                             v-tooltip="'Verwijder deze taak'" />
                     </div>
                 </div>
+            </div>
             </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4 dark:bg-slate-900">
                 <PageRecordCountComponent :total="tasks.total" :per-page="perPage" label="taken" />

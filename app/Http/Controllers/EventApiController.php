@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EventDestroyRequest;
+use App\Http\Requests\EventStoreRequest;
+use App\Http\Requests\EventUpdateRequest;
 use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
 use App\Models\ServiceOrder;
@@ -9,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use App\Http\Requests\EventStoreRequest;
 
 class EventApiController extends Controller
 {
@@ -34,15 +36,20 @@ class EventApiController extends Controller
             });
         }
 
-        if (!$has_all && $user_id) {
+        if (! $has_all && $user_id) {
             $base->where(function ($q) use ($user_id) {
-                $q->whereHas('executingUsers', fn($sq) => $sq->where('users.id', $user_id))
-                  ->orWhereHas('owners', fn($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
+                $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user_id))
+                    ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
             });
         }
 
         $events = $base
-            ->with(['eventType', 'serviceOrders', 'executingUsers:id,name'])
+            ->with([
+                'eventType',
+                'serviceOrders.customer',
+                'serviceOrders.taskInstances.serviceOrderTask',
+                'executingUsers:id,name',
+            ])
             ->orderBy('start')
             ->get();
 
@@ -71,10 +78,10 @@ class EventApiController extends Controller
             });
         }
 
-        return response()->json($event->load(['eventType','serviceOrders','executingUsers:id,name']), 201);
+        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']), 201);
     }
 
-    public function update(Request $request, Event $event)
+    public function update(EventUpdateRequest $request, Event $event)
     {
         $payload = $request->all();
         unset($payload['executing_user_ids']);
@@ -119,10 +126,10 @@ class EventApiController extends Controller
             }
         }
 
-        return response()->json($event->load(['eventType','serviceOrders','executingUsers:id,name']));
+        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']));
     }
 
-    public function destroy(Event $event)
+    public function destroy(EventDestroyRequest $request, Event $event)
     {
         $event->delete();
 
@@ -135,7 +142,7 @@ class EventApiController extends Controller
             ->with(['customer', 'taskInstances.serviceOrderTask'])
             ->first();
 
-        if (!$service_order) {
+        if (! $service_order) {
             return response()->json(['message' => 'Geen werkbon gekoppeld aan deze afspraak.'], 422);
         }
 
@@ -151,11 +158,11 @@ class EventApiController extends Controller
         Mail::to($recipients)->send(new AppointmentConfirmationMail($event, $service_order));
 
         $service_order->logActivity(
-            'Afspraakbevestiging per e-mail verzonden naar: ' . implode(', ', $recipients)
+            'Afspraakbevestiging per e-mail verzonden naar: '.implode(', ', $recipients)
         );
 
         return response()->json([
-            'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),
+            'message' => 'Bevestiging verzonden naar: '.implode(', ', $recipients),
         ]);
     }
 }

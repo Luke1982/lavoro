@@ -6,13 +6,15 @@
         </div>
         <div>
             <div class="p-6 grid grid-cols-1 gap-3">
-                <ComboBox v-if="showCustomer" :options="allCustomers" v-model="assetForm.customer_id"
-                    placeholder="Selecteer klant" />
+                <ComboBox v-if="showCustomer" :options="customerComboOptions" v-model="assetForm.customer_id"
+                    :has-external-searching="customersUseAjax" :searching="customerSearching"
+                    @change="searchCustomers" placeholder="Selecteer klant" />
                 <p v-if="showCustomer && assetForm.errors.customer_id" class="text-xs text-red-600">{{
                     assetForm.errors.customer_id }}</p>
 
-                <ComboBox v-if="showProduct" :options="productOptions" v-model="assetForm.product_id"
-                    placeholder="Selecteer product" />
+                <ComboBox v-if="showProduct" :options="productComboOptions" v-model="assetForm.product_id"
+                    :has-external-searching="productsUseAjax" :searching="productSearching"
+                    @change="searchProducts" placeholder="Selecteer product" />
                 <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
                     assetForm.errors.product_id }}</p>
 
@@ -75,6 +77,7 @@ import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { todayIso, nextServiceIso } from '@/Utilities/Utilities';
+import { useComboSearch } from '@/Composables/useComboSearch';
 
 const emit = defineEmits(['created']);
 
@@ -83,10 +86,12 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    customersUseAjax: { type: Boolean, default: false },
     allProducts: {
         type: Array,
         default: () => []
     },
+    productsUseAjax: { type: Boolean, default: false },
     customerId: {
         type: [Number, String],
         default: null
@@ -120,22 +125,29 @@ const props = defineProps({
 const showCustomer = computed(() => !props.customerId);
 const showProduct = computed(() => !props.productId);
 
+const initialProductOptions = (props.allProducts || []).map(p => ({
+    id: p.id,
+    name: `${p.brand?.name ?? ''} ${p.model} (${p.product_type?.name ?? ''})`.trim(),
+    bundle: p.bundle,
+    typical_certificate_days: p.typical_certificate_days,
+    product_type_typical_certificate_days: p.product_type_typical_certificate_days,
+}))
+
+const { options: productComboOptions, searching: productSearching, search: searchProducts } =
+    useComboSearch('products', initialProductOptions, props.productsUseAjax)
+
+const { options: customerComboOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
+
 const isSelectedBundle = computed(() => {
     if (props.isBundle !== null) return props.isBundle;
     const pid = assetForm.product_id;
-    const product = props.allProducts.find(p => p.id === pid);
+    const product = productComboOptions.value.find(p => p.id === pid);
     return product?.bundle === true;
 });
 
-const productOptions = computed(() => {
-    return (props.allProducts || []).map(p => ({
-        id: p.id,
-        name: `${p.brand?.name ?? ''} ${p.model} (${p.product_type?.name ?? ''})`.trim()
-    }));
-});
-
 function resolveNextServiceDate(productId) {
-    const product = props.allProducts.find(p => p.id === productId)
+    const product = productComboOptions.value.find(p => p.id === productId)
     const fallback = props.productTypicalDays ?? props.productTypeTypicalDays ?? 365
     return nextServiceIso(product, fallback)
 }

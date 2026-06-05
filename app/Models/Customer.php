@@ -138,4 +138,9 @@ class Customer extends Model
     {
         return $this->belongsTo(self::class, 'billing_customer_id');
     }
+
+    public function contacts()
+    {
+        return $this->morphToMany(Contact::class, 'contactable')->withTimestamps();
+    }
 }

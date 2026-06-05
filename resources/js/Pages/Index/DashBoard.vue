@@ -41,9 +41,28 @@
         </div>
 
         <div v-if="hasPermission('dashboard.see_events')"
-            class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 p-4 shadow-sm dark:shadow-none">
-            <div class="text-sm font-medium mb-2 text-gray-900 dark:text-slate-100">Afspraken</div>
-            <CalendarWidget :allCustomers="customers" height="60vh" read-only />
+            class="rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60 overflow-hidden shadow-sm dark:shadow-none">
+            <!-- Mobile -->
+            <div class="md:hidden">
+                <MobilePlannerView
+                    :event-types="eventTypes"
+                    :all-customers="customers"
+                    :all-service-orders="allServiceOrders"
+                    :event-statusses="eventStatusses"
+                    :all-users="allUsers"
+                    :plannable-users="plannableUsers" />
+            </div>
+            <!-- Desktop -->
+            <div class="hidden md:block h-[70vh]">
+                <ResourcePlannerWidget
+                    :event-types="eventTypes"
+                    :all-customers="customers"
+                    :all-service-orders="allServiceOrders"
+                    :event-statusses="eventStatusses"
+                    :all-users="allUsers"
+                    :plannable-users="plannableUsers"
+                    :projects="[]" />
+            </div>
         </div>
 
 
@@ -153,16 +172,22 @@
 import { onMounted, ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { serviceOrderPillText, serviceOrderPillColorClasses, hasPermission } from '@/Utilities/Utilities';
-import CalendarWidget from '@/Components/CalendarWidget.vue'
+import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
+import ResourcePlannerWidget from '@/Components/Planner/ResourcePlannerWidget.vue'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const { customers, stats, openServiceOrders, upcomingJobs, recentTickets } = defineProps({
-    customers: { type: Array, required: true },
-    stats: { type: Object, required: true },
+const { customers, stats, openServiceOrders, upcomingJobs, recentTickets, eventTypes, eventStatusses, allUsers, plannableUsers, allServiceOrders } = defineProps({
+    customers:         { type: Array, required: true },
+    stats:             { type: Object, required: true },
     openServiceOrders: { type: Array, required: true },
-    upcomingJobs: { type: Array, required: true },
-    recentTickets: { type: Array, required: true }
+    upcomingJobs:      { type: Array, required: true },
+    recentTickets:     { type: Array, required: true },
+    eventTypes:        { type: Array, default: () => [] },
+    eventStatusses:    { type: Array, default: () => [] },
+    allUsers:          { type: Array, default: () => [] },
+    plannableUsers:    { type: Array, default: () => [] },
+    allServiceOrders:  { type: Array, default: () => [] },
 });
 
 const ordersFilter = ref('neither');

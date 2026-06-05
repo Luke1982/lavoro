@@ -8,8 +8,8 @@
                 <StatCard label="Open" :value="openCount" :baseline="avgCount" :delta="openPctVsAvg" type="open" />
             </div>
             <div class="p-6">
-                <StatCard label="In behandeling" :value="pendingCount" :baseline="avgCount" :delta="pendingPctVsAvg"
-                    type="pending" />
+                <StatCard label="In behandeling" :value="pendingCount" :baseline="avgCount"
+                    :delta="pendingPctVsAvg" type="pending" />
             </div>
             <div class="p-6">
                 <StatCard label="Gesloten" :value="closedCount" :baseline="avgCount" :delta="closedPctVsAvg"
@@ -19,8 +19,8 @@
     </div>
 
     <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
-        search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="tickets"
-        :search-other-params="computedOtherParams">
+        search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="false"
+        :search-other-params="computedOtherParams" :has-active-filters="hasActiveFilters">
         <template #filters>
             <div class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col md:flex-row gap-4 w-full">
@@ -29,17 +29,20 @@
                             placeholder="Filter op status" :initial-ids="selectedStatuses" />
                     </div>
                     <div class="flex-1">
-                        <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple label="Prioriteiten"
-                            placeholder="Filter op prioriteit" :initial-ids="selectedPriorities" />
+                        <ComboBox :options="priorityOptions" v-model="selectedPriorities" multiple
+                            label="Prioriteiten" placeholder="Filter op prioriteit"
+                            :initial-ids="selectedPriorities" />
                     </div>
                 </div>
                 <div class="flex flex-col md:flex-row gap-4 w-full">
                     <div class="flex-1">
-                        <TextInput v-model="statusCodeSearch" label="Storingscode" placeholder="Filter op storingscode" />
+                        <TextInput v-model="statusCodeSearch" label="Storingscode"
+                            placeholder="Filter op storingscode" />
                     </div>
                     <div class="flex-1">
-                        <ComboBox :options="closedByOptions" v-model="selectedClosedByIds" multiple label="Gesloten door"
-                            placeholder="Filter op gebruiker" :initial-ids="selectedClosedByIds" />
+                        <ComboBox :options="closedByOptions" v-model="selectedClosedByIds" multiple
+                            label="Gesloten door" placeholder="Filter op gebruiker"
+                            :initial-ids="selectedClosedByIds" />
                     </div>
                 </div>
             </div>
@@ -47,91 +50,94 @@
     </IndexHeaderComponent>
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <div v-if="tickets.data.length"
-            class="mt-3 sm:-mx-0 rounded-md border border-gray-300 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-px"
-            role="table">
-            <div class="hidden lg:flex" role="row">
-                <div v-for="(h, i) in headers" :key="h.key"
-                    :class="['px-4 py-2 text-left text-sm font-semibold text-white dark:text-slate-100 bg-gray-600 dark:bg-slate-700 first:rounded-tl-md', i === headers.length - 1 ? 'last:rounded-tr-md' : '', classForIndex(i)]"
-                    :style="styleForIndex(i)">
-                    {{ h.label }}
-                </div>
+        <div v-if="tickets.data.length">
+            <div
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                <div class="col-span-3">Onderwerp</div>
+                <div class="col-span-2">Product</div>
+                <div class="col-span-2">Type</div>
+                <div class="col-span-1">Serienr.</div>
+                <div class="col-span-2">Klant</div>
+                <div class="col-span-1">Status</div>
+                <div class="col-span-1 text-right">Acties</div>
             </div>
-
-            <div class="bg-white dark:bg-slate-900" role="rowgroup" v-auto-animate>
-                <div v-for="ticket in tickets.data" :key="ticket.id" role="row"
-                    class="border-t border-gray-200 dark:border-slate-800/60 first:border-t-0 flex flex-col lg:flex-row">
-                    <div v-for="(h, i) in headers" :key="h.key"
-                        :class="['px-4 py-3 text-sm lg:flex lg:items-center lg:py-2 space-y-1 lg:space-y-0', classForIndex(i)]"
-                        :style="styleForIndex(i)">
+            <div v-auto-animate>
+            <div v-for="ticket in tickets.data" :key="ticket.id" role="row"
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+                <div class="col-span-10 lg:col-span-3 flex flex-col">
+                    <Link :href="`/tickets/${ticket.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
+                        {{ ticket.subject }}
+                    </Link>
+                    <div class="flex flex-wrap gap-1 lg:hidden mt-1">
                         <span
-                            class="block lg:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">{{
-                                h.label }}</span>
-                        <div v-if="h.key === 'subject'" class="font-medium">
-                            <Link :href="`/tickets/${ticket.id}`" class="text-blue-600 dark:text-blue-400 underline">{{
-                                ticket.subject }}
-                            </Link>
-                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400 lg:hidden">
-                                {{ nlDate(ticket.created_at) }} • {{ ticket.status }}
-                            </div>
-                        </div>
-                        <div v-else-if="h.key === 'product'">
-                            <span class="text-gray-800 dark:text-slate-200">{{ ticket.asset.product.brand.name }} {{
-                                ticket.asset.product.model }}</span>
-                        </div>
-                        <div v-else-if="h.key === 'product_type'">
-                            <Link :href="`/producttypes?search=${ticket.asset.product.product_type.name}`"
-                                class="underline text-gray-800 dark:text-slate-200">
-                            {{ ticket.asset.product.product_type.name }}
-                            </Link>
-                        </div>
-                        <div v-else-if="h.key === 'serial'">
-                            <Link :href="`/assets/${ticket.asset.id}`"
-                                class="underline text-gray-800 dark:text-slate-200">
-                            {{ ticket.asset.serial_number }}
-                            </Link>
-                        </div>
-                        <div v-else-if="h.key === 'customer'">
-                            <Link :href="`/customers/${ticket.asset.customer.id}`"
-                                class="underline text-gray-800 dark:text-slate-200">
-                            {{ ticket.asset.customer.name }}
-                            </Link>
-                        </div>
-                        <div v-else-if="h.key === 'status'">
-                            <span
-                                :class="['inline-flex items-center rounded px-2 py-1 text-xs font-medium ring-1 ring-inset', statusClasses(ticket.status)]">
-                                {{ ticket.status }}
-                            </span>
-                        </div>
-                        <div v-else-if="h.key === 'priority'">
-                            <span
-                                :class="['inline-flex items-center rounded px-2 py-1 text-xs font-medium ring-1 ring-inset', priorityClasses(ticket.priority)]">
-                                {{ ticket.priority }}
-                            </span>
-                        </div>
-                        <div v-else-if="h.key === 'created'" class="text-gray-800 dark:text-slate-200">
-                            {{ nlDate(ticket.created_at) }}
-                        </div>
+                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', statusClasses(ticket.status)]">
+                            {{ ticket.status }}
+                        </span>
+                        <span
+                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', priorityClasses(ticket.priority)]">
+                            {{ ticket.priority }}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2 text-slate-700 dark:text-slate-300">
+                    {{ ticket.asset.product.brand.name }} {{ ticket.asset.product.model }}
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <Link :href="`/producttypes?search=${ticket.asset.product.product_type.name}`"
+                        class="text-lavoro-darkerblue underline">
+                        {{ ticket.asset.product.product_type.name }}
+                    </Link>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                    <Link :href="`/assets/${ticket.asset.id}`" class="text-lavoro-darkerblue underline">
+                        {{ ticket.asset.serial_number }}
+                    </Link>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <Link :href="`/customers/${ticket.asset.customer.id}`" class="text-lavoro-darkerblue underline">
+                        {{ ticket.asset.customer.name }}
+                    </Link>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                    <span
+                        :class="['inline-flex items-center rounded px-2 py-1 text-xs font-medium ring-1 ring-inset', statusClasses(ticket.status)]">
+                        {{ ticket.status }}
+                    </span>
+                </div>
+                <div class="col-span-2 lg:col-span-1 flex items-center justify-end">
+                    <div class="border-1 border-lavoro-darkergray rounded-full p-2">
+                        <Link :href="`/tickets/${ticket.id}`" class="text-sm text-lavoro-darkerblue">
+                            <EyeIcon class="h-5 w-5" />
+                        </Link>
                     </div>
                 </div>
             </div>
+            </div>
+            <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
+                <PageRecordCountComponent :total="tickets.total" :per-page="tickets.per_page" label="storingen" />
+                <PaginationComponent :paginator="tickets" />
+            </div>
         </div>
-        <PaginationComponent v-if="tickets.data.length" :paginator="tickets"
-            class="border-t border-gray-200 dark:border-slate-700/60 pt-2" />
-        <p v-else class="text-center text-gray-500 dark:text-slate-400 p-4">Geen storingen gevonden.</p>
+        <div v-else class="p-6 text-center">
+            <div class="text-gray-400">
+                <AlertCircleIcon class="h-12 w-12 mx-auto mb-3" />
+                <p class="text-sm">Geen storingen gevonden</p>
+            </div>
+        </div>
     </BoxComponent>
 </template>
 
 <script setup>
-import BoxComponent from '@/Components/BoxComponent.vue';
-import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
-import { Link } from '@inertiajs/vue3';
-import ComboBox from '@/Components/UI/ComboBox.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
-import { computed, ref } from 'vue';
-import { nlDate } from '@/Utilities/Utilities';
-import StatCard from '@/Components/UI/StatCard.vue';
+import { Link, router } from '@inertiajs/vue3'
+import { computed, ref, watch, onMounted } from 'vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
+import TextInput from '@/Components/UI/TextInput.vue'
+import StatCard from '@/Components/UI/StatCard.vue'
+import { EyeIcon, AlertCircleIcon } from '@lucide/vue'
 
 const props = defineProps({
     tickets: { type: Object, required: true },
@@ -150,93 +156,63 @@ const props = defineProps({
     activeStatusCodeSearch: { type: String, default: '' },
     activeClosedByIds: { type: Array, default: () => [] },
     closedByOptions: { type: Array, default: () => [] },
-});
+})
 
-const selectedStatuses = ref(props.activeStatuses.slice());
-const selectedPriorities = ref(props.activePriorities.slice());
-const statusCodeSearch = ref(props.activeStatusCodeSearch);
-const selectedClosedByIds = ref(props.activeClosedByIds.slice());
+const selectedStatuses = ref(props.activeStatuses.slice())
+const selectedPriorities = ref(props.activePriorities.slice())
+const statusCodeSearch = ref(props.activeStatusCodeSearch)
+const selectedClosedByIds = ref(props.activeClosedByIds.slice())
+
+watch(selectedStatuses, val => localStorage.setItem('ticketFilter_statuses', val.join(',')))
+watch(selectedPriorities, val => localStorage.setItem('ticketFilter_priorities', val.join(',')))
+watch(statusCodeSearch, val => localStorage.setItem('ticketFilter_statusCode', val))
+watch(selectedClosedByIds, val => localStorage.setItem('ticketFilter_closedByIds', val.join(',')))
 
 const computedOtherParams = computed(() => ({
-    statuses:           selectedStatuses.value.join(','),
-    priorities:         selectedPriorities.value.join(','),
+    statuses: selectedStatuses.value.join(','),
+    priorities: selectedPriorities.value.join(','),
     status_code_search: statusCodeSearch.value,
-    closed_by_ids:      selectedClosedByIds.value.join(','),
-}));
+    closed_by_ids: selectedClosedByIds.value.join(','),
+}))
 
-// Adjusted widths so table fits typical desktop widths without horizontal scroll.
-const headers = [
-    { key: 'subject', label: 'Onderwerp', width: 20 },
-    { key: 'product', label: 'Product', width: 16 },
-    { key: 'product_type', label: 'Type', width: 13 },
-    { key: 'serial', label: 'Serienummer', width: 11 },
-    { key: 'customer', label: 'Klant', width: 14 },
-    { key: 'status', label: 'Status', width: 8 },
-    { key: 'priority', label: 'Prioriteit', width: 8 },
-    { key: 'created', label: 'Aangemaakt' },
-];
+const hasActiveFilters = computed(() =>
+    selectedStatuses.value.length > 0 || selectedPriorities.value.length > 0
+    || !!statusCodeSearch.value || selectedClosedByIds.value.length > 0
+)
 
-function classForIndex(index) {
-    if (index === headers.length - 1) return 'lg-grow';
-    const w = headers[index]?.width;
-    if (typeof w === 'number' && isFinite(w)) return 'lg-col';
-    return 'lg-col-auto';
-}
-function styleForIndex(index) {
-    if (index === headers.length - 1) return {};
-    const w = headers[index]?.width;
-    if (typeof w === 'number' && isFinite(w)) return { '--col-w': `${w}%` };
-    return {};
-}
+onMounted(() => {
+    if (props.activeStatuses.length || props.activePriorities.length || props.activeStatusCodeSearch || props.activeClosedByIds.length) return
+    const lsStatuses = (localStorage.getItem('ticketFilter_statuses') || '').split(',').filter(Boolean)
+    const lsPriorities = (localStorage.getItem('ticketFilter_priorities') || '').split(',').filter(Boolean)
+    const lsStatusCode = localStorage.getItem('ticketFilter_statusCode') || ''
+    const lsClosedByIds = (localStorage.getItem('ticketFilter_closedByIds') || '').split(',').filter(Boolean)
+    if (!lsStatuses.length && !lsPriorities.length && !lsStatusCode && !lsClosedByIds.length) return
+    selectedStatuses.value = lsStatuses
+    selectedPriorities.value = lsPriorities
+    statusCodeSearch.value = lsStatusCode
+    selectedClosedByIds.value = lsClosedByIds
+    router.get('/tickets', {
+        statuses: lsStatuses.join(','),
+        priorities: lsPriorities.join(','),
+        status_code_search: lsStatusCode,
+        closed_by_ids: lsClosedByIds.join(','),
+    }, { replace: true, preserveState: true, preserveScroll: true })
+})
 
 function statusClasses(status) {
-    const s = (status || '').toLowerCase();
-    if (s === 'open') {
-        return 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50';
-    }
-    if (s === 'in behandeling') {
-        return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50';
-    }
-    if (s === 'gesloten') {
-        return 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50';
-    }
-    return 'bg-gray-50 text-gray-700 ring-gray-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60';
+    const s = (status || '').toLowerCase()
+    if (s === 'open') return 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50'
+    if (s === 'in behandeling') return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50'
+    if (s === 'gesloten') return 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50'
+    return 'bg-gray-50 text-gray-700 ring-gray-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
 }
 
 function priorityClasses(priority) {
-    if (!priority) {
-        return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60';
-    }
-    const p = priority.toLowerCase();
-    if (p === 'hoog') {
-        return 'bg-red-100 text-red-700 ring-red-300 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50';
-    }
-    if (p === 'normaal') {
-        return 'bg-yellow-100 text-yellow-700 ring-yellow-300 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50';
-    }
-    if (p === 'laag') {
-        return 'bg-green-100 text-green-700 ring-green-300 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50';
-    }
-    return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60';
+    if (!priority) return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
+    const p = priority.toLowerCase()
+    if (p === 'hoog') return 'bg-red-100 text-red-700 ring-red-300 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50'
+    if (p === 'normaal') return 'bg-yellow-100 text-yellow-700 ring-yellow-300 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50'
+    if (p === 'laag') return 'bg-green-100 text-green-700 ring-green-300 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50'
+    return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
 }
-
 </script>
-
-
-<style scoped>
-@media (min-width: 1024px) {
-    .lg-col {
-        flex: 0 0 var(--col-w);
-        width: var(--col-w);
-    }
-
-    .lg-grow {
-        flex: 1 1 0%;
-        min-width: 0;
-    }
-
-    .lg-col-auto {
-        flex: 0 0 auto;
-    }
-}
-</style>

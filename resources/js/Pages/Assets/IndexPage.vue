@@ -1,19 +1,119 @@
 <template>
     <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
         search-placeholder="Zoek op serienummer, merk, model, soort of klant" search-url="/assets" :paginator="assets"
-        :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && assetFormRef?.show()">
+        :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && (addAssetDrawerOpen = true)"
+        :has-active-filters="activeFilters.length > 0">
         <template #filters>
-            <div class="w-full">
-                <label class="block text-sm font-medium mb-2">Filter op status</label>
-                <ComboBox :options="statusOptions" v-model="selectedStatus" placeholder="Laat alleen status zien"
-                    class="w-full" @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+            <div class="flex flex-col sm:flex-row gap-4 w-full">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Filter op status</label>
+                    <ComboBox :options="statusOptions" v-model="selectedStatus" placeholder="Laat alleen status zien"
+                        class="w-full" @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Filter op tickets</label>
+                    <ComboBox :options="ticketFilterOptions" v-model="selectedTicketFilter"
+                        placeholder="Filter op tickets" class="w-full"
+                        @update:modelValue="val => localStorage.setItem('selectedAssetTicketFilter', val)" />
+                </div>
+                <div class="hidden sm:flex items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer pb-0.5"
+                    @click="clearAllFilters">
+                    <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
+                </div>
+            </div>
+            <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>
+                <span v-for="filter in activeFilters" :key="filter.key"
+                    class="inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    <span class="text-gray-400 dark:text-slate-400">{{ filter.label }}:</span>
+                    {{ filter.value }}
+                    <button type="button" @click="filter.clear()"
+                        class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+                        <span class="sr-only">Verwijder filter</span>
+                        <svg viewBox="0 0 14 14"
+                            class="h-3.5 w-3.5 stroke-gray-600/75 group-hover:stroke-gray-600 dark:stroke-slate-400 dark:group-hover:stroke-slate-300">
+                            <path d="M4 4l6 6m0-6l-6 6" />
+                        </svg>
+                        <span class="absolute -inset-1" />
+                    </button>
+                </span>
+                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                    @click="clearAllFilters">
+                    <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
+                </div>
             </div>
         </template>
     </IndexHeaderComponent>
-    <div class="mb-4" v-auto-animate v-if="canCreate">
-        <CreateRecordForm ref="assetFormRef" external-trigger action="/assets" :fields="assetFields"
-            add-button-label="Voeg machine toe" submit-label="Toevoegen" :before-submit="handleBeforeSubmit" />
-    </div>
+    <DrawerComponent v-if="canCreate" v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen"
+        subtitle="Vul onderstaande velden in om een nieuwe machine toe te voegen.">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Product</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="productOptions" v-model="newAssetForm.product_id"
+                        placeholder="Selecteer product"
+                        :has-external-searching="productsUseAjax" :searching="productSearching"
+                        @change="searchProducts"
+                        :hasError="Boolean(newAssetForm.errors.product_id)"
+                        :errorMessage="newAssetForm.errors.product_id" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="customerOptions" v-model="newAssetForm.customer_id"
+                        placeholder="Selecteer klant"
+                        :has-external-searching="customersUseAjax" :searching="customerSearching"
+                        @change="searchCustomers"
+                        :hasError="Boolean(newAssetForm.errors.customer_id)"
+                        :errorMessage="newAssetForm.errors.customer_id" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newAssetForm.serial_number"
+                        :placeholder="isNewBundle ? 'Bundel — geen serienummer' : 'Serienummer'"
+                        :disabled="isNewBundle"
+                        :hasError="Boolean(newAssetForm.errors.serial_number)"
+                        :errorMessage="newAssetForm.errors.serial_number" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">In gebruikname</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newAssetForm.date_in_service" type="date"
+                        :hasError="Boolean(newAssetForm.errors.date_in_service)"
+                        :errorMessage="newAssetForm.errors.date_in_service" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Volgende keuring</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newAssetForm.next_service_date" type="date"
+                        :hasError="Boolean(newAssetForm.errors.next_service_date)"
+                        :errorMessage="newAssetForm.errors.next_service_date" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Actief</label>
+                <div class="sm:col-span-2">
+                    <SwitchComponent v-model="newAssetForm.is_active" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeAssetDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitAsset" :disabled="newAssetForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Toevoegen
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
 
     <ModalDialog v-model:open="showChildModal" title="Vereiste serienummers" max-width-class="sm:max-w-lg">
         <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -41,57 +141,86 @@
         </template>
     </ModalDialog>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <ul role="list"
-            class="divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden bg-white dark:bg-slate-900 shadow-xs ring-1 ring-gray-900/5 sm:rounded-xl">
-            <li v-for="asset in filteredAssets" :key="asset.id"
-                class="relative flex flex-col md:flex-row justify-between gap-x-6 px-4 py-5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-300 sm:px-6">
-                <div class="flex min-w-0 gap-x-4">
-                    <img class="size-12 flex-none rounded-full bg-gray-50"
-                        :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : ''"
-                        alt="" />
-                    <div class="min-w-0 flex-auto">
-                        <p class="text-sm/6 font-semibold text-gray-900 dark:text-gray-300">
-                            <Link :href="`/assets/${asset.id}`">
-                                <span class="absolute inset-x-0 -top-px bottom-0" />
-                                {{ asset.product.brand.name }} {{ asset.product.model }}
-                            </Link>
-                        </p>
-                        <p class="mt-1 flex text-xs/5 text-gray-500 dark:text-gray-400">
-                            <Link :href="`/producttypes?search=${asset.product.product_type.name}`"
-                                class="relative truncate underline">{{
-                                    asset.product.product_type.name }}</Link>
-                            &nbsp;bij&nbsp;
-                            <Link :href="`/customers/${asset.customer.id}`" class="relative truncate underline">{{
-                                asset.customer.name }}</Link>
-                            &nbsp;in&nbsp;{{ asset.customer.city }}
-                        </p>
+        <div
+            class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+            <div class="col-span-3">Machine</div>
+            <div class="col-span-2">Serienummer</div>
+            <div class="col-span-1">In dienst</div>
+            <div class="col-span-2">Volgende keuring</div>
+            <div class="col-span-1">Status</div>
+            <div class="col-span-1 text-center">Open</div>
+            <div class="col-span-1 text-center">Lopend</div>
+            <div class="col-span-1 text-center">Gesloten</div>
+        </div>
+        <div v-auto-animate>
+        <div v-for="asset in filteredAssets" :key="asset.id" role="row"
+            class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
+            <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
+                <img class="size-10 flex-none rounded-full bg-gray-50 object-cover"
+                    :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : '/img/placeholder.png'"
+                    alt="" />
+                <div class="min-w-0">
+                    <Link :href="`/assets/${asset.id}`" class="font-semibold text-gray-900 dark:text-gray-200 hover:underline">
+                        <span class="absolute inset-0" />
+                        {{ asset.product.brand.name }} {{ asset.product.model }}
+                    </Link>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {{ asset.product.product_type.name }} &middot;
+                        <Link :href="`/customers/${asset.customer.id}`" class="relative underline">{{ asset.customer.name }}</Link>
                     </div>
                 </div>
-                <div class="flex shrink-0 items-center gap-x-4 pl-15 md:pl-0 mt-3 md:mt-0">
-                    <div class="flex md:flex-col md:items-end">
-                        <span v-if="asset.status === 'Actief'"
-                            class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                        <span v-else
-                            class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                                asset.status }}</span>
-                        <p v-if="asset.next_service_date"
-                            class="mt-1 text-xs/5 text-gray-500 dark:text-gray-200 flex items-center ml-3 md:ml-0">
-                            <CalendarDateRangeIcon class="inline-block size-5 text-gray-400 dark:text-gray-200 mr-2"
-                                aria-hidden="true" />
-                            <time :datetime="asset.next_service_date">{{ new
-                                Date(asset.next_service_date).toLocaleDateString('nl-NL', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                }) }}</time>
-                        </p>
-                    </div>
-                    <ChevronRightIcon
-                        class="size-5 flex-none text-gray-400 absolute md:relative right-6 top-1/2 -translate-y-1/2 md:translate-y-0 md:top-auto md:right-auto md:ml-3"
-                        aria-hidden="true" />
-                </div>
-            </li>
-        </ul>
+            </div>
+            <div class="col-span-2 hidden lg:flex items-center text-gray-600 dark:text-gray-300">
+                {{ asset.serial_number || '—' }}
+            </div>
+            <div class="col-span-1 hidden lg:flex items-center text-gray-500 dark:text-gray-400 text-xs">
+                {{ asset.date_in_service ? nlDate(asset.date_in_service) : '—' }}
+            </div>
+            <div class="col-span-2 hidden lg:flex items-center gap-1 text-xs">
+                <CalendarDateRangeIcon v-if="asset.next_service_date" class="size-4 text-gray-400 flex-none" aria-hidden="true" />
+                <span :class="asset.next_service_date && new Date(asset.next_service_date) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'">
+                    {{ asset.next_service_date ? nlDate(asset.next_service_date) : '—' }}
+                </span>
+            </div>
+            <div class="col-span-1 hidden lg:flex items-center">
+                <span v-if="asset.status === 'Actief'"
+                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                <span v-else
+                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
+            </div>
+            <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <span v-if="asset.open_tickets_count > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
+                    {{ asset.open_tickets_count }}
+                </span>
+                <span v-else class="text-gray-300 text-xs">—</span>
+            </div>
+            <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <span v-if="asset.pending_tickets_count > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
+                    {{ asset.pending_tickets_count }}
+                </span>
+                <span v-else class="text-gray-300 text-xs">—</span>
+            </div>
+            <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <span v-if="asset.closed_tickets_count > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
+                    {{ asset.closed_tickets_count }}
+                </span>
+                <span v-else class="text-gray-300 text-xs">—</span>
+            </div>
+            <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
+                <span v-if="asset.status === 'Actief'"
+                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                <span v-else
+                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
+                <span class="text-xs text-gray-400">
+                    {{ asset.next_service_date ? nlDate(asset.next_service_date) : '' }}
+                </span>
+            </div>
+            <ChevronRightIcon class="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" aria-hidden="true" />
+        </div>
+        </div>
     </BoxComponent>
 </template>
 
@@ -99,22 +228,19 @@
 import { computed, ref, watch } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
-import { Link } from '@inertiajs/vue3';
+import { RotateCcwIcon } from '@lucide/vue';
+import { Link, useForm } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import { hasPermission, todayIso, nextServiceIso } from '@/Utilities/Utilities';
-const assetFormRef = ref(null)
+import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
+import { useComboSearch } from '@/Composables/useComboSearch';
 
-watch(() => assetFormRef.value?.form?.product_id, (productId) => {
-    if (productId && assetFormRef.value?.form) {
-        const product = props.allProducts.find(p => p.id === productId)
-        assetFormRef.value.form.next_service_date = nextServiceIso(product)
-    }
-})
+const addAssetDrawerOpen = ref(false)
 
 const props = defineProps({
     assets: {
@@ -122,49 +248,109 @@ const props = defineProps({
         required: true,
     },
     allProducts: { type: Array, default: () => [] },
+    productsUseAjax: { type: Boolean, default: false },
     allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
 });
+
+const { options: productOptions, searching: productSearching, search: searchProducts } =
+    useComboSearch('products', props.allProducts, props.productsUseAjax)
 
 // no per-page search state needed; SearchComponent handles it
 
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
+const selectedTicketFilter = ref(Number(localStorage.getItem('selectedAssetTicketFilter')) || 1);
+
 const filteredAssets = computed(() => {
-    if (selectedStatus.value === 1) {
-        return props.assets.data;
-    }
     return props.assets.data.filter(asset => {
-        return asset.status === (selectedStatus.value === 2 ? 'Actief' : 'Niet actief');
+        if (selectedStatus.value === 2 && asset.status !== 'Actief') return false;
+        if (selectedStatus.value === 3 && asset.status !== 'Niet actief') return false;
+
+        const total = asset.open_tickets_count + asset.pending_tickets_count + asset.closed_tickets_count;
+        if (selectedTicketFilter.value === 2 && total === 0) return false;
+        if (selectedTicketFilter.value === 3 && asset.open_tickets_count === 0) return false;
+        if (selectedTicketFilter.value === 4 && asset.pending_tickets_count === 0) return false;
+
+        return true;
     });
 });
 
 const statusOptions = [
-    { id: 1, name: 'Alle' },
+    { id: 1, name: 'Alle statussen' },
     { id: 2, name: 'Actief' },
     { id: 3, name: 'Niet actief' },
 ];
+
+const ticketFilterOptions = [
+    { id: 1, name: 'Alle machines' },
+    { id: 2, name: 'Heeft tickets' },
+    { id: 3, name: 'Heeft open tickets' },
+    { id: 4, name: 'Heeft lopende tickets' },
+];
+
+const activeFilters = computed(() => {
+    const filters = []
+    if (selectedStatus.value !== 1) {
+        const match = statusOptions.find(o => o.id === selectedStatus.value)
+        if (match) filters.push({
+            key: 'status',
+            label: 'Status',
+            value: match.name,
+            clear: () => { selectedStatus.value = 1; localStorage.setItem('selectedAssetStatus', 1) },
+        })
+    }
+    if (selectedTicketFilter.value !== 1) {
+        const match = ticketFilterOptions.find(o => o.id === selectedTicketFilter.value)
+        if (match) filters.push({
+            key: 'tickets',
+            label: 'Tickets',
+            value: match.name,
+            clear: () => { selectedTicketFilter.value = 1; localStorage.setItem('selectedAssetTicketFilter', 1) },
+        })
+    }
+    return filters
+})
 
 function updateLocalStorageStatus(val) {
     localStorage.setItem('selectedAssetStatus', val);
 }
 
-const assetFields = computed(() => [
-    { key: 'product_id', label: 'Product', type: 'combobox', options: props.allProducts, initialId: props.allProducts[0]?.id },
-    { key: 'customer_id', label: 'Klant', type: 'combobox', options: props.allCustomers, initialId: props.allCustomers[0]?.id },
-    {
-        key: 'serial_number',
-        label: 'Serie nr.',
-        type: 'text',
-        disabledWhen: (form) => {
-            const product = props.allProducts.find(p => p.id === form.product_id)
-            return product?.bundle === true
-        },
-        disabledPlaceholder: 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden',
-    },
-    { key: 'date_in_service', label: 'In gebruikname', type: 'date', default: todayIso() },
-    { key: 'next_service_date', label: 'Volgende keuring', type: 'date', default: nextServiceIso(props.allProducts[0]) },
-    { key: 'is_active', label: 'Actief', type: 'boolean', default: true },
-])
+function clearAllFilters() {
+    selectedStatus.value = 1;
+    selectedTicketFilter.value = 1;
+    localStorage.setItem('selectedAssetStatus', 1);
+    localStorage.setItem('selectedAssetTicketFilter', 1);
+}
+
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
+
+const newAssetForm = useForm({
+    product_id: null,
+    customer_id: null,
+    serial_number: '',
+    date_in_service: todayIso(),
+    next_service_date: '',
+    is_active: true,
+    child_assets: [],
+})
+
+const isNewBundle = computed(() => {
+    const product = productOptions.value.find(p => p.id === newAssetForm.product_id)
+    return product?.bundle === true
+})
+
+watch(() => newAssetForm.product_id, (productId) => {
+    const product = productOptions.value.find(p => p.id === productId)
+    newAssetForm.next_service_date = nextServiceIso(product) ?? ''
+})
+
+function closeAssetDrawer() {
+    addAssetDrawerOpen.value = false
+    newAssetForm.reset()
+    newAssetForm.clearErrors()
+}
 
 const canCreate = computed(() => hasPermission('asset.create'))
 
@@ -172,22 +358,26 @@ const showChildModal = ref(false)
 const pendingChildren = ref([])
 let resolveChildModal = null
 
-function handleBeforeSubmit(formData) {
-    const required = props.requiredProductablesByProduct[formData.product_id]
-    if (!required || required.length === 0) return {}
+async function submitAsset() {
+    const required = props.requiredProductablesByProduct[newAssetForm.product_id]
+    if (required && required.length > 0) {
+        pendingChildren.value = required.flatMap(item =>
+            Array.from({ length: item.quantity }, () => ({
+                productable_id: item.productable_id,
+                name: item.name,
+                relation_name: item.relation_name,
+                serial_number: '',
+            }))
+        )
+        showChildModal.value = true
+        const extra = await new Promise((resolve) => { resolveChildModal = resolve })
+        if (!extra) return
+        newAssetForm.child_assets = extra.child_assets
+    }
 
-    pendingChildren.value = required.flatMap(item =>
-        Array.from({ length: item.quantity }, () => ({
-            productable_id: item.productable_id,
-            name: item.name,
-            relation_name: item.relation_name,
-            serial_number: '',
-        }))
-    )
-    showChildModal.value = true
-
-    return new Promise((resolve) => {
-        resolveChildModal = resolve
+    newAssetForm.post('/assets', {
+        preserveScroll: true,
+        onSuccess: () => closeAssetDrawer(),
     })
 }
 

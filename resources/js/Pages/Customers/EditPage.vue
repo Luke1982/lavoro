@@ -78,8 +78,10 @@
                     <TextInput v-model="form.chamber_of_commerce_number" label="KvK-nummer"
                         :has-error="!!form.errors.chamber_of_commerce_number"
                         :error-message="form.errors.chamber_of_commerce_number" />
-                    <ComboBox :options="allCustomers" v-model="form.billing_customer_id" label="Factuurklant"
+                    <ComboBox :options="customerOptions" v-model="form.billing_customer_id" label="Factuurklant"
                         placeholder="Kies naar welke klant de factuur moet"
+                        :has-external-searching="customersUseAjax" :searching="customerSearching"
+                        @change="searchCustomers"
                         :has-error="!!form.errors.billing_customer_id"
                         :error-message="form.errors.billing_customer_id" />
                 </div>
@@ -107,11 +109,16 @@
 import { useForm, Link } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({
     customer: { type: Object, required: true },
-    allCustomers: { type: Array, default: () => [] }
+    allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
 })
+
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
 const form = useForm({
     name: props.customer.name,

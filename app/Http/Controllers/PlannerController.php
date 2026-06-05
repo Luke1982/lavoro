@@ -2,24 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Event;
-use App\Models\Customer;
 use App\Http\Requests\EventReadRequest;
+use App\Models\Customer;
+use App\Models\Event;
 use App\Models\EventType;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class PlannerController extends Controller
 {
     public function index(EventReadRequest $request)
     {
+        $user = Auth::user();
+        $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
+
+        $so_scope = function ($q) use ($user, $can_read_all) {
+            if (! $can_read_all) {
+                $q->whereHas('executingUsers', fn ($uq) => $uq->where('users.id', $user->id));
+            }
+        };
+
+        $customer_count = Customer::count();
+
         return inertia('Planner/IndexPage', [
             'eventTypes' => EventType::all(),
             'eventStatusses' => Event::statusses(),
             'noPadding' => true,
-            'allCustomers' => Customer::all(),
-            'allServiceOrders' => ServiceOrder::with('customer')->get(),
+            'allCustomers' => $customer_count <= 50
+                ? Customer::orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'customersUseAjax' => $customer_count > 50,
+            'allServiceOrders' => ServiceOrder::with('customer')->tap($so_scope)->get(),
             'unplannedServiceOrders' => ServiceOrder::with(['customer', 'serviceOrderStage'])
                 ->withCount('events')
                 ->whereNull('project_id')
@@ -27,6 +42,7 @@ class PlannerController extends Controller
                     $q->where('is_plannable_state', true)
                         ->where('is_planned_state', false);
                 })
+                ->tap($so_scope)
                 ->orderByDesc('created_at')
                 ->get(),
             'projects' => Project::query()

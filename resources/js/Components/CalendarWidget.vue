@@ -33,9 +33,9 @@
                         Werkbon {{ event.extendedProps.eventable_id }}
                         </Link>&nbsp;bij&nbsp;
                         <component :is="hasPermission('customer.read') ? Link : 'span'"
-                            :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
+                            :href="`/customers/${event.extendedProps.customer_id}`"
                             :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
-                            {{ getCustomerById(event.extendedProps.customer_id).name }}
+                            {{ event.extendedProps.customer_name || 'Onbekende klant' }}
                         </component>
                         <div v-if="event.extendedProps.executing_users?.length > 0"
                             class="mt-3 flex flex-wrap gap-2 ml-1">
@@ -77,9 +77,9 @@
                                     Werkbon {{ event.extendedProps.eventable_id }}
                                     </Link>&nbsp;bij&nbsp;
                                     <component :is="hasPermission('customer.read') ? Link : 'span'"
-                                        :href="`/customers/${getCustomerById(event.extendedProps.customer_id).id}`"
+                                        :href="`/customers/${event.extendedProps.customer_id}`"
                                         :class="['text-xs', hasPermission('customer.read') ? 'underline' : '']">
-                                        {{ getCustomerById(event.extendedProps.customer_id).name }}
+                                        {{ event.extendedProps.customer_name || 'Onbekende klant' }}
                                     </component>
                                     <div v-if="event.extendedProps.executing_users?.length > 0"
                                         class="mt-3 flex flex-wrap gap-2 ml-1">
@@ -166,8 +166,11 @@
                             rows="4" placeholder="Voeg een omschrijving toe aan de afspraak"></textarea>
                     </div>
                     <div class="w-full px-4 py-2">
-                        <ComboBox v-model="selectedCustomer" :options="allCustomers" label="Klant" class="w-full"
-                            :initial-id="allCustomers[0]?.id" />
+                        <ComboBox v-model="selectedCustomer" :options="customerOptions" label="Klant" class="w-full"
+                            :initial-id="customerOptions[0]?.id"
+                            :has-external-searching="customersUseAjax"
+                            :searching="customerSearching"
+                            @change="searchCustomers" />
                     </div>
                     <div class="w-full px-4 py-2">
                         <ComboBox v-model="form.eventable_id" :options="internalServiceOrders" label="Werkbon"
@@ -219,10 +222,12 @@ import { CheckIcon, ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons
 import TextInput from '@/Components/UI/TextInput.vue'
 import { formatLocalDateAsISO, formatUtcDatetime, localToUtcDatetime, hasPermission, nlDate, nlTime, initials } from '@/Utilities/Utilities'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     allServiceOrders: { type: Array, default: () => [] },
     eventStatusses: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
@@ -235,6 +240,9 @@ const page = usePage()
 const calendar = ref(null)
 const modalOpen = ref(false)
 const editingExistingEvent = ref(false)
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
+
 const selectedCustomer = ref(props.allCustomers[0]?.id || null)
 const highlightEventId = ref(null)
 const highlightScrolled = ref(false)
@@ -264,7 +272,6 @@ const form = useForm({
     executing_user_ids: props.allUsers.length ? [props.allUsers[0].id] : [],
 })
 
-const getCustomerById = (id) => props.allCustomers.find(c => c.id === id) || { id: null, name: 'Onbekende klant' }
 const getInternalServiceOrders = () => {
     return props.allServiceOrders.filter(order => order.customer_id === selectedCustomer.value).map(order => ({
         id: order.id,
@@ -319,7 +326,7 @@ const finalizeSaveOrUpdate = () => {
     form.clearErrors()
     form.event_type_id = props.eventTypes[0]?.id || ''
     form.eventable_id = internalServiceOrders.value.length > 0 ? internalServiceOrders.value[0].id : ''
-    selectedCustomer.value = props.allCustomers[0]?.id || null
+    selectedCustomer.value = null
     calendar.value?.getApi()?.refetchEvents()
 }
 
@@ -426,6 +433,7 @@ const getEvents = async (fetchInfo, successCallback, failureCallback) => {
             eventable_type: '\\App\\Models\\ServiceOrder',
             description: event.description ?? '',
             customer_id: event.service_orders[0]?.customer_id,
+            customer_name: event.service_orders[0]?.customer?.name || null,
             status: event.status,
             executing_user_ids: event.executing_users?.map(u => u.id) || [],
             executing_users: event.executing_users || [],
@@ -518,7 +526,11 @@ const onEventClick = (clickInfo) => {
     form.status = event.extendedProps.status || ''
     form.executing_user_ids = event.extendedProps.executing_user_ids || []
     const serviceOrder = props.allServiceOrders.find(order => order.id === form.eventable_id)
-    selectedCustomer.value = serviceOrder ? serviceOrder.customer_id : null
+    const cid = serviceOrder?.customer_id ?? event.extendedProps.customer_id ?? null
+    selectedCustomer.value = cid
+    if (props.customersUseAjax && cid && event.extendedProps.customer_name) {
+        customerOptions.value = [{ id: cid, name: event.extendedProps.customer_name }]
+    }
     form.eventable_id = event.extendedProps.eventable_id || ''
     modalOpen.value = true
 }

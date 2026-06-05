@@ -14,7 +14,8 @@
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Merk en model</div>
                         <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.product_id" :options="allProducts"
+                            <EditableTextField type="combobox" v-model="form.product_id" :options="productOptions"
+                                :has-external-searching="productsUseAjax" :searching="productSearching" @change="searchProducts"
                                 :readonly="!canUpdate" :error="form.errors.product_id"
                                 @revert="form.clearErrors('product_id')">
                                 <template #display>
@@ -67,7 +68,8 @@
                     <div class="w-full md:w-1/2 flex">
                         <div class="w-1/3 text-xs">Klant</div>
                         <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.customer_id" :options="allCustomers"
+                            <EditableTextField type="combobox" v-model="form.customer_id" :options="customerOptions"
+                                :has-external-searching="customersUseAjax" :searching="customerSearching" @change="searchCustomers"
                                 :readonly="!canUpdate" :error="form.errors.customer_id"
                                 @revert="form.clearErrors('customer_id')">
                                 <template #display>
@@ -323,6 +325,7 @@ import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission } from '@/Utilities/Utilities';
+import { useComboSearch } from '@/Composables/useComboSearch';
 
 const openNewTicketForm = ref(false);
 
@@ -335,10 +338,12 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    productsUseAjax: { type: Boolean, default: false },
     allCustomers: {
         type: Array,
         required: true,
     },
+    customersUseAjax: { type: Boolean, default: false },
     customFields: {
         type: Array,
         default: () => [],
@@ -352,6 +357,11 @@ const statusOptions = [
     { id: 'Actief', name: 'Actief' },
     { id: 'Niet actief', name: 'Niet actief' },
 ];
+
+const { options: productOptions, searching: productSearching, search: searchProducts } =
+    useComboSearch('products', props.allProducts, props.productsUseAjax)
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
 const form = useForm({
     product_id: props.asset.product.id,

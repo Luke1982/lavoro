@@ -1,12 +1,13 @@
 <template>
     <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
         search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
-        add-label="Voeg materiaal toe" :paginator="materials" @add="() => materialFormRef?.show()">
+        add-label="Voeg materiaal toe" :paginator="false" @add="() => materialFormRef?.show()">
         <template #filters>
             <div>
                 <button @click="importMaterials" :disabled="importingMaterials"
-                    class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400">SnelStart
-                    materialen importeren</button>
+                    class="ml-auto px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 disabled:bg-gray-400">
+                    SnelStart materialen importeren
+                </button>
             </div>
         </template>
     </IndexHeaderComponent>
@@ -15,47 +16,128 @@
             add-button-label="Voeg materiaal toe" submit-label="Toevoegen" />
     </div>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
-        <EditableGridComponent :headers="headers" :items="innerMaterials" @update="onCellUpdate"
-            urlBase="materials" />
-        <PaginationComponent v-if="innerMaterials.length" :paginator="materials"
-            class="border-t border-gray-200 dark:border-slate-700 pt-2 mt-2" />
+        <div v-if="innerMaterials.length">
+            <div
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                <div class="col-span-3">Naam</div>
+                <div class="col-span-2">Code</div>
+                <div class="col-span-2">Prijs</div>
+                <div class="col-span-1">Deelbaar</div>
+                <div class="col-span-1">Actief</div>
+                <div class="col-span-2">Categorie</div>
+                <div class="col-span-1">Eenheid</div>
+            </div>
+            <div v-for="mat in innerMaterials" :key="mat.id" role="row"
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+                <div class="col-span-10 lg:col-span-3 flex items-center">
+                    <EditableTextField :model-value="mat.name" :decoration="false"
+                        @update="(val) => updateMaterial(mat, { name: val })">
+                        <template #display>
+                            <span class="font-semibold">{{ mat.name }}</span>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <EditableTextField :model-value="mat.code" :decoration="false" placeholder="—"
+                        @update="(val) => updateMaterial(mat, { code: val })">
+                        <template #display>{{ mat.code || '—' }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <EditableTextField :model-value="mat.price" inputType="currency" :decoration="false"
+                        @update="(val) => updateMaterial(mat, { price: val })">
+                        <template #display>{{ formatPrice(mat.price) }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                    <EditableTextField :decoration="false"
+                        @open="boolEdits[mat.id] = { divisable: mat.divisable }">
+                        <template #display>
+                            <BadgeComponent :color="mat.divisable ? 'green' : 'gray'" :has-dot="false">
+                                {{ mat.divisable ? 'Ja' : 'Nee' }}
+                            </BadgeComponent>
+                        </template>
+                        <template #open="{ close }">
+                            <div class="flex gap-2" @click.stop>
+                                <SwitchComponent v-model="boolEdits[mat.id].divisable"
+                                    @update:modelValue="updateMaterial(mat, { divisable: boolEdits[mat.id].divisable }, close)" />
+                            </div>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                    <EditableTextField :decoration="false"
+                        @open="boolEdits[mat.id] = { ...boolEdits[mat.id], is_active: mat.is_active }">
+                        <template #display>
+                            <BadgeComponent :color="mat.is_active ? 'green' : 'gray'" :has-dot="false">
+                                {{ mat.is_active ? 'Actief' : 'Inactief' }}
+                            </BadgeComponent>
+                        </template>
+                        <template #open="{ close }">
+                            <div class="flex gap-2" @click.stop>
+                                <SwitchComponent v-model="boolEdits[mat.id].is_active"
+                                    @update:modelValue="updateMaterial(mat, { is_active: boolEdits[mat.id].is_active }, close)" />
+                            </div>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <EditableTextField type="combobox" :model-value="mat.material_category_id" :options="categories"
+                        :decoration="false"
+                        @update="(val) => updateMaterial(mat, { material_category_id: val })">
+                        <template #display>{{ mat.category?.name || '—' }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                    <EditableTextField type="combobox" :model-value="mat.material_usage_unit_id" :options="usageUnits"
+                        :decoration="false"
+                        @update="(val) => updateMaterial(mat, { material_usage_unit_id: val })">
+                        <template #display>{{ mat.usageUnit?.name || '—' }}</template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 lg:hidden flex items-center justify-end text-xs text-gray-500 gap-2">
+                    <BadgeComponent :color="mat.is_active ? 'green' : 'gray'" :has-dot="false">
+                        {{ mat.is_active ? 'Actief' : 'Inactief' }}
+                    </BadgeComponent>
+                </div>
+            </div>
+            <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
+                <PageRecordCountComponent :total="materials.total" :per-page="materials.per_page" label="materialen" />
+                <PaginationComponent :paginator="materials" />
+            </div>
+        </div>
+        <div v-else class="p-6 text-center">
+            <div class="text-gray-400">
+                <PackageIcon class="h-12 w-12 mx-auto mb-3" />
+                <p class="text-sm">Geen materialen gevonden</p>
+            </div>
+        </div>
     </BoxComponent>
 </template>
+
 <script setup>
-import EditableGridComponent from '@/Components/UI/EditableGridComponent.vue';
-import { ref, computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
-import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
-import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import BoxComponent from '@/Components/BoxComponent.vue';
+import { router, useForm } from '@inertiajs/vue3'
+import { computed, reactive, ref } from 'vue'
+import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import BoxComponent from '@/Components/BoxComponent.vue'
+import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import { PackageIcon } from '@lucide/vue'
+
 const materialFormRef = ref(null)
 const importingMaterials = ref(false)
-// reuse existing form instance to avoid duplicate import warning
-import { useForm as useInertiaForm } from '@inertiajs/vue3';
-const importMaterialsForm = useInertiaForm({})
-const importMaterials = () => {
-    importingMaterials.value = true;
-    importMaterialsForm.post('/imports/snelstart/materials', {
-        preserveScroll: true,
-        onFinish: () => importingMaterials.value = false,
-    });
-}
+const importMaterialsForm = useForm({})
+const boolEdits = reactive({})
 
 const { materials, categories, usageUnits } = defineProps({
-    materials: {
-        type: Object,
-        required: true,
-    },
-    categories: {
-        type: Array,
-        default: () => []
-    },
-    usageUnits: {
-        type: Array,
-        default: () => []
-    },
-    search: { type: String, default: '' }
+    materials: { type: Object, required: true },
+    categories: { type: Array, default: () => [] },
+    usageUnits: { type: Array, default: () => [] },
+    search: { type: String, default: '' },
 })
 
 const innerMaterials = computed(() => materials?.data || [])
@@ -69,40 +151,39 @@ const materialFields = [
     { key: 'divisable', label: 'Deelbaar', type: 'boolean', class: 'w-auto' },
     { key: 'is_active', label: 'Actief', type: 'boolean', class: 'w-auto', default: true },
 ]
-const headers = [
-    { key: 'name', label: 'Naam', fieldtype: 'text', width: 22 },
-    { key: 'code', label: 'Code', fieldtype: 'text', width: 12 },
-    { key: 'price', label: 'Prijs', fieldtype: 'currency', width: 12 },
-    { key: 'divisable', label: 'Deelbaar', fieldtype: 'boolean', width: 8 },
-    { key: 'is_active', label: 'Actief', fieldtype: 'boolean', width: 8 },
-    { key: 'material_category_id', label: 'Categorie', fieldtype: 'combobox', width: 20, combovalues: categories },
-    { key: 'material_usage_unit_id', label: 'Gebruikseenheid', fieldtype: 'combobox', combovalues: usageUnits },
-];
 
-const form = useForm({
-    name: null,
-    description: null,
-    material_category_id: null,
-    code: null,
-    vendor_code: null,
-    price: 0.00,
-    cost_price: null,
-    material_usage_unit_id: null,
-    divisable: false,
-    is_active: true,
-    is_service: false,
-    stock: 0.00,
-    min_stock: 0.00,
-    max_stock: 0.00,
-});
+const currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' })
 
-function onCellUpdate({ item }) {
-    form.transform(() => {
-        return {
-            ...item
-        }
-    }).put(`/materials/${item.id}`, {
+function formatPrice(price) {
+    if (price === null || price === undefined) return '—'
+    return currencyFormatter.format(Number(price))
+}
+
+function updateMaterial(mat, patch, close = null) {
+    router.patch(`/materials/${mat.id}`, {
+        name: mat.name,
+        stock: mat.stock ?? 0,
+        min_stock: mat.min_stock ?? 0,
+        max_stock: mat.max_stock ?? 0,
+        material_category_id: mat.material_category_id,
+        material_usage_unit_id: mat.material_usage_unit_id,
+        price: mat.price,
+        code: mat.code,
+        divisable: mat.divisable,
+        is_active: mat.is_active,
+        is_service: mat.is_service,
+        ...patch,
+    }, {
         preserveScroll: true,
-    });
+        onSuccess: () => close?.(),
+    })
+}
+
+function importMaterials() {
+    importingMaterials.value = true
+    importMaterialsForm.post('/imports/snelstart/materials', {
+        preserveScroll: true,
+        onFinish: () => { importingMaterials.value = false },
+    })
 }
 </script>
