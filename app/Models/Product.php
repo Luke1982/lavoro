@@ -111,6 +111,13 @@ class Product extends Model
         return $this->hasMany(Productable::class);
     }
 
+    public function suppliers()
+    {
+        return $this->morphToMany(Supplier::class, 'suppliable')
+            ->withPivot('article_number', 'is_preferred')
+            ->withTimestamps();
+    }
+
     public function productAttributeValueables()
     {
         return $this->morphMany(ProductAttributeValueable::class, 'productattributevalueable');

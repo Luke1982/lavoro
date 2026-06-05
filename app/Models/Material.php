@@ -50,4 +50,11 @@ class Material extends Model
         return $this->morphToMany(Image::class, 'imageable')
             ->withPivot(['main']);
     }
+
+    public function suppliers()
+    {
+        return $this->morphToMany(Supplier::class, 'suppliable')
+            ->withPivot('article_number', 'is_preferred')
+            ->withTimestamps();
+    }
 }
