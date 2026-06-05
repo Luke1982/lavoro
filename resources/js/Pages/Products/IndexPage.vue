@@ -74,7 +74,14 @@
         <div v-if="displayProducts.length">
             <div
                 class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
-                <div class="col-span-4">Model</div>
+                <div class="col-span-1 flex items-center">
+                    <AnimatedCheckbox
+                        :model-value="allCurrentPageSelected"
+                        color="#081020"
+                        @update:model-value="toggleSelectAll"
+                    />
+                </div>
+                <div class="col-span-3">Model</div>
                 <div class="col-span-2">Merk</div>
                 <div class="col-span-2">Producttype</div>
                 <div class="col-span-2">Verkoopperiode</div>
@@ -83,8 +90,15 @@
             </div>
             <div v-auto-animate>
             <div v-for="product in displayProducts" :key="product.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
-                <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
+                :class="['grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2', selectedIds.includes(product.id) && 'bg-blue-50 dark:bg-slate-800/60']">
+                <div class="col-span-1 flex items-center">
+                    <AnimatedCheckbox
+                        :model-value="selectedIds.includes(product.id)"
+                        color="#081020"
+                        @update:model-value="toggleSelectProduct(product.id)"
+                    />
+                </div>
+                <div class="col-span-9 sm:col-span-3 flex items-center gap-4">
                     <div
                         class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
                         <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
@@ -303,6 +317,7 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
+import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 
 const { products, brands, productTypes, productAttributes, perPage } = defineProps({
     products: { type: Object, required: true },
@@ -313,6 +328,34 @@ const { products, brands, productTypes, productAttributes, perPage } = definePro
 })
 
 const showProductDrawer = ref(false)
+
+const selectedIds = ref([])
+
+const allCurrentPageSelected = computed(() =>
+    displayProducts.value.length > 0 &&
+    displayProducts.value.every(p => selectedIds.value.includes(p.id))
+)
+
+function toggleSelectProduct(id) {
+    const idx = selectedIds.value.indexOf(id)
+    if (idx === -1) {
+        selectedIds.value.push(id)
+    } else {
+        selectedIds.value.splice(idx, 1)
+    }
+}
+
+function toggleSelectAll() {
+    if (allCurrentPageSelected.value) {
+        const pageIds = new Set(displayProducts.value.map(p => p.id))
+        selectedIds.value = selectedIds.value.filter(id => !pageIds.has(id))
+    } else {
+        const existing = new Set(selectedIds.value)
+        displayProducts.value.forEach(p => {
+            if (!existing.has(p.id)) selectedIds.value.push(p.id)
+        })
+    }
+}
 
 const newProductForm = useForm({
     product_type_id: null,
