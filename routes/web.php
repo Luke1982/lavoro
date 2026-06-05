@@ -75,6 +75,14 @@ Route::group(
             ->name('suppliers.import.example');
         Route::resource('suppliers', \App\Http\Controllers\SupplierController::class)
             ->except(['create', 'edit']);
+        Route::post('products/{product}/suppliers', [\App\Http\Controllers\ProductSupplierController::class, 'store'])
+            ->name('products.suppliers.store');
+        Route::patch('products/{product}/suppliers/{supplier}', [
+            \App\Http\Controllers\ProductSupplierController::class, 'update',
+        ])->name('products.suppliers.update');
+        Route::delete('products/{product}/suppliers/{supplier}', [
+            \App\Http\Controllers\ProductSupplierController::class, 'destroy',
+        ])->name('products.suppliers.destroy');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::resource('products', ProductController::class);
