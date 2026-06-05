@@ -11,6 +11,7 @@ use App\Http\Controllers\ImageController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\EventTypeController;
@@ -45,13 +46,18 @@ use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
 use App\Http\Controllers\UserUnavailabilityController;
+use App\Http\Controllers\ComboSearchController;
 
 Route::group(
     ['middleware' => 'auth'],
     function () {
         Route::get('/', DashboardController::class);
+        Route::resource('contacts', ContactController::class)->except(['create', 'edit']);
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
+        Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');
+        Route::get('combo/materials', [ComboSearchController::class, 'materials'])->name('combo.materials');
+        Route::get('combo/products', [ComboSearchController::class, 'products'])->name('combo.products');
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
@@ -61,6 +67,14 @@ Route::group(
             ->name('customers.import.confirm');
         Route::get('customers/import/example', [\App\Http\Controllers\CustomerImportController::class, 'example'])
             ->name('customers.import.example');
+        Route::post('suppliers/import/preview', [\App\Http\Controllers\SupplierImportController::class, 'preview'])
+            ->name('suppliers.import.preview');
+        Route::post('suppliers/import/confirm', [\App\Http\Controllers\SupplierImportController::class, 'confirm'])
+            ->name('suppliers.import.confirm');
+        Route::get('suppliers/import/example', [\App\Http\Controllers\SupplierImportController::class, 'example'])
+            ->name('suppliers.import.example');
+        Route::resource('suppliers', \App\Http\Controllers\SupplierController::class)
+            ->except(['create', 'edit']);
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::resource('products', ProductController::class);
