@@ -22,6 +22,12 @@
                                 <div v-if="event.user" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
                                     {{ event.user.name }}
                                 </div>
+                                <div v-if="event.serviceOrderId" class="mt-0.5 text-[11px]">
+                                    <a :href="`/serviceorders/${event.serviceOrderId}`"
+                                       class="text-blue-500 hover:underline">
+                                        Werkbon #{{ event.serviceOrderNumber }}
+                                    </a>
+                                </div>
                                 <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
                                     <div v-for="u in event.executing_users" :key="u.id"
                                         class="inline-flex items-center gap-1">
@@ -128,6 +134,8 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),
         datetime: a.created_at,
+        serviceOrderId:     a.metadata?.service_order_id ?? null,
+        serviceOrderNumber: a.metadata?.service_order_number ?? null,
     };
 }));
 

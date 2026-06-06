@@ -1,0 +1,200 @@
+<style>
+  body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .box { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+  .table-header { display: grid; grid-template-columns: 40px 1fr 120px 140px 150px 80px 60px; padding: 12px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-weight: 700; color: #374151; gap: 8px; align-items: center; }
+  .table-row { display: grid; grid-template-columns: 40px 1fr 120px 140px 150px 80px 60px; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: #374151; gap: 8px; align-items: center; }
+  .table-row.selected { background: #f0f4ff; }
+
+  .cb { width: 18px; height: 18px; border: 2px solid #d1d5db; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+  .cb.checked { background: #081020; border-color: #081020; }
+  .cb.checked::after { content: ''; display: block; width: 5px; height: 9px; border: 2px solid white; border-top: none; border-left: none; transform: rotate(45deg) translateY(-1px); }
+
+  .product-info { display: flex; align-items: center; gap: 12px; }
+  .product-thumb { width: 48px; height: 48px; border-radius: 4px; border: 1px solid #e5e7eb; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .product-name { font-weight: 600; font-size: 13px; }
+  .product-part { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+  .attr-tag { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .attr-key { font-weight: 600; }
+
+  .badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+  .badge-gray { background: #f3f4f6; color: #6b7280; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+
+  .action-bar { background: #081020; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-radius: 8px; margin-top: 10px; }
+  .action-bar-left { display: flex; align-items: center; gap: 16px; font-size: 14px; }
+  .action-bar-count { font-weight: 700; font-size: 16px; }
+  .action-bar-clear { font-size: 12px; color: #94a3b8; cursor: pointer; text-decoration: underline; }
+  .action-bar-btn { background: white; color: #081020; font-weight: 700; font-size: 13px; padding: 8px 20px; border-radius: 6px; cursor: pointer; border: none; }
+
+  .drawer-wrap { display: flex; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.15); margin-top: 8px; }
+  .drawer-bg { flex: 1; background: rgba(30,41,59,0.35); min-height: 520px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 13px; }
+  .drawer { width: 420px; flex-shrink: 0; background: white; display: flex; flex-direction: column; border-left: 1px solid #e5e7eb; }
+  .drawer-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; }
+  .drawer-title { font-size: 16px; font-weight: 700; color: #111827; }
+  .drawer-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .drawer-body { flex: 1; padding: 16px 24px; overflow-y: auto; }
+  .drawer-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; }
+
+  .tip { font-size: 12px; color: #6b7280; margin-bottom: 16px; padding: 10px 12px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #e5e7eb; }
+
+  .attr-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid #f3f4f6; }
+  .attr-row:last-child { border-bottom: none; }
+  .attr-row-cb { margin-top: 3px; flex-shrink: 0; }
+  .attr-row-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .attr-warning { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #b45309; background: #fef3c7; padding: 2px 7px; border-radius: 4px; }
+  .combobox { width: 100%; padding: 7px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #374151; background: white; }
+  .combobox:disabled { background: #f9fafb; color: #9ca3af; }
+
+  .btn-primary { background: #081020; color: white; font-weight: 600; font-size: 14px; padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer; flex: 1; }
+  .btn-secondary { background: white; color: #374151; font-weight: 600; font-size: 14px; padding: 9px 20px; border-radius: 6px; border: 1px solid #d1d5db; cursor: pointer; }
+</style>
+
+<h2>Mass-edit productkenmerken</h2>
+<p class="subtitle">Scherm 1: tabel met selectievakjes &amp; actie-balk &nbsp;|&nbsp; Scherm 2: bewerkingslade</p>
+
+<div class="section" style="margin-bottom:36px">
+  <h3 style="margin-bottom:10px">Scherm 1 — Productenlijst</h3>
+  <div class="box">
+    <div class="table-header">
+      <div class="cb checked" style="background:#081020;border-color:#081020"></div>
+      <div>Model</div>
+      <div>Merk</div>
+      <div>Producttype</div>
+      <div>Verkoopperiode</div>
+      <div>Bundel</div>
+      <div style="text-align:right">Acties</div>
+    </div>
+    <div class="table-row selected">
+      <div class="cb checked"></div>
+      <div class="product-info">
+        <div class="product-thumb">🔧</div>
+        <div>
+          <div class="product-name">Bosch GSR 18V-55</div>
+          <div class="product-part">ART-001</div>
+          <div class="attr-tag"><span class="attr-key">Kleur:</span> Blauw &nbsp;·&nbsp; <span class="attr-key">Vermogen:</span> 18V</div>
+        </div>
+      </div>
+      <div>Bosch</div><div>Accu-gereedschap</div>
+      <div style="font-size:12px;color:#6b7280">01-01-2024 – 31-12-2025</div>
+      <div><span class="badge badge-gray">Geen bundel</span></div>
+      <div style="text-align:right;color:#d1d5db">⋯</div>
+    </div>
+    <div class="table-row selected">
+      <div class="cb checked"></div>
+      <div class="product-info">
+        <div class="product-thumb">⚡</div>
+        <div>
+          <div class="product-name">Makita DHP484</div>
+          <div class="product-part">ART-002</div>
+          <div class="attr-tag"><span class="attr-key">Kleur:</span> Groen &nbsp;·&nbsp; <span class="attr-key">Vermogen:</span> 18V</div>
+        </div>
+      </div>
+      <div>Makita</div><div>Accu-gereedschap</div>
+      <div style="font-size:12px;color:#6b7280">01-03-2024 –</div>
+      <div><span class="badge badge-gray">Geen bundel</span></div>
+      <div style="text-align:right;color:#d1d5db">⋯</div>
+    </div>
+    <div class="table-row selected">
+      <div class="cb checked"></div>
+      <div class="product-info">
+        <div class="product-thumb">🔩</div>
+        <div>
+          <div class="product-name">DeWalt DCD796</div>
+          <div class="product-part">ART-003</div>
+          <div class="attr-tag"><span class="attr-key">Kleur:</span> Geel</div>
+        </div>
+      </div>
+      <div>DeWalt</div><div>Handgereedschap</div>
+      <div style="font-size:12px;color:#6b7280">– –</div>
+      <div><span class="badge badge-gray">Geen bundel</span></div>
+      <div style="text-align:right;color:#d1d5db">⋯</div>
+    </div>
+    <div class="table-row">
+      <div class="cb"></div>
+      <div class="product-info">
+        <div class="product-thumb">🪛</div>
+        <div>
+          <div class="product-name">Festool TSC 55</div>
+          <div class="product-part">ART-004</div>
+        </div>
+      </div>
+      <div>Festool</div><div>Handgereedschap</div>
+      <div style="font-size:12px;color:#6b7280">– –</div>
+      <div><span class="badge badge-green">Bundel</span></div>
+      <div style="text-align:right;color:#d1d5db">⋯</div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <div class="action-bar-left">
+      <span class="action-bar-count">3 producten geselecteerd</span>
+      <span class="action-bar-clear">Deselecteer alles</span>
+    </div>
+    <button class="action-bar-btn">Kenmerken bewerken</button>
+  </div>
+  <p style="font-size:12px;color:#6b7280;margin-top:6px">↑ Sticky actie-balk verschijnt zodra ≥1 product geselecteerd is</p>
+</div>
+
+<div class="section">
+  <h3 style="margin-bottom:10px">Scherm 2 — Bewerkingslade</h3>
+  <div class="drawer-wrap">
+    <div class="drawer-bg">← productenlijst (vervaagd)</div>
+    <div class="drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">Kenmerken bewerken</div>
+        <div class="drawer-subtitle">3 producten geselecteerd</div>
+      </div>
+      <div class="drawer-body">
+        <p class="tip">Vink de kenmerken aan die je wilt toepassen. Niet-aangevinkte kenmerken worden niet gewijzigd.</p>
+
+        <!-- Kleur — alle 3 producten, aangevinkt -->
+        <div class="attr-row">
+          <div class="attr-row-cb"><div class="cb checked"></div></div>
+          <div style="flex:1">
+            <div class="attr-row-label">Kleur</div>
+            <select class="combobox"><option>Blauw</option><option>Rood</option><option>Geel</option><option>Groen</option></select>
+          </div>
+        </div>
+
+        <!-- Vermogen — alle 3 producten, aangevinkt -->
+        <div class="attr-row">
+          <div class="attr-row-cb"><div class="cb checked"></div></div>
+          <div style="flex:1">
+            <div class="attr-row-label">Vermogen</div>
+            <select class="combobox"><option>— Selecteer —</option><option>12V</option><option selected>18V</option><option>36V</option></select>
+          </div>
+        </div>
+
+        <!-- Accu-type — 2 van 3, niet aangevinkt, warning -->
+        <div class="attr-row">
+          <div class="attr-row-cb"><div class="cb"></div></div>
+          <div style="flex:1">
+            <div class="attr-row-label">
+              Accu-type
+              <span class="attr-warning">⚠ Geldt voor 2 van 3 producten</span>
+            </div>
+            <select class="combobox" disabled><option>— Selecteer —</option><option>Li-ion</option><option>NiMH</option></select>
+          </div>
+        </div>
+
+        <!-- Materiaal — alleen 1 van 3, niet aangevinkt, warning -->
+        <div class="attr-row">
+          <div class="attr-row-cb"><div class="cb"></div></div>
+          <div style="flex:1">
+            <div class="attr-row-label">
+              Materiaal
+              <span class="attr-warning">⚠ Geldt voor 1 van 3 producten</span>
+            </div>
+            <select class="combobox" disabled><option>— Selecteer —</option><option>Kunststof</option><option>Metaal</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <button class="btn-secondary">Annuleren</button>
+        <button class="btn-primary">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>

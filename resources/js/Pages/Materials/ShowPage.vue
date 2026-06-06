@@ -212,6 +212,13 @@
                     </tbody>
                 </table>
             </BoxComponent>
+
+            <BoxComponent>
+                <div class="flex items-center mb-4">
+                    <span class="text-md font-bold">Tijdlijn</span>
+                </div>
+                <TimelineComponent :activities="activities" />
+            </BoxComponent>
         </div>
     </div>
 </template>
@@ -221,6 +228,7 @@ import { ChevronRightIcon, BuildingOfficeIcon, CubeIcon, PlusIcon, PencilIcon, T
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { ref, reactive, watch } from 'vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
@@ -235,6 +243,7 @@ const props = defineProps({
     materialSuppliers: { type: Array, default: () => [] },
     allSuppliers:      { type: Array, default: () => [] },
     suppliersUseAjax:  { type: Boolean, default: false },
+    activities:        { type: Array, default: () => [] },
 });
 
 const { options: supplierOptions, searching: supplierSearching, search: searchSuppliers } =

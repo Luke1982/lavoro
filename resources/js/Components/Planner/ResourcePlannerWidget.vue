@@ -176,6 +176,17 @@
                         </template>
                     </div>
 
+                    <!-- Locked-event group overlays -->
+                    <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
+                        class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
+                            top: ov.top - 6 + 'px',
+                            height: ov.height + 12 + 'px',
+                            left: `calc(${ov.leftPct}%  - 5px)`,
+                            width: `calc(${ov.widthPct}% + 11px)`,
+                            borderColor: ov.color,
+                            opacity: 0.5,
+                        }" />
+
                     <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
                         class="grid relative transition-[height] duration-200 ease-in-out"
                         :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
@@ -195,14 +206,16 @@
                             </div>
 
                             <!-- Unavailability overlays -->
-                            <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)" :key="'block-' + user.id + '-' + day.iso + '-' + oi">
+                            <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
+                                :key="'block-' + user.id + '-' + day.iso + '-' + oi">
                                 <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
-                                     :style="{
-                                         left: overlay.left + '%',
-                                         width: overlay.width + '%',
-                                         background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
-                                     }">
-                                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
+                                    :style="{
+                                        left: overlay.left + '%',
+                                        width: overlay.width + '%',
+                                        background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
+                                    }">
+                                    <span
+                                        class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
                                         {{ overlay.label || 'Niet beschikbaar' }}
                                     </span>
                                 </div>
@@ -254,9 +267,9 @@
 
         <!-- Create/edit modal -->
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
-            :all-customers="allCustomers" :customers-use-ajax="customersUseAjax"
-            :all-service-orders="allServiceOrders" :all-users="allUsers"
-            :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
+            :all-customers="allCustomers" :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
+            :all-users="allUsers" :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal"
+            @saved="onSaved" />
     </div>
 </template>
 
@@ -418,6 +431,59 @@ const allDayLaneHeight = computed(() => {
 
 // Tracks to actually render (none while the lane is collapsed).
 const visibleTracks = computed(() => (allDayCollapsed.value ? [] : allDay.value.tracks))
+
+const lockedGroupOverlays = computed(() => {
+    const totalMin = (dayEndHour.value - dayStartHour.value) * 60
+    if (totalMin <= 0) return []
+    const users = visibleUsers.value
+    const days = weekDays.value
+
+    let rowTop = allDayLaneHeight.value
+    const rowTops = users.map(u => {
+        const t = rowTop
+        rowTop += rowHeightFor(u.id)
+        return t
+    })
+
+    return events.value
+        .filter(ev => ev.executing_user_ids.length > 1)
+        .map(ev => {
+            const evDayIso = formatLocalDateAsISO(ev.start)
+            const dayIdx = days.findIndex(d => d.iso === evDayIso)
+            if (dayIdx === -1) return null
+
+            const userIndices = ev.executing_user_ids
+                .map(uid => users.findIndex(u => u.id === uid))
+                .filter(i => i !== -1)
+            if (userIndices.length < 2) return null
+
+            const minIdx = Math.min(...userIndices)
+            const maxIdx = Math.max(...userIndices)
+
+            const topPad = paddingYFor(users[minIdx].id)
+            const bottomPad = paddingYFor(users[maxIdx].id)
+
+            let overlayHeight = 0
+            for (let i = minIdx; i <= maxIdx; i++) overlayHeight += rowHeightFor(users[i].id)
+
+            const startOffsetMin = Math.max(0, Math.min(totalMin,
+                ev.start.getHours() * 60 + ev.start.getMinutes() - dayStartHour.value * 60
+            ))
+            const endOffsetMin = Math.max(0, Math.min(totalMin,
+                ev.end.getHours() * 60 + ev.end.getMinutes() - dayStartHour.value * 60
+            ))
+
+            return {
+                id: ev.id,
+                color: ev.color || '#3b82f6',
+                top: rowTops[minIdx] + topPad,
+                height: overlayHeight - topPad - bottomPad,
+                leftPct: (dayIdx + startOffsetMin / totalMin) / 7 * 100,
+                widthPct: (endOffsetMin - startOffsetMin) / totalMin / 7 * 100,
+            }
+        })
+        .filter(Boolean)
+})
 
 function toggleAllDay() {
     allDayCollapsed.value = !allDayCollapsed.value
@@ -582,7 +648,7 @@ async function fetchEvents() {
 async function fetchUnavailabilities() {
     try {
         const startParam = formatUtcDatetime(weekStart.value)
-        const endParam   = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
+        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
         const response = await axios.get(
             `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )
@@ -597,7 +663,7 @@ async function fetchUnavailabilities() {
 function isBlockedAtTime(userId, dayIso, startMin, endMin) {
     // startMin/endMin are relative to dayStartHour; convert to absolute minutes from midnight
     const absStart = startMin + dayStartHour.value * 60
-    const absEnd   = endMin   + dayStartHour.value * 60
+    const absEnd = endMin + dayStartHour.value * 60
     return unavailabilities.value.some(b => {
         if (b.user_id !== userId || b.date !== dayIso) return false
         if (b.start_time === null) return true // full day holiday
@@ -618,11 +684,11 @@ function getBlockOverlays(userId, dayIso) {
             const [sh, sm] = b.start_time.split(':').map(Number)
             const [eh, em] = b.end_time.split(':').map(Number)
             const offsetStart = sh * 60 + sm - dayStartHour.value * 60
-            const offsetEnd   = eh * 60 + em - dayStartHour.value * 60
+            const offsetEnd = eh * 60 + em - dayStartHour.value * 60
             const clampedStart = Math.max(0, offsetStart)
-            const clampedEnd   = Math.min(totalMin, offsetEnd)
+            const clampedEnd = Math.min(totalMin, offsetEnd)
             return {
-                left:  (clampedStart / totalMin) * 100,
+                left: (clampedStart / totalMin) * 100,
                 width: Math.max(0, ((clampedEnd - clampedStart) / totalMin) * 100),
                 label: b.label,
             }
@@ -1149,7 +1215,7 @@ function onExternalDrop(e, user, day) {
     const startMin = dropStartMinutes(info, duration)
     if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) return
     const start = dateFromDayIsoAndMinutes(day.iso, startMin)
-    const end   = new Date(start.getTime() + duration * 60000)
+    const end = new Date(start.getTime() + duration * 60000)
     createEventFromDrop({ start, end, userId: user.id, payload })
 }
 

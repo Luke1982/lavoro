@@ -90,7 +90,7 @@
             </div>
             <div v-auto-animate>
             <div v-for="product in displayProducts" :key="product.id" role="row"
-                :class="['flex items-center text-sm border-b-lavoro-gray-150 border-b-2', selectedIds.includes(product.id) && 'bg-blue-50 dark:bg-slate-800/60']">
+                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
                 <div class="w-10 flex-none flex items-center justify-center self-stretch">
                     <AnimatedCheckbox
                         :model-value="selectedIds.includes(product.id)"

@@ -32,7 +32,15 @@ class EventTypeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'color' => 'nullable|string|max:9',
+        ]);
+
+        EventType::create($validated);
+
+        return redirect()->back()->with('success', 'Afspraaktype aangemaakt.');
     }
 
     /**
