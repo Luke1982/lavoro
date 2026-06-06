@@ -42,6 +42,7 @@ class EventStoreRequest extends FormRequest
             'start' => 'required|date_format:Y-m-d H:i',
             'end' => 'required|date_format:Y-m-d H:i|after_or_equal:start',
             'location' => 'nullable|string|max:255',
+            'is_preliminary' => 'nullable|boolean',
             'eventable_type'       => 'nullable|string|in:\\App\\Models\\ServiceOrder',
             'eventable_id'         => 'nullable|exists:service_orders,id',
             'create_service_order' => 'nullable|boolean',

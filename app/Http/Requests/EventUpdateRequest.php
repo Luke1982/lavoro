@@ -27,6 +27,7 @@ class EventUpdateRequest extends FormRequest
             'start'              => ['sometimes', 'date_format:Y-m-d H:i'],
             'end'                => ['sometimes', 'date_format:Y-m-d H:i', 'after_or_equal:start'],
             'location'           => ['sometimes', 'nullable', 'string', 'max:255'],
+            'is_preliminary'     => ['sometimes', 'boolean'],
             'eventable_type'     => ['sometimes', 'nullable', 'string', 'in:\\App\\Models\\ServiceOrder'],
             'eventable_id'       => ['sometimes', 'nullable', 'exists:service_orders,id'],
             'executing_user_ids'   => ['sometimes', 'array', 'min:1'],
