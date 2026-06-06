@@ -255,11 +255,11 @@ class ProductController extends Controller
     public function bulkUpdateAttributes(ProductBulkUpdateAttributesRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $products = Product::whereIn('id', $request->product_ids)
+            $products = Product::whereIn('id', $request->input('product_ids'))
                 ->with('productType.productAttributes')
                 ->get();
 
-            foreach ($request->attributes as $attr) {
+            foreach ($request->input('attributes') as $attr) {
                 $attributeId = $attr['product_attribute_id'];
                 $valueId     = $attr['product_attribute_value_id'];
 
