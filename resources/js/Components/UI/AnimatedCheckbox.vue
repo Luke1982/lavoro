@@ -15,12 +15,12 @@
                     transition: bgFading ? `opacity ${BG_MS}ms ease` : 'none',
                 }"
             />
-            <!-- Grey/green track ring — stays grey while ring is animating; darker when checked without custom checkColor -->
+            <!-- Grey/blue track ring — stays grey while ring is animating -->
             <circle cx="14" cy="14" r="12"
                 fill="none"
                 :stroke="trackGreen ? (checkColor ?? color) : '#d1d5db'"
                 stroke-width="2"
-                :style="{transition: 'stroke 0.15s', filter: (trackGreen && !checkColor) ? 'brightness(0.78)' : undefined}"
+                style="transition: stroke 0.15s"
             />
             <!-- Animated progress ring — CSS animation starts the moment the element enters DOM -->
             <circle v-if="ringing"
@@ -57,7 +57,7 @@ const BOUNCE_MS = 320
 const props = defineProps({
     modelValue:  { type: Boolean, default: false },
     disabled:    { type: Boolean, default: false },
-    color:       { type: String, default: 'var(--color-lavoro-green)' },
+    color:       { type: String, default: 'var(--color-lavoro-blue)' },
     checkColor:  { type: String, default: null },
 })
 const emit = defineEmits(['update:modelValue'])
