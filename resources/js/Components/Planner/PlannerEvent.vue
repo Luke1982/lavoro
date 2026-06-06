@@ -13,7 +13,8 @@
             :delay="{ show: 200, hide: 80 }" placement="top">
             <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden"
                 :class="isCompact ? 'justify-start py-1' : ''">
-                <div class="text-xs font-semibold leading-tight truncate">
+                <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1">
+                    <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />
                     #{{ event.id }} {{ event.name || event.title }}
                 </div>
                 <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 truncate">
@@ -55,7 +56,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ClockIcon } from '@heroicons/vue/24/outline'
+import { ClockIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { nlTime } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -91,13 +92,15 @@ const style = computed(() => {
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
     const color = props.event.color || '#3b82f6'
+    const bgStrength = props.event.is_preliminary ? '8%' : '18%'
     return {
         left: leftPct + '%',
         width: widthPct + '%',
         top: props.eventPaddingY + 'px',
         bottom: props.eventPaddingY + 'px',
-        backgroundColor: `color-mix(in srgb, ${color} 18%, white)`,
+        backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, white)`,
         borderColor: color,
+        borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',
         transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',
     }
 })
