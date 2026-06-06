@@ -88,6 +88,20 @@
                     </div>
                 </div>
 
+                <!-- Voorlopig -->
+                <div class="flex items-center gap-3 py-1">
+                    <input
+                        id="is_preliminary"
+                        type="checkbox"
+                        v-model="form.is_preliminary"
+                        class="h-4 w-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer"
+                    />
+                    <label for="is_preliminary" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                        <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />
+                        Voorlopig
+                    </label>
+                </div>
+
                 <!-- Titel / Klant -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -250,7 +264,7 @@ import axios from 'axios'
 import {
     XMarkIcon, CalendarDaysIcon, TagIcon, CheckCircleIcon, DocumentTextIcon,
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
-    UsersIcon, PlusIcon, CheckIcon,
+    UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -291,6 +305,7 @@ const form = useForm({
     location: props.initial.location || '',
     executing_user_ids: props.initial.executing_user_ids || [],
     create_service_order: false,
+    is_preliminary: props.initial.is_preliminary || false,
 })
 
 const initialStatusId = computed(() =>

@@ -1286,6 +1286,7 @@ function openEdit(ev) {
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
         executing_user_ids: [...ev.executing_user_ids],
+        is_preliminary: ev.is_preliminary || false,
     }
     modalOpen.value = true
 }
