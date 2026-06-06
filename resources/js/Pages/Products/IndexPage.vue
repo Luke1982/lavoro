@@ -76,7 +76,6 @@
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox
                         :model-value="allCurrentPageSelected"
-                        check-color="#081020"
                         @update:model-value="toggleSelectAll"
                     />
                 </div>
@@ -95,7 +94,6 @@
                 <div class="w-10 flex-none flex items-center justify-center self-stretch">
                     <AnimatedCheckbox
                         :model-value="selectedIds.includes(product.id)"
-                        check-color="#081020"
                         @update:model-value="toggleSelectProduct(product.id)"
                     />
                 </div>
@@ -362,16 +360,16 @@
             leave-to-class="translate-y-full opacity-0"
         >
             <div v-if="selectedIds.length"
-                class="fixed bottom-0 inset-x-0 z-40 bg-lavoro-dark text-white px-6 py-4 flex items-center justify-between shadow-2xl">
+                class="fixed bottom-0 left-0 right-0 lg:left-72 z-40 bg-gray-100 text-gray-800 border-t border-gray-200 px-6 py-4 flex items-center justify-between shadow-lg">
                 <div class="flex items-center gap-4 text-sm">
                     <span class="font-bold text-base">{{ selectedIds.length }} producten geselecteerd</span>
                     <button type="button" @click="selectedIds = []"
-                        class="text-xs text-slate-400 underline hover:text-slate-200">
+                        class="text-xs text-gray-500 underline hover:text-gray-700">
                         Deselecteer alles
                     </button>
                 </div>
                 <button type="button" @click="openBulkEditDrawer"
-                    class="bg-white text-lavoro-dark font-bold text-sm px-5 py-2 rounded-md hover:bg-gray-100">
+                    class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
                     Kenmerken bewerken
                 </button>
             </div>
