@@ -15,12 +15,12 @@
                     transition: bgFading ? `opacity ${BG_MS}ms ease` : 'none',
                 }"
             />
-            <!-- Grey/green track ring — stays grey while ring is animating -->
+            <!-- Grey/green track ring — stays grey while ring is animating; darker when checked without custom checkColor -->
             <circle cx="14" cy="14" r="12"
                 fill="none"
                 :stroke="trackGreen ? (checkColor ?? color) : '#d1d5db'"
                 stroke-width="2"
-                style="transition: stroke 0.15s"
+                :style="{transition: 'stroke 0.15s', filter: (trackGreen && !checkColor) ? 'brightness(0.78)' : undefined}"
             />
             <!-- Animated progress ring — CSS animation starts the moment the element enters DOM -->
             <circle v-if="ringing"

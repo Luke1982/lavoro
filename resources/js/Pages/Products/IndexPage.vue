@@ -313,7 +313,6 @@
                 class="flex items-start gap-3 px-4 sm:px-6 py-4">
                 <AnimatedCheckbox
                     v-model="bulkEditChecked[attr.id]"
-                    check-color="#081020"
                     class="mt-0.5 flex-shrink-0"
                 />
                 <div class="flex-1 min-w-0">
