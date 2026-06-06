@@ -61,34 +61,39 @@ class EventApiController extends Controller
         $data = $request->validated();
         unset($data['executing_user_ids']);
 
-        $eventable_id = $request->eventable_id;
+        $eventable_id   = $request->eventable_id;
+        $eventable_type = $request->eventable_type;
 
-        if ($request->boolean('create_service_order')) {
-            $new_order = ServiceOrder::create(['customer_id' => $data['customer_id']]);
-            $data['eventable_type'] = '\\App\\Models\\ServiceOrder';
-            $data['eventable_id']   = $new_order->id;
-            $eventable_id           = $new_order->id;
-        }
+        $event = DB::transaction(function () use ($request, $data, &$eventable_id, &$eventable_type) {
+            if ($request->boolean('create_service_order')) {
+                $new_order      = ServiceOrder::create(['customer_id' => $data['customer_id']]);
+                $eventable_type = '\\App\\Models\\ServiceOrder';
+                $eventable_id   = $new_order->id;
+            }
 
-        unset($data['create_service_order'], $data['customer_id']);
+            unset($data['create_service_order'], $data['customer_id']);
+            $data['eventable_type'] = $eventable_type;
+            $data['eventable_id']   = $eventable_id;
 
-        $event = Event::create($data);
+            $event = Event::create($data);
 
-        $class = $request->eventable_type;
-        $model = $class::findOrFail($eventable_id);
-        $model->events()->attach($event->id);
-        if ($model instanceof ServiceOrder) {
-            $model->advanceToPlannedStage();
-        }
+            $model = $eventable_type::findOrFail($eventable_id);
+            $model->events()->attach($event->id);
+            if ($model instanceof ServiceOrder) {
+                $model->advanceToPlannedStage();
+            }
 
-        $executing_user_ids = $request['executing_user_ids'] ?? [];
-        if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
-            $event->syncExecutingUsers(array_map('intval', $executing_user_ids));
-            $model->syncExecutingUsers(array_map('intval', $executing_user_ids));
-            $model->serviceJobs()->each(function ($job) use ($executing_user_ids) {
-                $job->syncExecutingUsers(array_map('intval', $executing_user_ids));
-            });
-        }
+            $executing_user_ids = $request['executing_user_ids'] ?? [];
+            if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
+                $event->syncExecutingUsers(array_map('intval', $executing_user_ids));
+                $model->syncExecutingUsers(array_map('intval', $executing_user_ids));
+                $model->serviceJobs()->each(function ($job) use ($executing_user_ids) {
+                    $job->syncExecutingUsers(array_map('intval', $executing_user_ids));
+                });
+            }
+
+            return $event;
+        });
 
         return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']), 201);
     }
