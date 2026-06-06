@@ -76,7 +76,7 @@
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox
                         :model-value="allCurrentPageSelected"
-                        color="#081020"
+                        check-color="#081020"
                         @update:model-value="toggleSelectAll"
                     />
                 </div>
@@ -95,7 +95,7 @@
                 <div class="w-10 flex-none flex items-center justify-center self-stretch">
                     <AnimatedCheckbox
                         :model-value="selectedIds.includes(product.id)"
-                        color="#081020"
+                        check-color="#081020"
                         @update:model-value="toggleSelectProduct(product.id)"
                     />
                 </div>
