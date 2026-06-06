@@ -23,11 +23,13 @@ class Event extends Model
         'status',
         'location',
         'origin',
+        'is_preliminary',
     ];
 
     protected $casts = [
-        'start' => 'datetime',
-        'end' => 'datetime',
+        'start'          => 'datetime',
+        'end'            => 'datetime',
+        'is_preliminary' => 'boolean',
     ];
 
     public static function statusses()
