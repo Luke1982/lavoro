@@ -100,7 +100,7 @@ class EventApiController extends Controller
 
     public function update(EventUpdateRequest $request, Event $event)
     {
-        $payload = $request->all();
+        $payload = $request->validated();
         unset($payload['executing_user_ids']);
         $event->update($payload);
 
