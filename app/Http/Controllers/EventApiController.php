@@ -60,10 +60,22 @@ class EventApiController extends Controller
     {
         $data = $request->validated();
         unset($data['executing_user_ids']);
+
+        $eventable_id = $request->eventable_id;
+
+        if ($request->boolean('create_service_order')) {
+            $new_order = ServiceOrder::create(['customer_id' => $data['customer_id']]);
+            $data['eventable_type'] = '\\App\\Models\\ServiceOrder';
+            $data['eventable_id']   = $new_order->id;
+            $eventable_id           = $new_order->id;
+        }
+
+        unset($data['create_service_order'], $data['customer_id']);
+
         $event = Event::create($data);
 
         $class = $request->eventable_type;
-        $model = $class::findOrFail($request->eventable_id);
+        $model = $class::findOrFail($eventable_id);
         $model->events()->attach($event->id);
         if ($model instanceof ServiceOrder) {
             $model->advanceToPlannedStage();
