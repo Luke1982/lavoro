@@ -24,6 +24,7 @@
                     :all-users="allUsers"
                     :plannable-users="plannableUsers"
                     :projects="projects"
+                    :default-planner-minutes="props.defaultPlannerMinutes"
                     @service-order-planned="onServiceOrderPlanned"
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
@@ -54,6 +55,7 @@ const props = defineProps({
     plannableUsers: { type: Array, required: true },
     unplannedServiceOrders: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
+    defaultPlannerMinutes: { type: Number, default: 120 },
 })
 
 const canPlan = computed(() => hasPermission('serviceorder.plan'))
