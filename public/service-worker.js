@@ -1,4 +1,4 @@
-const CACHE_NAME = "wh-crm-cache-a91f3d2"; // bump version
+const CACHE_NAME = "lavoro-cache-v2";
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
@@ -93,4 +93,36 @@ self.addEventListener("fetch", (event) => {
             });
         }),
     );
+});
+
+self.addEventListener('push', (event) => {
+    if (!event.data) return;
+
+    let payload;
+    try {
+        payload = event.data.json();
+    } catch {
+        payload = { notification: { title: 'Lavoro', body: event.data.text() } };
+    }
+
+    const title   = payload.notification?.title ?? 'Lavoro';
+    const options = {
+        body:  payload.notification?.body ?? '',
+        icon:  '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        data:  payload.data ?? {},
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const data = event.notification.data;
+
+    const url = (data?.type === 'service_order_assigned' && data?.id)
+        ? `/serviceorders/${data.id}`
+        : '/';
+
+    event.waitUntil(clients.openWindow(url));
 });
