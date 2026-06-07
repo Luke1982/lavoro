@@ -21,6 +21,17 @@
             <div class="font-semibold text-sm">{{ weekTitle }}</div>
 
             <div class="ml-auto flex items-center gap-2">
+                <template v-if="hasPermission('settings.update_default_planner_minutes')">
+                    <label class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">Standaard min.</label>
+                    <input
+                        type="number"
+                        v-model.number="plannerMinutes"
+                        min="15"
+                        max="480"
+                        step="15"
+                        class="w-16 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 text-sm px-2 py-1 text-center"
+                        @blur="savePlannerMinutes" />
+                </template>
                 <SelectMenuComponent v-model="slotMinutes" :options="slotOptions" :icon="Squares2X2Icon">
                     <template #sr-label>Slotgrootte</template>
                 </SelectMenuComponent>
@@ -308,6 +319,8 @@ const props = defineProps({
     rowHeight: { type: Number, default: 120 },
     /** Vertical padding around event cards within each lane */
     eventPaddingY: { type: Number, default: 14 },
+    /** Default duration in minutes for new events created by drop or single click */
+    defaultPlannerMinutes: { type: Number, default: 120 },
 })
 
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
@@ -776,6 +789,7 @@ function onCellPointerDown(e, user, day) {
         width: (slotMinutes.value / info.totalMin) * 100,
         cellRect: info.rect,
         totalMin: info.totalMin,
+        dragged: false,
     }
     drag.value = { mode: 'select', user, day }
     e.preventDefault()
@@ -834,6 +848,7 @@ function onWindowPointerMove(e) {
         const info = cellInfoFromPoint(e.clientX, e.clientY)
         if (!info) return
         if (info.userId !== selectRect.value.userId || info.dayIso !== selectRect.value.dayIso) return
+        selectRect.value.dragged = true
         const rawEnd = snapMinutes(info.minutes)
         const start = selectRect.value.startMinutes
         const end = Math.max(start + slotMinutes.value, rawEnd)
@@ -925,8 +940,12 @@ async function onWindowPointerUp() {
         selectRect.value = null
         drag.value = { eventId: null, mode: null }
         if (!sel) return
-        const start = dateFromDayIsoAndMinutes(sel.dayIso, Math.min(sel.startMinutes, sel.endMinutes))
-        const end = dateFromDayIsoAndMinutes(sel.dayIso, Math.max(sel.startMinutes, sel.endMinutes))
+        const startMin = Math.min(sel.startMinutes, sel.endMinutes)
+        const endMin = sel.dragged
+            ? Math.max(sel.startMinutes, sel.endMinutes)
+            : startMin + plannerMinutes.value
+        const start = dateFromDayIsoAndMinutes(sel.dayIso, startMin)
+        const end = dateFromDayIsoAndMinutes(sel.dayIso, endMin)
         openCreate({ start, end, userId: sel.userId })
         return
     }
@@ -1148,7 +1167,7 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
     }
 }
 
-const DROP_DURATION_MIN = 120
+const plannerMinutes = ref(props.defaultPlannerMinutes)
 
 /** Snapped, day-clamped start minute for an incoming drop of the given duration. */
 function dropStartMinutes(info, durationMin) {
@@ -1161,8 +1180,8 @@ function onDragOver(e) {
     if (!(e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload'))) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (info) {
-        const startMin = dropStartMinutes(info, DROP_DURATION_MIN)
-        if (isBlockedAtTime(info.userId, info.dayIso, startMin, startMin + DROP_DURATION_MIN)) {
+        const startMin = dropStartMinutes(info, plannerMinutes.value)
+        if (isBlockedAtTime(info.userId, info.dayIso, startMin, startMin + plannerMinutes.value)) {
             e.dataTransfer.dropEffect = 'none'
             dragGhost.value = null
             return
@@ -1185,9 +1204,9 @@ function updateExternalDropGhost(clientX, clientY) {
         dragGhost.value = null
         return
     }
-    const startMin = dropStartMinutes(info, DROP_DURATION_MIN)
+    const startMin = dropStartMinutes(info, plannerMinutes.value)
     const start = dateFromDayIsoAndMinutes(info.dayIso, startMin)
-    const end = new Date(start.getTime() + DROP_DURATION_MIN * 60000)
+    const end = new Date(start.getTime() + plannerMinutes.value * 60000)
     const targetUser = props.plannableUsers.find(u => u.id === info.userId)
     const targetCell = document.querySelector(
         `[data-user-id="${info.userId}"][data-day-iso="${info.dayIso}"]`
@@ -1201,9 +1220,9 @@ function updateExternalDropGhost(clientX, clientY) {
     const padY = paddingYFor(info.userId)
     const leftPx = (cellRect.left - bodyRect.left) + (startMin / info.totalMin) * cellRect.width
     const topPx = cellRect.top - bodyRect.top
-    const widthPx = (DROP_DURATION_MIN / info.totalMin) * cellRect.width
+    const widthPx = (plannerMinutes.value / info.totalMin) * cellRect.width
     dragGhost.value = {
-        title: 'Nieuwe afspraak (2 uur)',
+        title: `Nieuwe afspraak (${plannerMinutes.value} min)`,
         start,
         end,
         userName: targetUser?.name || null,
@@ -1236,7 +1255,7 @@ function onExternalDrop(e, user, day) {
 
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
-    const duration = payload.duration_minutes || DROP_DURATION_MIN
+    const duration = payload.duration_minutes || plannerMinutes.value
     const startMin = dropStartMinutes(info, duration)
     if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) return
     const start = dateFromDayIsoAndMinutes(day.iso, startMin)
@@ -1269,12 +1288,22 @@ async function createEventFromDrop({ start, end, userId, payload }) {
         await axios.get('sanctum/csrf-cookie')
         const r = await axios.post('/api/events', body)
         if (r.status !== 201) throw new Error('bad response')
-        page.props.flash.success = 'Werkbon ingepland (2 uur)'
+        page.props.flash.success = `Werkbon ingepland (${plannerMinutes.value} min)`
         if (body.eventable_id) emit('service-order-planned', body.eventable_id)
         fetchEvents()
     } catch (err) {
         console.error('Failed to create event from drop', err)
         page.props.flash.error = err.response?.data?.message || 'Kon werkbon niet inplannen'
+    }
+}
+
+async function savePlannerMinutes() {
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        await axios.put('/api/settings/defaultplannerminutes', { value: plannerMinutes.value })
+    } catch (e) {
+        console.error('Failed to save planner minutes', e)
+        page.props.flash.error = 'Kon standaard planminuten niet opslaan'
     }
 }
 
