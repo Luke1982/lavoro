@@ -19,7 +19,7 @@ class TechnicianLocationController extends Controller
                     ->where('recorded_at', '>=', now()->subHours(8))
                     ->groupBy('user_id');
             })
-            ->with('user:id,name,avatar')
+            ->with('user:id,name')
             ->get(['id', 'user_id', 'lat', 'lng', 'accuracy', 'speed', 'heading', 'recorded_at']);
 
         return Inertia::render('Admin/TechnicianMap', [
