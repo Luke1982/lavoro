@@ -12,6 +12,7 @@ class UserController extends Controller
 {
     public function index()
     {
+        abort_unless(auth()->user()->can('viewAny', User::class), 403);
         $users = User::all();
 
         return inertia('Users/IndexPage', [
@@ -22,6 +23,7 @@ class UserController extends Controller
 
     public function create()
     {
+        abort_unless(auth()->user()->can('create', User::class), 403);
         return inertia('Users/EditPage', [
             'user' => null,
             'allRoles' => Role::orderBy('name')->get(['id','name']),
@@ -30,6 +32,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        abort_unless(auth()->user()->can('view', $user), 403);
         $user->load('roles:id,name');
         return inertia('Users/EditPage', [
             'user'             => $user,
