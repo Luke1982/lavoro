@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue';
+import { Geolocation } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
 import { useCapacitor } from './useCapacitor.js';
 import { useNetworkStatus } from './useNetworkStatus.js';
@@ -69,20 +70,16 @@ export function useLocationTracker() {
 
     async function start() {
         if (!is_native || is_tracking.value) return;
+
+        const permission = await Geolocation.requestPermissions();
+        if (permission.location !== 'granted') return;
+
         is_tracking.value = true;
 
-        const BackgroundGeolocation = (await import(/* @vite-ignore */ '@capacitor-community/background-geolocation')).default;
-
-        watcher_id = await BackgroundGeolocation.addWatcher(
-            {
-                backgroundMessage: 'Lavoro volgt uw locatie voor servicebezoeken.',
-                backgroundTitle: 'Locatie actief',
-                requestPermissions: true,
-                stale: false,
-                distanceFilter: 50,
-            },
-            async function (location, error) {
-                if (error || !location) return;
+        watcher_id = await Geolocation.watchPosition(
+            { enableHighAccuracy: true, timeout: 10000 },
+            async (position, error) => {
+                if (error || !position) return;
 
                 const now  = Date.now();
                 const last = await get_last_ping_at();
@@ -90,12 +87,12 @@ export function useLocationTracker() {
 
                 await set_last_ping_at(now);
                 await enqueue({
-                    lat:         location.latitude,
-                    lng:         location.longitude,
-                    accuracy:    location.accuracy  ?? null,
-                    speed:       location.speed     ?? null,
-                    heading:     location.bearing   ?? null,
-                    recorded_at: new Date(location.time).toISOString(),
+                    lat:         position.coords.latitude,
+                    lng:         position.coords.longitude,
+                    accuracy:    position.coords.accuracy   ?? null,
+                    speed:       position.coords.speed      ?? null,
+                    heading:     position.coords.heading    ?? null,
+                    recorded_at: new Date(position.timestamp).toISOString(),
                 });
 
                 if (is_online.value) await flush();
@@ -108,8 +105,7 @@ export function useLocationTracker() {
         is_tracking.value = false;
 
         if (watcher_id !== null) {
-            const BackgroundGeolocation = (await import(/* @vite-ignore */ '@capacitor-community/background-geolocation')).default;
-            await BackgroundGeolocation.removeWatcher({ id: watcher_id });
+            await Geolocation.clearWatch({ id: watcher_id });
             watcher_id = null;
         }
     }
