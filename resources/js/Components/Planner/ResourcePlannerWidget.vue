@@ -977,6 +977,11 @@ function onEventContextMenu(e, ev) {
             }),
         })
         items.push({ label: 'Bewerken…', onClick: () => openEdit(ev) })
+        items.push({
+            label: ev.is_preliminary ? 'Markeer als definitief' : 'Markeer als voorlopig',
+            divided: true,
+            onClick: () => togglePreliminary(ev),
+        })
     }
     if (ev.eventable_id) {
         items.push({
@@ -1041,6 +1046,21 @@ async function toggleExecutingUser(ev, user) {
         ev.executing_user_ids = original.ids
         ev.executing_users = original.users
         page.props.flash.error = e.response?.data?.message || 'Kon monteurs niet bijwerken'
+    }
+}
+
+async function togglePreliminary(ev) {
+    const original = ev.is_preliminary
+    ev.is_preliminary = !original
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.put(`/api/events/${ev.id}`, { is_preliminary: ev.is_preliminary })
+        if (r.status !== 200) throw new Error('bad response')
+        page.props.flash.success = ev.is_preliminary ? 'Afspraak gemarkeerd als voorlopig' : 'Afspraak gemarkeerd als definitief'
+    } catch (e) {
+        console.error('Failed to toggle preliminary', e)
+        ev.is_preliminary = original
+        page.props.flash.error = e.response?.data?.message || 'Kon voorlopig-status niet wijzigen'
     }
 }
 
