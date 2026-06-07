@@ -168,6 +168,10 @@ public class LocationForegroundService extends Service {
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+            // Sanctum only treats a request as stateful (and thus honours the
+            // session cookie) when the Origin/Referer matches a stateful domain.
+            conn.setRequestProperty("Origin", server_url);
+            conn.setRequestProperty("Referer", server_url + "/");
 
             String cookies = CookieManager.getInstance().getCookie(server_url);
             if (cookies != null) {
