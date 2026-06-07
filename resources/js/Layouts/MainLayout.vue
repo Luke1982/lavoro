@@ -1,5 +1,6 @@
 <template>
     <OfflineBanner />
+    <UpdateBanner />
     <div class="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
@@ -388,10 +389,12 @@ import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
+import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
+import { useAppUpdate } from '@/Composables/useAppUpdate.js'
 
 // Push requires a configured Firebase project (google-services.json on
 // Android). Without it, the native PushNotifications.register() throws an
@@ -403,10 +406,12 @@ const { is_native } = useCapacitor()
 const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
+const { check: check_update } = useAppUpdate()
 
 onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
+        try { await check_update() } catch (e) { console.error('Update check failed:', e) }
         try {
             await start_tracking()
         } catch (e) {

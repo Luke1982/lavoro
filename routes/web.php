@@ -282,6 +282,17 @@ Route::group(
     }
 );
 
+Route::get('app/version', fn() => response()->json([
+    'build'        => 1,
+    'download_url' => config('app.url') . '/download/lavoro.apk',
+]))->name('app.version');
+
+Route::get('download/lavoro.apk', function () {
+    $path = storage_path('app/releases/lavoro.apk');
+    abort_unless(file_exists($path), 404);
+    return response()->download($path, 'lavoro.apk', ['Content-Type' => 'application/vnd.android.package-archive']);
+})->name('app.download');
+
 Route::get('login', [AuthController::class, 'create'])->name('login');
 Route::post('login', [AuthController::class, 'store'])->name('login.store');
 Route::get('logout', [AuthController::class, 'destroy'])->name('logout');
