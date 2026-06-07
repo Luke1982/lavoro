@@ -21,7 +21,7 @@
         </activity>
 
         <service
-            android:name="com.equimaps.capacitorbackgroundgeolocation.BackgroundGeolocationService"
+            android:name=".LocationForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location"
