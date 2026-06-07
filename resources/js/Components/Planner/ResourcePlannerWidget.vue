@@ -825,6 +825,7 @@ function cellInfoFromPoint(clientX, clientY) {
 }
 
 function onCellPointerDown(e, user, day) {
+    if (!hasPermission('event.create')) return
     if (e.target.closest('[data-planner-event]')) return
     if (e.button !== 0) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
@@ -1020,6 +1021,7 @@ async function onWindowPointerUp() {
 
 function handleEventClick(ev) {
     if (Date.now() < suppressClickUntil) return
+    if (!hasPermission('event.create')) return
     if (!canEditEvent(ev)) return
     openEdit(ev)
 }

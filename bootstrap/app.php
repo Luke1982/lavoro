@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
@@ -26,6 +27,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['google/webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+            $exceptions->render(function (AuthorizationException $e, Request $request) {
+                $message = $e->getMessage() && $e->getMessage() !== 'This action is unauthorized.'
+                    ? $e->getMessage()
+                    : 'U heeft geen toestemming om deze actie uit te voeren.';
+
+                return redirect()->back()->with('error', $message);
+            });
+
             // Safety net: convert MySQL "Numeric value out of range" (SQLSTATE
             // 22003 / errno 1264) into a 422 validation error so users see a
             // meaningful message instead of a 500. The DbRange rule catches
@@ -46,12 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
             $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
-                if (!app()->environment(['local', 'development', 'testing']) && in_array($response->getStatusCode(), [500, 503, 404, 403])) {
+                $notProd = app()->environment(['local', 'development', 'testing']);
+                if (!$notProd && in_array($response->getStatusCode(), [500, 503, 404])) {
                     $messages = [
                         500 => 'Er is een serverfout opgetreden. Probeer het later opnieuw.',
                         503 => 'De service is momenteel niet beschikbaar.',
                         404 => 'De pagina die u zoekt, is niet gevonden.',
-                        403 => 'U heeft geen toestemming om deze pagina te bekijken.',
                     ];
 
                     $status = $response->getStatusCode();

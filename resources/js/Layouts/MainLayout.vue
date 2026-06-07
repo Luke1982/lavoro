@@ -441,7 +441,7 @@ const navigation = ref([
         href: '/serviceorders',
         icon: DocumentTextIcon,
         current: false,
-        requiresPermission: 'serviceorder.read',
+        requiresAnyPermission: ['serviceorder.read', 'serviceorder.read_own'],
         children: [
             { name: 'Fases', href: '/serviceorderstages', icon: Bars4Icon, current: false, requiresPermission: 'serviceorderstage.read' },
             { name: 'Taken', href: '/serviceordertasks', icon: ClipboardListIcon, current: false, requiresPermission: 'serviceordertask.read' },
@@ -494,6 +494,7 @@ const navigation = ref([
 ])
 
 const canSeeNavItem = (item) => {
+    if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission);
     if (!item?.requiresPermission) return true;
     return hasPermission(item.requiresPermission);
 }

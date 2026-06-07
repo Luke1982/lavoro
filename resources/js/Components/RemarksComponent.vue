@@ -68,7 +68,7 @@
                 class="flex-auto rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
                 <label for="remark-input" class="sr-only">Voeg je opmerking toe</label>
                 <textarea id="remark-input" v-model="form.content" rows="2" placeholder="Plaats een opmerking..."
-                    class="block w-full resize-none border-0 bg-transparent px-4 pt-3 pb-1 text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:ring-0" />
+                    class="block w-full resize-none border-0 bg-transparent px-4 pt-3 pb-1 text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:ring-0 focus:outline-none" />
                 <div class="flex justify-end px-3 pb-3">
                     <button type="button" @click="addComment"
                         class="inline-flex items-center gap-x-1.5 rounded-lavoro-sm bg-lavoro-blue p-2.5 mt-2 text-sm font-semibold text-white hover:bg-lavoro-blue/85 transition-colors">

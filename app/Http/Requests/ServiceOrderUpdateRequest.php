@@ -33,16 +33,8 @@ class ServiceOrderUpdateRequest extends FormRequest
         $new_stage = $new_stage_id === null
             ? null
             : ServiceOrderStage::find($new_stage_id);
-        $new_is_closed = $new_stage?->is_closed_state === true;
-        $current_is_closed = $serviceorder->is_closed;
 
-        if ($new_is_closed && !$current_is_closed) {
-            return $user->hasPermission('serviceorder.close');
-        }
-        if (!$new_is_closed && $current_is_closed) {
-            return $user->hasPermission('serviceorder.reopen');
-        }
-        return true;
+        return $user->can('changeStage', [$serviceorder, $new_stage]);
     }
 
     public function rules(): array
