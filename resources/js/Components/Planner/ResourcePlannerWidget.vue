@@ -21,6 +21,12 @@
             <div class="font-semibold text-sm">{{ weekTitle }}</div>
 
             <div class="ml-auto flex items-center gap-2">
+                <button v-if="allPingsArray.length > 0"
+                    class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
+                    @click="mapModalOpen = true">
+                    <MapIcon class="size-4 shrink-0" />
+                    Monteurkaart
+                </button>
                 <template v-if="hasPermission('settings.update_default_planner_minutes')">
                     <label class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">Standaard min.</label>
                     <input type="number" v-model.number="plannerMinutes" min="15" max="1200" step="15"
@@ -48,14 +54,7 @@
             <div class="sticky top-0 z-20 flex shrink-0 bg-white dark:bg-slate-900">
                 <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
-                    <div class="flex items-center gap-1.5">
-                        <span>Monteurs ({{ visibleUsers.length }})</span>
-                        <button v-if="allPingsArray.length > 0" @click="mapModalOpen = true"
-                            class="rounded p-0.5 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
-                            title="Alle locaties op kaart">
-                            <MapIcon class="size-3.5" />
-                        </button>
-                    </div>
+                    <span>Monteurs ({{ visibleUsers.length }})</span>
                     <button v-if="visibleUsers.length" @click="toggleAllRows"
                         class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
                         <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />

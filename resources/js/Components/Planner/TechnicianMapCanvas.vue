@@ -6,6 +6,8 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import dayjs from '@/Utilities/dayjs';
+import { initials, nlTime } from '@/Utilities/Utilities';
 
 const props = defineProps({
     pings: { type: Array, required: true },
@@ -18,18 +20,11 @@ function user_color(id) {
     return COLORS[id % COLORS.length];
 }
 
-function initials(name) {
-    if (!name) return '?';
-    return name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-}
-
 function format_time(iso) {
-    const d = new Date(iso);
-    const now = new Date();
-    const date_str = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
-    const time_str = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-    const is_today = d.toDateString() === now.toDateString();
-    return is_today ? time_str : `${date_str} ${time_str}`;
+    const d = dayjs(iso);
+    return d.isSame(dayjs(), 'day')
+        ? nlTime(d.toDate())
+        : d.format('ddd D MMM') + ' ' + nlTime(d.toDate());
 }
 
 function make_icon(ping) {
@@ -62,8 +57,7 @@ function make_icon(ping) {
             ${arrow_svg}
             <div style="
                 width:40px;height:40px;border-radius:50%;
-                background:${color};
-                border:3px solid #fff;
+                background:${color};border:3px solid #fff;
                 box-shadow:0 2px 8px rgba(0,0,0,.35);
                 overflow:hidden;position:relative;
             ">${avatar_inner}</div>
