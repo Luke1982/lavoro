@@ -55,6 +55,16 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
             $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
+                if ($response->getStatusCode() === 403) {
+                    return redirect()->back()->with('error', 'U heeft geen toestemming om deze actie uit te voeren.');
+                }
+
+                if ($response->getStatusCode() === 419) {
+                    return back()->with([
+                        'message' => 'De pagina is verlopen, ververs de pagina en probeer het nogmaals.',
+                    ]);
+                }
+
                 $notProd = app()->environment(['local', 'development', 'testing']);
                 if (!$notProd && in_array($response->getStatusCode(), [500, 503, 404])) {
                     $messages = [
@@ -67,10 +77,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     $message = $messages[$status] ?? 'Er is een onbekende fout opgetreden.';
 
                     return redirect()->back()->with('error', $message);
-                } elseif ($response->getStatusCode() === 419) {
-                    return back()->with([
-                        'message' => 'De pagina is verlopen, ververs de pagina en probeer het nogmaals.',
-                    ]);
                 }
 
                 return $response;
