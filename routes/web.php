@@ -287,6 +287,19 @@ Route::get('app/version', fn() => response()->json([
     'download_url' => config('app.url') . '/download/lavoro.apk',
 ]))->name('app.version');
 
+Route::get('.well-known/assetlinks.json', fn() => response()->json([
+    [
+        'relation' => ['delegate_permission/common.handle_all_urls'],
+        'target'   => [
+            'namespace'                => 'android_app',
+            'package_name'             => 'nl.lavoro.fsm',
+            'sha256_cert_fingerprints' => [
+                '00:8D:D1:A2:9C:75:D0:C0:AD:AB:DC:50:44:03:26:C9:C7:2C:7B:D3:0B:63:FD:85:3C:B0:52:84:89:8A:9E:DE',
+            ],
+        ],
+    ],
+]))->name('app.assetlinks');
+
 Route::get('download/lavoro.apk', function () {
     $path = storage_path('app/releases/lavoro.apk');
     abort_unless(file_exists($path), 404);

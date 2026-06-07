@@ -395,6 +395,7 @@ import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
 import { useAppUpdate } from '@/Composables/useAppUpdate.js'
+import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 
 // Push requires a configured Firebase project (google-services.json on
 // Android). Without it, the native PushNotifications.register() throws an
@@ -407,10 +408,12 @@ const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
 const { check: check_update } = useAppUpdate()
+const { init: init_deep_links } = useDeepLinks()
 
 onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
+        try { await init_deep_links() } catch (e) { console.error('Deep link init failed:', e) }
         try { await check_update() } catch (e) { console.error('Update check failed:', e) }
         try {
             await start_tracking()

@@ -18,6 +18,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links: tapped https links to declared hosts open the app.
+                 Each customer domain needs its own <data> entry here AND a
+                 matching /.well-known/assetlinks.json served by that host. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="spee.lavorofsm.nl" />
+            </intent-filter>
         </activity>
 
         <service
