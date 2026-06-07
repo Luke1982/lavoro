@@ -1,259 +1,262 @@
 <template>
     <Teleport to="body">
-    <div
-        class="fixed inset-0 z-50 flex items-start lg:items-center justify-center px-4 lg:px-0 transition-all duration-200"
-        :class="visible ? 'bg-black/30 backdrop-blur-sm' : 'bg-transparent'">
-        <div
-            class="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 my-4 lg:my-0"
-            :class="visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'">
+        <div class="fixed inset-0 z-50 flex items-start lg:items-center justify-center px-4 lg:px-0 transition-all duration-200"
+            :class="visible ? 'bg-black/30 backdrop-blur-sm' : 'bg-transparent'">
+            <div class="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 my-4 lg:my-0"
+                :class="visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'">
 
-            <!-- Header -->
-            <div class="flex items-start p-6 pb-5">
-                <div
-                    class="flex-shrink-0 w-12 h-12 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-xl flex items-center justify-center mr-4">
-                    <CalendarDaysIcon class="h-6 w-6 text-lavoro-blue" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">
-                        {{ editingExisting ? 'Wijzig afspraak' : 'Nieuwe afspraak' }}
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Plan een bezoek of geplande afspraak in.</p>
-                </div>
-                <button @click="closeModal"
-                    class="flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors ml-4">
-                    <XMarkIcon class="h-5 w-5" />
-                </button>
-            </div>
-
-            <!-- Scrollable body -->
-            <div class="px-6 pb-2 max-h-[70vh] overflow-y-auto space-y-5">
-
-                <!-- Start / Einde -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Start</span>
-                        </div>
-                        <div class="flex gap-2">
-                            <TextInput v-model="form.start_date" label="" type="date" class="flex-1"
-                                :has-error="Boolean(form.errors.start)" />
-                            <TextInput v-model="form.start_time" label="" type="time" class="w-28"
-                                :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
-                        </div>
+                <!-- Header -->
+                <div class="flex items-start p-6 pb-5">
+                    <div
+                        class="flex-shrink-0 w-12 h-12 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-xl flex items-center justify-center mr-4">
+                        <CalendarDaysIcon class="h-6 w-6 text-lavoro-blue" />
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Einde</span>
-                        </div>
-                        <div class="flex gap-2">
-                            <TextInput v-model="form.end_date" label="" type="date" class="flex-1"
-                                :has-error="Boolean(form.errors.end)" />
-                            <TextInput v-model="form.end_time" label="" type="time" class="w-28"
-                                :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+                            {{ editingExisting ? 'Wijzig afspraak' : 'Nieuwe afspraak' }}
+                        </h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Plan een bezoek of geplande afspraak
+                            in.</p>
                     </div>
+                    <button @click="closeModal"
+                        class="flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors ml-4">
+                        <XMarkIcon class="h-5 w-5" />
+                    </button>
                 </div>
 
-                <!-- Type / Status -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <TagIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Type afspraak</span>
-                        </div>
-                        <ComboBox v-model="form.event_type_id" :options="eventTypes" class="w-full"
-                            :initial-id="form.event_type_id"
-                            :hasError="Boolean(form.errors.event_type_id)"
-                            :errorMessage="form.errors.event_type_id" />
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <CheckCircleIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</span>
-                        </div>
-                        <ComboBox v-model="form.status" :options="eventStatusses" class="w-full"
-                            :initial-id="initialStatusId" :emitValue="true"
-                            :hasError="Boolean(form.errors.status)"
-                            :errorMessage="form.errors.status" />
-                    </div>
-                </div>
+                <!-- Scrollable body -->
+                <div class="px-6 pb-2 max-h-[70vh] overflow-y-auto space-y-5">
 
-                <!-- Voorlopig -->
-                <div class="flex items-center gap-3 py-1">
-                    <input
-                        id="is_preliminary"
-                        type="checkbox"
-                        v-model="form.is_preliminary"
-                        class="h-4 w-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer"
-                    />
-                    <label for="is_preliminary" class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                        <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />
-                        Voorlopig
-                    </label>
-                </div>
-
-                <!-- Titel / Klant -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <DocumentTextIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                    <!-- Start / Einde -->
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Start</span>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Titel</span>
+                            <div class="flex gap-2">
+                                <TextInput v-model="form.start_date" label="" type="date" class="flex-1"
+                                    :has-error="Boolean(form.errors.start)" />
+                                <TextInput v-model="form.start_time" label="" type="time" class="w-28"
+                                    :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
+                            </div>
                         </div>
-                        <TextInput v-model="form.name" label="" type="text" class="w-full"
-                            placeholder="Bijv. Onderhoud airco unit" />
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <UserIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Einde</span>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Klant</span>
+                            <div class="flex gap-2">
+                                <TextInput v-model="form.end_date" label="" type="date" class="flex-1"
+                                    :has-error="Boolean(form.errors.end)" />
+                                <TextInput v-model="form.end_time" label="" type="time" class="w-28"
+                                    :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
+                            </div>
                         </div>
-                        <ComboBox v-model="selectedCustomer" :options="customerOptions" class="w-full"
-                            :initial-id="form.customer_id || customerOptions[0]?.id"
-                            :has-external-searching="customersUseAjax"
-                            :searching="customerSearching"
-                            placeholder="Zoek klant..."
-                            @change="searchCustomers" />
                     </div>
-                </div>
 
-                <!-- Werkbon / Locatie -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Type / Status -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <TagIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Type
+                                    afspraak</span>
+                            </div>
+                            <ComboBox v-model="form.event_type_id" :options="eventTypes" class="w-full"
+                                :initial-id="form.event_type_id" :hasError="Boolean(form.errors.event_type_id)"
+                                :errorMessage="form.errors.event_type_id" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <CheckCircleIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</span>
+                            </div>
+                            <ComboBox v-model="form.status" :options="eventStatusses" class="w-full"
+                                :initial-id="initialStatusId" :emitValue="true" :hasError="Boolean(form.errors.status)"
+                                :errorMessage="form.errors.status" />
+                        </div>
+                    </div>
+
+                    <!-- Titel / Klant -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <DocumentTextIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Titel</span>
+                            </div>
+                            <TextInput v-model="form.name" label="" type="text" class="w-full"
+                                placeholder="Bijv. Onderhoud airco unit" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <UserIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Klant</span>
+                            </div>
+                            <ComboBox v-model="selectedCustomer" :options="customerOptions" class="w-full"
+                                :initial-id="form.customer_id || customerOptions[0]?.id"
+                                :has-external-searching="customersUseAjax" :searching="customerSearching"
+                                placeholder="Zoek klant..." @change="searchCustomers" />
+                        </div>
+                    </div>
+
+                    <!-- Werkbon / Locatie -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <DocumentIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                    Werkbon
+                                    <span class="font-normal text-gray-400 dark:text-gray-500">(optioneel)</span>
+                                </span>
+                            </div>
+                            <ComboBox v-if="!form.create_service_order" v-model="form.eventable_id"
+                                :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
+                                placeholder="Zoek werkbon..." :hasError="Boolean(form.errors.eventable_id)"
+                                :errorMessage="form.errors.eventable_id" />
+                            <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                                Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
+                            </p>
+                            <label v-if="!editingExisting" class="flex items-center gap-2 mt-2 select-none"
+                                :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
+                                <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
+                                    class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
+                                    aan</span>
+                            </label>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <BuildingOffice2Icon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Locatie</span>
+                            </div>
+                            <TextInput v-model="form.location" label="" type="text" class="w-full"
+                                placeholder="Zoek locatie..." />
+                        </div>
+                    </div>
+
+                    <!-- Omschrijving -->
                     <div>
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <DocumentIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                            <div
+                                class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                <Bars3BottomLeftIcon class="h-3.5 w-3.5 text-lavoro-blue" />
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                Werkbon
-                                <span class="font-normal text-gray-400 dark:text-gray-500">(optioneel)</span>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Omschrijving</span>
+                        </div>
+                        <div class="relative">
+                            <textarea v-model="form.description" rows="4" maxlength="500"
+                                class="w-full ring-1 ring-inset ring-gray-300 dark:ring-slate-500 bg-white dark:bg-slate-900 dark:text-white rounded-xl p-3 pb-6 text-sm text-gray-900 placeholder-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-lavoro-blue resize-none"
+                                placeholder="Voeg een omschrijving toe aan de afspraak..."></textarea>
+                            <span
+                                class="absolute bottom-2.5 right-3 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
+                                {{ (form.description || '').length }}/500
                             </span>
                         </div>
-                        <ComboBox v-if="!form.create_service_order" v-model="form.eventable_id"
-                            :options="internalServiceOrders" class="w-full"
-                            :initial-id="form.eventable_id"
-                            placeholder="Zoek werkbon..."
-                            :hasError="Boolean(form.errors.eventable_id)"
-                            :errorMessage="form.errors.eventable_id" />
-                        <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
-                            Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
-                        </p>
-                        <label v-if="!editingExisting"
-                            class="flex items-center gap-2 mt-2 select-none"
-                            :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
-                            <input
-                                type="checkbox"
-                                v-model="form.create_service_order"
-                                :disabled="!selectedCustomer"
-                                class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon aan</span>
-                        </label>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <BuildingOffice2Icon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Locatie</span>
-                        </div>
-                        <TextInput v-model="form.location" label="" type="text" class="w-full"
-                            placeholder="Zoek locatie..." />
-                    </div>
-                </div>
-
-                <!-- Omschrijving -->
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                            <Bars3BottomLeftIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                        </div>
-                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Omschrijving</span>
-                    </div>
-                    <div class="relative">
-                        <textarea v-model="form.description" rows="4" maxlength="500"
-                            class="w-full ring-1 ring-inset ring-gray-300 dark:ring-slate-500 bg-white dark:bg-slate-900 dark:text-white rounded-xl p-3 pb-6 text-sm text-gray-900 placeholder-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-lavoro-blue resize-none"
-                            placeholder="Voeg een omschrijving toe aan de afspraak..."></textarea>
-                        <span class="absolute bottom-2.5 right-3 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
-                            {{ (form.description || '').length }}/500
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Uitvoerende gebruikers -->
-                <div class="pb-2">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <UsersIcon class="h-3.5 w-3.5 text-lavoro-blue" />
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Uitvoerende gebruikers</span>
-                        </div>
-                        <button @click="showUserSelector = !showUserSelector"
-                            class="text-sm text-lavoro-blue font-medium hover:underline flex items-center gap-1">
-                            <PlusIcon class="h-4 w-4" />
-                            Gebruiker toevoegen
-                        </button>
                     </div>
 
-                    <!-- Selected user pills -->
-                    <div v-if="selectedUsers.length" class="flex flex-wrap gap-2 mb-3">
-                        <div v-for="user in selectedUsers" :key="user.id"
-                            class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full pl-1 pr-2.5 py-1">
-                            <img v-if="user.avatar" :src="user.avatar"
-                                class="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                            <div v-else
-                                class="w-7 h-7 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                {{ initials(user.name) }}
+                    <!-- Uitvoerende gebruikers -->
+                    <div class="pb-2">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                    <UsersIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Uitvoerende
+                                    gebruikers</span>
                             </div>
-                            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ user.name }}</span>
-                            <button @click="removeUser(user.id)"
-                                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-0.5 transition-colors">
-                                <XMarkIcon class="h-3.5 w-3.5" />
+                            <button @click="showUserSelector = !showUserSelector"
+                                class="text-sm text-lavoro-blue font-medium hover:underline flex items-center gap-1">
+                                <PlusIcon class="h-4 w-4" />
+                                Gebruiker toevoegen
                             </button>
                         </div>
+
+                        <!-- Selected user pills -->
+                        <div v-if="selectedUsers.length" class="flex flex-wrap gap-2 mb-3">
+                            <div v-for="user in selectedUsers" :key="user.id"
+                                class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full pl-1 pr-2.5 py-1">
+                                <img v-if="user.avatar" :src="user.avatar"
+                                    class="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                                <div v-else
+                                    class="w-7 h-7 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                    {{ initials(user.name) }}
+                                </div>
+                                <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ user.name
+                                }}</span>
+                                <button @click="removeUser(user.id)"
+                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-0.5 transition-colors">
+                                    <XMarkIcon class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- User selector -->
+                        <Transition enter-active-class="transition-all duration-150 ease-out"
+                            enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
+                            leave-active-class="transition-all duration-100 ease-in"
+                            leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1">
+                            <ComboBox v-if="showUserSelector" v-model="userToAdd" :options="availableUsers"
+                                class="w-full" placeholder="Zoek gebruiker..." @update:modelValue="onUserSelected" />
+                        </Transition>
                     </div>
 
-                    <!-- User selector -->
-                    <Transition enter-active-class="transition-all duration-150 ease-out"
-                        enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition-all duration-100 ease-in"
-                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1">
-                        <ComboBox v-if="showUserSelector" v-model="userToAdd" :options="availableUsers"
-                            class="w-full" placeholder="Zoek gebruiker..."
-                            @update:modelValue="onUserSelected" />
-                    </Transition>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                    <button @click="closeModal"
+                        class="px-6 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        Annuleren
+                    </button>
+
+                    <div class="flex gap-x-4">
+                        <!-- Voorlopig -->
+                        <div class="flex items-center gap-3 py-1">
+                            <input id="is_preliminary" type="checkbox" v-model="form.is_preliminary"
+                                class="h-4 w-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                            <label for="is_preliminary"
+                                class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                                <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />
+                                Voorlopig
+                            </label>
+                        </div>
+                        <button @click="save"
+                            class="px-6 py-2.5 bg-lavoro-blue rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors flex items-center gap-2">
+                            <CheckIcon class="h-4 w-4" />
+                            Opslaan
+                        </button>
+                    </div>
                 </div>
 
             </div>
-
-            <!-- Footer -->
-            <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-                <button @click="closeModal"
-                    class="px-6 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    Annuleren
-                </button>
-                <button @click="save"
-                    class="px-6 py-2.5 bg-lavoro-blue rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors flex items-center gap-2">
-                    <CheckIcon class="h-4 w-4" />
-                    Opslaan
-                </button>
-            </div>
-
         </div>
-    </div>
     </Teleport>
 </template>
 
