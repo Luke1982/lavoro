@@ -32,11 +32,13 @@ public class AppConfigPlugin extends Plugin {
             call.reject("url is required");
             return;
         }
+        // commit() (synchronous) — apply() can lose the write because restart()
+        // kills the process before the async flush reaches disk.
         getContext()
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(URL_KEY, url)
-            .apply();
+            .commit();
         call.resolve();
         restart();
     }
@@ -47,7 +49,7 @@ public class AppConfigPlugin extends Plugin {
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(URL_KEY)
-            .apply();
+            .commit();
         getContext().stopService(new Intent(getContext(), LocationForegroundService.class));
         call.resolve();
         restart();
