@@ -11,6 +11,8 @@ use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
 use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
+use App\Models\User;
+use App\Notifications\NewServiceOrderAssigned;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -88,11 +90,15 @@ class EventApiController extends Controller
 
             $executing_user_ids = $request['executing_user_ids'] ?? [];
             if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
-                $event->syncExecutingUsers(array_map('intval', $executing_user_ids));
-                $model->syncExecutingUsers(array_map('intval', $executing_user_ids));
-                $model->serviceJobs()->each(function ($job) use ($executing_user_ids) {
-                    $job->syncExecutingUsers(array_map('intval', $executing_user_ids));
-                });
+                $ids = array_map('intval', $executing_user_ids);
+                $event->syncExecutingUsers($ids);
+                $model->syncExecutingUsers($ids);
+                $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+
+                if ($model instanceof ServiceOrder) {
+                    User::whereIn('id', $ids)->get()
+                        ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                }
             }
 
             return $event;
@@ -146,15 +152,18 @@ class EventApiController extends Controller
                     ));
                 if ($model) {
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(function ($job) use ($ids) {
-                        $job->syncExecutingUsers($ids);
-                    });
+                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+
+                    if ($model instanceof ServiceOrder) {
+                        User::whereIn('id', $ids)->get()
+                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                    }
                 } else {
                     $event->serviceOrders->each(function ($order) use ($ids) {
                         $order->syncExecutingUsers($ids);
-                        $order->serviceJobs()->each(function ($job) use ($ids) {
-                            $job->syncExecutingUsers($ids);
-                        });
+                        $order->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+                        User::whereIn('id', $ids)->get()
+                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($order)));
                     });
                 }
             }
