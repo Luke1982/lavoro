@@ -14,6 +14,7 @@
                     :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
                     :projects="projects" :groups="planGroupsRef" :default-planner-minutes="props.defaultPlannerMinutes"
+                    :latest-pings="props.latestPings"
                     @service-order-planned="onServiceOrderPlanned" @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
@@ -25,9 +26,6 @@
                 @group-created="onGroupCreated" @group-updated="onGroupUpdated" @group-deleted="onGroupDeleted"
                 @group-reordered="onGroupReordered" @user-assigned="onUserAssigned" @user-unassigned="onUserUnassigned"
                 @plannable-toggled="onPlannableToggled" />
-            <BoxComponent v-if="canPlan" padding="p-0 mt-3">
-                <TechnicianMap />
-            </BoxComponent>
         </div>
     </div>
 </template>
@@ -42,7 +40,6 @@ import PlanGroupsWidget from '@/Components/Planner/PlanGroupsWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
 import { hasPermission } from '@/Utilities/Utilities'
-import TechnicianMap from '../Admin/TechnicianMap.vue'
 
 const props = defineProps({
     eventTypes: { type: Array, required: true },
@@ -57,6 +54,7 @@ const props = defineProps({
     defaultPlannerMinutes: { type: Number, default: 120 },
     planGroups: { type: Array, default: () => [] },
     allPlanUsers: { type: Array, default: () => [] },
+    latestPings: { type: Object, default: () => ({}) },
 })
 
 const page = usePage()

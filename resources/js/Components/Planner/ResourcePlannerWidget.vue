@@ -114,7 +114,7 @@
                     </div>
                     <div v-for="(user, idx) in visibleUsers" :key="user.id"
                         :style="{ height: rowHeightFor(user.id) + 'px' }"
-                        class="relative flex items-center gap-2 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out"
+                        class="relative flex flex-col justify-center gap-1 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
                         :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
                         <button
                             class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
@@ -123,17 +123,21 @@
                             <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
                             <ChevronRightIcon v-else class="size-4" />
                         </button>
-                        <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
-                            :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
-                            <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
-                                :alt="user.name" />
-                            <span v-else>{{ initials(user.name) }}</span>
+                        <div class="flex items-center gap-2">
+                            <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
+                                :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
+                                <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
+                                    :alt="user.name" />
+                                <span v-else>{{ initials(user.name) }}</span>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-semibold truncate">{{ user.name }}</div>
+                                <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">
+                                    {{ userHoursLabel(user.id) }}</div>
+                            </div>
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-sm font-semibold truncate">{{ user.name }}</div>
-                            <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">
-                                {{
-                                    userHoursLabel(user.id) }}</div>
+                        <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]" style="height: 68px">
+                            <TechnicianMiniMap :lat="latestPings[user.id].lat" :lng="latestPings[user.id].lng" />
                         </div>
                     </div>
                     <div v-if="visibleUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
@@ -312,6 +316,7 @@ import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
+import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({
@@ -337,6 +342,8 @@ const props = defineProps({
     defaultPlannerMinutes: { type: Number, default: 120 },
     /** Plan groups for sorting and color bars */
     groups: { type: Array, default: () => [] },
+    /** Latest location ping per user_id, keyed by user_id */
+    latestPings: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])

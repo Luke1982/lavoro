@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Models\GeneralSetting;
+use App\Models\LocationPing;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
@@ -91,6 +92,16 @@ class PlannerController extends Controller
                 ]),
             'planGroups' => $plan_groups,
             'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'latestPings' => LocationPing::query()
+                ->whereIn('id', function ($sub) {
+                    $sub->selectRaw('MAX(id)')
+                        ->from('location_pings')
+                        ->where('recorded_at', '>=', now()->subHours(8))
+                        ->groupBy('user_id');
+                })
+                ->get(['id', 'user_id', 'lat', 'lng'])
+                ->keyBy('user_id')
+                ->map(fn ($p) => ['lat' => $p->lat, 'lng' => $p->lng]),
         ]);
     }
 }
