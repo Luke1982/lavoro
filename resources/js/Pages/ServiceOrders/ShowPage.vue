@@ -390,7 +390,8 @@
                         </BoxComponent>
                     </template>
                     <template #sidebar>
-                        <BoxComponent v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')" class="mb-4">
+                        <BoxComponent v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"
+                            class="mb-4">
                             <div class="flex items-center justify-between mb-3">
                                 <span class="text-sm text-gray-500 dark:text-slate-400">Status verzending</span>
                                 <span class="px-2 py-0.5 text-xs rounded border"
@@ -438,7 +439,8 @@
 
             <template v-if="canExport" v-slot:[exportSlot]>
                 <OneThirdTwoThirds
-                    v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf'])">
+                    v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf'])"
+                    class="mt-5 sm:mt-0">
                     <template #narrow>
                         <BoxComponent>
                             <div class="flex flex-col gap-1.5">
@@ -489,8 +491,8 @@
                                     class="mb-3 rounded-md overflow-hidden border border-gray-200 dark:border-slate-600">
                                     <iframe :src="selectedExportItem.type === 'werkbon'
                                         ? `/serviceorders/${serviceOrder.id}/export/pdf`
-                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`"
-                                        class="w-full h-[600px]" frameborder="0" />
+                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`" class="w-full h-[600px]"
+                                        frameborder="0" />
                                 </div>
                                 <div class="flex gap-2">
                                     <a :href="selectedExportItem.type === 'werkbon'

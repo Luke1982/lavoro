@@ -6,6 +6,7 @@ use App\Http\Requests\EventReadRequest;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\GeneralSetting;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
@@ -89,6 +90,7 @@ class PlannerController extends Controller
                     'plan_group_id' => $u->user_plan_group_id,
                 ]),
             'planGroups' => $plan_groups,
+            'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
         ]);
     }
 }

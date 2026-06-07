@@ -63,7 +63,11 @@ class EventPayloadBuilder
             $parts[] = $event->description;
         }
 
-        $parts[] = '— Bekijk in Lavoro: ' . url('/events/' . $event->id);
+        $service_order = $event->serviceOrders->first();
+        $link = $service_order
+            ? url('/serviceorders/' . $service_order->id)
+            : url('/events/' . $event->id);
+        $parts[] = '— Bekijk in Lavoro: ' . $link;
 
         return implode("\n\n", $parts);
     }

@@ -45,4 +45,7 @@ php artisan route:clear
 php artisan view:clear
 php artisan cache:clear
 
+echo "==> Restarting queue workers..."
+php artisan queue:restart
+
 echo "==> Done."
