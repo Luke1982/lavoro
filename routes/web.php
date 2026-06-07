@@ -79,10 +79,12 @@ Route::group(
         Route::post('products/{product}/suppliers', [\App\Http\Controllers\ProductSupplierController::class, 'store'])
             ->name('products.suppliers.store');
         Route::patch('products/{product}/suppliers/{supplier}', [
-            \App\Http\Controllers\ProductSupplierController::class, 'update',
+            \App\Http\Controllers\ProductSupplierController::class,
+            'update',
         ])->name('products.suppliers.update');
         Route::delete('products/{product}/suppliers/{supplier}', [
-            \App\Http\Controllers\ProductSupplierController::class, 'destroy',
+            \App\Http\Controllers\ProductSupplierController::class,
+            'destroy',
         ])->name('products.suppliers.destroy');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
@@ -115,13 +117,16 @@ Route::group(
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);
         Route::post('materials/{material}/suppliers', [
-            \App\Http\Controllers\MaterialSupplierController::class, 'store',
+            \App\Http\Controllers\MaterialSupplierController::class,
+            'store',
         ])->name('materials.suppliers.store');
         Route::patch('materials/{material}/suppliers/{supplier}', [
-            \App\Http\Controllers\MaterialSupplierController::class, 'update',
+            \App\Http\Controllers\MaterialSupplierController::class,
+            'update',
         ])->name('materials.suppliers.update');
         Route::delete('materials/{material}/suppliers/{supplier}', [
-            \App\Http\Controllers\MaterialSupplierController::class, 'destroy',
+            \App\Http\Controllers\MaterialSupplierController::class,
+            'destroy',
         ])->name('materials.suppliers.destroy');
         Route::resource('materialcategories', MaterialCategoryController::class)
             ->except(['show', 'edit', 'create']);
@@ -245,8 +250,7 @@ Route::group(
             ->name('technical-management.index');
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
             ->name('technical-management.sendTestMail');
-        Route::get('admin/technician-map', [\App\Http\Controllers\TechnicianLocationController::class, 'index'])
-            ->name('admin.technician-map');
+
 
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])

@@ -1,50 +1,33 @@
 <template>
     <!-- Mobile (below md) -->
     <div class="md:hidden h-screen overflow-hidden">
-        <MobilePlannerView
-            :event-types="eventTypes"
-            :all-customers="allCustomers"
-            :customers-use-ajax="customersUseAjax"
-            :all-service-orders="allServiceOrders"
-            :event-statusses="eventStatusses"
-            :all-users="allUsers"
-            :plannable-users="plannableUsersRef" />
+        <MobilePlannerView :event-types="eventTypes" :all-customers="allCustomers"
+            :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
+            :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef" />
     </div>
 
     <!-- Desktop (md and up) -->
     <div class="hidden md:grid grid-cols-12 gap-x-3 p-3">
         <div :class="showSidebar ? 'col-span-10' : 'col-span-12'">
             <BoxComponent padding="p-0">
-                <ResourcePlannerWidget
-                    :event-types="eventTypes"
-                    :all-customers="allCustomers"
-                    :customers-use-ajax="customersUseAjax"
-                    :all-service-orders="allServiceOrders"
-                    :event-statusses="eventStatusses"
-                    :all-users="allUsers"
-                    :plannable-users="plannableUsersRef"
-                    :projects="projects"
-                    :groups="planGroupsRef"
-                    :default-planner-minutes="props.defaultPlannerMinutes"
-                    @service-order-planned="onServiceOrderPlanned"
-                    @service-order-unplanned="onServiceOrderUnplanned" />
+                <ResourcePlannerWidget :event-types="eventTypes" :all-customers="allCustomers"
+                    :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
+                    :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
+                    :projects="projects" :groups="planGroupsRef" :default-planner-minutes="props.defaultPlannerMinutes"
+                    @service-order-planned="onServiceOrderPlanned" @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
         <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3">
             <BoxComponent v-if="canPlan" padding="p-0">
                 <UnplannedServiceOrdersWidget :service-orders="unplanned" />
             </BoxComponent>
-            <PlanGroupsWidget
-                v-if="canManageGroups"
-                :plan-groups="planGroupsRef"
-                :all-users="allPlanUsersRef"
-                @group-created="onGroupCreated"
-                @group-updated="onGroupUpdated"
-                @group-deleted="onGroupDeleted"
-                @group-reordered="onGroupReordered"
-                @user-assigned="onUserAssigned"
-                @user-unassigned="onUserUnassigned"
+            <PlanGroupsWidget v-if="canManageGroups" :plan-groups="planGroupsRef" :all-users="allPlanUsersRef"
+                @group-created="onGroupCreated" @group-updated="onGroupUpdated" @group-deleted="onGroupDeleted"
+                @group-reordered="onGroupReordered" @user-assigned="onUserAssigned" @user-unassigned="onUserUnassigned"
                 @plannable-toggled="onPlannableToggled" />
+            <BoxComponent v-if="canPlan" padding="p-0 mt-3">
+                <TechnicianMap />
+            </BoxComponent>
         </div>
     </div>
 </template>
@@ -59,31 +42,32 @@ import PlanGroupsWidget from '@/Components/Planner/PlanGroupsWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
 import { hasPermission } from '@/Utilities/Utilities'
+import TechnicianMap from '../Admin/TechnicianMap.vue'
 
 const props = defineProps({
-    eventTypes:             { type: Array, required: true },
-    allCustomers:           { type: Array, required: true },
-    customersUseAjax:       { type: Boolean, default: false },
-    allServiceOrders:       { type: Array, required: true },
-    eventStatusses:         { type: Array, required: true },
-    allUsers:               { type: Array, required: true },
-    plannableUsers:         { type: Array, required: true },
+    eventTypes: { type: Array, required: true },
+    allCustomers: { type: Array, required: true },
+    customersUseAjax: { type: Boolean, default: false },
+    allServiceOrders: { type: Array, required: true },
+    eventStatusses: { type: Array, required: true },
+    allUsers: { type: Array, required: true },
+    plannableUsers: { type: Array, required: true },
     unplannedServiceOrders: { type: Array, default: () => [] },
-    projects:               { type: Array, default: () => [] },
-    defaultPlannerMinutes:  { type: Number, default: 120 },
-    planGroups:             { type: Array, default: () => [] },
-    allPlanUsers:           { type: Array, default: () => [] },
+    projects: { type: Array, default: () => [] },
+    defaultPlannerMinutes: { type: Number, default: 120 },
+    planGroups: { type: Array, default: () => [] },
+    allPlanUsers: { type: Array, default: () => [] },
 })
 
 const page = usePage()
 
-const planGroupsRef     = ref(props.planGroups)
+const planGroupsRef = ref(props.planGroups)
 const plannableUsersRef = ref(props.plannableUsers)
-const allPlanUsersRef   = ref(props.allPlanUsers)
+const allPlanUsersRef = ref(props.allPlanUsers)
 
-const canPlan         = computed(() => hasPermission('serviceorder.plan'))
+const canPlan = computed(() => hasPermission('serviceorder.plan'))
 const canManageGroups = computed(() => hasPermission('event.see_all') || hasPermission('event.create_others'))
-const showSidebar     = computed(() => canPlan.value || canManageGroups.value)
+const showSidebar = computed(() => canPlan.value || canManageGroups.value)
 
 const plannedIds = ref(new Set())
 
@@ -98,7 +82,7 @@ const projects = computed(() =>
     }))
 )
 
-function onServiceOrderPlanned(id)   { plannedIds.value = new Set(plannedIds.value).add(id) }
+function onServiceOrderPlanned(id) { plannedIds.value = new Set(plannedIds.value).add(id) }
 function onServiceOrderUnplanned(id) { const s = new Set(plannedIds.value); s.delete(id); plannedIds.value = s }
 
 async function onGroupCreated(data) {
@@ -127,8 +111,8 @@ async function onGroupUpdated(id, patch) {
 
 async function onGroupDeleted(id) {
     const originalGroups = [...planGroupsRef.value]
-    planGroupsRef.value   = planGroupsRef.value.filter(g => g.id !== id)
-    allPlanUsersRef.value   = allPlanUsersRef.value.map(u => u.plan_group_id === id ? { ...u, plan_group_id: null } : u)
+    planGroupsRef.value = planGroupsRef.value.filter(g => g.id !== id)
+    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.plan_group_id === id ? { ...u, plan_group_id: null } : u)
     plannableUsersRef.value = plannableUsersRef.value.map(u => u.plan_group_id === id ? { ...u, plan_group_id: null } : u)
     try {
         await axios.get('sanctum/csrf-cookie')
@@ -153,13 +137,13 @@ async function onGroupReordered(ids) {
 }
 
 async function onUserAssigned(groupId, userId) {
-    const oldGroup    = planGroupsRef.value.find(g => g.user_ids.includes(userId))
+    const oldGroup = planGroupsRef.value.find(g => g.user_ids.includes(userId))
     const targetGroup = planGroupsRef.value.find(g => g.id === groupId)
     if (!targetGroup) return
 
     if (oldGroup) oldGroup.user_ids = oldGroup.user_ids.filter(id => id !== userId)
     targetGroup.user_ids = [...targetGroup.user_ids, userId]
-    allPlanUsersRef.value   = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: groupId } : u)
+    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: groupId } : u)
     plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: groupId } : u)
 
     try {
@@ -169,7 +153,7 @@ async function onUserAssigned(groupId, userId) {
         if (oldGroup) oldGroup.user_ids = [...oldGroup.user_ids, userId]
         targetGroup.user_ids = targetGroup.user_ids.filter(id => id !== userId)
         const prev = oldGroup?.id ?? null
-        allPlanUsersRef.value   = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: prev } : u)
+        allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: prev } : u)
         plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: prev } : u)
         page.props.flash.error = e.response?.data?.message || 'Kon monteur niet toewijzen'
     }
@@ -180,7 +164,7 @@ async function onUserUnassigned(userId) {
     if (!oldGroup) return
 
     oldGroup.user_ids = oldGroup.user_ids.filter(id => id !== userId)
-    allPlanUsersRef.value   = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: null } : u)
+    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: null } : u)
     plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: null } : u)
 
     try {
@@ -188,7 +172,7 @@ async function onUserUnassigned(userId) {
         await axios.delete(`/api/plan-groups/${oldGroup.id}/users/${userId}`)
     } catch (e) {
         oldGroup.user_ids = [...oldGroup.user_ids, userId]
-        allPlanUsersRef.value   = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: oldGroup.id } : u)
+        allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: oldGroup.id } : u)
         plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: oldGroup.id } : u)
         page.props.flash.error = e.response?.data?.message || 'Kon monteur niet uit groep halen'
     }

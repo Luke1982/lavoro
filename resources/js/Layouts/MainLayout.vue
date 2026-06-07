@@ -174,8 +174,7 @@
             </Dialog>
         </TransitionRoot>
 
-        <div
-            class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
+        <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
             :style="{ width: desktopCollapsed ? '0px' : '18rem', transition: 'width 300ms ease-in-out' }">
             <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6">
                 <div class="flex shrink-0 flex-col items-start">
@@ -312,8 +311,7 @@
             class="hidden lg:flex fixed z-[60] top-6 items-center justify-center w-6 h-6 rounded-full bg-white text-gray-500 hover:text-gray-900 shadow-md border border-gray-200"
             :style="{ left: desktopCollapsed ? '8px' : 'calc(18rem - 12px)', transition: 'left 300ms ease-in-out' }"
             @click="toggleDesktopSidebar">
-            <ChevronLeftIcon
-                class="size-3.5 transition-transform duration-300"
+            <ChevronLeftIcon class="size-3.5 transition-transform duration-300"
                 :class="desktopCollapsed ? 'rotate-180' : ''" />
         </button>
 
@@ -384,7 +382,6 @@ import {
     TagIcon,
     DocumentTextIcon,
     Bars4Icon,
-    MapPinIcon,
 } from '@heroicons/vue/24/outline'
 import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
@@ -408,7 +405,7 @@ const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
 
 onMounted(async () => {
-    try { await init_network() } catch {}
+    try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
         try {
             await start_tracking()
@@ -527,7 +524,6 @@ const navigation = ref([
     },
     { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },
     { name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read' },
-    { name: 'Technicikaart', href: '/admin/technician-map', icon: MapPinIcon, current: false, adminOnly: true },
 ])
 
 const canSeeNavItem = (item) => {
