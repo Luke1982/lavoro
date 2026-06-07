@@ -402,7 +402,7 @@ const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
 
 onMounted(async () => {
-    await init_network()
+    try { await init_network() } catch {}
     if (is_native && page.props.auth?.user) {
         try {
             await start_tracking()
