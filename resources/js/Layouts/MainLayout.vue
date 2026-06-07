@@ -396,6 +396,12 @@ import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
 
+// Push requires a configured Firebase project (google-services.json on
+// Android). Without it, the native PushNotifications.register() throws an
+// uncatchable native fatal exception and crashes the app. Flip to true
+// only after Firebase is set up.
+const PUSH_ENABLED = false
+
 const { is_native } = useCapacitor()
 const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
@@ -409,10 +415,12 @@ onMounted(async () => {
         } catch (e) {
             console.error('GPS tracking failed to start:', e)
         }
-        try {
-            await register_push()
-        } catch (e) {
-            console.error('Push registration failed:', e)
+        if (PUSH_ENABLED) {
+            try {
+                await register_push()
+            } catch (e) {
+                console.error('Push registration failed:', e)
+            }
         }
     }
 })
