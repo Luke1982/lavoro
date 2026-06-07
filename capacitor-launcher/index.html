@@ -186,13 +186,13 @@
         <button onclick="connect()">Verbinden</button>
     </div>
 
-    <div class="footer" id="footer" onclick="handleFooterTap()"></div>
+    <div class="footer" id="footer"></div>
 
     <script>
-        const KEY = 'lavoro_server_url';
-        let tap_count = 0;
-        let tap_timer = null;
-        let redirect_timer = null;
+        // This launcher only renders on first run (or after a reset). Once a
+        // URL is stored, the native MainActivity loads it directly as the app's
+        // server URL — so the Capacitor bridge stays fully wired and all plugins
+        // work. The redirect is done natively, not via window.location.
 
         function normalise(raw) {
             raw = raw.trim().replace(/\/+$/, '');
@@ -207,54 +207,37 @@
             } catch { return false; }
         }
 
-        function show_setup(prefill) {
-            clearTimeout(redirect_timer);
+        function show_setup() {
             document.getElementById('status-screen').style.display = 'none';
-            const s = document.getElementById('setup-screen');
-            s.style.display = 'flex';
-            if (prefill) document.getElementById('url-input').value = prefill;
+            document.getElementById('setup-screen').style.display = 'flex';
             setTimeout(() => document.getElementById('url-input').focus(), 100);
         }
 
-        function connect() {
+        function show_connecting() {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('status-screen').style.display = 'flex';
+        }
+
+        async function connect() {
             const url = normalise(document.getElementById('url-input').value);
             const err = document.getElementById('error-msg');
             if (!is_valid(url)) { err.style.display = 'block'; return; }
             err.style.display = 'none';
-            localStorage.setItem(KEY, url);
-            navigate(url);
-        }
 
-        function navigate(url) {
-            window.location.href = url;
-        }
+            const plugin = window.Capacitor?.Plugins?.AppConfig;
+            if (!plugin) { err.textContent = 'Native bridge niet beschikbaar'; err.style.display = 'block'; return; }
 
-        function handleFooterTap() {
-            tap_count++;
-            clearTimeout(tap_timer);
-            tap_timer = setTimeout(() => { tap_count = 0; }, 1500);
-            if (tap_count >= 3) {
-                tap_count = 0;
-                show_setup(localStorage.getItem(KEY) || '');
-            }
+            show_connecting();
+            // setServerUrl persists the URL natively and restarts the app, which
+            // re-launches MainActivity — now loading the remote site directly.
+            await plugin.setServerUrl({ url });
         }
 
         document.getElementById('url-input').addEventListener('keydown', e => {
             if (e.key === 'Enter') connect();
         });
 
-        // Boot
-        const stored = localStorage.getItem(KEY);
-
-        if (stored) {
-            document.getElementById('status-screen').style.display = 'flex';
-            const footer = document.getElementById('footer');
-            footer.textContent = stored;
-            footer.classList.add('visible');
-            redirect_timer = setTimeout(() => navigate(stored), 800);
-        } else {
-            show_setup(null);
-        }
+        show_setup();
     </script>
 </body>
 </html>

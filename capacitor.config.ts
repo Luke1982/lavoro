@@ -4,10 +4,6 @@ const config: CapacitorConfig = {
   appId: 'nl.lavoro.fsm',
   appName: 'Lavoro',
   webDir: 'capacitor-launcher',
-  server: {
-    url: 'https://spee.lavorofsm.nl',
-    allowNavigation: ['spee.lavorofsm.nl'],
-  },
   plugins: {
     BackgroundGeolocation: {
       backgroundMessage: 'Lavoro volgt uw locatie voor servicebezoeken.',

@@ -2,6 +2,7 @@
 
 use App\Jobs\Google\PullCalendarChangesJob;
 use App\Models\GoogleSyncedCalendar;
+use App\Models\LocationPing;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -21,3 +22,7 @@ Schedule::job(new \App\Jobs\Google\RenewWatchChannelsJob())
     ->hourly()
     ->name('google-renew-watches')
     ->withoutOverlapping();
+
+Schedule::call(function () {
+    LocationPing::where('recorded_at', '<', now()->subDay())->delete();
+})->hourly()->name('prune-location-pings')->withoutOverlapping();

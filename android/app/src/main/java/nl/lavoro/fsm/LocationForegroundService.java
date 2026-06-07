@@ -40,7 +40,7 @@ public class LocationForegroundService extends Service {
     private static final String TAG = "LavoroLocation";
     private static final String CHANNEL_ID = "lavoro_location";
     private static final int NOTIFICATION_ID = 4711;
-    private static final long INTERVAL_MS = 10 * 60 * 1000L;
+    private static final long INTERVAL_MS = 5 * 60 * 1000L;
     private static final String PREFS = "lavoro_location_prefs";
     private static final String QUEUE_KEY = "pending_pings";
     private static final int MAX_QUEUE = 200;
