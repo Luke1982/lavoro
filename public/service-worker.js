@@ -1,4 +1,4 @@
-const CACHE_NAME = "wh-crm-cache-c32eba8"; // bump version
+const CACHE_NAME = "wh-crm-cache-a91f3d2"; // bump version
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
