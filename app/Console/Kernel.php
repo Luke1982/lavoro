@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
         // Nightly sync at 03:00
         $schedule->command('snelstart:fetch-relaties')->dailyAt('03:00')->withoutOverlapping();
         $schedule->command('snelstart:fetch-artikelen')->dailyAt('03:10')->withoutOverlapping();
+        $schedule->job(\App\Jobs\Google\RenewWatchChannelsJob::class)->dailyAt('02:00')->withoutOverlapping();
+        $schedule->job(\App\Jobs\Google\PullAllCalendarChangesJob::class)->everyThreeMinutes()->withoutOverlapping();
     }
 
     /**
