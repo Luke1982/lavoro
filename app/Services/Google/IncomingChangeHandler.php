@@ -156,8 +156,8 @@ class IncomingChangeHandler
             return;
         }
 
-        $start = Carbon::parse($g_event->getStart()->getDateTime() ?? ($g_event->getStart()->getDate() . ' 00:00:00'));
-        $end = Carbon::parse($g_event->getEnd()->getDateTime() ?? ($g_event->getEnd()->getDate() . ' 00:00:00'));
+        $start = $this->parseGoogleDateTime($g_event->getStart())->utc();
+        $end = $this->parseGoogleDateTime($g_event->getEnd())->utc();
 
         $event_type_id = config('google.default_event_type_id');
         if (!$event_type_id) {
@@ -207,8 +207,8 @@ class IncomingChangeHandler
 
     private function detectFieldChanges(Event $event, GoogleEvent $g_event): array
     {
-        $new_start = Carbon::parse($g_event->getStart()->getDateTime() ?? ($g_event->getStart()->getDate() . ' 00:00:00'));
-        $new_end = Carbon::parse($g_event->getEnd()->getDateTime() ?? ($g_event->getEnd()->getDate() . ' 00:00:00'));
+        $new_start = $this->parseGoogleDateTime($g_event->getStart())->utc();
+        $new_end = $this->parseGoogleDateTime($g_event->getEnd())->utc();
         $new_name = $g_event->getSummary();
         $new_description = $g_event->getDescription();
         $new_location = $g_event->getLocation();
@@ -234,6 +234,14 @@ class IncomingChangeHandler
             'etag' => $result->getEtag(),
             'last_pushed_at' => now(),
         ]);
+    }
+
+    private function parseGoogleDateTime(\Google\Service\Calendar\EventDateTime $dt): Carbon
+    {
+        if ($dt->getDateTime()) {
+            return Carbon::parse($dt->getDateTime());
+        }
+        return Carbon::parse($dt->getDate() . 'T00:00:00', 'Europe/Amsterdam');
     }
 
     private function logRevert(Event $event, User $actor, string $kind): void
