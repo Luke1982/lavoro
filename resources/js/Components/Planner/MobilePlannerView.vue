@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+    <div class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
         <!-- Sticky header: week navigation + user switcher -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
             <div class="flex items-center justify-between px-4 py-3">
@@ -68,7 +68,7 @@
                 Geen afspraken deze week
             </div>
 
-            <div v-else class="pb-4">
+            <div v-else class="pb-24">
                 <template v-for="group in groupedByDay" :key="group.dayIso">
                     <!-- Sticky day header -->
                     <div class="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">

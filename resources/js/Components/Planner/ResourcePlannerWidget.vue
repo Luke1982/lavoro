@@ -37,10 +37,10 @@
             </div>
         </div>
 
-        <div class="flex flex-1 min-h-0">
-            <!-- Resource sidebar -->
-            <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 flex flex-col">
-                <div class="border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
+        <div class="flex flex-col flex-1 min-h-0">
+            <!-- Sticky header row: sidebar label + day/time bars -->
+            <div class="sticky top-0 z-20 flex shrink-0 bg-white dark:bg-slate-900">
+                <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
                     <span>Monteurs ({{ visibleUsers.length }})</span>
                     <button v-if="visibleUsers.length" @click="toggleAllRows"
@@ -50,7 +50,36 @@
                         {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto" ref="sidebarScrollRef">
+                <div class="flex-1 overflow-hidden" ref="gridHeaderRef">
+                    <div class="grid border-b border-gray-200 dark:border-slate-800"
+                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
+                        <div v-for="day in weekDays" :key="'dh-' + day.iso"
+                            class="px-3 flex items-center justify-center text-sm font-semibold border-l border-gray-200 dark:border-slate-800 first:border-l-0">
+                            <span class="uppercase">{{ dayLabel(day.date) }}</span>
+                            <span v-if="isToday(day.date)"
+                                class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
+                                {{ String(day.date.getDate()).padStart(2, '0') }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="grid border-b border-gray-200 dark:border-slate-800  dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
+                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: hourHeaderHeight + 'px' }">
+                        <div v-for="day in weekDays" :key="'hh-' + day.iso"
+                            class="grid border-l border-gray-200 dark:border-slate-800 first:border-l-0 relative"
+                            :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
+                            <div v-for="h in hourCount" :key="'hl-' + day.iso + '-' + h"
+                                class="border-l border-gray-100 dark:border-slate-800/70 first:border-l-0 flex items-end pb-1 pl-1">
+                                {{ String(dayStartHour + h - 1).padStart(2, '0') }}:00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrollable body -->
+            <div class="flex flex-1 min-h-0">
+                <!-- Resource sidebar -->
+                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto" ref="sidebarScrollRef">
                     <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                         class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
                         <button
@@ -91,37 +120,10 @@
                         Schakel "Inplanbaar" in op een gebruiker via Gebruikers.
                     </div>
                 </div>
-            </div>
 
-            <!-- Time grid -->
-            <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
-                @dragleave="onGridDragLeave">
-                <!-- Headers (sticky) -->
-                <div class="sticky top-0 z-20  dark:bg-slate-900">
-                    <div class="grid border-b border-gray-200 dark:border-slate-800"
-                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
-                        <div v-for="day in weekDays" :key="'dh-' + day.iso"
-                            class="px-3 flex items-center justify-center text-sm font-semibold border-l border-gray-200 dark:border-slate-800 first:border-l-0">
-                            <span class="uppercase">{{ dayLabel(day.date) }}</span>
-                            <span v-if="isToday(day.date)"
-                                class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
-                                {{ String(day.date.getDate()).padStart(2, '0') }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="grid border-b border-gray-200 dark:border-slate-800  dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
-                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: hourHeaderHeight + 'px' }">
-                        <div v-for="day in weekDays" :key="'hh-' + day.iso"
-                            class="grid border-l border-gray-200 dark:border-slate-800 first:border-l-0 relative"
-                            :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
-                            <div v-for="h in hourCount" :key="'hl-' + day.iso + '-' + h"
-                                class="border-l border-gray-100 dark:border-slate-800/70 first:border-l-0 flex items-end pb-1 pl-1">
-                                {{ String(dayStartHour + h - 1).padStart(2, '0') }}:00
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- Time grid -->
+                <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
+                    @dragleave="onGridDragLeave">
                 <!-- Body rows -->
                 <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                     <!-- All-day project band -->
@@ -263,6 +265,7 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
 
         <!-- Create/edit modal -->
@@ -341,6 +344,7 @@ const weekStart = ref(startOfWeek(new Date()))
 
 const sidebarScrollRef = ref(null)
 const gridScrollRef = ref(null)
+const gridHeaderRef = ref(null)
 const bodyRef = ref(null)
 
 const modalOpen = ref(false)
@@ -607,8 +611,8 @@ function scrollToWorkdayStart() {
 }
 
 function onGridScroll(e) {
-    if (!sidebarScrollRef.value) return
-    sidebarScrollRef.value.scrollTop = e.target.scrollTop
+    if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = e.target.scrollTop
+    if (gridHeaderRef.value) gridHeaderRef.value.scrollLeft = e.target.scrollLeft
 }
 
 async function fetchEvents() {

@@ -11,8 +11,12 @@ class EventUpdateRequest extends FormRequest
         $event = $this->route('event');
         $user  = $this->user();
 
-        if (! $user || ! $event) return false;
-        if ($user->isAdmin() || $user->hasPermission('event.update_others')) return true;
+        if (! $user || ! $event) {
+            return false;
+        }
+        if ($user->isAdmin() || $user->hasPermission('event.update_others')) {
+            return true;
+        }
 
         return $user->hasPermission('event.update') && $event->hasExecutingUser($user->id);
     }
@@ -29,7 +33,7 @@ class EventUpdateRequest extends FormRequest
             'location'           => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_preliminary'     => ['sometimes', 'boolean'],
             'eventable_type'     => ['sometimes', 'nullable', 'string', 'in:\\App\\Models\\ServiceOrder'],
-            'eventable_id'       => ['sometimes', 'nullable', 'exists:service_orders,id'],
+            'eventable_id'       => ['sometimes', 'required', 'exists:service_orders,id'],
             'executing_user_ids'   => ['sometimes', 'array', 'min:1'],
             'executing_user_ids.*' => ['exists:users,id'],
         ];

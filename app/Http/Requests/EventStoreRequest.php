@@ -51,4 +51,13 @@ class EventStoreRequest extends FormRequest
             'executing_user_ids.*' => 'exists:users,id',
         ];
     }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (! $this->boolean('create_service_order') && ! $this->filled('eventable_id')) {
+                $validator->errors()->add('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.');
+            }
+        });
+    }
 }

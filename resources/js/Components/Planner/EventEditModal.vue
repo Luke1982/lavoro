@@ -225,6 +225,9 @@
                             <ComboBox v-if="showUserSelector" v-model="userToAdd" :options="availableUsers"
                                 class="w-full" placeholder="Zoek gebruiker..." @update:modelValue="onUserSelected" />
                         </Transition>
+                        <p v-if="form.errors.executing_user_ids" class="text-xs text-red-500 mt-1">
+                            {{ form.errors.executing_user_ids }}
+                        </p>
                     </div>
 
                 </div>
@@ -247,10 +250,10 @@
                                 Voorlopig
                             </label>
                         </div>
-                        <button @click="save"
-                            class="px-6 py-2.5 bg-lavoro-blue rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <button @click="save" :disabled="saving"
+                            class="px-6 py-2.5 bg-lavoro-blue rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <CheckIcon class="h-4 w-4" />
-                            Opslaan
+                            {{ saving ? 'Opslaan...' : 'Opslaan' }}
                         </button>
                     </div>
                 </div>
@@ -289,6 +292,7 @@ const emit = defineEmits(['close', 'saved'])
 const page = usePage()
 
 const visible = ref(false)
+const saving = ref(false)
 const showUserSelector = ref(false)
 const userToAdd = ref(null)
 
@@ -378,16 +382,28 @@ function closeModal() {
 }
 
 async function save() {
-    await axios.get('sanctum/csrf-cookie')
-    const payload = {
-        ...form,
-        start: localToUtcDatetime(form.start_date, form.start_time).slice(0, 16),
-        end: localToUtcDatetime(form.end_date, form.end_time).slice(0, 16),
-        executing_user_ids: form.executing_user_ids,
-        customer_id: selectedCustomer.value,
-        eventable_id: form.create_service_order ? null : (form.eventable_id || null),
+    if (saving.value) return
+
+    if (form.executing_user_ids.length === 0) {
+        form.setError('executing_user_ids', 'Voeg minimaal één uitvoerende gebruiker toe.')
+        return
     }
+    if (!props.editingExisting && !form.create_service_order && !form.eventable_id) {
+        form.setError('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.')
+        return
+    }
+
+    saving.value = true
     try {
+        await axios.get('sanctum/csrf-cookie')
+        const payload = {
+            ...form,
+            start: localToUtcDatetime(form.start_date, form.start_time).slice(0, 16),
+            end: localToUtcDatetime(form.end_date, form.end_time).slice(0, 16),
+            executing_user_ids: form.executing_user_ids,
+            customer_id: selectedCustomer.value,
+            eventable_id: form.create_service_order ? null : (form.eventable_id || null),
+        }
         if (props.editingExisting && form.id) {
             const authId = page.props.auth?.user?.id ?? null
             const canUpdate = hasPermission('event.update_others') ||
@@ -410,6 +426,8 @@ async function save() {
             Object.keys(errs).forEach(k => form.setError(k, Array.isArray(errs[k]) ? errs[k][0] : String(errs[k])))
         }
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet opslaan'
+    } finally {
+        saving.value = false
     }
 }
 
