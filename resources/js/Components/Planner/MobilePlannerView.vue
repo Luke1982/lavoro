@@ -197,9 +197,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
-import axios from 'axios'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -211,7 +210,8 @@ import {
     PlusIcon,
 } from '@heroicons/vue/24/outline'
 import dayjs from '@/Utilities/dayjs'
-import { formatUtcDatetime, hasPermission, initials, nlTime } from '@/Utilities/Utilities'
+import { hasPermission, initials, nlTime } from '@/Utilities/Utilities'
+import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 
@@ -265,48 +265,14 @@ function shiftWeek(direction) {
 
 // ── Event fetching ────────────────────────────────────────────────────────────
 
-const events = ref([])
+const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
+    weekStart,
+    () => modalOpen.value,
+)
 
-async function fetchEvents() {
-    try {
-        await axios.get('sanctum/csrf-cookie')
-        const startParam = formatUtcDatetime(weekStart.value)
-        const endParam   = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
-        const response   = await axios.get(
-            `/api/events?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
-        )
-        if (response.status !== 200) return
-        events.value = response.data.map(ev => {
-            const customer_id = ev.service_orders?.[0]?.customer_id ?? null
-            const customer    = ev.service_orders?.[0]?.customer ?? null
-            return {
-                id:                  ev.id,
-                title:               ev.event_type?.name || ev.name || 'Afspraak',
-                name:                ev.name,
-                description:         ev.description,
-                status:              ev.status,
-                color:               ev.event_type?.color || '#3b82f6',
-                event_type_id:       ev.event_type?.id,
-                start:               new Date(ev.start),
-                end:                 new Date(ev.end),
-                executing_user_ids:  (ev.executing_users || []).map(u => u.id),
-                executing_users:     ev.executing_users || [],
-                eventable_id:        ev.service_orders?.[0]?.id ?? null,
-                eventable_type:      '\\App\\Models\\ServiceOrder',
-                customer_id,
-                customer_name:       customer?.name || null,
-                task_titles:         (ev.service_orders?.[0]?.task_instances || [])
-                                         .map(ti => ti.service_order_task?.title)
-                                         .filter(Boolean),
-            }
-        })
-    } catch (e) {
-        console.error('Failed to fetch events for mobile planner', e)
-    }
-}
-
-onMounted(fetchEvents)
-watch(weekStart, fetchEvents)
+onMounted(() => { fetchEvents(); startPolling() })
+onUnmounted(stopPolling)
+watch(weekStart, () => { resetFingerprint(); fetchEvents() })
 
 // ── User switcher ─────────────────────────────────────────────────────────────
 

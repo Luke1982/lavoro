@@ -308,6 +308,7 @@ import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, Arr
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
+import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
@@ -413,9 +414,13 @@ function loadStoredWeekStart() {
     return startOfWeek(new Date())
 }
 
-const events = ref([])
 const unavailabilities = ref([])
 const weekStart = ref(loadStoredWeekStart())
+
+const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
+    weekStart,
+    () => !!drag.value.mode || modalOpen.value,
+)
 
 const sidebarScrollRef = ref(null)
 const gridScrollRef = ref(null)
@@ -650,14 +655,17 @@ onMounted(() => {
     fetchEvents()
     fetchUnavailabilities()
     nextTick(() => scrollToWorkdayStart())
+    startPolling()
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
+    stopPolling()
 })
 
 watch([dayStartHour, dayEndHour], () => updateNow())
 watch(weekStart, (val) => {
     localStorage.setItem(WEEK_STORAGE_KEY, dayjs(val).format('YYYY-MM-DD'))
+    resetFingerprint()
     fetchEvents()
     fetchUnavailabilities()
 })
@@ -689,42 +697,6 @@ function scrollToWorkdayStart() {
 function onGridScroll(e) {
     if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = e.target.scrollTop
     if (gridHeaderRef.value) gridHeaderRef.value.scrollLeft = e.target.scrollLeft
-}
-
-async function fetchEvents() {
-    try {
-        await axios.get('sanctum/csrf-cookie')
-        const startParam = formatUtcDatetime(weekStart.value)
-        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
-        const response = await axios.get(
-            `/api/events?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
-        )
-        if (response.status !== 200) return
-        events.value = response.data.map(ev => {
-            const customer_id = ev.service_orders?.[0]?.customer_id ?? null
-            return {
-                id: ev.id,
-                title: ev.event_type?.name || ev.name || 'Afspraak',
-                name: ev.name,
-                description: ev.description,
-                status: ev.status,
-                color: ev.event_type?.color || '#3b82f6',
-                event_type_id: ev.event_type?.id,
-                start: new Date(ev.start),
-                end: new Date(ev.end),
-                executing_user_ids: (ev.executing_users || []).map(u => u.id),
-                executing_users: ev.executing_users || [],
-                eventable_id: ev.service_orders?.[0]?.id ?? null,
-                eventable_type: '\\App\\Models\\ServiceOrder',
-                customer_id,
-                customer_name: ev.service_orders?.[0]?.customer?.name || null,
-                is_preliminary: ev.is_preliminary ?? false,
-                from_google: ev.origin === 'google',
-            }
-        })
-    } catch (e) {
-        console.error('Failed to fetch events for planner', e)
-    }
 }
 
 async function fetchUnavailabilities() {
