@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
+use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
 use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
+use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -129,6 +131,19 @@ class EventApiController extends Controller
                 $ids = array_map('intval', $executing_user_ids);
                 $event->syncExecutingUsers($ids);
                 PushEventJob::dispatch($event->id);
+                $still_relevant = array_unique(array_merge(
+                    $event->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
+                    $event->executingUsers()->pluck('users.id')->all(),
+                ));
+                GoogleSyncedEvent::whereHas(
+                    'syncedCalendar',
+                    fn ($q) => $q->whereNotIn('owner_user_id', $still_relevant),
+                )->where('event_id', $event->id)->get()
+                    ->each(fn ($m) => DeleteEventFromGoogleJob::dispatch(
+                        $m->id,
+                        $m->google_synced_calendar_id,
+                        $m->google_event_id,
+                    ));
                 if ($model) {
                     $model->syncExecutingUsers($ids);
                     $model->serviceJobs()->each(function ($job) use ($ids) {

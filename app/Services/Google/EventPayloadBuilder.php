@@ -8,13 +8,51 @@ class EventPayloadBuilder
 {
     public function build(Event $event): array
     {
+        $event->loadMissing(['eventType', 'serviceOrders.customer']);
+
         return [
-            'summary' => $event->name ?? '(geen titel)',
+            'summary' => $this->buildSummary($event),
             'description' => $this->buildDescription($event),
-            'location' => $event->location,
+            'location' => $this->buildLocation($event),
             'start' => $this->buildDateTime($event->start, $event->end, true),
             'end' => $this->buildDateTime($event->start, $event->end, false),
         ];
+    }
+
+    private function buildLocation(Event $event): ?string
+    {
+        $customer = $event->serviceOrders->first()?->customer;
+        if ($customer) {
+            $parts = array_filter([
+                $customer->address,
+                trim($customer->postal_code . ' ' . $customer->city),
+            ]);
+            if ($parts) {
+                return implode(', ', $parts);
+            }
+        }
+
+        return $event->location ?: null;
+    }
+
+    private function buildSummary(Event $event): string
+    {
+        $type = $event->eventType?->name;
+        $service_order = $event->serviceOrders->first();
+        $customer_name = $service_order?->customer?->name;
+        $order_id = $service_order?->id;
+
+        $parts = [$type ?? $event->name ?? '(geen titel)'];
+
+        if ($customer_name) {
+            $parts[] = 'bij ' . $customer_name;
+        }
+
+        if ($order_id) {
+            $parts[] = 'op werkbon ' . $order_id;
+        }
+
+        return implode(' ', $parts);
     }
 
     private function buildDescription(Event $event): string
@@ -25,20 +63,7 @@ class EventPayloadBuilder
             $parts[] = $event->description;
         }
 
-        $event->loadMissing('serviceOrders.customer');
-        foreach ($event->serviceOrders as $service_order) {
-            $line = 'Service order #' . $service_order->id;
-            if ($service_order->customer) {
-                $line .= ' — ' . $service_order->customer->name;
-            }
-            if (!empty($service_order->description)) {
-                $line .= "\n" . $service_order->description;
-            }
-            $parts[] = $line;
-        }
-
-        $deep_link = url('/events/' . $event->id);
-        $parts[] = "\n— Bekijk in Lavoro: " . $deep_link;
+        $parts[] = '— Bekijk in Lavoro: ' . url('/events/' . $event->id);
 
         return implode("\n\n", $parts);
     }
