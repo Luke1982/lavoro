@@ -6,10 +6,10 @@ use App\Http\Requests\EventReadRequest;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
-use App\Models\GeneralSetting;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use App\Models\UserPlanGroup;
 use Illuminate\Support\Facades\Auth;
 
 class PlannerController extends Controller
@@ -27,11 +27,23 @@ class PlannerController extends Controller
 
         $customer_count = Customer::count();
 
+        $plan_groups = UserPlanGroup::orderBy('sort_order')
+            ->orderBy('id')
+            ->with('users:id,user_plan_group_id')
+            ->get()
+            ->map(fn ($g) => [
+                'id'         => $g->id,
+                'name'       => $g->name,
+                'color'      => $g->color,
+                'sort_order' => $g->sort_order,
+                'user_ids'   => $g->users->pluck('id')->toArray(),
+            ]);
+
         return inertia('Planner/IndexPage', [
-            'eventTypes' => EventType::all(),
+            'eventTypes'    => EventType::all(),
             'eventStatusses' => Event::statusses(),
-            'noPadding' => true,
-            'allCustomers' => $customer_count <= 50
+            'noPadding'     => true,
+            'allCustomers'  => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
@@ -57,15 +69,26 @@ class PlannerController extends Controller
                 ->get(),
             'allUsers' => User::select('id', 'name')->get(),
             'plannableUsers' => User::where('plannable', true)
-                ->select('id', 'name')
+                ->select('id', 'name', 'user_plan_group_id')
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
-                    'id' => $u->id,
-                    'name' => $u->name,
-                    'avatar' => $u->avatar,
+                    'id'            => $u->id,
+                    'name'          => $u->name,
+                    'avatar'        => $u->avatar,
+                    'plan_group_id' => $u->user_plan_group_id,
                 ]),
-            'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'allPlanUsers' => User::select('id', 'name', 'plannable', 'user_plan_group_id')
+                ->orderBy('name')
+                ->get()
+                ->map(fn ($u) => [
+                    'id'            => $u->id,
+                    'name'          => $u->name,
+                    'avatar'        => $u->avatar,
+                    'plannable'     => (bool) $u->plannable,
+                    'plan_group_id' => $u->user_plan_group_id,
+                ]),
+            'planGroups' => $plan_groups,
         ]);
     }
 }
