@@ -233,13 +233,14 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                <div
+                    class="flex items-end sm:items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
                     <button @click="closeModal"
                         class="px-6 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         Annuleren
                     </button>
 
-                    <div class="flex gap-x-4">
+                    <div class="flex flex-col sm:flex-row gap-4">
                         <!-- Voorlopig -->
                         <div class="flex items-center gap-3 py-1">
                             <input id="is_preliminary" type="checkbox" v-model="form.is_preliminary"

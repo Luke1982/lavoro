@@ -173,7 +173,9 @@
             </Dialog>
         </TransitionRoot>
 
-        <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+        <div
+            class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
+            :style="{ width: desktopCollapsed ? '0px' : '18rem', transition: 'width 300ms ease-in-out' }">
             <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6">
                 <div class="flex shrink-0 flex-col items-start">
                     <img src="/img/logo-neg.svg" alt="" class="h-15 mt-3">
@@ -305,6 +307,15 @@
             </div>
         </div>
 
+        <button
+            class="hidden lg:flex fixed z-[60] top-6 items-center justify-center w-6 h-6 rounded-full bg-white text-gray-500 hover:text-gray-900 shadow-md border border-gray-200"
+            :style="{ left: desktopCollapsed ? '8px' : 'calc(18rem - 12px)', transition: 'left 300ms ease-in-out' }"
+            @click="toggleDesktopSidebar">
+            <ChevronLeftIcon
+                class="size-3.5 transition-transform duration-300"
+                :class="desktopCollapsed ? 'rotate-180' : ''" />
+        </button>
+
         <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-xs sm:px-6 lg:hidden">
             <button type="button" class="-m-2.5 p-2.5 text-gray-400 lg:hidden" @click="toggleSidebar">
                 <span class="sr-only">Open sidebar</span>
@@ -322,7 +333,8 @@
 
         </div>
 
-        <main :class="[page.props.noPadding ? '' : 'pt-4 pb-10', 'lg:pl-72', 'bg-svg min-h-[100vh]']">
+        <main
+            :class="[page.props.noPadding ? '' : 'pt-4 pb-10', desktopCollapsed ? 'lg:pl-0' : 'lg:pl-72', 'bg-svg min-h-[100vh] transition-[padding-left] duration-300 ease-in-out']">
             <div v-if="showGoogleReconnectBanner"
                 class="bg-amber-100 border-b border-amber-300 px-4 py-2 text-sm text-amber-900 flex items-center justify-between dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                 <span>Je Google Agenda synchronisatie is gepauzeerd.</span>
@@ -358,6 +370,7 @@ import {
     SwatchIcon,
     TruckIcon,
     ChevronDownIcon,
+    ChevronLeftIcon,
     Squares2X2Icon,
     FolderIcon,
     ScaleIcon,
@@ -571,6 +584,17 @@ const sidebarOpen = ref(false)
 
 const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value
+}
+
+const desktopCollapsed = ref(
+    typeof window !== 'undefined' && localStorage.getItem('desktopSidebarCollapsed') === '1'
+)
+
+const toggleDesktopSidebar = () => {
+    desktopCollapsed.value = !desktopCollapsed.value
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('desktopSidebarCollapsed', desktopCollapsed.value ? '1' : '0')
+    }
 }
 
 const currentTopTitle = computed(() => {

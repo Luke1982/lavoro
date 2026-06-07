@@ -16,7 +16,7 @@ class GeneralSettingUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'value' => ['required', 'integer', 'min:15', 'max:480'],
+            'value' => ['required', 'integer', 'min:15', 'max:1200'],
         ];
     }
 }

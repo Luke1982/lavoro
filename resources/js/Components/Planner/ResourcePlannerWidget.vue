@@ -1040,7 +1040,7 @@ function onEventContextMenu(e, ev) {
         })
         items.push({
             label: `Monteurs (${ev.executing_user_ids.length})`,
-            children: props.allUsers.map(u => {
+            children: props.plannableUsers.map(u => {
                 const assigned = ev.executing_user_ids.includes(u.id)
                 const isLast = assigned && ev.executing_user_ids.length === 1
                 return {

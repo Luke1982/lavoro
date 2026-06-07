@@ -9,8 +9,7 @@
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-1">
                         #{{ so.id }}
-                        <ExclamationTriangleIcon v-if="so.events_count > 0"
-                            class="size-4 text-amber-500"
+                        <ExclamationTriangleIcon v-if="so.events_count > 0" class="size-4 text-amber-500"
                             v-tooltip="`Let op: deze werkbon heeft al ${so.events_count} eerdere afspra(a)k(en) gekoppeld`" />
                     </span>
                     <span class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{ nlDate(so.created_at) }}</span>
@@ -23,7 +22,7 @@
                 </p>
                 <div class="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 dark:text-slate-500">
                     <ArrowsRightLeftIcon class="size-3" />
-                    <span>Sleep naar de planning (2 uur)</span>
+                    <span>Sleep naar de planning (standaard min.)</span>
                 </div>
             </div>
 
