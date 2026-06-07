@@ -99,9 +99,18 @@ class PlannerController extends Controller
                         ->where('recorded_at', '>=', now()->subHours(8))
                         ->groupBy('user_id');
                 })
-                ->get(['id', 'user_id', 'lat', 'lng'])
+                ->with('user:id,name')
+                ->get(['id', 'user_id', 'lat', 'lng', 'heading', 'recorded_at'])
                 ->keyBy('user_id')
-                ->map(fn ($p) => ['lat' => $p->lat, 'lng' => $p->lng]),
+                ->map(fn ($p) => [
+                    'lat'         => $p->lat,
+                    'lng'         => $p->lng,
+                    'heading'     => $p->heading,
+                    'recorded_at' => $p->recorded_at,
+                    'user'        => $p->user
+                        ? ['id' => $p->user->id, 'name' => $p->user->name, 'avatar' => $p->user->avatar]
+                        : null,
+                ]),
         ]);
     }
 }

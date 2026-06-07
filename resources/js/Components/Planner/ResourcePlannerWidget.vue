@@ -48,7 +48,14 @@
             <div class="sticky top-0 z-20 flex shrink-0 bg-white dark:bg-slate-900">
                 <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
-                    <span>Monteurs ({{ visibleUsers.length }})</span>
+                    <div class="flex items-center gap-1.5">
+                        <span>Monteurs ({{ visibleUsers.length }})</span>
+                        <button v-if="allPingsArray.length > 0" @click="mapModalOpen = true"
+                            class="rounded p-0.5 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
+                            title="Alle locaties op kaart">
+                            <MapIcon class="size-3.5" />
+                        </button>
+                    </div>
                     <button v-if="visibleUsers.length" @click="toggleAllRows"
                         class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
                         <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
@@ -114,8 +121,11 @@
                     </div>
                     <div v-for="(user, idx) in visibleUsers" :key="user.id"
                         :style="{ height: rowHeightFor(user.id) + 'px' }"
-                        class="relative flex flex-col justify-center gap-1 pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
-                        :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
+                        class="relative flex flex-col pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
+                        :class="[
+                            idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
+                            latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
+                        ]">
                         <button
                             class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
                             @click="toggleUserRow(user.id)"
@@ -123,7 +133,7 @@
                             <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
                             <ChevronRightIcon v-else class="size-4" />
                         </button>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 shrink-0">
                             <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
                                 :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
                                 <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
@@ -136,8 +146,22 @@
                                     {{ userHoursLabel(user.id) }}</div>
                             </div>
                         </div>
-                        <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]" style="height: 68px">
-                            <TechnicianMiniMap :lat="latestPings[user.id].lat" :lng="latestPings[user.id].lng" />
+                        <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]"
+                            class="flex flex-col flex-1 min-h-0">
+                            <div class="flex items-center justify-between mb-0.5 shrink-0">
+                                <span class="text-[10px] text-gray-400 dark:text-slate-500 font-medium">Locatie</span>
+                                <button @click.stop="toggleMapExpand(user.id)"
+                                    class="rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                                    :title="mapExpandedUsers.has(user.id) ? 'Kaart verkleinen' : 'Kaart vergroten'">
+                                    <ArrowsPointingInIcon v-if="mapExpandedUsers.has(user.id)" class="size-3" />
+                                    <ArrowsPointingOutIcon v-else class="size-3" />
+                                </button>
+                            </div>
+                            <div class="flex-1 min-h-0">
+                                <TechnicianMiniMap
+                                    :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
+                                    :ping="latestPings[user.id]" />
+                            </div>
                         </div>
                     </div>
                     <div v-if="visibleUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
@@ -301,6 +325,14 @@
             :all-customers="allCustomers" :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
             :all-users="allUsers" :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal"
             @saved="onSaved" />
+
+        <!-- All-technicians map modal -->
+        <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event"
+            title="Monteurlocaties (laatste 8u)" max-width-class="sm:max-w-5xl">
+            <div style="height: 520px" class="relative">
+                <TechnicianMapCanvas v-if="mapModalOpen" :pings="allPingsArray" :init-delay="350" />
+            </div>
+        </ModalDialog>
     </div>
 </template>
 
@@ -308,7 +340,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
@@ -317,6 +349,8 @@ import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
+import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
+import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({
@@ -451,6 +485,9 @@ const dayHeaderHeight = 44
 const hourHeaderHeight = 44
 const headerHeight = dayHeaderHeight + hourHeaderHeight
 
+const MAP_DEFAULT_ROW_H = 220
+const MAP_EXPANDED_ROW_H = 380
+
 const slotOptions = [
     { value: 15, title: '15 min per slot', shortTitle: '15 min', description: 'Bredere kolommen, ideaal voor korte afspraken' },
     { value: 30, title: '30 min per slot', shortTitle: '30 min', description: 'Standaard slotgrootte' },
@@ -476,6 +513,12 @@ const COLLAPSED_ROW_H = 40 // resource row height when collapsed
 
 const allDayCollapsed = ref(false)
 const collapsedUsers = ref(new Set())
+const mapExpandedUsers = ref(new Set())
+const mapModalOpen = ref(false)
+
+const allPingsArray = computed(() =>
+    Object.values(props.latestPings).filter(p => p.lat != null && p.lng != null)
+)
 
 /** One horizontal track per project, positioned within the visible week. */
 const allDay = computed(() => {
@@ -583,7 +626,17 @@ function toggleAllDay() {
 }
 
 function rowHeightFor(userId) {
-    return collapsedUsers.value.has(userId) ? COLLAPSED_ROW_H : props.rowHeight
+    if (collapsedUsers.value.has(userId)) return COLLAPSED_ROW_H
+    if (props.latestPings[userId]) {
+        return mapExpandedUsers.value.has(userId) ? MAP_EXPANDED_ROW_H : MAP_DEFAULT_ROW_H
+    }
+    return props.rowHeight
+}
+
+function toggleMapExpand(userId) {
+    const next = new Set(mapExpandedUsers.value)
+    next.has(userId) ? next.delete(userId) : next.add(userId)
+    mapExpandedUsers.value = next
 }
 
 function paddingYFor(userId) {
