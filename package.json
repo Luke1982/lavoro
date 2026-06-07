@@ -30,7 +30,6 @@
         "vue-eslint-parser": "^10.2.0"
     },
     "dependencies": {
-        "@capacitor-community/background-geolocation": "^1.2.26",
         "@capacitor/android": "^8.4.0",
         "@capacitor/cli": "^8.4.0",
         "@capacitor/core": "^8.4.0",
