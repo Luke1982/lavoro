@@ -5,6 +5,15 @@ import vue from "@vitejs/plugin-vue";
 import { execSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
 
+function nativeOnly(modules) {
+    return {
+        name: "native-only-modules",
+        resolveId(id) {
+            if (modules.includes(id)) return { id, external: true };
+        },
+    };
+}
+
 function swGitHash() {
     return {
         name: "sw-git-hash",
@@ -44,6 +53,7 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
+        nativeOnly(['@capacitor-community/background-geolocation']),
         swGitHash(),
     ],
 });
