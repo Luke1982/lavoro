@@ -194,4 +194,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserUnavailability::class);
     }
+
+    public function locationPings()
+    {
+        return $this->hasMany(LocationPing::class)->orderByDesc('recorded_at');
+    }
+
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    public function routeNotificationForFcm(): array
+    {
+        return $this->deviceTokens()->pluck('token')->toArray();
+    }
 }

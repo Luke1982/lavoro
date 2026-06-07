@@ -245,6 +245,9 @@ Route::group(
             ->name('technical-management.index');
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
             ->name('technical-management.sendTestMail');
+        Route::get('admin/technician-map', [\App\Http\Controllers\TechnicianLocationController::class, 'index'])
+            ->name('admin.technician-map');
+
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
                 ->name('companies.inline');

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\GoogleIntegrationStatusController;
+use App\Http\Controllers\Api\LocationPingController;
 use App\Http\Controllers\EventApiController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\ProjectApiController;
@@ -10,6 +12,11 @@ use App\Http\Controllers\UserPlannableController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::post('location/pings', [LocationPingController::class, 'store']);
+
+    Route::post('device-tokens', [DeviceTokenController::class, 'upsert']);
+    Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
+
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('events/{event}/send-confirmation', [EventApiController::class, 'sendConfirmation']);
 
