@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Lavoro',
   webDir: 'capacitor-launcher',
   server: {
-    allowNavigation: ['*'],
+    allowNavigation: ['spee.lavorofsm.nl'],
   },
   plugins: {
     BackgroundGeolocation: {
