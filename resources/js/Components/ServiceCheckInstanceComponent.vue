@@ -1,157 +1,156 @@
 <template>
-    <div>
-        <div class="p-2 h-full relative" v-auto-animate>
-            <div class="ring-gray-200 dark:ring-slate-700/60 ring bg-[#fdfdfd] dark:bg-slate-800 rounded-md p-4 pt-8 h-full relative"
-                v-auto-animate>
-                <div class="absolute top-2 left-2 flex items-center gap-2" v-if="!readonly">
-                    <button type="button" @click="toggle_remarks" :class="[
-                        'flex items-center gap-1 shadow-sm rounded-md p-1 ring-1',
+    <div class="h-full">
+        <BoxComponent padding="p-4" class="h-full">
+        <div class="flex flex-col gap-3" v-auto-animate>
+            <!-- Card header: type icon + name + action icons + status -->
+            <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-lavoro-lightblue flex items-center justify-center flex-none">
+                        <component :is="typeIcon" class="w-4 h-4 text-lavoro-blue" />
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-snug">
+                        {{ serviceCheckInstance.service_check.name }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-1 flex-none">
+                    <button v-if="!readonly" type="button" @click="toggle_remarks" :class="[
+                        'flex items-center gap-0.5 rounded-md p-1',
                         (serviceCheckInstance.remarks?.length ?? 0) > 0
-                            ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 ring-orange-200 dark:ring-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/50'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600'
+                            ? 'text-orange-500 dark:text-orange-400'
+                            : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'
                     ]" v-tooltip="show_remarks ? 'Verberg opmerkingen' : 'Toon opmerkingen'">
                         <ChatBubbleLeftRightIcon class="h-4 w-4" />
                         <span v-if="serviceCheckInstance.remarks?.length" class="text-xs font-bold">{{
-                            serviceCheckInstance.remarks.length
-                            }}</span>
+                            serviceCheckInstance.remarks.length }}</span>
                     </button>
-                    <button type="button"
-                        class="flex items-center gap-1 shadow-sm rounded-md p-1 ring-1 text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 ring-gray-300 dark:ring-slate-600"
+                    <button v-if="!readonly" type="button"
+                        :class="['flex items-center gap-0.5 rounded-md p-1', serviceCheckInstance.images?.length ? 'text-orange-500 dark:text-orange-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500']"
                         @click="show_images = !show_images">
                         <CameraIcon class="h-4 w-4" />
                         <span v-if="serviceCheckInstance.images?.length" class="text-xs font-bold">{{
-                            serviceCheckInstance.images.length
-                            }}</span>
+                            serviceCheckInstance.images.length }}</span>
                     </button>
-                </div>
-                <div class="relative" v-auto-animate>
-                    <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
-                        <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
-                            serviceCheckInstance.service_check.name
-                            }}
-                        </legend>
-                        <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een van de opties</p>
-                        <div class="mt-6 space-y-6">
-                            <div v-for="value in serviceCheckInstance.service_check.values" :key="value.id"
-                                class="flex items-center">
-                                <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
-                                    :name="`sci-value-${serviceCheckInstance.id}`" type="radio" v-model="form.values"
-                                    :value="value.id"
-                                    class="relative size-4 appearance-none rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 before:absolute before:inset-1 before:rounded-full before:bg-white dark:before:bg-slate-500 not-checked:before:hidden checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:before:bg-gray-400 forced-colors:appearance-auto forced-colors:before:hidden" />
-                                <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
-                                    class="ml-3 block text-sm/6 font-medium text-gray-900 dark:text-slate-100">{{
-                                        value.value }}</label>
-                            </div>
-                        </div>
-                    </fieldset>
-                    <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
-                        <legend class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
-                            serviceCheckInstance.service_check.name
-                            }}
-                        </legend>
-                        <p class="mt-1 text-sm/6 text-gray-600 dark:text-slate-400">Kies een of meerdere van de opties
-                        </p>
-                        <div class="space-y-5">
-                            <div class="flex gap-3" v-for="value in serviceCheckInstance.service_check.values"
-                                :key="value.id">
-                                <div class="flex h-6 shrink-0 items-center">
-                                    <div class="group grid size-4 grid-cols-1">
-                                        <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
-                                            :name="`sci-${serviceCheckInstance.id}-value-${value.id}`" type="checkbox"
-                                            v-model="form.values" :value="value.id"
-                                            class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:border-indigo-600 checked:bg-indigo-600 indeterminate:border-indigo-600 indeterminate:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:checked:bg-gray-100 forced-colors:appearance-auto" />
-                                        <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25"
-                                            viewBox="0 0 14 14" fill="none">
-                                            <path class="opacity-0 group-has-checked:opacity-100" d="M3 8L6 11L11 3.5"
-                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                            <path class="opacity-0 group-has-indeterminate:opacity-100" d="M3 7H11"
-                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="text-sm/6">
-                                    <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
-                                        class="font-medium text-gray-900 dark:text-slate-100">{{ value.value
-                                        }}</label>
-                                </div>
-                            </div>
-                        </div>
-                    </fieldset>
-                    <div class="flex items-center justify-between"
-                        v-else-if="serviceCheckInstance.service_check.type === 'boolean'">
-                        <span class="flex grow flex-col">
-                            <label class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100">{{
-                                serviceCheckInstance.service_check.name }}</label>
-                            <span class="text-sm text-gray-500 dark:text-slate-400">Zet de schakelaar aan of uit</span>
-                        </span>
-                        <SwitchComponent v-model="form.switch_state" />
-                    </div>
-                    <div class="flex flex-col justify-between"
-                        v-else-if="serviceCheckInstance.service_check.type === 'text' || serviceCheckInstance.service_check.type === 'number'">
-                        <span class="flex grow flex-col">
-                            <label class="text-sm/6 font-semibold text-gray-900 dark:text-slate-100 mb-1">{{
-                                serviceCheckInstance.service_check.name }}</label>
-
-                        </span>
-                        <div>
-                            <input
-                                :type="serviceCheckInstance.service_check.type === 'number' ? 'text' : serviceCheckInstance.service_check.type"
-                                :inputmode="serviceCheckInstance.service_check.type === 'number' ? 'decimal' : null"
-                                v-model="form.description"
-                                class="block w-full rounded-md bg-white dark:bg-slate-800 px-3 py-1.5 text-base text-gray-900 dark:text-slate-100 outline-1 -outline-offset-1 outline-gray-300 dark:outline-slate-600 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                                :placeholder="`Vul een ${serviceCheckInstance.service_check.type === 'number' ? 'getal' : 'tekst'} in`" />
-                        </div>
-                    </div>
-                    <div v-if="readonly"
-                        class="absolute inset-0 bg-white/30 dark:bg-slate-800/60 flex items-center justify-center">
-                        <LockClosedIcon class="h-7 w-7 text-gray-600 dark:text-slate-400"
-                            v-tooltip="'Deze keuring is gesloten, je kunt de keurpunten daarom alleen nog maar bekijken.'" />
-                    </div>
-                </div>
-                <Transition name="fade-slide" v-if="!readonly">
-                    <div v-if="show_remarks" class="mt-10">
-                        <RemarksComponent :remarkable-type="'App\\Models\\ServiceCheckInstance'"
-                            :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
-                    </div>
-                </Transition>
-                <Transition name="fade-slide" v-if="!readonly">
-                    <div v-if="show_images" class="mt-10">
-                        <ImageUploadComponent :existing="serviceCheckInstance.images"
-                            :imageable-id="serviceCheckInstance.id" imageable-type="\App\Models\ServiceCheckInstance" />
-                    </div>
-                </Transition>
-                <div v-else-if="readonly && (serviceCheckInstance.remarks?.length)" class="mt-4">
-                    <ul class="space-y-2 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
-                        <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
-                            <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
-                                }}:</span>
-                            {{ r.content }}
-                        </li>
-                    </ul>
+                    <Cog6ToothIcon v-if="updating" class="h-4 w-4 text-gray-400 dark:text-slate-500 animate-spin" />
+                    <CheckCircleIcon v-else-if="isComplete" class="h-4 w-4 text-green-500 dark:text-green-400" />
                 </div>
             </div>
-            <Cog6ToothIcon v-if="updating"
-                class="absolute top-4 right-4 h-6 w-6 text-gray-500 dark:text-slate-400 animate-spin" />
-            <CheckIcon v-if="!updating && isComplete"
-                class="absolute top-4 right-4 h-6 w-6 text-green-500 dark:text-green-400" />
-            <QuestionMarkCircleIcon v-if="!updating && !isComplete"
-                class="absolute top-4 right-4 h-6 w-6 text-orange-500 dark:text-orange-400" />
+
+            <!-- Input area -->
+            <div class="relative flex-1" v-auto-animate>
+                <fieldset v-if="serviceCheckInstance.service_check.type === 'radio'">
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">Kies een van de opties</p>
+                    <div class="space-y-2.5">
+                        <div v-for="value in serviceCheckInstance.service_check.values" :key="value.id"
+                            class="flex items-center">
+                            <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                :name="`sci-value-${serviceCheckInstance.id}`" type="radio" v-model="form.values"
+                                :value="value.id"
+                                class="relative size-4 appearance-none rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 before:absolute before:inset-1 before:rounded-full before:bg-white dark:before:bg-slate-500 not-checked:before:hidden checked:border-lavoro-blue checked:bg-lavoro-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lavoro-blue disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:before:bg-gray-400 forced-colors:appearance-auto forced-colors:before:hidden" />
+                            <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                class="ml-3 block text-sm font-medium text-gray-900 dark:text-slate-100">{{
+                                    value.value }}</label>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset v-else-if="serviceCheckInstance.service_check.type === 'checkgroup'">
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">Kies een of meerdere van de opties</p>
+                    <div class="space-y-2.5">
+                        <div class="flex gap-3" v-for="value in serviceCheckInstance.service_check.values"
+                            :key="value.id">
+                            <div class="flex h-6 shrink-0 items-center">
+                                <div class="group grid size-4 grid-cols-1">
+                                    <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                        :name="`sci-${serviceCheckInstance.id}-value-${value.id}`" type="checkbox"
+                                        v-model="form.values" :value="value.id"
+                                        class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:border-lavoro-blue checked:bg-lavoro-blue indeterminate:border-lavoro-blue indeterminate:bg-lavoro-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lavoro-blue disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:checked:bg-gray-100 forced-colors:appearance-auto" />
+                                    <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25"
+                                        viewBox="0 0 14 14" fill="none">
+                                        <path class="opacity-0 group-has-checked:opacity-100" d="M3 8L6 11L11 3.5"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path class="opacity-0 group-has-indeterminate:opacity-100" d="M3 7H11"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="text-sm/6">
+                                <label :for="`sci-${serviceCheckInstance.id}-value-${value.id}`"
+                                    class="font-medium text-gray-900 dark:text-slate-100">{{ value.value }}</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="flex items-center justify-between gap-4"
+                    v-else-if="serviceCheckInstance.service_check.type === 'boolean'">
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Zet de schakelaar aan of uit</span>
+                    <SwitchComponent v-model="form.switch_state" />
+                </div>
+                <div v-else-if="serviceCheckInstance.service_check.type === 'text' || serviceCheckInstance.service_check.type === 'number'">
+                    <input
+                        :type="serviceCheckInstance.service_check.type === 'number' ? 'text' : serviceCheckInstance.service_check.type"
+                        :inputmode="serviceCheckInstance.service_check.type === 'number' ? 'decimal' : null"
+                        v-model="form.description"
+                        class="block w-full rounded-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 px-3 py-1.5 text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:border-transparent"
+                        :placeholder="`Vul een ${serviceCheckInstance.service_check.type === 'number' ? 'getal' : 'tekst'} in`" />
+                </div>
+                <div v-if="readonly"
+                    class="absolute inset-0 bg-white/40 dark:bg-slate-900/60 flex items-center justify-center rounded">
+                    <LockClosedIcon class="h-6 w-6 text-gray-500 dark:text-slate-400"
+                        v-tooltip="'Deze keuring is gesloten, je kunt de keurpunten daarom alleen nog maar bekijken.'" />
+                </div>
+            </div>
+
+            <!-- Remarks (editable) -->
+            <div v-if="!readonly && show_remarks">
+                <RemarksComponent :remarkable-type="'App\\Models\\ServiceCheckInstance'"
+                    :remarkable-id="serviceCheckInstance.id" :comments="serviceCheckInstance.remarks || []" />
+            </div>
+
+            <!-- Images (editable) -->
+            <div v-if="!readonly && show_images">
+                <ImageUploadComponent :existing="serviceCheckInstance.images"
+                    :imageable-id="serviceCheckInstance.id" imageable-type="\App\Models\ServiceCheckInstance" />
+            </div>
+
+            <!-- Readonly remarks display -->
+            <div v-if="readonly && (serviceCheckInstance.remarks?.length)">
+                <ul class="space-y-1.5 text-xs text-gray-600 dark:text-slate-400 list-disc ml-5">
+                    <li v-for="r in serviceCheckInstance.remarks" :key="r.id">
+                        <span class="font-medium text-gray-800 dark:text-slate-200">{{ r.user?.name || 'Onbekend'
+                            }}:</span>
+                        {{ r.content }}
+                    </li>
+                </ul>
+            </div>
         </div>
+        </BoxComponent>
     </div>
 </template>
 
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
+import BoxComponent from '@/Components/BoxComponent.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { debounce } from 'lodash';
-import { CheckIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, QuestionMarkCircleIcon, CameraIcon } from '@heroicons/vue/24/outline';
+import {
+    CheckCircleIcon, Cog6ToothIcon, LockClosedIcon, ChatBubbleLeftRightIcon, CameraIcon,
+    ChatBubbleBottomCenterTextIcon, HashtagIcon, BoltIcon, ListBulletIcon, CheckIcon,
+} from '@heroicons/vue/24/outline';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 
 const { serviceCheckInstance } = defineProps({
     serviceCheckInstance: { type: Object, required: true },
     readonly: { type: Boolean, default: false }
+});
+
+const typeIcon = computed(() => {
+    const type = serviceCheckInstance.service_check.type;
+    if (type === 'text') return ChatBubbleBottomCenterTextIcon;
+    if (type === 'number') return HashtagIcon;
+    if (type === 'boolean') return BoltIcon;
+    if (type === 'checkgroup') return CheckIcon;
+    return ListBulletIcon; // radio
 });
 
 const updating = ref(false);
