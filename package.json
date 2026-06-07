@@ -5,7 +5,10 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "fix:eslint": "eslint --ext .js,.vue --fix resources/js --fix"
+        "fix:eslint": "eslint --ext .js,.vue --fix resources/js --fix",
+        "cap:sync": "npx cap sync",
+        "cap:ios": "npx cap sync && npx cap open ios",
+        "cap:android": "npx cap sync && npx cap open android"
     },
     "devDependencies": {
         "@eslint/js": "^9.33.0",
@@ -26,6 +29,15 @@
         "vue-eslint-parser": "^10.2.0"
     },
     "dependencies": {
+        "@capacitor-community/background-geolocation": "^1.2.26",
+        "@capacitor/android": "^8.4.0",
+        "@capacitor/cli": "^8.4.0",
+        "@capacitor/core": "^8.4.0",
+        "@capacitor/geolocation": "^8.2.0",
+        "@capacitor/ios": "^8.4.0",
+        "@capacitor/network": "^8.0.1",
+        "@capacitor/preferences": "^8.0.1",
+        "@capacitor/push-notifications": "^8.1.1",
         "@formkit/auto-animate": "^0.8.2",
         "@fullcalendar/core": "^6.1.19",
         "@fullcalendar/daygrid": "^6.1.19",
