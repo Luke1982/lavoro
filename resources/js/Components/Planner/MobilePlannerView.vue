@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+    <div ref="rootEl" class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
         <!-- Sticky header: week navigation + user switcher -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
             <div class="flex items-center justify-between px-4 py-3">
@@ -265,9 +265,11 @@ function shiftWeek(direction) {
 
 // ── Event fetching ────────────────────────────────────────────────────────────
 
+const rootEl = ref(null)
+
 const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
-    () => modalOpen.value,
+    () => modalOpen.value || !rootEl.value?.offsetParent,
 )
 
 onMounted(() => { fetchEvents(); startPolling() })

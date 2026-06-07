@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col h-full  dark:bg-slate-900 text-gray-900 dark:text-slate-100"
+    <div ref="rootEl" class="flex flex-col h-full  dark:bg-slate-900 text-gray-900 dark:text-slate-100"
         @pointermove="onWindowPointerMove" @pointerup="onWindowPointerUp">
         <!-- Top toolbar -->
         <div
@@ -417,9 +417,11 @@ function loadStoredWeekStart() {
 const unavailabilities = ref([])
 const weekStart = ref(loadStoredWeekStart())
 
+const rootEl = ref(null)
+
 const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
-    () => !!drag.value.mode || modalOpen.value,
+    () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
 
 const sidebarScrollRef = ref(null)
