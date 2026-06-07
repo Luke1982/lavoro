@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Lavoro',
   webDir: 'capacitor-launcher',
   server: {
+    url: 'https://spee.lavorofsm.nl',
     allowNavigation: ['spee.lavorofsm.nl'],
   },
   plugins: {
