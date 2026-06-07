@@ -23,13 +23,8 @@
             <div class="ml-auto flex items-center gap-2">
                 <template v-if="hasPermission('settings.update_default_planner_minutes')">
                     <label class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">Standaard min.</label>
-                    <input
-                        type="number"
-                        v-model.number="plannerMinutes"
-                        min="15"
-                        max="480"
-                        step="15"
-                        class="w-16 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 text-sm px-2 py-1 text-center"
+                    <input type="number" v-model.number="plannerMinutes" min="15" max="1200" step="15"
+                        class="w-25 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 text-sm px-2 py-1.5 text-center"
                         @blur="savePlannerMinutes" />
                 </template>
                 <SelectMenuComponent v-model="slotMinutes" :options="slotOptions" :icon="Squares2X2Icon">
@@ -90,7 +85,22 @@
             <!-- Scrollable body -->
             <div class="flex flex-1 min-h-0">
                 <!-- Resource sidebar -->
-                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto" ref="sidebarScrollRef">
+                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
+                    ref="sidebarScrollRef">
+                    <!-- Group bar overlay -->
+                    <div class="absolute top-0 left-0 pointer-events-none" style="width: 0; overflow: visible; z-index: 1;">
+                        <div
+                            v-for="(bar, i) in groupBars"
+                            :key="i"
+                            class="absolute left-0 w-1 rounded-sm flex items-start overflow-hidden"
+                            :style="{ top: bar.top + 'px', height: bar.height + 'px', background: bar.color }">
+                            <span
+                                class="text-[9px] font-semibold text-white select-none px-px"
+                                style="writing-mode: vertical-rl; transform: rotate(180deg); line-height: 1rem;">
+                                {{ bar.name }}
+                            </span>
+                        </div>
+                    </div>
                     <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                         class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
                         <button
@@ -135,147 +145,150 @@
                 <!-- Time grid -->
                 <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
                     @dragleave="onGridDragLeave">
-                <!-- Body rows -->
-                <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
-                    <!-- All-day project band -->
-                    <div v-if="showProjects && allDayLaneHeight"
-                        class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                        :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                        <!-- Day gridlines -->
-                        <div class="absolute inset-0 grid pointer-events-none"
-                            :style="{ gridTemplateColumns: dayGridTemplate }">
-                            <div v-for="day in weekDays" :key="'adg-' + day.iso"
-                                class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
-                        </div>
-
-                        <template v-for="track in visibleTracks" :key="'track-' + track.id">
-                            <!-- Project bar (background spans full range; label sticks to the viewport) -->
-                            <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
-                                :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
-                                :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
-                                <div class="sticky left-0 inline-block max-w-full px-2 py-1">
-                                    <div
-                                        class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
-                                        {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{ track.continuesRight ?
-                                            ' ▸' : '' }}
-                                    </div>
-                                    <div v-if="track.customerName"
-                                        class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
-                                        {{ track.customerName }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
-                            <div v-if="track.serviceOrders.length" class="absolute"
-                                :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
-                                <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
-                                <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
-                                    :style="{ maxWidth: track.width + 'px' }">
-                                    <div v-for="so in track.serviceOrders" :key="'pso-' + so.id" draggable="true"
-                                        @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                        @dragend="onProjectServiceOrderDragEnd"
-                                        :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                        class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
-                                        :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                        <ArrowsRightLeftIcon
-                                            class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
-                                        <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                        <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
-                                            so.description || 'Werkbon' }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-
-                    <!-- Locked-event group overlays -->
-                    <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
-                        class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
-                            top: ov.top - 6 + 'px',
-                            height: ov.height + 12 + 'px',
-                            left: `calc(${ov.leftPct}%  - 5px)`,
-                            width: `calc(${ov.widthPct}% + 11px)`,
-                            borderColor: ov.color,
-                            opacity: 0.5,
-                        }" />
-
-                    <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
-                        class="grid relative transition-[height] duration-200 ease-in-out"
-                        :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
-                        :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
-
-                        <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
-                            class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
-                            :data-user-id="user.id" :data-day-iso="day.iso"
-                            @pointerdown="onCellPointerDown($event, user, day)"
-                            @dragover.prevent="onDragOver($event, user, day)"
-                            @drop.prevent="onExternalDrop($event, user, day)">
-                            <!-- Hour grid lines -->
+                    <!-- Body rows -->
+                    <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
+                        <!-- All-day project band -->
+                        <div v-if="showProjects && allDayLaneHeight"
+                            class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                            :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                            <!-- Day gridlines -->
                             <div class="absolute inset-0 grid pointer-events-none"
-                                :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
-                                <div v-for="h in hourCount" :key="'hgl-' + user.id + '-' + day.iso + '-' + h"
+                                :style="{ gridTemplateColumns: dayGridTemplate }">
+                                <div v-for="day in weekDays" :key="'adg-' + day.iso"
                                     class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
                             </div>
 
-                            <!-- Unavailability overlays -->
-                            <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
-                                :key="'block-' + user.id + '-' + day.iso + '-' + oi">
-                                <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
-                                    :style="{
-                                        left: overlay.left + '%',
-                                        width: overlay.width + '%',
-                                        background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
-                                    }">
-                                    <span
-                                        class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
-                                        {{ overlay.label || 'Niet beschikbaar' }}
-                                    </span>
+                            <template v-for="track in visibleTracks" :key="'track-' + track.id">
+                                <!-- Project bar (background spans full range; label sticks to the viewport) -->
+                                <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
+                                    :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
+                                    :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
+                                    <div class="sticky left-0 inline-block max-w-full px-2 py-1">
+                                        <div
+                                            class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
+                                            {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
+                                                track.continuesRight ?
+                                                    ' ▸' : '' }}
+                                        </div>
+                                        <div v-if="track.customerName"
+                                            class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
+                                            {{ track.customerName }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
+                                <div v-if="track.serviceOrders.length" class="absolute"
+                                    :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
+                                    <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
+                                    <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
+                                        :style="{ maxWidth: track.width + 'px' }">
+                                        <div v-for="so in track.serviceOrders" :key="'pso-' + so.id" draggable="true"
+                                            @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                            @dragend="onProjectServiceOrderDragEnd"
+                                            :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
+                                            class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                            :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                            <ArrowsRightLeftIcon
+                                                class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                            <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                            <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
+                                                so.description || 'Werkbon' }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
+                        </div>
 
-                            <!-- Now indicator -->
-                            <div v-if="isToday(day.date) && nowOffsetPercent !== null"
-                                class="absolute top-0 bottom-0 w-px bg-red-500/70 pointer-events-none z-10"
-                                :style="{ left: nowOffsetPercent + '%' }">
-                                <div class="absolute -top-1 -translate-x-1/2 size-2 rounded-full bg-red-500"></div>
-                            </div>
+                        <!-- Locked-event group overlays -->
+                        <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
+                            class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
+                                top: ov.top - 6 + 'px',
+                                height: ov.height + 12 + 'px',
+                                left: `calc(${ov.leftPct}%  - 5px)`,
+                                width: `calc(${ov.widthPct}% + 11px)`,
+                                borderColor: ov.color,
+                                opacity: 0.5,
+                            }" />
 
-                            <!-- Events for this user/day -->
-                            <PlannerEvent v-for="ev in eventsFor(user.id, day.iso)" :key="ev.id + '-' + user.id"
-                                :event="ev" :user-id="user.id" :day="day" :slot-minutes="slotMinutes"
-                                :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
-                                :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
-                                :is-locked="ev.executing_user_ids.length > 1" :is-being-dragged="drag.eventId === ev.id"
-                                @click="handleEventClick(ev)" @contextmenu="onEventContextMenu($event, ev)"
-                                @pointerdown-on-event="onEventPointerDown($event, ev, user)"
-                                @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
+                        <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
+                            class="grid relative transition-[height] duration-200 ease-in-out"
+                            :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
+                            :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
 
-                            <!-- Live selection rectangle (click-drag-create) -->
-                            <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
-                                class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
-                                :style="{ left: selectRect.left + '%', width: selectRect.width + '%' }">
-                                <div
-                                    class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300  dark:bg-slate-900 rounded px-1">
-                                    {{ formatTimeFromMinutes(selectRect.startMinutes) }} –
-                                    {{ formatTimeFromMinutes(selectRect.endMinutes) }}
+                            <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
+                                class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
+                                :data-user-id="user.id" :data-day-iso="day.iso"
+                                @pointerdown="onCellPointerDown($event, user, day)"
+                                @dragover.prevent="onDragOver($event, user, day)"
+                                @drop.prevent="onExternalDrop($event, user, day)">
+                                <!-- Hour grid lines -->
+                                <div class="absolute inset-0 grid pointer-events-none"
+                                    :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
+                                    <div v-for="h in hourCount" :key="'hgl-' + user.id + '-' + day.iso + '-' + h"
+                                        class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
+                                </div>
+
+                                <!-- Unavailability overlays -->
+                                <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
+                                    :key="'block-' + user.id + '-' + day.iso + '-' + oi">
+                                    <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
+                                        :style="{
+                                            left: overlay.left + '%',
+                                            width: overlay.width + '%',
+                                            background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
+                                        }">
+                                        <span
+                                            class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
+                                            {{ overlay.label || 'Niet beschikbaar' }}
+                                        </span>
+                                    </div>
+                                </template>
+
+                                <!-- Now indicator -->
+                                <div v-if="isToday(day.date) && nowOffsetPercent !== null"
+                                    class="absolute top-0 bottom-0 w-px bg-red-500/70 pointer-events-none z-10"
+                                    :style="{ left: nowOffsetPercent + '%' }">
+                                    <div class="absolute -top-1 -translate-x-1/2 size-2 rounded-full bg-red-500"></div>
+                                </div>
+
+                                <!-- Events for this user/day -->
+                                <PlannerEvent v-for="ev in eventsFor(user.id, day.iso)" :key="ev.id + '-' + user.id"
+                                    :event="ev" :user-id="user.id" :day="day" :slot-minutes="slotMinutes"
+                                    :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
+                                    :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
+                                    :is-locked="ev.executing_user_ids.length > 1"
+                                    :is-being-dragged="drag.eventId === ev.id" @click="handleEventClick(ev)"
+                                    @contextmenu="onEventContextMenu($event, ev)"
+                                    @pointerdown-on-event="onEventPointerDown($event, ev, user)"
+                                    @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
+
+                                <!-- Live selection rectangle (click-drag-create) -->
+                                <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
+                                    class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
+                                    :style="{ left: selectRect.left + '%', width: selectRect.width + '%' }">
+                                    <div
+                                        class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300  dark:bg-slate-900 rounded px-1">
+                                        {{ formatTimeFromMinutes(selectRect.startMinutes) }} –
+                                        {{ formatTimeFromMinutes(selectRect.endMinutes) }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Drag ghost (floats above grid) -->
-                    <div v-if="dragGhost"
-                        class="absolute pointer-events-none rounded-md border-2 border-dashed /90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
-                        :style="dragGhost.style">
-                        <div class="font-semibold truncate">{{ dragGhost.title }}</div>
-                        <div class="text-[11px]">
-                            {{ formatTimeFromDate(dragGhost.start) }} – {{ formatTimeFromDate(dragGhost.end) }}
+                        <!-- Drag ghost (floats above grid) -->
+                        <div v-if="dragGhost"
+                            class="absolute pointer-events-none rounded-md border-2 border-dashed /90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
+                            :style="dragGhost.style">
+                            <div class="font-semibold truncate">{{ dragGhost.title }}</div>
+                            <div class="text-[11px]">
+                                {{ formatTimeFromDate(dragGhost.start) }} – {{ formatTimeFromDate(dragGhost.end) }}
+                            </div>
+                            <div v-if="dragGhost.userName" class="text-[10px] opacity-75">→ {{ dragGhost.userName }}
+                            </div>
                         </div>
-                        <div v-if="dragGhost.userName" class="text-[10px] opacity-75">→ {{ dragGhost.userName }}</div>
                     </div>
                 </div>
-            </div>
             </div>
         </div>
 
@@ -321,6 +334,8 @@ const props = defineProps({
     eventPaddingY: { type: Number, default: 14 },
     /** Default duration in minutes for new events created by drop or single click */
     defaultPlannerMinutes: { type: Number, default: 120 },
+    /** Plan groups for sorting and color bars */
+    groups: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
@@ -339,11 +354,47 @@ function canDeleteEvent(ev) {
     return hasPermission('event.delete') && ev.executing_user_ids.includes(authUserId.value)
 }
 
-const visibleUsers = computed(() =>
-    hasPermission('event.see_all')
+const visibleUsers = computed(() => {
+    const base = hasPermission('event.see_all')
         ? props.plannableUsers
         : props.plannableUsers.filter(u => u.id === authUserId.value)
-)
+
+    const groupIndex = Object.fromEntries(props.groups.map((g, i) => [g.id, i]))
+
+    return [...base].sort((a, b) => {
+        const ga = a.plan_group_id != null ? (groupIndex[a.plan_group_id] ?? Infinity) : Infinity
+        const gb = b.plan_group_id != null ? (groupIndex[b.plan_group_id] ?? Infinity) : Infinity
+        if (ga !== gb) return ga - gb
+        return a.name.localeCompare(b.name)
+    })
+})
+
+const groupBars = computed(() => {
+    const users = visibleUsers.value
+    if (!users.length) return []
+
+    let top = allDayLaneHeight.value
+    const segments = new Map()
+
+    for (const user of users) {
+        const rowH = rowHeightFor(user.id)
+        const key = user.plan_group_id != null ? user.plan_group_id : 'ungrouped'
+
+        if (!segments.has(key)) {
+            let color = '#9ca3af'
+            let name = 'Geen groep'
+            if (user.plan_group_id != null) {
+                const group = props.groups.find(g => g.id === user.plan_group_id)
+                if (group) { color = group.color; name = group.name }
+            }
+            segments.set(key, { top, height: 0, color, name })
+        }
+        segments.get(key).height += rowH
+        top += rowH
+    }
+
+    return [...segments.values()]
+})
 
 const showProjects = computed(() => hasPermission('project.read'))
 
@@ -1301,9 +1352,10 @@ async function savePlannerMinutes() {
     try {
         await axios.get('sanctum/csrf-cookie')
         await axios.put('/api/settings/defaultplannerminutes', { value: plannerMinutes.value })
+        page.props.flash.success = `Standaard planminuten opgeslagen (${plannerMinutes.value} min)`
     } catch (e) {
         console.error('Failed to save planner minutes', e)
-        page.props.flash.error = 'Kon standaard planminuten niet opslaan'
+        page.props.flash.error = e.response?.data?.message || 'Kon standaard planminuten niet opslaan'
     }
 }
 
