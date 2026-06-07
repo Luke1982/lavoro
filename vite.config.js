@@ -5,6 +5,14 @@ import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
     publicDir: 'public',
+    optimizeDeps: {
+        exclude: ['@capacitor-community/background-geolocation'],
+    },
+    build: {
+        rollupOptions: {
+            external: ['@capacitor-community/background-geolocation'],
+        },
+    },
     plugins: [
         laravel({
             input: ["resources/css/app.css", "resources/js/app.js"],

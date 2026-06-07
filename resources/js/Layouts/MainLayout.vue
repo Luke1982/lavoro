@@ -1,4 +1,5 @@
 <template>
+    <OfflineBanner />
     <div class="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
@@ -352,7 +353,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import {
     Bars3Icon,
@@ -383,11 +384,30 @@ import {
     TagIcon,
     DocumentTextIcon,
     Bars4Icon,
+    MapPinIcon,
 } from '@heroicons/vue/24/outline'
 import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
+import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
+import { useCapacitor } from '@/Composables/useCapacitor.js'
+import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
+import { useLocationTracker } from '@/Composables/useLocationTracker.js'
+import { usePushNotifications } from '@/Composables/usePushNotifications.js'
+
+const { is_native } = useCapacitor()
+const { init: init_network } = useNetworkStatus()
+const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
+const { register: register_push } = usePushNotifications()
+
+onMounted(async () => {
+    await init_network()
+    if (is_native && page.props.auth?.user) {
+        await register_push()
+        await start_tracking()
+    }
+})
 
 const page = usePage()
 const authUser = computed(() => page.props.auth.user)
@@ -491,9 +511,11 @@ const navigation = ref([
     },
     { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },
     { name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read' },
+    { name: 'Technicikaart', href: '/admin/technician-map', icon: MapPinIcon, current: false, adminOnly: true },
 ])
 
 const canSeeNavItem = (item) => {
+    if (item?.adminOnly) return isAdmin.value;
     if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission);
     if (!item?.requiresPermission) return true;
     return hasPermission(item.requiresPermission);
@@ -628,6 +650,9 @@ const currentTopTitle = computed(() => {
 })
 
 const logout = async () => {
+    if (is_native) {
+        await stop_tracking()
+    }
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()
         for (const registration of registrations) {
