@@ -8,8 +8,7 @@ class UserStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-        return $user && ($user->isAdmin() || $user->hasPermission('user.create'));
+        return $this->user()->can('create', \App\Models\User::class);
     }
 
     public function rules(): array

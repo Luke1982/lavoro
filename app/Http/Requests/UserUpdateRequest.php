@@ -9,8 +9,11 @@ class UserUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-        return $user && ($user->isAdmin() || $user->hasPermission('user.update'));
+        $route_user = $this->route('user');
+        if ($route_user) {
+            return $this->user()->can('update', $route_user);
+        }
+        return $this->user() !== null;
     }
 
     public function rules(): array
