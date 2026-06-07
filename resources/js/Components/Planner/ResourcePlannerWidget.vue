@@ -92,11 +92,11 @@
                         <div
                             v-for="(bar, i) in groupBars"
                             :key="i"
-                            class="absolute left-0 w-1 rounded-sm flex items-start overflow-hidden"
+                            class="absolute left-0 w-5 rounded-sm flex items-center justify-center overflow-hidden"
                             :style="{ top: bar.top + 'px', height: bar.height + 'px', background: bar.color }">
                             <span
-                                class="text-[9px] font-semibold text-white select-none px-px"
-                                style="writing-mode: vertical-rl; transform: rotate(180deg); line-height: 1rem;">
+                                class="text-[10px] font-semibold text-white select-none leading-none"
+                                style="writing-mode: vertical-rl; transform: rotate(180deg);">
                                 {{ bar.name }}
                             </span>
                         </div>
