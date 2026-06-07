@@ -135,6 +135,63 @@ works (it only compares numbers), but keeping them equal avoids confusion.
 
 ---
 
+# App Links (tapped links open the app)
+
+A tapped `https://spee.lavorofsm.nl/...` link opens the app instead of the
+browser. This is **host-specific** and verified by Android at install time, so
+it can't be fully runtime-agnostic — each customer domain must be declared.
+
+Two pieces must agree:
+
+1. **Manifest** — `android/app/src/main/AndroidManifest.xml` has an
+   `intent-filter` with `autoVerify="true"` and a `<data android:host="...">`
+   entry per domain.
+2. **Server file** — each domain serves `/.well-known/assetlinks.json`
+   containing the app's signing fingerprint. Served by the `app.assetlinks`
+   route in `routes/web.php`.
+
+### The signing fingerprint must match
+
+`assetlinks.json` contains the SHA-256 fingerprint of the key that signed the
+APK. Debug and release builds have **different** keys. Get the current one:
+
+```bash
+cd android
+./gradlew :app:signingReport -Dorg.gradle.java.home=/snap/android-studio/227/jbr | grep -A8 "Variant: debug" | grep SHA-256
+```
+
+If links open the browser instead of the app, the fingerprint in
+`assetlinks.json` doesn't match the installed APK's signing key. When you move
+to a signed release build, add that key's fingerprint to the JSON too (the
+array accepts multiple).
+
+### Adding another customer domain
+
+1. Add a `<data android:scheme="https" android:host="acme.lavorofsm.nl" />`
+   line inside the App Links `intent-filter` in the manifest.
+2. Make sure that host serves the same `assetlinks.json` (the route already
+   does this for any host pointing at the app).
+3. Rebuild + ship the APK.
+
+### Verifying
+
+```bash
+# Force re-verification on device
+adb shell pm verify-app-links --re-verify nl.lavoro.fsm
+adb shell pm get-app-links nl.lavoro.fsm   # should show the host as "verified"
+
+# Test a link manually
+adb shell am start -a android.intent.action.VIEW -d "https://spee.lavorofsm.nl/serviceorders/1"
+```
+
+The server file must be reachable over HTTPS with no redirect and
+`Content-Type: application/json`. Confirm:
+```bash
+curl -i https://spee.lavorofsm.nl/.well-known/assetlinks.json
+```
+
+---
+
 # Production (signed) build — later
 
 Debug APKs are fine for sideloading to your own technicians. For Play Store or
