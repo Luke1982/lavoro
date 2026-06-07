@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\GoogleIntegrationStatusController;
 use App\Http\Controllers\EventApiController;
+use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\ProjectApiController;
 use App\Http\Controllers\UnavailabilityApiController;
 use Illuminate\Support\Facades\Route;
@@ -17,4 +18,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         ->name('api.google.integration.status');
 
     Route::get('unavailabilities', [UnavailabilityApiController::class, 'index']);
+
+    Route::put('settings/{key}', [GeneralSettingController::class, 'update']);
 });
