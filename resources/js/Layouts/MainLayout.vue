@@ -109,13 +109,6 @@
                                                     <BuildingOffice2Icon class="size-6 shrink-0" />
                                                     Bedrijf
                                                 </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/users'" :class="[
-                                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <UsersIcon class="size-6 shrink-0" />
-                                                    Gebruikers
-                                                </Link>
                                                 <Link @click="sidebarOpen = false" :href="'/roles'" :class="[
                                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -130,6 +123,15 @@
                                                     ]">
                                                     <CalendarIcon class="size-6 shrink-0" />
                                                     Agenda-toegang
+                                                </Link>
+                                            </div>
+                                            <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
+                                                <Link @click="sidebarOpen = false" :href="'/users'" :class="[
+                                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <UsersIcon class="size-6 shrink-0" />
+                                                    Gebruikers
                                                 </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
@@ -246,13 +248,6 @@
                                     <BuildingOffice2Icon class="size-6 shrink-0" />
                                     Bedrijf
                                 </Link>
-                                <Link :href="'/users'" :class="[
-                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <UsersIcon class="size-6 shrink-0" />
-                                    Gebruikers
-                                </Link>
                                 <Link :href="'/roles'" :class="[
                                     currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
@@ -266,6 +261,15 @@
                                 ]">
                                     <CalendarIcon class="size-6 shrink-0" />
                                     Agenda-toegang
+                                </Link>
+                            </div>
+                            <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
+                                <Link :href="'/users'" :class="[
+                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <UsersIcon class="size-6 shrink-0" />
+                                    Gebruikers
                                 </Link>
                             </div>
                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
@@ -385,6 +389,7 @@ const dismissGoogleBanner = () => {
     }
 }
 const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
+const canSeeUsers = computed(() => isAdmin.value || hasPermission('user.read'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)
