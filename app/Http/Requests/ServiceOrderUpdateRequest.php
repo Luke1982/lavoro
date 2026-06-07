@@ -30,6 +30,11 @@ class ServiceOrderUpdateRequest extends FormRequest
         }
 
         $new_stage_id = $this->input('service_order_stage_id');
+
+        if ($new_stage_id === $serviceorder->service_order_stage_id) {
+            return true;
+        }
+
         $new_stage = $new_stage_id === null
             ? null
             : ServiceOrderStage::find($new_stage_id);

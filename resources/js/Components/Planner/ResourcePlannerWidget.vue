@@ -402,9 +402,20 @@ const slotMinutes = ref(props.defaultSlotMinutes)
 const dayStartHour = ref(props.defaultDayStartHour)
 const dayEndHour = ref(props.defaultDayEndHour)
 
+const WEEK_STORAGE_KEY = 'lavoro_planner_week'
+
+function loadStoredWeekStart() {
+    const stored = localStorage.getItem(WEEK_STORAGE_KEY)
+    if (stored) {
+        const date = dayjs(stored, 'YYYY-MM-DD', true)
+        if (date.isValid()) return date.toDate()
+    }
+    return startOfWeek(new Date())
+}
+
 const events = ref([])
 const unavailabilities = ref([])
-const weekStart = ref(startOfWeek(new Date()))
+const weekStart = ref(loadStoredWeekStart())
 
 const sidebarScrollRef = ref(null)
 const gridScrollRef = ref(null)
@@ -645,7 +656,8 @@ onUnmounted(() => {
 })
 
 watch([dayStartHour, dayEndHour], () => updateNow())
-watch(weekStart, () => {
+watch(weekStart, (val) => {
+    localStorage.setItem(WEEK_STORAGE_KEY, dayjs(val).format('YYYY-MM-DD'))
     fetchEvents()
     fetchUnavailabilities()
 })

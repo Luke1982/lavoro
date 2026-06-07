@@ -248,7 +248,7 @@
                                     <span v-if="ticketsLastUpdate"
                                         class="text-sm text-gray-400 dark:text-slate-500">Laatste update: {{
                                             nlDate(ticketsLastUpdate) }} om {{ nlTime(ticketsLastUpdate) }}</span>
-                                    <Link href="/tickets" v-if="hasPermission('ticket.read')"
+                                    <Link href="/tickets" v-if="hasPermission('ticket.see_all')"
                                         class="inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                         Storingen beheren
                                         <ArrowTopRightOnSquareIcon class="w-3.5 h-3.5" />
@@ -276,7 +276,8 @@
                             </div>
                             <TimelineComponent :activities="timelineItems" />
                         </BoxComponent>
-                        <BoxComponent class="mt-6">
+                        <BoxComponent class="mt-6"
+                            v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.remarks.length > 0)">
                             <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.remarks" />

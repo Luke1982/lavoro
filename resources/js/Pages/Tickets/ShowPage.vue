@@ -2,7 +2,8 @@
     <div class="flex items-center">
         <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
         <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket #{{ ticket.asset.serial_number }}</span>
+        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket #{{ ticket.asset.serial_number
+        }}</span>
     </div>
 
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 mb-2">
@@ -15,22 +16,26 @@
                 <div class="flex items-center gap-1.5">
                     <ExclamationCircleIcon class="size-4 text-slate-400 flex-none" />
                     <span class="text-xs text-slate-400">Prioriteit</span>
-                    <BadgeComponent :color="priorityBadgeColor" :hasDot="false" class="!px-2 !py-0.5 text-xs">{{ ticket.priority }}</BadgeComponent>
+                    <BadgeComponent :color="priorityBadgeColor" :hasDot="false" class="!px-2 !py-0.5 text-xs">{{
+                        ticket.priority }}</BadgeComponent>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <CalendarIcon class="size-4 text-slate-400 flex-none" />
                     <span class="text-xs text-slate-400">Aangemaakt</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.created_at) }} om {{ nlTime(ticket.created_at) }}</span>
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.created_at) }}
+                        om {{ nlTime(ticket.created_at) }}</span>
                 </div>
                 <div v-if="ticket.created_by" class="flex items-center gap-1.5">
                     <UserIcon class="size-4 text-slate-400 flex-none" />
                     <span class="text-xs text-slate-400">Aangemaakt door</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ ticket.created_by.name }}</span>
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ ticket.created_by.name
+                    }}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <ClockIcon class="size-4 text-slate-400 flex-none" />
                     <span class="text-xs text-slate-400">Laatste bijgewerkt</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.updated_at) }} om {{ nlTime(ticket.updated_at) }}</span>
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.updated_at) }}
+                        om {{ nlTime(ticket.updated_at) }}</span>
                 </div>
             </div>
         </div>
@@ -53,7 +58,8 @@
                 </MenuItems>
             </Menu>
 
-            <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')" :href="`/serviceorders/${ticket.service_order_id}`"
+            <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
+                :href="`/serviceorders/${ticket.service_order_id}`"
                 class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
                 Werkbon openen
                 <ArrowTopRightOnSquareIcon class="size-4" />
@@ -74,7 +80,8 @@
                         <div class="col-span-12 sm:col-span-3">
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Storing aan</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-9 text-sm text-gray-800 dark:text-slate-200 flex flex-wrap items-center gap-x-1">
+                        <div
+                            class="col-span-12 sm:col-span-9 text-sm text-gray-800 dark:text-slate-200 flex flex-wrap items-center gap-x-1">
                             <span>{{ ticket.asset.product.brand.name }}</span>
                             <component :is="hasPermission('product.read') ? Link : 'span'"
                                 :href="`/products/${ticket.asset.product.id}`"
@@ -166,7 +173,8 @@
                     <template v-if="ticket.closed_by">
                         <div class="grid grid-cols-12 py-3 gap-3 items-center">
                             <div class="col-span-12 sm:col-span-3">
-                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten door</span>
+                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten
+                                    door</span>
                             </div>
                             <div class="col-span-12 sm:col-span-9 text-sm text-gray-600 dark:text-slate-300">
                                 {{ ticket.closed_by.name }}
@@ -186,7 +194,9 @@
                 </div>
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3">
-                        <span class="font-semibold text-sm dark:text-slate-200">WB-{{ String(ticket.service_order.id).padStart(4, '0') }}</span>
+                        <span class="font-semibold text-sm dark:text-slate-200">WB-{{
+                            String(ticket.service_order.id).padStart(4,
+                                '0') }}</span>
                         <BadgeComponent v-if="ticket.service_order.service_order_stage" color="blue" :hasDot="false">
                             {{ ticket.service_order.service_order_stage.name }}
                         </BadgeComponent>
@@ -218,7 +228,7 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent>
+            <BoxComponent class="mt-6 sm:mt-0">
                 <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
                     <div class="flex items-center">
                         <PhotoIcon class="size-6 mr-2 flex-none" />

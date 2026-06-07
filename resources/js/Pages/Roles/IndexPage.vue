@@ -30,7 +30,7 @@
                                 <span class="inline-flex flex-wrap gap-1">
                                     <BadgeComponent v-for="uid in role.user_ids" :key="uid" color="blue"
                                         :has-dot="false">
-                                        {{ allUsers.find(u => u.id === uid)?.name }}
+                                        {{allUsers.find(u => u.id === uid)?.name}}
                                     </BadgeComponent>
                                     <span v-if="!role.user_ids.length"
                                         class="text-gray-400 text-xs font-normal italic">Geen gebruikers</span>
@@ -44,7 +44,8 @@
                             @update="(val) => patchRole(role.id, { user_ids: role.user_ids, permission_ids: val })">
                             <template #display>
                                 <span class="flex flex-col gap-2">
-                                    <template v-for="group in groupedPermissions(role.permission_ids)" :key="group.resource">
+                                    <template v-for="group in groupedPermissions(role.permission_ids)"
+                                        :key="group.resource">
                                         <span class="flex flex-col gap-1">
                                             <span class="text-xs font-bold text-gray-600">{{ group.resource }}</span>
                                             <span class="flex flex-wrap gap-1">
@@ -105,7 +106,7 @@ watch(() => props.roles, (newRoles) => {
 })
 
 function patchRole(role_id, data) {
-    router.patch(`/roles/${role_id}`, data, { preserveScroll: true })
+    router.patch(`/roles/${role_id}`, data, { preserveScroll: true, preserveState: true })
 }
 
 function groupedPermissions(permission_ids) {

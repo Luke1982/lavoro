@@ -13,7 +13,7 @@
                     :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
             <button v-if="slots.filters" @click="filtersVisible = !filtersVisible"
-                class="rounded-md border-gray-200 border-1 px-2 sm:px-4 bg-white text-sm flex items-center gap-x-1 text-gray-800 cursor-pointer relative">
+                class="rounded-md border-gray-200 border-1 px-3 sm:px-2 py-3 sm:px-4 bg-white text-sm flex items-center gap-x-1 text-gray-800 cursor-pointer relative">
                 <FilterIcon class="h-5 w-5 text-gray-500" /><span class="hidden sm:inline">Filters</span>
                 <div v-if="hasActiveFilters" class="absolute right-2 top-2 bg-green-500 rounded-full h-2 w-2"></div>
             </button>
