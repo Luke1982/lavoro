@@ -21,7 +21,13 @@ export function usePushNotifications() {
         const permission = await PushNotifications.requestPermissions();
         if (permission.receive !== 'granted') return;
 
-        await PushNotifications.register();
+        try {
+            await PushNotifications.register();
+        } catch (e) {
+            // Firebase not configured (no google-services.json) — skip push, never block callers.
+            console.error('PushNotifications.register failed:', e);
+            return;
+        }
         registered = true;
 
         PushNotifications.addListener('registration', async (token) => {

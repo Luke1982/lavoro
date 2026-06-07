@@ -404,8 +404,16 @@ const { register: register_push } = usePushNotifications()
 onMounted(async () => {
     await init_network()
     if (is_native && page.props.auth?.user) {
-        await register_push()
-        await start_tracking()
+        try {
+            await start_tracking()
+        } catch (e) {
+            console.error('GPS tracking failed to start:', e)
+        }
+        try {
+            await register_push()
+        } catch (e) {
+            console.error('Push registration failed:', e)
+        }
     }
 })
 
