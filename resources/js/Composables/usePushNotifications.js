@@ -1,11 +1,20 @@
 import { useCapacitor } from './useCapacitor.js';
 import axios from 'axios';
 
+let registered = false;
+let csrf_ready = false;
+
+async function ensure_csrf() {
+    if (csrf_ready) return;
+    await axios.get('sanctum/csrf-cookie');
+    csrf_ready = true;
+}
+
 export function usePushNotifications() {
     const { is_native, platform } = useCapacitor();
 
     async function register() {
-        if (!is_native) return;
+        if (!is_native || registered) return;
 
         const { PushNotifications } = await import('@capacitor/push-notifications');
 
@@ -13,9 +22,11 @@ export function usePushNotifications() {
         if (permission.receive !== 'granted') return;
 
         await PushNotifications.register();
+        registered = true;
 
         PushNotifications.addListener('registration', async (token) => {
             try {
+                await ensure_csrf();
                 await axios.post('/api/device-tokens', { token: token.value, platform });
             } catch {
                 // Non-fatal — retried on next app launch.
@@ -43,6 +54,7 @@ export function usePushNotifications() {
     async function unregister(token) {
         if (!is_native) return;
         try {
+            await ensure_csrf();
             await axios.delete('/api/device-tokens', { data: { token, platform } });
         } catch {
             // Best-effort.

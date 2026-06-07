@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreLocationPingsRequest;
 use App\Models\LocationPing;
+use Carbon\Carbon;
 
 class LocationPingController extends Controller
 {
@@ -14,8 +15,9 @@ class LocationPingController extends Controller
         $now = now()->toDateTimeString();
 
         $rows = array_map(fn($ping) => array_merge($ping, [
-            'user_id'    => $user_id,
-            'created_at' => $now,
+            'user_id'     => $user_id,
+            'recorded_at' => Carbon::parse($ping['recorded_at'])->utc()->toDateTimeString(),
+            'created_at'  => $now,
         ]), $request->validated('pings'));
 
         LocationPing::insert($rows);

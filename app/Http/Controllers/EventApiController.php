@@ -66,43 +66,52 @@ class EventApiController extends Controller
         $data = $request->validated();
         unset($data['executing_user_ids']);
 
-        $eventable_id   = $request->eventable_id;
+        $eventable_id = $request->eventable_id;
         $eventable_type = $request->eventable_type;
 
-        $event = DB::transaction(function () use ($request, $data, &$eventable_id, &$eventable_type) {
-            if ($request->boolean('create_service_order')) {
-                $new_order      = ServiceOrder::create(['customer_id' => $data['customer_id']]);
-                $eventable_type = '\\App\\Models\\ServiceOrder';
-                $eventable_id   = $new_order->id;
-            }
+        $notify_service_order = null;
+        $notify_user_ids = [];
 
-            unset($data['create_service_order'], $data['customer_id']);
-            $data['eventable_type'] = $eventable_type;
-            $data['eventable_id']   = $eventable_id;
-
-            $event = Event::create($data);
-
-            $model = $eventable_type::findOrFail($eventable_id);
-            $model->events()->attach($event->id);
-            if ($model instanceof ServiceOrder) {
-                $model->advanceToPlannedStage();
-            }
-
-            $executing_user_ids = $request['executing_user_ids'] ?? [];
-            if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
-                $ids = array_map('intval', $executing_user_ids);
-                $event->syncExecutingUsers($ids);
-                $model->syncExecutingUsers($ids);
-                $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
-
-                if ($model instanceof ServiceOrder) {
-                    User::whereIn('id', $ids)->get()
-                        ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
+        $event = DB::transaction(
+            function () use ($request, $data, &$eventable_id, &$eventable_type, &$notify_service_order, &$notify_user_ids) {
+                if ($request->boolean('create_service_order')) {
+                    $new_order = ServiceOrder::create(['customer_id' => $data['customer_id']]);
+                    $eventable_type = '\\App\\Models\\ServiceOrder';
+                    $eventable_id = $new_order->id;
                 }
-            }
 
-            return $event;
-        });
+                unset($data['create_service_order'], $data['customer_id']);
+                $data['eventable_type'] = $eventable_type;
+                $data['eventable_id'] = $eventable_id;
+
+                $event = Event::create($data);
+
+                $model = $eventable_type::findOrFail($eventable_id);
+                $model->events()->attach($event->id);
+                if ($model instanceof ServiceOrder) {
+                    $model->advanceToPlannedStage();
+                }
+
+                $executing_user_ids = $request['executing_user_ids'] ?? [];
+                if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
+                    $ids = array_map('intval', $executing_user_ids);
+                    $event->syncExecutingUsers($ids);
+                    $model->syncExecutingUsers($ids);
+                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+
+                    if ($model instanceof ServiceOrder) {
+                        $notify_service_order = $model;
+                        $notify_user_ids = $ids;
+                    }
+                }
+
+                return $event;
+            });
+
+        if ($notify_service_order) {
+            User::whereIn('id', $notify_user_ids)->get()
+                ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
+        }
 
         return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']), 201);
     }
@@ -151,19 +160,26 @@ class EventApiController extends Controller
                         $m->google_event_id,
                     ));
                 if ($model) {
+                    $previously_executing = $model instanceof ServiceOrder
+                        ? $model->executingUsers()->pluck('users.id')->all()
+                        : [];
+
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
-                        User::whereIn('id', $ids)->get()
-                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                        $new_ids = array_diff($ids, $previously_executing);
+                        User::whereIn('id', $new_ids)->get()
+                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($model)));
                     }
                 } else {
                     $event->serviceOrders->each(function ($order) use ($ids) {
+                        $previously_executing = $order->executingUsers()->pluck('users.id')->all();
                         $order->syncExecutingUsers($ids);
-                        $order->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
-                        User::whereIn('id', $ids)->get()
-                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($order)));
+                        $order->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+                        $new_ids = array_diff($ids, $previously_executing);
+                        User::whereIn('id', $new_ids)->get()
+                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($order)));
                     });
                 }
             }

@@ -4,6 +4,13 @@ import { useCapacitor } from './useCapacitor.js';
 import { useNetworkStatus } from './useNetworkStatus.js';
 import axios from 'axios';
 
+let csrf_ready = false;
+async function ensure_csrf() {
+    if (csrf_ready) return;
+    await axios.get('sanctum/csrf-cookie');
+    csrf_ready = true;
+}
+
 const QUEUE_KEY     = 'lavoro_location_queue';
 const LAST_PING_KEY = 'lavoro_last_ping_at';
 const MAX_QUEUE     = 200;
@@ -40,9 +47,13 @@ async function enqueue(ping) {
 async function flush() {
     const queue = await get_queue();
     if (!queue.length) return;
+    const sent_count = queue.length;
     try {
+        await ensure_csrf();
         await axios.post('/api/location/pings', { pings: queue });
-        await save_queue([]);
+        // Re-read instead of blanking — pings enqueued during the await must survive.
+        const remaining = await get_queue();
+        await save_queue(remaining.slice(sent_count));
     } catch {
         // Keep queue intact; will retry on next reconnect.
     }

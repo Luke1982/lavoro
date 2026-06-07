@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
       backgroundTitle: 'Locatie actief',
       requestPermissions: true,
       stale: false,
-      distanceFilter: 30,
+      distanceFilter: 50,
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],

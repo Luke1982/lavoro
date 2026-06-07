@@ -15,7 +15,7 @@ class UpsertDeviceTokenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'token'    => ['required', 'string', 'max:500'],
+            'token'    => ['required', 'string', 'max:512'],
             'platform' => ['required', Rule::in(['ios', 'android'])],
         ];
     }

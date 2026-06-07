@@ -6,9 +6,9 @@ use App\Models\ServiceOrder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\FCM\FCMChannel;
-use NotificationChannels\FCM\FCMMessage;
-use NotificationChannels\FCM\Resources\Notification as FCMNotification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class NewServiceOrderAssigned extends Notification implements ShouldQueue
 {
@@ -20,22 +20,18 @@ class NewServiceOrderAssigned extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        if (empty($notifiable->routeNotificationForFcm())) {
-            return [];
-        }
-
-        return [FCMChannel::class];
+        return empty($notifiable->routeNotificationFor('fcm')) ? [] : [FcmChannel::class];
     }
 
-    public function toFcm(object $notifiable): FCMMessage
+    public function toFcm(object $notifiable): FcmMessage
     {
-        return FCMMessage::create()
-            ->setNotification(
-                FCMNotification::create()
-                    ->setTitle('Nieuwe werkbon toegewezen')
-                    ->setBody("Werkbon #{$this->service_order->id} is aan u toegewezen.")
+        return FcmMessage::create()
+            ->notification(
+                FcmNotification::create()
+                    ->title('Nieuwe werkbon toegewezen')
+                    ->body("Werkbon #{$this->service_order->id} is aan u toegewezen.")
             )
-            ->setData([
+            ->data([
                 'type' => 'service_order_assigned',
                 'id'   => (string) $this->service_order->id,
             ]);
