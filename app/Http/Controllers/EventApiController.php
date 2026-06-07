@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
+use App\Jobs\Google\PushEventJob;
 use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
 use App\Models\ServiceOrder;
@@ -127,6 +128,7 @@ class EventApiController extends Controller
             if (is_array($executing_user_ids)) {
                 $ids = array_map('intval', $executing_user_ids);
                 $event->syncExecutingUsers($ids);
+                PushEventJob::dispatch($event->id);
                 if ($model) {
                     $model->syncExecutingUsers($ids);
                     $model->serviceJobs()->each(function ($job) use ($ids) {
