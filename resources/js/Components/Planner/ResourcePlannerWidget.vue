@@ -707,6 +707,7 @@ async function fetchEvents() {
                 customer_id,
                 customer_name: ev.service_orders?.[0]?.customer?.name || null,
                 is_preliminary: ev.is_preliminary ?? false,
+                from_google: ev.origin === 'google',
             }
         })
     } catch (e) {
