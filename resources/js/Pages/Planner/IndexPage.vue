@@ -3,7 +3,8 @@
     <div class="md:hidden h-screen overflow-hidden">
         <MobilePlannerView :event-types="eventTypes" :all-customers="allCustomers"
             :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
-            :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef" />
+            :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
+            :latest-pings="props.latestPings" />
     </div>
 
     <!-- Desktop (md and up) -->
@@ -14,8 +15,8 @@
                     :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
                     :projects="projects" :groups="planGroupsRef" :default-planner-minutes="props.defaultPlannerMinutes"
-                    :latest-pings="props.latestPings"
-                    @service-order-planned="onServiceOrderPlanned" @service-order-unplanned="onServiceOrderUnplanned" />
+                    :latest-pings="props.latestPings" @service-order-planned="onServiceOrderPlanned"
+                    @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
         <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3">

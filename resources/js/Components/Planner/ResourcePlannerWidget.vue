@@ -94,14 +94,12 @@
                 <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
                     ref="sidebarScrollRef">
                     <!-- Group bar overlay -->
-                    <div class="absolute top-0 left-0 pointer-events-none" style="width: 0; overflow: visible; z-index: 1;">
-                        <div
-                            v-for="(bar, i) in groupBars"
-                            :key="i"
+                    <div class="absolute top-0 left-0 pointer-events-none"
+                        style="width: 0; overflow: visible; z-index: 1;">
+                        <div v-for="(bar, i) in groupBars" :key="i"
                             class="absolute left-0 w-5 rounded-sm flex items-center justify-center overflow-hidden"
                             :style="{ top: bar.top + 'px', height: bar.height + 'px', background: bar.color }">
-                            <span
-                                class="text-[10px] font-semibold text-white select-none leading-none"
+                            <span class="text-[10px] font-semibold text-white select-none leading-none"
                                 style="writing-mode: vertical-rl; transform: rotate(180deg);">
                                 {{ bar.name }}
                             </span>
@@ -141,7 +139,8 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="text-sm font-semibold truncate">{{ user.name }}</div>
-                                <div v-if="!collapsedUsers.has(user.id)" class="text-xs text-gray-500 dark:text-slate-400">
+                                <div v-if="!collapsedUsers.has(user.id)"
+                                    class="text-xs text-gray-500 dark:text-slate-400">
                                     {{ userHoursLabel(user.id) }}</div>
                             </div>
                         </div>
@@ -157,8 +156,7 @@
                                 </button>
                             </div>
                             <div class="flex-1 min-h-0">
-                                <TechnicianMiniMap
-                                    :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
+                                <TechnicianMiniMap :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
                                     :ping="latestPings[user.id]" />
                             </div>
                         </div>
@@ -326,9 +324,9 @@
             @saved="onSaved" />
 
         <!-- All-technicians map modal -->
-        <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event"
-            title="Monteurlocaties (laatste 8u)" max-width-class="sm:max-w-5xl">
-            <div style="height: 520px" class="relative">
+        <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event" title="Monteurlocaties (laatste 8u)"
+            max-width-class="sm:max-w-[90vw]">
+            <div style="height: 80vh; width: 90vw;" class="relative">
                 <TechnicianMapCanvas v-if="mapModalOpen" :pings="allPingsArray" :init-delay="350" />
             </div>
         </ModalDialog>
