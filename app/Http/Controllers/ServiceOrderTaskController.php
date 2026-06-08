@@ -6,13 +6,17 @@ use App\Models\ServiceOrderTask;
 use App\Http\Requests\ServiceOrderTaskReadRequest;
 use App\Http\Requests\ServiceOrderTaskStoreUpdateRequest;
 use App\Http\Requests\ServiceOrderTaskDeleteRequest;
+use App\Traits\ReadsPerPage;
+use Illuminate\Http\Request;
 
 class ServiceOrderTaskController extends Controller
 {
+    use ReadsPerPage;
+
     public function index(ServiceOrderTaskReadRequest $request)
     {
         $search = $request->get('search', '');
-        $per_page = (int) ($request->get('perPage') ?: 25);
+        $per_page = $this->perPage($request, 25);
         $query = ServiceOrderTask::query();
 
         if ($search) {

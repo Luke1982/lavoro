@@ -15,6 +15,7 @@ use App\Models\Productable;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Services\ProductableService;
+use App\Traits\ReadsPerPage;
 use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
@@ -22,6 +23,8 @@ use Inertia\Response;
 
 class AssetController extends Controller
 {
+    use ReadsPerPage;
+
     /**
      * Display a listing of the resource.
      */
@@ -67,7 +70,7 @@ class AssetController extends Controller
 
         $assets = $query
             ->orderBy('next_service_date', 'ASC')
-            ->paginate(max(1, min(100, (int) $request->input('perPage', 20))))
+            ->paginate($this->perPage($request))
             ->appends(['search' => $search]);
 
         $all_products = Product::with(['brand', 'productType'])
@@ -99,7 +102,7 @@ class AssetController extends Controller
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
-            'perPage' => (int) $request->input('perPage', 20),
+            'perPage' => $this->perPage($request),
         ]);
     }
 

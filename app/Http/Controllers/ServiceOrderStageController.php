@@ -7,14 +7,18 @@ use App\Http\Requests\ServiceOrderStageReadRequest;
 use App\Http\Requests\ServiceOrderStageStoreUpdateRequest;
 use App\Http\Requests\ServiceOrderStageDeleteRequest;
 use App\Http\Requests\ServiceOrderStageReorderRequest;
+use App\Traits\ReadsPerPage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ServiceOrderStageController extends Controller
 {
+    use ReadsPerPage;
+
     public function index(ServiceOrderStageReadRequest $request)
     {
         $search = $request->get('search', '');
-        $per_page = (int) ($request->get('perPage') ?: 25);
+        $per_page = $this->perPage($request, 25);
         $query = ServiceOrderStage::query();
 
         if ($search) {

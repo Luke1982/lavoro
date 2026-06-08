@@ -15,11 +15,14 @@ use App\Models\ProductAttributeValue;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Services\ProductableService;
+use App\Traits\ReadsPerPage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
+    use ReadsPerPage;
+
     /**
      * Display a listing of the resource.
      */
@@ -65,7 +68,7 @@ class ProductController extends Controller
                         'productAttributeValueables.value',
                     ])
                     ->orderBy('model')
-                    ->paginate(max(1, min(100, (int) $request->input('perPage', 20))))
+                    ->paginate($this->perPage($request))
                     ->through(function ($p) {
                         $p->setAttribute('attribute_value_map', $p->attributeValueMap());
 
@@ -89,7 +92,7 @@ class ProductController extends Controller
                 'onlyType' => $onlyType,
                 'onlyBrand' => $onlyBrand,
                 'onlyAttributeValues' => $onlyAttributeValues,
-                'perPage' => max(1, min(100, (int) $request->input('perPage', 20))),
+                'perPage' => $this->perPage($request),
             ]
         );
     }

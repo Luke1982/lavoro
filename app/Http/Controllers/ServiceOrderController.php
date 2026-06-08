@@ -32,9 +32,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Traits\ReadsPerPage;
 
 class ServiceOrderController extends Controller
 {
+    use ReadsPerPage;
+
     /**
      * Display a listing of the resource.
      */
@@ -45,7 +48,7 @@ class ServiceOrderController extends Controller
             explode(',', (string) $request->get('onlyStage', '')),
             fn($v) => is_numeric($v)
         ));
-        $per_page = (int) ($request->get('perPage') ?: 25);
+        $per_page = $this->perPage($request, 25);
 
         $user = Auth::user();
         $query = ServiceOrder::with(['customer', 'serviceOrderStage']);
