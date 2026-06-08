@@ -22,6 +22,7 @@ function mapEvent(ev) {
         eventable_type:     '\\App\\Models\\ServiceOrder',
         customer_id,
         customer_name:      customer?.name || null,
+        project_name:       ev.service_orders?.[0]?.project?.title || null,
         is_preliminary:     ev.is_preliminary ?? false,
         from_google:        ev.origin === 'google',
         task_titles:        (ev.service_orders?.[0]?.task_instances || [])

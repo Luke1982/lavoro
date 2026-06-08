@@ -2,8 +2,9 @@
     <div class="flex items-center">
         <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
         <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket #{{ ticket.asset.serial_number
-        }}</span>
+        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
+            ticket.asset.serial_number
+            }}</span>
     </div>
 
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 mb-2">
@@ -29,7 +30,7 @@
                     <UserIcon class="size-4 text-slate-400 flex-none" />
                     <span class="text-xs text-slate-400">Aangemaakt door</span>
                     <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ ticket.created_by.name
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <ClockIcon class="size-4 text-slate-400 flex-none" />

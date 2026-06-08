@@ -22,12 +22,10 @@
 
             <!-- View mode toggle -->
             <div class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm">
-                <button
-                    class="px-3 py-1.5 transition-colors"
+                <button class="px-3 py-1.5 transition-colors"
                     :class="plannerView === 'week' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
                     @click="setPlannerView('week')">Week</button>
-                <button
-                    class="px-3 py-1.5 border-l border-gray-300 dark:border-slate-700 transition-colors"
+                <button class="px-3 py-1.5 border-l border-gray-300 dark:border-slate-700 transition-colors"
                     :class="plannerView === 'day' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
                     @click="setPlannerView('day')">Dag</button>
             </div>
@@ -69,21 +67,17 @@
                     <!-- Group filter -->
                     <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
                         <span class="text-[10px] text-gray-400 shrink-0">Groepen:</span>
-                        <button
-                            v-for="group in groups"
-                            :key="group.id"
+                        <button v-for="group in groups" :key="group.id"
                             class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
                             :class="selectedGroupIds.includes(group.id)
                                 ? 'text-white border-transparent'
                                 : 'text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
                             :style="selectedGroupIds.includes(group.id) ? { background: group.color, borderColor: group.color } : {}"
-                            :title="group.name"
-                            @click="toggleGroupFilter(group.id)">
+                            :title="group.name" @click="toggleGroupFilter(group.id)">
                             {{ group.name }}
                         </button>
                         <button v-if="selectedGroupIds.length"
-                            class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0"
-                            title="Alle groepen tonen"
+                            class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0" title="Alle groepen tonen"
                             @click="selectedGroupIds = []">✕</button>
                     </div>
                     <!-- Monteurs count + collapse -->
@@ -131,8 +125,7 @@
                     <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
                         style="width: 0; overflow: visible; z-index: 1;">
-                        <div v-for="(bar, i) in groupBars" :key="i"
-                            class="absolute rounded-sm"
+                        <div v-for="(bar, i) in groupBars" :key="i" class="absolute rounded-sm"
                             :style="{ top: bar.top + 'px', height: bar.height + 'px', left: bar.x + 'px', width: BAR_W + 'px', background: bar.color }" />
                     </div>
                     <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
@@ -451,11 +444,11 @@ const groupBars = computed(() => {
 
     for (const user of users) {
         const rowH = rowHeightFor(user.id)
-        ;(user.plan_group_ids ?? []).forEach((gid, i) => {
-            const group = groupMap[gid]
-            if (!group) return
-            bars.push({ top, height: rowH, color: group.color, x: i * (BAR_W + BAR_GAP) })
-        })
+            ; (user.plan_group_ids ?? []).forEach((gid, i) => {
+                const group = groupMap[gid]
+                if (!group) return
+                bars.push({ top, height: rowH, color: group.color, x: i * (BAR_W + BAR_GAP) })
+            })
         top += rowH
     }
 
