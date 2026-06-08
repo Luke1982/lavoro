@@ -216,6 +216,8 @@ Route::group(
             ->only(['store', 'destroy']);
         Route::resource('documents', DocumentController::class)
             ->only(['store', 'update', 'destroy']);
+        Route::get('documents/{document}/download', [DocumentController::class, 'download'])
+            ->name('documents.download');
         Route::resource('events', EventController::class)
             ->only(['index', 'show']);
         Route::get('planner', [PlannerController::class, 'index'])

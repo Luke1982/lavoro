@@ -50,4 +50,11 @@ class DocumentController extends Controller
 
         return back()->with('success', 'Document verwijderd.');
     }
+
+    public function download(Document $document)
+    {
+        abort_unless(auth()->user()->hasPermission('document.see'), 403);
+
+        return Storage::disk('public')->download($document->path, $document->name);
+    }
 }

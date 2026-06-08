@@ -20,8 +20,7 @@
                             class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Naam</span>
                         <EditableTextField v-if="hasPermission('document.update')" :modelValue="doc.title"
                             @update:modelValue="updateTitle(doc.id, $event)" placeholder="Geen titel" />
-                        <a v-else :href="`/storage/${doc.path}`" target="_blank"
-                            @click="openDocument(doc.path, $event)"
+                        <a v-else :href="`/documents/${doc.id}/download`" target="_blank"
                             class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate block">
                             {{ doc.title || doc.name }}
                         </a>
@@ -29,8 +28,7 @@
                     <div class="px-3 py-2 flex-1 min-w-0 space-y-1 md:space-y-0">
                         <span
                             class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Bestandsnaam</span>
-                        <a :href="`/storage/${doc.path}`" target="_blank"
-                            @click="openDocument(doc.path, $event)"
+                        <a :href="`/documents/${doc.id}/download`" target="_blank"
                             class="text-xs text-gray-600 dark:text-gray-400 hover:underline truncate block">
                             {{ doc.name }}
                         </a>
@@ -146,12 +144,5 @@ const updateTitle = (id, title) => {
     updateForm.put(`/documents/${id}`, {
         preserveScroll: true,
     });
-};
-
-const openDocument = (path, event) => {
-    if (window.Capacitor?.isNativePlatform()) {
-        event.preventDefault();
-        window.open(window.location.origin + '/storage/' + path, '_system');
-    }
 };
 </script>
