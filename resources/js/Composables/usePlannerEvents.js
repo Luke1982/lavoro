@@ -25,6 +25,7 @@ function mapEvent(ev) {
         project_name:       ev.service_orders?.[0]?.project?.title || null,
         is_preliminary:     ev.is_preliminary ?? false,
         from_google:        ev.origin === 'google',
+        location:           ev.location || null,
         task_titles:        (ev.service_orders?.[0]?.task_instances || [])
                                 .map(ti => ti.service_order_task?.title)
                                 .filter(Boolean),
