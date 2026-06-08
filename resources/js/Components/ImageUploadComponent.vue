@@ -42,7 +42,7 @@
             <p class="text-gray-500">Sleep afbeeldingen hiernaartoe</p>
             <p class="text-gray-500">of</p>
             <button class="text-blue-500 underline">Kies een foto</button>
-            <input ref="fileInput" type="file" class="hidden" @change="handleFiles" multiple />
+            <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFiles" multiple />
         </div>
 
         <div class="mt-4" v-if="selectedFiles.length > 0">
