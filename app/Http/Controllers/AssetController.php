@@ -310,7 +310,7 @@ class AssetController extends Controller
         $asset->delete();
 
         return redirect()
-            ->back()
+            ->route('assets.index')
             ->with('success', 'Machine verwijderd.');
     }
 }

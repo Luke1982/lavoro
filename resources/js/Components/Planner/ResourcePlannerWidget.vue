@@ -1163,6 +1163,16 @@ function onEventContextMenu(e, ev) {
             divided: true,
             onClick: () => togglePreliminary(ev),
         })
+        if (hasPermission('event.create')) {
+            items.push({
+                label: 'Kopiëren',
+                children: [
+                    { label: 'Naar morgen', onClick: () => copyEvent(ev, [1]) },
+                    { label: 'Rest van de week', onClick: () => copyEvent(ev, restOfWeekOffsets(ev)) },
+                    { label: 'Naar volgende week', onClick: () => copyEvent(ev, [7]) },
+                ],
+            })
+        }
     }
     if (ev.eventable_id) {
         items.push({
@@ -1288,6 +1298,33 @@ async function deleteEvent(ev) {
     } catch (e) {
         console.error('Failed to delete event', e)
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet verwijderen'
+    }
+}
+
+function restOfWeekOffsets(ev) {
+    const dow = new Date(ev.start).getDay() // 0=Sun … 6=Sat
+    const offsets = []
+    for (let d = 1; dow + d <= 5; d++) {
+        offsets.push(d)
+    }
+    return offsets
+}
+
+async function copyEvent(ev, offsets) {
+    if (offsets.length === 0) {
+        page.props.flash.error = 'Geen werkdagen meer om naar te kopiëren deze week.'
+        return
+    }
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const r = await axios.post(`/api/events/${ev.id}/copy`, { offsets })
+        if (r.status !== 201) throw new Error('bad response')
+        fetchEvents()
+        const n = r.data.length
+        page.props.flash.success = `${n} afspraak${n !== 1 ? 'en' : ''} gekopieerd`
+    } catch (e) {
+        console.error('Failed to copy event', e)
+        page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet kopiëren'
     }
 }
 

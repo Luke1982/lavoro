@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EventCopyRequest;
 use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
@@ -193,6 +194,41 @@ class EventApiController extends Controller
         $event->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function copy(EventCopyRequest $request, Event $event)
+    {
+        $offsets = $request->validated()['offsets'];
+
+        $service_orders = $event->serviceOrders()->get();
+        $executing_user_ids = $event->executingUsers()->pluck('users.id')->all();
+
+        $new_events = [];
+
+        foreach ($offsets as $days) {
+            $new_event = Event::create([
+                'name'          => $event->name,
+                'description'   => $event->description,
+                'event_type_id' => $event->event_type_id,
+                'status'        => $event->status,
+                'start'         => $event->start->copy()->addDays($days),
+                'end'           => $event->end->copy()->addDays($days),
+                'location'      => $event->location,
+                'is_preliminary' => $event->is_preliminary,
+            ]);
+
+            foreach ($service_orders as $order) {
+                $order->events()->attach($new_event->id);
+            }
+
+            if (count($executing_user_ids) > 0) {
+                $new_event->syncExecutingUsers($executing_user_ids);
+            }
+
+            $new_events[] = $new_event->load(['eventType', 'serviceOrders.customer', 'executingUsers:id,name']);
+        }
+
+        return response()->json($new_events, 201);
     }
 
     public function sendConfirmation(Event $event)

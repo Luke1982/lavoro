@@ -18,6 +18,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
 
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('events/{event}/copy', [EventApiController::class, 'copy']);
     Route::post('events/{event}/send-confirmation', [EventApiController::class, 'sendConfirmation']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
