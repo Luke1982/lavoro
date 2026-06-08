@@ -217,7 +217,7 @@ Route::group(
         Route::resource('documents', DocumentController::class)
             ->only(['store', 'update', 'destroy']);
         Route::resource('events', EventController::class)
-            ->only(['index']);
+            ->only(['index', 'show']);
         Route::get('planner', [PlannerController::class, 'index'])
             ->name('planner.index');
         Route::get('events-test', [PlannerController::class, 'index'])
@@ -237,6 +237,9 @@ Route::group(
             ->name('upcomingactivities.map'); // requires activitylist.read
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
+
+        Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
+        Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
         Route::post('users/{user}/unavailabilities', [UserUnavailabilityController::class, 'store'])
             ->name('users.unavailabilities.store');
@@ -265,9 +268,6 @@ Route::group(
             Route::post('companies/{company}/logo-negative', [CompanyController::class, 'logoNegative'])
                 ->name('companies.logoNegative');
             Route::resource('companies', CompanyController::class)->except(['show', 'create', 'edit']);
-
-            Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
-            Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
             Route::resource('roles', RoleController::class)->only(['index', 'store', 'update']);
 
