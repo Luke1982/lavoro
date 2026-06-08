@@ -27,4 +27,11 @@ class EventController extends Controller
             'allUsers' => User::select('id', 'name')->get(),
         ]);
     }
+
+    public function show(Event $event)
+    {
+        $event->load(['serviceOrders']);
+
+        return redirect()->route('serviceorders.show', $event->serviceOrders->first());
+    }
 }

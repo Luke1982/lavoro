@@ -220,8 +220,6 @@ Route::group(
             ->only(['index', 'show']);
         Route::get('planner', [PlannerController::class, 'index'])
             ->name('planner.index');
-        Route::get('events-test', [PlannerController::class, 'index'])
-            ->name('events-test');
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('customfields', CustomFieldController::class)
