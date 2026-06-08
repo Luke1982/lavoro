@@ -81,6 +81,11 @@ class ServiceOrder extends Model
         return $this->belongsTo(ServiceOrderStage::class);
     }
 
+    public function documents()
+    {
+        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
+    }
+
     public function taskInstances()
     {
         return $this->hasMany(ServiceOrderTaskInstance::class);

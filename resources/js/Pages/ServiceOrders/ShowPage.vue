@@ -282,6 +282,8 @@
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.remarks" />
                         </BoxComponent>
+                        <DocumentUploadComponent :existing="serviceOrder.documents" :documentable-id="serviceOrder.id"
+                            documentable-type="\App\Models\ServiceOrder" class="mt-6" />
                         <BoxComponent class="mt-6">
                             <div class="flex items-center mb-3">
                                 <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
@@ -589,6 +591,7 @@ import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
