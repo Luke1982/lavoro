@@ -1,5 +1,5 @@
 <template>
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center mb-5">
         <div class="flex flex-col">
             <span class="flex items-center gap-2 text-lg font-semibold">
                 <component :is="icon" v-if="icon" class="size-5 shrink-0" aria-hidden="true" />
@@ -36,16 +36,11 @@
             </BoxComponent>
         </div>
     </div>
-    <div class="mb-4">
-        <PaginationComponent v-if="paginator" :paginator="paginator" :params="paginationParams"
-            class="border-b border-gray-200 pb-2 mt-4 dark:border-slate-700" />
-    </div>
     <slot />
 </template>
 
 <script setup>
 import SearchComponent from '@/Components/UI/SearchComponent.vue'
-import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import { FilterIcon, PlusIcon } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import { useSlots, ref } from 'vue'
@@ -66,9 +61,6 @@ defineProps({
     searchOtherParams: { type: Object, default: () => ({}) },
     localStorageKey: { type: String, default: 'searchInitiated' },
     inputId: { type: String, default: 'searchInput' },
-    // Pagination passthrough props
-    paginator: { type: Object, default: null },
-    paginationParams: { type: Object, default: () => ({}) },
     hasActiveFilters: { type: Boolean, default: false },
 })
 
