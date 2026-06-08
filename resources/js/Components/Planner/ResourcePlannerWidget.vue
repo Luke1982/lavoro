@@ -457,12 +457,24 @@ const groupBars = computed(() => {
 
 const showProjects = computed(() => hasPermission('project.read'))
 
-const slotMinutes = ref(props.defaultSlotMinutes)
-const dayStartHour = ref(props.defaultDayStartHour)
-const dayEndHour = ref(props.defaultDayEndHour)
-
 const WEEK_STORAGE_KEY = 'lavoro_planner_week'
 const VIEW_STORAGE_KEY = 'lavoro_planner_view'
+const SLOT_STORAGE_KEY = 'lavoro_planner_slot_minutes'
+const DAY_START_STORAGE_KEY = 'lavoro_planner_day_start'
+const DAY_END_STORAGE_KEY = 'lavoro_planner_day_end'
+
+function loadInt(key, fallback) {
+    const v = parseInt(localStorage.getItem(key))
+    return isNaN(v) ? fallback : v
+}
+
+const slotMinutes = ref(loadInt(SLOT_STORAGE_KEY, props.defaultSlotMinutes))
+const dayStartHour = ref(loadInt(DAY_START_STORAGE_KEY, props.defaultDayStartHour))
+const dayEndHour = ref(loadInt(DAY_END_STORAGE_KEY, props.defaultDayEndHour))
+
+watch(slotMinutes, v => localStorage.setItem(SLOT_STORAGE_KEY, v))
+watch(dayStartHour, v => localStorage.setItem(DAY_START_STORAGE_KEY, v))
+watch(dayEndHour, v => localStorage.setItem(DAY_END_STORAGE_KEY, v))
 
 function loadStoredWeekStart() {
     const stored = localStorage.getItem(WEEK_STORAGE_KEY)

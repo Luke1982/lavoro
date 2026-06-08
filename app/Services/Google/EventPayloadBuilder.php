@@ -21,6 +21,10 @@ class EventPayloadBuilder
 
     private function buildLocation(Event $event): ?string
     {
+        if (!empty($event->location)) {
+            return $event->location;
+        }
+
         $customer = $event->serviceOrders->first()?->customer;
         if ($customer) {
             $parts = array_filter([
@@ -32,7 +36,7 @@ class EventPayloadBuilder
             }
         }
 
-        return $event->location ?: null;
+        return null;
     }
 
     private function buildSummary(Event $event): string
