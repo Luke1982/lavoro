@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityListController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\EventController;
@@ -309,6 +310,11 @@ Route::get('download/lavoro.apk', function () {
 Route::get('login', [AuthController::class, 'create'])->name('login');
 Route::post('login', [AuthController::class, 'store'])->name('login.store');
 Route::get('logout', [AuthController::class, 'destroy'])->name('logout');
+
+Route::get('password/forgot', [PasswordResetController::class, 'create'])->name('password.request');
+Route::post('password/forgot', [PasswordResetController::class, 'store'])->name('password.email');
+Route::get('password/reset/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+Route::post('password/reset', [PasswordResetController::class, 'update'])->name('password.update');
 
 Route::post('google/webhook', [GoogleWebhookController::class, 'handle'])
     ->name('google.webhook')

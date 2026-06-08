@@ -80,7 +80,7 @@
                             <input type="checkbox" v-model="rememberMe" class="rounded accent-lavoro-blue h-4 w-4" />
                             Onthoud mij
                         </label>
-                        <a href="#" class="text-sm text-lavoro-green hover:text-lavoro-green/80 transition-colors">
+                        <a href="/password/forgot" class="text-sm text-lavoro-green hover:text-lavoro-green/80 transition-colors">
                             Wachtwoord vergeten?
                         </a>
                     </div>
