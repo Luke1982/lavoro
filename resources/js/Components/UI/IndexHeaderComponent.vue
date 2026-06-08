@@ -25,7 +25,7 @@
             </button>
         </div>
     </div>
-    <div class="mt-2 block sm:hidden">
+    <div class="my-2 block sm:hidden">
         <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
             :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
     </div>
