@@ -34,15 +34,27 @@
             Er zijn nog geen afbeeldingen.
         </div>
 
-        <div v-if="hasPermission('image.upload')" @click="openFilePicker" @dragover.prevent="isDragging = true"
+        <div v-if="hasPermission('image.upload')" @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
-                'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg cursor-pointer',
+                'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg',
                 isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
             ]">
             <p class="text-gray-500">Sleep afbeeldingen hiernaartoe</p>
             <p class="text-gray-500">of</p>
-            <button class="text-blue-500 underline">Kies een foto</button>
+            <div class="flex gap-3 mt-2">
+                <button @click="openCamera"
+                    class="inline-flex items-center gap-2 rounded-md border border-lavoro-blue px-4 py-2 text-sm font-medium text-lavoro-blue hover:bg-lavoro-blue hover:text-white transition-colors">
+                    <CameraIcon class="h-4 w-4" />
+                    Camera
+                </button>
+                <button @click="openFilePicker"
+                    class="inline-flex items-center gap-2 rounded-md border border-lavoro-blue px-4 py-2 text-sm font-medium text-lavoro-blue hover:bg-lavoro-blue hover:text-white transition-colors">
+                    <PhotoIcon class="h-4 w-4" />
+                    Galerij
+                </button>
+            </div>
             <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFiles" multiple />
+            <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handleFiles" />
         </div>
 
         <div class="mt-4" v-if="selectedFiles.length > 0">
@@ -91,7 +103,7 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import ImageEditor from 'tui-image-editor';
 import 'tui-image-editor/dist/tui-image-editor.min.css';
-import { TrashIcon, StarIcon } from '@heroicons/vue/24/solid';
+import { TrashIcon, StarIcon, CameraIcon, PhotoIcon } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { hasPermission } from '@/Utilities/Utilities.js';
@@ -133,13 +145,17 @@ const uploadImagesForm = useForm({
 });
 
 const fileInput = ref(null);
+const cameraInput = ref(null);
 const isDragging = ref(false);
 const selectedFiles = ref([]);
 const uploading = ref(false);
 
-// Open the file picker when the dropzone is clicked
 const openFilePicker = () => {
     fileInput.value.click();
+};
+
+const openCamera = () => {
+    cameraInput.value.click();
 };
 
 // Handle files added through the file picker
