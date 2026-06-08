@@ -295,12 +295,12 @@
                             </div>
                             <div class="py-2">
                                 <EditableTextField type="textarea" v-model="form.description"
-                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
-                                    @update="val => { form.description = val; }" label="Uitgevoerde werkzaamheden" />
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
+                                    @update="val => { form.description = val; }" label="Eventuele opmerkingen" />
                             </div>
                             <div class="py-2">
                                 <EditableTextField inputType="time" v-model="form.actual_start_time"
-                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
                                     @update="val => { form.actual_start_time = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
@@ -312,7 +312,7 @@
                             </div>
                             <div class="py-2">
                                 <EditableTextField inputType="time" v-model="form.actual_end_time"
-                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
                                     @update="val => { form.actual_end_time = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
@@ -324,7 +324,7 @@
                             </div>
                             <div class="py-2">
                                 <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
                                     @update="val => { form.signed_by = val; }">
                                     <template #display>
                                         <span class="text-xs">{{
@@ -336,7 +336,7 @@
                             </div>
                             <div class="relative" v-if="!editingSignature">
                                 <img :src="serviceOrder.signature_base64" alt="">
-                                <PencilSquareIcon v-if="!serviceOrder.is_closed && hasPermission('serviceorder.update')"
+                                <PencilSquareIcon v-if="!serviceOrder.is_closed && hasPermission('serviceorder.close')"
                                     class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
                                     @click="editingSignature = true" />
                             </div>
