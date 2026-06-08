@@ -58,6 +58,34 @@ class ServiceOrderUpdateRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $serviceorder = request()->route('serviceorder');
+            if (!$serviceorder instanceof ServiceOrder) {
+                return;
+            }
+
+            $new_stage_id = $this->input('service_order_stage_id');
+            if (!$new_stage_id || $new_stage_id == $serviceorder->service_order_stage_id) {
+                return;
+            }
+
+            $new_stage = ServiceOrderStage::find($new_stage_id);
+            if (!$new_stage?->is_closed_state) {
+                return;
+            }
+
+            $incomplete = $serviceorder->taskInstances()->where('is_complete', false)->count();
+            if ($incomplete > 0) {
+                $validator->errors()->add(
+                    'service_order_stage_id',
+                    "Er zijn nog {$incomplete} taken niet afgerond. Rond alle taken af voordat je de werkbon sluit."
+                );
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [

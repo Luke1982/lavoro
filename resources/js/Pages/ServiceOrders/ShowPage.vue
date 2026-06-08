@@ -773,7 +773,13 @@ function onStageChange(stage_id) {
         customer_id: props.serviceOrder.customer.id,
         service_order_stage_id: stage_id,
     })
-    form.patch(`/serviceorders/${props.serviceOrder.id}`, { preserveScroll: true })
+    form.patch(`/serviceorders/${props.serviceOrder.id}`, {
+        preserveScroll: true,
+        onError: (errors) => {
+            const msg = errors.service_order_stage_id || Object.values(errors)[0]
+            if (msg) usePage().props.flash.error = msg
+        },
+    })
 }
 
 const newServicejobForm = useForm({
