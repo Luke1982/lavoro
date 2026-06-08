@@ -88,13 +88,13 @@
             </div>
             <div v-auto-animate>
                 <div v-for="product in displayProducts" :key="product.id" role="row"
-                    class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
-                    <div class="w-10 flex-none flex items-center justify-center self-stretch">
+                    class="flex items-start sm:items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                    <div class="w-10 flex-none flex items-start sm:items-center justify-center self-stretch pt-4">
                         <AnimatedCheckbox :model-value="selectedIds.includes(product.id)"
                             @update:model-value="toggleSelectProduct(product.id)" />
                     </div>
                     <div class="flex-1 grid grid-cols-12 p-4">
-                        <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
+                        <div class="col-span-10 sm:col-span-4 flex items-start sm:items-center gap-4">
                             <div
                                 class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
                                 <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
@@ -107,7 +107,7 @@
                                 <span class="text-slate-600">{{ product.part_no }}</span>
                                 <div v-if="product.attribute_value_map" class="mt-1">
                                     <div v-for="(value, key) in product.attribute_value_map" :key="key"
-                                        class="grid grid-cols-3 text-xs text-gray-500 mt-0.5">
+                                        class="flex flex-col gap-y-1 sm:grid grid-cols-3 text-xs text-gray-500 mt-0.5">
                                         <div class="col-span-1 pr-2 font-bold">{{ key }}</div>
                                         <div class="col-span-2">{{ value }}</div>
                                     </div>
@@ -120,21 +120,21 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-span-2 items-center pr-2 hidden sm:flex">
+                        <div class="col-span-2 items-start sm:items-center pr-2 hidden sm:flex">
                             <EditableTextField type="combobox" :model-value="product.brand_id" :options="brands"
                                 :decoration="false"
                                 @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true })">
                                 <template #display>{{ product.brand?.name }}</template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                        <div class="col-span-2 items-start sm:items-center hidden sm:flex pr-2">
                             <EditableTextField type="combobox" :model-value="product.product_type_id"
                                 :options="productTypes" :decoration="false"
                                 @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true })">
                                 <template #display>{{ product.product_type?.name }}</template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                        <div class="col-span-2 items-start sm:items-center hidden sm:flex pr-2">
                             <EditableTextField :decoration="false"
                                 @open="saleEdits[product.id] = { start_sell: product.start_sell ?? '', end_sell: product.end_sell ?? '' }">
                                 <template #display>{{ formatProductSalePeriod(product.start_sell,
@@ -151,7 +151,7 @@
                                 </template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-1 items-center hidden sm:flex pr-2">
+                        <div class="col-span-1 items-start sm:items-center hidden sm:flex pr-2">
                             <EditableTextField :decoration="false"
                                 @open="bundleEdits[product.id] = { bundle: product.bundle }">
                                 <template #display>
@@ -167,7 +167,7 @@
                                 </template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
+                        <div class="col-span-2 sm:col-span-1 items-start sm:items-center flex justify-end">
                             <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
                                 <div class="pb-2 sm:pb-0">
                                     <Link :href="`/products/${product.id}`" class="text-sm text-lavoro-darkerblue">
