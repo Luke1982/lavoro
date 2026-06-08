@@ -206,6 +206,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useSwipe } from '@vueuse/core'
 import { usePage, router } from '@inertiajs/vue3'
 import {
     ChevronLeftIcon,
@@ -281,6 +282,14 @@ function shiftWeek(direction) {
 // ── Event fetching ────────────────────────────────────────────────────────────
 
 const rootEl = ref(null)
+
+useSwipe(rootEl, {
+    threshold: 50,
+    onSwipeEnd(_, direction) {
+        if (direction === 'left') shiftWeek(1)
+        else if (direction === 'right') shiftWeek(-1)
+    },
+})
 
 const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
