@@ -50,9 +50,8 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Product</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="productOptions" v-model="newAssetForm.product_id"
-                        placeholder="Selecteer product"
-                        :has-external-searching="productsUseAjax" :searching="productSearching"
-                        @change="searchProducts"
+                        placeholder="Selecteer product" :has-external-searching="productsUseAjax"
+                        :searching="productSearching" @change="searchProducts"
                         :hasError="Boolean(newAssetForm.errors.product_id)"
                         :errorMessage="newAssetForm.errors.product_id" />
                 </div>
@@ -61,9 +60,8 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="customerOptions" v-model="newAssetForm.customer_id"
-                        placeholder="Selecteer klant"
-                        :has-external-searching="customersUseAjax" :searching="customerSearching"
-                        @change="searchCustomers"
+                        placeholder="Selecteer klant" :has-external-searching="customersUseAjax"
+                        :searching="customerSearching" @change="searchCustomers"
                         :hasError="Boolean(newAssetForm.errors.customer_id)"
                         :errorMessage="newAssetForm.errors.customer_id" />
                 </div>
@@ -72,8 +70,7 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="newAssetForm.serial_number"
-                        :placeholder="isNewBundle ? 'Bundel — geen serienummer' : 'Serienummer'"
-                        :disabled="isNewBundle"
+                        :placeholder="isNewBundle ? 'Bundel — geen serienummer' : 'Serienummer'" :disabled="isNewBundle"
                         :hasError="Boolean(newAssetForm.errors.serial_number)"
                         :errorMessage="newAssetForm.errors.serial_number" />
                 </div>
@@ -153,73 +150,80 @@
             <div class="col-span-1 text-center">Gesloten</div>
         </div>
         <div v-auto-animate>
-        <div v-for="asset in filteredAssets" :key="asset.id" role="row"
-            class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
-            <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
-                <img class="size-10 flex-none rounded-full bg-gray-50 object-cover"
-                    :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : '/img/placeholder.png'"
-                    alt="" />
-                <div class="min-w-0">
-                    <Link :href="`/assets/${asset.id}`" class="font-semibold text-gray-900 dark:text-gray-200 hover:underline">
-                        <span class="absolute inset-0" />
-                        {{ asset.product.brand.name }} {{ asset.product.model }}
-                    </Link>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {{ asset.product.product_type.name }} &middot;
-                        <Link :href="`/customers/${asset.customer.id}`" class="relative underline">{{ asset.customer.name }}</Link>
+            <div v-for="asset in filteredAssets" :key="asset.id" role="row"
+                class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
+                <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
+                    <img class="size-10 flex-none rounded-full bg-gray-50 object-cover"
+                        :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : '/img/placeholder.png'"
+                        alt="" />
+                    <div class="min-w-0">
+                        <Link :href="`/assets/${asset.id}`"
+                            class="font-semibold text-gray-900 dark:text-gray-200 hover:underline">
+                            <span class="absolute inset-0" />
+                            {{ asset.product.brand.name }} {{ asset.product.model }}
+                        </Link>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {{ asset.product.product_type.name }} &middot;
+                            <Link :href="`/customers/${asset.customer.id}`" class="relative underline">{{
+                                asset.customer.name }}</Link>
+                        </div>
                     </div>
                 </div>
+                <div class="col-span-2 hidden lg:flex items-center text-gray-600 dark:text-gray-300">
+                    {{ asset.serial_number || '—' }}
+                </div>
+                <div class="col-span-1 hidden lg:flex items-center text-gray-500 dark:text-gray-400 text-xs">
+                    {{ asset.date_in_service ? nlDate(asset.date_in_service) : '—' }}
+                </div>
+                <div class="col-span-2 hidden lg:flex items-center gap-1 text-xs">
+                    <CalendarDateRangeIcon v-if="asset.next_service_date" class="size-4 text-gray-400 flex-none"
+                        aria-hidden="true" />
+                    <span
+                        :class="asset.next_service_date && new Date(asset.next_service_date) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'">
+                        {{ asset.next_service_date ? nlDate(asset.next_service_date) : '—' }}
+                    </span>
+                </div>
+                <div class="col-span-1 hidden lg:flex items-center">
+                    <span v-if="asset.status === 'Actief'"
+                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                    <span v-else
+                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                        asset.status }}</span>
+                </div>
+                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                    <span v-if="asset.open_tickets_count > 0"
+                        class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
+                        {{ asset.open_tickets_count }}
+                    </span>
+                    <span v-else class="text-gray-300 text-xs">—</span>
+                </div>
+                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                    <span v-if="asset.pending_tickets_count > 0"
+                        class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
+                        {{ asset.pending_tickets_count }}
+                    </span>
+                    <span v-else class="text-gray-300 text-xs">—</span>
+                </div>
+                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                    <span v-if="asset.closed_tickets_count > 0"
+                        class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
+                        {{ asset.closed_tickets_count }}
+                    </span>
+                    <span v-else class="text-gray-300 text-xs">—</span>
+                </div>
+                <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
+                    <span v-if="asset.status === 'Actief'"
+                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                    <span v-else
+                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                        asset.status }}</span>
+                    <span class="text-xs text-gray-400">
+                        {{ asset.next_service_date ? nlDate(asset.next_service_date) : '' }}
+                    </span>
+                </div>
+                <ChevronRightIcon class="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-gray-400"
+                    aria-hidden="true" />
             </div>
-            <div class="col-span-2 hidden lg:flex items-center text-gray-600 dark:text-gray-300">
-                {{ asset.serial_number || '—' }}
-            </div>
-            <div class="col-span-1 hidden lg:flex items-center text-gray-500 dark:text-gray-400 text-xs">
-                {{ asset.date_in_service ? nlDate(asset.date_in_service) : '—' }}
-            </div>
-            <div class="col-span-2 hidden lg:flex items-center gap-1 text-xs">
-                <CalendarDateRangeIcon v-if="asset.next_service_date" class="size-4 text-gray-400 flex-none" aria-hidden="true" />
-                <span :class="asset.next_service_date && new Date(asset.next_service_date) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'">
-                    {{ asset.next_service_date ? nlDate(asset.next_service_date) : '—' }}
-                </span>
-            </div>
-            <div class="col-span-1 hidden lg:flex items-center">
-                <span v-if="asset.status === 'Actief'"
-                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                <span v-else
-                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
-            </div>
-            <div class="col-span-1 hidden lg:flex items-center justify-center">
-                <span v-if="asset.open_tickets_count > 0"
-                    class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
-                    {{ asset.open_tickets_count }}
-                </span>
-                <span v-else class="text-gray-300 text-xs">—</span>
-            </div>
-            <div class="col-span-1 hidden lg:flex items-center justify-center">
-                <span v-if="asset.pending_tickets_count > 0"
-                    class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
-                    {{ asset.pending_tickets_count }}
-                </span>
-                <span v-else class="text-gray-300 text-xs">—</span>
-            </div>
-            <div class="col-span-1 hidden lg:flex items-center justify-center">
-                <span v-if="asset.closed_tickets_count > 0"
-                    class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
-                    {{ asset.closed_tickets_count }}
-                </span>
-                <span v-else class="text-gray-300 text-xs">—</span>
-            </div>
-            <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
-                <span v-if="asset.status === 'Actief'"
-                    class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                <span v-else
-                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{ asset.status }}</span>
-                <span class="text-xs text-gray-400">
-                    {{ asset.next_service_date ? nlDate(asset.next_service_date) : '' }}
-                </span>
-            </div>
-            <ChevronRightIcon class="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" aria-hidden="true" />
-        </div>
         </div>
     </BoxComponent>
 </template>
