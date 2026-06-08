@@ -333,10 +333,10 @@ const displayUser = computed(() => {
 })
 
 const totalMinutes = computed(() =>
-    filteredEvents.value.reduce(
-        (sum, ev) => sum + Math.max(0, (ev.end - ev.start) / 60000),
-        0
-    )
+    filteredEvents.value.reduce((sum, ev) => {
+        const userBreaktime = ev.executing_users?.find(u => u.id === selectedUserId.value)?.breaktime ?? 0
+        return sum + Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime)
+    }, 0)
 )
 
 const totalHoursLabel = computed(() => {
@@ -376,7 +376,10 @@ function dayLabel(dayIso) {
 }
 
 function durationLabel(ev) {
-    const mins = Math.round((ev.end - ev.start) / 60000)
+    const userBreaktime = selectedUserId.value
+        ? ev.executing_users?.find(u => u.id === selectedUserId.value)?.breaktime ?? 0
+        : 0
+    const mins = Math.round(Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime))
     const h = Math.floor(mins / 60)
     const m = mins % 60
     if (h > 0 && m > 0) return `${h}u ${m}m`

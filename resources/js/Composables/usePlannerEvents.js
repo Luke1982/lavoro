@@ -17,7 +17,11 @@ function mapEvent(ev) {
         start: new Date(ev.start),
         end: new Date(ev.end),
         executing_user_ids: (ev.executing_users || []).map((u) => u.id),
-        executing_users: ev.executing_users || [],
+        executing_users: (ev.executing_users || []).map((u) => ({
+            id: u.id,
+            name: u.name,
+            breaktime: u.pivot?.breaktime ?? 0,
+        })),
         eventable_id: ev.service_orders?.[0]?.id ?? null,
         eventable_type: "\\App\\Models\\ServiceOrder",
         customer_id,

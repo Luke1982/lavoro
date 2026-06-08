@@ -5,67 +5,62 @@
                 <div class="flex border-b border-gray-200 dark:border-slate-700 pb-2 mb-4 justify-between items-center">
                     <div class="flex items-center">
                         <ClipboardDocumentListIcon class="h-6 w-6 text-gray-500 dark:text-slate-400 mr-2" />
-                        <h1 class="text-l font-medium">Gegevens van het project</h1>
+                        <h1 class="text-l font-medium">Details</h1>
                     </div>
                     <StepsProgressBar :steps="statuses" v-model="form.status"
                         class="flex-1 ml-4 md:max-w-250 max-w-60" />
                 </div>
-                <div class="grid grid-cols-12 mt-2 gap-4">
-                    <div class="col-span-12 md:col-span-2">
+                <div class="grid grid-cols-12 mt-2 gap-0 sm:gap-4">
+                    <div class="col-span-12 md:col-span-2 text-slate-400">
                         <span class="text-xs font-bold">Titel</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
                         <EditableTextField v-model="form.title" class="w-full" />
                     </div>
-                    <div class="col-span-12 md:col-span-2">
+                    <div class="col-span-12 md:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Omschrijving</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.description" type="textarea"
-                            class="w-full" />
+                        <EditableTextField v-model="form.description" type="textarea" class="w-full" />
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Klant</span>
                     </div>
-                    <div class="col-span-10 md:col-span-4">
+                    <div class="col-span-12 sm:col-span-10">
                         <EditableTextField type="combobox" v-model="form.customer_id" :options="customers"
-                            :error="form.errors.customer_id"
-                            @revert="form.clearErrors('customer_id')">
+                            :error="form.errors.customer_id" @revert="form.clearErrors('customer_id')">
                             <template #display>
                                 <Link v-if="project.customer" :href="`/customers/${project.customer.id}`"
-                                    class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    class="text-lavoro-blue hover:underline">
                                     {{ project.customer.name }}
                                 </Link>
                                 <span v-else class="text-gray-400">Selecteer klant</span>
                             </template>
                         </EditableTextField>
                     </div>
-                    <div class="col-span-2">
+                    <div class="cols-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Projectleider</span>
                     </div>
-                    <div class="col-span-10 md:col-span-4">
+                    <div class="col-span-12 sm:col-span-10 md:col-span-4">
                         <EditableTextField type="combobox" v-model="form.project_manager_id" :options="users"
-                            :error="form.errors.project_manager_id"
-                            @revert="form.clearErrors('project_manager_id')">
+                            :error="form.errors.project_manager_id" @revert="form.clearErrors('project_manager_id')">
                             <template #display>
                                 <span v-if="project.project_manager">{{ project.project_manager.name }}</span>
                                 <span v-else class="text-gray-400">Selecteer projectleider</span>
                             </template>
                         </EditableTextField>
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Startdatum</span>
                     </div>
-                    <div class="col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.start_date" type="input" input-type="date"
-                            class="w-full" />
+                    <div class="col-span-12 sm:col-span-10 md:col-span-4">
+                        <EditableTextField v-model="form.start_date" type="input" input-type="date" class="w-full" />
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Einddatum</span>
                     </div>
-                    <div class="col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.end_date" type="input" input-type="date"
-                            class="w-full" />
+                    <div class="col-span-12 sm:col-span-10 md:col-span-4">
+                        <EditableTextField v-model="form.end_date" type="input" input-type="date" class="w-full" />
                     </div>
                 </div>
                 <div class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
@@ -101,7 +96,7 @@
                 documentable-type="\App\Models\Project" class="mt-4" />
         </template>
         <template #sidebar>
-            <BoxComponent v-if="project.customer">
+            <BoxComponent v-if="project.customer" class="mt-4 sm:mt-0">
                 <div class="flex items-center border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
                     <BuildingOfficeIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 mr-2" />
                     <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Klant</h3>
@@ -236,8 +231,7 @@
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Omschrijving</span>
                                                     <EditableTextField v-model="editForms[ms.id].description"
-                                                        type="textarea"
-                                                        class="w-full" />
+                                                        type="textarea" class="w-full" />
                                                 </div>
                                                 <div>
                                                     <span
@@ -246,11 +240,12 @@
                                                     <EditableTextField type="combobox"
                                                         v-model="editForms[ms.id].assigned_user_id" :options="users"
                                                         :error="milestoneForm.errors.assigned_user_id"
-                                                       
                                                         @revert="milestoneForm.clearErrors('assigned_user_id')">
                                                         <template #display>
-                                                            <span v-if="ms.assigned_user">{{ ms.assigned_user.name }}</span>
-                                                            <span v-else class="text-gray-400">Selecteer gebruiker</span>
+                                                            <span v-if="ms.assigned_user">{{ ms.assigned_user.name
+                                                                }}</span>
+                                                            <span v-else class="text-gray-400">Selecteer
+                                                                gebruiker</span>
                                                         </template>
                                                     </EditableTextField>
                                                 </div>
@@ -259,16 +254,14 @@
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Geplande
                                                         datum</span>
                                                     <EditableTextField v-model="editForms[ms.id].projected_date"
-                                                        type="input" input-type="date"
-                                                        class="w-full" />
+                                                        type="input" input-type="date" class="w-full" />
                                                 </div>
                                                 <div>
                                                     <span
                                                         class="text-xs font-bold text-gray-600 dark:text-slate-400">Werkelijke
                                                         datum</span>
                                                     <EditableTextField v-model="editForms[ms.id].actual_date"
-                                                        type="input" input-type="date"
-                                                        class="w-full" />
+                                                        type="input" input-type="date" class="w-full" />
                                                 </div>
                                             </div>
                                         </div>

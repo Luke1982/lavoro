@@ -55,7 +55,7 @@ class EventApiController extends Controller
                 'serviceOrders.customer',
                 'serviceOrders.project:id,title',
                 'serviceOrders.taskInstances.serviceOrderTask',
-                'executingUsers:id,name',
+                'executingUsers',
             ])
             ->orderBy('start')
             ->get();
@@ -66,7 +66,7 @@ class EventApiController extends Controller
     public function store(EventStoreRequest $request)
     {
         $data = $request->validated();
-        unset($data['executing_user_ids']);
+        unset($data['executing_user_ids'], $data['executing_user_breaktimes']);
 
         $eventable_id = $request->eventable_id;
         $eventable_type = $request->eventable_type;
@@ -97,7 +97,9 @@ class EventApiController extends Controller
                 $executing_user_ids = $request['executing_user_ids'] ?? [];
                 if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
                     $ids = array_map('intval', $executing_user_ids);
-                    $event->syncExecutingUsers($ids);
+                    $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
+                    $breaktimes = array_map('intval', $raw_breaktimes);
+                    $event->syncExecutingUsers($ids, $breaktimes);
                     $model->syncExecutingUsers($ids);
                     $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
 
@@ -116,13 +118,13 @@ class EventApiController extends Controller
                 ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
         }
 
-        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']), 201);
+        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers']), 201);
     }
 
     public function update(EventUpdateRequest $request, Event $event)
     {
         $payload = $request->validated();
-        unset($payload['executing_user_ids']);
+        unset($payload['executing_user_ids'], $payload['executing_user_breaktimes']);
         $event->update($payload);
 
         $model = null;
@@ -147,7 +149,9 @@ class EventApiController extends Controller
             $executing_user_ids = $request->input('executing_user_ids');
             if (is_array($executing_user_ids)) {
                 $ids = array_map('intval', $executing_user_ids);
-                $event->syncExecutingUsers($ids);
+                $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
+                $breaktimes = array_map('intval', $raw_breaktimes);
+                $event->syncExecutingUsers($ids, $breaktimes);
                 PushEventJob::dispatch($event->id);
                 $still_relevant = array_unique(array_merge(
                     $event->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
@@ -188,7 +192,7 @@ class EventApiController extends Controller
             }
         }
 
-        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers:id,name']));
+        return response()->json($event->load(['eventType', 'serviceOrders', 'executingUsers']));
     }
 
     public function destroy(EventDestroyRequest $request, Event $event)
@@ -227,7 +231,7 @@ class EventApiController extends Controller
                 $new_event->syncExecutingUsers($executing_user_ids);
             }
 
-            $new_events[] = $new_event->load(['eventType', 'serviceOrders.customer', 'executingUsers:id,name']);
+            $new_events[] = $new_event->load(['eventType', 'serviceOrders.customer', 'executingUsers']);
         }
 
         return response()->json($new_events, 201);

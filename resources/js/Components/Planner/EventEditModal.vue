@@ -41,7 +41,7 @@
                             <div class="flex gap-2">
                                 <TextInput v-model="form.start_date" label="" type="date" class="flex-1"
                                     :has-error="Boolean(form.errors.start)" />
-                                <TextInput v-model="form.start_time" label="" type="time" class="w-28"
+                                <TextInput v-model="form.start_time" label="" type="time" class="w-28" :step="900"
                                     :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
                             </div>
                         </div>
@@ -56,7 +56,7 @@
                             <div class="flex gap-2">
                                 <TextInput v-model="form.end_date" label="" type="date" class="flex-1"
                                     :has-error="Boolean(form.errors.end)" />
-                                <TextInput v-model="form.end_time" label="" type="time" class="w-28"
+                                <TextInput v-model="form.end_time" label="" type="time" class="w-28" :step="900"
                                     :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
                             </div>
                         </div>
@@ -198,20 +198,26 @@
                             </button>
                         </div>
 
-                        <!-- Selected user pills -->
-                        <div v-if="selectedUsers.length" class="flex flex-wrap gap-2 mb-3">
+                        <!-- Selected user rows -->
+                        <div v-if="selectedUsers.length" class="flex flex-col gap-2 mb-3">
                             <div v-for="user in selectedUsers" :key="user.id"
-                                class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full pl-1 pr-2.5 py-1">
+                                class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2">
                                 <img v-if="user.avatar" :src="user.avatar"
-                                    class="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                                    class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                                 <div v-else
-                                    class="w-7 h-7 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                    class="w-8 h-8 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                     {{ initials(user.name) }}
                                 </div>
-                                <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ user.name
-                                }}</span>
+                                <span class="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{{
+                                    user.name }}</span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <ClockFadingIcon class="h-3.5 w-3.5 text-gray-400" />
+                                    <TextInput v-model="userBreaktimes[String(user.id)]" label="" type="number"
+                                        class="w-20" :step="10" :min="0" placeholder="0" />
+                                    <span class="text-xs text-gray-400">min</span>
+                                </div>
                                 <button @click="removeUser(user.id)"
-                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-0.5 transition-colors">
+                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                                     <XMarkIcon class="h-3.5 w-3.5" />
                                 </button>
                             </div>
@@ -273,6 +279,7 @@ import {
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
     UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline'
+import { ClockFading as ClockFadingIcon } from '@lucide/vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
@@ -315,6 +322,12 @@ const form = useForm({
     create_service_order: false,
     is_preliminary: props.initial.is_preliminary || false,
 })
+
+const userBreaktimes = ref(
+    Object.fromEntries(
+        (props.initial.executing_users || []).map(u => [String(u.id), u.breaktime ?? 0])
+    )
+)
 
 const initialStatusId = computed(() =>
     props.eventStatusses.find(s => s.name === form.status)?.id || props.eventStatusses[0]?.id || ''
@@ -366,6 +379,9 @@ watch(selectedCustomer, (val, oldVal) => {
 function onUserSelected(userId) {
     if (userId != null && !form.executing_user_ids.includes(userId)) {
         form.executing_user_ids.push(userId)
+        if (userBreaktimes.value[String(userId)] === undefined) {
+            userBreaktimes.value[String(userId)] = 0
+        }
     }
     nextTick(() => {
         userToAdd.value = null
@@ -402,6 +418,7 @@ async function save() {
             start: localToUtcDatetime(form.start_date, form.start_time).slice(0, 16),
             end: localToUtcDatetime(form.end_date, form.end_time).slice(0, 16),
             executing_user_ids: form.executing_user_ids,
+            executing_user_breaktimes: userBreaktimes.value,
             customer_id: selectedCustomer.value,
             eventable_id: form.create_service_order ? null : (form.eventable_id || null),
         }

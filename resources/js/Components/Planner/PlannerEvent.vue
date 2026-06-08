@@ -19,6 +19,10 @@
                 <div v-if="!isCompact" class="text-[11px] text-gray-600 flex items-center gap-1">
                     <ClockIcon class="size-3 shrink-0" />
                     <span class="truncate">{{ formatTime(event.start) }} – {{ formatTime(event.end) }}</span>
+                    <template v-if="userBreaktime">
+                        <ClockFading class="size-3 shrink-0 ml-0.5 text-gray-400" />
+                        <span class="text-gray-400">{{ userBreaktime }}m</span>
+                    </template>
                     <span v-if="isLocked" class="ml-1" v-tooltip="'Vergrendeld – meerdere monteurs delen dit'">🔒</span>
                 </div>
                 <div v-if="!isCompact && event.location" class="text-[11px] text-gray-500 flex items-center gap-1">
@@ -82,6 +86,7 @@
 <script setup>
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon } from '@heroicons/vue/24/outline'
+import { ClockFading } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
 
@@ -109,6 +114,9 @@ function minutesFromDayStart(date) {
 
 const durationMinutes = computed(() => (props.event.end - props.event.start) / 60000)
 const isShort = computed(() => durationMinutes.value < 60)
+const userBreaktime = computed(() =>
+    props.event.executing_users?.find(u => u.id === props.userId)?.breaktime ?? 0
+)
 // Lane is collapsed/compact — show only the title so nothing overflows the short card.
 const isCompact = computed(() => props.rowHeight < 70)
 

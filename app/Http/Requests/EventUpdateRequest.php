@@ -34,8 +34,11 @@ class EventUpdateRequest extends FormRequest
             'is_preliminary'     => ['sometimes', 'boolean'],
             'eventable_type'     => ['sometimes', 'nullable', 'string', 'in:\\App\\Models\\ServiceOrder'],
             'eventable_id'       => ['sometimes', 'required', 'exists:service_orders,id'],
-            'executing_user_ids'   => ['sometimes', 'array', 'min:1'],
-            'executing_user_ids.*' => ['exists:users,id'],
+            'executing_user_ids'            => ['sometimes', 'array', 'min:1'],
+            'executing_user_ids.*'           => ['exists:users,id'],
+            'executing_user_breaktimes'      => ['sometimes', 'nullable', 'array'],
+            'executing_user_breaktimes.*'    => ['nullable', 'integer', 'min:0'],
+            'breaktime'            => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }
 }

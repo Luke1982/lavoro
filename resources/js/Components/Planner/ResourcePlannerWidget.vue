@@ -885,7 +885,8 @@ function userHoursLabel(userId) {
     let mins = 0
     for (const ev of events.value) {
         if (!ev.executing_user_ids.includes(userId)) continue
-        mins += Math.max(0, (ev.end - ev.start) / 60000)
+        const userBreaktime = ev.executing_users?.find(u => u.id === userId)?.breaktime ?? 0
+        mins += Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime)
     }
     const h = Math.floor(mins / 60)
     const m = Math.round(mins % 60)
@@ -1541,6 +1542,7 @@ function openEdit(ev) {
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
         executing_user_ids: [...ev.executing_user_ids],
+        executing_users: [...(ev.executing_users || [])],
         is_preliminary: ev.is_preliminary || false,
     }
     modalOpen.value = true

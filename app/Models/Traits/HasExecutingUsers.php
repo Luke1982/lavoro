@@ -11,7 +11,7 @@ trait HasExecutingUsers
     {
         return $this
             ->morphToMany(User::class, 'userable')
-            ->withPivot('type')
+            ->withPivot('type', 'breaktime')
             ->wherePivot('type', 'executing')
             ->withTimestamps();
     }
@@ -34,12 +34,12 @@ trait HasExecutingUsers
         $this->executingUsers()->attach($user_id, ['type' => 'executing']);
     }
 
-    public function syncExecutingUsers(array $user_ids): void
+    public function syncExecutingUsers(array $user_ids, array $breaktimes = []): void
     {
         $this->executingUsers()->detach();
         $attach = [];
         foreach (array_unique($user_ids) as $uid) {
-            $attach[$uid] = ['type' => 'executing'];
+            $attach[$uid] = ['type' => 'executing', 'breaktime' => (int) ($breaktimes[$uid] ?? 0)];
         }
         if ($attach) {
             $this->executingUsers()->attach($attach);

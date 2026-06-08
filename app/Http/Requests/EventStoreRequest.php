@@ -47,8 +47,11 @@ class EventStoreRequest extends FormRequest
             'eventable_id'         => 'nullable|exists:service_orders,id',
             'create_service_order' => 'nullable|boolean',
             'customer_id'          => 'required_if:create_service_order,true|nullable|exists:customers,id',
-            'executing_user_ids'   => 'required|array|min:1',
-            'executing_user_ids.*' => 'exists:users,id',
+            'executing_user_ids'            => 'required|array|min:1',
+            'executing_user_ids.*'           => 'exists:users,id',
+            'executing_user_breaktimes'      => 'nullable|array',
+            'executing_user_breaktimes.*'    => 'nullable|integer|min:0',
+            'breaktime'            => 'nullable|integer|min:0',
         ];
     }
 
