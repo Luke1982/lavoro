@@ -42,9 +42,9 @@ class AssetController extends Controller
             'product.productType',
             'customer',
         ])->withCount([
-            'tickets as open_tickets_count' => fn ($q) => $q->where('status', 'Open'),
-            'tickets as pending_tickets_count' => fn ($q) => $q->where('status', 'In behandeling'),
-            'tickets as closed_tickets_count' => fn ($q) => $q->where('status', 'Gesloten'),
+            'tickets as open_tickets_count' => fn($q) => $q->where('status', 'Open'),
+            'tickets as pending_tickets_count' => fn($q) => $q->where('status', 'In behandeling'),
+            'tickets as closed_tickets_count' => fn($q) => $q->where('status', 'Gesloten'),
         ]);
 
         if ($search !== '') {
@@ -67,7 +67,7 @@ class AssetController extends Controller
 
         $assets = $query
             ->orderBy('next_service_date', 'ASC')
-            ->paginate(20)
+            ->paginate(max(1, min(100, (int) $request->input('perPage', 20))))
             ->appends(['search' => $search]);
 
         $all_products = Product::with(['brand', 'productType'])
@@ -78,8 +78,8 @@ class AssetController extends Controller
             ->map(function ($product) {
                 return [
                     'id' => $product->id,
-                    'name' => $product->brand->name.' '.$product->model.
-                        ' ('.$product->productType->name.')',
+                    'name' => $product->brand->name . ' ' . $product->model .
+                        ' (' . $product->productType->name . ')',
                     'bundle' => $product->bundle,
                     'typical_certificate_days' => $product->typical_certificate_days,
                     'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
@@ -99,6 +99,7 @@ class AssetController extends Controller
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'perPage' => (int) $request->input('perPage', 20),
         ]);
     }
 
@@ -179,8 +180,8 @@ class AssetController extends Controller
             ->map(function ($product) {
                 return [
                     'id' => $product->id,
-                    'name' => $product->brand->name.' '.
-                        $product->model.' ('.$product->productType->name.')',
+                    'name' => $product->brand->name . ' ' .
+                        $product->model . ' (' . $product->productType->name . ')',
                     'bundle' => $product->bundle,
                     'typical_certificate_days' => $product->typical_certificate_days,
                     'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
@@ -219,16 +220,16 @@ class AssetController extends Controller
 
         if ($productHasChildTypes) {
             $eligibleChildAssets = Asset::query()
-                ->whereHas('product', fn ($q) => $q->whereIn('product_type_id', $childTypeIds))
+                ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
                 ->where('customer_id', $asset->customer_id)
                 ->whereNotIn('id', [...$existingChildIds, $asset->id])
                 ->with(['product.brand', 'product.productType'])
                 ->get()
-                ->map(fn ($a) => [
+                ->map(fn($a) => [
                     'id' => $a->id,
-                    'name' => $a->product->brand->name.' '.$a->product->model
-                        .' ('.$a->product->productType->name.')'
-                        .' — '.($a->product->bundle ? 'Bundel' : ($a->serial_number ?? 'geen serienr.')),
+                    'name' => $a->product->brand->name . ' ' . $a->product->model
+                        . ' (' . $a->product->productType->name . ')'
+                        . ' — ' . ($a->product->bundle ? 'Bundel' : ($a->serial_number ?? 'geen serienr.')),
                 ])
                 ->values()
                 ->all();

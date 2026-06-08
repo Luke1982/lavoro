@@ -188,7 +188,7 @@
                         class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
                     <span v-else
                         class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                        asset.status }}</span>
+                            asset.status }}</span>
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center justify-center">
                     <span v-if="asset.open_tickets_count > 0"
@@ -216,7 +216,7 @@
                         class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
                     <span v-else
                         class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                        asset.status }}</span>
+                            asset.status }}</span>
                     <span class="text-xs text-gray-400">
                         {{ asset.next_service_date ? nlDate(asset.next_service_date) : '' }}
                     </span>
@@ -224,6 +224,10 @@
                 <ChevronRightIcon class="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-gray-400"
                     aria-hidden="true" />
             </div>
+        </div>
+        <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
+            <PageRecordCountComponent :total="assets.total" :per-page="perPage" label="machines" />
+            <PaginationComponent v-if="assets.data.length" :paginator="assets" />
         </div>
     </BoxComponent>
 </template>
@@ -243,6 +247,8 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
+import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
+import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 
 const addAssetDrawerOpen = ref(false)
 
@@ -256,6 +262,7 @@ const props = defineProps({
     allCustomers: { type: Array, default: () => [] },
     customersUseAjax: { type: Boolean, default: false },
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
+    perPage: { type: Number, default: 20 },
 });
 
 const { options: productOptions, searching: productSearching, search: searchProducts } =
