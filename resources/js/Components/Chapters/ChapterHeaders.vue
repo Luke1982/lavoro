@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Mobile: select menu -->
-        <div class="flex sm:hidden">
+        <div class="flex sm:hidden mb-2">
             <SelectMenuComponent v-model="activeChapterWritable" :options="selectOptions" class="w-full" />
         </div>
 
