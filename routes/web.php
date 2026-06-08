@@ -114,6 +114,8 @@ Route::group(
         Route::post('assets/{asset}/child', [AssetController::class, 'storeChild'])
             ->name('assets.storeChild');
         Route::resource('assetrelations', AssetRelationController::class)->only(['store', 'destroy']);
+        Route::post('tickets/bulk-update', [TicketController::class, 'bulkUpdate'])
+            ->name('tickets.bulk-update');
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);
@@ -160,6 +162,8 @@ Route::group(
             ->name('imports.snelstart.customers');
         Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
             ->name('imports.snelstart.materials');
+        Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])
+            ->name('serviceorders.bulk-update');
         Route::resource('serviceorders', ServiceOrderController::class);
         Route::get('serviceorders/{serviceorder}/export/pdf', [ServiceOrderController::class, 'exportPdf'])
             ->name('serviceorders.exportPdf');

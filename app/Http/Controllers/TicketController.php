@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TicketPriorities;
 use App\Enums\TicketStatusses;
 use App\Models\Ticket;
+use App\Http\Requests\TicketBulkUpdateRequest;
 use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketUpdateRequest;
 use App\Http\Requests\TicketReadRequest;
@@ -264,5 +265,13 @@ class TicketController extends Controller
                 'ticket' => $ticket,
             ]
         ]);
+    }
+
+    public function bulkUpdate(TicketBulkUpdateRequest $request)
+    {
+        Ticket::whereIn('id', $request->input('ticket_ids'))
+            ->update(['status' => $request->input('status')]);
+
+        return redirect()->back()->with('success', 'Status bijgewerkt.');
     }
 }

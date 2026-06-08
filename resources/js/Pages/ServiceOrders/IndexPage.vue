@@ -40,17 +40,32 @@
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="serviceOrders.data.length">
-            <div class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
-                <div class="col-span-3">Klant</div>
-                <div class="col-span-3">Beschrijving</div>
-                <div class="col-span-2">Fase</div>
-                <div class="col-span-2">Verzending</div>
-                <div class="col-span-1">Aangemaakt</div>
-                <div class="col-span-1 text-right">Acties</div>
+            <div class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+                <div class="w-10 flex-none flex items-center justify-center">
+                    <AnimatedCheckbox
+                        :model-value="allCurrentPageSelected"
+                        @update:model-value="toggleSelectAll"
+                    />
+                </div>
+                <div class="flex-1 grid grid-cols-12 p-4">
+                    <div class="col-span-3">Klant</div>
+                    <div class="col-span-3">Beschrijving</div>
+                    <div class="col-span-2">Fase</div>
+                    <div class="col-span-2">Verzending</div>
+                    <div class="col-span-1">Aangemaakt</div>
+                    <div class="col-span-1 text-right">Acties</div>
+                </div>
             </div>
             <div v-auto-animate>
             <div v-for="so in serviceOrders.data" :key="so.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                <div class="w-10 flex-none flex items-center justify-center self-stretch">
+                    <AnimatedCheckbox
+                        :model-value="selectedIds.includes(so.id)"
+                        @update:model-value="toggleSelectServiceOrder(so.id)"
+                    />
+                </div>
+                <div class="flex-1 grid grid-cols-12 p-4">
                 <div class="col-span-10 sm:col-span-3 flex flex-col">
                     <Link :href="`/serviceorders/${so.id}`" class="font-bold mb-1">
                         {{ so.customer?.name ?? '—' }}
@@ -96,6 +111,7 @@
                         </Link>
                     </div>
                 </div>
+                </div>
             </div>
             </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4 dark:bg-slate-900">
@@ -110,18 +126,82 @@
             </div>
         </div>
     </BoxComponent>
+
+    <DrawerComponent v-model="bulkEditOpen"
+        title="Werkbonnen bewerken"
+        :subtitle="`${selectedIds.length} werkbonnen geselecteerd`">
+        <div class="divide-y divide-gray-100 dark:divide-slate-700">
+            <div class="px-4 sm:px-6 py-4">
+                <p class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
+                    Vink de velden aan die je wilt aanpassen. Niet-aangevinkte velden worden niet gewijzigd.
+                </p>
+            </div>
+            <div class="flex items-start gap-3 px-4 sm:px-6 py-4">
+                <AnimatedCheckbox
+                    v-model="bulkEditChecked['_stage_']"
+                    class="mt-0.5 flex-shrink-0"
+                />
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white">Fase</span>
+                    </div>
+                    <ComboBox
+                        :options="stages"
+                        v-model="bulkEditValues['_stage_']"
+                        placeholder="Selecteer fase"
+                        :disabled="!bulkEditChecked['_stage_']"
+                    />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="bulkEditOpen = false"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="saveBulkEdit"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
+
+    <Teleport to="body">
+        <Transition enter-active-class="transition ease-out duration-200" enter-from-class="translate-y-full opacity-0"
+            enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-150"
+            leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-full opacity-0">
+            <div v-if="selectedIds.length"
+                class="fixed bottom-0 left-0 right-0 lg:left-72 z-40 bg-gray-100 text-gray-800 border-t border-gray-200 px-6 py-4 flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="font-bold text-base">{{ selectedIds.length }} werkbonnen geselecteerd</span>
+                    <button type="button" @click="selectedIds = []"
+                        class="text-xs text-gray-500 underline hover:text-gray-700">
+                        Deselecteer alles
+                    </button>
+                </div>
+                <button type="button" @click="openBulkEditDrawer"
+                    class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
+                    Bewerken
+                </button>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <script setup>
 import { Link, router } from '@inertiajs/vue3'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
+import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon } from '@lucide/vue'
 import { nlDate, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
@@ -171,6 +251,54 @@ const activeFilters = computed(() => {
 function clearAllFilters() {
     stageFilter.value = []
     localStorage.removeItem('serviceOrderFilter_stage')
+}
+
+const selectedIds = ref([])
+
+const allCurrentPageSelected = computed(() =>
+    serviceOrders.data.length > 0 &&
+    serviceOrders.data.every(so => selectedIds.value.includes(so.id))
+)
+
+function toggleSelectServiceOrder(id) {
+    const idx = selectedIds.value.indexOf(id)
+    if (idx === -1) selectedIds.value.push(id)
+    else selectedIds.value.splice(idx, 1)
+}
+
+function toggleSelectAll() {
+    if (allCurrentPageSelected.value) {
+        const pageIds = new Set(serviceOrders.data.map(so => so.id))
+        selectedIds.value = selectedIds.value.filter(id => !pageIds.has(id))
+    } else {
+        const existing = new Set(selectedIds.value)
+        serviceOrders.data.forEach(so => { if (!existing.has(so.id)) selectedIds.value.push(so.id) })
+    }
+}
+
+const bulkEditOpen = ref(false)
+const bulkEditChecked = reactive({})
+const bulkEditValues = reactive({})
+
+function openBulkEditDrawer() {
+    bulkEditChecked['_stage_'] = false
+    bulkEditValues['_stage_'] = null
+    bulkEditOpen.value = true
+}
+
+function saveBulkEdit() {
+    if (!bulkEditChecked['_stage_'] || !bulkEditValues['_stage_']) return
+
+    router.post('/serviceorders/bulk-update', {
+        service_order_ids: selectedIds.value,
+        service_order_stage_id: bulkEditValues['_stage_']?.id ?? bulkEditValues['_stage_'],
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            bulkEditOpen.value = false
+            selectedIds.value = []
+        },
+    })
 }
 
 function updateStage(so, stage_id) {

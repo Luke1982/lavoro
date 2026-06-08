@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
+use App\Http\Requests\ServiceOrderBulkUpdateRequest;
 use App\Http\Requests\ServiceOrderDetachMaterialRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
@@ -736,5 +737,13 @@ class ServiceOrderController extends Controller
 
         return redirect()->back()
             ->with('success', 'Materiaal succesvol bijgewerkt.');
+    }
+
+    public function bulkUpdate(ServiceOrderBulkUpdateRequest $request)
+    {
+        ServiceOrder::whereIn('id', $request->input('service_order_ids'))
+            ->update(['service_order_stage_id' => $request->input('service_order_stage_id')]);
+
+        return redirect()->back()->with('success', 'Fase bijgewerkt.');
     }
 }
