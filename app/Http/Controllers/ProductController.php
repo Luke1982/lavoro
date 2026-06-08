@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProductBulkUpdateAttributesRequest;
+use App\Http\Requests\ProductBulkUpdateRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
@@ -252,35 +252,47 @@ class ProductController extends Controller
             ->with('extra', $product->load(['brand', 'productType']));
     }
 
-    public function bulkUpdateAttributes(ProductBulkUpdateAttributesRequest $request)
+    public function bulkUpdate(ProductBulkUpdateRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $products = Product::whereIn('id', $request->input('product_ids'))
-                ->with('productType.productAttributes')
-                ->get();
+            $product_ids = $request->input('product_ids');
 
-            foreach ($request->input('attributes') as $attr) {
-                $attributeId = $attr['product_attribute_id'];
-                $valueId     = $attr['product_attribute_value_id'];
+            if ($request->filled('product_type_id')) {
+                Product::whereIn('id', $product_ids)->update(['product_type_id' => $request->input('product_type_id')]);
+            }
 
-                foreach ($products as $product) {
-                    if (! $product->productType->productAttributes->contains('id', $attributeId)) {
-                        continue;
+            if ($request->filled('brand_id')) {
+                Product::whereIn('id', $product_ids)->update(['brand_id' => $request->input('brand_id')]);
+            }
+
+            if ($request->has('attributes') && count($request->input('attributes', []))) {
+                $products = Product::whereIn('id', $product_ids)
+                    ->with('productType.productAttributes')
+                    ->get();
+
+                foreach ($request->input('attributes') as $attr) {
+                    $attributeId = $attr['product_attribute_id'];
+                    $valueId     = $attr['product_attribute_value_id'];
+
+                    foreach ($products as $product) {
+                        if (! $product->productType->productAttributes->contains('id', $attributeId)) {
+                            continue;
+                        }
+
+                        $product->productAttributeValueables()
+                            ->where('product_attribute_id', $attributeId)
+                            ->delete();
+
+                        $product->productAttributeValueables()->create([
+                            'product_attribute_id'        => $attributeId,
+                            'product_attribute_value_id'  => $valueId,
+                        ]);
                     }
-
-                    $product->productAttributeValueables()
-                        ->where('product_attribute_id', $attributeId)
-                        ->delete();
-
-                    $product->productAttributeValueables()->create([
-                        'product_attribute_id'        => $attributeId,
-                        'product_attribute_value_id'  => $valueId,
-                    ]);
                 }
             }
         });
 
-        return redirect()->back()->with('success', 'Kenmerken bijgewerkt.');
+        return redirect()->back()->with('success', 'Producten bijgewerkt.');
     }
 
     /**

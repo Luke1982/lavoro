@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Models\ProductAttributeValue;
 use Illuminate\Foundation\Http\FormRequest;
 
-class ProductBulkUpdateAttributesRequest extends FormRequest
+class ProductBulkUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +17,14 @@ class ProductBulkUpdateAttributesRequest extends FormRequest
         return [
             'product_ids'                             => ['required', 'array', 'min:1'],
             'product_ids.*'                           => ['integer', 'exists:products,id'],
-            'attributes'                              => ['required', 'array', 'min:1'],
+            'brand_id'                                => ['sometimes', 'nullable', 'integer', 'exists:brands,id'],
+            'product_type_id'                         => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:product_types,id',
+            ],
+            'attributes'                              => ['sometimes', 'array'],
             'attributes.*.product_attribute_id'       => ['required', 'integer', 'exists:product_attributes,id'],
             'attributes.*.product_attribute_value_id' => [
                 'required',
@@ -26,9 +33,11 @@ class ProductBulkUpdateAttributesRequest extends FormRequest
                 function (string $attribute, mixed $value, \Closure $fail) {
                     $index  = explode('.', $attribute)[1];
                     $attrId = $this->input("attributes.{$index}.product_attribute_id");
-                    if (! ProductAttributeValue::where('id', $value)
-                        ->where('product_attribute_id', $attrId)
-                        ->exists()) {
+                    if (
+                        ! ProductAttributeValue::where('id', $value)
+                            ->where('product_attribute_id', $attrId)
+                            ->exists()
+                    ) {
                         $fail('De geselecteerde waarde hoort niet bij het opgegeven kenmerk.');
                     }
                 },

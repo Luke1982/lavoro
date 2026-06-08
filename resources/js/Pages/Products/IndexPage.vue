@@ -72,12 +72,10 @@
     </IndexHeaderComponent>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProducts.length">
-            <div class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+            <div
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
                 <div class="w-10 flex-none flex items-center justify-center">
-                    <AnimatedCheckbox
-                        :model-value="allCurrentPageSelected"
-                        @update:model-value="toggleSelectAll"
-                    />
+                    <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
                 <div class="flex-1 grid grid-cols-12 p-4">
                     <div class="col-span-4">Model</div>
@@ -89,102 +87,102 @@
                 </div>
             </div>
             <div v-auto-animate>
-            <div v-for="product in displayProducts" :key="product.id" role="row"
-                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
-                <div class="w-10 flex-none flex items-center justify-center self-stretch">
-                    <AnimatedCheckbox
-                        :model-value="selectedIds.includes(product.id)"
-                        @update:model-value="toggleSelectProduct(product.id)"
-                    />
-                </div>
-                <div class="flex-1 grid grid-cols-12 p-4">
-                <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
-                    <div
-                        class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
-                        <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
-                            alt="">
+                <div v-for="product in displayProducts" :key="product.id" role="row"
+                    class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                    <div class="w-10 flex-none flex items-center justify-center self-stretch">
+                        <AnimatedCheckbox :model-value="selectedIds.includes(product.id)"
+                            @update:model-value="toggleSelectProduct(product.id)" />
                     </div>
-                    <div class="flex flex-col">
-                        <Link :href="`/products/${product.id}`" class="font-bold mb-1">
-                            {{ product.brand.name }} {{ product.model }}
-                        </Link>
-                        <span class="text-slate-600">{{ product.part_no }}</span>
-                        <div v-if="product.attribute_value_map" class="mt-1">
-                            <div v-for="(value, key) in product.attribute_value_map" :key="key"
-                                class="grid grid-cols-3 text-xs text-gray-500 mt-0.5">
-                                <div class="col-span-1 pr-2 font-bold">{{ key }}</div>
-                                <div class="col-span-2">{{ value }}</div>
+                    <div class="flex-1 grid grid-cols-12 p-4">
+                        <div class="col-span-10 sm:col-span-4 flex items-center gap-4">
+                            <div
+                                class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
+                                <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
+                                    alt="">
+                            </div>
+                            <div class="flex flex-col">
+                                <Link :href="`/products/${product.id}`" class="font-bold mb-1">
+                                    {{ product.brand.name }} {{ product.model }}
+                                </Link>
+                                <span class="text-slate-600">{{ product.part_no }}</span>
+                                <div v-if="product.attribute_value_map" class="mt-1">
+                                    <div v-for="(value, key) in product.attribute_value_map" :key="key"
+                                        class="grid grid-cols-3 text-xs text-gray-500 mt-0.5">
+                                        <div class="col-span-1 pr-2 font-bold">{{ key }}</div>
+                                        <div class="col-span-2">{{ value }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
+                                    {{ product.product_type?.name }}
+                                    <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
+                                        {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                                    </BadgeComponent>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
-                            {{ product.product_type?.name }}
-                            <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
-                                {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
-                            </BadgeComponent>
+                        <div class="col-span-2 items-center pr-2 hidden sm:flex">
+                            <EditableTextField type="combobox" :model-value="product.brand_id" :options="brands"
+                                :decoration="false"
+                                @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true })">
+                                <template #display>{{ product.brand?.name }}</template>
+                            </EditableTextField>
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                            <EditableTextField type="combobox" :model-value="product.product_type_id"
+                                :options="productTypes" :decoration="false"
+                                @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true })">
+                                <template #display>{{ product.product_type?.name }}</template>
+                            </EditableTextField>
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                            <EditableTextField :decoration="false"
+                                @open="saleEdits[product.id] = { start_sell: product.start_sell ?? '', end_sell: product.end_sell ?? '' }">
+                                <template #display>{{ formatProductSalePeriod(product.start_sell,
+                                    product.end_sell, 'index') }}</template>
+                                <template #open="{ close }">
+                                    <div class="flex flex-col gap-2 w-full" @click.stop>
+                                        <input type="date" v-model="saleEdits[product.id].start_sell"
+                                            class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
+                                        <input type="date" v-model="saleEdits[product.id].end_sell"
+                                            class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
+                                        <button @click.stop="saveSalePeriod(product.id, close)"
+                                            class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 font-medium text-left">Opslaan</button>
+                                    </div>
+                                </template>
+                            </EditableTextField>
+                        </div>
+                        <div class="col-span-1 items-center hidden sm:flex pr-2">
+                            <EditableTextField :decoration="false"
+                                @open="bundleEdits[product.id] = { bundle: product.bundle }">
+                                <template #display>
+                                    <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
+                                        {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                                    </BadgeComponent>
+                                </template>
+                                <template #open="{ close }">
+                                    <div class="flex flex-col gap-2" @click.stop>
+                                        <SwitchComponent v-model="bundleEdits[product.id].bundle"
+                                            @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
+                                    </div>
+                                </template>
+                            </EditableTextField>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
+                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
+                                <div class="pb-2 sm:pb-0">
+                                    <Link :href="`/products/${product.id}`" class="text-sm text-lavoro-darkerblue">
+                                        <EyeIcon class="h-5 w-5" />
+                                    </Link>
+                                </div>
+                                <div v-if="hasPermission('product.delete')"
+                                    class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0">
+                                    <TrashIcon class="h-5 w-5 cursor-pointer text-red-500"
+                                        @click="deleteProduct(product.id)" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-span-2 items-center pr-2 hidden sm:flex">
-                    <EditableTextField type="combobox" :model-value="product.brand_id" :options="brands"
-                        :decoration="false"
-                        @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true })">
-                        <template #display>{{ product.brand?.name }}</template>
-                    </EditableTextField>
-                </div>
-                <div class="col-span-2 items-center hidden sm:flex pr-2">
-                    <EditableTextField type="combobox" :model-value="product.product_type_id" :options="productTypes"
-                        :decoration="false"
-                        @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true })">
-                        <template #display>{{ product.product_type?.name }}</template>
-                    </EditableTextField>
-                </div>
-                <div class="col-span-2 items-center hidden sm:flex pr-2">
-                    <EditableTextField :decoration="false"
-                        @open="saleEdits[product.id] = { start_sell: product.start_sell ?? '', end_sell: product.end_sell ?? '' }">
-                        <template #display>{{ formatProductSalePeriod(product.start_sell,
-                            product.end_sell, 'index') }}</template>
-                        <template #open="{ close }">
-                            <div class="flex flex-col gap-2 w-full" @click.stop>
-                                <input type="date" v-model="saleEdits[product.id].start_sell"
-                                    class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
-                                <input type="date" v-model="saleEdits[product.id].end_sell"
-                                    class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
-                                <button @click.stop="saveSalePeriod(product.id, close)"
-                                    class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 font-medium text-left">Opslaan</button>
-                            </div>
-                        </template>
-                    </EditableTextField>
-                </div>
-                <div class="col-span-1 items-center hidden sm:flex pr-2">
-                    <EditableTextField :decoration="false" @open="bundleEdits[product.id] = { bundle: product.bundle }">
-                        <template #display>
-                            <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
-                                {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
-                            </BadgeComponent>
-                        </template>
-                        <template #open="{ close }">
-                            <div class="flex flex-col gap-2" @click.stop>
-                                <SwitchComponent v-model="bundleEdits[product.id].bundle"
-                                    @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
-                            </div>
-                        </template>
-                    </EditableTextField>
-                </div>
-                <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
-                    <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
-                        <div class="pb-2 sm:pb-0">
-                            <Link :href="`/products/${product.id}`" class="text-sm text-lavoro-darkerblue">
-                                <EyeIcon class="h-5 w-5" />
-                            </Link>
-                        </div>
-                        <div v-if="hasPermission('product.delete')"
-                            class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0">
-                            <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteProduct(product.id)" />
-                        </div>
-                    </div>
-                </div>
-                </div>
-            </div>
             </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
                 <PageRecordCountComponent :total="products.total" :per-page="perPage" label="producten" />
@@ -300,21 +298,17 @@
         </template>
     </DrawerComponent>
 
-    <DrawerComponent v-model="bulkEditOpen"
-        title="Kenmerken bewerken"
+    <DrawerComponent v-model="bulkEditOpen" title="Producten bewerken"
         :subtitle="`${selectedIds.length} producten geselecteerd`">
         <div class="divide-y divide-gray-100 dark:divide-slate-700">
             <div class="px-4 sm:px-6 py-4">
-                <p class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
-                    Vink de kenmerken aan die je wilt toepassen. Niet-aangevinkte kenmerken worden niet gewijzigd.
+                <p
+                    class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
+                    Vink de velden aan die je wilt aanpassen. Niet-aangevinkte velden worden niet gewijzigd.
                 </p>
             </div>
-            <div v-for="attr in drawerAttributes" :key="attr.id"
-                class="flex items-start gap-3 px-4 sm:px-6 py-4">
-                <AnimatedCheckbox
-                    v-model="bulkEditChecked[attr.id]"
-                    class="mt-0.5 flex-shrink-0"
-                />
+            <div v-for="attr in drawerAttributes" :key="attr.id" class="flex items-start gap-3 px-4 sm:px-6 py-4">
+                <AnimatedCheckbox v-model="bulkEditChecked[attr.id]" class="mt-0.5 flex-shrink-0" />
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center flex-wrap gap-2 mb-2">
                         <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ attr.name }}</span>
@@ -323,16 +317,30 @@
                             ⚠ Geldt voor {{ attr.applicableCount }} van {{ selectedIds.length }} producten
                         </span>
                     </div>
-                    <ComboBox
-                        :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
-                        v-model="bulkEditValues[attr.id]"
-                        :placeholder="`Selecteer ${attr.name.toLowerCase()}`"
-                        :disabled="!bulkEditChecked[attr.id]"
-                    />
+                    <ComboBox :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
+                        v-model="bulkEditValues[attr.id]" :placeholder="`Selecteer ${attr.name.toLowerCase()}`"
+                        :disabled="!bulkEditChecked[attr.id]" />
                 </div>
             </div>
-            <div v-if="!drawerAttributes.length" class="px-4 sm:px-6 py-8 text-center text-sm text-gray-400">
-                Geen kenmerken beschikbaar voor de geselecteerde producten.
+            <div class="flex items-start gap-3 px-4 sm:px-6 py-4">
+                <AnimatedCheckbox v-model="bulkEditChecked['_brand_']" class="mt-0.5 flex-shrink-0" />
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white">Merk</span>
+                    </div>
+                    <ComboBox :options="brands" v-model="bulkEditValues['_brand_']" placeholder="Selecteer merk"
+                        :disabled="!bulkEditChecked['_brand_']" />
+                </div>
+            </div>
+            <div class="flex items-start gap-3 px-4 sm:px-6 py-4">
+                <AnimatedCheckbox v-model="bulkEditChecked['_type_']" class="mt-0.5 flex-shrink-0" />
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white">Producttype</span>
+                    </div>
+                    <ComboBox :options="productTypes" v-model="bulkEditValues['_type_']"
+                        placeholder="Selecteer producttype" :disabled="!bulkEditChecked['_type_']" />
+                </div>
             </div>
         </div>
         <template #footer>
@@ -350,14 +358,9 @@
     </DrawerComponent>
 
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition ease-out duration-200"
-            enter-from-class="translate-y-full opacity-0"
-            enter-to-class="translate-y-0 opacity-100"
-            leave-active-class="transition ease-in duration-150"
-            leave-from-class="translate-y-0 opacity-100"
-            leave-to-class="translate-y-full opacity-0"
-        >
+        <Transition enter-active-class="transition ease-out duration-200" enter-from-class="translate-y-full opacity-0"
+            enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-150"
+            leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-full opacity-0">
             <div v-if="selectedIds.length"
                 class="fixed bottom-0 left-0 right-0 lg:left-72 z-40 bg-gray-100 text-gray-800 border-t border-gray-200 px-6 py-4 flex items-center justify-between shadow-lg">
                 <div class="flex items-center gap-4 text-sm">
@@ -369,7 +372,7 @@
                 </div>
                 <button type="button" @click="openBulkEditDrawer"
                     class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
-                    Kenmerken bewerken
+                    Bewerken
                 </button>
             </div>
         </Transition>
@@ -433,9 +436,9 @@ function toggleSelectAll() {
     }
 }
 
-const bulkEditOpen    = ref(false)
+const bulkEditOpen = ref(false)
 const bulkEditChecked = reactive({})
-const bulkEditValues  = reactive({})
+const bulkEditValues = reactive({})
 
 const drawerAttributes = computed(() => {
     if (!selectedIds.value.length) return []
@@ -449,7 +452,7 @@ const drawerAttributes = computed(() => {
         .map(attr => {
             const applicableCount = displayProducts.value.filter(
                 p => selectedIds.value.includes(p.id) &&
-                     attr.product_type_ids.includes(p.product_type_id)
+                    attr.product_type_ids.includes(p.product_type_id)
             ).length
             return { ...attr, applicableCount }
         })
@@ -458,8 +461,12 @@ const drawerAttributes = computed(() => {
 function openBulkEditDrawer() {
     drawerAttributes.value.forEach(attr => {
         bulkEditChecked[attr.id] = false
-        bulkEditValues[attr.id]  = null
+        bulkEditValues[attr.id] = null
     })
+    bulkEditChecked['_brand_'] = false
+    bulkEditValues['_brand_'] = null
+    bulkEditChecked['_type_'] = false
+    bulkEditValues['_type_'] = null
     bulkEditOpen.value = true
 }
 
@@ -467,20 +474,29 @@ function saveBulkEdit() {
     const attributes = drawerAttributes.value
         .filter(attr => bulkEditChecked[attr.id] && bulkEditValues[attr.id])
         .map(attr => ({
-            product_attribute_id:       attr.id,
+            product_attribute_id: attr.id,
             product_attribute_value_id: bulkEditValues[attr.id]?.id ?? bulkEditValues[attr.id],
         }))
 
-    if (!attributes.length) return
+    const payload = { product_ids: selectedIds.value }
 
-    router.post('/products/bulk-update-attributes', {
-        product_ids: selectedIds.value,
-        attributes,
-    }, {
+    if (bulkEditChecked['_brand_'] && bulkEditValues['_brand_']) {
+        payload.brand_id = bulkEditValues['_brand_']?.id ?? bulkEditValues['_brand_']
+    }
+    if (bulkEditChecked['_type_'] && bulkEditValues['_type_']) {
+        payload.product_type_id = bulkEditValues['_type_']?.id ?? bulkEditValues['_type_']
+    }
+    if (attributes.length) {
+        payload.attributes = attributes
+    }
+
+    if (!payload.brand_id && !payload.product_type_id && !payload.attributes) return
+
+    router.post('/products/bulk-update', payload, {
         preserveScroll: true,
         onSuccess: () => {
             bulkEditOpen.value = false
-            selectedIds.value  = []
+            selectedIds.value = []
         },
     })
 }
