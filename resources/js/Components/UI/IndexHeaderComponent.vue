@@ -30,7 +30,7 @@
             :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
     </div>
     <div v-auto-animate>
-        <div v-if="slots.filters && filtersVisible" class="mt-4">
+        <div v-if="slots.filters && filtersVisible" class="my-4">
             <BoxComponent class="mt-4">
                 <slot name="filters" />
             </BoxComponent>
