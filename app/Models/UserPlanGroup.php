@@ -10,6 +10,6 @@ class UserPlanGroup extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class);
+        return $this->belongsToMany(User::class, 'plan_group_user')->withTimestamps();
     }
 }

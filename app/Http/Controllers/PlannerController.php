@@ -31,7 +31,7 @@ class PlannerController extends Controller
 
         $plan_groups = UserPlanGroup::orderBy('sort_order')
             ->orderBy('id')
-            ->with('users:id,user_plan_group_id')
+            ->with('users:id')
             ->get()
             ->map(fn ($g) => [
                 'id'         => $g->id,
@@ -71,24 +71,26 @@ class PlannerController extends Controller
                 ->get(),
             'allUsers' => User::select('id', 'name')->get(),
             'plannableUsers' => User::where('plannable', true)
-                ->select('id', 'name', 'user_plan_group_id')
+                ->select('id', 'name')
+                ->with('planGroups:id')
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
-                    'id'            => $u->id,
-                    'name'          => $u->name,
-                    'avatar'        => $u->avatar,
-                    'plan_group_id' => $u->user_plan_group_id,
+                    'id'             => $u->id,
+                    'name'           => $u->name,
+                    'avatar'         => $u->avatar,
+                    'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
-            'allPlanUsers' => User::select('id', 'name', 'plannable', 'user_plan_group_id')
+            'allPlanUsers' => User::select('id', 'name', 'plannable')
+                ->with('planGroups:id')
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
-                    'id'            => $u->id,
-                    'name'          => $u->name,
-                    'avatar'        => $u->avatar,
-                    'plannable'     => (bool) $u->plannable,
-                    'plan_group_id' => $u->user_plan_group_id,
+                    'id'             => $u->id,
+                    'name'           => $u->name,
+                    'avatar'         => $u->avatar,
+                    'plannable'      => (bool) $u->plannable,
+                    'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'planGroups' => $plan_groups,
             'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),

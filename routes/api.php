@@ -36,8 +36,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('plan-groups/reorder', [UserPlanGroupController::class, 'reorder']);
     Route::put('plan-groups/{group}', [UserPlanGroupController::class, 'update']);
     Route::delete('plan-groups/{group}', [UserPlanGroupController::class, 'destroy']);
-    Route::put('plan-groups/{group}/users/{user}', [UserPlanGroupController::class, 'assignUser']);
-    Route::delete('plan-groups/{group}/users/{user}', [UserPlanGroupController::class, 'removeUser']);
+    Route::put('users/{user}/plan-groups', [UserPlanGroupController::class, 'syncUserGroups']);
 
     Route::patch('users/{user}/plannable', UserPlannableController::class);
 });

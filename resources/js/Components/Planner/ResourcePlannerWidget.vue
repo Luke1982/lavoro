@@ -10,15 +10,27 @@
                 @click="goToday">Vandaag</button>
             <button
                 class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
-                @click="shiftWeek(-1)" aria-label="Vorige week">
+                @click="shiftPeriod(-1)" :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'">
                 <ChevronLeftIcon class="size-4" />
             </button>
             <button
                 class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
-                @click="shiftWeek(1)" aria-label="Volgende week">
+                @click="shiftPeriod(1)" :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'">
                 <ChevronRightIcon class="size-4" />
             </button>
-            <div class="font-semibold text-sm">{{ weekTitle }}</div>
+            <div class="font-semibold text-sm">{{ periodTitle }}</div>
+
+            <!-- View mode toggle -->
+            <div class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm">
+                <button
+                    class="px-3 py-1.5 transition-colors"
+                    :class="plannerView === 'week' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
+                    @click="setPlannerView('week')">Week</button>
+                <button
+                    class="px-3 py-1.5 border-l border-gray-300 dark:border-slate-700 transition-colors"
+                    :class="plannerView === 'day' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
+                    @click="setPlannerView('day')">Dag</button>
+            </div>
 
             <div class="ml-auto flex items-center gap-2">
                 <button v-if="allPingsArray.length > 0"
@@ -52,15 +64,38 @@
         <div class="flex flex-col flex-1 min-h-0">
             <!-- Sticky header row: sidebar label + day/time bars -->
             <div class="sticky top-0 z-20 flex shrink-0 bg-white dark:bg-slate-900">
-                <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-4 flex items-end justify-between gap-2 pb-2 text-xs text-gray-500 dark:text-slate-400"
+                <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
-                    <span>Monteurs ({{ visibleUsers.length }})</span>
-                    <button v-if="visibleUsers.length" @click="toggleAllRows"
-                        class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
-                        <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
-                        <ChevronRightIcon v-else class="size-3.5" />
-                        {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
-                    </button>
+                    <!-- Group filter -->
+                    <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
+                        <span class="text-[10px] text-gray-400 shrink-0">Groepen:</span>
+                        <button
+                            v-for="group in groups"
+                            :key="group.id"
+                            class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
+                            :class="selectedGroupIds.includes(group.id)
+                                ? 'text-white border-transparent'
+                                : 'text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
+                            :style="selectedGroupIds.includes(group.id) ? { background: group.color, borderColor: group.color } : {}"
+                            :title="group.name"
+                            @click="toggleGroupFilter(group.id)">
+                            {{ group.name }}
+                        </button>
+                        <button v-if="selectedGroupIds.length"
+                            class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0"
+                            title="Alle groepen tonen"
+                            @click="selectedGroupIds = []">✕</button>
+                    </div>
+                    <!-- Monteurs count + collapse -->
+                    <div class="flex items-center justify-between">
+                        <span>Monteurs ({{ visibleUsers.length }})</span>
+                        <button v-if="visibleUsers.length" @click="toggleAllRows"
+                            class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
+                            <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
+                            <ChevronRightIcon v-else class="size-3.5" />
+                            {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
+                        </button>
+                    </div>
                 </div>
                 <div class="flex-1 overflow-hidden" ref="gridHeaderRef">
                     <div class="grid border-b border-gray-200 dark:border-slate-800"
@@ -93,17 +128,12 @@
                 <!-- Resource sidebar -->
                 <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
                     ref="sidebarScrollRef">
-                    <!-- Group bar overlay -->
+                    <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
                         style="width: 0; overflow: visible; z-index: 1;">
                         <div v-for="(bar, i) in groupBars" :key="i"
-                            class="absolute left-0 w-5 rounded-sm flex items-center justify-center overflow-hidden"
-                            :style="{ top: bar.top + 'px', height: bar.height + 'px', background: bar.color }">
-                            <span class="text-[10px] font-semibold text-white select-none leading-none"
-                                style="writing-mode: vertical-rl; transform: rotate(180deg);">
-                                {{ bar.name }}
-                            </span>
-                        </div>
+                            class="absolute rounded-sm"
+                            :style="{ top: bar.top + 'px', height: bar.height + 'px', left: bar.x + 'px', width: BAR_W + 'px', background: bar.color }" />
                     </div>
                     <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                         class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
@@ -398,41 +428,38 @@ const visibleUsers = computed(() => {
         ? props.plannableUsers
         : props.plannableUsers.filter(u => u.id === authUserId.value)
 
-    const groupIndex = Object.fromEntries(props.groups.map((g, i) => [g.id, i]))
+    const filtered = selectedGroupIds.value.length
+        ? base.filter(u => {
+            if (selectedGroupIds.value.includes('ungrouped') && (!u.plan_group_ids || u.plan_group_ids.length === 0)) return true
+            return u.plan_group_ids?.some(gid => selectedGroupIds.value.includes(gid))
+        })
+        : base
 
-    return [...base].sort((a, b) => {
-        const ga = a.plan_group_id != null ? (groupIndex[a.plan_group_id] ?? Infinity) : Infinity
-        const gb = b.plan_group_id != null ? (groupIndex[b.plan_group_id] ?? Infinity) : Infinity
-        if (ga !== gb) return ga - gb
-        return a.name.localeCompare(b.name)
-    })
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
 })
+
+const BAR_W = 4
+const BAR_GAP = 1
 
 const groupBars = computed(() => {
     const users = visibleUsers.value
     if (!users.length) return []
 
+    const groupMap = Object.fromEntries(props.groups.map(g => [g.id, g]))
+    const bars = []
     let top = allDayLaneHeight.value
-    const segments = new Map()
 
     for (const user of users) {
         const rowH = rowHeightFor(user.id)
-        const key = user.plan_group_id != null ? user.plan_group_id : 'ungrouped'
-
-        if (!segments.has(key)) {
-            let color = '#9ca3af'
-            let name = 'Geen groep'
-            if (user.plan_group_id != null) {
-                const group = props.groups.find(g => g.id === user.plan_group_id)
-                if (group) { color = group.color; name = group.name }
-            }
-            segments.set(key, { top, height: 0, color, name })
-        }
-        segments.get(key).height += rowH
+        ;(user.plan_group_ids ?? []).forEach((gid, i) => {
+            const group = groupMap[gid]
+            if (!group) return
+            bars.push({ top, height: rowH, color: group.color, x: i * (BAR_W + BAR_GAP) })
+        })
         top += rowH
     }
 
-    return [...segments.values()]
+    return bars
 })
 
 const showProjects = computed(() => hasPermission('project.read'))
@@ -442,6 +469,7 @@ const dayStartHour = ref(props.defaultDayStartHour)
 const dayEndHour = ref(props.defaultDayEndHour)
 
 const WEEK_STORAGE_KEY = 'lavoro_planner_week'
+const VIEW_STORAGE_KEY = 'lavoro_planner_view'
 
 function loadStoredWeekStart() {
     const stored = localStorage.getItem(WEEK_STORAGE_KEY)
@@ -452,8 +480,15 @@ function loadStoredWeekStart() {
     return startOfWeek(new Date())
 }
 
+function loadStoredView() {
+    const v = localStorage.getItem(VIEW_STORAGE_KEY)
+    return v === 'day' ? 'day' : 'week'
+}
+
 const unavailabilities = ref([])
 const weekStart = ref(loadStoredWeekStart())
+const plannerView = ref(loadStoredView())
+const selectedGroupIds = ref([])
 
 const rootEl = ref(null)
 
@@ -495,8 +530,8 @@ const hourCount = computed(() => Math.max(1, dayEndHour.value - dayStartHour.val
 const slotsPerHour = computed(() => 60 / slotMinutes.value)
 const hourWidthPx = computed(() => Math.max(HOUR_PX_MIN, slotsPerHour.value * SLOT_PX_MIN))
 const dayWidthPx = computed(() => hourWidthPx.value * hourCount.value)
-const gridMinWidth = computed(() => dayWidthPx.value * 7)
-const dayGridTemplate = computed(() => `repeat(7, minmax(${dayWidthPx.value}px, 1fr))`)
+const gridMinWidth = computed(() => dayWidthPx.value * weekDays.value.length)
+const dayGridTemplate = computed(() => `repeat(${weekDays.value.length}, minmax(${dayWidthPx.value}px, 1fr))`)
 
 // --- All-day project band (row above the resource lanes) ---
 const PROJECT_BAR_H = 38
@@ -519,8 +554,9 @@ const allPingsArray = computed(() =>
 
 /** One horizontal track per project, positioned within the visible week. */
 const allDay = computed(() => {
+    const dayCount = plannerView.value === 'day' ? 1 : 7
     const ws = dayjs(weekStart.value).startOf('day')
-    const weekEnd = ws.add(7, 'day') // exclusive: start of the day after the week
+    const weekEnd = ws.add(dayCount, 'day') // exclusive: start of the day after the period
     const tracks = []
     let top = TRACK_TOP_PAD
     for (const p of props.projects) {
@@ -611,8 +647,8 @@ const lockedGroupOverlays = computed(() => {
                 color: ev.color || '#3b82f6',
                 top: rowTops[minIdx] + topPad,
                 height: overlayHeight - topPad - bottomPad,
-                leftPct: (dayIdx + startOffsetMin / totalMin) / 7 * 100,
-                widthPct: (endOffsetMin - startOffsetMin) / totalMin / 7 * 100,
+                leftPct: (dayIdx + startOffsetMin / totalMin) / days.length * 100,
+                widthPct: (endOffsetMin - startOffsetMin) / totalMin / days.length * 100,
             }
         })
         .filter(Boolean)
@@ -657,18 +693,25 @@ function toggleAllRows() {
 }
 
 const weekDays = computed(() => {
+    const count = plannerView.value === 'day' ? 1 : 7
     const start = dayjs(weekStart.value)
-    return Array.from({ length: 7 }, (_, i) => {
+    return Array.from({ length: count }, (_, i) => {
         const d = start.add(i, 'day')
         return { date: d.toDate(), iso: d.format('YYYY-MM-DD') }
     })
 })
 
-const weekTitle = computed(() => {
+const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
+    'juli', 'augustus', 'september', 'oktober', 'november', 'december']
+const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag']
+
+const periodTitle = computed(() => {
+    if (plannerView.value === 'day') {
+        const d = weekDays.value[0].date
+        return `${dayNames[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+    }
     const first = weekDays.value[0].date
     const last = weekDays.value[6].date
-    const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
-        'juli', 'augustus', 'september', 'oktober', 'november', 'december']
     const sameMonth = first.getMonth() === last.getMonth()
     const sameYear = first.getFullYear() === last.getFullYear()
     if (sameMonth && sameYear) {
@@ -729,14 +772,30 @@ watch(weekStart, (val) => {
     fetchUnavailabilities()
 })
 
-function shiftWeek(direction) {
-    weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
+function shiftPeriod(direction) {
+    const days = plannerView.value === 'day' ? 1 : 7
+    weekStart.value = dayjs(weekStart.value).add(direction * days, 'day').toDate()
+}
+
+function setPlannerView(view) {
+    if (plannerView.value === view) return
+    if (view === 'week') {
+        weekStart.value = startOfWeek(weekStart.value)
+    }
+    plannerView.value = view
+    localStorage.setItem(VIEW_STORAGE_KEY, view)
+}
+
+function toggleGroupFilter(groupId) {
+    selectedGroupIds.value = selectedGroupIds.value.includes(groupId)
+        ? selectedGroupIds.value.filter(id => id !== groupId)
+        : [...selectedGroupIds.value, groupId]
 }
 
 function goToday() {
     const today = new Date()
-    weekStart.value = startOfWeek(today)
-    nextTick(() => scrollToDate(today))
+    weekStart.value = plannerView.value === 'day' ? today : startOfWeek(today)
+    nextTick(() => plannerView.value === 'week' ? scrollToDate(today) : null)
 }
 
 function scrollToDate(date) {
@@ -760,8 +819,9 @@ function onGridScroll(e) {
 
 async function fetchUnavailabilities() {
     try {
+        const dayCount = plannerView.value === 'day' ? 1 : 7
         const startParam = formatUtcDatetime(weekStart.value)
-        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
+        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(dayCount, 'day').toDate())
         const response = await axios.get(
             `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )
@@ -824,7 +884,8 @@ function userHoursLabel(userId) {
     }
     const h = Math.floor(mins / 60)
     const m = Math.round(mins % 60)
-    return `${h}u ${String(m).padStart(2, '0')}m deze week`
+    const label = plannerView.value === 'day' ? 'vandaag' : 'deze week'
+    return `${h}u ${String(m).padStart(2, '0')}m ${label}`
 }
 
 function snapMinutes(min) {

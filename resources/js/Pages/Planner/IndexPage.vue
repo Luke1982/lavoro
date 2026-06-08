@@ -25,7 +25,7 @@
             </BoxComponent>
             <PlanGroupsWidget v-if="canManageGroups" :plan-groups="planGroupsRef" :all-users="allPlanUsersRef"
                 @group-created="onGroupCreated" @group-updated="onGroupUpdated" @group-deleted="onGroupDeleted"
-                @group-reordered="onGroupReordered" @user-assigned="onUserAssigned" @user-unassigned="onUserUnassigned"
+                @group-reordered="onGroupReordered" @user-groups-synced="onUserGroupsSynced"
                 @plannable-toggled="onPlannableToggled" />
         </div>
     </div>
@@ -111,8 +111,14 @@ async function onGroupUpdated(id, patch) {
 async function onGroupDeleted(id) {
     const originalGroups = [...planGroupsRef.value]
     planGroupsRef.value = planGroupsRef.value.filter(g => g.id !== id)
-    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.plan_group_id === id ? { ...u, plan_group_id: null } : u)
-    plannableUsersRef.value = plannableUsersRef.value.map(u => u.plan_group_id === id ? { ...u, plan_group_id: null } : u)
+    allPlanUsersRef.value = allPlanUsersRef.value.map(u => ({
+        ...u,
+        plan_group_ids: u.plan_group_ids.filter(gid => gid !== id),
+    }))
+    plannableUsersRef.value = plannableUsersRef.value.map(u => ({
+        ...u,
+        plan_group_ids: u.plan_group_ids.filter(gid => gid !== id),
+    }))
     try {
         await axios.get('sanctum/csrf-cookie')
         await axios.delete(`/api/plan-groups/${id}`)
@@ -135,45 +141,33 @@ async function onGroupReordered(ids) {
     }
 }
 
-async function onUserAssigned(groupId, userId) {
-    const oldGroup = planGroupsRef.value.find(g => g.user_ids.includes(userId))
-    const targetGroup = planGroupsRef.value.find(g => g.id === groupId)
-    if (!targetGroup) return
+async function onUserGroupsSynced(userId, groupIds) {
+    const prevAllPlan = allPlanUsersRef.value.map(u => ({ ...u }))
+    const prevPlannable = plannableUsersRef.value.map(u => ({ ...u }))
 
-    if (oldGroup) oldGroup.user_ids = oldGroup.user_ids.filter(id => id !== userId)
-    targetGroup.user_ids = [...targetGroup.user_ids, userId]
-    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: groupId } : u)
-    plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: groupId } : u)
+    allPlanUsersRef.value = allPlanUsersRef.value.map(u =>
+        u.id === userId ? { ...u, plan_group_ids: groupIds } : u
+    )
+    plannableUsersRef.value = plannableUsersRef.value.map(u =>
+        u.id === userId ? { ...u, plan_group_ids: groupIds } : u
+    )
 
-    try {
-        await axios.get('sanctum/csrf-cookie')
-        await axios.put(`/api/plan-groups/${groupId}/users/${userId}`)
-    } catch (e) {
-        if (oldGroup) oldGroup.user_ids = [...oldGroup.user_ids, userId]
-        targetGroup.user_ids = targetGroup.user_ids.filter(id => id !== userId)
-        const prev = oldGroup?.id ?? null
-        allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: prev } : u)
-        plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: prev } : u)
-        page.props.flash.error = e.response?.data?.message || 'Kon monteur niet toewijzen'
-    }
-}
-
-async function onUserUnassigned(userId) {
-    const oldGroup = planGroupsRef.value.find(g => g.user_ids.includes(userId))
-    if (!oldGroup) return
-
-    oldGroup.user_ids = oldGroup.user_ids.filter(id => id !== userId)
-    allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: null } : u)
-    plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: null } : u)
+    // Update plan group user_ids lists
+    planGroupsRef.value = planGroupsRef.value.map(g => {
+        const inGroup = groupIds.includes(g.id)
+        const hadUser = g.user_ids.includes(userId)
+        if (inGroup && !hadUser) return { ...g, user_ids: [...g.user_ids, userId] }
+        if (!inGroup && hadUser) return { ...g, user_ids: g.user_ids.filter(id => id !== userId) }
+        return g
+    })
 
     try {
         await axios.get('sanctum/csrf-cookie')
-        await axios.delete(`/api/plan-groups/${oldGroup.id}/users/${userId}`)
+        await axios.put(`/api/users/${userId}/plan-groups`, { group_ids: groupIds })
     } catch (e) {
-        oldGroup.user_ids = [...oldGroup.user_ids, userId]
-        allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: oldGroup.id } : u)
-        plannableUsersRef.value = plannableUsersRef.value.map(u => u.id === userId ? { ...u, plan_group_id: oldGroup.id } : u)
-        page.props.flash.error = e.response?.data?.message || 'Kon monteur niet uit groep halen'
+        allPlanUsersRef.value = prevAllPlan
+        plannableUsersRef.value = prevPlannable
+        page.props.flash.error = e.response?.data?.message || 'Kon groepsindeling niet opslaan'
     }
 }
 

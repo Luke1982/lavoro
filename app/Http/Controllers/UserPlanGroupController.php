@@ -28,7 +28,7 @@ class UserPlanGroupController extends Controller
         $this->authorizeManage();
 
         $groups = UserPlanGroup::orderBy('sort_order')->orderBy('id')
-            ->with('users:id,user_plan_group_id')
+            ->with('users:id')
             ->get();
 
         return response()->json($groups->map(fn ($g) => [
@@ -70,11 +70,8 @@ class UserPlanGroupController extends Controller
         ]);
     }
 
-    public function destroy(UpdatePlanGroupRequest $request, UserPlanGroup $group)
+    public function destroy(UserPlanGroup $group)
     {
-        User::where('user_plan_group_id', $group->id)
-            ->update(['user_plan_group_id' => null]);
-
         $group->delete();
 
         return response()->noContent();
@@ -89,19 +86,17 @@ class UserPlanGroupController extends Controller
         return response()->noContent();
     }
 
-    public function assignUser(Request $request, UserPlanGroup $group, User $user)
+    public function syncUserGroups(Request $request, User $user)
     {
         $this->authorizeManage();
-        $user->update(['user_plan_group_id' => $group->id]);
-        return response()->noContent();
-    }
 
-    public function removeUser(Request $request, UserPlanGroup $group, User $user)
-    {
-        $this->authorizeManage();
-        if ($user->user_plan_group_id === $group->id) {
-            $user->update(['user_plan_group_id' => null]);
-        }
+        $data = $request->validate([
+            'group_ids'   => ['array'],
+            'group_ids.*' => ['integer', 'exists:user_plan_groups,id'],
+        ]);
+
+        $user->planGroups()->sync($data['group_ids'] ?? []);
+
         return response()->noContent();
     }
 }

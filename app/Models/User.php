@@ -23,7 +23,6 @@ class User extends Authenticatable
         'email',
         'password',
         'plannable',
-        'user_plan_group_id',
     ];
 
     /**
@@ -56,7 +55,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'plannable' => 'boolean',
-            'user_plan_group_id' => 'integer',
         ];
     }
 
@@ -91,11 +89,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Plan group this user belongs to.
+     * Plan groups this user belongs to.
      */
-    public function planGroup()
+    public function planGroups()
     {
-        return $this->belongsTo(UserPlanGroup::class, 'user_plan_group_id');
+        return $this->belongsToMany(UserPlanGroup::class, 'plan_group_user')->withTimestamps();
     }
 
     /**
