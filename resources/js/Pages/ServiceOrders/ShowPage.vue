@@ -761,14 +761,7 @@ function reopenViaStage() {
 }
 
 function onStageChange(stage_id) {
-    const isClosing = stage_id === props.closedStageId && !props.serviceOrder.is_closed
-    const isReopening = props.serviceOrder.is_closed && stage_id !== props.closedStageId
-
-    const canChange = hasPermission('serviceorderstage.update') ||
-        (isClosing && hasPermission('serviceorder.close')) ||
-        (isReopening && hasPermission('serviceorder.reopen'))
-
-    if (!canChange) {
+    if (!hasPermission('serviceorder.update')) {
         usePage().props.flash.error = 'Je hebt geen toestemming om de werkbon status te wijzigen.';
         return;
     }
