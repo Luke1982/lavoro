@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 const props = defineProps({ disabled: { type: Boolean, default: false } })
 const value = defineModel({ default: null })
 
@@ -24,6 +24,11 @@ function toggle() {
     }
     value.value = true
 }
+
+const emit = defineEmits(['update'])
+watch(normalized, (newVal) => {
+    emit('update', newVal)
+})
 
 const stateTitle = computed(() => {
     if (normalized.value === null) {

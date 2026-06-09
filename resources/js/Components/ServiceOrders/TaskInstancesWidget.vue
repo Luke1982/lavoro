@@ -69,7 +69,17 @@
                         class="w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm sm:leading-6 resize-y" />
                 </div>
                 <ComboBox :options="productOptions" v-model="newProductId" label="Product (optioneel)"
-                    placeholder="Zoek een product..." />
+                    placeholder="Zoek een product...">
+                    <template #option="{ option, active }">
+                        <div>
+                            <span class="block">{{ option.name }}</span>
+                            <span v-if="option.attributes?.length"
+                                :class="['block text-xs mt-0.5', active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400']">
+                                {{ option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ') }}
+                            </span>
+                        </div>
+                    </template>
+                </ComboBox>
                 <div v-if="newProductId">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Aantal</label>
@@ -107,7 +117,17 @@
                         class="w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm sm:leading-6 resize-y" />
                 </div>
                 <ComboBox :options="productOptions" v-model="editProductId" label="Product (optioneel)"
-                    placeholder="Zoek een product..." />
+                    placeholder="Zoek een product...">
+                    <template #option="{ option, active }">
+                        <div>
+                            <span class="block">{{ option.name }}</span>
+                            <span v-if="option.attributes?.length"
+                                :class="['block text-xs mt-0.5', active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400']">
+                                {{ option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ') }}
+                            </span>
+                        </div>
+                    </template>
+                </ComboBox>
                 <div v-if="editProductId">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Aantal</label>
@@ -202,7 +222,12 @@ watch(() => props.instances, (new_val) => {
 }, { deep: true })
 
 const taskOptions = computed(() => props.availableTasks.map(t => ({ id: t.id, name: t.title })))
-const productOptions = computed(() => props.products.map(p => ({ id: p.id, name: p.name })))
+const productOptions = computed(() => props.products.map(p => ({
+    id: p.id,
+    name: p.name,
+    attributes: p.attributes ?? [],
+    search: p.search ?? '',
+})))
 
 // ── Add drawer ────────────────────────────────────────────────────────────────
 const addDrawerOpen = ref(false)

@@ -25,8 +25,8 @@
                 <div v-if="open && filteredOptions.length > 0" ref="floatingRef" :style="dropdownStyle">
                     <ComboboxOptions
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
-                        <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option"
-                            as="template" v-slot="{ active, selected }">
+                        <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"
+                            v-slot="{ active, selected }">
                             <li
                                 :class="['relative cursor-default select-none py-2 pl-3 pr-9', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-gray-900 dark:text-slate-100']">
                                 <slot name="option" :option="option" :active="active" :selected="selected">
@@ -200,7 +200,7 @@ const filteredOptions = computed(() =>
     query.value === ''
         ? props.options
         : props.options.filter((option) =>
-            option.name.toLowerCase().includes(query.value.toLowerCase())
+            `${option.name} ${option.search ?? ''}`.toLowerCase().includes(query.value.toLowerCase())
         )
 )
 

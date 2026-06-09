@@ -12,17 +12,27 @@
         <div v-if="innerAttributes.length">
             <div
                 class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
-                <div class="col-span-11">Naam</div>
+                <div class="col-span-9">Naam</div>
+                <div class="col-span-2">Zoekbaar</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <div v-for="attr in innerAttributes" :key="attr.id" role="row"
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
-                <div class="col-span-11 flex items-center">
+                <div class="col-span-9 flex items-center">
                     <EditableTextField :model-value="attr.name" :decoration="false"
                         :readonly="!hasPermission('productattribute.update')"
                         @update="(val) => router.patch(`/productattributes/${attr.id}`, { name: val }, { preserveScroll: true })">
                         <template #display>{{ attr.name }}</template>
                     </EditableTextField>
+                </div>
+                <div class="col-span-2 flex items-center">
+                    <SwitchComponent v-model="attr.searchable"
+                        @update="(val) => router.patch(`/productattributes/${attr.id}`, { searchable: val }, { preserveScroll: true })"
+                        class="mr-2" />
+                    <span class="text-sm text-gray-600 dark:text-slate-400">
+                        <template v-if="attr.searchable">Zoekbaar</template>
+                        <template v-else>Niet zoekbaar</template>
+                    </span>
                 </div>
                 <div class="col-span-1 flex items-center justify-end gap-2">
                     <div class="border-1 border-lavoro-darkergray rounded-full p-2">
@@ -32,14 +42,12 @@
                     </div>
                     <div v-if="hasPermission('productattribute.delete')"
                         class="border-1 border-lavoro-darkergray rounded-full p-2">
-                        <TrashIcon class="h-5 w-5 cursor-pointer text-red-500"
-                            @click="deleteAttribute(attr.id)" />
+                        <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteAttribute(attr.id)" />
                     </div>
                 </div>
             </div>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
-                <PageRecordCountComponent :total="attributes.total" :per-page="attributes.per_page"
-                    label="kenmerken" />
+                <PageRecordCountComponent :total="attributes.total" :per-page="attributes.per_page" label="kenmerken" />
                 <PaginationComponent :paginator="attributes" />
             </div>
         </div>
@@ -63,6 +71,7 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import { EyeIcon, TrashIcon, TagsIcon } from '@lucide/vue'
 import { hasPermission } from '@/Utilities/Utilities'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 
 const formRef = ref(null)
 

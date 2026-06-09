@@ -17,7 +17,8 @@ class ProductAttributeUpdateRequest extends FormRequest
         $id = $this->route('productattribute')->id;
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('product_attributes', 'name')->ignore($id)],
+            'name' => ['sometimes', 'string', 'max:255', Rule::unique('product_attributes', 'name')->ignore($id)],
+            'searchable' => ['sometimes', 'boolean'],
         ];
     }
 }

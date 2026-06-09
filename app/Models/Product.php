@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use App\Models\Traits\HasCustomFields;
+use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Product extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProductFactory> */
-    use HasFactory;
     use HasCustomFields;
+
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
 
     protected static function booted(): void
     {
@@ -43,10 +46,10 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'retail_price'   => 'decimal:2',
+        'retail_price' => 'decimal:2',
         'purchase_price' => 'decimal:2',
-        'bundle'         => 'boolean',
-        'active'         => 'boolean',
+        'bundle' => 'boolean',
+        'active' => 'boolean',
     ];
 
     /**
@@ -133,10 +136,44 @@ class Product extends Model
     public function attributeValueMap(): array
     {
         return $this->productAttributeValueables
-            ->mapWithKeys(fn($pvable) => [
+            ->mapWithKeys(fn ($pvable) => [
                 $pvable->productAttribute->name => $pvable->value?->value,
             ])
-            ->filter(fn($v) => $v !== null)
+            ->filter(fn ($v) => $v !== null)
             ->all();
+    }
+
+    public function scopeWithSearchableAttributes($query)
+    {
+        return $query->with([
+            'brand',
+            'productType',
+            'productAttributeValueables.productAttribute',
+            'productAttributeValueables.value',
+        ]);
+    }
+
+    public function searchableAttributes(): Collection
+    {
+        return $this->productAttributeValueables
+            ->filter(fn ($pvable) => $pvable->productAttribute?->searchable && $pvable->value)
+            ->map(fn ($pvable) => [
+                'name' => $pvable->productAttribute->name,
+                'value' => $pvable->value->value,
+            ])
+            ->values();
+    }
+
+    public function toComboOption(): array
+    {
+        $attributes = $this->searchableAttributes();
+
+        return [
+            'id' => $this->id,
+            'name' => "{$this->brand->name} {$this->model} ({$this->productType->name})",
+            'bundle' => $this->bundle,
+            'attributes' => $attributes,
+            'search' => $attributes->map(fn ($a) => "{$a['name']} {$a['value']}")->implode(' '),
+        ];
     }
 }

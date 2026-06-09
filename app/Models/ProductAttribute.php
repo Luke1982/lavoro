@@ -9,7 +9,10 @@ class ProductAttribute extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'searchable'];
+    protected $casts = [
+        'searchable' => 'boolean',
+    ];
 
     protected static function booted(): void
     {
