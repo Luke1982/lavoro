@@ -883,8 +883,11 @@ function eventsFor(userId, dayIso) {
 
 function userHoursLabel(userId) {
     let mins = 0
+    const dayStart = plannerView.value === 'day' ? dayjs(weekStart.value).startOf('day').valueOf() : null
+    const dayEnd = plannerView.value === 'day' ? dayjs(weekStart.value).endOf('day').valueOf() : null
     for (const ev of events.value) {
         if (!ev.executing_user_ids.includes(userId)) continue
+        if (dayStart !== null && (ev.end <= dayStart || ev.start >= dayEnd)) continue
         const userBreaktime = ev.executing_users?.find(u => u.id === userId)?.breaktime ?? 0
         mins += Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime)
     }
