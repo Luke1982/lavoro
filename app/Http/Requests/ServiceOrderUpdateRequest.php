@@ -3,9 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 use App\Enums\ServiceOrderTypes;
-use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 
 /**
@@ -20,26 +18,7 @@ class ServiceOrderUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        $serviceorder = request()->route('serviceorder');
-        if (!$user || !$serviceorder instanceof ServiceOrder) {
-            return true;
-        }
-        if (!$this->has('service_order_stage_id')) {
-            return true;
-        }
-
-        $new_stage_id = $this->input('service_order_stage_id');
-
-        if ($new_stage_id === $serviceorder->service_order_stage_id) {
-            return true;
-        }
-
-        $new_stage = $new_stage_id === null
-            ? null
-            : ServiceOrderStage::find($new_stage_id);
-
-        return $user->can('changeStage', [$serviceorder, $new_stage]);
+        return $this->user()->can('update', $this->route('serviceorder'));
     }
 
     public function rules(): array
@@ -61,21 +40,12 @@ class ServiceOrderUpdateRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $serviceorder = request()->route('serviceorder');
-            if (!$serviceorder instanceof ServiceOrder) {
-                return;
-            }
-
-            $new_stage_id = $this->input('service_order_stage_id');
-            if (!$new_stage_id || $new_stage_id == $serviceorder->service_order_stage_id) {
-                return;
-            }
-
-            $new_stage = ServiceOrderStage::find($new_stage_id);
+            $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
             if (!$new_stage?->is_closed_state) {
                 return;
             }
 
+            $serviceorder = $this->route('serviceorder');
             $incomplete = $serviceorder->taskInstances()->where('is_complete', false)->count();
             if ($incomplete > 0) {
                 $validator->errors()->add(
