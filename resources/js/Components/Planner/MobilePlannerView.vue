@@ -149,6 +149,12 @@
                                             {{ resolveAddress(ev) }}
                                         </div>
 
+                                        <!-- Description -->
+                                        <div v-if="ev.description"
+                                            class="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug whitespace-pre-line">
+                                            {{ ev.description }}
+                                        </div>
+
                                         <!-- Task list -->
                                         <ul v-if="ev.task_titles && ev.task_titles.length" class="mt-1.5 space-y-0.5">
                                             <li v-for="title in ev.task_titles" :key="title"
