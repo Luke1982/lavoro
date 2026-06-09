@@ -155,16 +155,6 @@
                                             {{ ev.description }}
                                         </div>
 
-                                        <!-- Task list -->
-                                        <ul v-if="ev.task_titles && ev.task_titles.length" class="mt-1.5 space-y-0.5">
-                                            <li v-for="title in ev.task_titles" :key="title"
-                                                class="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-                                                <span
-                                                    class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0"></span>
-                                                {{ title }}
-                                            </li>
-                                        </ul>
-
                                         <!-- WB badge -->
                                         <div class="mt-2">
                                             <button v-if="ev.eventable_id"
@@ -177,6 +167,30 @@
                                             <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
                                                 Eigen planning
                                             </span>
+                                        </div>
+
+                                        <!-- Task instances -->
+                                        <div v-if="ev.task_instances?.length" class="mt-2 space-y-2">
+                                            <div v-for="ti in ev.task_instances" :key="ti.id">
+                                                <div class="flex items-start gap-1.5 text-xs">
+                                                    <span class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
+                                                    <div class="flex-1 min-w-0">
+                                                        <span class="text-gray-600 dark:text-slate-300 font-medium">{{ ti.title }}</span>
+                                                        <template v-if="ti.product">
+                                                            <div class="text-gray-500 dark:text-slate-400 mt-0.5">
+                                                                {{ ti.product.name }}
+                                                                <span class="text-gray-400 dark:text-slate-500">× {{ ti.quantity }}</span>
+                                                            </div>
+                                                            <div v-if="ti.product.specific_attributes?.length"
+                                                                class="text-gray-400 dark:text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                                                <span v-for="attr in ti.product.specific_attributes" :key="attr.name">
+                                                                    {{ attr.name }}: {{ attr.value }}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

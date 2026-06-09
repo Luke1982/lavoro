@@ -55,6 +55,9 @@ class EventApiController extends Controller
                 'serviceOrders.customer',
                 'serviceOrders.project:id,title',
                 'serviceOrders.taskInstances.serviceOrderTask',
+                'serviceOrders.taskInstances.product.brand',
+                'serviceOrders.taskInstances.product.productAttributeValueables.productAttribute',
+                'serviceOrders.taskInstances.product.productAttributeValueables.value',
                 'executingUsers',
             ])
             ->orderBy('start')
