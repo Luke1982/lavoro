@@ -226,6 +226,11 @@
                 <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
                     :comments="ticket.remarks" />
             </BoxComponent>
+
+            <BoxComponent class="mt-4">
+                <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
+                    documentable-type="\App\Models\Ticket" class="mt-6" />
+            </BoxComponent>
         </template>
 
         <template #sidebar>
@@ -267,12 +272,14 @@ import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 
 const props = defineProps({
     ticket: { type: Object, required: true },
     statusses: { type: Array, required: true },
     priorities: { type: Array, required: true },
     customFields: { type: Array, default: () => [] },
+    documents: { type: Array, default: () => [] },
 });
 
 const initialStatus = props.statusses.find(s => s.name === props.ticket.status);

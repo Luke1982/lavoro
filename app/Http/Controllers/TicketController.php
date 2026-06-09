@@ -213,6 +213,7 @@ class TicketController extends Controller
             'serviceOrder.serviceOrderStage',
             'serviceOrder.events',
             'serviceOrder.executingUsers',
+            'documents',
         ]);
 
         $ticket->remarks->load('user');

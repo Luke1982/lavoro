@@ -56,4 +56,10 @@ class Ticket extends Model
             ->withPivot(['main'])
             ->withTimestamps();
     }
+
+    public function documents()
+    {
+        return $this->morphToMany(Document::class, 'documentable')
+            ->withTimestamps();
+    }
 }
