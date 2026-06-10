@@ -33,7 +33,7 @@ class ProductTypeStoreUpdateRequest extends FormRequest
 
         return [
             'name'                     => ['required', 'string', 'max:255', Rule::unique('product_types', 'name')->ignore($ignore_id)],
-            'typical_certificate_days' => 'nullable|integer|min:1',
+            'typical_certificate_days' => 'nullable|integer',
             'parent_id'                => 'nullable|integer|exists:product_types,id',
         ];
     }
