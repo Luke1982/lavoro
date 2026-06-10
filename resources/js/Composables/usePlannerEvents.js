@@ -21,6 +21,7 @@ function mapEvent(ev) {
             id: u.id,
             name: u.name,
             breaktime: u.pivot?.breaktime ?? 0,
+            user_role_ids: u.pivot?.user_role_ids ?? [],
         })),
         eventable_id: ev.service_orders?.[0]?.id ?? null,
         eventable_type: "\\App\\Models\\ServiceOrder",

@@ -16,7 +16,7 @@ class EventCopyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'offsets'   => 'required|array|min:1',
+            'offsets' => 'required|array|min:1',
             'offsets.*' => 'required|integer|min:1|max:365',
         ];
     }

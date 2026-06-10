@@ -211,25 +211,30 @@
                         <!-- Selected user rows -->
                         <div v-if="selectedUsers.length" class="flex flex-col gap-2 mb-3">
                             <div v-for="user in selectedUsers" :key="user.id"
-                                class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2">
-                                <img v-if="user.avatar" :src="user.avatar"
-                                    class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                                <div v-else
-                                    class="w-8 h-8 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                    {{ initials(user.name) }}
+                                class="flex flex-col gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2">
+                                <div class="flex items-center gap-3">
+                                    <img v-if="user.avatar" :src="user.avatar"
+                                        class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                                    <div v-else
+                                        class="w-8 h-8 rounded-full bg-lavoro-blue flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                        {{ initials(user.name) }}
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{{
+                                        user.name }}</span>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <ClockFadingIcon class="h-3.5 w-3.5 text-gray-400" />
+                                        <TextInput v-model="userBreaktimes[String(user.id)]" label="" type="number"
+                                            class="w-20" :step="10" :min="0" placeholder="0" />
+                                        <span class="text-xs text-gray-400">min</span>
+                                    </div>
+                                    <button @click="removeUser(user.id)"
+                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                        <XMarkIcon class="h-3.5 w-3.5" />
+                                    </button>
                                 </div>
-                                <span class="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{{
-                                    user.name }}</span>
-                                <div class="flex items-center gap-1.5 shrink-0">
-                                    <ClockFadingIcon class="h-3.5 w-3.5 text-gray-400" />
-                                    <TextInput v-model="userBreaktimes[String(user.id)]" label="" type="number"
-                                        class="w-20" :step="10" :min="0" placeholder="0" />
-                                    <span class="text-xs text-gray-400">min</span>
-                                </div>
-                                <button @click="removeUser(user.id)"
-                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                                    <XMarkIcon class="h-3.5 w-3.5" />
-                                </button>
+                                <ComboBox v-if="userRoles.length" multiple v-model="userRoleSelections[String(user.id)]"
+                                    :options="userRoles" :initial-ids="userRoleSelections[String(user.id)]"
+                                    class="w-full" placeholder="Rollen..." />
                             </div>
                         </div>
 
@@ -302,6 +307,7 @@ const props = defineProps({
     customersUseAjax: { type: Boolean, default: false },
     allServiceOrders: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
     initial: { type: Object, required: true },
     editingExisting: { type: Boolean, default: false },
 })
@@ -344,6 +350,12 @@ const form = useForm({
 const userBreaktimes = ref(
     Object.fromEntries(
         (props.initial.executing_users || []).map(u => [String(u.id), u.breaktime ?? 0])
+    )
+)
+
+const userRoleSelections = ref(
+    Object.fromEntries(
+        (props.initial.executing_users || []).map(u => [String(u.id), u.user_role_ids ?? []])
     )
 )
 
@@ -427,6 +439,9 @@ function onUserSelected(userId) {
         if (userBreaktimes.value[String(userId)] === undefined) {
             userBreaktimes.value[String(userId)] = 0
         }
+        if (userRoleSelections.value[String(userId)] === undefined) {
+            userRoleSelections.value[String(userId)] = []
+        }
     }
     nextTick(() => {
         userToAdd.value = null
@@ -464,6 +479,7 @@ async function save() {
             end: localToUtcDatetime(form.end_date, form.end_time).slice(0, 16),
             executing_user_ids: form.executing_user_ids,
             executing_user_breaktimes: userBreaktimes.value,
+            executing_user_roles: userRoleSelections.value,
             customer_id: selectedCustomer.value,
             eventable_id: form.create_service_order ? null : (form.eventable_id || null),
         }

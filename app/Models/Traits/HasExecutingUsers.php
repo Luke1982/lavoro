@@ -4,6 +4,7 @@ namespace App\Models\Traits;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 
 trait HasExecutingUsers
 {
@@ -11,7 +12,7 @@ trait HasExecutingUsers
     {
         return $this
             ->morphToMany(User::class, 'userable')
-            ->withPivot('type', 'breaktime')
+            ->withPivot('id', 'type', 'breaktime')
             ->wherePivot('type', 'executing')
             ->withTimestamps();
     }
@@ -23,7 +24,7 @@ trait HasExecutingUsers
 
     public function addExecutingUser(int $user_id): void
     {
-        if (!$this->hasExecutingUser($user_id)) {
+        if (! $this->hasExecutingUser($user_id)) {
             $this->executingUsers()->attach($user_id, ['type' => 'executing']);
         }
     }
@@ -34,7 +35,7 @@ trait HasExecutingUsers
         $this->executingUsers()->attach($user_id, ['type' => 'executing']);
     }
 
-    public function syncExecutingUsers(array $user_ids, array $breaktimes = []): void
+    public function syncExecutingUsers(array $user_ids, array $breaktimes = [], array $user_roles = []): void
     {
         $this->executingUsers()->detach();
         $attach = [];
@@ -43,6 +44,39 @@ trait HasExecutingUsers
         }
         if ($attach) {
             $this->executingUsers()->attach($attach);
+        }
+        $this->syncExecutingUserRoles($user_roles);
+    }
+
+    protected function syncExecutingUserRoles(array $user_roles): void
+    {
+        if (empty($user_roles)) {
+            return;
+        }
+
+        $userable_ids = DB::table('userables')
+            ->where('userable_type', $this->getMorphClass())
+            ->where('userable_id', $this->getKey())
+            ->where('type', 'executing')
+            ->pluck('id', 'user_id');
+
+        $inserts = [];
+        foreach ($userable_ids as $user_id => $userable_id) {
+            $role_ids = $user_roles[$user_id] ?? $user_roles[(string) $user_id] ?? [];
+            foreach (array_unique(array_map('intval', (array) $role_ids)) as $role_id) {
+                if ($role_id > 0) {
+                    $inserts[] = [
+                        'userable_id' => $userable_id,
+                        'user_role_id' => $role_id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+        }
+
+        if ($inserts) {
+            DB::table('user_role_userable')->insert($inserts);
         }
     }
 

@@ -135,6 +135,14 @@
                                                     <UsersIcon class="size-6 shrink-0" />
                                                     Gebruikers
                                                 </Link>
+                                                <Link v-if="canSeeUserRoles" @click="sidebarOpen = false"
+                                                    :href="'/userroles'" :class="[
+                                                        currentPath.startsWith('/userroles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                        'group flex gap-x-3 rounded-md p-1 pl-11 text-sm/6 font-medium'
+                                                    ]">
+                                                    <TagIcon class="size-5 shrink-0" />
+                                                    Gebruikersrollen
+                                                </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
                                                 <Link @click="sidebarOpen = false" :href="'/technical-management'"
@@ -273,6 +281,13 @@
                                 ]">
                                     <UsersIcon class="size-6 shrink-0" />
                                     Gebruikers
+                                </Link>
+                                <Link v-if="canSeeUserRoles" :href="'/userroles'" :class="[
+                                    currentPath.startsWith('/userroles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-1 pl-11 text-sm/6 font-medium'
+                                ]">
+                                    <TagIcon class="size-5 shrink-0" />
+                                    Gebruikersrollen
                                 </Link>
                             </div>
                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
@@ -444,6 +459,7 @@ const dismissGoogleBanner = () => {
 }
 const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
 const canSeeUsers = computed(() => isAdmin.value || hasPermission('user.read'))
+const canSeeUserRoles = computed(() => isAdmin.value || hasPermission('userrole.read'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)

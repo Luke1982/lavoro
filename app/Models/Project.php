@@ -40,4 +40,11 @@ class Project extends Model
     {
         return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
     }
+
+    public function images()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main'])
+            ->withTimestamps();
+    }
 }

@@ -283,6 +283,15 @@
                     <SwitchComponent v-model="newProductForm.bundle" />
                 </div>
             </div>
+            <div v-for="attr in newProductAttributes" :key="attr.id"
+                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">{{ attr.name }}</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
+                        v-model="newProductAttributeValues[attr.id]"
+                        :placeholder="`Selecteer ${attr.name.toLowerCase()}`" />
+                </div>
+            </div>
         </div>
         <template #footer>
             <div class="flex justify-end gap-2">
@@ -514,19 +523,46 @@ const newProductForm = useForm({
     bundle: false,
 })
 
+const newProductAttributeValues = reactive({})
+
+const newProductAttributes = computed(() =>
+    newProductForm.product_type_id
+        ? productAttributes.filter(attr => attr.product_type_ids.includes(newProductForm.product_type_id))
+        : []
+)
+
+watch(() => newProductForm.product_type_id, () => {
+    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
+})
+
 function submitNewProduct() {
-    newProductForm.post('/products', {
-        preserveScroll: true,
-        onSuccess: () => {
-            showProductDrawer.value = false
-            newProductForm.reset()
-        },
-    })
+    newProductForm
+        .transform(data => ({
+            ...data,
+            attributes: newProductAttributes.value
+                .filter(attr => newProductAttributeValues[attr.id])
+                .map(attr => ({
+                    product_attribute_id: attr.id,
+                    product_attribute_value_id: newProductAttributeValues[attr.id]?.id ?? newProductAttributeValues[attr.id],
+                })),
+        }))
+        .post('/products', {
+            preserveScroll: true,
+            onSuccess: () => {
+                showProductDrawer.value = false
+                resetNewProductForm()
+            },
+        })
+}
+
+function resetNewProductForm() {
+    newProductForm.reset()
+    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
 }
 
 function closeProductDrawer() {
     showProductDrawer.value = false
-    newProductForm.reset()
+    resetNewProductForm()
     newProductForm.clearErrors()
 }
 

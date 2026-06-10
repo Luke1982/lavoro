@@ -94,6 +94,9 @@
 
             <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
                 documentable-type="\App\Models\Project" class="mt-4" />
+
+            <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
+                imageable-type="\App\Models\Project" class="mt-4" />
         </template>
         <template #sidebar>
             <BoxComponent v-if="project.customer" class="mt-4 sm:mt-0">
@@ -350,6 +353,7 @@ import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, Check
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer } from '@/Utilities/Utilities'
 
 const props = defineProps({

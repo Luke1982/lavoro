@@ -3,12 +3,14 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
  * Event index & show authorization.
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -22,6 +24,7 @@ class EventReadRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
+
         return $user && ($user->isAdmin() || $user->hasPermission('event.read'));
     }
 

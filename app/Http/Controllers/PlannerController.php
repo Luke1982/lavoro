@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Models\UserPlanGroup;
+use App\Models\UserRole;
 use Illuminate\Support\Facades\Auth;
 
 class PlannerController extends Controller
@@ -34,18 +35,19 @@ class PlannerController extends Controller
             ->with('users:id')
             ->get()
             ->map(fn ($g) => [
-                'id'         => $g->id,
-                'name'       => $g->name,
-                'color'      => $g->color,
+                'id' => $g->id,
+                'name' => $g->name,
+                'color' => $g->color,
                 'sort_order' => $g->sort_order,
-                'user_ids'   => $g->users->pluck('id')->toArray(),
+                'user_ids' => $g->users->pluck('id')->toArray(),
             ]);
 
         return inertia('Planner/IndexPage', [
-            'eventTypes'    => EventType::all(),
+            'eventTypes' => EventType::all(),
             'eventStatusses' => Event::statusses(),
-            'noPadding'     => true,
-            'allCustomers'  => $customer_count <= 50
+            'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
+            'noPadding' => true,
+            'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
@@ -76,9 +78,9 @@ class PlannerController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
-                    'id'             => $u->id,
-                    'name'           => $u->name,
-                    'avatar'         => $u->avatar,
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'avatar' => $u->avatar,
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'allPlanUsers' => User::select('id', 'name', 'plannable')
@@ -86,10 +88,10 @@ class PlannerController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
-                    'id'             => $u->id,
-                    'name'           => $u->name,
-                    'avatar'         => $u->avatar,
-                    'plannable'      => (bool) $u->plannable,
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'avatar' => $u->avatar,
+                    'plannable' => (bool) $u->plannable,
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'planGroups' => $plan_groups,
@@ -105,11 +107,11 @@ class PlannerController extends Controller
                 ->get(['id', 'user_id', 'lat', 'lng', 'heading', 'recorded_at'])
                 ->keyBy('user_id')
                 ->map(fn ($p) => [
-                    'lat'         => $p->lat,
-                    'lng'         => $p->lng,
-                    'heading'     => $p->heading,
+                    'lat' => $p->lat,
+                    'lng' => $p->lng,
+                    'heading' => $p->heading,
                     'recorded_at' => $p->recorded_at,
-                    'user'        => $p->user
+                    'user' => $p->user
                         ? ['id' => $p->user->id, 'name' => $p->user->name, 'avatar' => $p->user->avatar]
                         : null,
                 ]),

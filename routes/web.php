@@ -241,6 +241,9 @@ Route::group(
         Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
         Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
+        Route::resource('userroles', \App\Http\Controllers\UserRoleController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+
         Route::post('users/{user}/unavailabilities', [UserUnavailabilityController::class, 'store'])
             ->name('users.unavailabilities.store');
         Route::delete(

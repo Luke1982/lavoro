@@ -4,7 +4,7 @@
         <MobilePlannerView :event-types="eventTypes" :all-customers="allCustomers"
             :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
             :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
-            :latest-pings="props.latestPings" />
+            :user-roles="userRoles" :latest-pings="props.latestPings" />
     </div>
 
     <!-- Desktop (md and up) -->
@@ -14,7 +14,8 @@
                 <ResourcePlannerWidget :event-types="eventTypes" :all-customers="allCustomers"
                     :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
-                    :projects="projects" :groups="planGroupsRef" :default-planner-minutes="props.defaultPlannerMinutes"
+                    :user-roles="userRoles" :projects="projects" :groups="planGroupsRef"
+                    :default-planner-minutes="props.defaultPlannerMinutes"
                     :latest-pings="props.latestPings" @service-order-planned="onServiceOrderPlanned"
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
@@ -50,6 +51,7 @@ const props = defineProps({
     eventStatusses: { type: Array, required: true },
     allUsers: { type: Array, required: true },
     plannableUsers: { type: Array, required: true },
+    userRoles: { type: Array, default: () => [] },
     unplannedServiceOrders: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     defaultPlannerMinutes: { type: Number, default: 120 },

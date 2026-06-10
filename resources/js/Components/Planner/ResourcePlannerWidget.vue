@@ -343,8 +343,8 @@
         <!-- Create/edit modal -->
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
             :all-customers="allCustomers" :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
-            :all-users="allUsers" :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal"
-            @saved="onSaved" />
+            :all-users="allUsers" :user-roles="userRoles" :initial="modalInitial"
+            :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
 
         <!-- All-technicians map modal -->
         <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event" title="Monteurlocaties (laatste 8u)"
@@ -381,6 +381,7 @@ const props = defineProps({
     eventStatusses: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
     plannableUsers: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
     /** Projects rendered as all-day bars in the row above the resource lanes */
     projects: { type: Array, default: () => [] },
     /** Default slot snap in minutes */

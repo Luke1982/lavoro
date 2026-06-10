@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -24,13 +25,14 @@ class EventStoreRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user && ($user->isAdmin() || $user->hasPermission('event.create'));
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -43,15 +45,18 @@ class EventStoreRequest extends FormRequest
             'end' => 'required|date_format:Y-m-d H:i|after_or_equal:start',
             'location' => 'nullable|string|max:255',
             'is_preliminary' => 'nullable|boolean',
-            'eventable_type'       => 'nullable|string|in:\\App\\Models\\ServiceOrder',
-            'eventable_id'         => 'nullable|exists:service_orders,id',
+            'eventable_type' => 'nullable|string|in:\\App\\Models\\ServiceOrder',
+            'eventable_id' => 'nullable|exists:service_orders,id',
             'create_service_order' => 'nullable|boolean',
-            'customer_id'          => 'required_if:create_service_order,true|nullable|exists:customers,id',
-            'executing_user_ids'            => 'required|array|min:1',
-            'executing_user_ids.*'           => 'exists:users,id',
-            'executing_user_breaktimes'      => 'nullable|array',
-            'executing_user_breaktimes.*'    => 'nullable|integer|min:0',
-            'breaktime'            => 'nullable|integer|min:0',
+            'customer_id' => 'required_if:create_service_order,true|nullable|exists:customers,id',
+            'executing_user_ids' => 'required|array|min:1',
+            'executing_user_ids.*' => 'exists:users,id',
+            'executing_user_breaktimes' => 'nullable|array',
+            'executing_user_breaktimes.*' => 'nullable|integer|min:0',
+            'executing_user_roles' => 'nullable|array',
+            'executing_user_roles.*' => 'nullable|array',
+            'executing_user_roles.*.*' => 'integer|exists:user_roles,id',
+            'breaktime' => 'nullable|integer|min:0',
         ];
     }
 

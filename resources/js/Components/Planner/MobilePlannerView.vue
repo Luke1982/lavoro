@@ -155,6 +155,24 @@
                                             {{ ev.description }}
                                         </div>
 
+                                        <!-- Coworkers + roles -->
+                                        <div v-if="resolveExecutingUsers(ev).some(u => u.roles.length)"
+                                            class="mt-2 flex flex-col gap-1">
+                                            <div v-for="u in resolveExecutingUsers(ev)" :key="u.id"
+                                                class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{
+                                                    u.name }}</span>
+                                                <span v-for="r in u.roles" :key="r.id"
+                                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                                                    :style="{
+                                                        backgroundColor: `color-mix(in srgb, ${r.color} 18%, white)`,
+                                                        color: `color-mix(in srgb, ${r.color} 70%, black)`,
+                                                    }">
+                                                    {{ r.name }}
+                                                </span>
+                                            </div>
+                                        </div>
+
                                         <!-- WB badge -->
                                         <div class="mt-2">
                                             <button v-if="ev.eventable_id"
@@ -211,8 +229,8 @@
         <!-- Edit modal -->
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
             :all-customers="allCustomers" :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
-            :all-users="allUsers" :initial="modalInitial" :editing-existing="editingExistingEvent" @close="closeModal"
-            @saved="onSaved" />
+            :all-users="allUsers" :user-roles="userRoles" :initial="modalInitial"
+            :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
 
         <!-- All-technicians map modal -->
         <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event" title="Monteurlocaties (laatste 8u)"
@@ -254,6 +272,7 @@ const props = defineProps({
     eventStatusses: { type: Array, default: () => [] },
     allUsers: { type: Array, default: () => [] },
     plannableUsers: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
     latestPings: { type: Object, default: () => ({}) },
 })
 
@@ -421,10 +440,15 @@ function resolveAddress(ev) {
     return parts.length ? parts.join(', ') : null
 }
 
+const roleById = computed(() =>
+    Object.fromEntries(props.userRoles.map(r => [r.id, r]))
+)
+
 function resolveExecutingUsers(ev) {
     return ev.executing_users.map(u => {
         const plannable = props.plannableUsers.find(p => p.id === u.id)
-        return { id: u.id, name: u.name, avatar: plannable?.avatar ?? null }
+        const roles = (u.user_role_ids ?? []).map(id => roleById.value[id]).filter(Boolean)
+        return { id: u.id, name: u.name, avatar: plannable?.avatar ?? null, roles }
     })
 }
 
