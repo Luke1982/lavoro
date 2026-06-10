@@ -217,7 +217,7 @@ class ServiceOrderController extends Controller
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
             'snelStartEnabled' => filled(config('services.snelstart.client_key')),
-            'products' => Product::withSearchableAttributes()
+            'products' => Product::withAttributeData()
                 ->orderBy('model')
                 ->get()
                 ->map->toComboOption(),

@@ -52,6 +52,8 @@ class Product extends Model
         'active' => 'boolean',
     ];
 
+    protected $appends = ['specific_attributes'];
+
     /**
      * The product type associated with the product.
      */
@@ -126,6 +128,22 @@ class Product extends Model
         return $this->morphMany(ProductAttributeValueable::class, 'productattributevalueable');
     }
 
+    public function getSpecificAttributesAttribute(): array
+    {
+        if (! $this->relationLoaded('productAttributeValueables')) {
+            return [];
+        }
+
+        return $this->productAttributeValueables
+            ->map(fn ($pvable) => [
+                'name'  => $pvable->productAttribute?->name,
+                'value' => $pvable->value?->value,
+            ])
+            ->filter(fn ($item) => $item['name'] !== null && $item['value'] !== null)
+            ->values()
+            ->all();
+    }
+
     public function effectiveCertificateDays(int $fallback = 365): int
     {
         return $this->typical_certificate_days
@@ -143,7 +161,7 @@ class Product extends Model
             ->all();
     }
 
-    public function scopeWithSearchableAttributes($query)
+    public function scopeWithAttributeData($query)
     {
         return $query->with([
             'brand',

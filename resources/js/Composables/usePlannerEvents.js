@@ -33,6 +33,18 @@ function mapEvent(ev) {
         task_titles: (ev.service_orders?.[0]?.task_instances || [])
             .map((ti) => ti.service_order_task?.title)
             .filter(Boolean),
+        task_instances: (ev.service_orders?.[0]?.task_instances || []).map((ti) => ({
+            id: ti.id,
+            title: ti.title || ti.service_order_task?.title || null,
+            quantity: ti.quantity ?? 1,
+            product: ti.product
+                ? {
+                      id: ti.product.id,
+                      name: [ti.product.brand?.name, ti.product.model].filter(Boolean).join(' '),
+                      specific_attributes: ti.product.specific_attributes || [],
+                  }
+                : null,
+        })),
     };
 }
 

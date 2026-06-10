@@ -41,9 +41,14 @@
                             <div class="flex gap-2">
                                 <TextInput v-model="form.start_date" label="" type="date" class="flex-1"
                                     :has-error="Boolean(form.errors.start)" />
-                                <TextInput v-model="form.start_time" label="" type="time" class="w-28" :step="900"
-                                    :has-error="Boolean(form.errors.start)" :error-message="form.errors.start" />
+                                <select v-model="startHour" :class="timeSelectClass(Boolean(form.errors.start))">
+                                    <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
+                                </select>
+                                <select v-model="startMinute" :class="timeSelectClass(Boolean(form.errors.start))">
+                                    <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
+                                </select>
                             </div>
+                            <p v-if="form.errors.start" class="mt-1 text-sm text-red-600">{{ form.errors.start }}</p>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 mb-2">
@@ -56,9 +61,14 @@
                             <div class="flex gap-2">
                                 <TextInput v-model="form.end_date" label="" type="date" class="flex-1"
                                     :has-error="Boolean(form.errors.end)" />
-                                <TextInput v-model="form.end_time" label="" type="time" class="w-28" :step="900"
-                                    :has-error="Boolean(form.errors.end)" :error-message="form.errors.end" />
+                                <select v-model="endHour" :class="timeSelectClass(Boolean(form.errors.end))">
+                                    <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
+                                </select>
+                                <select v-model="endMinute" :class="timeSelectClass(Boolean(form.errors.end))">
+                                    <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
+                                </select>
                             </div>
+                            <p v-if="form.errors.end" class="mt-1 text-sm text-red-600">{{ form.errors.end }}</p>
                         </div>
                     </div>
 
@@ -304,6 +314,14 @@ const saving = ref(false)
 const showUserSelector = ref(false)
 const userToAdd = ref(null)
 
+function snapMinute(time) {
+    if (!time) return '08:00'
+    const [h, m] = time.split(':').map(Number)
+    const snapped = Math.round(m / 15) * 15
+    if (snapped === 60) return `${String(h + 1).padStart(2, '0')}:00`
+    return `${String(h).padStart(2, '0')}:${String(snapped).padStart(2, '0')}`
+}
+
 const form = useForm({
     id: props.initial.id || '',
     event_type_id: props.initial.event_type_id || props.eventTypes[0]?.id || '',
@@ -312,8 +330,8 @@ const form = useForm({
     status: props.initial.status || props.eventStatusses[0]?.name || 'Gepland',
     start_date: formatLocalDateAsISO(props.initial.start),
     end_date: formatLocalDateAsISO(props.initial.end),
-    start_time: nlTime(props.initial.start),
-    end_time: nlTime(props.initial.end),
+    start_time: snapMinute(nlTime(props.initial.start)),
+    end_time: snapMinute(nlTime(props.initial.end)),
     eventable_type: props.initial.eventable_type || '\\App\\Models\\ServiceOrder',
     eventable_id: props.initial.eventable_id || '',
     customer_id: props.initial.customer_id || null,
@@ -375,6 +393,33 @@ watch(selectedCustomer, (val, oldVal) => {
         form.eventable_id = internalServiceOrders.value[0]?.id || ''
     }
 })
+
+const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const minutes = ['00', '15', '30', '45']
+
+const startHour = computed({
+    get: () => form.start_time?.split(':')[0] ?? '08',
+    set: (h) => { form.start_time = `${h}:${form.start_time?.split(':')[1] ?? '00'}` },
+})
+const startMinute = computed({
+    get: () => form.start_time?.split(':')[1] ?? '00',
+    set: (m) => { form.start_time = `${form.start_time?.split(':')[0] ?? '08'}:${m}` },
+})
+const endHour = computed({
+    get: () => form.end_time?.split(':')[0] ?? '09',
+    set: (h) => { form.end_time = `${h}:${form.end_time?.split(':')[1] ?? '00'}` },
+})
+const endMinute = computed({
+    get: () => form.end_time?.split(':')[1] ?? '00',
+    set: (m) => { form.end_time = `${form.end_time?.split(':')[0] ?? '09'}:${m}` },
+})
+
+const TIME_SELECT_BASE = 'rounded-md border-0 py-1.5 pl-2 pr-6 text-sm text-gray-900 dark:text-white dark:bg-slate-900 ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-indigo-600 cursor-pointer'
+function timeSelectClass(hasError) {
+    return hasError
+        ? `${TIME_SELECT_BASE} ring-red-300`
+        : `${TIME_SELECT_BASE} ring-gray-300 dark:ring-slate-500`
+}
 
 function onUserSelected(userId) {
     if (userId != null && !form.executing_user_ids.includes(userId)) {
