@@ -133,9 +133,10 @@
                         <button
                             class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
                             @click="toggleAllDay"
-                            :aria-label="allDayCollapsed ? 'Projecten uitklappen' : 'Projecten inklappen'">
-                            <ChevronDownIcon v-if="!allDayCollapsed" class="size-4" />
-                            <ChevronRightIcon v-else class="size-4" />
+                            :aria-label="allDayState === 'closed' ? 'Projecten uitklappen' : allDayState === 'partial' ? 'Alle projecten tonen' : 'Projecten inklappen'">
+                            <ChevronRightIcon v-if="allDayState === 'closed'" class="size-4" />
+                            <ChevronDownIcon v-else-if="allDayState === 'partial'" class="size-4" />
+                            <ChevronDoubleDownIcon v-else class="size-4" />
                         </button>
                         <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
                     </div>
@@ -198,7 +199,10 @@
                         <!-- All-day project band -->
                         <div v-if="showProjects && allDayLaneHeight"
                             class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                            :class="allDayState === 'partial' ? 'overflow-y-auto overflow-x-hidden' : ''"
                             :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                            <!-- Scroll content: full project stack; the band clips and scrolls when partial. -->
+                            <div class="relative" :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
                             <!-- Day gridlines -->
                             <div class="absolute inset-0 grid pointer-events-none"
                                 :style="{ gridTemplateColumns: dayGridTemplate }">
@@ -246,6 +250,7 @@
                                     </div>
                                 </div>
                             </template>
+                            </div>
                         </div>
 
                         <!-- Locked-event group overlays -->
@@ -360,7 +365,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
@@ -548,8 +553,10 @@ const TRACK_TOP_PAD = 6
 const TRACK_BOTTOM_PAD = 10
 const COLLAPSED_LANE_H = 32 // all-day lane height when collapsed
 const COLLAPSED_ROW_H = 40 // resource row height when collapsed
+const PROJECTS_VISIBLE_COUNT = 3 // projects shown before the band starts scrolling
 
-const allDayCollapsed = ref(false)
+// All-day project band visibility: 'closed' (just the header), 'partial' (≈3 projects, scrolls) or 'full' (all projects).
+const allDayState = ref('partial')
 const collapsedUsers = ref(new Set())
 const mapExpandedUsers = ref(new Set())
 const mapModalOpen = ref(false)
@@ -598,14 +605,26 @@ const allDay = computed(() => {
     return { tracks, height: tracks.length ? top : 0 }
 })
 
-// Effective lane height honoring the collapse toggle.
-const allDayLaneHeight = computed(() => {
-    if (!allDay.value.height) return 0
-    return allDayCollapsed.value ? COLLAPSED_LANE_H : allDay.value.height
+// Height that fits the first few projects; falls back to the full height when there are fewer.
+const partialLaneHeight = computed(() => {
+    const tracks = allDay.value.tracks
+    if (tracks.length <= PROJECTS_VISIBLE_COUNT) return allDay.value.height
+    return tracks[PROJECTS_VISIBLE_COUNT].top
 })
 
-// Tracks to actually render (none while the lane is collapsed).
-const visibleTracks = computed(() => (allDayCollapsed.value ? [] : allDay.value.tracks))
+// Effective lane height honoring the three-state toggle.
+const allDayLaneHeight = computed(() => {
+    if (!allDay.value.height) return 0
+    if (allDayState.value === 'closed') return COLLAPSED_LANE_H
+    if (allDayState.value === 'partial') return partialLaneHeight.value
+    return allDay.value.height
+})
+
+// Tracks to actually render (none while the band is closed; the band itself scrolls when partial).
+const visibleTracks = computed(() => (allDayState.value === 'closed' ? [] : allDay.value.tracks))
+
+// Inner scroll-content height: the full stack of projects unless the band is closed.
+const allDayContentHeight = computed(() => (allDayState.value === 'closed' ? 0 : allDay.value.height))
 
 const lockedGroupOverlays = computed(() => {
     const totalMin = (dayEndHour.value - dayStartHour.value) * 60
@@ -661,7 +680,8 @@ const lockedGroupOverlays = computed(() => {
 })
 
 function toggleAllDay() {
-    allDayCollapsed.value = !allDayCollapsed.value
+    const order = ['closed', 'partial', 'full']
+    allDayState.value = order[(order.indexOf(allDayState.value) + 1) % order.length]
 }
 
 function rowHeightFor(userId) {
