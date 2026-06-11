@@ -197,11 +197,13 @@
                     <!-- Body rows -->
                     <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                         <!-- All-day project band -->
-                        <div v-if="showProjects && allDayLaneHeight"
-                            class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                            :class="allDayState === 'partial' ? 'overflow-y-auto overflow-x-hidden' : ''"
-                            :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Scroll content: full project stack; the band clips and scrolls when partial. -->
+                        <div v-if="showProjects && allDayLaneHeight" ref="allDayBandRef"
+                            class="border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-y-auto overflow-x-hidden' : 'relative'"
+                            :style="allDayState === 'partial'
+                                ? { height: allDayLaneHeight + 'px', width: (gridViewportWidth || gridMinWidth) + 'px' }
+                                : { height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                            <!-- Scroll content: full project stack; the band clips and scrolls (vertical) / syncs (horizontal) when partial. -->
                             <div class="relative" :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
                             <!-- Day gridlines -->
                             <div class="absolute inset-0 grid pointer-events-none"
@@ -512,6 +514,8 @@ const sidebarScrollRef = ref(null)
 const gridScrollRef = ref(null)
 const gridHeaderRef = ref(null)
 const bodyRef = ref(null)
+const allDayBandRef = ref(null)
+const gridViewportWidth = ref(0)
 
 const modalOpen = ref(false)
 const editingExistingEvent = ref(false)
@@ -777,6 +781,7 @@ function updateNow() {
 }
 
 let nowInterval = null
+let gridResizeObserver = null
 onMounted(() => {
     updateNow()
     nowInterval = setInterval(updateNow, 60_000)
@@ -784,11 +789,24 @@ onMounted(() => {
     fetchUnavailabilities()
     nextTick(() => scrollToWorkdayStart())
     startPolling()
+    if (gridScrollRef.value) {
+        gridViewportWidth.value = gridScrollRef.value.clientWidth
+        gridResizeObserver = new ResizeObserver(() => {
+            if (gridScrollRef.value) gridViewportWidth.value = gridScrollRef.value.clientWidth
+        })
+        gridResizeObserver.observe(gridScrollRef.value)
+    }
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
     stopPolling()
+    if (gridResizeObserver) gridResizeObserver.disconnect()
 })
+
+// Keep the pinned projects band's horizontal offset in step with the grid when its layout changes.
+watch(allDayState, () => nextTick(() => {
+    if (allDayBandRef.value && gridScrollRef.value) allDayBandRef.value.scrollLeft = gridScrollRef.value.scrollLeft
+}))
 
 watch([dayStartHour, dayEndHour], () => updateNow())
 watch(weekStart, (val) => {
@@ -841,6 +859,7 @@ function scrollToWorkdayStart() {
 function onGridScroll(e) {
     if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = e.target.scrollTop
     if (gridHeaderRef.value) gridHeaderRef.value.scrollLeft = e.target.scrollLeft
+    if (allDayBandRef.value) allDayBandRef.value.scrollLeft = e.target.scrollLeft
 }
 
 async function fetchUnavailabilities() {
