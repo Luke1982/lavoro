@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\ProductAttributeValue;
 use App\Rules\DbRange;
+use Illuminate\Validation\Validator;
 
 /**
  * @property int $product_type_id
@@ -73,6 +74,34 @@ class ProductStoreRequest extends ProductRequest
                     }
                 },
             ],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $attributeValueIds = collect($this->input('attributes', []))
+                    ->pluck('product_attribute_value_id')
+                    ->all();
+
+                $isDuplicate = $this->isExactDuplicate(
+                    $this->input('brand_id'),
+                    $this->input('product_type_id'),
+                    $this->input('model'),
+                    $this->input('start_sell'),
+                    $this->input('end_sell'),
+                    $attributeValueIds
+                );
+
+                if ($isDuplicate) {
+                    $validator->errors()->add('model', $this->duplicateMessage());
+                }
+            },
         ];
     }
 }

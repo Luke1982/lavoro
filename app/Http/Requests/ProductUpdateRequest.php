@@ -2,23 +2,24 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Productable;
 use App\Models\Product;
+use App\Models\Productable;
 use App\Rules\DbRange;
 use Illuminate\Validation\Validator;
 
 /**
- * @property int|null    $product_type_id
- * @property int|null    $brand_id
+ * @property int|null $product_type_id
+ * @property int|null $brand_id
  * @property string|null $model
  * @property string|null $description
  * @property string|null $start_sell
  * @property string|null $end_sell
- * @property int|null    $typical_certificate_days
+ * @property int|null $typical_certificate_days
  * @property string|null $retail_price
  * @property string|null $purchase_price
  * @property string|null $part_no
- * @property bool|null   $bundle
+ * @property bool|null $bundle
+ *
  * @method \App\Models\Product route(string $key = null)
  * @method mixed input(string $key = null, mixed $default = null)
  */
@@ -31,23 +32,23 @@ class ProductUpdateRequest extends ProductRequest
 
     public function rules(): array
     {
-        $product   = $this->route('product');
+        $product = $this->route('product');
         $productId = $product?->id;
 
         // Fall back to the product's existing values so partial PATCHes
         // (e.g. only brand_id) still pass the overlap closure correctly.
-        $brandId   = $this->input('brand_id', $product?->brand_id);
-        $typeId    = $this->input('product_type_id', $product?->product_type_id);
+        $brandId = $this->input('brand_id', $product?->brand_id);
+        $typeId = $this->input('product_type_id', $product?->product_type_id);
         $modelName = $this->input('model', $product?->model);
         $startSell = $this->input('start_sell', $product?->start_sell);
 
         return [
             'product_type_id' => ['sometimes', 'required', 'exists:product_types,id'],
-            'brand_id'        => ['sometimes', 'required', 'exists:brands,id'],
-            'model'           => ['sometimes', 'required', 'string', 'max:255'],
-            'description'     => ['sometimes', 'nullable', 'string'],
-            'start_sell'      => ['sometimes', 'nullable', 'date'],
-            'end_sell'        => array_filter([
+            'brand_id' => ['sometimes', 'required', 'exists:brands,id'],
+            'model' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string'],
+            'start_sell' => ['sometimes', 'nullable', 'date'],
+            'end_sell' => array_filter([
                 'sometimes',
                 'nullable',
                 'date',
@@ -55,12 +56,12 @@ class ProductUpdateRequest extends ProductRequest
                 $this->endSellOverlapClosure($brandId, $typeId, $modelName, $startSell, $productId),
             ]),
             'typical_certificate_days' => ['sometimes', 'nullable', 'integer', 'min:1', DbRange::int()],
-            'retail_price'             => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
-            'purchase_price'           => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
-            'part_no'                  => ['sometimes', 'nullable', 'string', 'max:255'],
-            'bundle'                   => ['sometimes', 'nullable', 'boolean'],
-            'active'                   => ['sometimes', 'nullable', 'boolean'],
-            'warranty'                 => ['sometimes', 'nullable', 'string', 'max:255'],
+            'retail_price' => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'purchase_price' => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'part_no' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'bundle' => ['sometimes', 'nullable', 'boolean'],
+            'active' => ['sometimes', 'nullable', 'boolean'],
+            'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 
@@ -72,12 +73,40 @@ class ProductUpdateRequest extends ProductRequest
                     return;
                 }
 
-                if (!$this->boolean('bundle')) {
+                $product = $this->route('product');
+                if (! $product) {
+                    return;
+                }
+
+                $attributeValueIds = $product->productAttributeValueables()
+                    ->pluck('product_attribute_value_id')
+                    ->all();
+
+                $isDuplicate = $this->isExactDuplicate(
+                    $this->input('brand_id', $product->brand_id),
+                    $this->input('product_type_id', $product->product_type_id),
+                    $this->input('model', $product->model),
+                    $this->input('start_sell', $product->start_sell),
+                    $this->input('end_sell', $product->end_sell),
+                    $attributeValueIds,
+                    $product->id
+                );
+
+                if ($isDuplicate) {
+                    $validator->errors()->add('model', $this->duplicateMessage());
+                }
+            },
+            function (Validator $validator) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                if (! $this->boolean('bundle')) {
                     return;
                 }
 
                 $productId = $this->route('product')?->id;
-                if (!$productId) {
+                if (! $productId) {
                     return;
                 }
 
@@ -93,6 +122,7 @@ class ProductUpdateRequest extends ProductRequest
                     $bundleMsg = 'Dit product kan niet als bundel worden ingesteld omdat'
                         . ' het al onderdeel is van het gebundelde product "' . $bundleParent->model . '".';
                     $validator->errors()->add('bundle', $bundleMsg);
+
                     return;
                 }
 
