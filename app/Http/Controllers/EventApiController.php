@@ -45,8 +45,8 @@ class EventApiController extends Controller
 
         if (! $has_all && $user_id) {
             $base->where(function ($q) use ($user_id) {
-                $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user_id))
-                    ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
+                $q->whereHas('executingUsers', fn($sq) => $sq->where('users.id', $user_id))
+                    ->orWhereHas('owners', fn($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
             });
         }
 
@@ -106,7 +106,7 @@ class EventApiController extends Controller
                     $user_roles = (array) ($request->input('executing_user_roles', []));
                     $event->syncExecutingUsers($ids, $breaktimes, $user_roles);
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
                         $notify_service_order = $model;
@@ -120,7 +120,7 @@ class EventApiController extends Controller
 
         if ($notify_service_order) {
             User::whereIn('id', $notify_user_ids)->get()
-                ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
+                ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
         }
 
         $event->load(['eventType', 'serviceOrders', 'executingUsers']);
@@ -171,9 +171,9 @@ class EventApiController extends Controller
                 ));
                 GoogleSyncedEvent::whereHas(
                     'syncedCalendar',
-                    fn ($q) => $q->whereNotIn('owner_user_id', $still_relevant),
+                    fn($q) => $q->whereNotIn('owner_user_id', $still_relevant),
                 )->where('event_id', $event->id)->get()
-                    ->each(fn ($m) => DeleteEventFromGoogleJob::dispatch(
+                    ->each(fn($m) => DeleteEventFromGoogleJob::dispatch(
                         $m->id,
                         $m->google_synced_calendar_id,
                         $m->google_event_id,
@@ -184,21 +184,21 @@ class EventApiController extends Controller
                         : [];
 
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
                         $new_ids = array_diff($ids, $previously_executing);
                         User::whereIn('id', $new_ids)->get()
-                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
                     }
                 } else {
                     $event->serviceOrders->each(function ($order) use ($ids) {
                         $previously_executing = $order->executingUsers()->pluck('users.id')->all();
                         $order->syncExecutingUsers($ids);
-                        $order->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+                        $order->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
                         $new_ids = array_diff($ids, $previously_executing);
                         User::whereIn('id', $new_ids)->get()
-                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($order)));
+                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($order)));
                     });
                 }
             }
@@ -275,11 +275,11 @@ class EventApiController extends Controller
         Mail::to($recipients)->send(new AppointmentConfirmationMail($event, $service_order));
 
         $service_order->logActivity(
-            'Afspraakbevestiging per e-mail verzonden naar: '.implode(', ', $recipients)
+            'Afspraakbevestiging per e-mail verzonden naar: ' . implode(', ', $recipients)
         );
 
         return response()->json([
-            'message' => 'Bevestiging verzonden naar: '.implode(', ', $recipients),
+            'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),
         ]);
     }
 
@@ -288,7 +288,7 @@ class EventApiController extends Controller
         $collection = $events instanceof Collection ? $events : collect([$events]);
 
         $pivot_ids = $collection
-            ->flatMap(fn ($event) => $event->executingUsers->pluck('pivot.id'))
+            ->flatMap(fn($event) => $event->executingUsers->pluck('pivot.id'))
             ->filter()
             ->all();
 
@@ -296,7 +296,7 @@ class EventApiController extends Controller
             ->whereIn('userable_id', $pivot_ids)
             ->get()
             ->groupBy('userable_id')
-            ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all());
+            ->map(fn($rows) => $rows->pluck('user_role_id')->map(fn($id) => (int) $id)->all());
 
         foreach ($collection as $event) {
             foreach ($event->executingUsers as $user) {
@@ -319,7 +319,7 @@ class EventApiController extends Controller
             ->where('userables.type', 'executing')
             ->get(['userables.user_id', 'user_role_userable.user_role_id'])
             ->groupBy('user_id')
-            ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all())
+            ->map(fn($rows) => $rows->pluck('user_role_id')->map(fn($id) => (int) $id)->all())
             ->toArray();
     }
 }

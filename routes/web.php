@@ -48,6 +48,7 @@ use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
 use App\Http\Controllers\UserUnavailabilityController;
 use App\Http\Controllers\ComboSearchController;
+use App\Http\Controllers\GeocodeController;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -63,6 +64,7 @@ Route::group(
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
+        Route::get('geocode', [GeocodeController::class, 'lookup'])->name('geocode.lookup');
         Route::post('customers/import/preview', [\App\Http\Controllers\CustomerImportController::class, 'preview'])
             ->name('customers.import.preview');
         Route::post('customers/import/confirm', [\App\Http\Controllers\CustomerImportController::class, 'confirm'])

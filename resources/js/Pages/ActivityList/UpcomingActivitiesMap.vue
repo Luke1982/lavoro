@@ -155,17 +155,15 @@ const geocodeOne = async () => {
     const c = queue.value.shift();
     const q = [c.address, c.postal_code, c.city, 'Netherlands'].filter(Boolean).join(' ');
     try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
-        const json = await res.json();
-        if (json && json.length > 0 && json[0].lat && json[0].lon) {
-            c.lat = parseFloat(json[0].lat);
-            c.lon = parseFloat(json[0].lon);
+        const { data } = await axios.get('/geocode', { params: { address: q } });
+        if (data.found) {
+            c.lat = data.lat;
+            c.lon = data.lon;
             addMarker(c);
             await axios.patch(`/customers/${c.id}/coords`, { lat: c.lat, lon: c.lon });
         } else {
             console.warn('Geocode failed for customer:', c.name, `(ID: ${c.id})`);
-            console.warn('Query sent to Nominatim:', q);
-            console.warn('Nominatim response:', json);
+            console.warn('Query sent:', q);
             failedGeocodes.value.push(c);
         }
     } catch (e) {

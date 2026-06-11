@@ -15,6 +15,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -46,19 +47,15 @@ onMounted(async () => {
     }
 
     try {
-        const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=nl`,
-            { headers: { 'Accept-Language': 'nl' } }
-        );
-        const results = await res.json();
+        const { data } = await axios.get('/geocode', { params: { address } });
 
-        if (!results.length) {
+        if (!data.found) {
             loading.value = false;
             notFound.value = true;
             return;
         }
 
-        const { lat, lon } = results[0];
+        const { lat, lon } = data;
 
         map = L.map(mapContainer.value, {
             zoomControl: true,

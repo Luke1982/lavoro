@@ -2,7 +2,7 @@
     <IndexHeaderComponent title="Producten" subtitle="Hieronder een lijst van alle producten" search-url="/products"
         search-label="Zoek binnen producten" search-placeholder="Zoek op model, merk, omschrijving of artikelnummer"
         :search-other-params="filterParams" :paginator="false" add-label="Voeg product toe"
-        :has-active-filters="activeFilters.length > 0" @add="showProductDrawer = true"
+        :has-active-filters="activeFilters.length > 0" @add="openNewProductDrawer"
         :can-add="hasPermission('product.create')">
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
@@ -174,6 +174,11 @@
                                         <EyeIcon class="h-5 w-5" />
                                     </Link>
                                 </div>
+                                <div v-if="hasPermission('product.create')"
+                                    class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0 pb-2 sm:pb-0">
+                                    <CopyIcon class="h-5 w-5 cursor-pointer text-lavoro-darkerblue"
+                                        @click="copyProduct(product)" v-tooltip="'Product kopiëren'" />
+                                </div>
                                 <div v-if="hasPermission('product.delete')"
                                     class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0">
                                     <TrashIcon class="h-5 w-5 cursor-pointer text-red-500"
@@ -197,8 +202,10 @@
         </div>
     </BoxComponent>
 
-    <DrawerComponent v-model="showProductDrawer" title="Nieuw product toevoegen"
-        subtitle="Vul onderstaande velden in om een nieuw product toe te voegen." max-width-class="max-w-2xl">
+    <DrawerComponent v-model="showProductDrawer"
+        :title="isCopyingProduct ? 'Product kopiëren' : 'Nieuw product toevoegen'"
+        :subtitle="isCopyingProduct ? 'Pas de gegevens aan en sla op als nieuw product.' : 'Vul onderstaande velden in om een nieuw product toe te voegen.'"
+        max-width-class="max-w-2xl">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Producttype</label>
@@ -390,7 +397,7 @@
 
 <script setup>
 import { Link, useForm, router } from '@inertiajs/vue3'
-import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -399,7 +406,7 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon } from '@heroicons/vue/24/outline'
 import { formatProductSalePeriod, hasPermission } from '@/Utilities/Utilities'
-import { EyeIcon, InfoIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
+import { CopyIcon, EyeIcon, InfoIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
@@ -416,6 +423,7 @@ const { products, brands, productTypes, productAttributes, perPage } = definePro
 })
 
 const showProductDrawer = ref(false)
+const isCopyingProduct = ref(false)
 
 const selectedIds = ref([])
 
@@ -550,6 +558,7 @@ function submitNewProduct() {
             preserveScroll: true,
             onSuccess: () => {
                 showProductDrawer.value = false
+                isCopyingProduct.value = false
                 resetNewProductForm()
             },
         })
@@ -560,8 +569,40 @@ function resetNewProductForm() {
     Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
 }
 
+function openNewProductDrawer() {
+    isCopyingProduct.value = false
+    resetNewProductForm()
+    newProductForm.clearErrors()
+    showProductDrawer.value = true
+}
+
+async function copyProduct(product) {
+    resetNewProductForm()
+    newProductForm.clearErrors()
+    newProductForm.product_type_id = product.product_type_id
+    newProductForm.brand_id = product.brand_id
+    newProductForm.model = product.model
+    newProductForm.description = product.description ?? ''
+    newProductForm.part_no = product.part_no ?? ''
+    newProductForm.start_sell = product.start_sell ?? null
+    newProductForm.end_sell = product.end_sell ?? null
+    newProductForm.retail_price = product.retail_price ?? null
+    newProductForm.purchase_price = product.purchase_price ?? null
+    newProductForm.bundle = Boolean(product.bundle)
+
+    await nextTick()
+    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
+    ;(product.product_attribute_valueables ?? []).forEach(pav => {
+        newProductAttributeValues[pav.product_attribute_id] = pav.product_attribute_value_id
+    })
+
+    isCopyingProduct.value = true
+    showProductDrawer.value = true
+}
+
 function closeProductDrawer() {
     showProductDrawer.value = false
+    isCopyingProduct.value = false
     resetNewProductForm()
     newProductForm.clearErrors()
 }
