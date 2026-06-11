@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\ServiceOrderTypes;
 use App\Models\ServiceOrderStage;
+use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Class ServiceOrderUpdateRequest
@@ -18,30 +18,38 @@ class ServiceOrderUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('serviceorder'));
+        return $this->user()->can('update', $this->route('serviceorder'))
+            || $this->user()->hasPermission('serviceorder.close');
     }
 
     public function rules(): array
     {
-        return [
-            'customer_id' => 'required|exists:customers,id',
+        $completion_rules = [
             'description' => 'nullable|string|max:1000',
-            'closed_on' => 'nullable|date',
             'signed_by' => 'nullable|string|max:100',
             'signature_base64' => 'nullable|string',
-            'external_purchaseorder_no' => 'nullable|string|max:255',
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
-            'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
-            'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
         ];
+
+        if (! $this->user()->can('update', $this->route('serviceorder'))) {
+            return $completion_rules;
+        }
+
+        return array_merge($completion_rules, [
+            'customer_id' => 'required|exists:customers,id',
+            'closed_on' => 'nullable|date',
+            'external_purchaseorder_no' => 'nullable|string|max:255',
+            'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
+            'type' => 'nullable|in:'.implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
+        ]);
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
             $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
-            if (!$new_stage?->is_closed_state) {
+            if (! $new_stage?->is_closed_state) {
                 return;
             }
 
