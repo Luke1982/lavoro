@@ -288,6 +288,14 @@ Route::group(
                 'admin/calendar-grants/{calendar_grant}',
                 [\App\Http\Controllers\Admin\CalendarGrantController::class, 'destroy'],
             )->name('admin.calendar-grants.destroy');
+            Route::get(
+                'admin/settings',
+                [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'index'],
+            )->name('admin.settings.index');
+            Route::put(
+                'admin/settings/location-tracking',
+                [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'updateLocationTracking'],
+            )->name('admin.settings.location-tracking');
         });
     }
 );
