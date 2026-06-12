@@ -235,6 +235,33 @@
                                 <ComboBox v-if="userRoles.length" multiple v-model="userRoleSelections[String(user.id)]"
                                     :options="userRoles" :initial-ids="userRoleSelections[String(user.id)]"
                                     class="w-full" placeholder="Rollen..." />
+                                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <label :for="`diverging-${user.id}`"
+                                        class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 select-none cursor-pointer">
+                                        <input :id="`diverging-${user.id}`" type="checkbox"
+                                            v-model="userDivergingTimes[String(user.id)].has_diverging_times"
+                                            class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                        Afwijkende tijden
+                                    </label>
+                                    <template v-if="userDivergingTimes[String(user.id)].has_diverging_times">
+                                        <div class="flex items-center gap-1 ml-2 flex-wrap">
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">Start</span>
+                                            <select v-model="userDivergingTimes[String(user.id)].startHour" :class="timeSelectClass(false)">
+                                                <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
+                                            </select>
+                                            <select v-model="userDivergingTimes[String(user.id)].startMinute" :class="timeSelectClass(false)">
+                                                <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
+                                            </select>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">Einde</span>
+                                            <select v-model="userDivergingTimes[String(user.id)].endHour" :class="timeSelectClass(false)">
+                                                <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
+                                            </select>
+                                            <select v-model="userDivergingTimes[String(user.id)].endMinute" :class="timeSelectClass(false)">
+                                                <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
+                                            </select>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
@@ -359,6 +386,22 @@ const userRoleSelections = ref(
     )
 )
 
+const userDivergingTimes = ref(
+    Object.fromEntries(
+        (props.initial.executing_users || []).map(u => {
+            const start = u.diverging_start ? u.diverging_start.slice(0, 5) : '08:00'
+            const end   = u.diverging_end   ? u.diverging_end.slice(0, 5)   : '09:00'
+            return [String(u.id), {
+                has_diverging_times: u.has_diverging_times ?? false,
+                startHour:   start.split(':')[0],
+                startMinute: start.split(':')[1],
+                endHour:     end.split(':')[0],
+                endMinute:   end.split(':')[1],
+            }]
+        })
+    )
+)
+
 const initialStatusId = computed(() =>
     props.eventStatusses.find(s => s.name === form.status)?.id || props.eventStatusses[0]?.id || ''
 )
@@ -442,6 +485,15 @@ function onUserSelected(userId) {
         if (userRoleSelections.value[String(userId)] === undefined) {
             userRoleSelections.value[String(userId)] = []
         }
+        if (userDivergingTimes.value[String(userId)] === undefined) {
+            userDivergingTimes.value[String(userId)] = {
+                has_diverging_times: false,
+                startHour: '08',
+                startMinute: '00',
+                endHour: '09',
+                endMinute: '00',
+            }
+        }
     }
     nextTick(() => {
         userToAdd.value = null
@@ -480,6 +532,17 @@ async function save() {
             executing_user_ids: form.executing_user_ids,
             executing_user_breaktimes: userBreaktimes.value,
             executing_user_roles: userRoleSelections.value,
+            executing_user_diverging_times: Object.fromEntries(
+                form.executing_user_ids.map(id => {
+                    const dt = userDivergingTimes.value[String(id)] ?? {}
+                    const has = dt.has_diverging_times ?? false
+                    return [String(id), {
+                        has_diverging_times: has,
+                        diverging_start: has ? `${dt.startHour}:${dt.startMinute}` : null,
+                        diverging_end:   has ? `${dt.endHour}:${dt.endMinute}`     : null,
+                    }]
+                })
+            ),
             customer_id: selectedCustomer.value,
             eventable_id: form.create_service_order ? null : (form.eventable_id || null),
         }

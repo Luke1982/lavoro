@@ -18,7 +18,7 @@
                 </div>
                 <div v-if="!isCompact" class="text-[11px] text-gray-600 flex items-center gap-1">
                     <ClockIcon class="size-3 shrink-0" />
-                    <span class="truncate">{{ formatTime(event.start) }} – {{ formatTime(event.end) }}</span>
+                    <span class="truncate">{{ effectiveStartLabel }} – {{ effectiveEndLabel }}</span>
                     <template v-if="userBreaktime">
                         <ClockFading class="size-3 shrink-0 ml-0.5 text-gray-400" />
                         <span class="text-gray-400">{{ userBreaktime }}m</span>
@@ -54,7 +54,7 @@
                     </div>
                     <div class="text-xs mt-1 flex items-center gap-1 text-gray-600 dark:text-slate-300">
                         <ClockIcon class="size-3" />
-                        {{ formatTime(event.start) }} – {{ formatTime(event.end) }}
+                        {{ effectiveStartLabel }} – {{ effectiveEndLabel }}
                     </div>
                     <div v-if="event.description" class="text-xs mt-2 whitespace-pre-line">
                         {{ event.description }}
@@ -120,12 +120,45 @@ const isShort = computed(() => durationMinutes.value < 60)
 const userBreaktime = computed(() =>
     props.event.executing_users?.find(u => u.id === props.userId)?.breaktime ?? 0
 )
+
+const divergingUser = computed(() =>
+    props.event.executing_users?.find(u => u.id === props.userId && u.has_diverging_times) ?? null
+)
+
+const effectiveStartMin = computed(() => {
+    if (divergingUser.value?.diverging_start) {
+        const [h, m] = divergingUser.value.diverging_start.slice(0, 5).split(':').map(Number)
+        return h * 60 + m - props.dayStartHour * 60
+    }
+    return minutesFromDayStart(props.event.start)
+})
+
+const effectiveEndMin = computed(() => {
+    if (divergingUser.value?.diverging_end) {
+        const [h, m] = divergingUser.value.diverging_end.slice(0, 5).split(':').map(Number)
+        return h * 60 + m - props.dayStartHour * 60
+    }
+    return minutesFromDayStart(props.event.end)
+})
+
+const effectiveStartLabel = computed(() =>
+    divergingUser.value?.diverging_start
+        ? divergingUser.value.diverging_start.slice(0, 5)
+        : formatTime(props.event.start)
+)
+
+const effectiveEndLabel = computed(() =>
+    divergingUser.value?.diverging_end
+        ? divergingUser.value.diverging_end.slice(0, 5)
+        : formatTime(props.event.end)
+)
+
 // Lane is collapsed/compact — show only the title so nothing overflows the short card.
 const isCompact = computed(() => props.rowHeight < 70)
 
 const style = computed(() => {
-    const startMin = Math.max(0, minutesFromDayStart(props.event.start))
-    const endMin = Math.min(totalMin.value, minutesFromDayStart(props.event.end))
+    const startMin = Math.max(0, effectiveStartMin.value)
+    const endMin = Math.min(totalMin.value, effectiveEndMin.value)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
     const color = props.event.color || '#3b82f6'

@@ -41,6 +41,10 @@ class EventUpdateRequest extends FormRequest
             'executing_user_roles' => ['sometimes', 'nullable', 'array'],
             'executing_user_roles.*' => ['nullable', 'array'],
             'executing_user_roles.*.*' => ['integer', 'exists:user_roles,id'],
+            'executing_user_diverging_times' => ['sometimes', 'nullable', 'array'],
+            'executing_user_diverging_times.*.has_diverging_times' => ['nullable', 'boolean'],
+            'executing_user_diverging_times.*.diverging_start' => ['nullable', 'date_format:H:i'],
+            'executing_user_diverging_times.*.diverging_end' => ['nullable', 'date_format:H:i'],
             'breaktime' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }

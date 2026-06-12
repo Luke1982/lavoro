@@ -12,7 +12,7 @@ trait HasExecutingUsers
     {
         return $this
             ->morphToMany(User::class, 'userable')
-            ->withPivot('id', 'type', 'breaktime')
+            ->withPivot('id', 'type', 'breaktime', 'has_diverging_times', 'diverging_start', 'diverging_end')
             ->wherePivot('type', 'executing')
             ->withTimestamps();
     }
@@ -35,12 +35,24 @@ trait HasExecutingUsers
         $this->executingUsers()->attach($user_id, ['type' => 'executing']);
     }
 
-    public function syncExecutingUsers(array $user_ids, array $breaktimes = [], array $user_roles = []): void
-    {
+    public function syncExecutingUsers(
+        array $user_ids,
+        array $breaktimes = [],
+        array $user_roles = [],
+        array $diverging_times = []
+    ): void {
         $this->executingUsers()->detach();
         $attach = [];
         foreach (array_unique($user_ids) as $uid) {
-            $attach[$uid] = ['type' => 'executing', 'breaktime' => (int) ($breaktimes[$uid] ?? 0)];
+            $dt = $diverging_times[$uid] ?? $diverging_times[(string) $uid] ?? [];
+            $has = (bool) ($dt['has_diverging_times'] ?? false);
+            $attach[$uid] = [
+                'type'                => 'executing',
+                'breaktime'           => (int) ($breaktimes[$uid] ?? 0),
+                'has_diverging_times' => $has,
+                'diverging_start'     => $has ? ($dt['diverging_start'] ?? null) : null,
+                'diverging_end'       => $has ? ($dt['diverging_end'] ?? null) : null,
+            ];
         }
         if ($attach) {
             $this->executingUsers()->attach($attach);
@@ -66,10 +78,10 @@ trait HasExecutingUsers
             foreach (array_unique(array_map('intval', (array) $role_ids)) as $role_id) {
                 if ($role_id > 0) {
                     $inserts[] = [
-                        'userable_id' => $userable_id,
+                        'userable_id'  => $userable_id,
                         'user_role_id' => $role_id,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at'   => now(),
+                        'updated_at'   => now(),
                     ];
                 }
             }

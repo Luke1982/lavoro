@@ -85,7 +85,7 @@
                         <div v-for="(ev, index) in group.events" :key="ev.id" class="flex">
                             <!-- Left: time + duration (narrowed ~20%) -->
                             <div class="w-[51px] shrink-0 flex flex-col items-end pr-2 pt-1">
-                                <div class="text-sm font-semibold tabular-nums leading-none">{{ nlTime(ev.start) }}
+                                <div class="text-sm font-semibold tabular-nums leading-none">{{ effectiveStartTime(ev) }}
                                 </div>
                                 <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ durationLabel(ev) }}
                                 </div>
@@ -415,15 +415,33 @@ function dayLabel(dayIso) {
 }
 
 function durationLabel(ev) {
-    const userBreaktime = selectedUserId.value
+    const u = selectedUserId.value !== null
+        ? ev.executing_users?.find(u => u.id === selectedUserId.value && u.has_diverging_times) ?? null
+        : null
+    const userBreaktime = selectedUserId.value !== null
         ? ev.executing_users?.find(u => u.id === selectedUserId.value)?.breaktime ?? 0
         : 0
-    const mins = Math.round(Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime))
+    let mins
+    if (u?.diverging_start && u?.diverging_end) {
+        const [sh, sm] = u.diverging_start.slice(0, 5).split(':').map(Number)
+        const [eh, em] = u.diverging_end.slice(0, 5).split(':').map(Number)
+        mins = Math.round(Math.max(0, (eh * 60 + em) - (sh * 60 + sm) - userBreaktime))
+    } else {
+        mins = Math.round(Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime))
+    }
     const h = Math.floor(mins / 60)
     const m = mins % 60
     if (h > 0 && m > 0) return `${h}u ${m}m`
     if (h > 0) return `${h}u`
     return `${m}m`
+}
+
+function effectiveStartTime(ev) {
+    const u = selectedUserId.value !== null
+        ? ev.executing_users?.find(u => u.id === selectedUserId.value && u.has_diverging_times) ?? null
+        : null
+    if (u?.diverging_start) return u.diverging_start.slice(0, 5)
+    return nlTime(ev.start)
 }
 
 function formatWbNumber(eventableId) {
@@ -474,6 +492,7 @@ function handleEventTap(ev) {
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
         executing_user_ids: [...ev.executing_user_ids],
+        executing_users: [...(ev.executing_users || [])],
     }
     editingExistingEvent.value = true
     modalOpen.value = true

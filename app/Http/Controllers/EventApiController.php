@@ -70,7 +70,12 @@ class EventApiController extends Controller
     public function store(EventStoreRequest $request)
     {
         $data = $request->validated();
-        unset($data['executing_user_ids'], $data['executing_user_breaktimes'], $data['executing_user_roles']);
+        unset(
+            $data['executing_user_ids'],
+            $data['executing_user_breaktimes'],
+            $data['executing_user_roles'],
+            $data['executing_user_diverging_times'],
+        );
 
         $eventable_id = $request->eventable_id;
         $eventable_type = $request->eventable_type;
@@ -104,7 +109,8 @@ class EventApiController extends Controller
                     $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
                     $breaktimes = array_map('intval', $raw_breaktimes);
                     $user_roles = (array) ($request->input('executing_user_roles', []));
-                    $event->syncExecutingUsers($ids, $breaktimes, $user_roles);
+                    $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
+                    $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
                     $model->syncExecutingUsers($ids);
                     $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
 
@@ -137,6 +143,7 @@ class EventApiController extends Controller
             $payload['executing_user_ids'],
             $payload['executing_user_breaktimes'],
             $payload['executing_user_roles'],
+            $payload['executing_user_diverging_times'],
         );
         $event->update($payload);
 
@@ -165,7 +172,8 @@ class EventApiController extends Controller
                 $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
                 $breaktimes = array_map('intval', $raw_breaktimes);
                 $user_roles = (array) ($request->input('executing_user_roles', []));
-                $event->syncExecutingUsers($ids, $breaktimes, $user_roles);
+                $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
+                $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
                 PushEventJob::dispatch($event->id);
                 $still_relevant = array_unique(array_merge(
                     $event->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
@@ -310,6 +318,9 @@ class EventApiController extends Controller
                     'user_role_ids',
                     $roles_by_userable->get($user->pivot->id, [])
                 );
+                $user->pivot->setAttribute('has_diverging_times', (bool) ($user->pivot->has_diverging_times ?? false));
+                $user->pivot->setAttribute('diverging_start', $user->pivot->diverging_start);
+                $user->pivot->setAttribute('diverging_end', $user->pivot->diverging_end);
             }
         }
 

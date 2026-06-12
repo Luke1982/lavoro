@@ -56,6 +56,10 @@ class EventStoreRequest extends FormRequest
             'executing_user_roles' => 'nullable|array',
             'executing_user_roles.*' => 'nullable|array',
             'executing_user_roles.*.*' => 'integer|exists:user_roles,id',
+            'executing_user_diverging_times' => 'nullable|array',
+            'executing_user_diverging_times.*.has_diverging_times' => 'nullable|boolean',
+            'executing_user_diverging_times.*.diverging_start' => 'nullable|date_format:H:i',
+            'executing_user_diverging_times.*.diverging_end' => 'nullable|date_format:H:i',
             'breaktime' => 'nullable|integer|min:0',
         ];
     }
