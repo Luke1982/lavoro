@@ -126,6 +126,13 @@
                                                     <CalendarIcon class="size-6 shrink-0" />
                                                     Agenda-toegang
                                                 </Link>
+                                                <Link @click="sidebarOpen = false" :href="'/admin/settings'" :class="[
+                                                    currentPath.startsWith('/admin/settings') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <Cog6ToothIcon class="size-6 shrink-0" />
+                                                    Instellingen
+                                                </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
                                                 <Link @click="sidebarOpen = false" :href="'/users'" :class="[
@@ -273,6 +280,13 @@
                                     <CalendarIcon class="size-6 shrink-0" />
                                     Agenda-toegang
                                 </Link>
+                                <Link :href="'/admin/settings'" :class="[
+                                    currentPath.startsWith('/admin/settings') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <Cog6ToothIcon class="size-6 shrink-0" />
+                                    Instellingen
+                                </Link>
                             </div>
                             <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
                                 <Link :href="'/users'" :class="[
@@ -394,6 +408,7 @@ import {
     ArrowRightOnRectangleIcon,
     WrenchScrewdriverIcon,
     ClipboardDocumentListIcon,
+    Cog6ToothIcon,
     LinkIcon,
     TagIcon,
     DocumentTextIcon,
