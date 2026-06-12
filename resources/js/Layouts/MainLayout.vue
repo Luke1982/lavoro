@@ -445,17 +445,19 @@ onMounted(async () => {
     if (is_native && page.props.auth?.user) {
         try { await init_deep_links() } catch (e) { console.error('Deep link init failed:', e) }
         try { await check_update() } catch (e) { console.error('Update check failed:', e) }
-        try {
-            await start_tracking()
-        } catch (e) {
-            console.error('GPS tracking failed to start:', e)
-        }
         if (PUSH_ENABLED) {
             try {
                 await register_push()
             } catch (e) {
                 console.error('Push registration failed:', e)
             }
+        }
+    }
+    if (page.props.auth?.user && hasPermission('location.track')) {
+        try {
+            await start_tracking()
+        } catch (e) {
+            console.error('GPS tracking failed to start:', e)
         }
     }
 })
@@ -701,9 +703,7 @@ const currentTopTitle = computed(() => {
 })
 
 const logout = async () => {
-    if (is_native) {
-        await stop_tracking()
-    }
+    await stop_tracking()
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()
         for (const registration of registrations) {
