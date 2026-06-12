@@ -665,12 +665,21 @@ const lockedGroupOverlays = computed(() => {
             let overlayHeight = 0
             for (let i = minIdx; i <= maxIdx; i++) overlayHeight += rowHeightFor(users[i].id)
 
-            const startOffsetMin = Math.max(0, Math.min(totalMin,
-                ev.start.getHours() * 60 + ev.start.getMinutes() - dayStartHour.value * 60
-            ))
-            const endOffsetMin = Math.max(0, Math.min(totalMin,
-                ev.end.getHours() * 60 + ev.end.getMinutes() - dayStartHour.value * 60
-            ))
+            let overallStartMin = ev.start.getHours() * 60 + ev.start.getMinutes() - dayStartHour.value * 60
+            let overallEndMin = ev.end.getHours() * 60 + ev.end.getMinutes() - dayStartHour.value * 60
+            for (const u of (ev.executing_users || [])) {
+                if (!u.has_diverging_times) continue
+                if (u.diverging_start) {
+                    const [h, m] = u.diverging_start.slice(0, 5).split(':').map(Number)
+                    overallStartMin = Math.min(overallStartMin, h * 60 + m - dayStartHour.value * 60)
+                }
+                if (u.diverging_end) {
+                    const [h, m] = u.diverging_end.slice(0, 5).split(':').map(Number)
+                    overallEndMin = Math.max(overallEndMin, h * 60 + m - dayStartHour.value * 60)
+                }
+            }
+            const startOffsetMin = Math.max(0, Math.min(totalMin, overallStartMin))
+            const endOffsetMin = Math.max(0, Math.min(totalMin, overallEndMin))
 
             return {
                 id: ev.id,
@@ -1378,10 +1387,34 @@ async function copyEvent(ev, offsets) {
     }
 }
 
+function shiftTimeString(hhmm, deltaMin) {
+    const [h, m] = hhmm.slice(0, 5).split(':').map(Number)
+    const total = ((h * 60 + m + Math.round(deltaMin)) % 1440 + 1440) % 1440
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
 async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
+    const startDeltaMs = newStart.getTime() - ev.start.getTime()
+    const isMove = !replaceWithUserId && startDeltaMs !== 0 && startDeltaMs === newEnd.getTime() - ev.end.getTime()
+    const hasDivergingUsers = isMove && ev.executing_users.some(u => u.has_diverging_times)
+
+    const originalDivergingTimes = hasDivergingUsers
+        ? ev.executing_users.map(u => ({ id: u.id, diverging_start: u.diverging_start, diverging_end: u.diverging_end }))
+        : null
+
     const original = { start: ev.start, end: ev.end, executing_user_ids: [...ev.executing_user_ids] }
     ev.start = newStart
     ev.end = newEnd
+
+    if (hasDivergingUsers) {
+        const deltaMin = startDeltaMs / 60000
+        ev.executing_users.forEach(u => {
+            if (!u.has_diverging_times || !u.diverging_start || !u.diverging_end) return
+            u.diverging_start = shiftTimeString(u.diverging_start, deltaMin)
+            u.diverging_end = shiftTimeString(u.diverging_end, deltaMin)
+        })
+    }
+
     if (replaceWithUserId) {
         ev.executing_user_ids = [replaceWithUserId]
         ev.executing_users = props.plannableUsers
@@ -1396,6 +1429,22 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
         if (replaceWithUserId) {
             payload.executing_user_ids = ev.executing_user_ids
         }
+        if (hasDivergingUsers) {
+            payload.executing_user_ids = ev.executing_user_ids
+            payload.executing_user_breaktimes = Object.fromEntries(
+                ev.executing_users.map(u => [u.id, u.breaktime ?? 0])
+            )
+            payload.executing_user_roles = Object.fromEntries(
+                ev.executing_users.map(u => [u.id, u.user_role_ids ?? []])
+            )
+            payload.executing_user_diverging_times = Object.fromEntries(
+                ev.executing_users.map(u => [u.id, {
+                    has_diverging_times: u.has_diverging_times ?? false,
+                    diverging_start: u.diverging_start ?? null,
+                    diverging_end: u.diverging_end ?? null,
+                }])
+            )
+        }
         await axios.get('sanctum/csrf-cookie')
         const response = await axios.put(`/api/events/${ev.id}`, payload)
         if (response.status !== 200) throw new Error('bad response')
@@ -1407,6 +1456,12 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
         ev.start = original.start
         ev.end = original.end
         ev.executing_user_ids = original.executing_user_ids
+        if (originalDivergingTimes) {
+            originalDivergingTimes.forEach(({ id, diverging_start, diverging_end }) => {
+                const u = ev.executing_users.find(u => u.id === id)
+                if (u) { u.diverging_start = diverging_start; u.diverging_end = diverging_end }
+            })
+        }
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet bijwerken'
         fetchEvents()
     }

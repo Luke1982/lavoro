@@ -11,6 +11,7 @@
                 :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1">
                     <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />
+                    <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue" v-tooltip="'Uitvoerende met afwijkende tijden'" />
                     #{{ event.id }} {{ event.name || event.title }}
                 </div>
                 <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 truncate">
@@ -88,7 +89,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
+import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import { ClockFading } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
@@ -123,6 +124,10 @@ const userBreaktime = computed(() =>
 
 const divergingUser = computed(() =>
     props.event.executing_users?.find(u => u.id === props.userId && u.has_diverging_times) ?? null
+)
+
+const isSourceWithDivergingCompanions = computed(() =>
+    !divergingUser.value && (props.event.executing_users?.some(u => u.has_diverging_times) ?? false)
 )
 
 const effectiveStartMin = computed(() => {

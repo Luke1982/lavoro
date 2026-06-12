@@ -8,33 +8,35 @@
                         <h1 class="text-l font-medium">Details</h1>
                     </div>
                     <StepsProgressBar :steps="statuses" v-model="form.status"
-                        class="flex-1 ml-4 md:max-w-250 max-w-60" />
+                        class="flex-1 ml-4 md:max-w-250 max-w-60"
+                        :class="{ 'pointer-events-none': !canUpdate }" />
                 </div>
                 <div class="grid grid-cols-12 mt-2 gap-0 sm:gap-4">
                     <div class="col-span-12 md:col-span-2 text-slate-400">
                         <span class="text-xs font-bold">Titel</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.title" class="w-full" />
+                        <EditableTextField v-model="form.title" class="w-full" :readonly="!canUpdate" />
                     </div>
                     <div class="col-span-12 md:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Omschrijving</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.description" type="textarea" class="w-full" />
+                        <EditableTextField v-model="form.description" type="textarea" class="w-full" :readonly="!canUpdate" />
                     </div>
                     <div class="col-span-12 md:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Locatie</span>
                     </div>
                     <div class="col-span-12 md:col-span-10">
-                        <EditableTextField v-model="form.location" class="w-full" />
+                        <EditableTextField v-model="form.location" class="w-full" :readonly="!canUpdate" />
                     </div>
                     <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Klant</span>
                     </div>
                     <div class="col-span-12 sm:col-span-10">
                         <EditableTextField type="combobox" v-model="form.customer_id" :options="customers"
-                            :error="form.errors.customer_id" @revert="form.clearErrors('customer_id')">
+                            :error="form.errors.customer_id" @revert="form.clearErrors('customer_id')"
+                            :readonly="!canUpdate">
                             <template #display>
                                 <Link v-if="project.customer" :href="`/customers/${project.customer.id}`"
                                     class="text-lavoro-blue hover:underline">
@@ -49,7 +51,8 @@
                     </div>
                     <div class="col-span-12 sm:col-span-10 md:col-span-4">
                         <EditableTextField type="combobox" v-model="form.project_manager_id" :options="users"
-                            :error="form.errors.project_manager_id" @revert="form.clearErrors('project_manager_id')">
+                            :error="form.errors.project_manager_id" @revert="form.clearErrors('project_manager_id')"
+                            :readonly="!canUpdate">
                             <template #display>
                                 <span v-if="project.project_manager">{{ project.project_manager.name }}</span>
                                 <span v-else class="text-gray-400">Selecteer projectleider</span>
@@ -60,16 +63,16 @@
                         <span class="text-xs font-bold">Startdatum</span>
                     </div>
                     <div class="col-span-12 sm:col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.start_date" type="input" input-type="date" class="w-full" />
+                        <EditableTextField v-model="form.start_date" type="input" input-type="date" class="w-full" :readonly="!canUpdate" />
                     </div>
                     <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Einddatum</span>
                     </div>
                     <div class="col-span-12 sm:col-span-10 md:col-span-4">
-                        <EditableTextField v-model="form.end_date" type="input" input-type="date" class="w-full" />
+                        <EditableTextField v-model="form.end_date" type="input" input-type="date" class="w-full" :readonly="!canUpdate" />
                     </div>
                 </div>
-                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
+                <div v-if="canCreateMilestone" class="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700 flex justify-end">
                     <button @click="showMilestoneDrawer = true"
                         class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90 inline-flex items-center gap-1.5">
                         <FlagIcon class="size-4" />
@@ -172,9 +175,10 @@
                                     aria-hidden="true" />
                                 <div class="relative flex space-x-3">
                                     <div>
-                                        <span v-if="ms.actual_date"
+                                        <span v-if="ms.actual_date || !canUpdateMilestone"
                                             :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm']">
-                                            <CheckIcon class="size-4 text-white" />
+                                            <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
+                                            <ClockIcon v-else class="size-4 text-white" />
                                         </span>
                                         <button v-else type="button"
                                             v-tooltip="'Markeer als afgerond met vandaag als werkelijke datum'"
@@ -195,10 +199,10 @@
                                                 </p>
                                             </div>
                                             <div class="flex items-center gap-1.5 ml-2 shrink-0">
-                                                <PencilSquareIcon
+                                                <PencilSquareIcon v-if="canUpdateMilestone"
                                                     class="size-4 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
                                                     @click="toggleEditMilestone(ms)" />
-                                                <TrashIcon
+                                                <TrashIcon v-if="canDeleteMilestone"
                                                     class="size-4 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                                                     @click="deleteMilestone(ms.id)" />
                                             </div>
@@ -360,7 +364,7 @@ import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
-import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer } from '@/Utilities/Utilities'
+import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer, hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -378,6 +382,11 @@ const sortedMilestones = computed(() =>
         return dateA.localeCompare(dateB)
     })
 )
+
+const canUpdate = computed(() => hasPermission('project.update'))
+const canCreateMilestone = computed(() => hasPermission('projectmilestone.create'))
+const canUpdateMilestone = computed(() => hasPermission('projectmilestone.update'))
+const canDeleteMilestone = computed(() => hasPermission('projectmilestone.delete'))
 
 function milestoneColor(ms) {
     if (ms.actual_date) return 'bg-green-600'
