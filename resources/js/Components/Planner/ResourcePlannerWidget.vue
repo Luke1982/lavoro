@@ -204,54 +204,55 @@
                                 ? { height: allDayLaneHeight + 'px', width: (gridViewportWidth || gridMinWidth) + 'px' }
                                 : { height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
                             <!-- Scroll content: full project stack; the band clips and scrolls (vertical) / syncs (horizontal) when partial. -->
-                            <div class="relative" :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Day gridlines -->
-                            <div class="absolute inset-0 grid pointer-events-none"
-                                :style="{ gridTemplateColumns: dayGridTemplate }">
-                                <div v-for="day in weekDays" :key="'adg-' + day.iso"
-                                    class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
-                            </div>
-
-                            <template v-for="track in visibleTracks" :key="'track-' + track.id">
-                                <!-- Project bar (background spans full range; label sticks to the viewport) -->
-                                <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
-                                    :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
-                                    :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
-                                    <div class="sticky left-0 inline-block max-w-full px-2 py-1">
-                                        <div
-                                            class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
-                                            {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
-                                                track.continuesRight ?
-                                                    ' ▸' : '' }}
-                                        </div>
-                                        <div v-if="track.customerName"
-                                            class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
-                                            {{ track.customerName }}
-                                        </div>
-                                    </div>
+                            <div class="relative"
+                                :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                                <!-- Day gridlines -->
+                                <div class="absolute inset-0 grid pointer-events-none"
+                                    :style="{ gridTemplateColumns: dayGridTemplate }">
+                                    <div v-for="day in weekDays" :key="'adg-' + day.iso"
+                                        class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
                                 </div>
 
-                                <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
-                                <div v-if="track.serviceOrders.length" class="absolute"
-                                    :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
-                                    <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
-                                    <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
-                                        :style="{ maxWidth: track.width + 'px' }">
-                                        <div v-for="so in track.serviceOrders" :key="'pso-' + so.id" draggable="true"
-                                            @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                            @dragend="onProjectServiceOrderDragEnd"
-                                            :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                            class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
-                                            :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                            <ArrowsRightLeftIcon
-                                                class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
-                                            <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                            <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
-                                                so.description || 'Werkbon' }}</span>
+                                <template v-for="track in visibleTracks" :key="'track-' + track.id">
+                                    <!-- Project bar (background spans full range; label sticks to the viewport) -->
+                                    <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
+                                        :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
+                                        :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
+                                        <div class="sticky left-0 inline-block max-w-full px-2 py-1">
+                                            <div
+                                                class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
+                                                {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
+                                                    track.continuesRight ?
+                                                        ' ▸' : '' }}
+                                            </div>
+                                            <div v-if="track.customerName"
+                                                class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
+                                                {{ track.customerName }}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </template>
+
+                                    <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
+                                    <div v-if="track.serviceOrders.length" class="absolute"
+                                        :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
+                                        <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
+                                        <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
+                                            :style="{ maxWidth: track.width + 'px' }">
+                                            <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
+                                                draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                                @dragend="onProjectServiceOrderDragEnd"
+                                                :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
+                                                class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                                :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                                <ArrowsRightLeftIcon
+                                                    class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                                <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                                <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
+                                                    so.description || 'Werkbon' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
@@ -397,7 +398,7 @@ const props = defineProps({
     defaultDayStartHour: { type: Number, default: 7 },
     defaultDayEndHour: { type: Number, default: 18 },
     /** Row height in px (so we can keep rows equal as the screenshot requires) */
-    rowHeight: { type: Number, default: 120 },
+    rowHeight: { type: Number, default: 135 },
     /** Vertical padding around event cards within each lane */
     eventPaddingY: { type: Number, default: 14 },
     /** Default duration in minutes for new events created by drop or single click */

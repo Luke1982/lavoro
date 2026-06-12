@@ -30,12 +30,13 @@
                     <span class="truncate">{{ event.location }}</span>
                 </div>
                 <button v-if="!isCompact && event.eventable_id"
-                    class="mt-1 inline-flex items-center gap-1 text-[10px] text-gray-600 bg-white/80 border border-gray-200 rounded px-1.5 py-0.5 hover:border-gray-300 transition leading-none"
+                    class="mt-1 inline-flex items-center gap-1 text-[10px] text-gray-600 bg-white/80 border border-gray-200 rounded px-1.5 py-1.5 hover:border-gray-300 transition leading-none"
                     @click.stop="router.visit(`/serviceorders/${event.eventable_id}`)">
                     <BuildingOfficeIcon class="size-3 shrink-0" />
                     <span class="truncate">WB-{{ String(event.eventable_id).padStart(4, '0') }}</span>
                     <template v-if="event.project_name">
-                        <ClipboardDocumentListIcon class="size-3 shrink-0 text-lavoro-blue" v-tooltip="event.project_name" />
+                        <ClipboardDocumentListIcon class="size-3 shrink-0 text-lavoro-blue"
+                            v-tooltip="event.project_name" />
                     </template>
                     <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                 </button>
