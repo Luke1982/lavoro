@@ -13,6 +13,7 @@ let watch_id = null;
 let ping_buffer = [];
 let flush_interval_id = null;
 let csrf_fetched = false;
+let is_flushing = false;
 
 function js_day_to_iso(day) {
     // JS getDay() returns 0=Sun … 6=Sat; ISO weekday is 1=Mon … 7=Sun
@@ -38,13 +39,16 @@ async function ensure_csrf() {
 }
 
 async function flush_buffer() {
-    if (ping_buffer.length === 0) return;
+    if (ping_buffer.length === 0 || is_flushing) return;
+    is_flushing = true;
     const pings = ping_buffer.splice(0);
     try {
         await ensure_csrf();
         await axios.post('/api/location/pings', { pings });
     } catch {
         ping_buffer.unshift(...pings);
+    } finally {
+        is_flushing = false;
     }
 }
 
@@ -63,9 +67,12 @@ function start_watch() {
             if (ping_buffer.length >= 10) flush_buffer();
         },
         (err) => {
-            if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
+            if (err.code === err.PERMISSION_DENIED) {
                 console.warn('GPS: locatiepermissie geweigerd');
                 stop_watch();
+                clearInterval(flush_interval_id);
+                flush_interval_id = null;
+                is_tracking.value = false;
             }
         },
         { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 },
