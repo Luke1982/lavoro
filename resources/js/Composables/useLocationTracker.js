@@ -3,6 +3,7 @@ import { registerPlugin } from '@capacitor/core';
 import { usePage } from '@inertiajs/vue3';
 import { useCapacitor } from './useCapacitor.js';
 import axios from 'axios';
+import dayjs from '@/Utilities/dayjs.js';
 
 const LocationTracker = registerPlugin('LocationTracker');
 
@@ -15,20 +16,14 @@ let flush_interval_id = null;
 let csrf_fetched = false;
 let is_flushing = false;
 
-function js_day_to_iso(day) {
-    // JS getDay() returns 0=Sun … 6=Sat; ISO weekday is 1=Mon … 7=Sun
-    return day === 0 ? 7 : day;
-}
-
 function is_within_window(settings) {
     if (!settings) return true;
-    const now = new Date();
-    const iso_day = js_day_to_iso(now.getDay());
+    const now = dayjs();
     const days = Array.isArray(settings.days)
         ? settings.days.map(Number)
         : String(settings.days).split(',').map(Number);
-    if (!days.includes(iso_day)) return false;
-    const hhmm = now.toTimeString().slice(0, 5); // "HH:MM"
+    if (!days.includes(now.isoWeekday())) return false;
+    const hhmm = now.format('HH:mm');
     return hhmm >= settings.start && hhmm < settings.end;
 }
 
@@ -62,7 +57,7 @@ function start_watch() {
                 accuracy:    pos.coords.accuracy ?? null,
                 speed:       pos.coords.speed ?? null,
                 heading:     pos.coords.heading ?? null,
-                recorded_at: new Date(pos.timestamp).toISOString(),
+                recorded_at: dayjs(pos.timestamp).toISOString(),
             });
             if (ping_buffer.length >= 10) flush_buffer();
         },
