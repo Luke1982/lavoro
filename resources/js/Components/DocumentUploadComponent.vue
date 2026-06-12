@@ -20,7 +20,13 @@
                             class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Naam</span>
                         <EditableTextField v-if="hasPermission('document.update')" :modelValue="doc.title"
                             @update:modelValue="updateTitle(doc.id, $event)" placeholder="Geen titel" />
-                        <a v-else :href="`/documents/${doc.id}/download`" target="_blank"
+                        <button v-else-if="isPdf(doc)"
+                            type="button"
+                            @click="viewingDoc = doc"
+                            class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate block text-left w-full">
+                            {{ doc.title || doc.name }}
+                        </button>
+                        <a v-else :href="`/documents/${doc.id}/download`" download
                             class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 truncate block">
                             {{ doc.title || doc.name }}
                         </a>
@@ -28,7 +34,13 @@
                     <div class="px-3 py-2 flex-1 min-w-0 space-y-1 md:space-y-0">
                         <span
                             class="block md:hidden text-[11px] uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium">Bestandsnaam</span>
-                        <a :href="`/documents/${doc.id}/download`" target="_blank"
+                        <button v-if="isPdf(doc)"
+                            type="button"
+                            @click="viewingDoc = doc"
+                            class="text-xs text-gray-600 dark:text-gray-400 hover:underline truncate block text-left w-full">
+                            {{ doc.name }}
+                        </button>
+                        <a v-else :href="`/documents/${doc.id}/download`" download
                             class="text-xs text-gray-600 dark:text-gray-400 hover:underline truncate block">
                             {{ doc.name }}
                         </a>
@@ -64,6 +76,12 @@
         <div v-if="uploadForm.progress" class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-4">
             <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: uploadForm.progress.percentage + '%' }"></div>
         </div>
+    <PdfViewerOverlay
+        :open="viewingDoc !== null"
+        :url="viewingDoc ? `/documents/${viewingDoc.id}/download` : ''"
+        :title="viewingDoc ? (viewingDoc.title || viewingDoc.name) : ''"
+        @update:open="viewingDoc = null"
+    />
     </div>
 </template>
 
@@ -73,6 +91,7 @@ import { useForm } from '@inertiajs/vue3';
 import { TrashIcon } from '@heroicons/vue/24/solid';
 import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import PdfViewerOverlay from '@/Components/UI/PdfViewerOverlay.vue';
 
 const props = defineProps({
     documentableId: {
@@ -91,6 +110,8 @@ const props = defineProps({
 
 const fileInput = ref(null);
 const isDragging = ref(false);
+const viewingDoc = ref(null);
+const isPdf = (doc) => doc.name?.toLowerCase().endsWith('.pdf') ?? false;
 
 const uploadForm = useForm({
     documents: [],

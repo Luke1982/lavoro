@@ -55,6 +55,7 @@
         "floating-vue": "^5.2.2",
         "glightbox": "^3.3.1",
         "leaflet": "^1.9.4",
+        "pdfjs-dist": "^5.6.205",
         "tui-image-editor": "^3.15.3",
         "vue-accessible-color-picker": "^5.3.1",
         "vue-currency-input": "^3.2.2",
