@@ -86,6 +86,13 @@ class ServiceOrder extends Model
         return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
     }
 
+    public function images()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main'])
+            ->withTimestamps();
+    }
+
     public function taskInstances()
     {
         return $this->hasMany(ServiceOrderTaskInstance::class);

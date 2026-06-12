@@ -175,6 +175,7 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productables.childProduct.productType',
             'project:id,title',
             'documents',
+            'images',
         ])->findOrFail($id);
 
         $stages = ServiceOrderStage::orderBy('order')

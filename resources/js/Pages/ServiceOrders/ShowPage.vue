@@ -285,6 +285,10 @@
                         <DocumentUploadComponent :existing="serviceOrder.documents" :documentable-id="serviceOrder.id"
                             documentable-type="\App\Models\ServiceOrder" class="mt-6" />
                         <BoxComponent class="mt-6">
+                            <ImageUploadComponent :existing="serviceOrder.images" :imageable-id="serviceOrder.id"
+                                imageable-type="App\Models\ServiceOrder" />
+                        </BoxComponent>
+                        <BoxComponent class="mt-6">
                             <div class="flex items-center mb-3">
                                 <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
                                     <div class="flex w-full items-center">
@@ -592,6 +596,7 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
