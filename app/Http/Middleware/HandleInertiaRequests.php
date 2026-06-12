@@ -67,14 +67,18 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
             ],
-            'location_tracking' => $request->user() ? [
-                'start' => GeneralSetting::get('location_tracking_start', '07:00'),
-                'end' => GeneralSetting::get('location_tracking_end', '18:00'),
-                'days' => array_map(
-                    'intval',
-                    explode(',', GeneralSetting::get('location_tracking_days', '1,2,3,4,5'))
-                ),
-            ] : null,
+            'location_tracking' => $request->user() ? (function () {
+                $rows = GeneralSetting::whereIn('key', [
+                    'location_tracking_start',
+                    'location_tracking_end',
+                    'location_tracking_days',
+                ])->pluck('value', 'key');
+                return [
+                    'start' => $rows->get('location_tracking_start', '07:00'),
+                    'end'   => $rows->get('location_tracking_end', '18:00'),
+                    'days'  => array_map('intval', explode(',', $rows->get('location_tracking_days', '1,2,3,4,5'))),
+                ];
+            })() : null,
         ];
     }
 }

@@ -131,6 +131,7 @@ export function useLocationTracker() {
             stop_watch();
             clearInterval(flush_interval_id);
             flush_interval_id = null;
+            csrf_fetched = false;
             await flush_buffer();
         }
 

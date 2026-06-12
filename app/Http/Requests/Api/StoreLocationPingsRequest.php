@@ -8,7 +8,7 @@ class StoreLocationPingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->hasPermission('location.track') ?? false;
     }
 
     public function rules(): array
