@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\GeneralSetting;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -66,6 +67,14 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
             ],
+            'location_tracking' => $request->user() ? [
+                'start' => GeneralSetting::get('location_tracking_start', '07:00'),
+                'end' => GeneralSetting::get('location_tracking_end', '18:00'),
+                'days' => array_map(
+                    'intval',
+                    explode(',', GeneralSetting::get('location_tracking_days', '1,2,3,4,5'))
+                ),
+            ] : null,
         ];
     }
 }
