@@ -19,6 +19,7 @@ class ProjectStoreRequest extends FormRequest
         return [
             'title'              => ['required', 'string', 'max:255'],
             'description'        => ['nullable', 'string'],
+            'location'           => ['nullable', 'string', 'max:255'],
             'start_date'         => ['nullable', 'date'],
             'end_date'           => ['nullable', 'date', 'after_or_equal:start_date'],
             'customer_id'        => ['required', 'exists:customers,id'],

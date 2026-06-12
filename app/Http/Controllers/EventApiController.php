@@ -54,7 +54,7 @@ class EventApiController extends Controller
             ->with([
                 'eventType',
                 'serviceOrders.customer',
-                'serviceOrders.project:id,title',
+                'serviceOrders.project:id,title,location',
                 'serviceOrders.taskInstances.serviceOrderTask',
                 'serviceOrders.taskInstances.product.brand',
                 'serviceOrders.taskInstances.product.productAttributeValueables.productAttribute',
@@ -123,7 +123,9 @@ class EventApiController extends Controller
                 ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
         }
 
-        $event->load(['eventType', 'serviceOrders', 'executingUsers']);
+        $event->load([
+            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+        ]);
 
         return response()->json($this->withUserRoles($event), 201);
     }
@@ -204,7 +206,9 @@ class EventApiController extends Controller
             }
         }
 
-        $event->load(['eventType', 'serviceOrders', 'executingUsers']);
+        $event->load([
+            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+        ]);
 
         return response()->json($this->withUserRoles($event));
     }
@@ -246,7 +250,9 @@ class EventApiController extends Controller
                 $new_event->syncExecutingUsers($executing_user_ids, [], $executing_user_roles);
             }
 
-            $new_event->load(['eventType', 'serviceOrders.customer', 'executingUsers']);
+            $new_event->load([
+                'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+            ]);
             $new_events[] = $this->withUserRoles($new_event);
         }
 

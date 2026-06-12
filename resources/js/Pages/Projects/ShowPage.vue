@@ -23,6 +23,12 @@
                     <div class="col-span-12 md:col-span-10">
                         <EditableTextField v-model="form.description" type="textarea" class="w-full" />
                     </div>
+                    <div class="col-span-12 md:col-span-2 mt-2 sm:mt-0 text-slate-400">
+                        <span class="text-xs font-bold">Locatie</span>
+                    </div>
+                    <div class="col-span-12 md:col-span-10">
+                        <EditableTextField v-model="form.location" class="w-full" />
+                    </div>
                     <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                         <span class="text-xs font-bold">Klant</span>
                     </div>
@@ -386,6 +392,7 @@ const expandedDescriptions = reactive({})
 const form = useForm({
     title: props.project.title,
     description: props.project.description,
+    location: props.project.location ?? null,
     start_date: props.project.start_date?.substring(0, 10) ?? null,
     end_date: props.project.end_date?.substring(0, 10) ?? null,
     customer_id: props.project.customer_id,
@@ -401,7 +408,7 @@ function patchField(field, value) {
     })
 }
 
-['title', 'description', 'start_date', 'end_date', 'customer_id', 'project_manager_id'].forEach(field =>
+['title', 'description', 'location', 'start_date', 'end_date', 'customer_id', 'project_manager_id'].forEach(field =>
     watch(() => form[field], val => patchField(field, val))
 )
 watch(() => form.status, (val) => {

@@ -144,9 +144,9 @@
                                         </div>
 
                                         <!-- Address -->
-                                        <div v-if="resolveAddress(ev)"
+                                        <div v-if="ev.location"
                                             class="text-xs text-gray-500 dark:text-slate-400 leading-snug">
-                                            {{ resolveAddress(ev) }}
+                                            {{ ev.location }}
                                         </div>
 
                                         <!-- Description -->
@@ -430,15 +430,6 @@ function formatWbNumber(eventableId) {
     return `WB-${String(eventableId).padStart(4, '0')}`
 }
 
-function resolveAddress(ev) {
-    if (!ev.eventable_id) return null
-    const so = props.allServiceOrders.find(s => s.id === ev.eventable_id)
-    if (!so) return null
-    const customer = so.customer ?? null
-    if (!customer) return null
-    const parts = [customer.address, customer.city].filter(Boolean)
-    return parts.length ? parts.join(', ') : null
-}
 
 const roleById = computed(() =>
     Object.fromEntries(props.userRoles.map(r => [r.id, r]))

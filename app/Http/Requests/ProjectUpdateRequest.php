@@ -18,8 +18,9 @@ class ProjectUpdateRequest extends FormRequest
         return [
             'title'              => ['sometimes', 'string', 'max:255'],
             'description'        => ['nullable', 'string'],
+            'location'           => ['sometimes', 'nullable', 'string', 'max:255'],
             'start_date'         => ['nullable', 'date'],
-            'end_date'           => ['nullable', 'date'],
+            'end_date'           => ['nullable', 'date', 'after_or_equal:start_date'],
             'customer_id'        => ['sometimes', 'exists:customers,id'],
             'project_manager_id' => [
                 'sometimes',
