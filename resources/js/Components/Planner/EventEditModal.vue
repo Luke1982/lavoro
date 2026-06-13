@@ -402,6 +402,16 @@ const userDivergingTimes = ref(
     )
 )
 
+// Ensure entries exist for all initial IDs even when executing_users is absent (openCreate path)
+;(props.initial.executing_user_ids || []).forEach(id => {
+    const key = String(id)
+    if (userBreaktimes.value[key] === undefined) userBreaktimes.value[key] = 0
+    if (userRoleSelections.value[key] === undefined) userRoleSelections.value[key] = []
+    if (userDivergingTimes.value[key] === undefined) {
+        userDivergingTimes.value[key] = { has_diverging_times: false, startHour: '08', startMinute: '00', endHour: '09', endMinute: '00' }
+    }
+})
+
 const initialStatusId = computed(() =>
     props.eventStatusses.find(s => s.name === form.status)?.id || props.eventStatusses[0]?.id || ''
 )

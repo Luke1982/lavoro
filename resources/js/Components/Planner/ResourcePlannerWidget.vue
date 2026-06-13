@@ -938,8 +938,18 @@ function userHoursLabel(userId) {
     for (const ev of events.value) {
         if (!ev.executing_user_ids.includes(userId)) continue
         if (dayStart !== null && (ev.end <= dayStart || ev.start >= dayEnd)) continue
-        const userBreaktime = ev.executing_users?.find(u => u.id === userId)?.breaktime ?? 0
-        mins += Math.max(0, (ev.end - ev.start) / 60000 - userBreaktime)
+        const user = ev.executing_users?.find(u => u.id === userId)
+        const userBreaktime = user?.breaktime ?? 0
+        let evDurationMin
+        if (user?.has_diverging_times && user.diverging_start && user.diverging_end) {
+            const dateStr = dayjs(ev.start).format('YYYY-MM-DD')
+            const dStart = dayjs(`${dateStr} ${user.diverging_start.slice(0, 5)}`).valueOf()
+            const dEnd   = dayjs(`${dateStr} ${user.diverging_end.slice(0, 5)}`).valueOf()
+            evDurationMin = Math.max(0, (dEnd - dStart) / 60000)
+        } else {
+            evDurationMin = (ev.end - ev.start) / 60000
+        }
+        mins += Math.max(0, evDurationMin - userBreaktime)
     }
     const h = Math.floor(mins / 60)
     const m = Math.round(mins % 60)
