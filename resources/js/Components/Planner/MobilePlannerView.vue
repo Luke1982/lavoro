@@ -156,9 +156,9 @@
                                         </div>
 
                                         <!-- Coworkers + roles -->
-                                        <div v-if="resolveExecutingUsers(ev).some(u => u.roles.length)"
+                                        <div v-if="coworkersForEvent(ev).length > 0"
                                             class="mt-2 flex flex-col gap-1">
-                                            <div v-for="u in resolveExecutingUsers(ev)" :key="u.id"
+                                            <div v-for="u in coworkersForEvent(ev)" :key="u.id"
                                                 class="flex items-center gap-1.5 flex-wrap">
                                                 <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{
                                                     u.name }}</span>
@@ -459,6 +459,14 @@ function resolveExecutingUsers(ev) {
         const roles = (u.user_role_ids ?? []).map(id => roleById.value[id]).filter(Boolean)
         return { id: u.id, name: u.name, avatar: plannable?.avatar ?? null, roles }
     })
+}
+
+function coworkersForEvent(ev) {
+    const all = resolveExecutingUsers(ev)
+    if (selectedUserId.value === null) {
+        return all.filter(u => u.roles.length)
+    }
+    return all.filter(u => u.id !== selectedUserId.value)
 }
 
 // ── Tap-to-edit / create ─────────────────────────────────────────────────────
