@@ -29,22 +29,50 @@ trait HasExecutingUsers
         }
     }
 
-    public function syncSingleExecutingUser(int $user_id): void
-    {
-        $this->executingUsers()->detach();
-        $this->executingUsers()->attach($user_id, ['type' => 'executing']);
-    }
-
     public function syncExecutingUsers(
         array $user_ids,
         array $breaktimes = [],
         array $user_roles = [],
         array $diverging_times = []
     ): void {
-        $this->executingUsers()->detach();
+        $current_ids = $this->executingUsers()
+            ->pluck('users.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $new_ids = array_values(array_unique(array_map('intval', $user_ids)));
+
+        $to_remove = array_diff($current_ids, $new_ids);
+        $to_add    = array_diff($new_ids, $current_ids);
+        $to_keep   = array_intersect($current_ids, $new_ids);
+
+        if ($to_remove) {
+            $this->executingUsers()->detach(array_values($to_remove));
+        }
+
+        foreach ($to_keep as $uid) {
+            $update = [];
+
+            if (array_key_exists($uid, $breaktimes)) {
+                $update['breaktime'] = (int) $breaktimes[$uid];
+            }
+
+            if (array_key_exists($uid, $diverging_times)) {
+                $dt  = (array) $diverging_times[$uid];
+                $has = (bool) ($dt['has_diverging_times'] ?? false);
+                $update['has_diverging_times'] = $has;
+                $update['diverging_start']     = $has ? ($dt['diverging_start'] ?? null) : null;
+                $update['diverging_end']       = $has ? ($dt['diverging_end'] ?? null) : null;
+            }
+
+            if ($update) {
+                $this->executingUsers()->updateExistingPivot($uid, $update);
+            }
+        }
+
         $attach = [];
-        foreach (array_unique($user_ids) as $uid) {
-            $dt = $diverging_times[$uid] ?? $diverging_times[(string) $uid] ?? [];
+        foreach ($to_add as $uid) {
+            $dt  = $diverging_times[$uid] ?? [];
             $has = (bool) ($dt['has_diverging_times'] ?? false);
             $attach[$uid] = [
                 'type'                => 'executing',
@@ -54,9 +82,11 @@ trait HasExecutingUsers
                 'diverging_end'       => $has ? ($dt['diverging_end'] ?? null) : null,
             ];
         }
+
         if ($attach) {
             $this->executingUsers()->attach($attach);
         }
+
         $this->syncExecutingUserRoles($user_roles);
     }
 
@@ -66,14 +96,22 @@ trait HasExecutingUsers
             return;
         }
 
-        $userable_ids = DB::table('userables')
+        $userable_map = DB::table('userables')
             ->where('userable_type', $this->getMorphClass())
             ->where('userable_id', $this->getKey())
             ->where('type', 'executing')
             ->pluck('id', 'user_id');
 
+        if ($userable_map->isEmpty()) {
+            return;
+        }
+
+        DB::table('user_role_userable')
+            ->whereIn('userable_id', $userable_map->values()->all())
+            ->delete();
+
         $inserts = [];
-        foreach ($userable_ids as $user_id => $userable_id) {
+        foreach ($userable_map as $user_id => $userable_id) {
             $role_ids = $user_roles[$user_id] ?? $user_roles[(string) $user_id] ?? [];
             foreach (array_unique(array_map('intval', (array) $role_ids)) as $role_id) {
                 if ($role_id > 0) {
