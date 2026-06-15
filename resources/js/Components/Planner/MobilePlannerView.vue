@@ -340,8 +340,10 @@ useSwipe(rootEl, {
     },
 })
 
+const dayCount = ref(7)
 const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
+    dayCount,
     () => modalOpen.value || !rootEl.value?.offsetParent,
 )
 
