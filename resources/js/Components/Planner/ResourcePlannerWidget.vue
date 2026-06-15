@@ -120,8 +120,9 @@
             <!-- Scrollable body -->
             <div class="flex flex-1 min-h-0">
                 <!-- Resource sidebar -->
-                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto overscroll-contain relative"
-                    ref="sidebarScrollRef">
+                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-hidden relative"
+                    ref="sidebarScrollRef"
+                    @wheel.prevent="onSidebarWheel">
                     <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
                         style="width: 0; overflow: visible; z-index: 1;">
@@ -917,6 +918,10 @@ function onGridScroll(e) {
     if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = e.target.scrollTop
     if (gridHeaderRef.value) gridHeaderRef.value.scrollLeft = e.target.scrollLeft
     if (allDayBandRef.value) allDayBandRef.value.scrollLeft = e.target.scrollLeft
+}
+
+function onSidebarWheel(e) {
+    if (gridScrollRef.value) gridScrollRef.value.scrollBy({ top: e.deltaY, left: 0 })
 }
 
 async function fetchUnavailabilities() {
