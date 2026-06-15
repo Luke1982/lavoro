@@ -1,13 +1,14 @@
 <template>
     <div data-planner-event
-        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 overflow-hidden text-gray-900" :class="[
+        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900" :class="[
             isBeingDragged ? 'opacity-30' : '',
             isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60' : '',
         ]" :style="style" @pointerdown.stop="onPointerDown" @click.stop="$emit('click')"
         @contextmenu.prevent.stop="$emit('contextmenu', $event)">
         <VDropdown :triggers="popoverTriggers" :disabled="!isShort || isBeingDragged" :delay="{ show: 200, hide: 80 }"
             placement="top">
-            <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden"
+            <!-- Content sticks to the left visible grid edge (past the frozen sidebar) so it stays readable while scrolling horizontally. -->
+            <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden sticky left-64"
                 :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1">
                     <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />

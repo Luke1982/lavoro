@@ -8,9 +8,10 @@
     </div>
 
     <!-- Desktop (md and up) -->
-    <div class="hidden md:grid grid-cols-12 gap-x-3 p-3">
-        <div :class="showSidebar ? 'col-span-10' : 'col-span-12'">
-            <BoxComponent padding="p-0">
+    <!-- Viewport-bounded single row so the planner fills the screen and scrolls internally (one native scroll container). -->
+    <div class="hidden md:grid grid-cols-12 grid-rows-[minmax(0,1fr)] gap-x-3 p-3 h-screen overflow-hidden">
+        <div :class="[showSidebar ? 'col-span-10' : 'col-span-12', 'min-h-0']">
+            <BoxComponent padding="p-0" fill>
                 <ResourcePlannerWidget :event-types="eventTypes" :all-customers="allCustomers"
                     :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
@@ -20,7 +21,7 @@
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
-        <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3">
+        <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3 min-h-0 overflow-y-auto">
             <BoxComponent v-if="canPlan" padding="p-0">
                 <UnplannedServiceOrdersWidget :service-orders="unplanned" />
             </BoxComponent>

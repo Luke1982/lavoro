@@ -59,10 +59,36 @@
             </div>
         </div>
 
-        <div class="flex flex-col flex-1 min-h-0">
+        <!--
+            Single native scroll container with CSS sticky panes (no JS scroll sync).
+            Layout = two stacked rows inside one `overflow-auto` scroller:
+              • header row  → sticky top  (frozen while scrolling down)
+              • body row    → sidebar (sticky left) + time grid
+            The top-left corner and the sidebar are `sticky left-0`; the header is `sticky top-0`.
+            `w-max min-w-full` lets each row grow to its content width (so the grid scrolls
+            horizontally) while still filling the viewport when it is wider than the content.
+            `[overscroll-behavior:contain]` stops wheel deltas from chaining out (kills the
+            old "scroll buffer" feel) and lets native drag-to-edge auto-scroll do its job.
+        -->
+        <div class="flex-1 min-h-0 overflow-auto relative [overscroll-behavior:contain]" ref="gridScrollRef"
+            @dragleave="onGridDragLeave">
+            <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
+                leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+                <div v-if="eventsLoading"
+                    class="absolute inset-0 z-50 flex items-start justify-center pt-16 pointer-events-none">
+                    <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full px-4 py-2 shadow text-xs text-gray-500 dark:text-slate-400">
+                        <svg class="animate-spin size-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        Laden…
+                    </div>
+                </div>
+            </Transition>
+
             <!-- Sticky header row: sidebar label + day/time bars -->
-            <div class="sticky top-0 z-20 flex shrink-0 bg-white dark:bg-slate-900">
-                <div class="w-64 shrink-0 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
+            <div class="sticky top-0 z-30 flex w-max min-w-full">
+                <div class="sticky left-0 z-10 w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
                     :style="{ height: headerHeight + 'px' }">
                     <!-- Group filter -->
                     <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
@@ -91,7 +117,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-hidden" ref="gridHeaderRef">
+                <div class="flex-1 bg-white dark:bg-slate-900" :style="{ minWidth: gridMinWidth + 'px' }">
                     <div class="grid border-b border-gray-200 dark:border-slate-800"
                         :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
                         <div v-for="day in weekDays" :key="'dh-' + day.iso"
@@ -117,11 +143,10 @@
                 </div>
             </div>
 
-            <!-- Scrollable body -->
-            <div class="flex flex-1 min-h-0">
-                <!-- Resource sidebar -->
-                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
-                    ref="sidebarScrollRef">
+            <!-- Body row: frozen resource sidebar + scrolling time grid -->
+            <div class="flex w-max min-w-full">
+                <!-- Resource sidebar (frozen left via sticky) -->
+                <div class="sticky left-0 z-20 w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
                         style="width: 0; overflow: visible; z-index: 1;">
@@ -191,32 +216,13 @@
                     </div>
                 </div>
 
-                <!-- Time grid -->
-                <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
-                    @dragleave="onGridDragLeave">
-                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
-                        leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
-                        <div v-if="eventsLoading"
-                            class="absolute inset-0 z-50 flex items-start justify-center pt-16 pointer-events-none">
-                            <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full px-4 py-2 shadow text-xs text-gray-500 dark:text-slate-400">
-                                <svg class="animate-spin size-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                </svg>
-                                Laden…
-                            </div>
-                        </div>
-                    </Transition>
-                    <!-- Body rows -->
-                    <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
+                <!-- Time grid (scrolls with the header; bodyRef is the positioning context for overlays) -->
+                <div class="flex-1 relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                         <!-- All-day project band -->
-                        <div v-if="showProjects && allDayLaneHeight" ref="allDayBandRef"
-                            class="border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-y-auto overflow-x-hidden' : 'relative'"
-                            :style="allDayState === 'partial'
-                                ? { height: allDayLaneHeight + 'px', width: (gridViewportWidth || gridMinWidth) + 'px' }
-                                : { height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Scroll content: full project stack; the band clips and scrolls (vertical) / syncs (horizontal) when partial. -->
+                        <div v-if="showProjects && allDayLaneHeight"
+                            class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                            :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                            <!-- Full project stack; scrolls with the grid (labels/hanging-SOs stay sticky to the left edge). -->
                             <div class="relative"
                                 :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
                                 <!-- Day gridlines -->
@@ -231,7 +237,8 @@
                                     <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
                                         :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
                                         :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
-                                        <div class="sticky left-0 inline-block max-w-full px-2 py-1">
+                                        <!-- Label sticks to the left visible grid edge (just past the frozen sidebar) while scrolling horizontally. -->
+                                        <div class="sticky left-64 inline-block max-w-full px-2 py-1">
                                             <div
                                                 class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
                                                 {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
@@ -248,8 +255,8 @@
                                     <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
                                     <div v-if="track.serviceOrders.length" class="absolute"
                                         :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.hangingTop + 'px' }">
-                                        <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
-                                        <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
+                                        <!-- The whole group sticks under its project's visible portion while scrolling horizontally. -->
+                                        <div class="sticky left-64 inline-flex flex-wrap content-start gap-1"
                                             :style="{ maxWidth: '100%' }">
                                             <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
                                                 draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
@@ -358,7 +365,6 @@
                             <div v-if="dragGhost.userName" class="text-[10px] opacity-75">→ {{ dragGhost.userName }}
                             </div>
                         </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -527,12 +533,8 @@ const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFing
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
 
-const sidebarScrollRef = ref(null)
 const gridScrollRef = ref(null)
-const gridHeaderRef = ref(null)
 const bodyRef = ref(null)
-const allDayBandRef = ref(null)
-const gridViewportWidth = ref(0)
 
 const modalOpen = ref(false)
 const editingExistingEvent = ref(false)
@@ -574,9 +576,11 @@ const TRACK_TOP_PAD = 6
 const TRACK_BOTTOM_PAD = 10
 const COLLAPSED_LANE_H = 32 // all-day lane height when collapsed
 const COLLAPSED_ROW_H = 40 // resource row height when collapsed
-const PROJECTS_VISIBLE_COUNT = 3 // projects shown before the band starts scrolling
+const PROJECTS_VISIBLE_COUNT = 3 // projects rendered in the 'partial' state
 
-// All-day project band visibility: 'closed' (just the header), 'partial' (≈3 projects, scrolls) or 'full' (all projects).
+// All-day project band visibility: 'closed' (just the header), 'partial' (first few projects) or 'full' (all projects).
+// 'partial' simply renders fewer projects (no inner scroll) so the band stays part of the single native
+// scroll and the project labels / hanging service-orders keep their native horizontal stickiness.
 const allDayState = ref('partial')
 const collapsedUsers = ref(new Set())
 const mapExpandedUsers = ref(new Set())
@@ -647,11 +651,15 @@ const allDayLaneHeight = computed(() => {
     return allDay.value.height
 })
 
-// Tracks to actually render (none while the band is closed; the band itself scrolls when partial).
-const visibleTracks = computed(() => (allDayState.value === 'closed' ? [] : allDay.value.tracks))
+// Tracks to actually render: none when closed, the first few when partial, all when full.
+const visibleTracks = computed(() => {
+    if (allDayState.value === 'closed') return []
+    if (allDayState.value === 'partial') return allDay.value.tracks.slice(0, PROJECTS_VISIBLE_COUNT)
+    return allDay.value.tracks
+})
 
-// Inner scroll-content height: the full stack of projects unless the band is closed.
-const allDayContentHeight = computed(() => (allDayState.value === 'closed' ? 0 : allDay.value.height))
+// Inner content height matches the rendered tracks (no inner scrolling).
+const allDayContentHeight = computed(() => (allDayState.value === 'closed' ? 0 : allDayLaneHeight.value))
 
 const lockedGroupOverlays = computed(() => {
     const totalMin = (dayEndHour.value - dayStartHour.value) * 60
@@ -831,31 +839,17 @@ function updateNow() {
 }
 
 let nowInterval = null
-let gridResizeObserver = null
 onMounted(() => {
     updateNow()
     nowInterval = setInterval(updateNow, 60_000)
     fetchEvents()
     nextTick(() => scrollToWorkdayStart())
     startPolling()
-    if (gridScrollRef.value) {
-        gridViewportWidth.value = gridScrollRef.value.clientWidth
-        gridResizeObserver = new ResizeObserver(() => {
-            if (gridScrollRef.value) gridViewportWidth.value = gridScrollRef.value.clientWidth
-        })
-        gridResizeObserver.observe(gridScrollRef.value)
-    }
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
     stopPolling()
-    if (gridResizeObserver) gridResizeObserver.disconnect()
 })
-
-// Keep the pinned projects band's horizontal offset in step with the grid when its layout changes.
-watch(allDayState, () => nextTick(() => {
-    if (allDayBandRef.value && gridScrollRef.value) allDayBandRef.value.scrollLeft = gridScrollRef.value.scrollLeft
-}))
 
 watch([dayStartHour, dayEndHour], () => updateNow())
 watch(weekStart, (val) => {
@@ -907,13 +901,6 @@ function scrollToWorkdayStart() {
     if (!grid) return
     grid.scrollLeft = 0
 }
-
-function onGridScroll(e) {
-    if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = e.target.scrollTop
-    if (gridHeaderRef.value) gridHeaderRef.value.scrollLeft = e.target.scrollLeft
-    if (allDayBandRef.value) allDayBandRef.value.scrollLeft = e.target.scrollLeft
-}
-
 
 function userUnavailabilitiesFor(userId) {
     return props.plannableUsers.find(u => u.id === userId)?.unavailabilities ?? []
