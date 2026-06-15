@@ -30,6 +30,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'signature_base64' => 'nullable|string',
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
+            'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
         ];
 
         if (! $this->user()->can('update', $this->route('serviceorder'))) {
@@ -40,8 +41,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'customer_id' => 'required|exists:customers,id',
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
-            'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
-            'type' => 'nullable|in:'.implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
+            'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
         ]);
     }
 
@@ -49,11 +49,26 @@ class ServiceOrderUpdateRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
-            if (! $new_stage?->is_closed_state) {
+
+            if (! $new_stage) {
                 return;
             }
 
             $serviceorder = $this->route('serviceorder');
+
+            if (! $this->user()->can('updateStage', [$serviceorder, $new_stage])) {
+                $validator->errors()->add(
+                    'service_order_stage_id',
+                    'Je hebt geen toestemming om de werkbon naar deze fase te verplaatsen.'
+                );
+
+                return;
+            }
+
+            if (! $new_stage->is_closed_state) {
+                return;
+            }
+
             $incomplete = $serviceorder->taskInstances()->where('is_complete', false)->count();
             if ($incomplete > 0) {
                 $validator->errors()->add(
