@@ -1,5 +1,5 @@
 {
-  "apiKeyHelper": "bash -c 'source .env && echo $ANTHROPIC_API_KEY'",
+  // "apiKeyHelper": "bash -c 'source .env && echo $ANTHROPIC_API_KEY'",
   "permissions": {
     "allow": [
       "Read(//home/guido/.claude/**)",

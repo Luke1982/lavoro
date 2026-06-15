@@ -56,6 +56,10 @@ class ServiceOrderUpdateRequest extends FormRequest
 
             $serviceorder = $this->route('serviceorder');
 
+            if ($new_stage->id === $serviceorder->service_order_stage_id) {
+                return;
+            }
+
             if (! $this->user()->can('updateStage', [$serviceorder, $new_stage])) {
                 $validator->errors()->add(
                     'service_order_stage_id',
