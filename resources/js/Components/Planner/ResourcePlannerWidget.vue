@@ -259,10 +259,10 @@
                         <!-- Locked-event group overlays -->
                         <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
                             class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
-                                top: ov.top - 6 + 'px',
-                                height: ov.height + 12 + 'px',
-                                left: `calc(${ov.leftPct}%  - 5px)`,
-                                width: `calc(${ov.widthPct}% + 11px)`,
+                                top: (ov.top - 5 - ov.nestingLevel * 5) + 'px',
+                                height: (ov.height + 10 + ov.nestingLevel * 10) + 'px',
+                                left: `calc(${ov.leftPct}% - ${5 + ov.nestingLevel * 5}px)`,
+                                width: `calc(${ov.widthPct}% + ${10 + ov.nestingLevel * 10}px)`,
                                 borderColor: ov.color,
                                 opacity: 0.5,
                             }" />
@@ -314,7 +314,9 @@
                                     :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
                                     :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
                                     :is-locked="ev.executing_user_ids.length > 1"
-                                    :is-being-dragged="drag.eventId === ev.id" @click="handleEventClick(ev)"
+                                    :is-being-dragged="drag.eventId === ev.id"
+                                    :user-roles="userRoles"
+                                    @click="handleEventClick(ev)"
                                     @contextmenu="onEventContextMenu($event, ev)"
                                     @pointerdown-on-event="onEventPointerDown($event, ev, user)"
                                     @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
@@ -577,7 +579,12 @@ const allDay = computed(() => {
     const weekEnd = ws.add(dayCount, 'day') // exclusive: start of the day after the period
     const tracks = []
     let top = TRACK_TOP_PAD
-    for (const p of props.projects) {
+    const sortedProjects = [...props.projects].sort((a, b) => {
+        const aHas = (a.service_orders?.length ?? 0) > 0 ? 0 : 1
+        const bHas = (b.service_orders?.length ?? 0) > 0 ? 0 : 1
+        return aHas - bHas
+    })
+    for (const p of sortedProjects) {
         if (!p.start_date || !p.end_date) continue
         const start = dayjs(p.start_date).startOf('day')
         const endExclusive = dayjs(p.end_date).startOf('day').add(1, 'day') // through end of end_date (23:59)
@@ -644,7 +651,7 @@ const lockedGroupOverlays = computed(() => {
         return t
     })
 
-    return events.value
+    const raw = events.value
         .filter(ev => ev.executing_user_ids.length > 1)
         .map(ev => {
             const evDayIso = formatLocalDateAsISO(ev.start)
@@ -688,9 +695,27 @@ const lockedGroupOverlays = computed(() => {
                 height: overlayHeight - topPad - bottomPad,
                 leftPct: (dayIdx + startOffsetMin / totalMin) / days.length * 100,
                 widthPct: (endOffsetMin - startOffsetMin) / totalMin / days.length * 100,
+                nestingLevel: 0,
             }
         })
         .filter(Boolean)
+
+    // Smallest-height overlay = innermost (level 0); larger ones nest outward
+    for (const ov of raw) {
+        const spatiallyOverlapping = raw.filter(other =>
+            other !== ov &&
+            other.leftPct < ov.leftPct + ov.widthPct &&
+            other.leftPct + other.widthPct > ov.leftPct &&
+            other.top < ov.top + ov.height &&
+            other.top + other.height > ov.top
+        )
+        ov.nestingLevel = spatiallyOverlapping.filter(other =>
+            other.height < ov.height ||
+            (other.height === ov.height && other.id < ov.id)
+        ).length
+    }
+
+    return raw
 })
 
 function toggleAllDay() {
@@ -825,6 +850,7 @@ watch(weekStart, (val) => {
     fetchEvents()
     fetchUnavailabilities()
 })
+watch(plannerView, () => fetchUnavailabilities())
 
 function shiftPeriod(direction) {
     const days = plannerView.value === 'day' ? 1 : 7
@@ -874,9 +900,8 @@ function onGridScroll(e) {
 
 async function fetchUnavailabilities() {
     try {
-        const dayCount = plannerView.value === 'day' ? 1 : 7
         const startParam = formatUtcDatetime(weekStart.value)
-        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(dayCount, 'day').toDate())
+        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
         const response = await axios.get(
             `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )

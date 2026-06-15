@@ -137,6 +137,16 @@
                                             </div>
                                         </div>
 
+                                        <!-- Current user's roles -->
+                                        <div v-if="currentUserRoles(ev).length"
+                                            class="mt-1 flex flex-wrap gap-1">
+                                            <span v-for="role in currentUserRoles(ev)" :key="role.id"
+                                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                                                :style="{ backgroundColor: role.color }">
+                                                {{ role.name }}
+                                            </span>
+                                        </div>
+
                                         <!-- Customer name -->
                                         <div v-if="ev.customer_name"
                                             class="text-xs text-gray-600 dark:text-slate-400 mt-1 leading-snug">
@@ -467,6 +477,13 @@ function coworkersForEvent(ev) {
         return all.filter(u => u.roles.length)
     }
     return all.filter(u => u.id !== selectedUserId.value)
+}
+
+function currentUserRoles(ev) {
+    if (selectedUserId.value === null) return []
+    const user = ev.executing_users?.find(u => u.id === selectedUserId.value)
+    if (!user?.user_role_ids?.length) return []
+    return user.user_role_ids.map(id => roleById.value[id]).filter(Boolean)
 }
 
 // ── Tap-to-edit / create ─────────────────────────────────────────────────────
