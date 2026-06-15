@@ -514,8 +514,6 @@ function loadStoredView() {
     return v === 'day' ? 'day' : 'week'
 }
 
-const unavailabilities = ref([])
-let unavailabilitiesSeq = 0
 const weekStart = ref(loadStoredWeekStart())
 const plannerView = ref(loadStoredView())
 const selectedGroupIds = ref([])
@@ -838,7 +836,6 @@ onMounted(() => {
     updateNow()
     nowInterval = setInterval(updateNow, 60_000)
     fetchEvents()
-    fetchUnavailabilities()
     nextTick(() => scrollToWorkdayStart())
     startPolling()
     if (gridScrollRef.value) {
@@ -865,12 +862,10 @@ watch(weekStart, (val) => {
     localStorage.setItem(WEEK_STORAGE_KEY, dayjs(val).format('YYYY-MM-DD'))
     resetFingerprint()
     fetchEvents()
-    fetchUnavailabilities()
 })
 watch(plannerView, () => {
     resetFingerprint()
     fetchEvents()
-    fetchUnavailabilities()
 })
 
 function shiftPeriod(direction) {
@@ -920,44 +915,50 @@ function onGridScroll(e) {
 }
 
 
-async function fetchUnavailabilities() {
-    const seq = ++unavailabilitiesSeq
-    const start = formatLocalDateAsISO(weekStart.value)
-    const end = dayjs(weekStart.value).add(viewDayCount.value, 'day').format('YYYY-MM-DD')
-    try {
-        const response = await axios.get(`/api/unavailabilities?start=${start}&end=${end}`)
-        if (seq !== unavailabilitiesSeq) return
-        if (response.status === 200) {
-            unavailabilities.value = response.data
-        }
-    } catch (e) {
-        console.error('Failed to fetch unavailabilities', e)
+function userUnavailabilitiesFor(userId) {
+    return props.plannableUsers.find(u => u.id === userId)?.unavailabilities ?? []
+}
+
+function unavailabilityMatchesDay(unav, dayIso) {
+    if (unav.type === 'holiday') {
+        const end = unav.end_date ?? unav.date
+        return dayIso >= unav.date && dayIso <= end
     }
+    if (unav.type === 'recurring') {
+        // dayjs: 0=Sun,1=Mon..6=Sat → convert to 0=Mon..6=Sun
+        const dow = (dayjs(dayIso).day() + 6) % 7
+        if (dow !== unav.day_of_week) return false
+        if (unav.repeat === 'biweekly' && unav.reference_date) {
+            const weeksDiff = Math.abs(dayjs(unav.reference_date).startOf('isoWeek').diff(dayjs(dayIso).startOf('isoWeek'), 'week'))
+            return weeksDiff % 2 === 0
+        }
+        return true
+    }
+    return false
 }
 
 function isBlockedAtTime(userId, dayIso, startMin, endMin) {
-    // startMin/endMin are relative to dayStartHour; convert to absolute minutes from midnight
     const absStart = startMin + dayStartHour.value * 60
     const absEnd = endMin + dayStartHour.value * 60
-    return unavailabilities.value.some(b => {
-        if (b.user_id !== userId || b.date !== dayIso) return false
-        if (b.start_time === null) return true // full day holiday
-        const [sh, sm] = b.start_time.split(':').map(Number)
-        const [eh, em] = b.end_time.split(':').map(Number)
+    return userUnavailabilitiesFor(userId).some(unav => {
+        if (!unavailabilityMatchesDay(unav, dayIso)) return false
+        if (unav.start_time === null) return true
+        const [sh, sm] = unav.start_time.split(':').map(Number)
+        const [eh, em] = unav.end_time.split(':').map(Number)
         return absStart < eh * 60 + em && absEnd > sh * 60 + sm
     })
 }
 
 function getBlockOverlays(userId, dayIso) {
     const totalMin = (dayEndHour.value - dayStartHour.value) * 60
-    return unavailabilities.value
-        .filter(b => b.user_id === userId && b.date === dayIso)
-        .map(b => {
-            if (b.start_time === null) {
-                return { left: 0, width: 100, label: b.label }
+    return userUnavailabilitiesFor(userId)
+        .filter(unav => unavailabilityMatchesDay(unav, dayIso))
+        .map(unav => {
+            if (unav.start_time === null) {
+                return { left: 0, width: 100, label: unav.label }
             }
-            const [sh, sm] = b.start_time.split(':').map(Number)
-            const [eh, em] = b.end_time.split(':').map(Number)
+            const [sh, sm] = unav.start_time.split(':').map(Number)
+            const [eh, em] = unav.end_time.split(':').map(Number)
             const offsetStart = sh * 60 + sm - dayStartHour.value * 60
             const offsetEnd = eh * 60 + em - dayStartHour.value * 60
             const clampedStart = Math.max(0, offsetStart)
@@ -965,7 +966,7 @@ function getBlockOverlays(userId, dayIso) {
             return {
                 left: (clampedStart / totalMin) * 100,
                 width: Math.max(0, ((clampedEnd - clampedStart) / totalMin) * 100),
-                label: b.label,
+                label: unav.label,
             }
         })
 }

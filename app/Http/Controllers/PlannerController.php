@@ -74,7 +74,7 @@ class PlannerController extends Controller
             'allUsers' => User::select('id', 'name')->get(),
             'plannableUsers' => User::where('plannable', true)
                 ->select('id', 'name')
-                ->with('planGroups:id')
+                ->with(['planGroups:id', 'unavailabilities'])
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => [
@@ -82,6 +82,17 @@ class PlannerController extends Controller
                     'name' => $u->name,
                     'avatar' => $u->avatar,
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
+                    'unavailabilities' => $u->unavailabilities->map(fn ($unav) => [
+                        'type'           => $unav->type,
+                        'label'          => $unav->label,
+                        'date'           => $unav->date?->toDateString(),
+                        'end_date'       => $unav->end_date?->toDateString(),
+                        'day_of_week'    => $unav->day_of_week,
+                        'start_time'     => $unav->start_time,
+                        'end_time'       => $unav->end_time,
+                        'repeat'         => $unav->repeat,
+                        'reference_date' => $unav->reference_date?->toDateString(),
+                    ])->values()->all(),
                 ]),
             'allPlanUsers' => User::select('id', 'name', 'plannable')
                 ->with('planGroups:id')

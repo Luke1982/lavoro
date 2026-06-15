@@ -193,8 +193,8 @@ function destroy(id) {
                 <div v-for="entry in holidayEntries" :key="entry.id"
                      class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
                     <span>
-                        {{ entry.date }}
-                        <span v-if="entry.end_date && entry.end_date !== entry.date"> – {{ entry.end_date }}</span>
+                        {{ entry.date?.slice(0, 10) }}
+                        <span v-if="entry.end_date && entry.end_date !== entry.date"> – {{ entry.end_date?.slice(0, 10) }}</span>
                         <span v-if="entry.label" class="text-gray-400 ml-1">— {{ entry.label }}</span>
                     </span>
                     <button type="button" @click="destroy(entry.id)"
