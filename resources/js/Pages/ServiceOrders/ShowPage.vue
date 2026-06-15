@@ -314,7 +314,7 @@
                                             `${serviceOrder.is_closed ? `Bon gesloten, je kunt geen aankomsttijd
                                             invoeren` : `Klik hier om een aankomsttijd in te voeren`
                                             }`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -328,7 +328,7 @@
                                             `${serviceOrder.is_closed ? `Bon gesloten, je kunt geen vertrektijd
                                             invoeren` : `Klik hier om een vertrektijd in te voeren`
                                             }`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -340,7 +340,7 @@
                                         <span class="text-xs">{{
                                             serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
                                             in te voeren`
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </EditableTextField>
                             </div>
@@ -540,14 +540,14 @@
                     :needs-box="true" />
                 <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
                     newTicketForm.errors.asset_id
-                }}</p>
+                    }}</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
-                }}
+                    }}
                 </p>
             </div>
             <div>
