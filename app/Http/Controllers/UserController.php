@@ -65,8 +65,9 @@ class UserController extends Controller
             unset($data['password']);
         }
         $user->update($data);
-        $role_ids = $data['role_ids'] ?? [];
-        $user->roles()->sync($role_ids);
+        if (array_key_exists('role_ids', $data)) {
+            $user->roles()->sync($data['role_ids']);
+        }
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
         return redirect()->route('users.index')->with('success', 'Gebruiker bijgewerkt');
     }
