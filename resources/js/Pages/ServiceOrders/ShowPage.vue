@@ -766,7 +766,7 @@ function reopenViaStage() {
 }
 
 function onStageChange(stage_id) {
-    if (!hasPermission('serviceorder.update')) {
+    if (!hasPermission('serviceorder.update') && !hasPermission('serviceorder.close')) {
         usePage().props.flash.error = 'Je hebt geen toestemming om de werkbon status te wijzigen.';
         return;
     }
