@@ -194,16 +194,29 @@
                 <!-- Time grid -->
                 <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
                     @dragleave="onGridDragLeave">
+                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
+                        leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+                        <div v-if="eventsLoading"
+                            class="absolute inset-0 z-50 flex items-start justify-center pt-16 pointer-events-none">
+                            <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full px-4 py-2 shadow text-xs text-gray-500 dark:text-slate-400">
+                                <svg class="animate-spin size-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                </svg>
+                                Laden…
+                            </div>
+                        </div>
+                    </Transition>
                     <!-- Body rows -->
                     <div class="relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                         <!-- All-day project band -->
                         <div v-if="showProjects && allDayLaneHeight" ref="allDayBandRef"
                             class="border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-y-auto overflow-x-hidden' : 'relative'"
+                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-hidden' : 'relative'"
                             :style="allDayState === 'partial'
                                 ? { height: allDayLaneHeight + 'px', width: (gridViewportWidth || gridMinWidth) + 'px' }
                                 : { height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Scroll content: full project stack; the band clips and scrolls (vertical) / syncs (horizontal) when partial. -->
+                            <!-- Full project stack; band clips to partialLaneHeight in partial mode and syncs horizontal scroll with the grid. -->
                             <div class="relative"
                                 :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
                                 <!-- Day gridlines -->
@@ -502,13 +515,14 @@ function loadStoredView() {
 }
 
 const unavailabilities = ref([])
+let unavailabilitiesSeq = 0
 const weekStart = ref(loadStoredWeekStart())
 const plannerView = ref(loadStoredView())
 const selectedGroupIds = ref([])
 
 const rootEl = ref(null)
 
-const { events, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
+const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
@@ -850,7 +864,10 @@ watch(weekStart, (val) => {
     fetchEvents()
     fetchUnavailabilities()
 })
-watch(plannerView, () => fetchUnavailabilities())
+watch(plannerView, () => {
+    fetchEvents()
+    fetchUnavailabilities()
+})
 
 function shiftPeriod(direction) {
     const days = plannerView.value === 'day' ? 1 : 7
@@ -899,12 +916,15 @@ function onGridScroll(e) {
 }
 
 async function fetchUnavailabilities() {
+    const seq = ++unavailabilitiesSeq
     try {
+        const dayCount = plannerView.value === 'day' ? 1 : 7
         const startParam = formatUtcDatetime(weekStart.value)
-        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(7, 'day').toDate())
+        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(dayCount, 'day').toDate())
         const response = await axios.get(
             `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
         )
+        if (seq !== unavailabilitiesSeq) return
         if (response.status === 200) {
             unavailabilities.value = response.data
         }

@@ -61,6 +61,7 @@ function mapEvent(ev) {
  */
 export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
     const events = ref([]);
+    const eventsLoading = ref(false);
 
     let fetchInFlight = false;
     let lastEventsFingerprint = null;
@@ -69,6 +70,7 @@ export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
     async function fetchEvents({ silent = false } = {}) {
         if (fetchInFlight) return;
         fetchInFlight = true;
+        if (!silent) eventsLoading.value = true;
         try {
             const startParam = formatUtcDatetime(weekStart.value);
             const endParam = formatUtcDatetime(
@@ -88,6 +90,7 @@ export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
             if (!silent) console.error("Failed to fetch events for planner", e);
         } finally {
             fetchInFlight = false;
+            if (!silent) eventsLoading.value = false;
         }
     }
 
@@ -114,5 +117,5 @@ export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
         lastEventsFingerprint = null;
     }
 
-    return { events, fetchEvents, startPolling, stopPolling, resetFingerprint };
+    return { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint };
 }
