@@ -55,11 +55,7 @@ function mapEvent(ev) {
     };
 }
 
-/**
- * @param {import('vue').Ref} weekStart - reactive ref holding the week's Monday date
- * @param {() => boolean} shouldSkipPoll - return true to suppress a silent poll tick
- */
-export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
+export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => false) {
     const events = ref([]);
     const eventsLoading = ref(false);
 
@@ -74,7 +70,7 @@ export function usePlannerEvents(weekStart, shouldSkipPoll = () => false) {
         try {
             const startParam = formatUtcDatetime(weekStart.value);
             const endParam = formatUtcDatetime(
-                dayjs(weekStart.value).add(7, "day").toDate()
+                dayjs(weekStart.value).add(dayCount.value, "day").toDate()
             );
             const response = await axios.get(
                 `/api/events?start=${encodeURIComponent(

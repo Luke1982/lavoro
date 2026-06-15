@@ -120,7 +120,7 @@
             <!-- Scrollable body -->
             <div class="flex flex-1 min-h-0">
                 <!-- Resource sidebar -->
-                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
+                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto overscroll-contain relative"
                     ref="sidebarScrollRef">
                     <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
@@ -192,7 +192,7 @@
                 </div>
 
                 <!-- Time grid -->
-                <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
+                <div class="flex-1 overflow-auto overscroll-contain relative" ref="gridScrollRef" @scroll="onGridScroll"
                     @dragleave="onGridDragLeave">
                     <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
                         leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
@@ -229,7 +229,7 @@
                                 <template v-for="track in visibleTracks" :key="'track-' + track.id">
                                     <!-- Project bar (background spans full range; label sticks to the viewport) -->
                                     <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
-                                        :style="{ left: track.left + 'px', width: track.width + 'px', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
+                                        :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
                                         :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
                                         <div class="sticky left-0 inline-block max-w-full px-2 py-1">
                                             <div
@@ -247,10 +247,10 @@
 
                                     <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
                                     <div v-if="track.serviceOrders.length" class="absolute"
-                                        :style="{ left: track.left + 'px', width: track.width + 'px', top: track.hangingTop + 'px' }">
+                                        :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.hangingTop + 'px' }">
                                         <!-- inline-flex shrinks to content so it has slack to stick left; capped at the project width so wrapping matches the reserved height -->
                                         <div class="sticky left-0 inline-flex flex-wrap content-start gap-1"
-                                            :style="{ maxWidth: track.width + 'px' }">
+                                            :style="{ maxWidth: '100%' }">
                                             <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
                                                 draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
                                                 @dragend="onProjectServiceOrderDragEnd"
@@ -522,8 +522,10 @@ const selectedGroupIds = ref([])
 
 const rootEl = ref(null)
 
+const viewDayCount = computed(() => plannerView.value === 'day' ? 1 : 7)
 const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
+    viewDayCount,
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
 
@@ -607,10 +609,11 @@ const allDay = computed(() => {
         const visibleEnd = endExclusive.isBefore(weekEnd) ? endExclusive : weekEnd
         const startDay = Math.round(visibleStart.diff(ws, 'day', true))
         const endDayExclusive = Math.round(visibleEnd.diff(ws, 'day', true))
-        const width = (endDayExclusive - startDay) * dayWidthPx.value
+        const leftPct = (startDay / dayCount) * 100
+        const widthPct = ((endDayExclusive - startDay) / dayCount) * 100
+        const pixelWidth = (endDayExclusive - startDay) * dayWidthPx.value
         const serviceOrders = p.service_orders || []
-        // Hanging cards sit side by side and wrap within the project width.
-        const perRow = Math.max(1, Math.floor((width + SO_GAP) / (SO_CARD_W + SO_GAP)))
+        const perRow = Math.max(1, Math.floor((pixelWidth + SO_GAP) / (SO_CARD_W + SO_GAP)))
         const rows = serviceOrders.length ? Math.ceil(serviceOrders.length / perRow) : 0
         const hangingHeight = rows ? rows * (SO_CARD_H + SO_GAP) + SO_GAP : 0
         tracks.push({
@@ -618,8 +621,8 @@ const allDay = computed(() => {
             project: p,
             title: p.title || `Project #${p.id}`,
             customerName: p.customer?.name || '',
-            left: startDay * dayWidthPx.value,
-            width,
+            leftPct,
+            widthPct,
             top,
             hangingTop: top + PROJECT_BAR_H,
             serviceOrders,
@@ -865,6 +868,7 @@ watch(weekStart, (val) => {
     fetchUnavailabilities()
 })
 watch(plannerView, () => {
+    resetFingerprint()
     fetchEvents()
     fetchUnavailabilities()
 })
@@ -917,13 +921,10 @@ function onGridScroll(e) {
 
 async function fetchUnavailabilities() {
     const seq = ++unavailabilitiesSeq
+    const start = formatLocalDateAsISO(weekStart.value)
+    const end = dayjs(weekStart.value).add(viewDayCount.value, 'day').format('YYYY-MM-DD')
     try {
-        const dayCount = plannerView.value === 'day' ? 1 : 7
-        const startParam = formatUtcDatetime(weekStart.value)
-        const endParam = formatUtcDatetime(dayjs(weekStart.value).add(dayCount, 'day').toDate())
-        const response = await axios.get(
-            `/api/unavailabilities?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}`
-        )
+        const response = await axios.get(`/api/unavailabilities?start=${start}&end=${end}`)
         if (seq !== unavailabilitiesSeq) return
         if (response.status === 200) {
             unavailabilities.value = response.data
