@@ -120,9 +120,8 @@
             <!-- Scrollable body -->
             <div class="flex flex-1 min-h-0">
                 <!-- Resource sidebar -->
-                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-hidden relative"
-                    ref="sidebarScrollRef"
-                    @wheel.prevent="onSidebarWheel">
+                <div class="w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 overflow-y-auto relative"
+                    ref="sidebarScrollRef">
                     <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                     <div class="absolute top-0 left-0 pointer-events-none"
                         style="width: 0; overflow: visible; z-index: 1;">
@@ -193,7 +192,7 @@
                 </div>
 
                 <!-- Time grid -->
-                <div class="flex-1 overflow-auto overscroll-contain relative" ref="gridScrollRef" @scroll="onGridScroll"
+                <div class="flex-1 overflow-auto relative" ref="gridScrollRef" @scroll="onGridScroll"
                     @dragleave="onGridDragLeave">
                     <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
                         leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
@@ -213,11 +212,11 @@
                         <!-- All-day project band -->
                         <div v-if="showProjects && allDayLaneHeight" ref="allDayBandRef"
                             class="border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-hidden' : 'relative'"
+                            :class="allDayState === 'partial' ? 'sticky left-0 z-10 overflow-y-auto overflow-x-hidden' : 'relative'"
                             :style="allDayState === 'partial'
                                 ? { height: allDayLaneHeight + 'px', width: (gridViewportWidth || gridMinWidth) + 'px' }
                                 : { height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Full project stack; band clips to partialLaneHeight in partial mode and syncs horizontal scroll with the grid. -->
+                            <!-- Scroll content: full project stack; the band clips and scrolls (vertical) / syncs (horizontal) when partial. -->
                             <div class="relative"
                                 :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
                                 <!-- Day gridlines -->
@@ -920,9 +919,6 @@ function onGridScroll(e) {
     if (allDayBandRef.value) allDayBandRef.value.scrollLeft = e.target.scrollLeft
 }
 
-function onSidebarWheel(e) {
-    if (gridScrollRef.value) gridScrollRef.value.scrollBy({ top: e.deltaY, left: 0 })
-}
 
 async function fetchUnavailabilities() {
     const seq = ++unavailabilitiesSeq
