@@ -111,15 +111,19 @@ async function renderPage(pdf, pageNum) {
 
     const containerWidth = canvas.parentElement?.clientWidth ?? window.innerWidth - 16
     const baseViewport = page.getViewport({ scale: 1 })
-    const scale = Math.min(containerWidth / baseViewport.width, 2)
-    const viewport = page.getViewport({ scale })
+    const cssScale = Math.min(containerWidth / baseViewport.width, 2)
+    const outputScale = window.devicePixelRatio || 1
+    const viewport = page.getViewport({ scale: cssScale })
 
-    canvas.width = viewport.width
-    canvas.height = viewport.height
+    canvas.width = Math.floor(viewport.width * outputScale)
+    canvas.height = Math.floor(viewport.height * outputScale)
+    canvas.style.width = Math.floor(viewport.width) + 'px'
+    canvas.style.height = Math.floor(viewport.height) + 'px'
 
     await page.render({
         canvasContext: canvas.getContext('2d'),
         viewport,
+        transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
     }).promise
 }
 
