@@ -845,10 +845,13 @@ onMounted(() => {
     fetchEvents()
     nextTick(() => scrollToWorkdayStart())
     startPolling()
+    window.addEventListener('dragend', onPlannerDragEnd)
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
     stopPolling()
+    window.removeEventListener('dragend', onPlannerDragEnd)
+    stopDragAutoScroll()
 })
 
 watch([dayStartHour, dayEndHour], () => updateNow())
@@ -1523,6 +1526,8 @@ function dropStartMinutes(info, durationMin) {
 
 function onDragOver(e) {
     if (!(e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload'))) return
+    dragPointerY = e.clientY
+    startDragAutoScroll()
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (info) {
         const startMin = dropStartMinutes(info, plannerMinutes.value)
@@ -1540,7 +1545,62 @@ function onGridDragLeave(e) {
     // Only clear when the cursor actually leaves the grid, not when crossing child cells.
     if (!e.currentTarget.contains(e.relatedTarget)) {
         dragGhost.value = null
+        stopDragAutoScroll()
     }
+}
+
+// --- Auto-scroll while dragging a service order near the grid's top/bottom edge ---
+// Native HTML5 drag suppresses the wheel, so we scroll the single grid container ourselves.
+// A requestAnimationFrame loop recomputes speed from the latest cursor Y every frame, so the
+// scroll stays smooth even though `dragover` fires irregularly, and keeps going while the cursor
+// is held in the edge zone. It stops on leave/drop/dragend.
+const AUTO_SCROLL_EDGE = 320 // px from an edge where auto-scroll kicks in (the deeper, the faster)
+const AUTO_SCROLL_MAX_SPEED = 38 // px per frame right at the very edge
+let dragPointerY = null
+let autoScrollRaf = null
+
+// Speed for a cursor `dist` px from an edge: 0 outside the zone, ramping to full at the edge with
+// a steep ease-in (cubic) curve so the zone creeps slowly for fine control and the speed climbs
+// dramatically as the cursor nears the very edge.
+function edgeScrollSpeed(dist) {
+    if (dist >= AUTO_SCROLL_EDGE) return 0
+    const intensity = (AUTO_SCROLL_EDGE - dist) / AUTO_SCROLL_EDGE
+    return AUTO_SCROLL_MAX_SPEED * intensity * intensity * intensity
+}
+
+function autoScrollStep() {
+    const el = gridScrollRef.value
+    if (!el || dragPointerY === null) {
+        autoScrollRaf = null
+        return
+    }
+    const rect = el.getBoundingClientRect()
+    const vel = -edgeScrollSpeed(dragPointerY - rect.top) || edgeScrollSpeed(rect.bottom - dragPointerY)
+    if (!vel) {
+        autoScrollRaf = null
+        return
+    }
+    el.scrollTop += vel
+    autoScrollRaf = requestAnimationFrame(autoScrollStep)
+}
+
+function startDragAutoScroll() {
+    if (autoScrollRaf === null) autoScrollRaf = requestAnimationFrame(autoScrollStep)
+}
+
+function stopDragAutoScroll() {
+    dragPointerY = null
+    if (autoScrollRaf !== null) {
+        cancelAnimationFrame(autoScrollRaf)
+        autoScrollRaf = null
+    }
+}
+
+// Fires for any native drag end (drop, drop outside the grid, or Esc cancel) — clean up the
+// floating preview and the auto-scroll loop so nothing stays stuck on the planner.
+function onPlannerDragEnd() {
+    stopDragAutoScroll()
+    dragGhost.value = null
 }
 
 function updateExternalDropGhost(clientX, clientY) {
@@ -1593,6 +1653,7 @@ function onProjectServiceOrderDragEnd(e) {
 
 function onExternalDrop(e, user, day) {
     dragGhost.value = null
+    stopDragAutoScroll()
     const raw = e.dataTransfer?.getData('application/x-planner-payload')
     if (!raw) return
     let payload

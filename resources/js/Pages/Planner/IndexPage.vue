@@ -35,7 +35,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import ResourcePlannerWidget from '@/Components/Planner/ResourcePlannerWidget.vue'
 import UnplannedServiceOrdersWidget from '@/Components/Planner/UnplannedServiceOrdersWidget.vue'
@@ -84,8 +84,20 @@ const projects = computed(() =>
     }))
 )
 
-function onServiceOrderPlanned(id) { plannedIds.value = new Set(plannedIds.value).add(id) }
-function onServiceOrderUnplanned(id) { const s = new Set(plannedIds.value); s.delete(id); plannedIds.value = s }
+// Optimistic hide/show for instant feedback, then reconcile with the backend
+// (projects expose only service orders that have no events) so a planned order
+// disappears and an unplanned one reappears without a manual page refresh.
+function reconcileServiceOrders() {
+    router.reload({ only: ['projects', 'unplannedServiceOrders'] })
+}
+function onServiceOrderPlanned(id) {
+    plannedIds.value = new Set(plannedIds.value).add(id)
+    reconcileServiceOrders()
+}
+function onServiceOrderUnplanned(id) {
+    const s = new Set(plannedIds.value); s.delete(id); plannedIds.value = s
+    reconcileServiceOrders()
+}
 
 async function onGroupCreated(data) {
     try {
