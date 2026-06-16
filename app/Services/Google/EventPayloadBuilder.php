@@ -8,7 +8,7 @@ class EventPayloadBuilder
 {
     public function build(Event $event): array
     {
-        $event->loadMissing(['eventType', 'serviceOrders.customer']);
+        $event->loadMissing(['eventType', 'serviceOrders.project', 'serviceOrders.customer']);
 
         return [
             'summary' => $this->buildSummary($event),
@@ -25,7 +25,13 @@ class EventPayloadBuilder
             return $event->location;
         }
 
-        $customer = $event->serviceOrders->first()?->customer;
+        $service_order = $event->serviceOrders->first();
+
+        if (!empty($service_order?->project?->location)) {
+            return $service_order->project->location;
+        }
+
+        $customer = $service_order?->customer;
         if ($customer) {
             $parts = array_filter([
                 $customer->address,
