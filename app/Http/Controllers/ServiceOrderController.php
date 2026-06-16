@@ -18,6 +18,8 @@ use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Material;
+use App\Models\MaterialCategory;
+use App\Models\MaterialUsageUnit;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ServiceJob;
@@ -212,6 +214,8 @@ class ServiceOrderController extends Controller
                 ? Material::with('usageUnit')->get()
                 : collect(),
             'materialsUseAjax' => $mc > 50,
+            'materialCategories' => MaterialCategory::orderBy('name')->get(['id', 'name']),
+            'materialUsageUnits' => MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
             'customFields' => $service_order->allCustomFieldsWithValues(),
             'stages' => $stages_with_meta,
             'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
@@ -579,7 +583,8 @@ class ServiceOrderController extends Controller
             'descriptionText' => $description_text,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
-            'materialsList' => $serviceorder->materials,
+            'materialsList' => $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen),
+            'extraMaterialsList' => $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen),
             'company' => $company,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');

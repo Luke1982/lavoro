@@ -273,6 +273,32 @@
         </tbody>
     </table>
 
+    <h2 class="section">Extra materialen</h2>
+    <table class="table small">
+        <thead>
+            <tr>
+                <th style="width: 10%">Aantal</th>
+                <th>Omschrijving</th>
+                <th style="width: 15%">Prijs pst.</th>
+                <th style="width: 15%">Totaal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse(($extraMaterialsList ?? []) as $material)
+                <tr>
+                    <td>{{ $material->pivot->quantity }}</td>
+                    <td>{{ $material->name }}</td>
+                    <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                    <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="small">Geen extra materialen toegevoegd.</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
     <div class="sign small">
         <table class="columns">
             <tr>
