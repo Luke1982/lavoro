@@ -142,14 +142,6 @@
                                                     <UsersIcon class="size-6 shrink-0" />
                                                     Gebruikers
                                                 </Link>
-                                                <Link v-if="canSeeUserRoles" @click="sidebarOpen = false"
-                                                    :href="'/userroles'" :class="[
-                                                        currentPath.startsWith('/userroles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                        'group flex gap-x-3 rounded-md p-1 pl-11 text-sm/6 font-medium'
-                                                    ]">
-                                                    <TagIcon class="size-5 shrink-0" />
-                                                    Gebruikersrollen
-                                                </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
                                                 <Link @click="sidebarOpen = false" :href="'/technical-management'"
@@ -168,7 +160,7 @@
                                                     <img v-if="authUser?.avatar" :src="authUser.avatar"
                                                         class="object-cover w-full h-full" />
                                                     <span v-else class="text-xs font-medium text-white">{{ initials
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                                 <span class="sr-only">Profiel</span>
                                                 <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
@@ -560,6 +552,7 @@ const navigation = ref([
         requiresPermission: 'event.read',
         children: [
             { name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' },
+            { name: 'Gebruikersrollen', href: '/userroles', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: canSeeUserRoles },
         ],
         open: false,
     },
