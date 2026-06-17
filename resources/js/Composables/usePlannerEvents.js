@@ -34,6 +34,7 @@ function mapEvent(ev) {
         is_preliminary: ev.is_preliminary ?? false,
         from_google: ev.origin === "google",
         location: ev.location
+            || ev.service_orders?.[0]?.execution_location
             || ev.service_orders?.[0]?.project?.location
             || [customer?.address, customer?.city].filter(Boolean).join(', ')
             || null,

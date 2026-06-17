@@ -103,6 +103,11 @@
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
                                         @update="val => { form.external_purchaseorder_no = val; }"
                                         placeholder="Externe referentie" />
+                                    <EditableTextField
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        label="Uitvoeringslocatie" v-model="form.execution_location"
+                                        @update="val => { form.execution_location = val; }"
+                                        placeholder="Uitvoeringslocatie" />
                                 </div>
                             </div>
                         </BoxComponent>

@@ -33,6 +33,7 @@ class ServiceOrder extends Model
         'sent_to_administration',
         'sent_to_customer',
         'external_purchaseorder_no',
+        'execution_location',
         'actual_start_time',
         'actual_end_time',
         'service_order_stage_id',

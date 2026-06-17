@@ -41,6 +41,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'customer_id' => 'required|exists:customers,id',
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
+            'execution_location' => 'nullable|string|max:255',
             'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
         ]);
     }
