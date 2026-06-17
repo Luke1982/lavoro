@@ -159,12 +159,24 @@
                     </tr>
                     <tr>
                         <td class="label">Datum:</td>
-                        <td>{{ optional($serviceOrder->created_at)->format('d-m-Y') }}</td>
+                        <td>{{ optional($plannedDate)->format('d-m-Y') }}</td>
                     </tr>
-                    @if($serviceOrder->execution_location)
+                    @if($serviceOrder->actual_start_time)
+                    <tr>
+                        <td class="label">Starttijd:</td>
+                        <td>{{ substr($serviceOrder->actual_start_time, 0, 5) }}</td>
+                    </tr>
+                    @endif
+                    @if($serviceOrder->actual_end_time)
+                    <tr>
+                        <td class="label">Eindtijd:</td>
+                        <td>{{ substr($serviceOrder->actual_end_time, 0, 5) }}</td>
+                    </tr>
+                    @endif
+                    @if($executionLocation)
                     <tr>
                         <td class="label">Uitvoeringslocatie:</td>
-                        <td>{{ $serviceOrder->execution_location }}</td>
+                        <td>{{ $executionLocation }}</td>
                     </tr>
                     @endif
                 </table>
