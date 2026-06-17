@@ -166,28 +166,29 @@
         </tr>
     </table>
 
-    @if(($tickets ?? collect())->isNotEmpty())
-    <h2 class="section">Storingen</h2>
-    <table class="table small compact">
-        <thead>
-            <tr>
-                <th style="width:34%">Merk / Model</th>
-                <th style="width:18%">Serienummer</th>
-                <th>Onderwerp</th>
-                <th style="width:16%">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($tickets as $ticket)
+    @if (($tickets ?? collect())->isNotEmpty())
+        <h2 class="section">Storingen</h2>
+        <table class="table small compact">
+            <thead>
                 <tr>
-                    <td>{{ trim((optional($ticket->asset->product->brand)->name ?? '') . ' ' . ($ticket->asset->product->model ?? '')) ?: '—' }}</td>
-                    <td>{{ $ticket->asset->serial_number ?? '—' }}</td>
-                    <td>{{ $ticket->subject ?? '—' }}</td>
-                    <td>{{ $ticket->status ?? '—' }}</td>
+                    <th style="width:34%">Merk / Model</th>
+                    <th style="width:18%">Serienummer</th>
+                    <th>Onderwerp</th>
+                    <th style="width:16%">Status</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach ($tickets as $ticket)
+                    <tr>
+                        <td>{{ trim((optional($ticket->asset->product->brand)->name ?? '') . ' ' . ($ticket->asset->product->model ?? '')) ?: '—' }}
+                        </td>
+                        <td>{{ $ticket->asset->serial_number ?? '—' }}</td>
+                        <td>{{ $ticket->subject ?? '—' }}</td>
+                        <td>{{ $ticket->status ?? '—' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     @endif
 
     @if (($descriptionText ?? '') !== '')
@@ -198,146 +199,150 @@
         </div>
     @endif
 
-    @if(($jobs ?? collect())->isNotEmpty())
-    <h2 class="section">Keuringen</h2>
-    <table class="table small compact">
-        <thead>
-            <tr>
-                <th style="width:6%">#</th>
-                <th style="width:34%">Merk / Model</th>
-                <th style="width:18%">Serienummer</th>
-                <th style="width:18%">Uitkomst</th>
-                <th style="width:24%">Afgerond op</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($jobs as $job)
+    @if (($jobs ?? collect())->isNotEmpty())
+        <h2 class="section">Keuringen</h2>
+        <table class="table small compact">
+            <thead>
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ trim((optional($job->asset->product->brand)->name ?? '') . ' ' . ($job->asset->product->model ?? '')) ?: '—' }}</td>
-                    <td>{{ $job->asset->serial_number ?? '—' }}</td>
-                    <td>
-                        @php
-                            $outcomeCase = collect(\App\Enums\ServiceJobOutcomes::cases())->firstWhere(
-                                'value',
-                                $job->outcome,
-                            );
-                        @endphp
-                        {{ $outcomeCase?->value ?? '—' }}
-                        @if (($outcomeCase?->name ?? null) === 'tijdelijk_goedkeur' && (int) $job->days_temporary_approval > 0)
-                            ({{ (int) $job->days_temporary_approval }} dagen)
-                        @endif
-                    </td>
-                    <td>
-                        @if ($job->completed_on)
-                            {{ $job->completed_on->format('d-m-Y') }}
-                        @else
-                            —
-                        @endif
-                    </td>
+                    <th style="width:6%">#</th>
+                    <th style="width:34%">Merk / Model</th>
+                    <th style="width:18%">Serienummer</th>
+                    <th style="width:18%">Uitkomst</th>
+                    <th style="width:24%">Afgerond op</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if(($materialsList ?? collect())->isNotEmpty())
-    <h2 class="section">Materialen</h2>
-    <table class="table small">
-        <thead>
-            <tr>
-                <th style="width: 10%">Aantal</th>
-                <th>Omschrijving</th>
-                <th style="width: 15%">Prijs pst.</th>
-                <th style="width: 15%">Totaal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($materialsList as $material)
-                <tr>
-                    <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
-                    <td>{{ $material->name }}</td>
-                    <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                    <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if(($extraMaterialsList ?? collect())->isNotEmpty())
-    <h2 class="section">Extra materialen</h2>
-    <table class="table small">
-        <thead>
-            <tr>
-                <th style="width: 10%">Aantal</th>
-                <th>Omschrijving</th>
-                <th style="width: 15%">Prijs pst.</th>
-                <th style="width: 15%">Totaal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($extraMaterialsList as $material)
-                <tr>
-                    <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
-                    <td>{{ $material->name }}</td>
-                    <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                    <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if(($taskInstances ?? collect())->isNotEmpty())
-    <h2 class="section">Taken</h2>
-    <table class="table small compact">
-        <thead>
-            <tr>
-                <th style="width:30%">Taak</th>
-                <th>Omschrijving</th>
-                <th style="width:25%">Serienummers</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($taskInstances as $instance)
-                <tr>
-                    <td>{{ $instance->title ?? $instance->serviceOrderTask?->title ?? '—' }}</td>
-                    <td>{{ $instance->effective_description ?: '—' }}</td>
-                    <td>
-                        @if($instance->assets->isNotEmpty())
-                            {{ $instance->assets->pluck('serial_number')->filter()->implode(', ') ?: '—' }}
-                        @else
-                            —
-                        @endif
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if(($images ?? collect())->isNotEmpty())
-    <h2 class="section">Foto's</h2>
-    <div class="section">
-        <table style="width:100%; border-collapse:collapse;">
-            @foreach($images->chunk(2) as $row)
-            <tr>
-                @foreach($row as $image)
-                <td style="width:50%; padding:4px; vertical-align:top;">
-                    <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}" style="max-width:100%; max-height:160px; display:block;">
-                    @if($image['name'])
-                        <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
-                    @endif
-                </td>
+            </thead>
+            <tbody>
+                @foreach ($jobs as $job)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ trim((optional($job->asset->product->brand)->name ?? '') . ' ' . ($job->asset->product->model ?? '')) ?: '—' }}
+                        </td>
+                        <td>{{ $job->asset->serial_number ?? '—' }}</td>
+                        <td>
+                            @php
+                                $outcomeCase = collect(\App\Enums\ServiceJobOutcomes::cases())->firstWhere(
+                                    'value',
+                                    $job->outcome,
+                                );
+                            @endphp
+                            {{ $outcomeCase?->value ?? '—' }}
+                            @if (($outcomeCase?->name ?? null) === 'tijdelijk_goedkeur' && (int) $job->days_temporary_approval > 0)
+                                ({{ (int) $job->days_temporary_approval }} dagen)
+                            @endif
+                        </td>
+                        <td>
+                            @if ($job->completed_on)
+                                {{ $job->completed_on->format('d-m-Y') }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                    </tr>
                 @endforeach
-                @if($row->count() === 1)
-                <td style="width:50%;"></td>
-                @endif
-            </tr>
-            @endforeach
+            </tbody>
         </table>
-    </div>
+    @endif
+
+    @if (($materialsList ?? collect())->isNotEmpty())
+        <h2 class="section">Materialen</h2>
+        <table class="table small">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Aantal</th>
+                    <th>Omschrijving</th>
+                    <th style="width: 15%">Prijs pst.</th>
+                    <th style="width: 15%">Totaal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($materialsList as $material)
+                    <tr>
+                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
+                        </td>
+                        <td>{{ $material->name }}</td>
+                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if (($extraMaterialsList ?? collect())->isNotEmpty())
+        <h2 class="section">Extra materialen</h2>
+        <table class="table small">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Aantal</th>
+                    <th>Omschrijving</th>
+                    <th style="width: 15%">Prijs pst.</th>
+                    <th style="width: 15%">Totaal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($extraMaterialsList as $material)
+                    <tr>
+                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
+                        </td>
+                        <td>{{ $material->name }}</td>
+                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if (($taskInstances ?? collect())->isNotEmpty())
+        <h2 class="section">Taken</h2>
+        <table class="table small compact">
+            <thead>
+                <tr>
+                    <th style="width:30%">Taak</th>
+                    <th>Omschrijving</th>
+                    <th style="width:25%">Serienummers</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($taskInstances as $instance)
+                    <tr>
+                        <td>{{ $instance->title ?? ($instance->serviceOrderTask?->title ?? '—') }}</td>
+                        <td>{{ $instance->effective_description ?: '—' }}</td>
+                        <td>
+                            @if ($instance->assets->isNotEmpty())
+                                {{ $instance->assets->pluck('serial_number')->filter()->implode(', ') ?: '—' }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if (($images ?? collect())->isNotEmpty())
+        <h2 class="section">Foto's</h2>
+        <div class="section">
+            <table style="width:100%; border-collapse:collapse;">
+                @foreach ($images->chunk(2) as $row)
+                    <tr>
+                        @foreach ($row as $image)
+                            <td style="width:50%; padding:4px; vertical-align:top;">
+                                <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
+                                    style="max-width:100%; max-height:160px; display:block;">
+                                @if ($image['name'])
+                                    <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
+                                @endif
+                            </td>
+                        @endforeach
+                        @if ($row->count() === 1)
+                            <td style="width:50%;"></td>
+                        @endif
+                    </tr>
+                @endforeach
+            </table>
+        </div>
     @endif
 
     <div class="sign small">
