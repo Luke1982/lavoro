@@ -572,7 +572,7 @@ class ServiceOrderController extends Controller
             'serviceJobs.asset.product.productType',
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
-            'materials.materialUsageUnit',
+            'materials.usageUnit',
             'taskInstances.serviceOrderTask',
             'taskInstances.assets',
             'images',

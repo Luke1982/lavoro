@@ -255,7 +255,7 @@
         <tbody>
             @foreach($materialsList as $material)
                 <tr>
-                    <td>{{ $material->pivot->quantity }}{{ $material->materialUsageUnit ? ' ' . $material->materialUsageUnit->name : '' }}</td>
+                    <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
@@ -279,7 +279,7 @@
         <tbody>
             @foreach($extraMaterialsList as $material)
                 <tr>
-                    <td>{{ $material->pivot->quantity }}{{ $material->materialUsageUnit ? ' ' . $material->materialUsageUnit->name : '' }}</td>
+                    <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
