@@ -28,10 +28,49 @@
 
         <!-- Add form -->
         <div v-auto-animate>
-            <div v-if="showAddForm && canCreate && !isClosed"
+            <template v-if="showAddForm && canCreate && !isClosed">
+            <!-- Quick create -->
+            <div v-if="showQuickCreate"
+                class="flex flex-col gap-2 mb-2 p-4 rounded-lavoro-sm bg-slate-50 dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700">
+                <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Nieuw materiaal aanmaken</span>
+                <div class="flex flex-col md:flex-row items-start gap-2">
+                    <div class="flex flex-col flex-grow w-full">
+                        <TextInput v-model="quickForm.name" placeholder="Naam" />
+                        <span v-if="quickErrors.name" class="text-xs text-red-500 mt-1">{{ quickErrors.name[0] }}</span>
+                    </div>
+                    <div class="flex flex-col w-full md:w-48">
+                        <ComboBox :options="categories" v-model="quickForm.material_category_id"
+                            placeholder="Categorie" />
+                        <span v-if="quickErrors.material_category_id" class="text-xs text-red-500 mt-1">{{
+                            quickErrors.material_category_id[0] }}</span>
+                    </div>
+                    <div class="flex flex-col w-full md:w-48">
+                        <ComboBox :options="usageUnits" v-model="quickForm.material_usage_unit_id"
+                            placeholder="Eenheid" />
+                        <span v-if="quickErrors.material_usage_unit_id" class="text-xs text-red-500 mt-1">{{
+                            quickErrors.material_usage_unit_id[0] }}</span>
+                    </div>
+                    <button @click="createMaterial" :disabled="quickCreating" :class="[
+                        'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                        quickCreating
+                            ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
+                            : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
+                    ]">
+                        Aanmaken
+                    </button>
+                </div>
+            </div>
+            <div
                 class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
                 <div class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Kies een materiaal</span>
+                    <div class="flex items-center justify-between mb-0.5">
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Kies een materiaal</span>
+                        <button v-if="canCreateMaterial" type="button" @click="showQuickCreate = !showQuickCreate"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-lavoro-blue hover:underline">
+                            <PlusIcon class="size-3" />
+                            Nieuw materiaal
+                        </button>
+                    </div>
                     <ComboBox :options="comboMaterials" v-model="materialToAdd"
                         :has-external-searching="materialsUseAjax" :searching="materialSearching"
                         @change="searchMaterials" />
@@ -53,6 +92,7 @@
                     Toevoegen
                 </button>
             </div>
+            </template>
         </div>
 
         <!-- Sent-to-admin warning -->
@@ -179,8 +219,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
+import axios from 'axios'
 import { Package, Plus as PlusIcon, Trash2 as TrashIcon, Euro as EuroIcon } from '@lucide/vue'
 import { getIconByName } from '@/Utilities/lucideIconMap.js'
 import { hasPermission, nlCurrency } from '@/Utilities/Utilities.js'
@@ -204,6 +245,14 @@ const props = defineProps({
         default: () => [],
     },
     materialsUseAjax: { type: Boolean, default: false },
+    categories: {
+        type: Array,
+        default: () => [],
+    },
+    usageUnits: {
+        type: Array,
+        default: () => [],
+    },
     isClosed: {
         type: Boolean,
         default: false,
@@ -222,6 +271,7 @@ const showAddForm = ref(false)
 const showFinancial = ref(false)
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'))
 const canCreate = computed(() => hasPermission('materiable.create.serviceorder'))
+const canCreateMaterial = computed(() => hasPermission('material.create'))
 const canUpdate = computed(() => hasPermission('materiable.update.serviceorder'))
 const canDelete = computed(() => hasPermission('materiable.delete.serviceorder'))
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
@@ -255,6 +305,40 @@ const forseenSubtotal = computed(() =>
 const unforseenSubtotal = computed(() =>
     props.materials.filter(m => !!m.pivot.unforseen).reduce((sum, m) => sum + Number(m.pivot.quantity) * Number(m.price), 0)
 )
+
+const showQuickCreate = ref(false)
+const quickCreating = ref(false)
+const quickErrors = ref({})
+const quickForm = reactive({
+    name: '',
+    material_category_id: null,
+    material_usage_unit_id: null,
+})
+
+async function createMaterial() {
+    quickCreating.value = true
+    quickErrors.value = {}
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        const { data } = await axios.post('/materials', {
+            name: quickForm.name,
+            material_category_id: quickForm.material_category_id,
+            material_usage_unit_id: quickForm.material_usage_unit_id,
+        })
+        materialOptions.value = [data, ...materialOptions.value]
+        materialToAdd.value = data.id
+        showQuickCreate.value = false
+        quickForm.name = ''
+        quickForm.material_category_id = null
+        quickForm.material_usage_unit_id = null
+    } catch (error) {
+        if (error.response?.status === 422) {
+            quickErrors.value = error.response.data.errors ?? {}
+        }
+    } finally {
+        quickCreating.value = false
+    }
+}
 
 function attachMaterial() {
     if (!materialToAdd.value || form.quantity <= 0) return

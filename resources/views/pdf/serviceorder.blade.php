@@ -247,57 +247,53 @@
         </tbody>
     </table>
 
-    <h2 class="section">Materialen</h2>
-    <table class="table small">
-        <thead>
-            <tr>
-                <th style="width: 10%">Aantal</th>
-                <th>Omschrijving</th>
-                <th style="width: 15%">Prijs pst.</th>
-                <th style="width: 15%">Totaal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse(($materialsList ?? []) as $material)
+    @if(count($materialsList ?? []))
+        <h2 class="section">Materialen</h2>
+        <table class="table small">
+            <thead>
                 <tr>
-                    <td>{{ $material->pivot->quantity }}</td>
-                    <td>{{ $material->name }}</td>
-                    <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                    <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    <th style="width: 10%">Aantal</th>
+                    <th>Omschrijving</th>
+                    <th style="width: 15%">Prijs pst.</th>
+                    <th style="width: 15%">Totaal</th>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="small">Geen materialen toegevoegd.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach($materialsList as $material)
+                    <tr>
+                        <td>{{ $material->pivot->quantity }}</td>
+                        <td>{{ $material->name }}</td>
+                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
-    <h2 class="section">Extra materialen</h2>
-    <table class="table small">
-        <thead>
-            <tr>
-                <th style="width: 10%">Aantal</th>
-                <th>Omschrijving</th>
-                <th style="width: 15%">Prijs pst.</th>
-                <th style="width: 15%">Totaal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse(($extraMaterialsList ?? []) as $material)
+    @if(count($extraMaterialsList ?? []))
+        <h2 class="section">Extra materialen</h2>
+        <table class="table small">
+            <thead>
                 <tr>
-                    <td>{{ $material->pivot->quantity }}</td>
-                    <td>{{ $material->name }}</td>
-                    <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                    <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    <th style="width: 10%">Aantal</th>
+                    <th>Omschrijving</th>
+                    <th style="width: 15%">Prijs pst.</th>
+                    <th style="width: 15%">Totaal</th>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="small">Geen extra materialen toegevoegd.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach($extraMaterialsList as $material)
+                    <tr>
+                        <td>{{ $material->pivot->quantity }}</td>
+                        <td>{{ $material->name }}</td>
+                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
     <div class="sign small">
         <table class="columns">

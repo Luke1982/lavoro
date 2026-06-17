@@ -583,8 +583,8 @@ class ServiceOrderController extends Controller
             'descriptionText' => $description_text,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
-            'materialsList' => $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen),
-            'extraMaterialsList' => $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen),
+            'materialsList' => $serviceorder->materials->reject(fn($material) => $material->pivot->unforseen),
+            'extraMaterialsList' => $serviceorder->materials->filter(fn($material) => $material->pivot->unforseen),
             'company' => $company,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
