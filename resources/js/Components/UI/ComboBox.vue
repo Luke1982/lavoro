@@ -57,7 +57,7 @@
 
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { computePosition, autoUpdate, flip, offset } from '@floating-ui/dom'
+import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 import {
     Combobox,
@@ -127,10 +127,11 @@ async function updatePosition() {
     const reference = wrapperRef.value
     const floating = floatingRef.value?.$el ?? floatingRef.value
     if (!reference || !floating) return
+    floating.style.width = `${reference.offsetWidth}px`
     const { x, y } = await computePosition(reference, floating, {
         placement: 'bottom-start',
         strategy: 'fixed',
-        middleware: [offset(4), flip()],
+        middleware: [offset(4), flip(), shift({ padding: 8 })],
     })
     dropdownStyle.value = {
         position: 'fixed',

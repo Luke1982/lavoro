@@ -37,6 +37,7 @@
         "@capacitor/ios": "^8.4.0",
         "@capacitor/network": "^8.0.1",
         "@capacitor/push-notifications": "^8.1.1",
+        "@floating-ui/dom": "^1.7.6",
         "@formkit/auto-animate": "^0.8.2",
         "@fullcalendar/core": "^6.1.19",
         "@fullcalendar/daygrid": "^6.1.19",
