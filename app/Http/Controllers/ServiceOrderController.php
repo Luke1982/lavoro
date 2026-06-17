@@ -595,9 +595,11 @@ class ServiceOrderController extends Controller
                     return null;
                 }
                 $mime = mime_content_type($path);
+                [$width, $height] = @getimagesize($path) ?: [1, 1];
                 return [
-                    'name' => $image->name,
-                    'data' => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
+                    'name'      => $image->name,
+                    'data'      => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
+                    'landscape' => ($width ?? 1) >= ($height ?? 1),
                 ];
             })->filter()->values(),
             'company' => $company,

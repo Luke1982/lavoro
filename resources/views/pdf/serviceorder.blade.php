@@ -329,24 +329,15 @@
     @if (($images ?? collect())->isNotEmpty())
         <h2 class="section">Foto's</h2>
         <div class="section">
-            <table style="width:100%; border-collapse:collapse;">
-                @foreach ($images->chunk(2) as $row)
-                    <tr>
-                        @foreach ($row as $image)
-                            <td style="width:50%; padding:4px; vertical-align:top;">
-                                <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
-                                    style="width:100%; display:block;">
-                                @if ($image['name'])
-                                    <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
-                                @endif
-                            </td>
-                        @endforeach
-                        @if ($row->count() === 1)
-                            <td style="width:50%;"></td>
-                        @endif
-                    </tr>
-                @endforeach
-            </table>
+            @foreach ($images as $image)
+                <div style="margin-bottom:8px;">
+                    <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
+                        style="width:{{ $image['landscape'] ? '50%' : '30%' }}; height:auto; display:block;">
+                    @if ($image['name'])
+                        <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
+                    @endif
+                </div>
+            @endforeach
         </div>
     @endif
 
