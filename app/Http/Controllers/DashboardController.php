@@ -36,6 +36,7 @@ class DashboardController extends Controller
                 $c->earliest_asset_serial = $earliest->serial_number;
                 $c->earliest_asset_product_type = $earliest->product?->productType?->name;
             }
+
             return $c;
         });
 
@@ -73,20 +74,19 @@ class DashboardController extends Controller
             ->get(['id', 'asset_id', 'subject', 'status', 'created_at']);
 
         return inertia('Index/DashBoard', [
-            'customers'        => $customers,
-            'stats'            => $stats,
+            'customers' => $customers,
+            'stats' => $stats,
             'openServiceOrders' => $openServiceOrders,
-            'upcomingJobs'     => $upcomingJobs,
-            'recentTickets'    => $recentTickets,
-            'eventTypes'       => EventType::all(),
-            'eventStatusses'   => Event::statusses(),
-            'allUsers'         => User::select('id', 'name')->get(),
-            'plannableUsers'   => User::where('plannable', true)
+            'upcomingJobs' => $upcomingJobs,
+            'recentTickets' => $recentTickets,
+            'eventTypes' => EventType::all(),
+            'eventStatusses' => Event::statusses(),
+            'allUsers' => User::select('id', 'name')->get(),
+            'plannableUsers' => User::where('plannable', true)
                 ->select('id', 'name')
                 ->orderBy('name')
                 ->get()
-                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'avatar' => $u->avatar]),
-            'allServiceOrders' => ServiceOrder::with('customer')->withCount('events')->get(),
+                ->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'avatar' => $u->avatar]),
         ]);
     }
 }

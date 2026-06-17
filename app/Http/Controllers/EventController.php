@@ -23,7 +23,7 @@ class EventController extends Controller
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'allServiceOrders' => ServiceOrder::with('customer')->withCount('events')->get(),
+            'allServiceOrders' => ServiceOrder::with('customer')->get(),
             'allUsers' => User::select('id', 'name')->get(),
         ]);
     }
