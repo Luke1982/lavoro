@@ -73,9 +73,9 @@ class MaterialController extends Controller
             return response()->json($material->load(['category', 'usageUnit']));
         }
 
-        return redirect()->route('materials.index')
+        return redirect()->back()
             ->with('success', 'Materiaal aangemaakt.')
-            ->with('extra', $material);
+            ->with('extra', $material->load(['category', 'usageUnit']));
     }
 
     /**
