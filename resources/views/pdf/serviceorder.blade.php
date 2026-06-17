@@ -247,6 +247,7 @@
         </tbody>
     </table>
 
+    @if(($materialsList ?? collect())->isNotEmpty())
     <h2 class="section">Materialen</h2>
     <table class="table small">
         <thead>
@@ -258,21 +259,19 @@
             </tr>
         </thead>
         <tbody>
-            @forelse(($materialsList ?? []) as $material)
+            @foreach($materialsList as $material)
                 <tr>
                     <td>{{ $material->pivot->quantity }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="small">Geen materialen toegevoegd.</td>
-                </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
+    @endif
 
+    @if(($extraMaterialsList ?? collect())->isNotEmpty())
     <h2 class="section">Extra materialen</h2>
     <table class="table small">
         <thead>
@@ -284,20 +283,45 @@
             </tr>
         </thead>
         <tbody>
-            @forelse(($extraMaterialsList ?? []) as $material)
+            @foreach($extraMaterialsList as $material)
                 <tr>
                     <td>{{ $material->pivot->quantity }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="small">Geen extra materialen toegevoegd.</td>
-                </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
+    @endif
+
+    @if(($taskInstances ?? collect())->isNotEmpty())
+    <h2 class="section">Taken</h2>
+    <table class="table small compact">
+        <thead>
+            <tr>
+                <th style="width:30%">Taak</th>
+                <th>Omschrijving</th>
+                <th style="width:25%">Serienummers</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($taskInstances as $instance)
+                <tr>
+                    <td>{{ $instance->title ?? $instance->serviceOrderTask?->title ?? '—' }}</td>
+                    <td>{{ $instance->effective_description ?: '—' }}</td>
+                    <td>
+                        @if($instance->assets->isNotEmpty())
+                            {{ $instance->assets->pluck('serial_number')->filter()->implode(', ') ?: '—' }}
+                        @else
+                            —
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
 
     <div class="sign small">
         <table class="columns">
