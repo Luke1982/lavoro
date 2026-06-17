@@ -433,10 +433,13 @@ const selectedCustomer = ref(
 )
 
 const internalServiceOrders = computed(() =>
-    props.allServiceOrders.filter(so => so.customer_id === selectedCustomer.value).map(so => ({
-        id: so.id,
-        name: `Order ${so.id} van ${nlDate(so.created_at)}`,
-    }))
+    props.allServiceOrders
+        .filter(so => so.customer_id === selectedCustomer.value)
+        .filter(so => (so.events_count ?? 0) === 0 || so.id === form.eventable_id)
+        .map(so => ({
+            id: so.id,
+            name: `Order ${so.id} van ${nlDate(so.created_at)}`,
+        }))
 )
 
 const selectedUsers = computed(() =>

@@ -568,6 +568,8 @@ class ServiceOrderController extends Controller
     {
         $serviceorder->load([
             'customer',
+            'project',
+            'events',
             'serviceJobs.asset.product.brand',
             'serviceJobs.asset.product.productType',
             'tickets.asset.product.brand',
@@ -580,10 +582,15 @@ class ServiceOrderController extends Controller
         $company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($company);
         $description_text = trim((string) ($serviceorder->description ?? ''));
+        $planned_event = $serviceorder->events->sortBy('start')->first();
+        $planned_date = $planned_event?->start ?? $serviceorder->created_at;
+        $execution_location = $serviceorder->execution_location ?: $serviceorder->project?->location;
         $pdf = Pdf::loadView('pdf.serviceorder', [
             'serviceOrder' => $serviceorder,
             'logo' => $logo,
             'descriptionText' => $description_text,
+            'plannedDate' => $planned_date,
+            'executionLocation' => $execution_location,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
             'materialsList' => $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen),

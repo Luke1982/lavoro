@@ -86,7 +86,7 @@ class DashboardController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'avatar' => $u->avatar]),
-            'allServiceOrders' => ServiceOrder::with('customer')->get(),
+            'allServiceOrders' => ServiceOrder::with('customer')->withCount('events')->get(),
         ]);
     }
 }

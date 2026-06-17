@@ -51,7 +51,7 @@ class PlannerController extends Controller
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'allServiceOrders' => ServiceOrder::with('customer')->tap($so_scope)->get(),
+            'allServiceOrders' => ServiceOrder::with('customer')->withCount('events')->tap($so_scope)->get(),
             'unplannedServiceOrders' => ServiceOrder::with(['customer', 'serviceOrderStage'])
                 ->withCount('events')
                 ->whereNull('project_id')
