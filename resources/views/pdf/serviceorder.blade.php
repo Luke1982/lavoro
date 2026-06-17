@@ -166,6 +166,7 @@
         </tr>
     </table>
 
+    @if(($tickets ?? collect())->isNotEmpty())
     <h2 class="section">Storingen</h2>
     <table class="table small compact">
         <thead>
@@ -177,21 +178,17 @@
             </tr>
         </thead>
         <tbody>
-            @forelse(($tickets ?? []) as $ticket)
+            @foreach($tickets as $ticket)
                 <tr>
-                    <td>{{ trim((optional($ticket->asset->product->brand)->name ?? '') . ' ' . ($ticket->asset->product->model ?? '')) ?: '—' }}
-                    </td>
+                    <td>{{ trim((optional($ticket->asset->product->brand)->name ?? '') . ' ' . ($ticket->asset->product->model ?? '')) ?: '—' }}</td>
                     <td>{{ $ticket->asset->serial_number ?? '—' }}</td>
                     <td>{{ $ticket->subject ?? '—' }}</td>
                     <td>{{ $ticket->status ?? '—' }}</td>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="small">Geen tickets gekoppeld.</td>
-                </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
+    @endif
 
     @if (($descriptionText ?? '') !== '')
         <div class="hr"></div>
@@ -201,6 +198,7 @@
         </div>
     @endif
 
+    @if(($jobs ?? collect())->isNotEmpty())
     <h2 class="section">Keuringen</h2>
     <table class="table small compact">
         <thead>
@@ -213,11 +211,10 @@
             </tr>
         </thead>
         <tbody>
-            @forelse(($jobs ?? []) as $job)
+            @foreach($jobs as $job)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ trim((optional($job->asset->product->brand)->name ?? '') . ' ' . ($job->asset->product->model ?? '')) ?: '—' }}
-                    </td>
+                    <td>{{ trim((optional($job->asset->product->brand)->name ?? '') . ' ' . ($job->asset->product->model ?? '')) ?: '—' }}</td>
                     <td>{{ $job->asset->serial_number ?? '—' }}</td>
                     <td>
                         @php
@@ -239,13 +236,10 @@
                         @endif
                     </td>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="5" class="small">Geen periodieke controle gekoppeld.</td>
-                </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
+    @endif
 
     @if(($materialsList ?? collect())->isNotEmpty())
     <h2 class="section">Materialen</h2>
@@ -261,7 +255,7 @@
         <tbody>
             @foreach($materialsList as $material)
                 <tr>
-                    <td>{{ $material->pivot->quantity }}</td>
+                    <td>{{ $material->pivot->quantity }}{{ $material->materialUsageUnit ? ' ' . $material->materialUsageUnit->name : '' }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
@@ -285,7 +279,7 @@
         <tbody>
             @foreach($extraMaterialsList as $material)
                 <tr>
-                    <td>{{ $material->pivot->quantity }}</td>
+                    <td>{{ $material->pivot->quantity }}{{ $material->materialUsageUnit ? ' ' . $material->materialUsageUnit->name : '' }}</td>
                     <td>{{ $material->name }}</td>
                     <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                     <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
@@ -321,6 +315,29 @@
             @endforeach
         </tbody>
     </table>
+    @endif
+
+    @if(($images ?? collect())->isNotEmpty())
+    <h2 class="section">Foto's</h2>
+    <div class="section">
+        <table style="width:100%; border-collapse:collapse;">
+            @foreach($images->chunk(2) as $row)
+            <tr>
+                @foreach($row as $image)
+                <td style="width:50%; padding:4px; vertical-align:top;">
+                    <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}" style="max-width:100%; max-height:160px; display:block;">
+                    @if($image['name'])
+                        <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
+                    @endif
+                </td>
+                @endforeach
+                @if($row->count() === 1)
+                <td style="width:50%;"></td>
+                @endif
+            </tr>
+            @endforeach
+        </table>
+    </div>
     @endif
 
     <div class="sign small">
