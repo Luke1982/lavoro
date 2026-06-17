@@ -1,14 +1,12 @@
 <template>
-    <IndexHeaderComponent title="Werkbonnen" subtitle="Overzicht van alle werkbonnen"
-        search-url="/serviceorders" search-label="Zoek binnen werkbonnen"
-        search-placeholder="Zoek op klant, beschrijving of inkoopordernr."
-        :search-other-params="filterParams" :paginator="false"
-        :has-active-filters="activeFilters.length > 0">
+    <IndexHeaderComponent title="Werkbonnen" subtitle="Overzicht van alle werkbonnen" search-url="/serviceorders"
+        search-label="Zoek binnen werkbonnen" search-placeholder="Zoek op klant, beschrijving of inkoopordernr."
+        :search-other-params="filterParams" :paginator="false" :has-active-filters="activeFilters.length > 0">
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
-                    <ComboBox :options="stages" v-model="stageFilter" multiple
-                        placeholder="Selecteer fase(n)" class="w-full" label="Filter op fase" />
+                    <ComboBox :options="stages" v-model="stageFilter" multiple placeholder="Selecteer fase(n)"
+                        class="w-full" label="Filter op fase" />
                 </div>
                 <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
@@ -40,79 +38,79 @@
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="serviceOrders.data.length">
-            <div class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+            <div
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
                 <div class="w-10 flex-none flex items-center justify-center">
-                    <AnimatedCheckbox
-                        :model-value="allCurrentPageSelected"
-                        @update:model-value="toggleSelectAll"
-                    />
+                    <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
                 <div class="flex-1 grid grid-cols-12 p-4">
-                    <div class="col-span-3">Klant</div>
-                    <div class="col-span-3">Beschrijving</div>
+                    <div class="col-span-2">Klant</div>
+                    <div class="col-span-2">Beschrijving</div>
                     <div class="col-span-2">Fase</div>
+                    <div class="col-span-2">Extern factuurnr.</div>
                     <div class="col-span-2">Verzending</div>
                     <div class="col-span-1">Aangemaakt</div>
                     <div class="col-span-1 text-right">Acties</div>
                 </div>
             </div>
             <div v-auto-animate>
-            <div v-for="so in serviceOrders.data" :key="so.id" role="row"
-                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
-                <div class="w-10 flex-none flex items-center justify-center self-stretch">
-                    <AnimatedCheckbox
-                        :model-value="selectedIds.includes(so.id)"
-                        @update:model-value="toggleSelectServiceOrder(so.id)"
-                    />
-                </div>
-                <div class="flex-1 grid grid-cols-12 p-4">
-                <div class="col-span-10 sm:col-span-3 flex flex-col">
-                    <Link :href="`/serviceorders/${so.id}`" class="font-bold mb-1">
-                        {{ so.customer?.name ?? '—' }}
-                    </Link>
-                    <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
-                        Inkoopordernr.: {{ so.external_purchaseorder_no }}
-                    </span>
-                    <div class="flex flex-wrap gap-2 mt-2 sm:hidden">
-                        <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
-                            {{ so.service_order_stage?.name ?? 'Geen fase' }}
-                        </BadgeComponent>
-                        <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
-                            {{ serviceOrderPillText(so) }}
-                        </BadgeComponent>
+                <div v-for="so in serviceOrders.data" :key="so.id" role="row"
+                    class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                    <div class="w-10 flex-none flex items-center justify-center self-stretch">
+                        <AnimatedCheckbox :model-value="selectedIds.includes(so.id)"
+                            @update:model-value="toggleSelectServiceOrder(so.id)" />
                     </div>
-                </div>
-                <div class="col-span-3 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
-                    <span class="line-clamp-2">{{ so.description || '—' }}</span>
-                </div>
-                <div class="col-span-2 items-center hidden sm:flex pr-2">
-                    <EditableTextField type="combobox" :model-value="so.service_order_stage_id" :options="stages"
-                        :decoration="false"
-                        @update="(val) => updateStage(so, val)">
-                        <template #display>
-                            <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
-                                {{ so.service_order_stage?.name ?? 'Geen fase' }}
+                    <div class="flex-1 grid grid-cols-12 p-4">
+                        <div class="col-span-10 sm:col-span-2 flex flex-col">
+                            <Link :href="`/serviceorders/${so.id}`" class="font-bold mb-1">
+                                {{ so.customer?.name ?? '—' }}
+                            </Link>
+                            <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
+                                Inkoopordernr.: {{ so.external_purchaseorder_no }}
+                            </span>
+                            <div class="flex flex-wrap gap-2 mt-2 sm:hidden">
+                                <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
+                                    {{ so.service_order_stage?.name ?? 'Geen fase' }}
+                                </BadgeComponent>
+                                <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
+                                    {{ serviceOrderPillText(so) }}
+                                </BadgeComponent>
+                            </div>
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
+                            <span class="line-clamp-2">{{ so.description || '—' }}</span>
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                            <EditableTextField type="combobox" :model-value="so.service_order_stage_id"
+                                :options="stages" :decoration="false" @update="(val) => updateStage(so, val)">
+                                <template #display>
+                                    <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
+                                        {{ so.service_order_stage?.name ?? 'Geen fase' }}
+                                    </BadgeComponent>
+                                </template>
+                            </EditableTextField>
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
+                            <EditableTextField type="input" :decoration="false" :model-value="so.external_invoice_no"
+                                placeholder="—" @update="(val) => updateInvoiceNo(so, val)" />
+                        </div>
+                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                            <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
+                                {{ serviceOrderPillText(so) }}
                             </BadgeComponent>
-                        </template>
-                    </EditableTextField>
-                </div>
-                <div class="col-span-2 items-center hidden sm:flex pr-2">
-                    <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
-                        {{ serviceOrderPillText(so) }}
-                    </BadgeComponent>
-                </div>
-                <div class="col-span-1 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
-                    {{ nlDate(so.created_at) }}
-                </div>
-                <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
-                    <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
-                        <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
-                            <EyeIcon class="h-5 w-5" />
-                        </Link>
+                        </div>
+                        <div class="col-span-1 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
+                            {{ nlDate(so.created_at) }}
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
+                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
+                                <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
+                                    <EyeIcon class="h-5 w-5" />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            </div>
             </div>
             <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4 dark:bg-slate-900">
                 <PageRecordCountComponent :total="serviceOrders.total" :per-page="perPage" label="werkbonnen" />
@@ -127,30 +125,23 @@
         </div>
     </BoxComponent>
 
-    <DrawerComponent v-model="bulkEditOpen"
-        title="Werkbonnen bewerken"
+    <DrawerComponent v-model="bulkEditOpen" title="Werkbonnen bewerken"
         :subtitle="`${selectedIds.length} werkbonnen geselecteerd`">
         <div class="divide-y divide-gray-100 dark:divide-slate-700">
             <div class="px-4 sm:px-6 py-4">
-                <p class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
+                <p
+                    class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">
                     Vink de velden aan die je wilt aanpassen. Niet-aangevinkte velden worden niet gewijzigd.
                 </p>
             </div>
             <div class="flex items-start gap-3 px-4 sm:px-6 py-4">
-                <AnimatedCheckbox
-                    v-model="bulkEditChecked['_stage_']"
-                    class="mt-0.5 flex-shrink-0"
-                />
+                <AnimatedCheckbox v-model="bulkEditChecked['_stage_']" class="mt-0.5 flex-shrink-0" />
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center flex-wrap gap-2 mb-2">
                         <span class="text-sm font-semibold text-gray-900 dark:text-white">Fase</span>
                     </div>
-                    <ComboBox
-                        :options="stages"
-                        v-model="bulkEditValues['_stage_']"
-                        placeholder="Selecteer fase"
-                        :disabled="!bulkEditChecked['_stage_']"
-                    />
+                    <ComboBox :options="stages" v-model="bulkEditValues['_stage_']" placeholder="Selecteer fase"
+                        :disabled="!bulkEditChecked['_stage_']" />
                 </div>
             </div>
         </div>
@@ -305,6 +296,13 @@ function updateStage(so, stage_id) {
     router.patch(`/serviceorders/${so.id}`, {
         customer_id: so.customer_id,
         service_order_stage_id: stage_id,
+    }, { preserveScroll: true })
+}
+
+function updateInvoiceNo(so, val) {
+    router.patch(`/serviceorders/${so.id}`, {
+        customer_id: so.customer_id,
+        external_invoice_no: val,
     }, { preserveScroll: true })
 }
 

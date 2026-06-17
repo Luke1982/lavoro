@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ServiceOrderStage extends Model
 {
-    use HasFactory;
     use HasActivities;
+    use HasFactory;
 
     protected $fillable = [
         'name',
@@ -18,13 +18,15 @@ class ServiceOrderStage extends Model
         'is_closed_state',
         'is_plannable_state',
         'is_planning_cancelled_state',
+        'is_invoiced_state',
     ];
 
     protected $casts = [
-        'is_planned_state'            => 'boolean',
-        'is_closed_state'             => 'boolean',
-        'is_plannable_state'          => 'boolean',
+        'is_planned_state' => 'boolean',
+        'is_closed_state' => 'boolean',
+        'is_plannable_state' => 'boolean',
         'is_planning_cancelled_state' => 'boolean',
+        'is_invoiced_state' => 'boolean',
     ];
 
     public function serviceOrders()

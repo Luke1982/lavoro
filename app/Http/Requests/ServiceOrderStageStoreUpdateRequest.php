@@ -11,6 +11,7 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
     {
         $user = Auth::user();
         $permission = $this->isMethod('post') ? 'serviceorderstage.create' : 'serviceorderstage.update';
+
         return $user && ($user->isAdmin() || $user->hasPermission($permission));
     }
 
@@ -19,13 +20,13 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
         $stage = $this->route('serviceorderstage');
 
         return [
-            'name'               => ['sometimes', 'required', 'string', 'max:255'],
-            'order'              => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'is_planned_state'   => [
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'order' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'is_planned_state' => [
                 'sometimes',
                 'boolean',
                 function ($attribute, $value, $fail) use ($stage) {
-                    if (!$value) {
+                    if (! $value) {
                         return;
                     }
                     $effective = $this->has('is_planning_cancelled_state')
@@ -36,13 +37,14 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
                     }
                 },
             ],
-            'is_closed_state'    => ['sometimes', 'boolean'],
+            'is_closed_state' => ['sometimes', 'boolean'],
+            'is_invoiced_state' => ['sometimes', 'boolean'],
             'is_plannable_state' => ['sometimes', 'boolean'],
             'is_planning_cancelled_state' => [
                 'sometimes',
                 'boolean',
                 function ($attribute, $value, $fail) use ($stage) {
-                    if (!$value) {
+                    if (! $value) {
                         return;
                     }
                     $effective = $this->has('is_planned_state')

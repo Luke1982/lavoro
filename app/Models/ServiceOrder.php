@@ -2,26 +2,28 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCustomFields;
-use App\Models\Traits\RemarkableTrait;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Traits\HasOwner;
-use App\Models\Traits\HasExecutingUsers;
-use App\Models\Traits\HasActivities;
-use Carbon\Carbon;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceOrderTypes;
+use App\Models\Traits\HasActivities;
+use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\HasExecutingUsers;
+use App\Models\Traits\HasOwner;
+use App\Models\Traits\RemarkableTrait;
+use Carbon\Carbon;
+use Database\Factories\ServiceOrderFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ServiceOrder extends Model
 {
-    /** @use HasFactory<\Database\Factories\ServiceOrderFactory> */
-    use HasFactory;
-    use RemarkableTrait;
-    use HasOwner;
-    use HasExecutingUsers;
     use HasActivities;
+
     use HasCustomFields;
+    use HasExecutingUsers;
+    /** @use HasFactory<ServiceOrderFactory> */
+    use HasFactory;
+    use HasOwner;
+    use RemarkableTrait;
 
     protected $fillable = [
         'description',
@@ -33,6 +35,7 @@ class ServiceOrder extends Model
         'sent_to_administration',
         'sent_to_customer',
         'external_purchaseorder_no',
+        'external_invoice_no',
         'execution_location',
         'actual_start_time',
         'actual_end_time',
@@ -102,7 +105,7 @@ class ServiceOrder extends Model
     public function advanceToPlannedStage(): void
     {
         $planned = ServiceOrderStage::where('is_planned_state', true)->first();
-        if (!$planned) {
+        if (! $planned) {
             return;
         }
         $current = $this->serviceOrderStage;
@@ -117,7 +120,7 @@ class ServiceOrder extends Model
     public function revertToPlanningCancelledStage(): void
     {
         $cancelled = ServiceOrderStage::where('is_planning_cancelled_state', true)->first();
-        if (!$cancelled) {
+        if (! $cancelled) {
             return;
         }
         $this->service_order_stage_id = $cancelled->id;
