@@ -248,12 +248,30 @@ class ServiceOrderController extends Controller
         $previous_is_closed = $serviceorder->is_closed;
         $previous_customer_id = $serviceorder->customer_id;
         $previous_project_id = $serviceorder->project_id;
+        $previous_external_invoice_no = $serviceorder->external_invoice_no;
 
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
         $previous_project_title = $serviceorder->project?->title;
 
         $serviceorder->update($data);
+
+        if (
+            array_key_exists('external_invoice_no', $data)
+            && filled($data['external_invoice_no'])
+            && blank($previous_external_invoice_no)
+        ) {
+            $invoiced_stage = ServiceOrderStage::where('is_invoiced_state', true)->first();
+            if ($invoiced_stage && $serviceorder->service_order_stage_id !== $invoiced_stage->id) {
+                $serviceorder->service_order_stage_id = $invoiced_stage->id;
+                $serviceorder->save();
+                $serviceorder->logActivity(
+                    "Fase gewijzigd naar: {$invoiced_stage->name} (door extern factuurnummer)",
+                    also_attach_to: [$invoiced_stage]
+                );
+            }
+        }
+
         $serviceorder->load('serviceOrderStage');
         $new_is_closed = $serviceorder->is_closed;
 
@@ -593,8 +611,8 @@ class ServiceOrderController extends Controller
             'executionLocation' => $execution_location,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
-            'materialsList' => $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen),
-            'extraMaterialsList' => $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen),
+            'materialsList' => $serviceorder->materials->reject(fn($material) => $material->pivot->unforseen),
+            'extraMaterialsList' => $serviceorder->materials->filter(fn($material) => $material->pivot->unforseen),
             'taskInstances' => $serviceorder->taskInstances,
             'images' => $serviceorder->images->map(function ($image) {
                 $path = storage_path('app/public/' . $image->path);
@@ -603,9 +621,10 @@ class ServiceOrderController extends Controller
                 }
                 $mime = mime_content_type($path);
                 [$width, $height] = @getimagesize($path) ?: [1, 1];
+
                 return [
-                    'name'      => $image->name,
-                    'data'      => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
+                    'name' => $image->name,
+                    'data' => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
                     'landscape' => ($width ?? 1) >= ($height ?? 1),
                 ];
             })->filter()->values(),

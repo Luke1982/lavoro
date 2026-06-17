@@ -28,31 +28,75 @@
 
         <!-- Add form -->
         <div v-auto-animate>
-            <div v-if="showAddForm && canCreate && !isClosed"
-                class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
-                <div class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Kies een materiaal</span>
-                    <ComboBox :options="comboMaterials" v-model="materialToAdd"
-                        :has-external-searching="materialsUseAjax" :searching="materialSearching"
-                        @change="searchMaterials" />
+            <template v-if="showAddForm && canCreate && !isClosed">
+                <!-- Quick create -->
+                <div v-if="showQuickCreate"
+                    class="flex flex-col gap-2 mb-2 p-4 rounded-lavoro-sm bg-slate-50 dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700 relative">
+                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Nieuw materiaal aanmaken</span>
+                    <div class="flex flex-col md:flex-row items-start gap-2">
+                        <div class="flex flex-col flex-grow w-full sm:w-40">
+                            <TextInput v-model="quickForm.name" placeholder="Naam" :has-error="!!quickForm.errors.name"
+                                :error-message="quickForm.errors.name" class="bg-white" />
+                        </div>
+                        <div class="flex flex-col">
+                            <ComboBox :options="categories" v-model="quickForm.material_category_id"
+                                placeholder="Categorie" :has-error="!!quickForm.errors.material_category_id"
+                                :error-message="quickForm.errors.material_category_id" />
+                        </div>
+                        <div class="flex flex-col">
+                            <ComboBox :options="usageUnits" v-model="quickForm.material_usage_unit_id"
+                                placeholder="Eenheid" :has-error="!!quickForm.errors.material_usage_unit_id"
+                                :error-message="quickForm.errors.material_usage_unit_id" />
+                        </div>
+                        <button @click="createMaterial" :disabled="quickForm.processing" :class="[
+                            'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                            quickForm.processing
+                                ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
+                                : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
+                        ]">
+                            Aanmaken
+                        </button>
+                    </div>
+                    <button class="absolute top-2 right-2" @click="showQuickCreate = false">
+                        <XCircleIcon class="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300" />
+                    </button>
                 </div>
-                <div class="flex flex-col w-full md:w-28">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
-                    <TextInput v-model="form.quantity" type="number" placeholder="Aantal" />
+                <div
+                    class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
+                    <div
+                        class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
+                        <div class="flex items-center justify-between mb-0.5">
+                            <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Kies een materiaal</span>
+                        </div>
+                        <div class="flex">
+                            <button v-if="canCreateMaterial" type="button" @click="showQuickCreate = !showQuickCreate"
+                                class="inline-flex items-center gap-1 text-xs font-semibold bg-lavoro-blue text-white p-0.5 px-2 mr-2 rounded-lavoro-sm"
+                                v-tooltip="showQuickCreate ? 'Sluit snel aanmaken' : 'Snel materiaal aanmaken'">
+                                <WandIcon class="size-5" />
+                            </button>
+                            <ComboBox :options="comboMaterials" v-model="materialToAdd"
+                                :has-external-searching="materialsUseAjax" :searching="materialSearching"
+                                @change="searchMaterials" class="flex-grow" />
+                        </div>
+                    </div>
+                    <div class="flex flex-col w-full md:w-28">
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
+                        <TextInput v-model="form.quantity" type="number" placeholder="Aantal" />
+                    </div>
+                    <div v-if="showUnforseen" class="flex flex-col items-center gap-1 w-full md:w-auto">
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Onvoorzien</span>
+                        <SwitchComponent v-model="form.unforseen" />
+                    </div>
+                    <button @click="attachMaterial" :disabled="sentToAdministration || !materialToAdd" :class="[
+                        'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors mt-4',
+                        (sentToAdministration || !materialToAdd)
+                            ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
+                            : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
+                    ]">
+                        Toevoegen
+                    </button>
                 </div>
-                <div v-if="showUnforseen" class="flex flex-col items-center gap-1 w-full md:w-auto">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Onvoorzien</span>
-                    <SwitchComponent v-model="form.unforseen" />
-                </div>
-                <button @click="attachMaterial" :disabled="sentToAdministration || !materialToAdd" :class="[
-                    'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors mt-4',
-                    (sentToAdministration || !materialToAdd)
-                        ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-                        : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
-                ]">
-                    Toevoegen
-                </button>
-            </div>
+            </template>
         </div>
 
         <!-- Sent-to-admin warning -->
@@ -180,8 +224,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/vue3'
-import { Package, Plus as PlusIcon, Trash2 as TrashIcon, Euro as EuroIcon } from '@lucide/vue'
+import { useForm, usePage } from '@inertiajs/vue3'
+import { Package, Plus as PlusIcon, Trash2 as TrashIcon, Euro as EuroIcon, WandIcon, XCircleIcon } from '@lucide/vue'
 import { getIconByName } from '@/Utilities/lucideIconMap.js'
 import { hasPermission, nlCurrency } from '@/Utilities/Utilities.js'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -204,6 +248,14 @@ const props = defineProps({
         default: () => [],
     },
     materialsUseAjax: { type: Boolean, default: false },
+    categories: {
+        type: Array,
+        default: () => [],
+    },
+    usageUnits: {
+        type: Array,
+        default: () => [],
+    },
     isClosed: {
         type: Boolean,
         default: false,
@@ -222,6 +274,7 @@ const showAddForm = ref(false)
 const showFinancial = ref(false)
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'))
 const canCreate = computed(() => hasPermission('materiable.create.serviceorder'))
+const canCreateMaterial = computed(() => hasPermission('material.create'))
 const canUpdate = computed(() => hasPermission('materiable.update.serviceorder'))
 const canDelete = computed(() => hasPermission('materiable.delete.serviceorder'))
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
@@ -235,10 +288,15 @@ const { options: materialOptions, searching: materialSearching, search: searchMa
 
 const comboMaterials = computed(() => {
     return materialOptions.value.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
-        const label = canSeeFinancials.value
-            ? `${m.name}, code ${m.code}, voorraad ${m.stock}, prijs € ${m.price}`
-            : `${m.name}, code ${m.code}, voorraad ${m.stock}`
-        return { id: m.id, name: label }
+        const parts = [m.name]
+        if (m.code) {
+            parts.push(`code ${m.code}`)
+        }
+        parts.push(`voorraad ${m.stock}`)
+        if (canSeeFinancials.value) {
+            parts.push(`prijs € ${m.price}`)
+        }
+        return { id: m.id, name: parts.join(', ') }
     })
 })
 
@@ -255,6 +313,30 @@ const forseenSubtotal = computed(() =>
 const unforseenSubtotal = computed(() =>
     props.materials.filter(m => !!m.pivot.unforseen).reduce((sum, m) => sum + Number(m.pivot.quantity) * Number(m.price), 0)
 )
+
+const showQuickCreate = ref(false)
+const page = usePage()
+const quickForm = useForm({
+    name: '',
+    material_category_id: null,
+    material_usage_unit_id: null,
+})
+
+function createMaterial() {
+    quickForm.post('/materials', {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            const created = page.props.flash?.extra
+            if (created) {
+                materialOptions.value = [created, ...materialOptions.value]
+                materialToAdd.value = created.id
+            }
+            showQuickCreate.value = false
+            quickForm.reset()
+        },
+    })
+}
 
 function attachMaterial() {
     if (!materialToAdd.value || form.quantity <= 0) return
