@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MaterialReadRequest;
+use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
 use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
-use Illuminate\Http\Request;
-use App\Http\Requests\MaterialReadRequest;
+use App\Models\Supplier;
 
 class MaterialController extends Controller
 {
@@ -52,25 +53,8 @@ class MaterialController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(MaterialStoreRequest $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'material_category_id' => 'required|exists:material_categories,id',
-            'code' => 'nullable|string|max:255',
-            'vendor_code' => 'nullable|string|max:255',
-            'price' => 'nullable|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'material_usage_unit_id' => 'required|exists:material_usage_units,id',
-            'divisable' => 'boolean',
-            'is_active' => 'boolean',
-            'is_service' => 'boolean',
-            'stock' => 'nullable|numeric|min:0',
-            'min_stock' => 'nullable|numeric|min:0',
-            'max_stock' => 'nullable|numeric|min:0',
-        ]);
-
         $material = Material::create(array_merge([
             'description' => null,
             'code' => null,
@@ -83,7 +67,11 @@ class MaterialController extends Controller
             'stock' => 0,
             'min_stock' => 0,
             'max_stock' => 0,
-        ], $data));
+        ], $request->validated()));
+
+        if ($request->wantsJson()) {
+            return response()->json($material->load(['category', 'usageUnit']));
+        }
 
         return redirect()->route('materials.index')
             ->with('success', 'Materiaal aangemaakt.')
@@ -99,27 +87,27 @@ class MaterialController extends Controller
             'category',
             'usageUnit',
             'suppliers',
-            'activities' => fn ($q) => $q->with('user')->latest(),
+            'activities' => fn($q) => $q->with('user')->latest(),
         ]);
 
-        $supplier_count = \App\Models\Supplier::count();
-        $all_suppliers  = $supplier_count <= 50
-            ? \App\Models\Supplier::orderBy('name')->get(['id', 'name'])
+        $supplier_count = Supplier::count();
+        $all_suppliers = $supplier_count <= 50
+            ? Supplier::orderBy('name')->get(['id', 'name'])
             : collect();
 
         return inertia('Materials/ShowPage', [
-            'material'          => $material,
-            'categories'        => \App\Models\MaterialCategory::orderBy('name')->get(['id', 'name']),
-            'usageUnits'        => \App\Models\MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
-            'materialSuppliers' => $material->suppliers->map(fn ($s) => [
-                'id'             => $s->id,
-                'name'           => $s->name,
+            'material' => $material,
+            'categories' => MaterialCategory::orderBy('name')->get(['id', 'name']),
+            'usageUnits' => MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
+            'materialSuppliers' => $material->suppliers->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
                 'article_number' => $s->pivot->article_number,
-                'is_preferred'   => (bool) $s->pivot->is_preferred,
+                'is_preferred' => (bool) $s->pivot->is_preferred,
             ])->values()->all(),
-            'allSuppliers'      => $all_suppliers,
-            'suppliersUseAjax'  => $supplier_count > 50,
-            'activities'        => $material->activities,
+            'allSuppliers' => $all_suppliers,
+            'suppliersUseAjax' => $supplier_count > 50,
+            'activities' => $material->activities,
         ]);
     }
 
@@ -147,6 +135,7 @@ class MaterialController extends Controller
     public function destroy(Material $material)
     {
         $material->delete();
+
         return redirect()->back();
     }
 }
