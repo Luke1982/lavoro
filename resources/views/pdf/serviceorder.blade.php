@@ -257,8 +257,7 @@
             <tbody>
                 @foreach ($materialsList as $material)
                     <tr>
-                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
-                        </td>
+                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
                         <td>{{ $material->name }}</td>
                         <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
                         <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
@@ -266,6 +265,7 @@
                 @endforeach
             </tbody>
         </table>
+        <div class="small muted" style="margin-top:4px;">Indien niet anders vermeld zijn alle prijzen excl. BTW</div>
     @endif
 
     @if (($extraMaterialsList ?? collect())->isNotEmpty())
@@ -282,15 +282,20 @@
             <tbody>
                 @foreach ($extraMaterialsList as $material)
                     <tr>
-                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
-                        </td>
+                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}</td>
                         <td>{{ $material->name }}</td>
-                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                        @if ((float) $material->price === 0.0)
+                            <td>n.n.b.</td>
+                            <td>n.n.b.</td>
+                        @else
+                            <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
+                            <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>
         </table>
+        <div class="small muted" style="margin-top:4px;">Indien niet anders vermeld zijn alle prijzen excl. BTW</div>
     @endif
 
     @if (($taskInstances ?? collect())->isNotEmpty())
@@ -330,7 +335,7 @@
                         @foreach ($row as $image)
                             <td style="width:50%; padding:4px; vertical-align:top;">
                                 <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
-                                    style="max-width:100%; max-height:160px; display:block;">
+                                    style="width:100%; display:block;">
                                 @if ($image['name'])
                                     <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
                                 @endif
