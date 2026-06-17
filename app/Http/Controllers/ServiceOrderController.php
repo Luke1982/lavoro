@@ -573,6 +573,8 @@ class ServiceOrderController extends Controller
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
             'materials',
+            'taskInstances.serviceOrderTask',
+            'taskInstances.assets',
         ]);
         $company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($company);
@@ -585,6 +587,7 @@ class ServiceOrderController extends Controller
             'jobs' => $serviceorder->serviceJobs,
             'materialsList' => $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen),
             'extraMaterialsList' => $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen),
+            'taskInstances' => $serviceorder->taskInstances,
             'company' => $company,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
