@@ -594,14 +594,21 @@ class ServiceOrderController extends Controller
             'taskInstances.serviceOrderTask',
             'taskInstances.assets',
             'images',
+            'events',
+            'project',
         ]);
         $company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($company);
         $description_text = trim((string) ($serviceorder->description ?? ''));
+        $first_event = $serviceorder->events->sortBy('start')->first();
+        $execution_location = $first_event?->location
+            ?: $serviceorder->execution_location
+            ?: $serviceorder->project?->location;
         $pdf = Pdf::loadView('pdf.serviceorder', [
             'serviceOrder' => $serviceorder,
             'logo' => $logo,
             'descriptionText' => $description_text,
+            'executionLocation' => $execution_location,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
             'materialsList' => $serviceorder->materials->reject(fn($material) => $material->pivot->unforseen),

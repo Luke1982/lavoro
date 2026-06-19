@@ -161,10 +161,10 @@
                         <td class="label">Datum:</td>
                         <td>{{ optional($serviceOrder->created_at)->format('d-m-Y') }}</td>
                     </tr>
-                    @if($serviceOrder->execution_location)
+                    @if($executionLocation)
                     <tr>
                         <td class="label">Uitvoeringslocatie:</td>
-                        <td>{{ $serviceOrder->execution_location }}</td>
+                        <td>{{ $executionLocation }}</td>
                     </tr>
                     @endif
                 </table>
