@@ -51,7 +51,6 @@ class PlannerController extends Controller
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'allServiceOrders' => ServiceOrder::with('customer')->tap($so_scope)->get(),
             'unplannedServiceOrders' => ServiceOrder::with(['customer', 'serviceOrderStage'])
                 ->withCount('events')
                 ->whereNull('project_id')
@@ -83,14 +82,14 @@ class PlannerController extends Controller
                     'avatar' => $u->avatar,
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                     'unavailabilities' => $u->unavailabilities->map(fn ($unav) => [
-                        'type'           => $unav->type,
-                        'label'          => $unav->label,
-                        'date'           => $unav->date?->toDateString(),
-                        'end_date'       => $unav->end_date?->toDateString(),
-                        'day_of_week'    => $unav->day_of_week,
-                        'start_time'     => $unav->start_time,
-                        'end_time'       => $unav->end_time,
-                        'repeat'         => $unav->repeat,
+                        'type' => $unav->type,
+                        'label' => $unav->label,
+                        'date' => $unav->date?->toDateString(),
+                        'end_date' => $unav->end_date?->toDateString(),
+                        'day_of_week' => $unav->day_of_week,
+                        'start_time' => $unav->start_time,
+                        'end_time' => $unav->end_time,
+                        'repeat' => $unav->repeat,
                         'reference_date' => $unav->reference_date?->toDateString(),
                     ])->values()->all(),
                 ]),

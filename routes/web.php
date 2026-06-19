@@ -61,6 +61,7 @@ Route::group(
         Route::get('combo/materials', [ComboSearchController::class, 'materials'])->name('combo.materials');
         Route::get('combo/products', [ComboSearchController::class, 'products'])->name('combo.products');
         Route::get('combo/suppliers', [ComboSearchController::class, 'suppliers'])->name('combo.suppliers');
+        Route::get('combo/serviceorders', [ComboSearchController::class, 'serviceOrders'])->name('combo.serviceorders');
         // coords patch
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');

@@ -427,13 +427,32 @@ const { options: customerOptions, searching: customerSearching, search: searchCu
 
 const selectedCustomer = ref(
     props.initial.customer_id
-    || props.allServiceOrders.find(so => so.id === form.eventable_id)?.customer_id
     || props.allCustomers[0]?.id
     || null
 )
 
+const serviceOrderResults = ref([])
+
+async function fetchServiceOrders() {
+    if (!selectedCustomer.value) {
+        serviceOrderResults.value = []
+        return
+    }
+    try {
+        const { data } = await axios.get('/combo/serviceorders', {
+            params: {
+                customer_id: selectedCustomer.value,
+                include_id: form.eventable_id || undefined,
+            },
+        })
+        serviceOrderResults.value = data
+    } catch {
+        serviceOrderResults.value = []
+    }
+}
+
 const internalServiceOrders = computed(() =>
-    props.allServiceOrders.filter(so => so.customer_id === selectedCustomer.value).map(so => ({
+    serviceOrderResults.value.map(so => ({
         id: so.id,
         name: `Order ${so.id} van ${nlDate(so.created_at)}`,
     }))
@@ -454,8 +473,13 @@ watch(selectedCustomer, (val, oldVal) => {
     if (!val) {
         form.create_service_order = false
     }
-    if (!internalServiceOrders.value.some(o => o.id === form.eventable_id)) {
-        form.eventable_id = internalServiceOrders.value[0]?.id || ''
+    form.eventable_id = ''
+    fetchServiceOrders()
+})
+
+onMounted(() => {
+    if (selectedCustomer.value) {
+        fetchServiceOrders()
     }
 })
 

@@ -48,7 +48,7 @@ const props = defineProps({
     eventTypes: { type: Array, required: true },
     allCustomers: { type: Array, required: true },
     customersUseAjax: { type: Boolean, default: false },
-    allServiceOrders: { type: Array, required: true },
+    allServiceOrders: { type: Array, default: () => [] },
     eventStatusses: { type: Array, required: true },
     allUsers: { type: Array, required: true },
     plannableUsers: { type: Array, required: true },

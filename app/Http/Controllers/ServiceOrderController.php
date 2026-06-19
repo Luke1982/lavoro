@@ -586,6 +586,8 @@ class ServiceOrderController extends Controller
     {
         $serviceorder->load([
             'customer',
+            'project',
+            'events',
             'serviceJobs.asset.product.brand',
             'serviceJobs.asset.product.productType',
             'tickets.asset.product.brand',
@@ -604,10 +606,12 @@ class ServiceOrderController extends Controller
         $execution_location = $first_event?->location
             ?: $serviceorder->execution_location
             ?: $serviceorder->project?->location;
+        $planned_date = $first_event?->start ?? $serviceorder->created_at;
         $pdf = Pdf::loadView('pdf.serviceorder', [
             'serviceOrder' => $serviceorder,
             'logo' => $logo,
             'descriptionText' => $description_text,
+            'plannedDate' => $planned_date,
             'executionLocation' => $execution_location,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
