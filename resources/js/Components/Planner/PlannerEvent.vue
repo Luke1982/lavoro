@@ -1,6 +1,6 @@
 <template>
-    <div data-planner-event
-        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900" :class="[
+    <div data-planner-event class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900"
+        :class="[
             isBeingDragged ? 'opacity-30' : '',
             isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60' : '',
         ]" :style="style" @pointerdown.stop="onPointerDown" @click.stop="$emit('click')"
@@ -12,7 +12,8 @@
                 :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1">
                     <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />
-                    <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue" v-tooltip="'Uitvoerende met afwijkende tijden'" />
+                    <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue"
+                        v-tooltip="'Uitvoerende met afwijkende tijden'" />
                     #{{ event.id }} {{ event.name || event.title }}
                 </div>
                 <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 truncate">
@@ -58,7 +59,8 @@
                         <ClockIcon class="size-3" />
                         {{ effectiveStartLabel }} – {{ effectiveEndLabel }}
                     </div>
-                    <div v-if="event.location" class="text-xs mt-1 flex items-center gap-1 text-gray-600 dark:text-slate-300">
+                    <div v-if="event.location"
+                        class="text-xs mt-1 flex items-center gap-1 text-gray-600 dark:text-slate-300">
                         <MapPinIcon class="size-3 shrink-0" />
                         {{ event.location }}
                     </div>
@@ -68,11 +70,10 @@
                 </div>
             </template>
         </VDropdown>
-        <div class="absolute top-1 right-2 flex items-center gap-0.5 pointer-events-none">
+        <div class="absolute top-1 right-2 flex items-center gap-1 pointer-events-none">
             <span v-for="role in currentUserRoles" :key="role.id"
                 class="inline-flex items-center rounded px-1 py-px text-[9px] font-semibold leading-none text-white"
-                :style="{ backgroundColor: role.color }"
-                v-tooltip="role.name">
+                :style="{ backgroundColor: role.color }" v-tooltip="role.name">
                 {{ roleInitials(role.name) }}
             </span>
             <div v-if="event.from_google" v-tooltip="'Afkomstig uit Google Calendar'">
@@ -91,6 +92,10 @@
                         fill="#EA4335" />
                 </svg>
             </div>
+            <TriangleAlert v-if="event.is_incomplete"
+                class="size-5 shrink-0 text-red-600 drop-shadow pointer-events-auto"
+                v-tooltip="'Werkbon gedeeltelijk afgerond'" />
+
         </div>
         <div class="absolute top-0 bottom-0 left-0 w-1.5 cursor-ew-resize"
             @pointerdown.stop="onResize($event, 'start')"></div>
@@ -102,9 +107,11 @@
 <script setup>
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
-import { ClockFading } from '@lucide/vue'
+import { ClockFading, TriangleAlert } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
+
+const COMPLETED_PATTERN = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(107,114,128,0.07) 6px, rgba(107,114,128,0.07) 12px)'
 
 const props = defineProps({
     event: { type: Object, required: true },
@@ -191,7 +198,7 @@ const style = computed(() => {
     const endMin = Math.min(totalMin.value, effectiveEndMin.value)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
-    const color = props.event.color || '#3b82f6'
+    const color = props.event.is_closed ? '#6b7280' : (props.event.color || '#3b82f6')
     const bgStrength = props.event.is_preliminary ? '8%' : '18%'
     return {
         left: leftPct + '%',
@@ -199,6 +206,7 @@ const style = computed(() => {
         top: props.eventPaddingY + 'px',
         bottom: props.eventPaddingY + 'px',
         backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, white)`,
+        ...(props.event.is_closed ? { backgroundImage: COMPLETED_PATTERN } : {}),
         borderColor: color,
         borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',
         transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',

@@ -85,7 +85,8 @@
                         <div v-for="(ev, index) in group.events" :key="ev.id" class="flex">
                             <!-- Left: time + duration (narrowed ~20%) -->
                             <div class="w-[51px] shrink-0 flex flex-col items-end pr-2 pt-1">
-                                <div class="text-sm font-semibold tabular-nums leading-none">{{ effectiveStartTime(ev) }}
+                                <div class="text-sm font-semibold tabular-nums leading-none">{{ effectiveStartTime(ev)
+                                    }}
                                 </div>
                                 <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ durationLabel(ev) }}
                                 </div>
@@ -105,8 +106,9 @@
                             <div class="flex-1 pl-3 pr-4 pb-5">
                                 <div class="rounded-xl overflow-hidden border"
                                     :class="canEdit(ev) ? 'cursor-pointer' : ''" :style="{
-                                        backgroundColor: `color-mix(in srgb, ${ev.color || '#3b82f6'} 6%, white)`,
-                                        borderColor: `color-mix(in srgb, ${ev.color || '#3b82f6'} 9%, #e5e7eb)`,
+                                        backgroundColor: `color-mix(in srgb, ${eventColor(ev)} 6%, white)`,
+                                        borderColor: `color-mix(in srgb, ${eventColor(ev)} 9%, #e5e7eb)`,
+                                        ...(ev.is_closed ? { backgroundImage: COMPLETED_PATTERN } : {}),
                                     }" @click="handleEventTap(ev)">
                                     <div class="p-3">
                                         <!-- Title + avatars at top right -->
@@ -135,11 +137,13 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            <TriangleAlert v-if="ev.is_incomplete"
+                                                class="size-5 shrink-0 text-red-600 drop-shadow"
+                                                v-tooltip="'Werkbon gedeeltelijk afgerond'" />
                                         </div>
 
                                         <!-- Current user's roles -->
-                                        <div v-if="currentUserRoles(ev).length"
-                                            class="mt-1 flex flex-wrap gap-1">
+                                        <div v-if="currentUserRoles(ev).length" class="mt-1 flex flex-wrap gap-1">
                                             <span v-for="role in currentUserRoles(ev)" :key="role.id"
                                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
                                                 :style="{ backgroundColor: role.color }">
@@ -166,15 +170,13 @@
                                         </div>
 
                                         <!-- Coworkers + roles -->
-                                        <div v-if="coworkersForEvent(ev).length > 0"
-                                            class="mt-2 flex flex-col gap-1">
+                                        <div v-if="coworkersForEvent(ev).length > 0" class="mt-2 flex flex-col gap-1">
                                             <div v-for="u in coworkersForEvent(ev)" :key="u.id"
                                                 class="flex items-center gap-1.5 flex-wrap">
                                                 <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{
                                                     u.name }}</span>
                                                 <span v-for="r in u.roles" :key="r.id"
-                                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                                                    :style="{
+                                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" :style="{
                                                         backgroundColor: `color-mix(in srgb, ${r.color} 18%, white)`,
                                                         color: `color-mix(in srgb, ${r.color} 70%, black)`,
                                                     }">
@@ -201,17 +203,21 @@
                                         <div v-if="ev.task_instances?.length" class="mt-2 space-y-2">
                                             <div v-for="ti in ev.task_instances" :key="ti.id">
                                                 <div class="flex items-start gap-1.5 text-xs">
-                                                    <span class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
+                                                    <span
+                                                        class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
                                                     <div class="flex-1 min-w-0">
-                                                        <span class="text-gray-600 dark:text-slate-300 font-medium">{{ ti.title }}</span>
+                                                        <span class="text-gray-600 dark:text-slate-300 font-medium">{{
+                                                            ti.title }}</span>
                                                         <template v-if="ti.product">
                                                             <div class="text-gray-500 dark:text-slate-400 mt-0.5">
                                                                 {{ ti.product.name }}
-                                                                <span class="text-gray-400 dark:text-slate-500">× {{ ti.quantity }}</span>
+                                                                <span class="text-gray-400 dark:text-slate-500">× {{
+                                                                    ti.quantity }}</span>
                                                             </div>
                                                             <div v-if="ti.product.specific_attributes?.length"
                                                                 class="text-gray-400 dark:text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                                                                <span v-for="attr in ti.product.specific_attributes" :key="attr.name">
+                                                                <span v-for="attr in ti.product.specific_attributes"
+                                                                    :key="attr.name">
                                                                     {{ attr.name }}: {{ attr.value }}
                                                                 </span>
                                                             </div>
@@ -273,7 +279,7 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
-import { MapIcon } from '@lucide/vue'
+import { MapIcon, TriangleAlert } from '@lucide/vue'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -503,6 +509,12 @@ function canEdit(ev) {
     if (hasPermission('event.update') && ev.executing_user_ids.includes(authUserId.value)) return true
     return false
 }
+
+function eventColor(ev) {
+    return ev.is_closed ? '#6b7280' : (ev.color || '#3b82f6')
+}
+
+const COMPLETED_PATTERN = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(107,114,128,0.07) 6px, rgba(107,114,128,0.07) 12px)'
 
 function handleEventTap(ev) {
     if (!canEdit(ev)) return

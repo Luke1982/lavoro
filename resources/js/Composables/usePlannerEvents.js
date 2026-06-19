@@ -32,6 +32,8 @@ function mapEvent(ev) {
         customer_name: customer?.name || null,
         project_name: ev.service_orders?.[0]?.project?.title || null,
         is_preliminary: ev.is_preliminary ?? false,
+        is_closed: ev.service_orders?.[0]?.is_closed ?? false,
+        is_incomplete: ev.service_orders?.[0]?.is_incomplete ?? false,
         from_google: ev.origin === "google",
         location: ev.location
             || ev.service_orders?.[0]?.execution_location

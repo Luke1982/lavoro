@@ -17,11 +17,12 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceOrder extends Model
 {
     use HasActivities;
-
     use HasCustomFields;
     use HasExecutingUsers;
+
     /** @use HasFactory<ServiceOrderFactory> */
     use HasFactory;
+
     use HasOwner;
     use RemarkableTrait;
 
@@ -49,7 +50,7 @@ class ServiceOrder extends Model
         'type' => ServiceOrderTypes::class,
     ];
 
-    protected $appends = ['is_closed'];
+    protected $appends = ['is_closed', 'is_incomplete'];
 
     protected $with = ['serviceOrderStage'];
 
@@ -68,6 +69,11 @@ class ServiceOrder extends Model
     public function getIsClosedAttribute(): bool
     {
         return $this->serviceOrderStage?->is_closed_state === true;
+    }
+
+    public function getIsIncompleteAttribute(): bool
+    {
+        return $this->serviceOrderStage?->is_incomplete_state === true;
     }
 
     public function customer()
