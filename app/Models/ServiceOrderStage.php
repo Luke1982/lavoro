@@ -19,6 +19,7 @@ class ServiceOrderStage extends Model
         'is_plannable_state',
         'is_planning_cancelled_state',
         'is_invoiced_state',
+        'is_incomplete_state',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class ServiceOrderStage extends Model
         'is_plannable_state' => 'boolean',
         'is_planning_cancelled_state' => 'boolean',
         'is_invoiced_state' => 'boolean',
+        'is_incomplete_state' => 'boolean',
     ];
 
     public function serviceOrders()

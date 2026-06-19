@@ -51,6 +51,10 @@ class ServiceOrderStageController extends Controller
                 ServiceOrderStage::where('is_invoiced_state', true)
                     ->update(['is_invoiced_state' => false]);
             }
+            if (! empty($data['is_incomplete_state'])) {
+                ServiceOrderStage::where('is_incomplete_state', true)
+                    ->update(['is_incomplete_state' => false]);
+            }
             if (! empty($data['is_planning_cancelled_state'])) {
                 ServiceOrderStage::where('is_planning_cancelled_state', true)
                     ->update(['is_planning_cancelled_state' => false]);
@@ -83,6 +87,11 @@ class ServiceOrderStageController extends Controller
                 ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
                     ->where('is_invoiced_state', true)
                     ->update(['is_invoiced_state' => false]);
+            }
+            if (! empty($data['is_incomplete_state'])) {
+                ServiceOrderStage::where('id', '!=', $serviceorderstage->id)
+                    ->where('is_incomplete_state', true)
+                    ->update(['is_incomplete_state' => false]);
             }
             if (! empty($data['is_planning_cancelled_state'])) {
                 ServiceOrderStage::where('id', '!=', $serviceorderstage->id)

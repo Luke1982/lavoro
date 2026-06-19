@@ -394,6 +394,12 @@
                                 class="mt-4 w-full p-3 rounded-md bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-semibold text-sm">
                                 Werkbon heropenen
                             </button>
+                            <button
+                                v-if="incompleteStageId !== null && !serviceOrder.is_closed && serviceOrder.service_order_stage_id !== incompleteStageId && hasPermission('serviceorder.mark_partially_complete')"
+                                @click="markIncompleteViaStage"
+                                class="mt-4 w-full p-3 rounded-md bg-amber-500 text-white hover:bg-amber-600 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
+                                Werkbon als onvolledig markeren
+                            </button>
                         </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
@@ -638,6 +644,7 @@ const props = defineProps({
     },
     stages: { type: Array, default: () => [] },
     closedStageId: { type: [Number, null], default: null },
+    incompleteStageId: { type: [Number, null], default: null },
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
@@ -777,8 +784,15 @@ function reopenViaStage() {
     onStageChange(null)
 }
 
+function markIncompleteViaStage() {
+    if (!confirm('Weet je zeker dat je deze werkbon als onvolledig wilt markeren?')) {
+        return
+    }
+    onStageChange(props.incompleteStageId)
+}
+
 function onStageChange(stage_id) {
-    if (!hasPermission('serviceorder.update') && !hasPermission('serviceorder.close')) {
+    if (!hasPermission('serviceorder.update') && !hasPermission('serviceorder.close') && !hasPermission('serviceorder.mark_partially_complete')) {
         usePage().props.flash.error = 'Je hebt geen toestemming om de werkbon status te wijzigen.';
         return;
     }

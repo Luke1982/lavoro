@@ -9,12 +9,13 @@
                 class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-1"></div>
                 <div class="col-span-1">Volgorde</div>
-                <div class="col-span-2">Naam</div>
-                <div class="col-span-2 text-center">Gepland fase</div>
-                <div class="col-span-2 text-center">Gesloten fase</div>
+                <div class="col-span-3">Naam</div>
+                <div class="col-span-1 text-center">Gepland</div>
+                <div class="col-span-1 text-center">Gesloten</div>
                 <div class="col-span-1 text-center">Gefactureerd</div>
-                <div class="col-span-1 text-center">Planbare fase</div>
+                <div class="col-span-1 text-center">Planbaar</div>
                 <div class="col-span-1 text-center">Na annuleren</div>
+                <div class="col-span-1 text-center">Onvolledig</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
@@ -35,7 +36,7 @@
                                     v-tooltip="'Verwijder deze fase'" />
                             </div>
                         </div>
-                        <div class="mt-3 grid grid-cols-5 gap-1">
+                        <div class="mt-3 grid grid-cols-3 gap-2">
                             <div class="flex flex-col items-center gap-1">
                                 <span class="text-xs text-gray-500 text-center leading-tight">Gepland</span>
                                 <SwitchComponent :model-value="stage.is_planned_state"
@@ -61,6 +62,11 @@
                                 <SwitchComponent :model-value="stage.is_planning_cancelled_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
                             </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-gray-500 text-center leading-tight">Onvolledig</span>
+                                <SwitchComponent :model-value="stage.is_incomplete_state"
+                                    @update:modelValue="(v) => saveStage(stage.id, { is_incomplete_state: v })" />
+                            </div>
                         </div>
                     </div>
                     <!-- Desktop layout -->
@@ -72,15 +78,15 @@
                         <div class="col-span-1 text-gray-800 dark:text-slate-200">
                             {{ stage.order }}
                         </div>
-                        <div class="col-span-2 pr-4">
+                        <div class="col-span-3 pr-4">
                             <EditableTextField type="input" :decoration="false" :model-value="stage.name"
                                 @update="(val) => saveStage(stage.id, { name: val })" />
                         </div>
-                        <div class="col-span-2 flex items-center justify-center">
+                        <div class="col-span-1 flex items-center justify-center">
                             <SwitchComponent :model-value="stage.is_planned_state"
                                 @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
                         </div>
-                        <div class="col-span-2 flex items-center justify-center">
+                        <div class="col-span-1 flex items-center justify-center">
                             <SwitchComponent :model-value="stage.is_closed_state"
                                 @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
                         </div>
@@ -95,6 +101,10 @@
                         <div class="col-span-1 flex items-center justify-center">
                             <SwitchComponent :model-value="stage.is_planning_cancelled_state"
                                 @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
+                        </div>
+                        <div class="col-span-1 flex items-center justify-center">
+                            <SwitchComponent :model-value="stage.is_incomplete_state"
+                                @update:modelValue="(v) => saveStage(stage.id, { is_incomplete_state: v })" />
                         </div>
                         <div class="col-span-1 flex justify-end">
                             <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">

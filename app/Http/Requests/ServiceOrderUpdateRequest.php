@@ -19,7 +19,7 @@ class ServiceOrderUpdateRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('serviceorder'))
-            || $this->user()->hasPermission('serviceorder.close');
+            || $this->user()->can('complete', $this->route('serviceorder'));
     }
 
     public function rules(): array

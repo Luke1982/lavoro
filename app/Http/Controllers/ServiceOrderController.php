@@ -219,6 +219,7 @@ class ServiceOrderController extends Controller
             'customFields' => $service_order->allCustomFieldsWithValues(),
             'stages' => $stages_with_meta,
             'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
+            'incompleteStageId' => ServiceOrderStage::where('is_incomplete_state', true)->value('id'),
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
             'snelStartEnabled' => filled(config('services.snelstart.client_key')),

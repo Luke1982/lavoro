@@ -39,6 +39,7 @@ class ServiceOrderStageStoreUpdateRequest extends FormRequest
             ],
             'is_closed_state' => ['sometimes', 'boolean'],
             'is_invoiced_state' => ['sometimes', 'boolean'],
+            'is_incomplete_state' => ['sometimes', 'boolean'],
             'is_plannable_state' => ['sometimes', 'boolean'],
             'is_planning_cancelled_state' => [
                 'sometimes',
