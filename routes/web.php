@@ -1,55 +1,65 @@
 <?php
 
 use App\Http\Controllers\ActivityListController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\Admin\CalendarGrantController;
+use App\Http\Controllers\Admin\GeneralSettingsController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssetRelationController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
-use App\Http\Controllers\EventController;
-use App\Http\Controllers\PlannerController;
-use App\Http\Controllers\ImageController;
-use App\Http\Controllers\RemarkController;
-use App\Http\Controllers\TicketController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ComboSearchController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\MaterialController;
-use App\Http\Controllers\FreeformMaterialController;
-use App\Http\Controllers\EventTypeController;
-use App\Http\Controllers\ServiceJobController;
-use App\Http\Controllers\ProductTypeController;
-use App\Http\Controllers\ServiceCheckController;
-use App\Http\Controllers\ServiceOrderController;
-use App\Http\Controllers\MaterialCategoryController;
-use App\Http\Controllers\MaterialUsageUnitController;
-use App\Http\Controllers\ServiceCheckValueController;
-use App\Http\Controllers\ServiceCheckInstanceController;
-use App\Http\Controllers\ServiceCheckGroupController;
-use App\Http\Controllers\SnelStartImportController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
+use App\Http\Controllers\CustomerImportController;
+use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\CustomFieldController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\ProjectMilestoneController;
-use App\Http\Controllers\ProductRelationController;
-use App\Http\Controllers\ProductableController;
-use App\Http\Controllers\ProductAttributeController;
-use App\Http\Controllers\ProductAttributeValueController;
-use App\Http\Controllers\ProductAttributeProductTypeController;
-use App\Http\Controllers\ProductAttributeValueableController;
-use App\Http\Controllers\AssetRelationController;
-use App\Http\Controllers\TechnicalManagementController;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventExportController;
+use App\Http\Controllers\EventTypeController;
+use App\Http\Controllers\FreeformMaterialController;
+use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
+use App\Http\Controllers\ImageController;
+use App\Http\Controllers\MaterialCategoryController;
+use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\MaterialSupplierController;
+use App\Http\Controllers\MaterialUsageUnitController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PlannerController;
+use App\Http\Controllers\ProductableController;
+use App\Http\Controllers\ProductAttributeController;
+use App\Http\Controllers\ProductAttributeProductTypeController;
+use App\Http\Controllers\ProductAttributeValueableController;
+use App\Http\Controllers\ProductAttributeValueController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductRelationController;
+use App\Http\Controllers\ProductSupplierController;
+use App\Http\Controllers\ProductTypeController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectMilestoneController;
+use App\Http\Controllers\RemarkController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ServiceCheckController;
+use App\Http\Controllers\ServiceCheckGroupController;
+use App\Http\Controllers\ServiceCheckInstanceController;
+use App\Http\Controllers\ServiceCheckValueController;
+use App\Http\Controllers\ServiceJobController;
+use App\Http\Controllers\ServiceOrderController;
+use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
+use App\Http\Controllers\SnelStartImportController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierImportController;
+use App\Http\Controllers\TechnicalManagementController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserRoleController;
 use App\Http\Controllers\UserUnavailabilityController;
-use App\Http\Controllers\ComboSearchController;
-use App\Http\Controllers\GeocodeController;
+use Illuminate\Support\Facades\Route;
 
 Route::group(
     ['middleware' => 'auth'],
@@ -67,28 +77,28 @@ Route::group(
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
         Route::get('geocode', [GeocodeController::class, 'lookup'])->name('geocode.lookup');
-        Route::post('customers/import/preview', [\App\Http\Controllers\CustomerImportController::class, 'preview'])
+        Route::post('customers/import/preview', [CustomerImportController::class, 'preview'])
             ->name('customers.import.preview');
-        Route::post('customers/import/confirm', [\App\Http\Controllers\CustomerImportController::class, 'confirm'])
+        Route::post('customers/import/confirm', [CustomerImportController::class, 'confirm'])
             ->name('customers.import.confirm');
-        Route::get('customers/import/example', [\App\Http\Controllers\CustomerImportController::class, 'example'])
+        Route::get('customers/import/example', [CustomerImportController::class, 'example'])
             ->name('customers.import.example');
-        Route::post('suppliers/import/preview', [\App\Http\Controllers\SupplierImportController::class, 'preview'])
+        Route::post('suppliers/import/preview', [SupplierImportController::class, 'preview'])
             ->name('suppliers.import.preview');
-        Route::post('suppliers/import/confirm', [\App\Http\Controllers\SupplierImportController::class, 'confirm'])
+        Route::post('suppliers/import/confirm', [SupplierImportController::class, 'confirm'])
             ->name('suppliers.import.confirm');
-        Route::get('suppliers/import/example', [\App\Http\Controllers\SupplierImportController::class, 'example'])
+        Route::get('suppliers/import/example', [SupplierImportController::class, 'example'])
             ->name('suppliers.import.example');
-        Route::resource('suppliers', \App\Http\Controllers\SupplierController::class)
+        Route::resource('suppliers', SupplierController::class)
             ->except(['create', 'edit']);
-        Route::post('products/{product}/suppliers', [\App\Http\Controllers\ProductSupplierController::class, 'store'])
+        Route::post('products/{product}/suppliers', [ProductSupplierController::class, 'store'])
             ->name('products.suppliers.store');
         Route::patch('products/{product}/suppliers/{supplier}', [
-            \App\Http\Controllers\ProductSupplierController::class,
+            ProductSupplierController::class,
             'update',
         ])->name('products.suppliers.update');
         Route::delete('products/{product}/suppliers/{supplier}', [
-            \App\Http\Controllers\ProductSupplierController::class,
+            ProductSupplierController::class,
             'destroy',
         ])->name('products.suppliers.destroy');
         Route::resource('brands', BrandController::class)->except(['show', 'edit', 'create']);
@@ -124,15 +134,15 @@ Route::group(
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);
         Route::post('materials/{material}/suppliers', [
-            \App\Http\Controllers\MaterialSupplierController::class,
+            MaterialSupplierController::class,
             'store',
         ])->name('materials.suppliers.store');
         Route::patch('materials/{material}/suppliers/{supplier}', [
-            \App\Http\Controllers\MaterialSupplierController::class,
+            MaterialSupplierController::class,
             'update',
         ])->name('materials.suppliers.update');
         Route::delete('materials/{material}/suppliers/{supplier}', [
-            \App\Http\Controllers\MaterialSupplierController::class,
+            MaterialSupplierController::class,
             'destroy',
         ])->name('materials.suppliers.destroy');
         Route::resource('materialcategories', MaterialCategoryController::class)
@@ -144,10 +154,10 @@ Route::group(
             ->only(['store', 'update', 'destroy']);
         Route::resource('servicecheckgroups', ServiceCheckGroupController::class)
             ->except(['show', 'edit', 'create']);
-        Route::resource('serviceorderstages', \App\Http\Controllers\ServiceOrderStageController::class)
+        Route::resource('serviceorderstages', ServiceOrderStageController::class)
             ->except(['show', 'edit', 'create']);
         Route::post('serviceorderstages/reorder', [
-            \App\Http\Controllers\ServiceOrderStageController::class,
+            ServiceOrderStageController::class,
             'updateOrder',
         ])->name('serviceorderstages.reorder');
         Route::resource('serviceordertasks', ServiceOrderTaskController::class)
@@ -238,6 +248,8 @@ Route::group(
             ->only(['index', 'show']);
         Route::get('planner', [PlannerController::class, 'index'])
             ->name('planner.index');
+        Route::get('planner/export', EventExportController::class)
+            ->name('planner.export');
         Route::resource('eventtypes', EventTypeController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('customfields', CustomFieldController::class)
@@ -257,7 +269,7 @@ Route::group(
         Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
         Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
 
-        Route::resource('userroles', \App\Http\Controllers\UserRoleController::class)
+        Route::resource('userroles', UserRoleController::class)
             ->only(['index', 'store', 'update', 'destroy']);
 
         Route::post('users/{user}/unavailabilities', [UserUnavailabilityController::class, 'store'])
@@ -278,7 +290,6 @@ Route::group(
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
             ->name('technical-management.sendTestMail');
 
-
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
                 ->name('companies.inline');
@@ -292,39 +303,39 @@ Route::group(
 
             Route::get(
                 'admin/calendar-grants',
-                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'index'],
+                [CalendarGrantController::class, 'index'],
             )->name('admin.calendar-grants.index');
             Route::post(
                 'admin/calendar-grants',
-                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'store'],
+                [CalendarGrantController::class, 'store'],
             )->name('admin.calendar-grants.store');
             Route::delete(
                 'admin/calendar-grants/{calendar_grant}',
-                [\App\Http\Controllers\Admin\CalendarGrantController::class, 'destroy'],
+                [CalendarGrantController::class, 'destroy'],
             )->name('admin.calendar-grants.destroy');
             Route::get(
                 'admin/settings',
-                [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'index'],
+                [GeneralSettingsController::class, 'index'],
             )->name('admin.settings.index');
             Route::put(
                 'admin/settings/location-tracking',
-                [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'updateLocationTracking'],
+                [GeneralSettingsController::class, 'updateLocationTracking'],
             )->name('admin.settings.location-tracking');
         });
     }
 );
 
-Route::get('app/version', fn() => response()->json([
-    'build'        => 1,
+Route::get('app/version', fn () => response()->json([
+    'build' => 1,
     'download_url' => config('app.url') . '/download/lavoro.apk',
 ]))->name('app.version');
 
-Route::get('.well-known/assetlinks.json', fn() => response()->json([
+Route::get('.well-known/assetlinks.json', fn () => response()->json([
     [
         'relation' => ['delegate_permission/common.handle_all_urls'],
-        'target'   => [
-            'namespace'                => 'android_app',
-            'package_name'             => 'nl.lavoro.fsm',
+        'target' => [
+            'namespace' => 'android_app',
+            'package_name' => 'nl.lavoro.fsm',
             'sha256_cert_fingerprints' => [
                 '00:8D:D1:A2:9C:75:D0:C0:AD:AB:DC:50:44:03:26:C9:C7:2C:7B:D3:0B:63:FD:85:3C:B0:52:84:89:8A:9E:DE',
             ],
@@ -335,6 +346,7 @@ Route::get('.well-known/assetlinks.json', fn() => response()->json([
 Route::get('download/lavoro.apk', function () {
     $path = storage_path('app/releases/lavoro.apk');
     abort_unless(file_exists($path), 404);
+
     return response()->download($path, 'lavoro.apk', ['Content-Type' => 'application/vnd.android.package-archive']);
 })->name('app.download');
 

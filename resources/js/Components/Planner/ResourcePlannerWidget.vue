@@ -31,6 +31,12 @@
             </div>
 
             <div class="ml-auto flex items-center gap-2">
+                <button v-if="hasPermission('event.export')"
+                    class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
+                    @click="exportDrawerOpen = true">
+                    <ArrowDownTrayIcon class="size-4 shrink-0" />
+                    Exporteren
+                </button>
                 <button v-if="allPingsArray.length > 0"
                     class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                     @click="mapModalOpen = true">
@@ -383,6 +389,8 @@
                 <TechnicianMapCanvas v-if="mapModalOpen" :pings="allPingsArray" :init-delay="350" />
             </div>
         </ModalDialog>
+
+        <PlannerExportDrawer v-model="exportDrawerOpen" :plannable-users="plannableUsers" />
     </div>
 </template>
 
@@ -390,7 +398,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
@@ -401,6 +409,7 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({
@@ -586,6 +595,7 @@ const allDayState = ref('partial')
 const collapsedUsers = ref(new Set())
 const mapExpandedUsers = ref(new Set())
 const mapModalOpen = ref(false)
+const exportDrawerOpen = ref(false)
 
 const allPingsArray = computed(() =>
     Object.values(props.latestPings).filter(p => p.lat != null && p.lng != null)

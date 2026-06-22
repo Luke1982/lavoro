@@ -60,4 +60,9 @@ class EventPolicy
 
         return $user->hasPermission('event.execute') && $event->hasExecutingUser($user->id);
     }
+
+    public function export(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('event.export');
+    }
 }
