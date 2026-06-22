@@ -41,6 +41,10 @@
                         <ClipboardDocumentListIcon class="size-3 shrink-0 text-lavoro-blue"
                             v-tooltip="event.project_name" />
                     </template>
+                    <TriangleAlert v-if="event.is_incomplete" class="size-3 shrink-0 text-amber-500"
+                        v-tooltip="'Werkbon gedeeltelijk afgerond'" />
+                    <CircleCheck v-else-if="event.is_closed" class="size-3 shrink-0 text-green-600"
+                        v-tooltip="'Werkbon afgerond'" />
                     <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                 </button>
             </div>
@@ -94,9 +98,6 @@
                         fill="#EA4335" />
                 </svg>
             </div>
-            <TriangleAlert v-if="event.is_incomplete"
-                class="size-5 shrink-0 text-red-600 drop-shadow pointer-events-auto"
-                v-tooltip="'Werkbon gedeeltelijk afgerond'" />
 
         </div>
         <div class="absolute top-0 bottom-0 left-0 w-1.5 cursor-ew-resize"
@@ -110,7 +111,7 @@
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
-import { ClockFading, TriangleAlert } from '@lucide/vue'
+import { ClockFading, TriangleAlert, CircleCheck } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
 
@@ -146,6 +147,14 @@ const currentUserRoles = computed(() => {
 function roleInitials(name) {
     return name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
 }
+
+const userStatus = computed(() =>
+    props.event.executing_users?.find(u => u.id === props.userId)?.completion_status ?? 'Gepland'
+)
+
+const isClosedForUser = computed(() =>
+    userStatus.value === 'Afgerond' || userStatus.value === 'Geannuleerd'
+)
 
 function minutesFromDayStart(date) {
     return date.getHours() * 60 + date.getMinutes() - props.dayStartHour * 60
@@ -201,7 +210,7 @@ const style = computed(() => {
     const endMin = Math.min(totalMin.value, effectiveEndMin.value)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
-    const color = props.event.is_closed ? '#6b7280' : (props.event.color || '#3b82f6')
+    const color = isClosedForUser.value ? '#6b7280' : (props.event.color || '#3b82f6')
     const bgStrength = props.event.is_preliminary ? '8%' : '18%'
     return {
         left: leftPct + '%',
@@ -209,7 +218,7 @@ const style = computed(() => {
         top: props.eventPaddingY + 'px',
         bottom: props.eventPaddingY + 'px',
         backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, white)`,
-        ...(props.event.is_closed ? { backgroundImage: COMPLETED_PATTERN } : {}),
+        ...(isClosedForUser.value ? { backgroundImage: COMPLETED_PATTERN } : {}),
         borderColor: color,
         borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',
         transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',
