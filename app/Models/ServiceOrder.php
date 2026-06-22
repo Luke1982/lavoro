@@ -156,6 +156,11 @@ class ServiceOrder extends Model
         )->withTimestamps();
     }
 
+    public function freeformMaterials()
+    {
+        return $this->hasMany(FreeformMaterial::class);
+    }
+
     public function events()
     {
         return $this->morphToMany(Event::class, 'eventable');

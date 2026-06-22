@@ -275,11 +275,16 @@
             <tbody>
                 @foreach ($materialsList as $material)
                     <tr>
-                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
+                        <td>{{ $material['quantity'] }}{{ $material['unit'] ? ' ' . $material['unit'] : '' }}
                         </td>
-                        <td>{{ $material->name }}</td>
-                        <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                        <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                        <td>{{ $material['description'] }}</td>
+                        @if (! $material['has_price'])
+                            <td>n.n.b.</td>
+                            <td>n.n.b.</td>
+                        @else
+                            <td>€ {{ number_format($material['price'], 2, ',', '.') }}</td>
+                            <td>€ {{ number_format($material['price'] * $material['quantity'], 2, ',', '.') }}</td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>
@@ -301,15 +306,15 @@
             <tbody>
                 @foreach ($extraMaterialsList as $material)
                     <tr>
-                        <td>{{ $material->pivot->quantity }}{{ $material->usageUnit ? ' ' . $material->usageUnit->name : '' }}
+                        <td>{{ $material['quantity'] }}{{ $material['unit'] ? ' ' . $material['unit'] : '' }}
                         </td>
-                        <td>{{ $material->name }}</td>
-                        @if ((float) $material->price === 0.0)
+                        <td>{{ $material['description'] }}</td>
+                        @if (! $material['has_price'] || (float) $material['price'] === 0.0)
                             <td>n.n.b.</td>
                             <td>n.n.b.</td>
                         @else
-                            <td>€ {{ number_format($material->price, 2, ',', '.') }}</td>
-                            <td>€ {{ number_format($material->price * $material->pivot->quantity, 2, ',', '.') }}</td>
+                            <td>€ {{ number_format($material['price'], 2, ',', '.') }}</td>
+                            <td>€ {{ number_format($material['price'] * $material['quantity'], 2, ',', '.') }}</td>
                         @endif
                     </tr>
                 @endforeach

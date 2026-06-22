@@ -1,6 +1,7 @@
 <template>
     <div>
-        <div v-if="materials.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">
+        <div v-if="materials.length === 0 && freeformMaterials.length === 0"
+            class="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">
             Geen materialen geregistreerd op deze werkbon.
         </div>
 
@@ -84,6 +85,30 @@
                 </table>
             </template>
 
+            <!-- Vrije materiaalregels -->
+            <template v-if="freeformMaterials.length > 0">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Vrije materiaalregels</h4>
+                <table class="w-full text-sm mb-6">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-slate-700 text-xs font-bold uppercase tracking-wide text-slate-400">
+                            <th class="text-left pb-2 pr-4">Omschrijving</th>
+                            <th class="text-right pb-2">Aantal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="freeform in freeformMaterials" :key="freeform.id"
+                            class="border-b border-gray-100 dark:border-slate-800">
+                            <td class="py-2 pr-4">
+                                <span class="font-medium text-gray-800 dark:text-slate-100">{{ freeform.description }}</span>
+                            </td>
+                            <td class="py-2 text-right text-gray-700 dark:text-slate-300 whitespace-nowrap">
+                                {{ freeform.quantity }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </template>
+
             <!-- Aggregate box -->
             <div class="rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-gray-50/60 dark:bg-slate-800/40 p-4 text-sm">
                 <div v-if="unforseenMaterials.length > 0" class="space-y-1.5 mb-3">
@@ -123,6 +148,10 @@ import { nlCurrency } from '@/Utilities/Utilities.js'
 
 const props = defineProps({
     materials: {
+        type: Array,
+        default: () => [],
+    },
+    freeformMaterials: {
         type: Array,
         default: () => [],
     },

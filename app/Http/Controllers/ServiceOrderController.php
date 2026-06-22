@@ -49,7 +49,7 @@ class ServiceOrderController extends Controller
         $search = $request->get('search', '');
         $only_stages = array_values(array_filter(
             explode(',', (string) $request->get('onlyStage', '')),
-            fn($v) => is_numeric($v)
+            fn ($v) => is_numeric($v)
         ));
         $per_page = $this->perPage($request, 25);
 
@@ -57,7 +57,7 @@ class ServiceOrderController extends Controller
         $query = ServiceOrder::with(['customer', 'serviceOrderStage']);
 
         if (! $user->isAdmin() && ! $user->hasPermission('serviceorder.read')) {
-            $query->whereHas('executingUsers', fn($q) => $q->where('users.id', $user->id));
+            $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
         }
 
         if ($search) {
@@ -106,7 +106,7 @@ class ServiceOrderController extends Controller
             Ticket::whereIn('id', $request->input('tickets'))
                 ->whereNull('service_order_id')
                 ->get()
-                ->map(fn($ticket) => $this->attachTicket($request, $serviceorder, $ticket));
+                ->map(fn ($ticket) => $this->attachTicket($request, $serviceorder, $ticket));
             $redirect = 'serviceorders.show';
         }
         if ($request->has('assets')) {
@@ -163,6 +163,7 @@ class ServiceOrderController extends Controller
             'tickets.asset.product.productType',
             'materials.category',
             'materials.usageUnit',
+            'freeformMaterials',
             'activities' => function ($q) {
                 $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },
@@ -182,7 +183,7 @@ class ServiceOrderController extends Controller
 
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
-                $q->whereHas('serviceOrders', fn($qq) => $qq->whereKey($service_order->id))
+                $q->whereHas('serviceOrders', fn ($qq) => $qq->whereKey($service_order->id))
                     ->with('user:id,name')
                     ->orderByDesc('activities.created_at');
             }])
@@ -331,7 +332,7 @@ class ServiceOrderController extends Controller
     {
         $pdf = $this->generateServiceOrderPdf($serviceorder);
 
-        return $pdf->stream('werkbon-' . $serviceorder->id . '.pdf');
+        return $pdf->stream('werkbon-'.$serviceorder->id.'.pdf');
     }
 
     /**
@@ -355,14 +356,14 @@ class ServiceOrderController extends Controller
 
         Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
 
-        $serviceorder->logActivity('Werkbon per e-mail verzonden naar: ' . implode(', ', $recipients));
+        $serviceorder->logActivity('Werkbon per e-mail verzonden naar: '.implode(', ', $recipients));
         // Mark as sent to customer
         if (! $serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
         }
 
-        return redirect()->back()->with('success', 'Werkbon verzonden naar: ' . implode(', ', $recipients));
+        return redirect()->back()->with('success', 'Werkbon verzonden naar: '.implode(', ', $recipients));
     }
 
     public function emailPdfWithJobs(ServiceOrderEmailPdfWithChecksRequest $request, ServiceOrder $serviceorder)
@@ -391,7 +392,7 @@ class ServiceOrderController extends Controller
             }
         }
         Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
-        $serviceorder->logActivity('Werkbon + keuringen per e-mail verzonden naar: ' . implode(', ', $recipients));
+        $serviceorder->logActivity('Werkbon + keuringen per e-mail verzonden naar: '.implode(', ', $recipients));
         if (! $serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
@@ -400,7 +401,7 @@ class ServiceOrderController extends Controller
             $job->update(['sent_to_customer' => true]);
         }
 
-        return redirect()->back()->with('success', 'Werkbon + keuringen verzonden naar: ' . implode(', ', $recipients));
+        return redirect()->back()->with('success', 'Werkbon + keuringen verzonden naar: '.implode(', ', $recipients));
     }
 
     /**
@@ -457,7 +458,7 @@ class ServiceOrderController extends Controller
             $lines[] = [
                 'artikel' => [
                     'id' => $material->snelstart_id,
-                    'uri' => '/v2/artikelen/' . $material->snelstart_id,
+                    'uri' => '/v2/artikelen/'.$material->snelstart_id,
                 ],
                 'omschrijving' => (string) $material->name,
                 'stuksprijs' => (float) $unit_price,
@@ -488,7 +489,7 @@ class ServiceOrderController extends Controller
         if ($delivery_country) {
             $delivery_address['land'] = [
                 'id' => $delivery_country['id'],
-                'uri' => '/v2/landen/' . $delivery_country['id'],
+                'uri' => '/v2/landen/'.$delivery_country['id'],
             ];
         }
 
@@ -501,19 +502,19 @@ class ServiceOrderController extends Controller
         if ($invoice_country) {
             $invoice_address['land'] = [
                 'id' => $invoice_country['id'],
-                'uri' => '/v2/landen/' . $invoice_country['id'],
+                'uri' => '/v2/landen/'.$invoice_country['id'],
             ];
         }
-        $desc = 'Werkbon ' . $serviceorder->id;
+        $desc = 'Werkbon '.$serviceorder->id;
         $payload = [
             'relatie' => [
                 'id' => $customer->snelstart_id,
-                'uri' => '/v2/relaties/' . $customer->snelstart_id,
+                'uri' => '/v2/relaties/'.$customer->snelstart_id,
             ],
             'procesStatus' => 'Order',
             'datum' => now()->toDateString(),
             'omschrijving' => $desc,
-            'orderreferentie' => 'Werkbon ' . $serviceorder->id,
+            'orderreferentie' => 'Werkbon '.$serviceorder->id,
             'memo' => $serviceorder->external_purchaseorder_no,
             'verkooporderBtwIngaveModel' => 'Inclusief',
             'verkoopOrderStatus' => 'InBehandeling',
@@ -534,19 +535,19 @@ class ServiceOrderController extends Controller
             $response = $client->post('/verkooporders', $payload);
             $serviceorder->sent_to_administration = true;
             $serviceorder->save();
-            $adminMessage = 'Werkbon naar administratie verzonden (SnelStart verkooporder ID: ' .
-                ($response['id'] ?? 'onbekend') . ').';
+            $adminMessage = 'Werkbon naar administratie verzonden (SnelStart verkooporder ID: '.
+                ($response['id'] ?? 'onbekend').').';
             $serviceorder->logActivity($adminMessage);
             $redirect = redirect()->back()->with(
                 'success',
-                'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
+                'Verkooporder aangemaakt in SnelStart (ID: '.($response['id'] ?? 'onbekend').').'
             );
             $skip_messages = [];
             if (! empty($skipped_null_quantity)) {
-                $skip_messages[] = 'Materialen zonder hoeveelheid: ' . implode(', ', $skipped_null_quantity);
+                $skip_messages[] = 'Materialen zonder hoeveelheid: '.implode(', ', $skipped_null_quantity);
             }
             if (! empty($skipped_no_snelstart)) {
-                $skip_messages[] = 'Materialen zonder SnelStart ID: ' . implode(', ', $skipped_no_snelstart);
+                $skip_messages[] = 'Materialen zonder SnelStart ID: '.implode(', ', $skipped_no_snelstart);
             }
             if (! empty($skip_messages)) {
                 $redirect = $redirect->with('error', implode(' | ', $skip_messages));
@@ -562,7 +563,7 @@ class ServiceOrderController extends Controller
                         foreach ($json['modelState'] as $field => $problems) {
                             if (is_array($problems)) {
                                 foreach ($problems as $p) {
-                                    $model_state_messages[] = $field . ': ' . $p;
+                                    $model_state_messages[] = $field.': '.$p;
                                 }
                             }
                         }
@@ -572,14 +573,14 @@ class ServiceOrderController extends Controller
             }
             $combined = $e->getMessage();
             if ($model_state_messages) {
-                $combined .= ' | ' . implode(' | ', $model_state_messages);
+                $combined .= ' | '.implode(' | ', $model_state_messages);
             }
             Log::error('Fout bij versturen naar SnelStart', [
                 'error' => $e->getMessage(),
                 'modelState' => $model_state_messages,
             ]);
 
-            return redirect()->back()->with('error', 'Fout bij versturen naar SnelStart: ' . $combined);
+            return redirect()->back()->with('error', 'Fout bij versturen naar SnelStart: '.$combined);
         }
     }
 
@@ -594,6 +595,7 @@ class ServiceOrderController extends Controller
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
             'materials.usageUnit',
+            'freeformMaterials',
             'taskInstances.serviceOrderTask',
             'taskInstances.assets',
             'images',
@@ -608,6 +610,29 @@ class ServiceOrderController extends Controller
             ?: $serviceorder->execution_location
             ?: $serviceorder->project?->location;
         $planned_date = $first_event?->start ?? $serviceorder->created_at;
+
+        $map_material = fn ($material) => [
+            'quantity' => $material->pivot->quantity,
+            'unit' => $material->usageUnit?->name,
+            'description' => $material->name,
+            'price' => $material->price,
+            'has_price' => true,
+        ];
+        $map_freeform = fn ($freeform) => [
+            'quantity' => $freeform->quantity,
+            'unit' => null,
+            'description' => $freeform->description,
+            'price' => null,
+            'has_price' => false,
+        ];
+
+        $materials_list = $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen)->map($map_material)
+            ->concat($serviceorder->freeformMaterials->reject(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
+            ->values();
+        $extra_materials_list = $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen)->map($map_material)
+            ->concat($serviceorder->freeformMaterials->filter(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
+            ->values();
+
         $pdf = Pdf::loadView('pdf.serviceorder', [
             'serviceOrder' => $serviceorder,
             'logo' => $logo,
@@ -616,11 +641,11 @@ class ServiceOrderController extends Controller
             'executionLocation' => $execution_location,
             'tickets' => $serviceorder->tickets,
             'jobs' => $serviceorder->serviceJobs,
-            'materialsList' => $serviceorder->materials->reject(fn($material) => $material->pivot->unforseen),
-            'extraMaterialsList' => $serviceorder->materials->filter(fn($material) => $material->pivot->unforseen),
+            'materialsList' => $materials_list,
+            'extraMaterialsList' => $extra_materials_list,
             'taskInstances' => $serviceorder->taskInstances,
             'images' => $serviceorder->images->map(function ($image) {
-                $path = storage_path('app/public/' . $image->path);
+                $path = storage_path('app/public/'.$image->path);
                 if (! file_exists($path)) {
                     return null;
                 }
@@ -629,7 +654,7 @@ class ServiceOrderController extends Controller
 
                 return [
                     'name' => $image->name,
-                    'data' => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
+                    'data' => 'data:'.$mime.';base64,'.base64_encode(file_get_contents($path)),
                     'landscape' => ($width ?? 1) >= ($height ?? 1),
                 ];
             })->filter()->values(),
@@ -651,7 +676,7 @@ class ServiceOrderController extends Controller
         if ($asset) {
             $serviceorder->logActivity(sprintf(
                 'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
-                $ticket->subject ?? ('Ticket #' . $ticket->id),
+                $ticket->subject ?? ('Ticket #'.$ticket->id),
                 $asset->product->productType->name ?? 'Type',
                 $asset->product->brand->name ?? 'Merk',
                 $asset->product->model ?? '',
@@ -675,7 +700,7 @@ class ServiceOrderController extends Controller
         if ($asset) {
             $serviceorder->logActivity(sprintf(
                 'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
-                $ticket->subject ?? ('Ticket #' . $ticket->id),
+                $ticket->subject ?? ('Ticket #'.$ticket->id),
                 $asset->product->productType->name ?? 'Type',
                 $asset->product->brand->name ?? 'Merk',
                 $asset->product->model ?? '',

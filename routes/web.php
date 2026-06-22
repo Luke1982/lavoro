@@ -15,6 +15,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\FreeformMaterialController;
 use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ProductTypeController;
@@ -196,6 +197,18 @@ Route::group(
             'serviceorders/{serviceorder}/materials/{materiable_id}',
             [ServiceOrderController::class, 'updateMateriable']
         )->name('serviceorders.updateMateriable');
+        Route::post(
+            'serviceorders/{serviceorder}/freeform-materials',
+            [FreeformMaterialController::class, 'store']
+        )->name('serviceorders.freeformMaterials.store');
+        Route::put(
+            'serviceorders/{serviceorder}/freeform-materials/{freeform_material}',
+            [FreeformMaterialController::class, 'update']
+        )->name('serviceorders.freeformMaterials.update');
+        Route::delete(
+            'serviceorders/{serviceorder}/freeform-materials/{freeform_material}',
+            [FreeformMaterialController::class, 'destroy']
+        )->name('serviceorders.freeformMaterials.destroy');
         Route::resource('servicejobs', ServiceJobController::class);
         Route::get('servicejobs/{servicejob}/export/pdf', [ServiceJobController::class, 'exportPdf'])
             ->name('servicejobs.exportPdf');
