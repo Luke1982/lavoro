@@ -64,6 +64,15 @@
                     <div class="text-xs text-gray-500 dark:text-slate-400">Gepland</div>
                 </div>
             </div>
+            <div v-if="unclosedCount > 0" class="flex items-center gap-2">
+                <div class="size-8 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
+                    <TriangleAlert class="size-4 text-amber-500" />
+                </div>
+                <div>
+                    <div class="font-semibold tabular-nums text-sm">{{ unclosedCount }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">Niet afgerond</div>
+                </div>
+            </div>
         </div>
 
         <!-- Timeline -->
@@ -108,7 +117,7 @@
                                     :class="canEdit(ev) ? 'cursor-pointer' : ''" :style="{
                                         backgroundColor: `color-mix(in srgb, ${eventColor(ev)} 6%, white)`,
                                         borderColor: `color-mix(in srgb, ${eventColor(ev)} 9%, #e5e7eb)`,
-                                        ...(ev.is_closed ? { backgroundImage: COMPLETED_PATTERN } : {}),
+                                        ...(isClosedForUser(ev) ? { backgroundImage: COMPLETED_PATTERN } : {}),
                                     }" @click="handleEventTap(ev)">
                                     <div class="p-3">
                                         <!-- Title + avatars at top right -->
@@ -137,9 +146,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <TriangleAlert v-if="ev.is_incomplete"
-                                                class="size-5 shrink-0 text-red-600 drop-shadow"
-                                                v-tooltip="'Werkbon gedeeltelijk afgerond'" />
+                                            <EventExecutionControls :event="ev" @changed="fetchEvents" />
                                         </div>
 
                                         <!-- Current user's roles -->
@@ -192,6 +199,12 @@
                                                 @click.stop="router.visit(`/serviceorders/${ev.eventable_id}`)">
                                                 <BuildingOfficeIcon class="size-3.5 shrink-0" />
                                                 <span>{{ formatWbNumber(ev.eventable_id) }}</span>
+                                                <TriangleAlert v-if="ev.is_incomplete"
+                                                    class="size-3.5 shrink-0 text-amber-500"
+                                                    v-tooltip="'Werkbon gedeeltelijk afgerond'" />
+                                                <CircleCheck v-else-if="ev.is_closed"
+                                                    class="size-3.5 shrink-0 text-green-600"
+                                                    v-tooltip="'Werkbon afgerond'" />
                                                 <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                                             </button>
                                             <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
@@ -279,7 +292,8 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
-import { MapIcon, TriangleAlert } from '@lucide/vue'
+import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
+import { MapIcon, TriangleAlert, CircleCheck } from '@lucide/vue'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -498,6 +512,24 @@ function currentUserRoles(ev) {
 
 const authUserId = computed(() => page.props.auth.user?.id ?? null)
 
+const relevantUserId = computed(() => selectedUserId.value ?? authUserId.value)
+
+function userStatusFor(ev) {
+    return ev.executing_users?.find(u => u.id === relevantUserId.value)?.completion_status ?? null
+}
+
+function isClosedForUser(ev) {
+    const status = userStatusFor(ev)
+    return status === 'Afgerond' || status === 'Geannuleerd'
+}
+
+const unclosedCount = computed(() =>
+    filteredEvents.value.filter(ev => {
+        const status = userStatusFor(ev)
+        return status === 'Gepland' || status === 'Gaande'
+    }).length
+)
+
 const canCreate = computed(() => hasPermission('event.create'))
 
 const modalOpen = ref(false)
@@ -511,7 +543,7 @@ function canEdit(ev) {
 }
 
 function eventColor(ev) {
-    return ev.is_closed ? '#6b7280' : (ev.color || '#3b82f6')
+    return isClosedForUser(ev) ? '#6b7280' : (ev.color || '#3b82f6')
 }
 
 const COMPLETED_PATTERN = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(107,114,128,0.07) 6px, rgba(107,114,128,0.07) 12px)'

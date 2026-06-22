@@ -6,12 +6,13 @@ use App\Enums\EventStatusses;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model
 {
-    use HasOwner;
     use HasExecutingUsers;
+    use HasOwner;
     use SoftDeletes;
 
     protected $fillable = [
@@ -27,8 +28,8 @@ class Event extends Model
     ];
 
     protected $casts = [
-        'start'          => 'datetime',
-        'end'            => 'datetime',
+        'start' => 'datetime',
+        'end' => 'datetime',
         'is_preliminary' => 'boolean',
     ];
 
@@ -45,5 +46,18 @@ class Event extends Model
     public function serviceOrders()
     {
         return $this->morphedByMany(ServiceOrder::class, 'eventable');
+    }
+
+    public function executions(): HasMany
+    {
+        return $this->hasMany(EventUserExecution::class);
+    }
+
+    public function executionFor(int $user_id): EventUserExecution
+    {
+        return $this->executions()->firstOrCreate(
+            ['user_id' => $user_id],
+            ['completion_status' => 'Gepland'],
+        );
     }
 }

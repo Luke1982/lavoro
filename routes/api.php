@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\GoogleIntegrationStatusController;
 use App\Http\Controllers\Api\LocationPingController;
 use App\Http\Controllers\EventApiController;
+use App\Http\Controllers\EventExecutionController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\ProjectApiController;
 use App\Http\Controllers\UnavailabilityApiController;
@@ -20,6 +21,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('events/{event}/copy', [EventApiController::class, 'copy']);
     Route::post('events/{event}/send-confirmation', [EventApiController::class, 'sendConfirmation']);
+    Route::get('events/{event}/execution', [EventExecutionController::class, 'show']);
+    Route::post('events/{event}/execution/transition', [EventExecutionController::class, 'transition']);
+    Route::patch('events/{event}/execution', [EventExecutionController::class, 'update']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
     Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);

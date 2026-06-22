@@ -71,6 +71,8 @@
             </template>
         </VDropdown>
         <div class="absolute top-1 right-2 flex items-center gap-1 pointer-events-none">
+            <EventExecutionControls :event="event" class="pointer-events-auto"
+                @changed="$emit('changed')" />
             <span v-for="role in currentUserRoles" :key="role.id"
                 class="inline-flex items-center rounded px-1 py-px text-[9px] font-semibold leading-none text-white"
                 :style="{ backgroundColor: role.color }" v-tooltip="role.name">
@@ -107,6 +109,7 @@
 <script setup>
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
 import { ClockFading, TriangleAlert } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
@@ -127,7 +130,7 @@ const props = defineProps({
     userRoles: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize'])
+const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed'])
 
 const totalMin = computed(() => (props.dayEndHour - props.dayStartHour) * 60)
 const popoverTriggers = ['hover', 'focus']

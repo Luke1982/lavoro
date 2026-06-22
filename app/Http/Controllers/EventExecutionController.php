@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\EventCompletionStatus;
+use App\Http\Requests\EventExecutionTransitionRequest;
+use App\Http\Requests\EventExecutionUpdateRequest;
+use App\Models\Event;
+use Illuminate\Support\Facades\Auth;
+
+class EventExecutionController extends Controller
+{
+    public function show(Event $event)
+    {
+        $execution = $event->executionFor(Auth::id());
+
+        return response()->json([
+            'completion_status' => $execution->completion_status,
+            'actual_start' => $execution->actual_start,
+            'actual_end' => $execution->actual_end,
+            'signature_base64' => $execution->signature_base64,
+        ]);
+    }
+
+    public function transition(EventExecutionTransitionRequest $request, Event $event)
+    {
+        $status = $request->validated('status');
+        $execution = $event->executionFor(Auth::id());
+
+        if ($status === EventCompletionStatus::ongoing->value) {
+            $execution->actual_start = now();
+        }
+
+        if ($status === EventCompletionStatus::completed->value) {
+            $execution->actual_end = now();
+            $execution->signature_base64 = $request->validated('signature_base64');
+        }
+
+        $execution->completion_status = $status;
+        $execution->save();
+
+        return response()->json($this->payload($execution));
+    }
+
+    public function update(EventExecutionUpdateRequest $request, Event $event)
+    {
+        $execution = $event->executionFor(Auth::id());
+
+        $execution->actual_start = $request->validated('actual_start');
+        $execution->actual_end = $request->validated('actual_end');
+        $execution->signature_base64 = $request->validated('signature_base64');
+        $execution->save();
+
+        return response()->json($this->payload($execution));
+    }
+
+    private function payload($execution): array
+    {
+        return [
+            'completion_status' => $execution->completion_status,
+            'actual_start' => $execution->actual_start,
+            'actual_end' => $execution->actual_end,
+            'has_signature' => filled($execution->signature_base64),
+        ];
+    }
+}

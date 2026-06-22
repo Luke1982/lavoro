@@ -14,7 +14,8 @@
             </TransitionChild>
 
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="flex min-h-full justify-center p-4 text-center sm:items-center sm:p-0"
+                    :class="center ? 'items-center' : 'items-end'">
                     <TransitionChild
                         as="template"
                         enter="ease-out duration-300"
@@ -56,6 +57,7 @@ defineProps({
     open: { type: Boolean, required: true },
     title: { type: String, default: '' },
     maxWidthClass: { type: String, default: 'sm:max-w-lg' },
+    center: { type: Boolean, default: false },
 })
 
 defineEmits(['update:open'])

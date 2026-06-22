@@ -339,7 +339,8 @@
                                     @click="handleEventClick(ev)"
                                     @contextmenu="onEventContextMenu($event, ev)"
                                     @pointerdown-on-event="onEventPointerDown($event, ev, user)"
-                                    @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)" />
+                                    @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)"
+                                    @changed="fetchEvents()" />
 
                                 <!-- Live selection rectangle (click-drag-create) -->
                                 <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"

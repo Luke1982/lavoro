@@ -20,6 +20,7 @@ class EventPolicy
         if ($owner_user->id === $user->id) {
             return $user->hasPermission('event.create');
         }
+
         return $user->hasPermission('event.create_others');
     }
 
@@ -33,6 +34,7 @@ class EventPolicy
         if ($is_owner && $user->hasPermission('event.update')) {
             return true;
         }
+
         return $user->hasPermission('event.update_others');
     }
 
@@ -46,6 +48,16 @@ class EventPolicy
         if ($is_owner && $user->hasPermission('event.delete')) {
             return true;
         }
+
         return $user->hasPermission('event.delete_others');
+    }
+
+    public function executeOwn(User $user, Event $event): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('event.execute') && $event->hasExecutingUser($user->id);
     }
 }

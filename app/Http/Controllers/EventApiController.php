@@ -45,8 +45,8 @@ class EventApiController extends Controller
 
         if (! $has_all && $user_id) {
             $base->where(function ($q) use ($user_id) {
-                $q->whereHas('executingUsers', fn($sq) => $sq->where('users.id', $user_id))
-                    ->orWhereHas('owners', fn($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
+                $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user_id))
+                    ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
             });
         }
 
@@ -60,6 +60,7 @@ class EventApiController extends Controller
                 'serviceOrders.taskInstances.product.productAttributeValueables.productAttribute',
                 'serviceOrders.taskInstances.product.productAttributeValueables.value',
                 'executingUsers',
+                'executions',
             ])
             ->orderBy('start')
             ->get();
@@ -112,7 +113,7 @@ class EventApiController extends Controller
                     $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
                     $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
                         $notify_service_order = $model;
@@ -126,11 +127,12 @@ class EventApiController extends Controller
 
         if ($notify_service_order) {
             User::whereIn('id', $notify_user_ids)->get()
-                ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
+                ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
         }
 
         $event->load([
-            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+            'executingUsers', 'executions',
         ]);
 
         return response()->json($this->withUserRoles($event), 201);
@@ -181,9 +183,9 @@ class EventApiController extends Controller
                 ));
                 GoogleSyncedEvent::whereHas(
                     'syncedCalendar',
-                    fn($q) => $q->whereNotIn('owner_user_id', $still_relevant),
+                    fn ($q) => $q->whereNotIn('owner_user_id', $still_relevant),
                 )->where('event_id', $event->id)->get()
-                    ->each(fn($m) => DeleteEventFromGoogleJob::dispatch(
+                    ->each(fn ($m) => DeleteEventFromGoogleJob::dispatch(
                         $m->id,
                         $m->google_synced_calendar_id,
                         $m->google_event_id,
@@ -194,28 +196,29 @@ class EventApiController extends Controller
                         : [];
 
                     $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
                         $new_ids = array_diff($ids, $previously_executing);
                         User::whereIn('id', $new_ids)->get()
-                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($model)));
                     }
                 } else {
                     $event->serviceOrders->each(function ($order) use ($ids) {
                         $previously_executing = $order->executingUsers()->pluck('users.id')->all();
                         $order->syncExecutingUsers($ids);
-                        $order->serviceJobs()->each(fn($job) => $job->syncExecutingUsers($ids));
+                        $order->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
                         $new_ids = array_diff($ids, $previously_executing);
                         User::whereIn('id', $new_ids)->get()
-                            ->each(fn($user) => $user->notify(new NewServiceOrderAssigned($order)));
+                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($order)));
                     });
                 }
             }
         }
 
         $event->load([
-            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+            'executingUsers', 'executions',
         ]);
 
         return response()->json($this->withUserRoles($event));
@@ -259,7 +262,8 @@ class EventApiController extends Controller
             }
 
             $new_event->load([
-                'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location', 'executingUsers',
+                'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+                'executingUsers', 'executions',
             ]);
             $new_events[] = $this->withUserRoles($new_event);
         }
@@ -302,7 +306,7 @@ class EventApiController extends Controller
         $collection = $events instanceof Collection ? $events : collect([$events]);
 
         $pivot_ids = $collection
-            ->flatMap(fn($event) => $event->executingUsers->pluck('pivot.id'))
+            ->flatMap(fn ($event) => $event->executingUsers->pluck('pivot.id'))
             ->filter()
             ->all();
 
@@ -310,9 +314,10 @@ class EventApiController extends Controller
             ->whereIn('userable_id', $pivot_ids)
             ->get()
             ->groupBy('userable_id')
-            ->map(fn($rows) => $rows->pluck('user_role_id')->map(fn($id) => (int) $id)->all());
+            ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all());
 
         foreach ($collection as $event) {
+            $executions_by_user = $event->executions->keyBy('user_id');
             foreach ($event->executingUsers as $user) {
                 $user->pivot->setAttribute(
                     'user_role_ids',
@@ -321,6 +326,11 @@ class EventApiController extends Controller
                 $user->pivot->setAttribute('has_diverging_times', (bool) ($user->pivot->has_diverging_times ?? false));
                 $user->pivot->setAttribute('diverging_start', $user->pivot->diverging_start);
                 $user->pivot->setAttribute('diverging_end', $user->pivot->diverging_end);
+                $execution = $executions_by_user->get($user->id);
+                $user->pivot->setAttribute('completion_status', $execution->completion_status ?? 'Gepland');
+                $user->pivot->setAttribute('actual_start', $execution?->actual_start);
+                $user->pivot->setAttribute('actual_end', $execution?->actual_end);
+                $user->pivot->setAttribute('has_signature', filled($execution?->signature_base64));
             }
         }
 
@@ -336,7 +346,7 @@ class EventApiController extends Controller
             ->where('userables.type', 'executing')
             ->get(['userables.user_id', 'user_role_userable.user_role_id'])
             ->groupBy('user_id')
-            ->map(fn($rows) => $rows->pluck('user_role_id')->map(fn($id) => (int) $id)->all())
+            ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all())
             ->toArray();
     }
 }
