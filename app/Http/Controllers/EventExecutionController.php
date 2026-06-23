@@ -49,6 +49,7 @@ class EventExecutionController extends Controller
         $execution->actual_start = $request->validated('actual_start');
         $execution->actual_end = $request->validated('actual_end');
         $execution->signature_base64 = $request->validated('signature_base64');
+        $execution->completion_status = EventCompletionStatus::completed->value;
         $execution->save();
 
         return response()->json($this->payload($execution));
