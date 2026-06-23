@@ -19,6 +19,10 @@
         <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
             {{ serviceOrder.service_order_stage.name }}
         </BadgeComponent>
+        <BadgeComponent color="orange" v-if="usersMissingTimes.length"
+            :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
+            Tijden ontbreken: {{ usersMissingTimes.join(', ') }}
+        </BadgeComponent>
     </div>
     <ChaptersComponent>
         <template v-if="chapterHeaders.length > 1">
@@ -653,6 +657,7 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     snelStartEnabled: { type: Boolean, default: false },
+    usersMissingTimes: { type: Array, default: () => [] },
 });
 
 

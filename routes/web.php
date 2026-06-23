@@ -321,6 +321,10 @@ Route::group(
                 'admin/settings/location-tracking',
                 [GeneralSettingsController::class, 'updateLocationTracking'],
             )->name('admin.settings.location-tracking');
+            Route::put(
+                'admin/settings/serviceorder-closing-text',
+                [GeneralSettingsController::class, 'updateServiceOrderClosingText'],
+            )->name('admin.settings.serviceorder-closing-text');
         });
     }
 );

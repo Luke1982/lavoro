@@ -184,6 +184,32 @@
         </tr>
     </table>
 
+    @if (($executingUsers ?? collect())->isNotEmpty())
+        <h2 class="section">Uitvoerders</h2>
+        <table class="table small compact">
+            <thead>
+                <tr>
+                    <th style="width:50%">Naam</th>
+                    <th style="width:25%">Starttijd</th>
+                    <th style="width:25%">Eindtijd</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($executingUsers as $executor)
+                    <tr>
+                        <td>{{ $executor['name'] }}</td>
+                        @if ($executor['actual_start'] || $executor['actual_end'])
+                            <td>{{ optional($executor['actual_start'])->format('H:i') ?? '—' }}</td>
+                            <td>{{ optional($executor['actual_end'])->format('H:i') ?? '—' }}</td>
+                        @else
+                            <td colspan="2" class="muted">Nog geen tijden ingevuld</td>
+                        @endif
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     @if (($tickets ?? collect())->isNotEmpty())
         <h2 class="section">Storingen</h2>
         <table class="table small compact">
@@ -404,6 +430,11 @@
             </tr>
         </table>
     </div>
+
+    @if (($closingText ?? '') !== '')
+        <div class="hr"></div>
+        <div class="section small closing-text">{!! nl2br(e($closingText)) !!}</div>
+    @endif
 
     <div class="footer">{{ $company?->name }} {{ $company?->address_line1 }} @if ($company?->address_line2)
             {{ $company?->address_line2 }}

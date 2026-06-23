@@ -4,23 +4,34 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
+use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Models\GeneralSetting;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class GeneralSettingsController extends Controller
 {
-    public function index(): \Inertia\Response
+    public function index(): Response
     {
         return Inertia::render('Admin/GeneralSettingsPage', [
             'locationTracking' => [
                 'start' => GeneralSetting::get('location_tracking_start', '07:00'),
-                'end'   => GeneralSetting::get('location_tracking_end', '18:00'),
-                'days'  => array_map('intval', explode(',', GeneralSetting::get('location_tracking_days', '1,2,3,4,5'))),
+                'end' => GeneralSetting::get('location_tracking_end', '18:00'),
+                'days' => array_map('intval', explode(',', GeneralSetting::get('location_tracking_days', '1,2,3,4,5'))),
             ],
+            'serviceOrderClosingText' => GeneralSetting::get('serviceorder_closing_text', ''),
         ]);
     }
 
-    public function updateLocationTracking(UpdateLocationTrackingSettingsRequest $request): \Illuminate\Http\RedirectResponse
+    public function updateServiceOrderClosingText(UpdateServiceOrderClosingTextRequest $request): RedirectResponse
+    {
+        GeneralSetting::set('serviceorder_closing_text', $request->validated()['serviceorder_closing_text'] ?? '');
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
+    }
+
+    public function updateLocationTracking(UpdateLocationTrackingSettingsRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
