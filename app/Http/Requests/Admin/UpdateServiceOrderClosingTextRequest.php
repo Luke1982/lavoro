@@ -14,7 +14,7 @@ class UpdateServiceOrderClosingTextRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'serviceorder_closing_text' => ['nullable', 'string', 'max:2000'],
+            'serviceorder_closing_text' => ['nullable', 'string', 'max:20000'],
         ];
     }
 }
