@@ -87,11 +87,15 @@ import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/vue/24/ou
 import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 import { Trash2Icon } from '@lucide/vue';
 
-const { comments, remarkableType, remarkableId, disabled } = defineProps({
+const { comments, remarkableType, remarkableId, disabled, internal } = defineProps({
     comments: Array,
     remarkableType: String,
     remarkableId: Number,
     disabled: {
+        type: Boolean,
+        default: false
+    },
+    internal: {
         type: Boolean,
         default: false
     }
@@ -102,7 +106,8 @@ const form = useForm({
     content: '',
     user_id: page.props.auth.user.id,
     remarkable_type: remarkableType,
-    remarkable_id: remarkableId
+    remarkable_id: remarkableId,
+    internal: internal
 })
 
 const addComment = async () => {

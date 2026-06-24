@@ -12,11 +12,13 @@ class RemarkController extends Controller
     {
         if ($request->has('remarkable_type') && $request->has('remarkable_id')) {
             $remarkable = $request->remarkable_type::find($request->remarkable_id);
-            $remark = $remarkable->remarks()->create([
+            $remark = Remark::create([
                 'content' => $request->content,
                 'user_id' => Auth::user()->id,
             ]);
-            $remark->load('user');
+            $remarkable->remarks()->attach($remark->id, [
+                'internal' => $request->boolean('internal', false),
+            ]);
             return redirect()->back()->with([
                 'success' => 'Opmerking is toegevoegd.',
             ]);

@@ -39,6 +39,7 @@ class ImageStoreRequest extends FormRequest
             'imageable_id'   => 'required|integer',
             'imageable_type' => 'required|string',
             'titles'         => 'array',
+            'internal'       => 'nullable|boolean',
         ];
     }
 }

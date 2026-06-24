@@ -62,7 +62,9 @@ class ImageController extends Controller
                 'name' => $request->titles[$image->getClientOriginalName()],
                 'path' => $path . $image->getClientOriginalName(),
             ]);
-            $imageable_record->images()->attach($new_image->id);
+            $imageable_record->images()->attach($new_image->id, [
+                'internal' => $request->boolean('internal', false),
+            ]);
             $created_images[] = $new_image;
         }
 
@@ -153,7 +155,11 @@ class ImageController extends Controller
     {
         $imageable_record = new ($request->imageable_type);
         $imageable_record = $imageable_record->find($request->imageable_id);
-        $imageable_record->images()->detach($image->id);
+        DB::table('imageables')
+            ->where('imageable_type', $imageable_record->getMorphClass())
+            ->where('imageable_id', $imageable_record->id)
+            ->where('image_id', $image->id)
+            ->delete();
 
         if (method_exists($imageable_record, 'logActivity')) {
             $imageable_record->logActivity('Afbeelding verwijderd', category: 'image');
@@ -248,7 +254,7 @@ class ImageController extends Controller
 
         $imageable_record = new ($imageable_type);
         $imageable_record = $imageable_record->find($imageable_id);
-        $imageable_record->images()->attach($new_image->id);
+        $imageable_record->images()->attach($new_image->id, ['internal' => false]);
 
         DB::table('imageables')
             ->where('imageable_type', $imageable_type)

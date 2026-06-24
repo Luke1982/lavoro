@@ -131,6 +131,10 @@ const props = defineProps({
     imageableId: Number,
     imageableType: String,
     existing: Array,
+    internal: {
+        type: Boolean,
+        default: false
+    },
 });
 
 const currentImage = ref({ id: null, path: null });
@@ -142,6 +146,7 @@ const uploadImagesForm = useForm({
     titles: {},
     imageToUpdate: null,
     newTitle: '',
+    internal: props.internal,
 });
 
 const fileInput = ref(null);

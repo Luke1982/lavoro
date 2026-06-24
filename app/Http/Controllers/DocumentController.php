@@ -26,7 +26,9 @@ class DocumentController extends Controller
                 'path' => $path,
             ]);
 
-            $documentable_record->documents()->attach($document->id);
+            $documentable_record->documents()->attach($document->id, [
+                'internal' => $request->boolean('internal', false),
+            ]);
             $created_documents[] = $document;
         }
 

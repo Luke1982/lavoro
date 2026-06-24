@@ -94,13 +94,33 @@ class ServiceOrder extends Model
 
     public function documents()
     {
-        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
+        return $this->morphToMany(Document::class, 'documentable')
+            ->withPivot('internal')
+            ->wherePivot('internal', false)
+            ->withTimestamps();
+    }
+
+    public function internalDocuments()
+    {
+        return $this->morphToMany(Document::class, 'documentable')
+            ->withPivot('internal')
+            ->wherePivot('internal', true)
+            ->withTimestamps();
     }
 
     public function images()
     {
         return $this->morphToMany(Image::class, 'imageable')
-            ->withPivot(['main'])
+            ->withPivot(['main', 'internal'])
+            ->wherePivot('internal', false)
+            ->withTimestamps();
+    }
+
+    public function internalImages()
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main', 'internal'])
+            ->wherePivot('internal', true)
             ->withTimestamps();
     }
 

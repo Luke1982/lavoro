@@ -106,6 +106,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    internal: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const fileInput = ref(null);
@@ -117,6 +121,7 @@ const uploadForm = useForm({
     documents: [],
     documentable_id: props.documentableId,
     documentable_type: props.documentableType,
+    internal: props.internal,
 });
 
 const deleteForm = useForm({});

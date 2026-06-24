@@ -25,6 +25,7 @@ class DocumentStoreRequest extends FormRequest
             'documents.*' => 'required|file|mimes:pdf,odt,odf,doc,docx,xls,xlsx,ppt,pptx,txt|max:20480',
             'documentable_id' => 'required|integer',
             'documentable_type' => 'required|string',
+            'internal' => 'nullable|boolean',
         ];
     }
 }

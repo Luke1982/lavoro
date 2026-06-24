@@ -169,6 +169,7 @@ class ServiceOrderController extends Controller
                 $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },
             'remarks.user',
+            'internalRemarks.user',
             'events.eventType',
             'events.executingUsers:id,name',
             'events.executions',
@@ -180,7 +181,9 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productables.childProduct.productType',
             'project:id,title',
             'documents',
+            'internalDocuments',
             'images',
+            'internalImages',
         ])->findOrFail($id);
 
         $stages = ServiceOrderStage::orderBy('order')
@@ -616,6 +619,7 @@ class ServiceOrderController extends Controller
             'images',
             'events',
             'project',
+            'remarks.user',
         ]);
         $company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($company);
@@ -689,6 +693,7 @@ class ServiceOrderController extends Controller
             })->filter()->values(),
             'company' => $company,
             'closingText' => trim((string) GeneralSetting::get('serviceorder_closing_text', '')),
+            'remarks' => $serviceorder->remarks,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
 

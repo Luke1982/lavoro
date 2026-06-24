@@ -37,15 +37,20 @@ class ServiceOrderUpdateRequest extends FormRequest
             return $completion_rules;
         }
 
-        return array_merge($completion_rules, [
+        $update_rules = [
             'customer_id' => 'required|exists:customers,id',
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
             'external_invoice_no' => 'nullable|string|max:255',
-            'financial_comments' => 'nullable|string',
             'execution_location' => 'nullable|string|max:255',
             'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
-        ]);
+        ];
+
+        if ($this->user()->can('seeFinancials', $this->route('serviceorder'))) {
+            $update_rules['financial_comments'] = 'nullable|string';
+        }
+
+        return array_merge($completion_rules, $update_rules);
     }
 
     public function withValidator($validator): void

@@ -32,6 +32,11 @@ class ServiceOrderPolicy
         return $user->hasPermission('serviceorder.mark_partially_complete') && $stage->is_incomplete_state;
     }
 
+    public function seeFinancials(User $user, ServiceOrder $serviceOrder): bool
+    {
+        return $user->hasPermission('serviceorder.see_financials');
+    }
+
     public function viewMaterials(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('materiable.read.serviceorder');

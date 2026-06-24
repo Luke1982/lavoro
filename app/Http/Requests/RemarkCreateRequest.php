@@ -35,6 +35,7 @@ class RemarkCreateRequest extends FormRequest
             'remarkable_type' => 'required|string',
             'remarkable_id' => 'required|integer',
             'user_id' => 'required|integer|exists:users,id',
+            'internal' => 'nullable|boolean',
         ];
     }
 

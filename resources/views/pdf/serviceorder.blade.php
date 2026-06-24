@@ -377,6 +377,28 @@
         </table>
     @endif
 
+    @if (($remarks ?? collect())->isNotEmpty())
+        <h2 class="section">Opmerkingen</h2>
+        <table class="table small compact">
+            <thead>
+                <tr>
+                    <th style="width:20%">Datum</th>
+                    <th style="width:20%">Door</th>
+                    <th>Opmerking</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($remarks as $remark)
+                    <tr>
+                        <td>{{ $remark->created_at->format('d-m-Y H:i') }}</td>
+                        <td>{{ $remark->user->name ?? '—' }}</td>
+                        <td>{{ $remark->content }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     @if (($images ?? collect())->isNotEmpty())
         <h2 class="section">Foto's</h2>
         <div class="section">
