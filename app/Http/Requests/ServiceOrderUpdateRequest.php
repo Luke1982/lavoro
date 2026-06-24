@@ -42,6 +42,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
             'external_invoice_no' => 'nullable|string|max:255',
+            'financial_comments' => 'nullable|string',
             'execution_location' => 'nullable|string|max:255',
             'type' => 'nullable|in:' . implode(',', array_column(ServiceOrderTypes::cases(), 'value')),
         ]);

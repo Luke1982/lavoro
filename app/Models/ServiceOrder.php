@@ -37,6 +37,7 @@ class ServiceOrder extends Model
         'sent_to_customer',
         'external_purchaseorder_no',
         'external_invoice_no',
+        'financial_comments',
         'execution_location',
         'actual_start_time',
         'actual_end_time',

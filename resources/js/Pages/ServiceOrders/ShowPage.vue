@@ -422,6 +422,13 @@
                             <MaterialsFinancialOverview :materials="serviceOrder.materials"
                                 :freeform-materials="serviceOrder.freeform_materials" />
                         </BoxComponent>
+                        <BoxComponent class="mt-4">
+                            <EditableTextField type="textarea"
+                                :disabled="!hasPermission('serviceorder.update')"
+                                label="Financieel commentaar" v-model="form.financial_comments"
+                                @update="val => { form.financial_comments = val; }"
+                                placeholder="Financieel commentaar" />
+                        </BoxComponent>
                     </template>
                     <template #sidebar>
                         <BoxComponent v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"
@@ -844,6 +851,7 @@ watch(
         () => form.signature_base64,
         () => form.external_purchaseorder_no,
         () => form.external_invoice_no,
+        () => form.financial_comments,
         () => form.execution_location,
         () => form.actual_start_time,
         () => form.actual_end_time,
