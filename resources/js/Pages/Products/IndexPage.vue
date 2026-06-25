@@ -95,15 +95,16 @@
                     </div>
                     <div class="flex-1 grid grid-cols-12 p-4">
                         <div class="col-span-10 sm:col-span-4 flex items-start sm:items-center gap-4">
-                            <div
-                                class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center">
+                            <Link :href="`/products/${product.id}`"
+                                class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center flex-none">
                                 <img :src="product.main_image?.[0] ? `/storage/${product.main_image[0].path}` : '/img/placeholder.png'"
                                     alt="">
-                            </div>
+                            </Link>
                             <div class="flex flex-col">
-                                <Link :href="`/products/${product.id}`" class="font-bold mb-1">
-                                    {{ product.brand.name }} {{ product.model }}
-                                </Link>
+                                <EditableTextField :model-value="product.model" type="input" :decoration="false"
+                                    @update="(val) => router.patch(`/products/${product.id}`, { model: val }, { preserveScroll: true })">
+                                    <template #display><span class="font-bold">{{ product.brand.name }} {{ product.model }}</span></template>
+                                </EditableTextField>
                                 <span class="text-slate-600">{{ product.part_no }}</span>
                                 <div v-if="product.attribute_value_map" class="mt-1">
                                     <div v-for="(value, key) in product.attribute_value_map" :key="key"

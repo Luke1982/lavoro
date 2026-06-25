@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'pr-5': !editing, 'relative pb-2 w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
+        :class="{ 'pr-5': !editing, 'pb-2': editing, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />
@@ -22,8 +22,7 @@
                 rows="8"></textarea>
             <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
                 :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
-                :hasExternalSearching="hasExternalSearching" :searching="searching"
-                @change="$emit('change', $event)"
+                :hasExternalSearching="hasExternalSearching" :searching="searching" @change="$emit('change', $event)"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
             <button v-if="!$slots.open && inErrorState" @click.stop="revert"
                 class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">

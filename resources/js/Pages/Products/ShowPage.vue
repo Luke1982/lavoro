@@ -11,12 +11,21 @@
                 class="object-cover rounded w-full">
         </BoxComponent>
         <div class="flex flex-col justify-around flex-grow items-start pt-2 sm:py-10 gap-3 sm:gap-0">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                {{ product.brand.name }} {{ product.model }}
+            <div class="flex items-center">
+                <span class="text-2xl font-bold mr-2">
+                    {{ product.brand.name }}</span>
+                <EditableTextField v-model="form.model" type="input" :decoration="false" :error="form.errors.model"
+                    @revert="form.clearErrors('model')">
+                    <template #display>
+                        <span class="text-2xl font-bold">
+                            {{ form.model }}
+                        </span>
+                    </template>
+                </EditableTextField>
                 <BadgeComponent :color="product.active ? 'green' : 'red'">
                     {{ product.active ? 'Actief' : 'Inactief' }}
                 </BadgeComponent>
-            </h1>
+            </div>
             <BadgeComponent color="blue" :hasDot="false">{{ product.product_type.name }}
             </BadgeComponent>
             <div class="flex gap-0 sm:gap-15 flex-wrap">
@@ -358,8 +367,7 @@
                         <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700">
                             <BuildingOfficeIcon class="size-5 text-gray-500 mr-2" />
                             <h3 class="text-sm font-medium">Leveranciers</h3>
-                            <button v-if="hasPermission('product.update')"
-                                @click="addingSupplier = !addingSupplier"
+                            <button v-if="hasPermission('product.update')" @click="addingSupplier = !addingSupplier"
                                 class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
                                 v-tooltip="'Leverancier koppelen'">
                                 <PlusIcon class="size-4" />
@@ -375,8 +383,7 @@
                                         <label class="block text-xs text-gray-500 mb-1">Leverancier</label>
                                         <ComboBox :options="supplierOptions" v-model="newSupplierLink.supplier_id"
                                             placeholder="Selecteer leverancier"
-                                            :has-external-searching="suppliersUseAjax"
-                                            :searching="supplierSearching"
+                                            :has-external-searching="suppliersUseAjax" :searching="supplierSearching"
                                             @change="searchSuppliers" />
                                     </div>
                                     <div class="flex-1 min-w-32">
@@ -403,8 +410,7 @@
                             </div>
                         </div>
 
-                        <p v-if="!productSuppliers.length && !addingSupplier"
-                            class="text-sm text-gray-400 italic mt-3">
+                        <p v-if="!productSuppliers.length && !addingSupplier" class="text-sm text-gray-400 italic mt-3">
                             Geen leveranciers gekoppeld.
                         </p>
 
@@ -524,8 +530,8 @@
 
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
-        <AddAssetForm :allCustomers="allCustomers" :customersUseAjax="customersUseAjax" :productId="product.id" :isBundle="product.bundle"
-            :productTypicalDays="product.typical_certificate_days"
+        <AddAssetForm :allCustomers="allCustomers" :customersUseAjax="customersUseAjax" :productId="product.id"
+            :isBundle="product.bundle" :productTypicalDays="product.typical_certificate_days"
             :productTypeTypicalDays="product.product_type?.typical_certificate_days"
             :required-productables-by-product="requiredProductablesByProduct" :bare="true"
             @created="addAssetDrawerOpen = false" />
@@ -580,9 +586,9 @@ const props = defineProps({
     requiredProductablesByProduct: { type: Object, default: () => ({}) },
     productAttributes: { type: Array, default: () => [] },
     selectedAttributeValues: { type: Object, default: () => ({}) },
-    productSuppliers:   { type: Array, default: () => [] },
-    allSuppliers:       { type: Array, default: () => [] },
-    suppliersUseAjax:   { type: Boolean, default: false },
+    productSuppliers: { type: Array, default: () => [] },
+    allSuppliers: { type: Array, default: () => [] },
+    suppliersUseAjax: { type: Boolean, default: false },
 });
 
 const { options: supplierOptions, searching: supplierSearching, search: searchSuppliers } =
@@ -613,6 +619,7 @@ const chapters = [
     `Leveranciers (${props.productSuppliers.length})`,
 ]
 watch([
+    () => form.model,
     () => form.description,
     () => form.typical_certificate_days,
     () => form.retail_price,
@@ -695,21 +702,21 @@ function saveEdit() {
     })
 }
 
-const addingSupplier   = ref(false)
-const newSupplierLink  = reactive({ supplier_id: null, article_number: '', is_preferred: false })
+const addingSupplier = ref(false)
+const newSupplierLink = reactive({ supplier_id: null, article_number: '', is_preferred: false })
 
 function submitNewSupplier() {
     router.post(`/products/${props.product.id}/suppliers`, {
-        supplier_id:    newSupplierLink.supplier_id,
+        supplier_id: newSupplierLink.supplier_id,
         article_number: newSupplierLink.article_number || null,
-        is_preferred:   newSupplierLink.is_preferred,
+        is_preferred: newSupplierLink.is_preferred,
     }, {
         preserveScroll: true,
         onSuccess: () => {
-            addingSupplier.value           = false
-            newSupplierLink.supplier_id    = null
+            addingSupplier.value = false
+            newSupplierLink.supplier_id = null
             newSupplierLink.article_number = ''
-            newSupplierLink.is_preferred   = false
+            newSupplierLink.is_preferred = false
         },
     })
 }
@@ -719,12 +726,12 @@ function removeSupplier(supplier_id) {
 }
 
 const editingSupplierId = ref(null)
-const editSupplierForm  = reactive({ article_number: '', is_preferred: false })
+const editSupplierForm = reactive({ article_number: '', is_preferred: false })
 
 function startEditSupplier(s) {
-    editingSupplierId.value         = s.id
+    editingSupplierId.value = s.id
     editSupplierForm.article_number = s.article_number || ''
-    editSupplierForm.is_preferred   = s.is_preferred
+    editSupplierForm.is_preferred = s.is_preferred
 }
 
 function cancelEditSupplier() { editingSupplierId.value = null }
@@ -732,7 +739,7 @@ function cancelEditSupplier() { editingSupplierId.value = null }
 function saveEditSupplier(supplier_id) {
     router.patch(`/products/${props.product.id}/suppliers/${supplier_id}`, {
         article_number: editSupplierForm.article_number || null,
-        is_preferred:   editSupplierForm.is_preferred,
+        is_preferred: editSupplierForm.is_preferred,
     }, {
         preserveScroll: true,
         onSuccess: () => { editingSupplierId.value = null },

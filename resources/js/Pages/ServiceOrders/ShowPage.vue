@@ -309,13 +309,6 @@
                         </BoxComponent>
                         <DocumentUploadComponent :existing="serviceOrder.documents" :documentable-id="serviceOrder.id"
                             documentable-type="\App\Models\ServiceOrder" class="mt-6" />
-                        <div class="mt-6">
-                            <div class="flex items-center gap-x-2 mb-2 px-1">
-                                <span class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
-                            </div>
-                            <DocumentUploadComponent :existing="serviceOrder.internal_documents" :documentable-id="serviceOrder.id"
-                                documentable-type="\App\Models\ServiceOrder" :internal="true" />
-                        </div>
                         <BoxComponent class="mt-6">
                             <ImageUploadComponent :existing="serviceOrder.images" :imageable-id="serviceOrder.id"
                                 imageable-type="App\Models\ServiceOrder" />
