@@ -3,14 +3,12 @@
         <!-- Sticky header: week navigation + user switcher -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
             <div class="flex items-center justify-between px-4 py-3">
-                <button v-if="hasPermission('events.see_beyond_current_week')"
-                    class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week"
+                <button class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week"
                     @click="shiftWeek(-1)">
                     <ChevronLeftIcon class="size-5" />
                 </button>
-                <span v-else class="w-10 shrink-0" />
                 <span class="font-semibold text-sm">{{ weekTitle }}</span>
-                <button v-if="hasPermission('events.see_beyond_current_week')"
+                <button v-if="hasPermission('events.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().startOf('isoWeek'), 'day')"
                     class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Volgende week"
                     @click="shiftWeek(1)">
                     <ChevronRightIcon class="size-5" />
@@ -349,7 +347,9 @@ const weekTitle = computed(() => {
 })
 
 function shiftWeek(direction) {
-    if (!hasPermission('events.see_beyond_current_week')) return
+    if (!hasPermission('events.see_beyond_current_week') && direction === 1) {
+        if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().startOf('isoWeek'), 'day')) return
+    }
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
 }
 

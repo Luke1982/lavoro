@@ -36,12 +36,11 @@ class EventReadRequest extends FormRequest
             return;
         }
 
-        $week_start = Carbon::now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $max_end = Carbon::now()->startOfWeek(Carbon::MONDAY)->startOfDay()->addDays(7);
 
-        $this->merge([
-            'start' => $week_start->toIso8601ZuluString(),
-            'end' => $week_start->copy()->addDays(7)->toIso8601ZuluString(),
-        ]);
+        if (! $this->filled('end') || Carbon::parse($this->input('end'))->gt($max_end)) {
+            $this->merge(['end' => $max_end->toIso8601ZuluString()]);
+        }
     }
 
     public function rules(): array
