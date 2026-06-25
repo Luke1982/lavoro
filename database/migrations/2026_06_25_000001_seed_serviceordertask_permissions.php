@@ -5,10 +5,10 @@ use App\Models\Permission;
 
 return new class extends Migration {
     private array $permissions = [
-        ['name' => 'serviceordertask.read',   'label' => 'Taken zien'],
-        ['name' => 'serviceordertask.create', 'label' => 'Taak aanmaken'],
-        ['name' => 'serviceordertask.update', 'label' => 'Taak bewerken'],
-        ['name' => 'serviceordertask.delete', 'label' => 'Taak verwijderen'],
+        ['name' => 'serviceordertask.read',   'label' => 'Werkbontaken zien'],
+        ['name' => 'serviceordertask.create', 'label' => 'Werkbontaak aanmaken'],
+        ['name' => 'serviceordertask.update', 'label' => 'Werkbontaak bewerken'],
+        ['name' => 'serviceordertask.delete', 'label' => 'Werkbontaak verwijderen'],
     ];
 
     public function up(): void
