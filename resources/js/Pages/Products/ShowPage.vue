@@ -10,24 +10,32 @@
             <img :src="`/storage/${product.main_image[0].path}`" alt="Productafbeelding"
                 class="object-cover rounded w-full">
         </BoxComponent>
-        <div class="flex flex-col justify-around flex-grow items-start pt-2 sm:py-10 gap-3 sm:gap-0">
-            <div class="flex items-center">
-                <span class="text-2xl font-bold mr-2">
-                    {{ product.brand.name }}</span>
-                <EditableTextField v-model="form.model" type="input" :decoration="false" :error="form.errors.model"
-                    @revert="form.clearErrors('model')">
-                    <template #display>
-                        <span class="text-2xl font-bold">
-                            {{ form.model }}
-                        </span>
-                    </template>
-                </EditableTextField>
-                <BadgeComponent :color="product.active ? 'green' : 'red'">
-                    {{ product.active ? 'Actief' : 'Inactief' }}
+        <div class="flex flex-col justify-around flex-grow items-start pt-2 sm:py-10 gap-3">
+            <div class="flex-col sm:flex-row flex items-start sm:items-center">
+                <div class="flex mb-2 sm:mb-0">
+                    <span class="text-2xl font-bold mr-2">
+                        {{ product.brand.name }}</span>
+                    <EditableTextField v-model="form.model" type="input" :decoration="false" :error="form.errors.model"
+                        @revert="form.clearErrors('model')">
+                        <template #display>
+                            <span class="text-2xl font-bold">
+                                {{ form.model }}
+                            </span>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="flex gap-2">
+                    <BadgeComponent :color="product.active ? 'green' : 'red'">
+                        {{ product.active ? 'Actief' : 'Inactief' }}
+                    </BadgeComponent>
+                    <BadgeComponent class="block sm:hidden" color="blue" :hasDot="false">{{ product.product_type.name }}
+                    </BadgeComponent>
+                </div>
+            </div>
+            <div class="hidden sm:block">
+                <BadgeComponent color="blue" :hasDot="false">{{ product.product_type.name }}
                 </BadgeComponent>
             </div>
-            <BadgeComponent color="blue" :hasDot="false">{{ product.product_type.name }}
-            </BadgeComponent>
             <div class="flex gap-0 sm:gap-15 flex-wrap">
                 <TitleValueIconComponent class="w-1/2 sm:w-auto" :icon="HashIcon" title="Artikelnummer"
                     :value="product.part_no || '—'" />
