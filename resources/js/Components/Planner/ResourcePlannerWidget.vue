@@ -8,12 +8,12 @@
             <button
                 class="rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="goToday">Vandaag</button>
-            <button
+            <button v-if="showPrevButton"
                 class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="shiftPeriod(-1)" :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'">
                 <ChevronLeftIcon class="size-4" />
             </button>
-            <button
+            <button v-if="showNextButton"
                 class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                 @click="shiftPeriod(1)" :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'">
                 <ChevronRightIcon class="size-4" />
@@ -517,6 +517,9 @@ watch(dayStartHour, v => localStorage.setItem(DAY_START_STORAGE_KEY, v))
 watch(dayEndHour, v => localStorage.setItem(DAY_END_STORAGE_KEY, v))
 
 function loadStoredWeekStart() {
+    if (!hasPermission('events.see_beyond_current_week')) {
+        return startOfWeek(new Date())
+    }
     const stored = localStorage.getItem(WEEK_STORAGE_KEY)
     if (stored) {
         const date = dayjs(stored, 'YYYY-MM-DD', true)
@@ -533,6 +536,20 @@ function loadStoredView() {
 const weekStart = ref(loadStoredWeekStart())
 const plannerView = ref(loadStoredView())
 const selectedGroupIds = ref([])
+
+const current_iso_week_start = computed(() => dayjs().startOf('isoWeek'))
+
+const showPrevButton = computed(() => {
+    if (hasPermission('events.see_beyond_current_week')) return true
+    if (plannerView.value !== 'day') return false
+    return dayjs(weekStart.value).isAfter(current_iso_week_start.value, 'day')
+})
+
+const showNextButton = computed(() => {
+    if (hasPermission('events.see_beyond_current_week')) return true
+    if (plannerView.value !== 'day') return false
+    return dayjs(weekStart.value).isBefore(current_iso_week_start.value.add(6, 'day'), 'day')
+})
 
 const rootEl = ref(null)
 
@@ -867,7 +884,9 @@ onUnmounted(() => {
 
 watch([dayStartHour, dayEndHour], () => updateNow())
 watch(weekStart, (val) => {
-    localStorage.setItem(WEEK_STORAGE_KEY, dayjs(val).format('YYYY-MM-DD'))
+    if (hasPermission('events.see_beyond_current_week')) {
+        localStorage.setItem(WEEK_STORAGE_KEY, dayjs(val).format('YYYY-MM-DD'))
+    }
     resetFingerprint()
     fetchEvents()
 })
@@ -877,6 +896,12 @@ watch(plannerView, () => {
 })
 
 function shiftPeriod(direction) {
+    if (!hasPermission('events.see_beyond_current_week')) {
+        if (plannerView.value !== 'day') return
+        const next = dayjs(weekStart.value).add(direction, 'day')
+        const week_start = dayjs().startOf('isoWeek')
+        if (next.isBefore(week_start, 'day') || next.isAfter(week_start.add(6, 'day'), 'day')) return
+    }
     const days = plannerView.value === 'day' ? 1 : 7
     weekStart.value = dayjs(weekStart.value).add(direction * days, 'day').toDate()
 }
