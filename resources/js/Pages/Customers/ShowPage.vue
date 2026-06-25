@@ -1,278 +1,400 @@
 <template>
-    <TwoThirdsOneThird>
-        <template #main>
-            <BoxComponent>
-                <div class="flex flex-col md:flex-row md:items-start md:justify-between">
-                    <div class="flex items-start">
-                        <BuildingOffice2Icon
-                            class="size-12 flex-none rounded-lg bg-white dark:bg-slate-800 object-cover ring-1 ring-gray-900/10 dark:ring-slate-600 p-2 mr-4 text-gray-700 dark:text-slate-200" />
-                        <div class="flex flex-col">
-                            <h1 class="text-xl font-semibold dark:text-slate-100">{{ customer.name }}</h1>
-                            <div
-                                class="flex flex-wrap items-center gap-x-2 text-sm text-gray-500 dark:text-slate-400 mt-1">
-                                <a v-if="customer.website" :href="customer.website" target="_blank" class="underline">{{
-                                    customer.website }}</a>
-                                <span v-if="customer.website && customer.email"
-                                    class="text-gray-300 dark:text-slate-600">|</span>
-                                <a v-if="customer.email" :href="`mailto:${customer.email}`" class="underline">{{
-                                    customer.email }}</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 mt-4 md:mt-0">
-                        <div class="md:min-w-60 w-full md:w-auto" v-if="canUpdate">
-                            <div class="flex items-end gap-2">
-                                <ComboBox :options="customerOptions" v-model="form.billing_customer_id"
-                                    label="Factuurklant" placeholder="Kies naar welke klant de factuur moet"
-                                    :has-external-searching="customersUseAjax" :searching="customerSearching"
-                                    @change="searchCustomers" @update:modelValue="updateCustomer" class="grow" />
-                                <XCircleIcon v-if="form.billing_customer_id"
-                                    class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                    @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
-                            </div>
-                        </div>
-                        <Link v-if="canUpdate" :href="`/customers/${customer.id}/edit`"
-                            class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
-                            <PencilSquareIcon class="size-6" />
-                        </Link>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
-                    <div>
-                        <h2 class="text-base font-semibold dark:text-slate-200">Contactgegevens</h2>
-                        <dl class="mt-2 space-y-1 text-sm text-gray-800 dark:text-slate-300">
-                            <div v-if="customer.contactname">
-                                <dt class="inline font-semibold">Contactpersoon:</dt>
-                                <dd class="inline ml-1">{{ customer.contactname }}</dd>
-                            </div>
-                            <div v-if="customer.phone">
-                                <dt class="inline font-semibold">Telefoon:</dt>
-                                <dd class="inline ml-1">{{ customer.phone }}</dd>
-                            </div>
-                            <div v-if="customer.mobile">
-                                <dt class="inline font-semibold">Mobiel:</dt>
-                                <dd class="inline ml-1">{{ customer.mobile }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                    <div>
-                        <h2 class="text-base font-semibold dark:text-slate-200">Financiële Informatie</h2>
-                        <dl class="mt-2 space-y-1 text-sm text-gray-800 dark:text-slate-300">
-                            <div v-if="customer.invoice_email">
-                                <dt class="inline font-semibold">Factuur e-mail:</dt>
-                                <dd class="inline ml-1">{{ customer.invoice_email }}</dd>
-                            </div>
-                            <div v-if="customer.quotes_email">
-                                <dt class="inline font-semibold">Offerte e-mail:</dt>
-                                <dd class="inline ml-1">{{ customer.quotes_email }}</dd>
-                            </div>
-                            <div v-if="customer.iban">
-                                <dt class="inline font-semibold">IBAN:</dt>
-                                <dd class="inline ml-1">{{ customer.iban }}</dd>
-                            </div>
-                            <div v-if="customer.vat_number">
-                                <dt class="inline font-semibold">BTW-nummer:</dt>
-                                <dd class="inline ml-1">{{ customer.vat_number }}</dd>
-                            </div>
-                            <div v-if="customer.chamber_of_commerce_number">
-                                <dt class="inline font-semibold">KvK-nummer:</dt>
-                                <dd class="inline ml-1">{{ customer.chamber_of_commerce_number }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
-                    <div>
-                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
-                            Bezoekadres</h3>
-                        <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.address }}<br>{{
-                            customer.postal_code
-                            }}<span v-if="customer.city">,</span> {{ customer.city }}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-bold mb-2 uppercase tracking-wide text-gray-700 dark:text-slate-300">
-                            Postadres</h3>
-                        <p class="text-sm text-gray-800 dark:text-slate-300 leading-snug">{{ customer.postal_address
-                            }}<br>{{
-                                customer.postal_postal_code }}<span v-if="customer.postal_city">,</span> {{
-                                customer.postal_city }}</p>
-                    </div>
-                </div>
-                <CustomFieldsComponent v-if="customFields.length" model-type="customer" :model-id="customer.id"
-                    :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
-            </BoxComponent>
-            <div class="mt-5 px-1 flex items-center justify-left">
-                <h3 class="text-sm font-medium flex items-center">
-                    <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
-                    Machines
-                </h3>
-                <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
-                    class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
-                    v-tooltip="'Nieuwe machine toevoegen'">
-                    <PlusIcon class="size-4" />
-                </button>
+    <div class="flex items-center mb-6">
+        <Link href="/customers" class="text-slate-400 text-sm font-medium">Klanten</Link>
+        <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
+        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">{{ form.name }}</span>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-start my-4 gap-4">
+        <BuildingOffice2Icon
+            class="size-12 flex-none rounded-lg bg-white dark:bg-slate-800 ring-1 ring-gray-900/10 dark:ring-slate-600 p-2 text-gray-700 dark:text-slate-200" />
+        <div class="flex flex-col justify-around flex-grow items-start gap-3">
+            <div class="flex items-center gap-2">
+                <EditableTextField v-model="form.name" type="input" :decoration="false"
+                    :error="form.errors.name" :disabled="!canUpdate"
+                    @revert="form.clearErrors('name')">
+                    <template #display>
+                        <h1 class="text-2xl font-bold dark:text-slate-100">{{ form.name }}</h1>
+                    </template>
+                </EditableTextField>
             </div>
-            <div class="mt-3 px-1">
-                <div class="flex flex-col md:flex-row md:items-start md:gap-4">
-                    <div class="w-full md:w-72">
-                        <ComboBox :options="productTypeOptions" v-model="selectedProductTypeIds" multiple
-                            placeholder="Filter apparaat type" />
+            <div class="flex gap-0 sm:gap-12 flex-wrap">
+                <TitleValueIconComponent v-if="form.phone" class="w-1/2 sm:w-auto" :icon="PhoneIcon"
+                    title="Telefoon" :value="form.phone" />
+                <TitleValueIconComponent v-if="form.mobile" class="w-1/2 sm:w-auto" :icon="DevicePhoneMobileIcon"
+                    title="Mobiel" :value="form.mobile" />
+                <TitleValueIconComponent v-if="form.email" class="w-1/2 sm:w-auto" :icon="EnvelopeIcon"
+                    title="E-mail" :value="form.email" />
+                <div v-if="form.address" class="flex flex-col w-1/2 sm:w-auto">
+                    <div class="relative pl-7">
+                        <MapPinIcon class="size-5 text-slate-400 inline mr-1 absolute left-0 top-1" />
+                        <span class="text-xs text-slate-400 font-bold">Adres</span>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
-                        <template v-if="selectedProductTypeIds.length">
-                            <span v-for="pt in selectedProductTypes" :key="pt.id"
-                                class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200 dark:text-slate-200 dark:ring-slate-700">
-                                {{ pt.name }}
-                                <button type="button" @click="removeProductType(pt.id)"
-                                    class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
-                                    <span class="sr-only">Remove</span>
-                                    <svg viewBox="0 0 14 14"
-                                        class="h-3.5 w-3.5 text-gray-600/50 stroke-gray-600/75 group-hover:stroke-gray-600/75 dark:text-slate-400 dark:stroke-slate-400 dark:group-hover:stroke-slate-300">
-                                        <path d="M4 4l6 6m0-6l-6 6" />
-                                    </svg>
-                                    <span class="absolute -inset-1" />
-                                </button>
-                            </span>
-                            <button type="button" @click="resetFilters"
-                                class="text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">Reset</button>
-                        </template>
-                        <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle apparaat types</span>
-                    </div>
+                    <a :href="mapsLinkFromCustomer(form)" target="_blank" rel="noopener"
+                        class="text-md text-slate-600 pl-7 font-bold hover:underline">
+                        {{ form.address }}, {{ form.postal_code }} {{ form.city }}
+                    </a>
                 </div>
+                <TitleValueIconComponent v-if="form.chamber_of_commerce_number" class="w-1/2 sm:w-auto"
+                    :icon="BuildingLibraryIcon" title="KvK-nummer" :value="form.chamber_of_commerce_number" />
             </div>
-            <div class="mt-4" v-if="canReadAssets && hasAssetsFiltered">
-                <AssetListComponent :assets="assetsFiltered" />
-            </div>
+        </div>
+    </div>
 
-        </template>
+    <ChaptersComponent>
+        <ChapterHeaders>
+            <ChapterHeader v-for="(chapter, index) in chapters" :key="index" :index="index">
+                {{ chapter }}
+            </ChapterHeader>
+        </ChapterHeaders>
+        <ChapterContents>
 
-        <template #sidebar>
-            <div class="space-y-4 md:ml-5 md:mt-0 ml-0 mt-5">
-
-                <BoxComponent>
-                    <div class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
-                        <div class="flex items-center">
-                            <UserIcon class="size-6 flex-none text-gray-500 dark:text-slate-400 mr-2" />
-                            <h2 class="font-regular text-xl dark:text-slate-200">Contacten</h2>
-                        </div>
-                        <PlusCircleIcon v-if="hasPermission('contact.create')"
-                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
-                            @click="showContactDrawer = true"
-                            v-tooltip="`Contactpersoon toevoegen aan ${customer.name}`" />
-                    </div>
-
-                    <div v-if="!customer.contacts?.length" class="text-sm text-gray-500 dark:text-slate-400">
-                        Nog geen contacten
-                    </div>
-                    <div v-else class="space-y-2" v-auto-animate>
-                        <div v-for="contact in customer.contacts" :key="contact.id"
-                            class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
-                            <div class="flex items-start justify-between gap-2">
-                                <Link :href="`/contacts/${contact.id}`"
-                                    class="text-gray-800 dark:text-slate-200 font-medium hover:underline text-sm">
-                                    {{ contact.full_name }}
-                                </Link>
+            <!-- Chapter 0: Overzicht -->
+            <template #chapter-0>
+                <TwoThirdsOneThird>
+                    <template #main>
+                        <BoxComponent>
+                            <div class="flex items-center mb-4">
+                                <UserIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <span class="text-md font-bold dark:text-slate-100">Contactgegevens</span>
                             </div>
-                            <div v-if="contact.email" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                                {{ contact.email }}
-                            </div>
-                        </div>
-                    </div>
-                </BoxComponent>
-
-                <BoxComponent>
-                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between items-center">
-                        <div class="flex items-center">
-                            <FolderIcon class="size-6 flex-none text-gray-500 mr-2" />
-                            <h2 class="font-regular text-xl">Projecten</h2>
-                        </div>
-                        <PlusCircleIcon v-if="canCreateProject"
-                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
-                            @click="projectFormRef?.show()"
-                            v-tooltip="`Maak een nieuw project aan voor ${customer.name}`" />
-                    </div>
-
-                    <CreateRecordForm ref="projectFormRef" external-trigger action="/projects" :fields="projectFields"
-                        submit-label="Opslaan" />
-
-                    <div v-if="!sortedProjects.length" class="text-sm text-gray-500 dark:text-slate-400">
-                        Nog geen projecten
-                    </div>
-
-                    <div v-else class="space-y-3" v-auto-animate>
-                        <div v-for="project in sortedProjects" :key="project.id"
-                            class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
-                            <div class="flex items-start justify-between gap-2">
-                                <component :is="hasPermission('project.read') ? Link : 'span'"
-                                    :href="`/projects/${project.id}`" :class="{
-                                        'text-gray-800 dark:text-slate-200 font-medium': true,
-                                        'underline hover:text-gray-600 dark:hover:text-slate-400': hasPermission('project.read')
-                                    }">
-                                    {{ project.title }}
-                                </component>
-                                <span class="text-xs" :class="projectStatusClass(project.status)">{{ project.status
-                                    }}</span>
-                            </div>
-
-                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                                Start: {{ project.start_date ? nlDate(project.start_date) : 'Onbekend' }}
-                                <span v-if="project.project_manager"> • Projectleider: {{ project.project_manager.name
-                                    }}</span>
-                            </div>
-
-                            <h4
-                                class="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
-                                Werkbonnen
-                            </h4>
-
-                            <div class="mt-2 space-y-2" v-auto-animate>
-                                <div v-if="!project.service_orders?.length"
-                                    class="text-xs text-gray-500 dark:text-slate-400">
-                                    Geen werkbonnen binnen dit project
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
+                                <div class="flex flex-col gap-6 md:pr-8">
+                                    <EditableTextField v-model="form.name" type="input" label="Naam"
+                                        :error="form.errors.name" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('name')" />
+                                    <EditableTextField v-model="form.contactname" type="input" label="Contactpersoon"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.contactname" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('contactname')" />
+                                    <EditableTextField v-model="form.phone" type="input" label="Telefoon"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.phone" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('phone')" />
+                                    <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.mobile" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('mobile')" />
                                 </div>
-                                <ServiceOrderRow v-for="serviceorder in project.service_orders" :key="serviceorder.id"
-                                    :serviceorder="serviceorder" />
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                                    <EditableTextField v-model="form.email" type="input" label="E-mail"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.email" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('email')" />
+                                    <EditableTextField v-model="form.website" type="input" label="Website"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.website" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('website')" />
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </BoxComponent>
+                        </BoxComponent>
 
+                        <BoxComponent class="mt-4">
+                            <div class="flex items-center mb-4">
+                                <MapPinIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <span class="text-md font-bold dark:text-slate-100">Adressen</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                                <div>
+                                    <h3 class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                        Bezoekadres</h3>
+                                    <div class="flex flex-col gap-6">
+                                        <EditableTextField v-model="form.address" type="input" label="Straat + huisnummer"
+                                            placeholder="Nog niet ingesteld"
+                                            :error="form.errors.address" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('address')" />
+                                        <EditableTextField v-model="form.postal_code" type="input" label="Postcode"
+                                            placeholder="Nog niet ingesteld"
+                                            :error="form.errors.postal_code" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('postal_code')" />
+                                        <EditableTextField v-model="form.city" type="input" label="Stad"
+                                            placeholder="Nog niet ingesteld"
+                                            :error="form.errors.city" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('city')" />
+                                        <EditableTextField v-model="form.country" type="input" label="Land"
+                                            placeholder="Nog niet ingesteld"
+                                            :error="form.errors.country" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('country')" />
+                                    </div>
+                                </div>
+                                <div class="mt-6 md:mt-0 md:border-l md:border-gray-200/70 md:pl-8">
+                                    <h3 class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                        Postadres</h3>
+                                    <div class="flex flex-col gap-6">
+                                        <EditableTextField v-model="form.postal_address" type="input" label="Straat + huisnummer"
+                                            placeholder="Zelfde als bezoekadres"
+                                            :error="form.errors.postal_address" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('postal_address')" />
+                                        <EditableTextField v-model="form.postal_postal_code" type="input" label="Postcode"
+                                            placeholder="Zelfde als bezoekadres"
+                                            :error="form.errors.postal_postal_code" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('postal_postal_code')" />
+                                        <EditableTextField v-model="form.postal_city" type="input" label="Stad"
+                                            placeholder="Zelfde als bezoekadres"
+                                            :error="form.errors.postal_city" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('postal_city')" />
+                                        <EditableTextField v-model="form.postal_country" type="input" label="Land"
+                                            placeholder="Zelfde als bezoekadres"
+                                            :error="form.errors.postal_country" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('postal_country')" />
+                                    </div>
+                                </div>
+                            </div>
+                        </BoxComponent>
+
+                        <BoxComponent class="mt-4">
+                            <div class="flex items-center mb-4">
+                                <BanknotesIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <span class="text-md font-bold dark:text-slate-100">Financiële informatie</span>
+                            </div>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
+                                <div class="flex flex-col gap-6 md:pr-8">
+                                    <EditableTextField v-model="form.invoice_email" type="input" label="Factuur e-mail"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.invoice_email" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('invoice_email')" />
+                                    <EditableTextField v-model="form.quotes_email" type="input" label="Offerte e-mail"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.quotes_email" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('quotes_email')" />
+                                    <EditableTextField v-model="form.iban" type="input" label="IBAN"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.iban" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('iban')" />
+                                </div>
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                                    <EditableTextField v-model="form.vat_number" type="input" label="BTW-nummer"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.vat_number" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('vat_number')" />
+                                    <EditableTextField v-model="form.chamber_of_commerce_number" type="input" label="KvK-nummer"
+                                        placeholder="Nog niet ingesteld"
+                                        :error="form.errors.chamber_of_commerce_number" :disabled="!canUpdate"
+                                        @revert="form.clearErrors('chamber_of_commerce_number')" />
+                                </div>
+                            </div>
+                        </BoxComponent>
+
+                        <CustomFieldsComponent v-if="customFields.length" model-type="customer" :model-id="customer.id"
+                            :custom-fields="customFields" :can-edit="hasPermission('customfield.update')"
+                            class="mt-4" />
+                    </template>
+
+                    <template #sidebar>
+                        <div class="mt-4 md:mt-0 space-y-4">
+                            <BoxComponent v-if="form.address" padding="p-0" extra-classes="overflow-hidden">
+                                <OpenStreetMapWidget
+                                    :key="`${form.address},${form.postal_code} ${form.city}`"
+                                    :address="`${form.address}, ${form.postal_code} ${form.city}`" />
+                            </BoxComponent>
+
+                            <BoxComponent>
+                                <div
+                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                                    <div class="flex items-center">
+                                        <UserGroupIcon class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <h2 class="font-semibold text-base dark:text-slate-200">Contacten</h2>
+                                    </div>
+                                    <PlusCircleIcon v-if="hasPermission('contact.create')"
+                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                        @click="showContactDrawer = true"
+                                        v-tooltip="`Contactpersoon toevoegen aan ${form.name}`" />
+                                </div>
+                                <div v-if="!customer.contacts?.length"
+                                    class="text-sm text-gray-500 dark:text-slate-400">
+                                    Nog geen contacten
+                                </div>
+                                <div v-else class="space-y-2" v-auto-animate>
+                                    <div v-for="contact in customer.contacts" :key="contact.id"
+                                        class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <Link :href="`/contacts/${contact.id}`"
+                                                class="text-gray-800 dark:text-slate-200 font-medium hover:underline text-sm">
+                                                {{ contact.full_name }}
+                                            </Link>
+                                        </div>
+                                        <div v-if="contact.email"
+                                            class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                            {{ contact.email }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </BoxComponent>
+
+                            <BoxComponent v-if="canUpdate">
+                                <div
+                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 items-center">
+                                    <ReceiptPercentIcon
+                                        class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                    <h2 class="font-semibold text-base dark:text-slate-200">Factuurklant</h2>
+                                </div>
+                                <div class="flex items-end gap-2">
+                                    <ComboBox :options="customerOptions" v-model="form.billing_customer_id"
+                                        label="Factuurklant"
+                                        placeholder="Kies naar welke klant de factuur moet"
+                                        :has-external-searching="customersUseAjax" :searching="customerSearching"
+                                        @change="searchCustomers" @update:modelValue="updateBillingCustomer"
+                                        class="grow" />
+                                    <XCircleIcon v-if="form.billing_customer_id"
+                                        class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
+                                </div>
+                            </BoxComponent>
+                        </div>
+                    </template>
+                </TwoThirdsOneThird>
+            </template>
+
+            <!-- Chapter 1: Machines -->
+            <template #chapter-1>
                 <BoxComponent>
-                    <div class="flex mb-4 border-b-1 border-gray-200 pb-2 justify-between">
-                        <div class="flex">
-                            <ClipboardDocumentListIcon class="size-6 flex-none text-gray-500 mr-2" />
-                            <h2 class="font-regular text-xl">Werkbonnen</h2>
-                        </div>
-                        <PlusCircleIcon v-if="canCreateServiceOrder"
-                            class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
-                            @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
-                            v-tooltip="`Maak een nieuwe werkbon aan voor ${customer.name}`" />
-                    </div>
-                    <div v-if="!serviceOrdersWithoutProject.length" class="text-sm text-gray-500 dark:text-slate-400">
-                        Geen losse werkbonnen
-                    </div>
-                    <ServiceOrderRow v-for="serviceorder in serviceOrdersWithoutProject" v-bind:key="serviceorder.id"
-                        :serviceorder="serviceorder" />
-                </BoxComponent>
-                <BoxComponent class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700/60">
                     <div
-                        class="flex mb-4 border-b-1 border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
-                        <div class="flex items-center">
-                            <svg class="size-6 text-gray-500 dark:text-slate-400 mr-2" fill="none" stroke="currentColor"
-                                stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                            <h2 class="font-regular text-xl text-gray-800 dark:text-slate-200">Afspraken</h2>
+                        class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700/60 mb-4">
+                        <PuzzlePieceIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
+                        <h3 class="text-sm font-medium dark:text-slate-200">Machines</h3>
+                        <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
+                            class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
+                            v-tooltip="'Nieuwe machine toevoegen'">
+                            <PlusIcon class="size-4" />
+                        </button>
+                    </div>
+                    <div class="flex flex-col md:flex-row md:items-start md:gap-4">
+                        <div class="w-full md:w-72">
+                            <ComboBox :options="productTypeOptions" v-model="selectedProductTypeIds" multiple
+                                placeholder="Filter apparaat type" />
                         </div>
+                        <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
+                            <template v-if="selectedProductTypeIds.length">
+                                <span v-for="pt in selectedProductTypes" :key="pt.id"
+                                    class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200 dark:text-slate-200 dark:ring-slate-700">
+                                    {{ pt.name }}
+                                    <button type="button" @click="removeProductType(pt.id)"
+                                        class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+                                        <span class="sr-only">Remove</span>
+                                        <svg viewBox="0 0 14 14"
+                                            class="h-3.5 w-3.5 text-gray-600/50 stroke-gray-600/75 group-hover:stroke-gray-600/75 dark:text-slate-400 dark:stroke-slate-400 dark:group-hover:stroke-slate-300">
+                                            <path d="M4 4l6 6m0-6l-6 6" />
+                                        </svg>
+                                        <span class="absolute -inset-1" />
+                                    </button>
+                                </span>
+                                <button type="button" @click="resetFilters"
+                                    class="text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">Reset</button>
+                            </template>
+                            <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle apparaat types</span>
+                        </div>
+                    </div>
+                    <div class="mt-4" v-if="canReadAssets && hasAssetsFiltered">
+                        <AssetListComponent :assets="assetsFiltered" />
+                    </div>
+                    <p v-if="canReadAssets && !hasAssetsFiltered"
+                        class="text-sm text-gray-400 dark:text-slate-500 italic mt-4">
+                        Geen machines gevonden.
+                    </p>
+                </BoxComponent>
+            </template>
+
+            <!-- Chapter 2: Werkbonnen & Projecten -->
+            <template #chapter-2>
+                <TwoThirdsOneThird>
+                    <template #main>
+                        <BoxComponent>
+                            <div
+                                class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                                <div class="flex items-center">
+                                    <FolderIcon class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                    <h2 class="font-semibold text-base dark:text-slate-200">Projecten</h2>
+                                </div>
+                                <PlusCircleIcon v-if="canCreateProject"
+                                    class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                    @click="projectFormRef?.show()"
+                                    v-tooltip="`Maak een nieuw project aan voor ${form.name}`" />
+                            </div>
+
+                            <CreateRecordForm ref="projectFormRef" external-trigger action="/projects"
+                                :fields="projectFields" submit-label="Opslaan" />
+
+                            <div v-if="!sortedProjects.length" class="text-sm text-gray-500 dark:text-slate-400">
+                                Nog geen projecten
+                            </div>
+                            <div v-else class="space-y-3" v-auto-animate>
+                                <div v-for="project in sortedProjects" :key="project.id"
+                                    class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <component :is="hasPermission('project.read') ? Link : 'span'"
+                                            :href="`/projects/${project.id}`" :class="{
+                                                'text-gray-800 dark:text-slate-200 font-medium': true,
+                                                'underline hover:text-gray-600 dark:hover:text-slate-400': hasPermission('project.read')
+                                            }">
+                                            {{ project.title }}
+                                        </component>
+                                        <span class="text-xs" :class="projectStatusClass(project.status)">{{
+                                            project.status }}</span>
+                                    </div>
+                                    <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                        Start: {{ project.start_date ? nlDate(project.start_date) : 'Onbekend' }}
+                                        <span v-if="project.project_manager"> • Projectleider: {{
+                                            project.project_manager.name }}</span>
+                                    </div>
+                                    <h4
+                                        class="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
+                                        Werkbonnen
+                                    </h4>
+                                    <div class="mt-2 space-y-2" v-auto-animate>
+                                        <div v-if="!project.service_orders?.length"
+                                            class="text-xs text-gray-500 dark:text-slate-400">
+                                            Geen werkbonnen binnen dit project
+                                        </div>
+                                        <ServiceOrderRow v-for="serviceorder in project.service_orders"
+                                            :key="serviceorder.id" :serviceorder="serviceorder" />
+                                    </div>
+                                </div>
+                            </div>
+                        </BoxComponent>
+                    </template>
+
+                    <template #sidebar>
+                        <div class="mt-4 md:mt-0">
+                            <BoxComponent>
+                                <div
+                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                                    <div class="flex items-center">
+                                        <ClipboardDocumentListIcon
+                                            class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <h2 class="font-semibold text-base dark:text-slate-200">Losse werkbonnen</h2>
+                                    </div>
+                                    <PlusCircleIcon v-if="canCreateServiceOrder"
+                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                        @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
+                                        v-tooltip="`Maak een nieuwe werkbon aan voor ${form.name}`" />
+                                </div>
+                                <div v-if="!serviceOrdersWithoutProject.length"
+                                    class="text-sm text-gray-500 dark:text-slate-400">
+                                    Geen losse werkbonnen
+                                </div>
+                                <ServiceOrderRow v-for="serviceorder in serviceOrdersWithoutProject"
+                                    :key="serviceorder.id" :serviceorder="serviceorder" />
+                            </BoxComponent>
+                        </div>
+                    </template>
+                </TwoThirdsOneThird>
+            </template>
+
+            <!-- Chapter 3: Afspraken -->
+            <template #chapter-3>
+                <BoxComponent>
+                    <div class="flex items-center mb-4">
+                        <ClockIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                        <span class="text-md font-bold dark:text-slate-100">Afspraken</span>
                     </div>
                     <EventTimelineComponent :events="eventList" />
                 </BoxComponent>
-            </div>
-        </template>
-    </TwoThirdsOneThird>
+            </template>
 
-    <DrawerComponent v-model="showContactDrawer" :title="`Nieuw contact voor ${customer.name}`"
+        </ChapterContents>
+    </ChaptersComponent>
+
+    <DrawerComponent v-model="showContactDrawer" :title="`Nieuw contact voor ${form.name}`"
         subtitle="Vul de gegevens in van het nieuwe contact.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
@@ -314,7 +436,7 @@
         </template>
     </DrawerComponent>
 
-    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${customer.name}`">
+    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${form.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
             :bare="true" :required-productables-by-product="requiredProductablesByProduct"
             @created="addAssetDrawerOpen = false" />
@@ -323,21 +445,33 @@
 
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon, XCircleIcon, PencilSquareIcon, FolderIcon, UserIcon } from '@heroicons/vue/24/outline';
+import {
+    BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon,
+    XCircleIcon, FolderIcon, UserIcon, UserGroupIcon, MapPinIcon, EnvelopeIcon,
+    PhoneIcon, DevicePhoneMobileIcon, GlobeAltIcon, BanknotesIcon, CreditCardIcon,
+    ReceiptPercentIcon, BuildingLibraryIcon, ChevronRightIcon, ClockIcon,
+} from '@heroicons/vue/24/outline';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { useForm, Link } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
-import { hasPermission, nlDate, projectStatusClass } from '@/Utilities/Utilities';
+import { ref, computed, watch } from 'vue';
+import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { useComboSearch } from '@/Composables/useComboSearch';
+import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
+import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
+import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
+import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
+import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
+import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 
 const props = defineProps({
     customer: {
@@ -382,8 +516,50 @@ const { options: customerOptions, searching: customerSearching, search: searchCu
     useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
 const form = useForm({
-    ...props.customer,
-    billing_customer_id: props.customer.billing_customer_id || null,
+    name:                       props.customer.name,
+    contactname:                props.customer.contactname,
+    email:                      props.customer.email,
+    phone:                      props.customer.phone,
+    mobile:                     props.customer.mobile,
+    website:                    props.customer.website,
+    address:                    props.customer.address,
+    postal_code:                props.customer.postal_code,
+    city:                       props.customer.city,
+    country:                    props.customer.country,
+    postal_address:             props.customer.postal_address,
+    postal_postal_code:         props.customer.postal_postal_code,
+    postal_city:                props.customer.postal_city,
+    postal_country:             props.customer.postal_country,
+    invoice_email:              props.customer.invoice_email,
+    quotes_email:               props.customer.quotes_email,
+    iban:                       props.customer.iban,
+    vat_number:                 props.customer.vat_number,
+    chamber_of_commerce_number: props.customer.chamber_of_commerce_number,
+    billing_customer_id:        props.customer.billing_customer_id || null,
+});
+
+watch([
+    () => form.name,
+    () => form.contactname,
+    () => form.email,
+    () => form.phone,
+    () => form.mobile,
+    () => form.website,
+    () => form.address,
+    () => form.postal_code,
+    () => form.city,
+    () => form.country,
+    () => form.postal_address,
+    () => form.postal_postal_code,
+    () => form.postal_city,
+    () => form.postal_country,
+    () => form.invoice_email,
+    () => form.quotes_email,
+    () => form.iban,
+    () => form.vat_number,
+    () => form.chamber_of_commerce_number,
+], () => {
+    form.patch(`/customers/${props.customer.id}`, { preserveScroll: true });
 });
 
 const newServiceOrderForm = useForm({
@@ -421,24 +597,20 @@ function closeContactDrawer() {
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 const canCreateProject = computed(() => hasPermission('project.create'));
-
 const canUpdate = computed(() => hasPermission('customer.update'))
-
 const canReadAssets = computed(() => hasPermission('asset.read'))
 
-const updateCustomer = () => {
-    form.patch(`/customers/${props.customer.id}`)
+const updateBillingCustomer = () => {
+    form.patch(`/customers/${props.customer.id}`, { preserveScroll: true })
 };
 
 const clearBillingCustomer = () => {
     form.billing_customer_id = null;
-    updateCustomer();
+    updateBillingCustomer();
 };
 
-// Product type filtering ----------------------------------------------------
-const selectedProductTypeIds = ref([]); // array of product_type ids
+const selectedProductTypeIds = ref([]);
 
-// Collect unique product types from the assets list
 const productTypeOptions = computed(() => {
     const map = new Map();
     (props.assets || []).forEach(a => {
@@ -458,7 +630,6 @@ const removeProductType = (id) => {
 };
 const resetFilters = () => { selectedProductTypeIds.value = []; };
 
-// Filtering helper
 const assetsFiltered = computed(() => {
     if (!selectedProductTypeIds.value.length) return props.assets;
     return (props.assets || []).filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
@@ -489,7 +660,6 @@ const projectFields = [
     { key: 'description', label: 'Omschrijving', type: 'textarea', placeholder: 'Optioneel', class: 'md:col-span-4' },
 ]
 
-// Collect all events from service orders for this customer for timeline
 const eventList = computed(() => {
     const orders = props.customer.service_orders || [];
     return orders.flatMap(o => (o.events || []).map(e => ({
@@ -497,25 +667,11 @@ const eventList = computed(() => {
         service_order_id: o.id,
     })));
 });
+
+const chapters = computed(() => [
+    'Overzicht',
+    `Machines (${props.assets.length})`,
+    `Werkbonnen & Projecten (${sortedProjects.value.length + serviceOrdersWithoutProject.value.length})`,
+    `Afspraken (${eventList.value.length})`,
+])
 </script>
-
-<style scoped>
-.fade-height-enter-active,
-.fade-height-leave-active {
-    transition: opacity .25s ease, max-height .25s ease, transform .25s ease;
-}
-
-.fade-height-enter-from,
-.fade-height-leave-to {
-    opacity: 0;
-    max-height: 0;
-    transform: translateY(-6px);
-}
-
-.fade-height-enter-to,
-.fade-height-leave-from {
-    opacity: 1;
-    max-height: 2000px;
-    transform: translateY(0);
-}
-</style>
