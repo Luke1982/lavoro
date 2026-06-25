@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration
 {
     private array $permissions = [
-        ['name' => 'events.see_beyond_current_week', 'label' => 'Mag verder dan de huidige week kijken in de planning'],
+        ['name' => 'events.see_beyond_current_week', 'label' => 'Mag vooruit kijken voorbij de huidige week'],
     ];
 
     public function up(): void
