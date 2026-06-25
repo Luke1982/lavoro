@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +28,20 @@ class EventReadRequest extends FormRequest
         $user = Auth::user();
 
         return $user && ($user->isAdmin() || $user->hasPermission('event.read'));
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->user()?->can('seeBeyondCurrentWeek', Event::class)) {
+            return;
+        }
+
+        $week_start = Carbon::now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+
+        $this->merge([
+            'start' => $week_start->toIso8601ZuluString(),
+            'end' => $week_start->copy()->addDays(7)->toIso8601ZuluString(),
+        ]);
     }
 
     public function rules(): array

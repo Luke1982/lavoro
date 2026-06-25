@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EventCopyRequest;
 use App\Http\Requests\EventDestroyRequest;
+use App\Http\Requests\EventReadRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
@@ -14,7 +15,6 @@ use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Mail;
 
 class EventApiController extends Controller
 {
-    public function index(Request $request)
+    public function index(EventReadRequest $request)
     {
         $user = Auth::user();
         $user_id = $user?->id;
