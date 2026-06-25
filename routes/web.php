@@ -325,6 +325,10 @@ Route::group(
                 'admin/settings/serviceorder-closing-text',
                 [GeneralSettingsController::class, 'updateServiceOrderClosingText'],
             )->name('admin.settings.serviceorder-closing-text');
+            Route::put(
+                'admin/settings/allow-override-unavailability',
+                [GeneralSettingsController::class, 'updateAllowOverrideUnavailability'],
+            )->name('admin.settings.allow-override-unavailability');
         });
     }
 );

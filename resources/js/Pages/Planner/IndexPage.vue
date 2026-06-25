@@ -17,7 +17,9 @@
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
                     :user-roles="userRoles" :projects="projects" :groups="planGroupsRef"
                     :default-planner-minutes="props.defaultPlannerMinutes"
-                    :latest-pings="props.latestPings" @service-order-planned="onServiceOrderPlanned"
+                    :latest-pings="props.latestPings"
+                    :allow-override-unavailability="props.allowOverrideUnavailability"
+                    @service-order-planned="onServiceOrderPlanned"
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
@@ -59,6 +61,7 @@ const props = defineProps({
     planGroups: { type: Array, default: () => [] },
     allPlanUsers: { type: Array, default: () => [] },
     latestPings: { type: Object, default: () => ({}) },
+    allowOverrideUnavailability: { type: Boolean, default: false },
 })
 
 const page = usePage()

@@ -45,6 +45,8 @@
                         v-tooltip="'Werkbon gedeeltelijk afgerond'" />
                     <CircleCheck v-else-if="event.is_closed" class="size-3 shrink-0 text-green-600"
                         v-tooltip="'Werkbon afgerond'" />
+                    <Banknote v-if="event.is_invoiced" class="size-3 shrink-0 text-emerald-600"
+                        v-tooltip="'Werkbon gefactureerd'" />
                     <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                 </button>
             </div>
@@ -111,7 +113,7 @@
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
-import { ClockFading, TriangleAlert, CircleCheck } from '@lucide/vue'
+import { ClockFading, TriangleAlert, CircleCheck, Banknote } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime } from '@/Utilities/Utilities'
 
@@ -222,6 +224,7 @@ const style = computed(() => {
         borderColor: color,
         borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',
         transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',
+        zIndex: 6,
     }
 })
 

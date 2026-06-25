@@ -105,7 +105,8 @@ class PlannerController extends Controller
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'planGroups' => $plan_groups,
-            'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'defaultPlannerMinutes'       => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
             'latestPings' => LocationPing::query()
                 ->whereIn('id', function ($sub) {
                     $sub->selectRaw('MAX(id)')

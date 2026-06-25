@@ -391,6 +391,12 @@
         </ModalDialog>
 
         <PlannerExportDrawer v-model="exportDrawerOpen" :plannable-users="plannableUsers" />
+
+        <UnavailabilityOverrideDialog
+            :open="unavailOverrideDialog.open"
+            :users="unavailOverrideDialog.users"
+            @confirm="onOverrideConfirm"
+            @cancel="onOverrideCancel" />
     </div>
 </template>
 
@@ -410,6 +416,7 @@ import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
+import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 
 const props = defineProps({
@@ -438,6 +445,7 @@ const props = defineProps({
     groups: { type: Array, default: () => [] },
     /** Latest location ping per user_id, keyed by user_id */
     latestPings: { type: Object, default: () => ({}) },
+    allowOverrideUnavailability: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
@@ -608,6 +616,42 @@ const collapsedUsers = ref(new Set())
 const mapExpandedUsers = ref(new Set())
 const mapModalOpen = ref(false)
 const exportDrawerOpen = ref(false)
+
+const unavailOverrideDialog = ref({ open: false, users: [] })
+let pendingOverrideAction = null
+
+function getBlockedUsers(userId, dayIso, startMin, endMin) {
+    const absStart = startMin + dayStartHour.value * 60
+    const absEnd = endMin + dayStartHour.value * 60
+    const user = props.plannableUsers.find(u => u.id === userId)
+    if (!user) return []
+    return user.unavailabilities
+        .filter(unav => {
+            if (!unavailabilityMatchesDay(unav, dayIso)) return false
+            if (unav.start_time === null) return true
+            const [sh, sm] = unav.start_time.split(':').map(Number)
+            const [eh, em] = unav.end_time.split(':').map(Number)
+            return absStart < eh * 60 + em && absEnd > sh * 60 + sm
+        })
+        .map(unav => ({ name: user.name, label: unav.label }))
+}
+
+function requestOverride(affectedUsers, actionFn) {
+    unavailOverrideDialog.value = { open: true, users: affectedUsers }
+    pendingOverrideAction = actionFn
+}
+
+function onOverrideConfirm() {
+    unavailOverrideDialog.value = { open: false, users: [] }
+    const fn = pendingOverrideAction
+    pendingOverrideAction = null
+    fn?.()
+}
+
+function onOverrideCancel() {
+    unavailOverrideDialog.value = { open: false, users: [] }
+    pendingOverrideAction = null
+}
 
 const allPingsArray = computed(() =>
     Object.values(props.latestPings).filter(p => p.lat != null && p.lng != null)
@@ -1073,7 +1117,9 @@ function onCellPointerDown(e, user, day) {
     if (e.button !== 0) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
-    if (isBlockedAtTime(user.id, day.iso, snapMinutes(info.minutes), snapMinutes(info.minutes) + slotMinutes.value)) return
+    if (isBlockedAtTime(user.id, day.iso, snapMinutes(info.minutes), snapMinutes(info.minutes) + slotMinutes.value)) {
+        if (!props.allowOverrideUnavailability) return
+    }
     const startMin = snapMinutes(info.minutes)
     selectRect.value = {
         userId: user.id,
@@ -1241,6 +1287,13 @@ async function onWindowPointerUp() {
             : startMin + plannerMinutes.value
         const start = dateFromDayIsoAndMinutes(sel.dayIso, startMin)
         const end = dateFromDayIsoAndMinutes(sel.dayIso, endMin)
+        if (isBlockedAtTime(sel.userId, sel.dayIso, startMin, endMin)) {
+            if (props.allowOverrideUnavailability) {
+                const blockedUsers = getBlockedUsers(sel.userId, sel.dayIso, startMin, endMin)
+                requestOverride(blockedUsers, () => openCreate({ start, end, userId: sel.userId }))
+            }
+            return
+        }
         openCreate({ start, end, userId: sel.userId })
         return
     }
@@ -1249,6 +1302,7 @@ async function onWindowPointerUp() {
         const previewStart = drag.value.previewStart
         const previewEnd = drag.value.previewEnd
         const previewUserId = drag.value.previewUserId
+        const previewDayIso = drag.value.previewDayIso
         const movedTime = previewStart.getTime() !== ev.start.getTime() ||
             previewEnd.getTime() !== ev.end.getTime()
         const movedUser = !drag.value.isLocked && mode === 'move' &&
@@ -1257,6 +1311,13 @@ async function onWindowPointerUp() {
         drag.value = { eventId: null, mode: null }
         if (movedTime || movedUser) {
             suppressClickUntil = Date.now() + 300
+            if (previewDayIso && isBlockedAtTime(previewUserId, previewDayIso, minutesFromDayStart(previewStart), minutesFromDayStart(previewEnd))) {
+                if (props.allowOverrideUnavailability) {
+                    const blockedUsers = getBlockedUsers(previewUserId, previewDayIso, minutesFromDayStart(previewStart), minutesFromDayStart(previewEnd))
+                    requestOverride(blockedUsers, () => persistEventChange(ev, previewStart, previewEnd, movedUser ? previewUserId : null))
+                }
+                return
+            }
             await persistEventChange(ev, previewStart, previewEnd, movedUser ? previewUserId : null)
         }
     }
@@ -1350,6 +1411,23 @@ function injectTypeColorStyles() {
 }
 
 async function toggleExecutingUser(ev, user) {
+    const wasAssigned = ev.executing_user_ids.includes(user.id)
+    if (!wasAssigned) {
+        const dayIso = formatLocalDateAsISO(ev.start)
+        const startMin = minutesFromDayStart(ev.start)
+        const endMin = minutesFromDayStart(ev.end)
+        if (isBlockedAtTime(user.id, dayIso, startMin, endMin)) {
+            if (props.allowOverrideUnavailability) {
+                const blockedUsers = getBlockedUsers(user.id, dayIso, startMin, endMin)
+                requestOverride(blockedUsers, () => applyToggleExecutingUser(ev, user))
+            }
+            return
+        }
+    }
+    applyToggleExecutingUser(ev, user)
+}
+
+async function applyToggleExecutingUser(ev, user) {
     const wasAssigned = ev.executing_user_ids.includes(user.id)
     const original = {
         ids: [...ev.executing_user_ids],
@@ -1563,9 +1641,11 @@ function onDragOver(e) {
     if (info) {
         const startMin = dropStartMinutes(info, plannerMinutes.value)
         if (isBlockedAtTime(info.userId, info.dayIso, startMin, startMin + plannerMinutes.value)) {
-            e.dataTransfer.dropEffect = 'none'
-            dragGhost.value = null
-            return
+            if (!props.allowOverrideUnavailability) {
+                e.dataTransfer.dropEffect = 'none'
+                dragGhost.value = null
+                return
+            }
         }
     }
     e.dataTransfer.dropEffect = 'copy'
@@ -1694,9 +1774,15 @@ function onExternalDrop(e, user, day) {
     if (!info) return
     const duration = payload.duration_minutes || plannerMinutes.value
     const startMin = dropStartMinutes(info, duration)
-    if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) return
     const start = dateFromDayIsoAndMinutes(day.iso, startMin)
     const end = new Date(start.getTime() + duration * 60000)
+    if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) {
+        if (props.allowOverrideUnavailability) {
+            const blockedUsers = getBlockedUsers(user.id, day.iso, startMin, startMin + duration)
+            requestOverride(blockedUsers, () => createEventFromDrop({ start, end, userId: user.id, payload }))
+        }
+        return
+    }
     createEventFromDrop({ start, end, userId: user.id, payload })
 }
 

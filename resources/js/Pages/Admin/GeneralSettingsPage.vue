@@ -69,15 +69,31 @@
                 </div>
             </form>
         </section>
+
+        <section class="mt-10">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Planning</h2>
+
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Onbeschikbaarheid overschrijven toestaan</p>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        Wanneer ingeschakeld kunnen planners een afspraak inplannen op een geblokkeerd tijdslot na bevestiging.
+                    </p>
+                </div>
+                <SwitchComponent v-model="overrideForm.value" @update="submitOverride" />
+            </div>
+        </section>
     </div>
 </template>
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 
 const props = defineProps({
     locationTracking: { type: Object, required: true },
     serviceOrderClosingText: { type: String, default: '' },
+    allowOverrideUnavailability: { type: Boolean, default: false },
 })
 
 const DAYS = [
@@ -109,11 +125,19 @@ const closingTextForm = useForm({
     serviceorder_closing_text: props.serviceOrderClosingText,
 })
 
+const overrideForm = useForm({
+    value: props.allowOverrideUnavailability,
+})
+
 function submit() {
     form.put('/admin/settings/location-tracking')
 }
 
 function submitClosingText() {
     closingTextForm.put('/admin/settings/serviceorder-closing-text')
+}
+
+function submitOverride() {
+    overrideForm.put('/admin/settings/allow-override-unavailability')
 }
 </script>
