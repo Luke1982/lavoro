@@ -65,4 +65,9 @@ class EventPolicy
     {
         return $user->isAdmin() || $user->hasPermission('event.export');
     }
+
+    public function seeBeyondCurrentWeek(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('events.see_beyond_current_week');
+    }
 }
