@@ -51,7 +51,7 @@ class ServiceOrder extends Model
         'type' => ServiceOrderTypes::class,
     ];
 
-    protected $appends = ['is_closed', 'is_incomplete'];
+    protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced'];
 
     protected $with = ['serviceOrderStage'];
 
@@ -75,6 +75,11 @@ class ServiceOrder extends Model
     public function getIsIncompleteAttribute(): bool
     {
         return $this->serviceOrderStage?->is_incomplete_state === true;
+    }
+
+    public function getIsInvoicedAttribute(): bool
+    {
+        return $this->serviceOrderStage?->is_invoiced_state === true;
     }
 
     public function customer()

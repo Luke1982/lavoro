@@ -38,6 +38,7 @@ function mapEvent(ev) {
         is_preliminary: ev.is_preliminary ?? false,
         is_closed: ev.service_orders?.[0]?.is_closed ?? false,
         is_incomplete: ev.service_orders?.[0]?.is_incomplete ?? false,
+        is_invoiced: ev.service_orders?.[0]?.is_invoiced ?? false,
         from_google: ev.origin === "google",
         location: ev.location
             || ev.service_orders?.[0]?.execution_location
