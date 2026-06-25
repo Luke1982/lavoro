@@ -2,16 +2,18 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ServiceOrderTask;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class ServiceOrderTaskStoreUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        $permission = $this->isMethod('post') ? 'serviceordertask.create' : 'serviceordertask.update';
-        return $user && ($user->isAdmin() || $user->hasPermission($permission));
+        if ($this->isMethod('post')) {
+            return $this->user()->can('create', ServiceOrderTask::class);
+        }
+
+        return $this->user()->can('update', $this->route('serviceordertask'));
     }
 
     public function rules(): array

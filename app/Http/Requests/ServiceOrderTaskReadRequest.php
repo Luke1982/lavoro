@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ServiceOrderTask;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class ServiceOrderTaskReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('serviceordertask.read'));
+        return $this->user()->can('read', ServiceOrderTask::class);
     }
 
     public function rules(): array
