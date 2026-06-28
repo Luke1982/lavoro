@@ -36,7 +36,7 @@ class EventReadRequest extends FormRequest
             return;
         }
 
-        $max_end = Carbon::now()->startOfWeek(Carbon::MONDAY)->startOfDay()->addDays(7);
+        $max_end = Carbon::now()->startOfDay()->addDays(7)->endOfDay();
 
         if (! $this->filled('end') || Carbon::parse($this->input('end'))->gt($max_end)) {
             $this->merge(['end' => $max_end->toIso8601ZuluString()]);
