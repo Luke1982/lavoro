@@ -102,11 +102,17 @@
                         <div class="col-span-1 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
                             {{ nlDate(so.created_at) }}
                         </div>
-                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end">
+                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2">
                             <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
                                 <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
                                     <EyeIcon class="h-5 w-5" />
                                 </Link>
+                            </div>
+                            <div
+                                v-if="hasPermission('serviceorder.delete') && !so.sent_to_administration"
+                                class="border-1 border-lavoro-darkergray rounded-full p-2 flex cursor-pointer text-red-500 hover:text-red-700"
+                                @click="deleteServiceOrder(so.id)">
+                                <TrashIcon class="h-5 w-5" />
                             </div>
                         </div>
                     </div>
@@ -182,7 +188,7 @@
 </template>
 
 <script setup>
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
@@ -194,8 +200,8 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
-import { EyeIcon, RotateCcwIcon } from '@lucide/vue'
-import { nlDate, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
+import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
+import { nlDate, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 
 const { serviceOrders, stages, perPage } = defineProps({
     serviceOrders: { type: Object, required: true },
@@ -304,6 +310,12 @@ function updateInvoiceNo(so, val) {
         customer_id: so.customer_id,
         external_invoice_no: val,
     }, { preserveScroll: true })
+}
+
+function deleteServiceOrder(id) {
+    if (confirm('Weet je zeker dat je deze werkbon wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
+        useForm({}).delete(`/serviceorders/${id}`, { preserveScroll: true })
+    }
 }
 
 function badgeColorFor(so) {
