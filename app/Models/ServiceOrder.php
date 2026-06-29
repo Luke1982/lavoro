@@ -10,10 +10,10 @@ use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Database\Factories\ServiceOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ServiceOrder extends Model
 {
@@ -71,14 +71,14 @@ class ServiceOrder extends Model
             $id = $service_order->id;
             $morph_class = ServiceOrder::class;
             $pivot_tables = [
-                'eventables'       => 'eventable',
-                'remarkables'      => 'remarkable',
-                'imageables'       => 'imageable',
-                'documentables'    => 'documentable',
-                'materiables'      => 'materiable',
-                'activityables'    => 'activityable',
+                'eventables' => 'eventable',
+                'remarkables' => 'remarkable',
+                'imageables' => 'imageable',
+                'documentables' => 'documentable',
+                'materiables' => 'materiable',
+                'activityables' => 'activityable',
                 'customfieldables' => 'customfieldable',
-                'userables'        => 'userable',
+                'userables' => 'userable',
             ];
 
             foreach ($pivot_tables as $table => $morph) {
