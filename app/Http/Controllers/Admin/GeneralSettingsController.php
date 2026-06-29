@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAllowOverrideUnavailabilityRequest;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
+use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
 use App\Models\GeneralSetting;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -26,6 +27,7 @@ class GeneralSettingsController extends Controller
             ],
             'serviceOrderClosingText'     => GeneralSetting::get('serviceorder_closing_text', ''),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
+            'serviceOrderMinImages'       => (int) GeneralSetting::get('serviceorder_min_images', 0),
         ]);
     }
 
@@ -51,6 +53,13 @@ class GeneralSettingsController extends Controller
         UpdateAllowOverrideUnavailabilityRequest $request
     ): RedirectResponse {
         GeneralSetting::set('allow_override_unavailability', $request->validated()['value'] ? '1' : '0');
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
+    }
+
+    public function updateServiceOrderMinImages(UpdateServiceOrderMinImagesRequest $request): RedirectResponse
+    {
+        GeneralSetting::set('serviceorder_min_images', $request->validated()['min_images']);
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }

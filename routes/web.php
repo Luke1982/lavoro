@@ -329,6 +329,10 @@ Route::group(
                 'admin/settings/allow-override-unavailability',
                 [GeneralSettingsController::class, 'updateAllowOverrideUnavailability'],
             )->name('admin.settings.allow-override-unavailability');
+            Route::put(
+                'admin/settings/serviceorder-min-images',
+                [GeneralSettingsController::class, 'updateServiceOrderMinImages'],
+            )->name('admin.settings.serviceorder-min-images');
         });
     }
 );
