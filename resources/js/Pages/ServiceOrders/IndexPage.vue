@@ -188,7 +188,7 @@
 </template>
 
 <script setup>
-import { Link, router, useForm } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
@@ -314,7 +314,7 @@ function updateInvoiceNo(so, val) {
 
 function deleteServiceOrder(id) {
     if (confirm('Weet je zeker dat je deze werkbon wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
-        useForm({}).delete(`/serviceorders/${id}`, { preserveScroll: true })
+        router.delete(`/serviceorders/${id}`, { preserveScroll: true })
     }
 }
 

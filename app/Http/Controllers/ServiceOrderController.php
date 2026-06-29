@@ -35,6 +35,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -426,19 +427,21 @@ class ServiceOrderController extends Controller
      */
     public function destroy(ServiceOrderDeleteRequest $request, ServiceOrder $serviceorder)
     {
-        $serviceorder->load('materials');
+        DB::transaction(function () use ($serviceorder) {
+            $serviceorder->load('materials');
 
-        foreach ($serviceorder->materials as $material) {
-            $quantity = (float) ($material->pivot->quantity ?? 0);
-            if ($quantity > 0) {
-                $material->increment('stock', $quantity);
-                $material->logActivity(
-                    "Voorraad hersteld: +{$quantity} door verwijdering werkbon #{$serviceorder->id}"
-                );
+            foreach ($serviceorder->materials as $material) {
+                $quantity = (float) ($material->pivot->quantity ?? 0);
+                if ($quantity > 0) {
+                    $material->increment('stock', $quantity);
+                    $material->logActivity(
+                        "Voorraad hersteld: +{$quantity} door verwijdering werkbon #{$serviceorder->id}"
+                    );
+                }
             }
-        }
 
-        $serviceorder->delete();
+            $serviceorder->delete();
+        });
 
         return redirect()->route('serviceorders.index')
             ->with('success', 'Werkbon succesvol verwijderd.');
