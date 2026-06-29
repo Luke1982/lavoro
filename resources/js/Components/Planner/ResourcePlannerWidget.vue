@@ -542,16 +542,16 @@ const weekStart = ref(loadStoredWeekStart())
 const plannerView = ref(loadStoredView())
 const selectedGroupIds = ref([])
 
-const current_iso_week_start = computed(() => dayjs().startOf('isoWeek'))
+const max_forward_date = computed(() => dayjs().add(7, 'day'))
 
 const showPrevButton = computed(() => true)
 
 const showNextButton = computed(() => {
     if (hasPermission('events.see_beyond_current_week')) return true
     if (plannerView.value === 'day') {
-        return dayjs(weekStart.value).isBefore(current_iso_week_start.value.add(6, 'day'), 'day')
+        return dayjs(weekStart.value).isBefore(max_forward_date.value, 'day')
     }
-    return dayjs(weekStart.value).startOf('isoWeek').isBefore(current_iso_week_start.value, 'day')
+    return dayjs(weekStart.value).startOf('isoWeek').isBefore(max_forward_date.value.startOf('isoWeek'), 'day')
 })
 
 const rootEl = ref(null)
@@ -934,11 +934,11 @@ watch(plannerView, () => {
 
 function shiftPeriod(direction) {
     if (!hasPermission('events.see_beyond_current_week') && direction === 1) {
-        const week_start = current_iso_week_start.value
+        const limit = max_forward_date.value
         if (plannerView.value === 'day') {
-            if (!dayjs(weekStart.value).isBefore(week_start.add(6, 'day'), 'day')) return
+            if (!dayjs(weekStart.value).isBefore(limit, 'day')) return
         } else {
-            if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(week_start, 'day')) return
+            if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(limit.startOf('isoWeek'), 'day')) return
         }
     }
     const days = plannerView.value === 'day' ? 1 : 7

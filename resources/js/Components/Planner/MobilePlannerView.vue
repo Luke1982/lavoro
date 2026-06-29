@@ -8,7 +8,7 @@
                     <ChevronLeftIcon class="size-5" />
                 </button>
                 <span class="font-semibold text-sm">{{ weekTitle }}</span>
-                <button v-if="hasPermission('events.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().startOf('isoWeek'), 'day')"
+                <button v-if="hasPermission('events.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')"
                     class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Volgende week"
                     @click="shiftWeek(1)">
                     <ChevronRightIcon class="size-5" />
@@ -348,7 +348,7 @@ const weekTitle = computed(() => {
 
 function shiftWeek(direction) {
     if (!hasPermission('events.see_beyond_current_week') && direction === 1) {
-        if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().startOf('isoWeek'), 'day')) return
+        if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')) return
     }
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
 }
