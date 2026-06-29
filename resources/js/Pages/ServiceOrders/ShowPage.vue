@@ -11,6 +11,12 @@
             <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
             <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
         </div>
+        <button
+            v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
+            @click="deleteServiceOrder"
+            class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded cursor-pointer">
+            Verwijderen
+        </button>
     </div>
     <div class="flex flex-col sm:flex-row items-start sm:items-center my-4 gap-2">
         <h1 class="text-2xl font-bold">
@@ -637,7 +643,7 @@ import { DocumentTextIcon, PencilSquareIcon, CalendarDaysIcon, ClipboardDocument
 import { Shield, Check } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
@@ -996,6 +1002,12 @@ const sendToSnelStart = () => {
         preserveScroll: true,
     });
 };
+
+const deleteServiceOrder = () => {
+    if (confirm('Weet je zeker dat je deze werkbon wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
+        router.delete(`/serviceorders/${props.serviceOrder.id}`)
+    }
+}
 
 const materialsSubtotal = computed(() => {
     return props.serviceOrder.materials.reduce((sum, m) => {
