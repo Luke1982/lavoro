@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ServiceOrderTypes;
+use App\Models\GeneralSetting;
 use App\Models\ServiceOrderStage;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -87,6 +88,16 @@ class ServiceOrderUpdateRequest extends FormRequest
                     'service_order_stage_id',
                     "Er zijn nog {$incomplete} taken niet afgerond. Rond alle taken af voordat je de werkbon sluit."
                 );
+            }
+
+            $min = (int) GeneralSetting::get('serviceorder_min_images', 0);
+            if ($min > 0) {
+                $count = $serviceorder->images()->count();
+                if ($count < $min) {
+                    $message = "Er zijn minimaal {$min} foto's vereist om de werkbon te sluiten."
+                        . " Er zijn er {$count} toegevoegd.";
+                    $validator->errors()->add('service_order_stage_id', $message);
+                }
             }
         });
     }
