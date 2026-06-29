@@ -10,6 +10,7 @@ use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Database\Factories\ServiceOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -63,6 +64,28 @@ class ServiceOrder extends Model
                 if ($first_stage) {
                     $service_order->service_order_stage_id = $first_stage->id;
                 }
+            }
+        });
+
+        static::deleting(function (ServiceOrder $service_order) {
+            $id = $service_order->id;
+            $morph_class = ServiceOrder::class;
+            $pivot_tables = [
+                'eventables'       => 'eventable',
+                'remarkables'      => 'remarkable',
+                'imageables'       => 'imageable',
+                'documentables'    => 'documentable',
+                'materiables'      => 'materiable',
+                'activityables'    => 'activityable',
+                'customfieldables' => 'customfieldable',
+                'userables'        => 'userable',
+            ];
+
+            foreach ($pivot_tables as $table => $morph) {
+                DB::table($table)
+                    ->where("{$morph}_type", $morph_class)
+                    ->where("{$morph}_id", $id)
+                    ->delete();
             }
         });
     }
