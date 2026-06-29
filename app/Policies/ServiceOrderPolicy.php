@@ -56,4 +56,10 @@ class ServiceOrderPolicy
     {
         return $user->hasPermission('materiable.delete.serviceorder');
     }
+
+    public function delete(User $user, ServiceOrder $serviceOrder): bool
+    {
+        return $user->hasPermission('serviceorder.delete')
+            && ! $serviceOrder->sent_to_administration;
+    }
 }

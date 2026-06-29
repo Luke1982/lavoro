@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
 use App\Http\Requests\ServiceOrderBulkUpdateRequest;
+use App\Http\Requests\ServiceOrderDeleteRequest;
 use App\Http\Requests\ServiceOrderDetachMaterialRequest;
 use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
@@ -423,11 +424,24 @@ class ServiceOrderController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ServiceOrder $serviceorder)
+    public function destroy(ServiceOrderDeleteRequest $request, ServiceOrder $serviceorder)
     {
+        $serviceorder->load('materials');
+
+        foreach ($serviceorder->materials as $material) {
+            $quantity = (float) ($material->pivot->quantity ?? 0);
+            if ($quantity > 0) {
+                $material->increment('stock', $quantity);
+                $material->logActivity(
+                    "Voorraad hersteld: +{$quantity} door verwijdering werkbon #{$serviceorder->id}"
+                );
+            }
+        }
+
         $serviceorder->delete();
 
-        return redirect()->back()->with('success', 'Werkbon succesvol verwijderd.');
+        return redirect()->route('serviceorders.index')
+            ->with('success', 'Werkbon succesvol verwijderd.');
     }
 
     /**
