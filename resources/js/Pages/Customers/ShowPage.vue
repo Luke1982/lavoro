@@ -10,21 +10,20 @@
             class="size-12 flex-none rounded-lg bg-white dark:bg-slate-800 ring-1 ring-gray-900/10 dark:ring-slate-600 p-2 text-gray-700 dark:text-slate-200" />
         <div class="flex flex-col justify-around flex-grow items-start gap-3">
             <div class="flex items-center gap-2">
-                <EditableTextField v-model="form.name" type="input" :decoration="false"
-                    :error="form.errors.name" :disabled="!canUpdate"
-                    @revert="form.clearErrors('name')">
+                <EditableTextField v-model="form.name" type="input" :decoration="false" :error="form.errors.name"
+                    :disabled="!canUpdate" @revert="form.clearErrors('name')">
                     <template #display>
                         <h1 class="text-2xl font-bold dark:text-slate-100">{{ form.name }}</h1>
                     </template>
                 </EditableTextField>
             </div>
             <div class="flex gap-0 sm:gap-12 flex-wrap">
-                <TitleValueIconComponent v-if="form.phone" class="w-1/2 sm:w-auto" :icon="PhoneIcon"
-                    title="Telefoon" :value="form.phone" />
+                <TitleValueIconComponent v-if="form.phone" class="w-1/2 sm:w-auto" :icon="PhoneIcon" title="Telefoon"
+                    :value="form.phone" />
                 <TitleValueIconComponent v-if="form.mobile" class="w-1/2 sm:w-auto" :icon="DevicePhoneMobileIcon"
                     title="Mobiel" :value="form.mobile" />
-                <TitleValueIconComponent v-if="form.email" class="w-1/2 sm:w-auto" :icon="EnvelopeIcon"
-                    title="E-mail" :value="form.email" />
+                <TitleValueIconComponent v-if="form.email" class="w-1/2 sm:w-auto" :icon="EnvelopeIcon" title="E-mail"
+                    :value="form.email" />
                 <div v-if="form.address" class="flex flex-col w-1/2 sm:w-auto">
                     <div class="relative pl-7">
                         <MapPinIcon class="size-5 text-slate-400 inline mr-1 absolute left-0 top-1" />
@@ -64,27 +63,22 @@
                                         :error="form.errors.name" :disabled="!canUpdate"
                                         @revert="form.clearErrors('name')" />
                                     <EditableTextField v-model="form.contactname" type="input" label="Contactpersoon"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.contactname" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('contactname')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.contactname"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('contactname')" />
                                     <EditableTextField v-model="form.phone" type="input" label="Telefoon"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.phone" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('phone')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.phone"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('phone')" />
                                     <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.mobile" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('mobile')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.mobile"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('mobile')" />
                                 </div>
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
                                     <EditableTextField v-model="form.email" type="input" label="E-mail"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.email" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('email')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.email"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('email')" />
                                     <EditableTextField v-model="form.website" type="input" label="Website"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.website" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('website')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.website"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('website')" />
                                 </div>
                             </div>
                         </BoxComponent>
@@ -96,47 +90,44 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                                 <div>
-                                    <h3 class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                    <h3
+                                        class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                         Bezoekadres</h3>
                                     <div class="flex flex-col gap-6">
-                                        <EditableTextField v-model="form.address" type="input" label="Straat + huisnummer"
-                                            placeholder="Nog niet ingesteld"
+                                        <EditableTextField v-model="form.address" type="input"
+                                            label="Straat + huisnummer" placeholder="Nog niet ingesteld"
                                             :error="form.errors.address" :disabled="!canUpdate"
                                             @revert="form.clearErrors('address')" />
                                         <EditableTextField v-model="form.postal_code" type="input" label="Postcode"
-                                            placeholder="Nog niet ingesteld"
-                                            :error="form.errors.postal_code" :disabled="!canUpdate"
-                                            @revert="form.clearErrors('postal_code')" />
+                                            placeholder="Nog niet ingesteld" :error="form.errors.postal_code"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('postal_code')" />
                                         <EditableTextField v-model="form.city" type="input" label="Stad"
-                                            placeholder="Nog niet ingesteld"
-                                            :error="form.errors.city" :disabled="!canUpdate"
-                                            @revert="form.clearErrors('city')" />
+                                            placeholder="Nog niet ingesteld" :error="form.errors.city"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('city')" />
                                         <EditableTextField v-model="form.country" type="input" label="Land"
-                                            placeholder="Nog niet ingesteld"
-                                            :error="form.errors.country" :disabled="!canUpdate"
-                                            @revert="form.clearErrors('country')" />
+                                            placeholder="Nog niet ingesteld" :error="form.errors.country"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('country')" />
                                     </div>
                                 </div>
                                 <div class="mt-6 md:mt-0 md:border-l md:border-gray-200/70 md:pl-8">
-                                    <h3 class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                    <h3
+                                        class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                         Postadres</h3>
                                     <div class="flex flex-col gap-6">
-                                        <EditableTextField v-model="form.postal_address" type="input" label="Straat + huisnummer"
-                                            placeholder="Zelfde als bezoekadres"
+                                        <EditableTextField v-model="form.postal_address" type="input"
+                                            label="Straat + huisnummer" placeholder="Zelfde als bezoekadres"
                                             :error="form.errors.postal_address" :disabled="!canUpdate"
                                             @revert="form.clearErrors('postal_address')" />
-                                        <EditableTextField v-model="form.postal_postal_code" type="input" label="Postcode"
-                                            placeholder="Zelfde als bezoekadres"
+                                        <EditableTextField v-model="form.postal_postal_code" type="input"
+                                            label="Postcode" placeholder="Zelfde als bezoekadres"
                                             :error="form.errors.postal_postal_code" :disabled="!canUpdate"
                                             @revert="form.clearErrors('postal_postal_code')" />
                                         <EditableTextField v-model="form.postal_city" type="input" label="Stad"
-                                            placeholder="Zelfde als bezoekadres"
-                                            :error="form.errors.postal_city" :disabled="!canUpdate"
-                                            @revert="form.clearErrors('postal_city')" />
+                                            placeholder="Zelfde als bezoekadres" :error="form.errors.postal_city"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('postal_city')" />
                                         <EditableTextField v-model="form.postal_country" type="input" label="Land"
-                                            placeholder="Zelfde als bezoekadres"
-                                            :error="form.errors.postal_country" :disabled="!canUpdate"
-                                            @revert="form.clearErrors('postal_country')" />
+                                            placeholder="Zelfde als bezoekadres" :error="form.errors.postal_country"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('postal_country')" />
                                     </div>
                                 </div>
                             </div>
@@ -150,25 +141,21 @@
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <div class="flex flex-col gap-6 md:pr-8">
                                     <EditableTextField v-model="form.invoice_email" type="input" label="Factuur e-mail"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.invoice_email" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('invoice_email')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.invoice_email"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('invoice_email')" />
                                     <EditableTextField v-model="form.quotes_email" type="input" label="Offerte e-mail"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.quotes_email" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('quotes_email')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.quotes_email"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('quotes_email')" />
                                     <EditableTextField v-model="form.iban" type="input" label="IBAN"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.iban" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('iban')" />
+                                        placeholder="Nog niet ingesteld" :error="form.errors.iban"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('iban')" />
                                 </div>
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
                                     <EditableTextField v-model="form.vat_number" type="input" label="BTW-nummer"
-                                        placeholder="Nog niet ingesteld"
-                                        :error="form.errors.vat_number" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('vat_number')" />
-                                    <EditableTextField v-model="form.chamber_of_commerce_number" type="input" label="KvK-nummer"
-                                        placeholder="Nog niet ingesteld"
+                                        placeholder="Nog niet ingesteld" :error="form.errors.vat_number"
+                                        :disabled="!canUpdate" @revert="form.clearErrors('vat_number')" />
+                                    <EditableTextField v-model="form.chamber_of_commerce_number" type="input"
+                                        label="KvK-nummer" placeholder="Nog niet ingesteld"
                                         :error="form.errors.chamber_of_commerce_number" :disabled="!canUpdate"
                                         @revert="form.clearErrors('chamber_of_commerce_number')" />
                                 </div>
@@ -183,8 +170,7 @@
                     <template #sidebar>
                         <div class="mt-4 md:mt-0 space-y-4">
                             <BoxComponent v-if="form.address" padding="p-0" extra-classes="overflow-hidden">
-                                <OpenStreetMapWidget
-                                    :key="`${form.address},${form.postal_code} ${form.city}`"
+                                <OpenStreetMapWidget :key="`${form.address},${form.postal_code} ${form.city}`"
                                     :address="`${form.address}, ${form.postal_code} ${form.city}`" />
                             </BoxComponent>
 
@@ -192,7 +178,8 @@
                                 <div
                                     class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
                                     <div class="flex items-center">
-                                        <UserGroupIcon class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <UserGroupIcon
+                                            class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
                                         <h2 class="font-semibold text-base dark:text-slate-200">Contacten</h2>
                                     </div>
                                     <PlusCircleIcon v-if="hasPermission('contact.create')"
@@ -230,8 +217,7 @@
                                 </div>
                                 <div class="flex items-end gap-2">
                                     <ComboBox :options="customerOptions" v-model="form.billing_customer_id"
-                                        label="Factuurklant"
-                                        placeholder="Kies naar welke klant de factuur moet"
+                                        label="Factuurklant" placeholder="Kies naar welke klant de factuur moet"
                                         :has-external-searching="customersUseAjax" :searching="customerSearching"
                                         @change="searchCustomers" @update:modelValue="updateBillingCustomer"
                                         class="grow" />
@@ -248,8 +234,7 @@
             <!-- Chapter 1: Machines -->
             <template #chapter-1>
                 <BoxComponent>
-                    <div
-                        class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700/60 mb-4">
+                    <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700/60 mb-4">
                         <PuzzlePieceIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
                         <h3 class="text-sm font-medium dark:text-slate-200">Machines</h3>
                         <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
@@ -417,8 +402,7 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">E-mail</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="newContactForm.email" type="text"
-                        :hasError="Boolean(newContactForm.errors.email)"
-                        :errorMessage="newContactForm.errors.email" />
+                        :hasError="Boolean(newContactForm.errors.email)" :errorMessage="newContactForm.errors.email" />
                 </div>
             </div>
         </div>
@@ -448,7 +432,7 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import {
     BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon,
     XCircleIcon, FolderIcon, UserIcon, UserGroupIcon, MapPinIcon, EnvelopeIcon,
-    PhoneIcon, DevicePhoneMobileIcon, GlobeAltIcon, BanknotesIcon, CreditCardIcon,
+    PhoneIcon, DevicePhoneMobileIcon, BanknotesIcon,
     ReceiptPercentIcon, BuildingLibraryIcon, ChevronRightIcon, ClockIcon,
 } from '@heroicons/vue/24/outline';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
@@ -516,26 +500,26 @@ const { options: customerOptions, searching: customerSearching, search: searchCu
     useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
 const form = useForm({
-    name:                       props.customer.name,
-    contactname:                props.customer.contactname,
-    email:                      props.customer.email,
-    phone:                      props.customer.phone,
-    mobile:                     props.customer.mobile,
-    website:                    props.customer.website,
-    address:                    props.customer.address,
-    postal_code:                props.customer.postal_code,
-    city:                       props.customer.city,
-    country:                    props.customer.country,
-    postal_address:             props.customer.postal_address,
-    postal_postal_code:         props.customer.postal_postal_code,
-    postal_city:                props.customer.postal_city,
-    postal_country:             props.customer.postal_country,
-    invoice_email:              props.customer.invoice_email,
-    quotes_email:               props.customer.quotes_email,
-    iban:                       props.customer.iban,
-    vat_number:                 props.customer.vat_number,
+    name: props.customer.name,
+    contactname: props.customer.contactname,
+    email: props.customer.email,
+    phone: props.customer.phone,
+    mobile: props.customer.mobile,
+    website: props.customer.website,
+    address: props.customer.address,
+    postal_code: props.customer.postal_code,
+    city: props.customer.city,
+    country: props.customer.country,
+    postal_address: props.customer.postal_address,
+    postal_postal_code: props.customer.postal_postal_code,
+    postal_city: props.customer.postal_city,
+    postal_country: props.customer.postal_country,
+    invoice_email: props.customer.invoice_email,
+    quotes_email: props.customer.quotes_email,
+    iban: props.customer.iban,
+    vat_number: props.customer.vat_number,
     chamber_of_commerce_number: props.customer.chamber_of_commerce_number,
-    billing_customer_id:        props.customer.billing_customer_id || null,
+    billing_customer_id: props.customer.billing_customer_id || null,
 });
 
 watch([
@@ -571,9 +555,9 @@ const projectFormRef = ref(null)
 const showContactDrawer = ref(false)
 
 const newContactForm = useForm({
-    first_name:  '',
-    last_name:   '',
-    email:       '',
+    first_name: '',
+    last_name: '',
+    email: '',
     customer_id: props.customer.id,
 })
 
