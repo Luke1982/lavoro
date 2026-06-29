@@ -68,6 +68,36 @@
                     </button>
                 </div>
             </form>
+
+            <div class="mt-6">
+                <form @submit.prevent="submitMinImages" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Minimum aantal foto's</label>
+                        <p class="text-xs text-gray-500 mb-2">
+                            Het minimum aantal publieke foto's dat toegevoegd moet zijn voordat een werkbon gesloten kan worden. Stel in op 0 voor geen minimum.
+                        </p>
+                        <input
+                            type="number"
+                            min="0"
+                            v-model.number="minImagesForm.min_images"
+                            class="rounded-md border-gray-300 shadow-sm text-sm focus:border-lavoro-blue focus:ring-lavoro-blue bg-white w-24"
+                        />
+                        <p v-if="minImagesForm.errors.min_images" class="mt-1 text-xs text-red-600">
+                            {{ minImagesForm.errors.min_images }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            :disabled="minImagesForm.processing"
+                            class="inline-flex items-center rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-lavoro-blue disabled:opacity-50"
+                        >
+                            Opslaan
+                        </button>
+                    </div>
+                </form>
+            </div>
         </section>
 
         <section class="mt-10">
@@ -94,6 +124,7 @@ const props = defineProps({
     locationTracking: { type: Object, required: true },
     serviceOrderClosingText: { type: String, default: '' },
     allowOverrideUnavailability: { type: Boolean, default: false },
+    serviceOrderMinImages: { type: Number, default: 0 },
 })
 
 const DAYS = [
@@ -128,6 +159,14 @@ const closingTextForm = useForm({
 const overrideForm = useForm({
     value: props.allowOverrideUnavailability,
 })
+
+const minImagesForm = useForm({
+    min_images: props.serviceOrderMinImages,
+})
+
+function submitMinImages() {
+    minImagesForm.put('/admin/settings/serviceorder-min-images')
+}
 
 function submit() {
     form.put('/admin/settings/location-tracking')
