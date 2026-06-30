@@ -7,16 +7,17 @@
                 nlDate(serviceOrder.created_at) }}
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
-        <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
-            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
-            <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
+        <div class="flex gap-4">
+            <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
+                <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
+                <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
+            </div>
+            <button v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
+                @click="deleteServiceOrder"
+                class="px-3 py-1.5 text-sm font-medium bg-white text-red-600 ring-red-200 ring-1 rounded-full cursor-pointer">
+                <TrashIcon class="size-5" />
+            </button>
         </div>
-        <button
-            v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
-            @click="deleteServiceOrder"
-            class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded cursor-pointer">
-            Verwijderen
-        </button>
     </div>
     <div class="flex flex-col sm:flex-row items-start sm:items-center my-4 gap-2">
         <h1 class="text-2xl font-bold">
@@ -307,7 +308,8 @@
                         <BoxComponent class="mt-6"
                             v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.internal_remarks.length > 0)">
                             <div class="flex items-center gap-x-2 mb-4">
-                                <span class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
+                                <span
+                                    class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
                             </div>
                             <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
@@ -321,11 +323,14 @@
                         </BoxComponent>
                         <BoxComponent class="mt-6">
                             <div class="flex items-center gap-x-2 mb-4">
-                                <span class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
-                                <span class="text-sm font-semibold text-gray-700 dark:text-slate-200">Interne foto's</span>
+                                <span
+                                    class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-slate-200">Interne
+                                    foto's</span>
                             </div>
-                            <ImageUploadComponent :existing="serviceOrder.internal_images" :imageable-id="serviceOrder.id"
-                                imageable-type="App\Models\ServiceOrder" :internal="true" />
+                            <ImageUploadComponent :existing="serviceOrder.internal_images"
+                                :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder"
+                                :internal="true" />
                         </BoxComponent>
                         <BoxComponent class="mt-6">
                             <div class="flex items-center mb-3">
@@ -446,8 +451,7 @@
                                 :freeform-materials="serviceOrder.freeform_materials" />
                         </BoxComponent>
                         <BoxComponent class="mt-4">
-                            <EditableTextField type="textarea"
-                                :disabled="!hasPermission('serviceorder.update')"
+                            <EditableTextField type="textarea" :disabled="!hasPermission('serviceorder.update')"
                                 label="Financieel commentaar" v-model="form.financial_comments"
                                 @update="val => { form.financial_comments = val; }"
                                 placeholder="Financieel commentaar" />
@@ -640,7 +644,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { DocumentTextIcon, PencilSquareIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
-import { Shield, Check } from '@lucide/vue';
+import { Shield, Check, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
