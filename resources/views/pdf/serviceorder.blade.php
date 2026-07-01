@@ -354,9 +354,10 @@
         <table class="table small compact">
             <thead>
                 <tr>
-                    <th style="width:30%">Taak</th>
+                    <th style="width:25%">Taak</th>
                     <th>Omschrijving</th>
-                    <th style="width:25%">Serienummers</th>
+                    <th style="width:18%">Serienummers</th>
+                    <th style="width:25%">Ondertekend door</th>
                 </tr>
             </thead>
             <tbody>
@@ -367,6 +368,16 @@
                         <td>
                             @if ($instance->assets->isNotEmpty())
                                 {{ $instance->assets->pluck('serial_number')->filter()->implode(', ') ?: '—' }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td>
+                            @if ($instance->signed_by)
+                                <div>{{ $instance->signed_by }}</div>
+                                <div class="muted" style="font-size:10px;">{{ $instance->signed_at?->format('d-m-Y H:i') }}</div>
+                                <img src="{{ $instance->signature_base64 }}" alt="Handtekening"
+                                    style="max-height:60px; max-width:180px; display:block; margin-top:4px;">
                             @else
                                 —
                             @endif

@@ -9,6 +9,8 @@ use App\Http\Requests\ServiceOrderTaskInstanceStoreRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
 
 class ServiceOrderTaskInstanceController extends Controller
 {
@@ -81,5 +83,59 @@ class ServiceOrderTaskInstanceController extends Controller
         $serviceordertaskinstance->delete();
 
         return redirect()->back()->with('success', 'Taak is verwijderd');
+    }
+
+    public function sign(ServiceOrderTaskInstanceSignRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
+    {
+        if (!$serviceordertaskinstance->is_complete) {
+            return redirect()->back()->withErrors([
+                'sign' => 'Alleen voltooide taken kunnen ondertekend worden.',
+            ]);
+        }
+
+        $data = $request->validated();
+
+        $serviceordertaskinstance->update([
+            'signed_by'        => $data['signed_by'],
+            'signature_base64' => $data['signature_base64'],
+            'signed_at'        => now(),
+        ]);
+
+        $serviceordertaskinstance->loadMissing('serviceOrder');
+
+        $title = $serviceordertaskinstance->title
+            ?? $serviceordertaskinstance->serviceOrderTask?->title
+            ?? 'Taak';
+
+        $message = 'Taak "' . $title . '" ondertekend door ' . $data['signed_by'];
+        $serviceordertaskinstance->serviceOrder->logActivity(
+            $message,
+            category: 'status',
+        );
+
+        return redirect()->back()->with('success', 'Taak ondertekend');
+    }
+
+    public function unsign(ServiceOrderTaskInstanceUnsignRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
+    {
+        $serviceordertaskinstance->update([
+            'signed_by'        => null,
+            'signature_base64' => null,
+            'signed_at'        => null,
+        ]);
+
+        $serviceordertaskinstance->loadMissing('serviceOrder');
+
+        $title = $serviceordertaskinstance->title
+            ?? $serviceordertaskinstance->serviceOrderTask?->title
+            ?? 'Taak';
+
+        $message = 'Handtekening van taak "' . $title . '" verwijderd';
+        $serviceordertaskinstance->serviceOrder->logActivity(
+            $message,
+            category: 'status',
+        );
+
+        return redirect()->back()->with('success', 'Handtekening verwijderd');
     }
 }

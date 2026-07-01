@@ -57,7 +57,7 @@ defineProps({
     open: { type: Boolean, required: true },
     title: { type: String, default: '' },
     maxWidthClass: { type: String, default: 'sm:max-w-lg' },
-    center: { type: Boolean, default: false },
+    center: { type: Boolean, default: true },
 })
 
 defineEmits(['update:open'])

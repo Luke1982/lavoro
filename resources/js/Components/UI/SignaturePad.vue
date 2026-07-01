@@ -33,11 +33,12 @@
             <button
                 type="button"
                 :disabled="!hasStrokes"
-                :class="['flex-1 py-3 flex items-center justify-center gap-2 text-sm', hasStrokes ? 'text-gray-600 dark:text-slate-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'text-gray-300 dark:text-slate-600 cursor-not-allowed']"
+                :class="['flex-1 py-3 flex items-center justify-center gap-2 text-sm transition-colors', isSaved ? 'text-green-600 dark:text-green-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50' : hasStrokes ? 'text-gray-600 dark:text-slate-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50' : 'text-gray-300 dark:text-slate-600 cursor-not-allowed']"
                 @click="handleSave"
             >
-                <Save class="w-4 h-4 shrink-0" />
-                Handtekening opslaan
+                <Check v-if="isSaved" class="w-4 h-4 shrink-0" />
+                <Save v-else class="w-4 h-4 shrink-0" />
+                {{ isSaved ? 'Opgeslagen' : 'Handtekening opslaan' }}
             </button>
             <button
                 type="button"
@@ -54,7 +55,7 @@
 <script setup>
 import { VueSignaturePad } from "@selemondev/vue3-signature-pad"
 import { ref } from "vue";
-import { Eraser, RotateCcw, PenLine, Save } from '@lucide/vue';
+import { Eraser, RotateCcw, PenLine, Save, Check } from '@lucide/vue';
 
 const props = defineProps({
     modelValue: { type: String, default: '' },
@@ -65,22 +66,35 @@ const emit = defineEmits(['update:modelValue']);
 
 const signature = ref();
 const hasStrokes = ref(false);
+const isSaved = ref(false);
 
 const onStrokeBegin = () => {
-    if (!props.readonly) hasStrokes.value = true;
+    if (!props.readonly) {
+        hasStrokes.value = true;
+        isSaved.value = false;
+    }
 };
 
 const handleSave = () => {
     emit('update:modelValue', signature.value.saveSignature('image/jpeg'));
+    isSaved.value = true;
 };
 
 const handleClear = () => {
     signature.value.clearCanvas();
     hasStrokes.value = false;
+    isSaved.value = false;
 };
 
 const handleUndo = () => {
     signature.value.undo();
     hasStrokes.value = !signature.value.isEmpty();
+    isSaved.value = false;
 };
+
+defineExpose({
+    isEmpty: () => !hasStrokes.value,
+    getDataUrl: () => signature.value.saveSignature('image/jpeg'),
+    save: handleSave,
+});
 </script>

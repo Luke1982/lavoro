@@ -41,6 +41,16 @@
                             class="flex-none hidden sm:inline-flex">
                             {{ instance.is_complete ? 'Voltooid' : 'In uitvoering' }}
                         </BadgeComponent>
+                        <button v-if="instance.signed_by" type="button"
+                            class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            @click="openViewModal(instance)" v-tooltip="'Ondertekend'">
+                            <BadgeCheckIcon class="w-4 h-4 text-green-500" />
+                        </button>
+                        <button v-if="canSign && instance.is_complete && !instance.signed_by" type="button"
+                            class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            @click="openSignModal(instance)" v-tooltip="'Laten ondertekenen'">
+                            <PenLineIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                        </button>
                         <button v-if="canEdit" type="button"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openEditDrawer(instance)" v-tooltip="'Bewerk taak'">
@@ -187,20 +197,106 @@
                 </div>
             </template>
         </DrawerComponent>
+
+        <!-- Sign modal -->
+        <ModalDialog :open="signModalOpen" @update:open="signModalOpen = $event" title="Taak ondertekenen"
+            max-width-class="sm:max-w-lg">
+            <div class="flex flex-col gap-4">
+                <TextInput v-model="signName" label="Naam klant" placeholder="Volledige naam" />
+                <div>
+                    <label
+                        class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Handtekening</label>
+                    <SignaturePad ref="signaturePadRef" :key="signModalKey" v-model="signatureData" />
+                </div>
+                <p v-if="signError" class="text-xs text-red-600">{{ signError }}</p>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="closeSignModal"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        Annuleren
+                    </button>
+                    <button type="button" :disabled="signForm.processing" @click="submitSign"
+                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                        Ondertekenen
+                    </button>
+                </div>
+            </template>
+        </ModalDialog>
+
+        <!-- View signature modal -->
+        <ModalDialog :open="viewModalOpen" @update:open="viewModalOpen = $event" title="Ondertekening"
+            max-width-class="sm:max-w-md">
+            <div v-if="viewingInstance" class="flex flex-col gap-3">
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">Naam</span>
+                    <span class="text-gray-900 dark:text-slate-100 font-medium">{{ viewingInstance.signed_by }}</span>
+                    <span class="text-gray-500 dark:text-slate-400">Datum</span>
+                    <span class="text-gray-900 dark:text-slate-100">{{ nlDate(viewingInstance.signed_at) }}</span>
+                    <span class="text-gray-500 dark:text-slate-400">Tijd</span>
+                    <span class="text-gray-900 dark:text-slate-100">{{ nlTime(viewingInstance.signed_at) }}</span>
+                </div>
+                <div class="mt-2 border border-gray-200 dark:border-slate-600 rounded-lg p-3">
+                    <img :src="viewingInstance.signature_base64" alt="Handtekening" class="max-h-32 w-auto">
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-between items-center">
+                    <button v-if="canSign" type="button" @click="openUnsignConfirm(viewingInstance)"
+                        class="inline-flex items-center p-2 rounded-full border border-gray-200 bg-white text-red-500 hover:text-red-700 hover:border-gray-300 transition-colors"
+                        v-tooltip="'Verwijder handtekening'">
+                        <TrashIcon class="w-4 h-4" />
+                    </button>
+                    <button type="button" @click="viewModalOpen = false"
+                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-lavoro-blue text-white hover:opacity-90 transition-opacity ml-auto">
+                        Sluiten
+                    </button>
+                </div>
+            </template>
+        </ModalDialog>
+
+        <!-- Unsign confirm modal -->
+        <ModalDialog :open="unsignConfirmOpen" @update:open="unsignConfirmOpen = $event" max-width-class="sm:max-w-sm">
+            <div class="sm:flex sm:items-start gap-4">
+                <div class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
+                    <AlertTriangleIcon class="size-6 text-red-600" />
+                </div>
+                <div class="mt-3 sm:mt-0 text-center sm:text-left">
+                    <p class="text-base font-semibold text-gray-900 dark:text-white">Handtekening verwijderen</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                        Weet je zeker dat je de handtekening van deze taak wilt verwijderen?
+                    </p>
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="unsignConfirmOpen = false"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        Annuleren
+                    </button>
+                    <button type="button" :disabled="unsignForm.processing" @click="confirmUnsign"
+                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-red-600 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                        Verwijderen
+                    </button>
+                </div>
+            </template>
+        </ModalDialog>
     </BoxComponent>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon } from '@lucide/vue'
-import { hasPermission } from '@/Utilities/Utilities'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon } from '@lucide/vue'
+import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
+import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import SignaturePad from '@/Components/UI/SignaturePad.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -214,6 +310,7 @@ const canCreate = computed(() => !props.isClosed && hasPermission('serviceordert
 const canToggle = computed(() => !props.isClosed && (hasPermission('serviceordertaskinstance.open_close') || hasPermission('serviceordertaskinstance.update')))
 const canEdit = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.update'))
 const canDelete = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.delete'))
+const canSign = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.open_close'))
 
 const internalInstances = ref(props.instances.map(i => ({ ...i })))
 
@@ -432,6 +529,102 @@ function doToggle(instance, new_value, assets) {
             serialGroups.value = []
             serialError.value = ''
             serialSubmitting.value = false
+        },
+    })
+}
+
+// ── Sign ──────────────────────────────────────────────────────────────────────
+const signModalOpen = ref(false)
+const signingInstance = ref(null)
+const signName = ref('')
+const signatureData = ref('')
+const signError = ref('')
+const signModalKey = ref(0)
+const signaturePadRef = ref(null)
+const signForm = useForm({ signed_by: '', signature_base64: '' })
+
+function openSignModal(instance) {
+    signingInstance.value = instance
+    signName.value = ''
+    signatureData.value = ''
+    signError.value = ''
+    signModalKey.value++
+    signModalOpen.value = true
+}
+
+function closeSignModal() {
+    signModalOpen.value = false
+    signingInstance.value = null
+    signName.value = ''
+    signatureData.value = ''
+    signError.value = ''
+    signForm.reset()
+}
+
+function submitSign() {
+    signError.value = ''
+    if (!signName.value.trim()) {
+        signError.value = 'Vul een naam in.'
+        return
+    }
+    if (!signaturePadRef.value || signaturePadRef.value.isEmpty()) {
+        signError.value = 'Teken een handtekening.'
+        return
+    }
+    signaturePadRef.value.save()
+    const data_url = signaturePadRef.value.getDataUrl()
+    signForm.signed_by = signName.value.trim()
+    signForm.signature_base64 = data_url
+    signForm.post(`/serviceordertaskinstances/${signingInstance.value.id}/sign`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const inst = internalInstances.value.find(i => i.id === signingInstance.value.id)
+            if (inst) {
+                inst.signed_by = signForm.signed_by
+                inst.signature_base64 = signForm.signature_base64
+                inst.signed_at = new Date().toISOString()
+            }
+            closeSignModal()
+        },
+        onError: () => {
+            signError.value = 'Er is een fout opgetreden. Probeer het opnieuw.'
+        },
+    })
+}
+
+// ── View signature ────────────────────────────────────────────────────────────
+const viewModalOpen = ref(false)
+const viewingInstance = ref(null)
+
+function openViewModal(instance) {
+    viewingInstance.value = instance
+    viewModalOpen.value = true
+}
+
+// ── Unsign ────────────────────────────────────────────────────────────────────
+const unsignConfirmOpen = ref(false)
+const unsigningInstance = ref(null)
+const unsignForm = useForm({})
+
+function openUnsignConfirm(instance) {
+    viewModalOpen.value = false
+    viewingInstance.value = null
+    unsigningInstance.value = instance
+    unsignConfirmOpen.value = true
+}
+
+function confirmUnsign() {
+    unsignForm.delete(`/serviceordertaskinstances/${unsigningInstance.value.id}/sign`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const inst = internalInstances.value.find(i => i.id === unsigningInstance.value.id)
+            if (inst) {
+                inst.signed_by = null
+                inst.signature_base64 = null
+                inst.signed_at = null
+            }
+            unsignConfirmOpen.value = false
+            unsigningInstance.value = null
         },
     })
 }

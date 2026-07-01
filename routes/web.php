@@ -168,6 +168,14 @@ Route::group(
             'serviceordertaskinstances/{serviceordertaskinstance}/toggle',
             [ServiceOrderTaskInstanceController::class, 'toggle']
         )->name('serviceordertaskinstances.toggle');
+        Route::post(
+            'serviceordertaskinstances/{serviceordertaskinstance}/sign',
+            [ServiceOrderTaskInstanceController::class, 'sign']
+        )->name('serviceordertaskinstances.sign');
+        Route::delete(
+            'serviceordertaskinstances/{serviceordertaskinstance}/sign',
+            [ServiceOrderTaskInstanceController::class, 'unsign']
+        )->name('serviceordertaskinstances.unsign');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

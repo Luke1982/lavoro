@@ -17,11 +17,15 @@ class ServiceOrderTaskInstance extends Model
         'title',
         'description',
         'is_complete',
+        'signed_by',
+        'signature_base64',
+        'signed_at',
     ];
 
     protected $casts = [
         'is_complete' => 'boolean',
         'quantity'    => 'integer',
+        'signed_at'   => 'datetime',
     ];
 
     public function serviceOrder()
