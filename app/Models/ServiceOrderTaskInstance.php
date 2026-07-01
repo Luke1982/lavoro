@@ -20,12 +20,15 @@ class ServiceOrderTaskInstance extends Model
         'signed_by',
         'signature_base64',
         'signed_at',
+        'is_cancelled',
+        'cancellation_reason',
     ];
 
     protected $casts = [
-        'is_complete' => 'boolean',
-        'quantity'    => 'integer',
-        'signed_at'   => 'datetime',
+        'is_complete'  => 'boolean',
+        'quantity'     => 'integer',
+        'signed_at'    => 'datetime',
+        'is_cancelled' => 'boolean',
     ];
 
     public function serviceOrder()

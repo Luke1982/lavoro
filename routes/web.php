@@ -176,6 +176,10 @@ Route::group(
             'serviceordertaskinstances/{serviceordertaskinstance}/sign',
             [ServiceOrderTaskInstanceController::class, 'unsign']
         )->name('serviceordertaskinstances.unsign');
+        Route::post(
+            'serviceordertaskinstances/{serviceordertaskinstance}/cancel',
+            [ServiceOrderTaskInstanceController::class, 'cancel']
+        )->name('serviceordertaskinstances.cancel');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

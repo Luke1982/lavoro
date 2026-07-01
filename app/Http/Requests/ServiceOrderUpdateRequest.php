@@ -82,11 +82,15 @@ class ServiceOrderUpdateRequest extends FormRequest
                 return;
             }
 
-            $incomplete = $serviceorder->taskInstances()->where('is_complete', false)->count();
+            $incomplete = $serviceorder->taskInstances()
+                ->where('is_complete', false)
+                ->where('is_cancelled', false)
+                ->count();
             if ($incomplete > 0) {
                 $validator->errors()->add(
                     'service_order_stage_id',
-                    "Er zijn nog {$incomplete} taken niet afgerond. Rond alle taken af voordat je de werkbon sluit."
+                    "Er zijn nog {$incomplete} taken niet afgerond of geannuleerd. " .
+                    'Rond alle taken af of annuleer ze voordat je de werkbon sluit.'
                 );
             }
 

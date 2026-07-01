@@ -11,6 +11,7 @@ use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceCancelRequest;
 
 class ServiceOrderTaskInstanceController extends Controller
 {
@@ -32,6 +33,12 @@ class ServiceOrderTaskInstanceController extends Controller
     {
         $data = $request->validated();
 
+        if ($data['is_complete'] && $serviceordertaskinstance->is_cancelled) {
+            return redirect()->back()->withErrors([
+                'task' => 'Geannuleerde taken kunnen niet worden voltooid.',
+            ]);
+        }
+
         if (!$data['is_complete'] && $serviceordertaskinstance->product_id) {
             if ($serviceordertaskinstance->assets()->exists()) {
                 return redirect()->back()->withErrors([
@@ -40,7 +47,15 @@ class ServiceOrderTaskInstanceController extends Controller
             }
         }
 
-        $serviceordertaskinstance->update(['is_complete' => $data['is_complete']]);
+        $update = ['is_complete' => $data['is_complete']];
+
+        if (!$data['is_complete']) {
+            $update['signed_by']        = null;
+            $update['signature_base64'] = null;
+            $update['signed_at']        = null;
+        }
+
+        $serviceordertaskinstance->update($update);
 
         if ($data['is_complete'] && !empty($data['assets'])) {
             $serviceordertaskinstance->loadMissing('serviceOrder');
@@ -137,5 +152,32 @@ class ServiceOrderTaskInstanceController extends Controller
         );
 
         return redirect()->back()->with('success', 'Handtekening verwijderd');
+    }
+
+    public function cancel(ServiceOrderTaskInstanceCancelRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
+    {
+        if ($serviceordertaskinstance->is_complete) {
+            return redirect()->back()->withErrors([
+                'task' => 'Voltooide taken kunnen niet worden geannuleerd.',
+            ]);
+        }
+
+        $data = $request->validated();
+
+        $serviceordertaskinstance->update([
+            'is_cancelled'        => true,
+            'cancellation_reason' => $data['cancellation_reason'],
+        ]);
+
+        $serviceordertaskinstance->loadMissing('serviceOrder');
+
+        $title   = $serviceordertaskinstance->title
+            ?? $serviceordertaskinstance->serviceOrderTask?->title
+            ?? 'Taak';
+        $message = 'Taak "' . $title . '" geannuleerd: ' . $data['cancellation_reason'];
+
+        $serviceordertaskinstance->serviceOrder->logActivity($message, category: 'status');
+
+        return redirect()->back()->with('success', 'Taak geannuleerd');
     }
 }

@@ -21,7 +21,7 @@
             <div v-for="instance in internalInstances" :key="instance.id"
                 class="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-slate-800/60 last:border-0">
                 <CheckboxComponent :key="`cb-${instance.id}-${checkboxResetKeys[instance.id] ?? 0}`"
-                    :model-value="instance.is_complete" :disabled="!canToggle"
+                    :model-value="instance.is_complete" :disabled="!canToggle || instance.is_cancelled"
                     @update:modelValue="toggleComplete(instance, $event)" />
                 <div class="flex flex-col sm:flex-row justify-between flex-grow gap-y-3">
                     <div class="flex-1 min-w-0">
@@ -36,11 +36,19 @@
                             {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
                         </p>
                     </div>
-                    <div class="flex justify-end gap-x-3 sm:gap-x-1 sm:justify-start items-center">
-                        <BadgeComponent :color="instance.is_complete ? 'green' : 'gray'" :has-dot="false"
-                            class="flex-none hidden sm:inline-flex">
-                            {{ instance.is_complete ? 'Voltooid' : 'In uitvoering' }}
-                        </BadgeComponent>
+                    <div class="flex justify-end gap-x-3 sm:gap-x-1 sm:justify-start items-start">
+                        <div class="flex flex-col items-end gap-2 flex-none">
+                            <BadgeComponent
+                                :color="instance.is_cancelled ? 'red' : instance.is_complete ? 'green' : 'gray'"
+                                :has-dot="false">
+                                {{ instance.is_cancelled ? 'Geannuleerd' : instance.is_complete ? 'Voltooid' : `In
+                                uitvoering` }}
+                            </BadgeComponent>
+                            <span v-if="instance.is_cancelled && instance.cancellation_reason"
+                                class="text-xs text-gray-400 dark:text-gray-300 max-w-40 leading-tigh mr-2">
+                                {{ instance.cancellation_reason }}
+                            </span>
+                        </div>
                         <button v-if="instance.signed_by" type="button"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openViewModal(instance)" v-tooltip="'Ondertekend'">
@@ -50,6 +58,11 @@
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openSignModal(instance)" v-tooltip="'Laten ondertekenen'">
                             <PenLineIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                        </button>
+                        <button v-if="canCancel && !instance.is_cancelled && !instance.is_complete" type="button"
+                            class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            @click="openCancelModal(instance)" v-tooltip="'Annuleer taak'">
+                            <BanIcon class="w-4 h-4 text-red-500" />
                         </button>
                         <button v-if="canEdit" type="button"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -85,7 +98,7 @@
                             <span class="block">{{ option.name }}</span>
                             <span v-if="option.attributes?.length"
                                 :class="['block text-xs mt-0.5', active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400']">
-                                {{ option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ') }}
+                                {{option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ')}}
                             </span>
                         </div>
                     </template>
@@ -133,7 +146,7 @@
                             <span class="block">{{ option.name }}</span>
                             <span v-if="option.attributes?.length"
                                 :class="['block text-xs mt-0.5', active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400']">
-                                {{ option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ') }}
+                                {{option.attributes.map(a => `${a.name}: ${a.value}`).join(' · ')}}
                             </span>
                         </div>
                     </template>
@@ -255,10 +268,70 @@
             </template>
         </ModalDialog>
 
+        <!-- Cancel modal -->
+        <ModalDialog :open="cancelModalOpen" @update:open="cancelModalOpen = $event" title="Taak annuleren"
+            max-width-class="sm:max-w-md">
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-gray-500 dark:text-slate-400">
+                    Geef een reden op voor het annuleren van deze taak.
+                </p>
+                <div>
+                    <label
+                        class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Reden</label>
+                    <textarea v-model="cancelReason" rows="3" placeholder="Reden voor annulering..."
+                        class="w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm sm:leading-6 resize-y" />
+                </div>
+                <p v-if="cancelError" class="text-xs text-red-600">{{ cancelError }}</p>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="closeCancelModal"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        Annuleren
+                    </button>
+                    <button type="button" :disabled="cancelForm.processing" @click="submitCancel"
+                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-red-600 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                        Taak annuleren
+                    </button>
+                </div>
+            </template>
+        </ModalDialog>
+
+        <!-- Uncomplete signed confirm modal -->
+        <ModalDialog :open="uncompleteSignedConfirmOpen" @update:open="uncompleteSignedConfirmOpen = $event"
+            max-width-class="sm:max-w-sm">
+            <div class="sm:flex sm:items-start gap-4">
+                <div
+                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 sm:mx-0 sm:size-10">
+                    <AlertTriangleIcon class="size-6 text-yellow-600" />
+                </div>
+                <div class="mt-3 sm:mt-0 text-center sm:text-left">
+                    <p class="text-base font-semibold text-gray-900 dark:text-white">Handtekening wordt verwijderd</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                        Deze taak is ondertekend. Als je de taak heropent, wordt de handtekening verwijderd. Weet je
+                        zeker dat je door wilt gaan?
+                    </p>
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="cancelUncomplete"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        Annuleren
+                    </button>
+                    <button type="button" @click="confirmUncomplete"
+                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-red-600 text-white hover:opacity-90 transition-opacity">
+                        Doorgaan
+                    </button>
+                </div>
+            </template>
+        </ModalDialog>
+
         <!-- Unsign confirm modal -->
         <ModalDialog :open="unsignConfirmOpen" @update:open="unsignConfirmOpen = $event" max-width-class="sm:max-w-sm">
             <div class="sm:flex sm:items-start gap-4">
-                <div class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
+                <div
+                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
                     <AlertTriangleIcon class="size-6 text-red-600" />
                 </div>
                 <div class="mt-3 sm:mt-0 text-center sm:text-left">
@@ -287,7 +360,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon } from '@lucide/vue'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon } from '@lucide/vue'
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -311,6 +384,7 @@ const canToggle = computed(() => !props.isClosed && (hasPermission('serviceorder
 const canEdit = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.update'))
 const canDelete = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.delete'))
 const canSign = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.open_close'))
+const canCancel = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.cancel'))
 
 const internalInstances = ref(props.instances.map(i => ({ ...i })))
 
@@ -426,6 +500,12 @@ const checkboxResetKeys = ref({})
 
 function toggleComplete(instance, new_value) {
     if (!canToggle.value) return
+
+    if (!new_value && instance.signed_by) {
+        uncompleteSignedInstance.value = instance
+        uncompleteSignedConfirmOpen.value = true
+        return
+    }
 
     if (new_value && instance.product_id && instance.product) {
         const groups = buildSerialGroups(instance)
@@ -625,6 +705,69 @@ function confirmUnsign() {
             }
             unsignConfirmOpen.value = false
             unsigningInstance.value = null
+        },
+    })
+}
+
+// ── Uncomplete with signature guard ───────────────────────────────────────────
+const uncompleteSignedConfirmOpen = ref(false)
+const uncompleteSignedInstance = ref(null)
+
+function cancelUncomplete() {
+    const id = uncompleteSignedInstance.value?.id
+    uncompleteSignedConfirmOpen.value = false
+    uncompleteSignedInstance.value = null
+    if (id) checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
+}
+
+function confirmUncomplete() {
+    const instance = uncompleteSignedInstance.value
+    uncompleteSignedConfirmOpen.value = false
+    uncompleteSignedInstance.value = null
+    doToggle(instance, false, [])
+}
+
+// ── Cancel ───────────────────────────────────────────────────────────────────
+const cancelModalOpen = ref(false)
+const cancellingInstance = ref(null)
+const cancelReason = ref('')
+const cancelError = ref('')
+const cancelForm = useForm({ cancellation_reason: '' })
+
+function openCancelModal(instance) {
+    cancellingInstance.value = instance
+    cancelReason.value = ''
+    cancelError.value = ''
+    cancelModalOpen.value = true
+}
+
+function closeCancelModal() {
+    cancelModalOpen.value = false
+    cancellingInstance.value = null
+    cancelReason.value = ''
+    cancelError.value = ''
+    cancelForm.reset()
+}
+
+function submitCancel() {
+    cancelError.value = ''
+    if (!cancelReason.value.trim()) {
+        cancelError.value = 'Vul een reden in.'
+        return
+    }
+    cancelForm.cancellation_reason = cancelReason.value.trim()
+    cancelForm.post(`/serviceordertaskinstances/${cancellingInstance.value.id}/cancel`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const inst = internalInstances.value.find(i => i.id === cancellingInstance.value.id)
+            if (inst) {
+                inst.is_cancelled = true
+                inst.cancellation_reason = cancelForm.cancellation_reason
+            }
+            closeCancelModal()
+        },
+        onError: () => {
+            cancelError.value = 'Er is een fout opgetreden. Probeer het opnieuw.'
         },
     })
 }
