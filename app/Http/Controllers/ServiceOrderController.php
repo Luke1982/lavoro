@@ -654,8 +654,10 @@ class ServiceOrderController extends Controller
 
                 return [
                     'name' => $user->name,
+                    'date' => $event->start,
                     'actual_start' => $execution?->actual_start,
                     'actual_end' => $execution?->actual_end,
+                    'breaktime' => $user->pivot->breaktime,
                 ];
             }))
             ->values();

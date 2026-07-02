@@ -189,21 +189,25 @@
         <table class="table small compact">
             <thead>
                 <tr>
-                    <th style="width:50%">Naam</th>
-                    <th style="width:25%">Starttijd</th>
-                    <th style="width:25%">Eindtijd</th>
+                    <th style="width:30%">Naam</th>
+                    <th style="width:18%">Datum</th>
+                    <th style="width:17%">Starttijd</th>
+                    <th style="width:17%">Eindtijd</th>
+                    <th style="width:18%">Pauze</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($executingUsers as $executor)
                     <tr>
                         <td>{{ $executor['name'] }}</td>
+                        <td>{{ optional($executor['date'])->format('d-m-Y') ?? '—' }}</td>
                         @if ($executor['actual_start'] || $executor['actual_end'])
                             <td>{{ optional($executor['actual_start'])->format('H:i') ?? '—' }}</td>
                             <td>{{ optional($executor['actual_end'])->format('H:i') ?? '—' }}</td>
                         @else
                             <td colspan="2" class="muted">Nog geen tijden ingevuld</td>
                         @endif
+                        <td>{{ $executor['breaktime'] }} min</td>
                     </tr>
                 @endforeach
             </tbody>
