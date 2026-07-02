@@ -29,6 +29,12 @@
                             class="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:p-6 dark:bg-gray-800 dark:outline dark:-outline-offset-1 dark:outline-white/10"
                             :class="maxWidthClass"
                         >
+                            <button type="button" @click="$emit('update:open', false)"
+                                class="absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200 sm:hidden"
+                                aria-label="Sluiten">
+                                <XMarkIcon class="size-6" />
+                            </button>
+
                             <div v-if="title">
                                 <DialogTitle as="h3" class="text-base font-semibold text-gray-900 dark:text-white">
                                     {{ title }}
@@ -52,6 +58,7 @@
 
 <script setup>
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
+import { XMarkIcon } from '@heroicons/vue/24/outline'
 
 defineProps({
     open: { type: Boolean, required: true },

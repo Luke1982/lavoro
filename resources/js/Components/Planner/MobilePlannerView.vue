@@ -149,6 +149,14 @@
                                                 </div>
                                             </div>
                                             <EventExecutionControls :event="ev" @changed="fetchEvents" />
+                                            <button v-if="hasPermission('events.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
+                                                class="p-1 text-gray-400 hover:text-lavoro-blue relative" title="Terugkoppeling">
+                                                <MessageCircleReply class="size-4" />
+                                                <span v-if="((ev.remarks_count || 0) + (ev.images_count || 0)) > 0"
+                                                    class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-lavoro-blue text-white text-[9px] leading-[14px] text-center font-semibold">
+                                                    {{ (ev.remarks_count || 0) + (ev.images_count || 0) }}
+                                                </span>
+                                            </button>
                                         </div>
 
                                         <!-- Current user's roles -->
@@ -270,6 +278,18 @@
                 <TechnicianMapCanvas v-if="mapModalOpen" :pings="allPingsArray" :init-delay="350" />
             </div>
         </ModalDialog>
+
+        <ModalDialog v-model:open="feedback.open.value" :title="feedbackTitle" max-width-class="sm:max-w-2xl">
+            <div v-if="feedback.activeEvent.value" class="space-y-6">
+                <RemarksComponent :comments="feedback.remarks.value" :remarkable-type="'App\\Models\\Event'"
+                    :remarkable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
+                <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
+                    :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    :can-manage="hasPermission('events.provide_feedback')"
+                    @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
+            </div>
+        </ModalDialog>
     </div>
 </template>
 
@@ -293,9 +313,12 @@ import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import RemarksComponent from '@/Components/RemarksComponent.vue'
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
-import { MapIcon, TriangleAlert, CircleCheck } from '@lucide/vue'
+import { useEventFeedback } from '@/Composables/useEventFeedback'
+import { MapIcon, TriangleAlert, CircleCheck, MessageCircleReply } from '@lucide/vue'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -567,8 +590,10 @@ function handleEventTap(ev) {
         eventable_id: ev.eventable_id,
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
+        location: ev.location || '',
         executing_user_ids: [...ev.executing_user_ids],
         executing_users: [...(ev.executing_users || [])],
+        no_service_order: ev.no_service_order || false,
     }
     editingExistingEvent.value = true
     modalOpen.value = true
@@ -594,6 +619,12 @@ function openCreate() {
     editingExistingEvent.value = false
     modalOpen.value = true
 }
+
+const feedback = useEventFeedback()
+const feedbackTitle = computed(() => feedback.activeEvent.value
+    ? ('Terugkoppeling — ' + (feedback.activeEvent.value.name || ('#' + feedback.activeEvent.value.id)))
+    : 'Terugkoppeling')
+watch(feedback.changed, () => fetchEvents())
 
 function closeModal() {
     modalOpen.value = false

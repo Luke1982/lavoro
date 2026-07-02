@@ -86,8 +86,9 @@ import { usePage, useForm } from '@inertiajs/vue3';
 import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 import { Trash2Icon } from '@lucide/vue';
+import axios from 'axios';
 
-const { comments, remarkableType, remarkableId, disabled, internal } = defineProps({
+const { comments, remarkableType, remarkableId, disabled, internal, apiMode } = defineProps({
     comments: Array,
     remarkableType: String,
     remarkableId: Number,
@@ -98,8 +99,14 @@ const { comments, remarkableType, remarkableId, disabled, internal } = definePro
     internal: {
         type: Boolean,
         default: false
+    },
+    apiMode: {
+        type: Boolean,
+        default: false
     }
 })
+
+const emit = defineEmits(['created', 'deleted'])
 
 const page = usePage();
 const form = useForm({
@@ -111,6 +118,20 @@ const form = useForm({
 })
 
 const addComment = async () => {
+    if (apiMode) {
+        await axios.get('sanctum/csrf-cookie')
+        const { data } = await axios.post('/api/remarks', {
+            content: form.content,
+            user_id: page.props.auth.user.id,
+            remarkable_type: remarkableType,
+            remarkable_id: remarkableId,
+            internal: internal,
+        })
+        emit('created', data)
+        form.reset('content')
+        return
+    }
+
     form.post('/remarks', {
         preserveScroll: true,
         onSuccess: () => {
@@ -120,6 +141,12 @@ const addComment = async () => {
 }
 
 const deleteComment = async (id) => {
+    if (apiMode) {
+        await axios.delete(`/api/remarks/${id}`)
+        emit('deleted', id)
+        return
+    }
+
     form.delete(`/remarks/${id}`, {
         preserveScroll: true
     })

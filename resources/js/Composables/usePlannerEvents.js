@@ -4,8 +4,8 @@ import { formatUtcDatetime } from "@/Utilities/Utilities";
 import dayjs from "@/Utilities/dayjs";
 
 function mapEvent(ev) {
-    const customer_id = ev.service_orders?.[0]?.customer_id ?? null;
-    const customer = ev.service_orders?.[0]?.customer ?? null;
+    const customer_id = ev.service_orders?.[0]?.customer_id ?? ev.customers?.[0]?.id ?? null;
+    const customer = ev.service_orders?.[0]?.customer ?? ev.customers?.[0] ?? null;
     return {
         id: ev.id,
         title: ev.event_type?.name || ev.name || "Afspraak",
@@ -36,6 +36,9 @@ function mapEvent(ev) {
         customer_name: customer?.name || null,
         project_name: ev.service_orders?.[0]?.project?.title || null,
         is_preliminary: ev.is_preliminary ?? false,
+        no_service_order: ev.no_service_order ?? false,
+        remarks_count: ev.remarks_count ?? 0,
+        images_count: ev.images_count ?? 0,
         is_closed: ev.service_orders?.[0]?.is_closed ?? false,
         is_incomplete: ev.service_orders?.[0]?.is_incomplete ?? false,
         is_invoiced: ev.service_orders?.[0]?.is_invoiced ?? false,

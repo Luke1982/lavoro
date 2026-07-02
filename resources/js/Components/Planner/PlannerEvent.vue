@@ -32,6 +32,10 @@
                     <MapPinIcon class="size-3 shrink-0" />
                     <span class="truncate">{{ event.location }}</span>
                 </div>
+                <div v-if="!isCompact && !event.eventable_id && event.description"
+                    class="text-[11px] text-gray-600 mt-0.5 line-clamp-2 whitespace-pre-line">
+                    {{ event.description }}
+                </div>
                 <button v-if="!isCompact && event.eventable_id"
                     class="mt-1 inline-flex items-center gap-1 text-[10px] text-gray-600 bg-white/80 border border-gray-200 rounded px-1.5 py-1.5 hover:border-gray-300 transition leading-none"
                     @click.stop="router.visit(`/serviceorders/${event.eventable_id}`)">
@@ -77,6 +81,14 @@
             </template>
         </VDropdown>
         <div class="absolute top-1 right-2 flex items-center gap-1 pointer-events-none">
+            <button v-if="hasPermission('events.provide_feedback') && !event.eventable_id" class="pointer-events-auto relative"
+                @click.stop="$emit('open-feedback', event)" v-tooltip="'Terugkoppeling'">
+                <MessageCircleReply class="size-3 text-gray-500 hover:text-lavoro-blue" />
+                <span v-if="feedbackCount > 0"
+                    class="absolute -top-1.5 -right-1.5 min-w-[13px] h-[13px] px-0.5 rounded-full bg-lavoro-blue text-white text-[8px] leading-[13px] text-center font-semibold">
+                    {{ feedbackCount }}
+                </span>
+            </button>
             <EventExecutionControls :event="event" class="pointer-events-auto"
                 @changed="$emit('changed')" />
             <span v-for="role in currentUserRoles" :key="role.id"
@@ -113,9 +125,9 @@
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
-import { ClockFading, TriangleAlert, CircleCheck, Banknote } from '@lucide/vue'
+import { ClockFading, TriangleAlert, CircleCheck, Banknote, MessageCircleReply } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
-import { nlTime } from '@/Utilities/Utilities'
+import { nlTime, hasPermission } from '@/Utilities/Utilities'
 
 const COMPLETED_PATTERN = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(107,114,128,0.07) 6px, rgba(107,114,128,0.07) 12px)'
 
@@ -133,9 +145,10 @@ const props = defineProps({
     userRoles: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed'])
+const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed', 'open-feedback'])
 
 const totalMin = computed(() => (props.dayEndHour - props.dayStartHour) * 60)
+const feedbackCount = computed(() => (props.event.remarks_count || 0) + (props.event.images_count || 0))
 const popoverTriggers = ['hover', 'focus']
 
 const currentUserRoles = computed(() => {

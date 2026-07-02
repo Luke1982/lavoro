@@ -42,6 +42,10 @@
                                 </div>
                                 <div class="text-right text-[11px] whitespace-nowrap text-gray-500 dark:text-slate-500">
                                     <time :datetime="ev.start">{{ ev.compactDate }}</time>
+                                    <button v-if="hasPermission('events.provide_feedback') && !ev.service_order_id" @click="feedback.openFeedback(ev)"
+                                        class="mt-1 text-gray-400 hover:text-lavoro-blue" title="Terugkoppeling">
+                                        <MessageCircleReply class="size-4 inline" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -67,13 +71,30 @@
                 </svg>
             </button>
         </div>
+
+        <ModalDialog v-model:open="feedback.open.value" :title="feedbackTitle" max-width-class="sm:max-w-2xl">
+            <div v-if="feedback.activeEvent.value" class="space-y-6">
+                <RemarksComponent :comments="feedback.remarks.value" :remarkable-type="'App\\Models\\Event'"
+                    :remarkable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
+                <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
+                    :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    :can-manage="hasPermission('events.provide_feedback')"
+                    @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
+            </div>
+        </ModalDialog>
     </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import { nlDate, nlTime } from '@/Utilities/Utilities'
+import { nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { Link } from '@inertiajs/vue3'
+import { MessageCircleReply } from '@lucide/vue'
+import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import RemarksComponent from '@/Components/RemarksComponent.vue'
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
+import { useEventFeedback } from '@/Composables/useEventFeedback'
 
 const props = defineProps({
     events: { type: Array, required: true }, // array of events with eventType and optional pivot
@@ -128,6 +149,11 @@ const internalEvents = computed(() => props.events.slice().sort((a, b) => new Da
 const expanded = ref(false)
 const showToggle = computed(() => internalEvents.value.length > props.limit)
 const eventsToShow = computed(() => expanded.value ? internalEvents.value : internalEvents.value.slice(0, props.limit))
+
+const feedback = useEventFeedback()
+const feedbackTitle = computed(() => feedback.activeEvent.value
+    ? ('Terugkoppeling — ' + (feedback.activeEvent.value.name || ('#' + feedback.activeEvent.value.id)))
+    : 'Terugkoppeling')
 
 // Map status to badge classes
 const statusBadgeClass = (status) => {

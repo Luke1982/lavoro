@@ -1,13 +1,13 @@
 <template>
-    <div class="w-full mx-auto" v-if="hasPermission('image.upload') || hasPermission('image.see')">
+    <div class="w-full mx-auto" v-if="mayUpload() || maySee()">
         <ul v-if="props.existing.length > 0" class="flex flex-wrap gap-3 mb-4">
             <li v-for="image in props.existing" :key="image.id"
                 class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden"
                 :class="image.pivot?.main ? 'ring-2 ring-yellow-400' : ''">
                 <img :src="`/storage/${image.path}`" :alt="image.path" class="object-cover w-full h-48"
-                    @click="hasPermission('image.edit') && openEditor(image)">
+                    @click="mayEdit() && openEditor(image)">
                 <div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent text-center text-white pb-4 pt-8"
-                    @click="hasPermission('image.update') && changeTitle(image.name, image.id)">
+                    @click="mayUpdate() && changeTitle(image.name, image.id)">
                     {{ image.name }}
                 </div>
                 <div class="flex absolute top-2 left-2 gap-x-2">
@@ -15,26 +15,26 @@
                         class="glightbox text-black font-bold bg-white rounded-full p-2">
                         <MagnifyingGlassIcon class="h-5 w-5" />
                     </a>
-                    <button v-if="hasPermission('image.update')" @click.stop="setMain(image.id, image.pivot?.main)"
+                    <button v-if="mayUpdate()" @click.stop="setMain(image.id, image.pivot?.main)"
                         class="font-bold bg-white rounded-full p-2"
                         :class="image.pivot?.main ? 'text-yellow-400' : 'text-gray-400'"
                         :title="image.pivot?.main ? 'Dit is de hoofdafbeelding' : 'Instellen als hoofdafbeelding'">
                         <StarIcon class="h-5 w-5" :class="image.pivot?.main ? 'fill-yellow-400' : ''" />
                     </button>
                 </div>
-                <button @click.stop="deleteImage(image.id)" v-if="hasPermission('image.delete')"
+                <button @click.stop="deleteImage(image.id)" v-if="mayDelete()"
                     class="absolute top-2 right-2 text-red-500 font-bold bg-white rounded-full p-2"
                     title="Verwijder deze afbeelding">
                     <TrashIcon class="h-5 w-5" />
                 </button>
             </li>
         </ul>
-        <div v-else-if="!hasPermission('image.upload') && hasPermission('image.see') && existing.length === 0"
+        <div v-else-if="!mayUpload() && maySee() && existing.length === 0"
             class="text-center text-gray-500 p-5 border-2 border-dashed rounded-lg">
             Er zijn nog geen afbeeldingen.
         </div>
 
-        <div v-if="hasPermission('image.upload')" @dragover.prevent="isDragging = true"
+        <div v-if="mayUpload()" @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg',
                 isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
@@ -101,6 +101,7 @@ import {
 } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import ImageEditor from 'tui-image-editor';
 import 'tui-image-editor/dist/tui-image-editor.min.css';
 import { TrashIcon, StarIcon, CameraIcon, PhotoIcon } from '@heroicons/vue/24/solid';
@@ -135,7 +136,21 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    apiMode: {
+        type: Boolean,
+        default: false
+    },
+    canManage: {
+        type: [Boolean, null],
+        default: null
+    },
 });
+
+const mayUpload = () => props.canManage !== null ? props.canManage : hasPermission('image.upload');
+const maySee = () => props.canManage !== null ? props.canManage : hasPermission('image.see');
+const mayEdit = () => props.canManage !== null ? props.canManage : hasPermission('image.edit');
+const mayUpdate = () => props.canManage !== null ? props.canManage : hasPermission('image.update');
+const mayDelete = () => props.canManage !== null ? props.canManage : hasPermission('image.delete');
 
 const currentImage = ref({ id: null, path: null });
 
@@ -176,10 +191,21 @@ const handleDrop = (event) => {
     isDragging.value = false;
 };
 
-const changeTitle = (name, id) => {
+const changeTitle = async (name, id) => {
     const newTitle = prompt('Geef deze afbeelding een nieuwe titel', name);
     if (newTitle !== null) {
         uploadImagesForm.newTitle = newTitle;
+
+        if (props.apiMode) {
+            await axios.get('sanctum/csrf-cookie');
+            const data = new FormData();
+            data.append('newTitle', newTitle);
+            data.append('imageable_id', props.imageableId);
+            data.append('imageable_type', props.imageableType);
+            const response = await axios.post(`/api/images/update/${id}`, data);
+            emit('imageUpdated', response.data);
+            return;
+        }
 
         uploadImagesForm.post(`/images/update/${id}`, {
             preserveScroll: true,
@@ -224,7 +250,7 @@ const addFiles = async (files) => {
 };
 
 
-const uploadPhotos = () => {
+const uploadPhotos = async () => {
     uploading.value = true;
     for (let i = 0; i < uploadImagesForm.images.length; i++) {
         const fileTitle = uploadImagesForm.titles[uploadImagesForm.images[i].name];
@@ -233,6 +259,24 @@ const uploadPhotos = () => {
             uploading.value = false;
             return;
         }
+    }
+
+    if (props.apiMode) {
+        await axios.get('sanctum/csrf-cookie');
+        const data = new FormData();
+        uploadImagesForm.images.forEach((file) => {
+            data.append('images[]', file);
+            data.append(`titles[${file.name}]`, uploadImagesForm.titles[file.name]);
+        });
+        data.append('imageable_id', props.imageableId);
+        data.append('imageable_type', props.imageableType);
+        data.append('internal', props.internal ? '1' : '0');
+        const response = await axios.post('/api/images', data);
+        emit('imagesUploaded', response.data);
+        uploadImagesForm.reset();
+        selectedFiles.value = [];
+        uploading.value = false;
+        return;
     }
 
     uploadImagesForm.post('/images',
@@ -248,20 +292,42 @@ const uploadPhotos = () => {
     );
 };
 
-const deleteImage = (id) => {
+const deleteImage = async (id) => {
+    if (props.apiMode) {
+        await axios.delete(`/api/images/${id}`, {
+            data: {
+                imageable_id: props.imageableId,
+                imageable_type: props.imageableType,
+            },
+        });
+        emit('imageDeleted', id);
+        return;
+    }
+
     uploadImagesForm.delete(`/images/${id}`, {
         preserveScroll: true,
     });
     emit('imageDeleted', id);
 }
 
-const setMain = (id, isCurrentlyMain) => {
+const setMain = async (id, isCurrentlyMain) => {
+    if (props.apiMode) {
+        await axios.post(`/api/images/${id}/set-main`, {
+            imageable_id: props.imageableId,
+            imageable_type: props.imageableType,
+            currently_main: isCurrentlyMain,
+        });
+        return;
+    }
+
     router.post(`/images/${id}/set-main`, {
         imageable_id: props.imageableId,
         imageable_type: props.imageableType,
         currently_main: isCurrentlyMain,
     }, { preserveScroll: true });
 }
+
+defineExpose({ deleteImage, uploadPhotos, setMain })
 
 // Clean up object URLs on component unmount
 onUnmounted(() => {
@@ -320,6 +386,21 @@ const saveEditedImage = () => {
     const file = new File([blob], filename, { type: "image/jpeg" });
 
     uploadImagesForm.imageToUpdate = file;  // Overwrite the existing image with the annotated image
+
+    if (props.apiMode) {
+        axios.get('sanctum/csrf-cookie').then(() => {
+            const data = new FormData();
+            data.append('imageToUpdate', file);
+            data.append('imageable_id', props.imageableId);
+            data.append('imageable_type', props.imageableType);
+            axios.post(`/api/images/update/${currentImage.value.id}`, data).then((response) => {
+                emit('imageUpdated', response.data);
+                currentImage.value = { id: null, path: null };
+            });
+        });
+        closeEditor();
+        return;
+    }
 
     uploadImagesForm.post(`/images/update/${currentImage.value.id}`, {
         preserveScroll: true,

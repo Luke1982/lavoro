@@ -346,7 +346,8 @@
                                     @contextmenu="onEventContextMenu($event, ev)"
                                     @pointerdown-on-event="onEventPointerDown($event, ev, user)"
                                     @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)"
-                                    @changed="fetchEvents()" />
+                                    @changed="fetchEvents()"
+                                    @open-feedback="feedback.openFeedback" />
 
                                 <!-- Live selection rectangle (click-drag-create) -->
                                 <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
@@ -397,6 +398,18 @@
             :users="unavailOverrideDialog.users"
             @confirm="onOverrideConfirm"
             @cancel="onOverrideCancel" />
+
+        <ModalDialog v-model:open="feedback.open.value" :title="feedbackTitle" max-width-class="sm:max-w-2xl">
+            <div v-if="feedback.activeEvent.value" class="space-y-6">
+                <RemarksComponent :comments="feedback.remarks.value" :remarkable-type="'App\\Models\\Event'"
+                    :remarkable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
+                <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
+                    :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
+                    :can-manage="hasPermission('events.provide_feedback')"
+                    @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
+            </div>
+        </ModalDialog>
     </div>
 </template>
 
@@ -415,9 +428,12 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import RemarksComponent from '@/Components/RemarksComponent.vue'
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
+import { useEventFeedback } from '@/Composables/useEventFeedback'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -1626,6 +1642,12 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
 
 const plannerMinutes = ref(props.defaultPlannerMinutes)
 
+const feedback = useEventFeedback()
+const feedbackTitle = computed(() => feedback.activeEvent.value
+    ? ('Terugkoppeling — ' + (feedback.activeEvent.value.name || ('#' + feedback.activeEvent.value.id)))
+    : 'Terugkoppeling')
+watch(feedback.changed, () => fetchEvents())
+
 /** Snapped, day-clamped start minute for an incoming drop of the given duration. */
 function dropStartMinutes(info, durationMin) {
     const snapped = snapMinutes(info.minutes)
@@ -1863,9 +1885,11 @@ function openEdit(ev) {
         eventable_id: ev.eventable_id,
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
+        location: ev.location || '',
         executing_user_ids: [...ev.executing_user_ids],
         executing_users: [...(ev.executing_users || [])],
         is_preliminary: ev.is_preliminary || false,
+        no_service_order: ev.no_service_order || false,
     }
     modalOpen.value = true
 }

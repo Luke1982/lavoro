@@ -142,12 +142,15 @@
                                     <span class="font-normal text-gray-400 dark:text-gray-500">(optioneel)</span>
                                 </span>
                             </div>
-                            <ComboBox v-if="!form.create_service_order" v-model="form.eventable_id"
+                            <ComboBox v-if="!form.create_service_order && !form.no_service_order" v-model="form.eventable_id"
                                 :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
                                 placeholder="Zoek werkbon..." :hasError="Boolean(form.errors.eventable_id)"
                                 :errorMessage="form.errors.eventable_id" />
-                            <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                            <p v-else-if="form.create_service_order" class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
                                 Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
+                            </p>
+                            <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                                Deze afspraak heeft geen werkbon nodig.
                             </p>
                             <label v-if="!editingExisting" class="flex items-center gap-2 mt-2 select-none"
                                 :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
@@ -155,6 +158,11 @@
                                     class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
                                     aan</span>
+                            </label>
+                            <label v-if="!editingExisting" class="flex items-center gap-2 mt-2 select-none cursor-pointer">
+                                <input type="checkbox" v-model="form.no_service_order"
+                                    class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Geen werkbon nodig</span>
                             </label>
                         </div>
                         <div>
@@ -371,6 +379,7 @@ const form = useForm({
     location: props.initial.location || '',
     executing_user_ids: props.initial.executing_user_ids || [],
     create_service_order: false,
+    no_service_order: props.initial.no_service_order || false,
     is_preliminary: props.initial.is_preliminary || false,
 })
 
@@ -477,6 +486,19 @@ watch(selectedCustomer, (val, oldVal) => {
     fetchServiceOrders()
 })
 
+watch(() => form.no_service_order, (val) => {
+    if (val) {
+        form.create_service_order = false
+        form.eventable_id = ''
+    }
+})
+
+watch(() => form.create_service_order, (val) => {
+    if (val) {
+        form.no_service_order = false
+    }
+})
+
 onMounted(() => {
     if (selectedCustomer.value) {
         fetchServiceOrders()
@@ -551,7 +573,7 @@ async function save() {
         form.setError('executing_user_ids', 'Voeg minimaal één uitvoerende gebruiker toe.')
         return
     }
-    if (!props.editingExisting && !form.create_service_order && !form.eventable_id) {
+    if (!props.editingExisting && !form.create_service_order && !form.no_service_order && !form.eventable_id) {
         form.setError('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.')
         return
     }
