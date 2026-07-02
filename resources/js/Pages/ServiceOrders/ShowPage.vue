@@ -14,7 +14,7 @@
             </div>
             <button v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                 @click="deleteServiceOrder"
-                class="px-3 py-1.5 text-sm font-medium bg-white text-red-600 ring-red-200 ring-1 rounded-full cursor-pointer">
+                class="px-3 py-1.5 text-sm font-medium bg-white text-red-600 ring-gray-200 ring-1 rounded-full cursor-pointer">
                 <TrashIcon class="size-5" />
             </button>
         </div>
@@ -895,7 +895,9 @@ watch(
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                if (signatureChanged) editingSignature.value = false;
+                if (signatureChanged) {
+                    editingSignature.value = false;
+                }
                 form.defaults();
             },
             onError: () => {
