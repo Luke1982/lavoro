@@ -502,17 +502,15 @@ const groupBars = computed(() => {
     const users = visibleUsers.value
     if (!users.length) return []
 
-    const groupMap = Object.fromEntries(props.groups.map(g => [g.id, g]))
     const bars = []
     let top = allDayLaneHeight.value
 
     for (const user of users) {
         const rowH = rowHeightFor(user.id)
-            ; (user.plan_group_ids ?? []).forEach((gid, i) => {
-                const group = groupMap[gid]
-                if (!group) return
-                bars.push({ top, height: rowH, color: group.color, x: i * (BAR_W + BAR_GAP) })
-            })
+        props.groups.forEach((group, i) => {
+            if (!(user.plan_group_ids ?? []).includes(group.id)) return
+            bars.push({ top, height: rowH, color: group.color, x: i * (BAR_W + BAR_GAP) })
+        })
         top += rowH
     }
 
@@ -769,8 +767,12 @@ const lockedGroupOverlays = computed(() => {
                 .filter(i => i !== -1)
             if (userIndices.length < 2) return null
 
-            const minIdx = Math.min(...userIndices)
-            const maxIdx = Math.max(...userIndices)
+            const sortedIndices = [...userIndices].sort((a, b) => a - b)
+            const isContiguous = sortedIndices.every((idx, i) => i === 0 || idx === sortedIndices[i - 1] + 1)
+            if (!isContiguous) return null // rows in between belong to other technicians — no honest box to draw
+
+            const minIdx = sortedIndices[0]
+            const maxIdx = sortedIndices[sortedIndices.length - 1]
 
             const topPad = paddingYFor(users[minIdx].id)
             const bottomPad = paddingYFor(users[maxIdx].id)
