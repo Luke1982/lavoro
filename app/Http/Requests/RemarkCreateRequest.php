@@ -39,7 +39,7 @@ class RemarkCreateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => 'required|string|max:255',
+            'content' => 'required|string|max:2000',
             'remarkable_type' => 'required|string',
             'remarkable_id' => 'required|integer',
             'user_id' => 'required|integer|exists:users,id',
