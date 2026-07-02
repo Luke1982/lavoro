@@ -503,7 +503,7 @@ const groupBars = computed(() => {
     if (!users.length) return []
 
     const bars = []
-    let top = allDayLaneHeight.value
+    let top = rowsTopOffset.value
 
     for (const user of users) {
         const rowH = rowHeightFor(user.id)
@@ -732,6 +732,10 @@ const allDayLaneHeight = computed(() => {
     return allDay.value.height
 })
 
+// Rows are offset by allDayLaneHeight only when the all-day band actually renders
+// (its DOM element is gated by `showProjects` too — see the `v-if` on it).
+const rowsTopOffset = computed(() => (showProjects.value ? allDayLaneHeight.value : 0))
+
 // Tracks to actually render: none when closed, the first few when partial, all when full.
 const visibleTracks = computed(() => {
     if (allDayState.value === 'closed') return []
@@ -748,7 +752,7 @@ const lockedGroupOverlays = computed(() => {
     const users = visibleUsers.value
     const days = weekDays.value
 
-    let rowTop = allDayLaneHeight.value
+    let rowTop = rowsTopOffset.value
     const rowTops = users.map(u => {
         const t = rowTop
         rowTop += rowHeightFor(u.id)
@@ -767,12 +771,8 @@ const lockedGroupOverlays = computed(() => {
                 .filter(i => i !== -1)
             if (userIndices.length < 2) return null
 
-            const sortedIndices = [...userIndices].sort((a, b) => a - b)
-            const isContiguous = sortedIndices.every((idx, i) => i === 0 || idx === sortedIndices[i - 1] + 1)
-            if (!isContiguous) return null // rows in between belong to other technicians — no honest box to draw
-
-            const minIdx = sortedIndices[0]
-            const maxIdx = sortedIndices[sortedIndices.length - 1]
+            const minIdx = Math.min(...userIndices)
+            const maxIdx = Math.max(...userIndices)
 
             const topPad = paddingYFor(users[minIdx].id)
             const bottomPad = paddingYFor(users[maxIdx].id)
