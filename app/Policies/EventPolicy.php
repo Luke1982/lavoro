@@ -7,6 +7,11 @@ use App\Models\User;
 
 class EventPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('event.read');
+    }
+
     public function create(User $user): bool
     {
         return $user->isAdmin() || $user->hasPermission('event.create');

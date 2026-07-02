@@ -6,6 +6,7 @@ use App\Enums\EventStatusses;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -42,6 +43,18 @@ class Event extends Model
     public static function statusses()
     {
         return EventStatusses::comboBoxArray();
+    }
+
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if (! $user || $user->hasPermission('event.see_all')) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
+                ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user->id)->where('userables.type', 'owner'));
+        });
     }
 
     public function eventType()

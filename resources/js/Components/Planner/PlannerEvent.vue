@@ -1,8 +1,10 @@
 <template>
-    <div data-planner-event class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900"
+    <div data-planner-event :data-event-id="event.id"
+        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900"
         :class="[
             isBeingDragged ? 'opacity-30' : '',
             isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60' : '',
+            isHighlighted ? 'ring-2 ring-offset-2 ring-lavoro-blue animate-pulse' : '',
         ]" :style="style" @pointerdown.stop="onPointerDown" @click.stop="$emit('click')"
         @contextmenu.prevent.stop="$emit('contextmenu', $event)">
         <VDropdown :triggers="popoverTriggers" :disabled="!isShort || isBeingDragged" :delay="{ show: 200, hide: 80 }"
@@ -142,6 +144,7 @@ const props = defineProps({
     eventPaddingY: { type: Number, default: 14 },
     isLocked: { type: Boolean, default: false },
     isBeingDragged: { type: Boolean, default: false },
+    isHighlighted: { type: Boolean, default: false },
     userRoles: { type: Array, default: () => [] },
 })
 

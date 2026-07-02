@@ -24,8 +24,9 @@
                 aria-hidden="true" />
 
             <Teleport to="body">
-                <div v-if="open && filteredOptions.length > 0" ref="floatingRef" :style="dropdownStyle">
-                    <ComboboxOptions
+                <div v-if="open && (filteredOptions.length > 0 || showEmptyState)" ref="floatingRef"
+                    :style="dropdownStyle">
+                    <ComboboxOptions v-if="filteredOptions.length > 0"
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
                         <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"
                             v-slot="{ active, selected }">
@@ -50,6 +51,10 @@
                             </li>
                         </ComboboxOption>
                     </ComboboxOptions>
+                    <div v-else
+                        class="rounded-md bg-white dark:bg-slate-900 py-3 px-3 text-sm text-gray-500 dark:text-slate-400 shadow-lg ring-1 ring-black/5 dark:ring-slate-500 sm:text-sm">
+                        Geen resultaten gevonden
+                    </div>
                 </div>
             </Teleport>
         </div>
@@ -199,6 +204,9 @@ watch(() => props.modelValue, (newVal) => {
 })
 
 const showSearchHint = computed(() => props.hasExternalSearching && props.options.length === 0)
+const showEmptyState = computed(() =>
+    props.hasExternalSearching && query.value !== '' && !internalSearching.value && filteredOptions.value.length === 0
+)
 
 const effectivePlaceholder = computed(() => {
     if (showSearchHint.value && props.placeholder.startsWith('Selecteer ')) {

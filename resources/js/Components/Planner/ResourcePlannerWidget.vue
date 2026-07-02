@@ -30,6 +30,40 @@
                     @click="setPlannerView('day')">Dag</button>
             </div>
 
+            <div class="flex-1 min-w-64">
+                <ComboBox v-model="eventSearchSelection" :options="eventSearchOptions" :searching="eventSearching"
+                    has-external-searching placeholder="Zoek een afspraak..." @change="searchEvents">
+                    <template #option="{ option, active }">
+                        <div class="flex items-start gap-2 py-0.5">
+                            <span class="mt-1 size-2.5 rounded-full shrink-0" :style="{ background: option.color }" />
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 text-sm font-medium">
+                                    <span class="truncate">{{ option.customer_name || 'Onbekende klant' }}</span>
+                                    <span class="text-[10px] font-semibold px-1 py-px rounded shrink-0"
+                                        :class="active ? 'bg-white/20' : ''"
+                                        :style="!active ? { background: option.color + '26', color: option.color } : {}">
+                                        {{ option.event_type_name }}
+                                    </span>
+                                </div>
+                                <div class="text-xs truncate" :class="active ? 'text-white/80' : 'text-gray-500 dark:text-slate-400'">
+                                    {{ nlDate(option.start) }} · {{ nlTime(option.start) }}
+                                </div>
+                                <div class="text-xs truncate" :class="active ? 'text-white/80' : 'text-gray-500 dark:text-slate-400'">
+                                    {{ option.location || 'Geen locatie' }}
+                                </div>
+                                <div v-if="option.description" class="text-xs truncate"
+                                    :class="active ? 'text-white/80' : 'text-gray-500 dark:text-slate-400'">
+                                    {{ option.description }}
+                                </div>
+                                <div class="text-xs truncate" :class="active ? 'text-white/80' : 'text-gray-500 dark:text-slate-400'">
+                                    <template v-if="option.project_name">{{ option.project_name }} · </template>{{ option.executing_users.map(u => u.name).join(', ') || 'Geen monteur' }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </ComboBox>
+            </div>
+
             <div class="ml-auto flex items-center gap-2">
                 <button v-if="hasPermission('event.export')"
                     class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
@@ -341,6 +375,7 @@
                                     :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
                                     :is-locked="ev.executing_user_ids.length > 1"
                                     :is-being-dragged="drag.eventId === ev.id"
+                                    :is-highlighted="highlightedEventId === ev.id"
                                     :user-roles="userRoles"
                                     @click="handleEventClick(ev)"
                                     @contextmenu="onEventContextMenu($event, ev)"
@@ -418,13 +453,14 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
-import { initials, formatLocalDateAsISO, formatUtcDatetime, nlTime, hasPermission } from '@/Utilities/Utilities'
+import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
 import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
@@ -937,6 +973,7 @@ onUnmounted(() => {
     stopPolling()
     window.removeEventListener('dragend', onPlannerDragEnd)
     stopDragAutoScroll()
+    clearTimeout(highlightTimer)
 })
 
 watch([dayStartHour, dayEndHour], () => updateNow())
@@ -991,6 +1028,72 @@ function scrollToDate(date) {
     if (dayIndex < 0 || dayIndex > 6) return
     grid.scrollTo({ left: dayIndex * dayWidthPx.value, behavior: 'smooth' })
 }
+
+const eventSearchOptions = ref([])
+const eventSearching = ref(false)
+const eventSearchSelection = ref(null)
+const highlightedEventId = ref(null)
+let highlightTimer = null
+let searchRequestId = 0
+
+async function searchEvents(q) {
+    const requestId = ++searchRequestId
+    if (!q || q.trim().length < 2) {
+        eventSearchOptions.value = []
+        return
+    }
+    eventSearching.value = true
+    try {
+        const { data } = await axios.get('/api/events/search', { params: { q } })
+        if (requestId !== searchRequestId) return
+        eventSearchOptions.value = data.map(opt => ({
+            ...opt,
+            name: opt.customer_name || opt.location || `Afspraak #${opt.id}`,
+            search: [
+                opt.customer_name, opt.location, opt.description, opt.project_name,
+                opt.service_order_id, ...opt.executing_users.map(u => u.name),
+            ].filter(Boolean).join(' '),
+        }))
+    } catch (e) {
+        console.error('Kon afspraken niet doorzoeken', e)
+        if (requestId === searchRequestId) eventSearchOptions.value = []
+    } finally {
+        if (requestId === searchRequestId) eventSearching.value = false
+    }
+}
+
+watch(eventSearchSelection, async (id) => {
+    if (!id) return
+    const opt = eventSearchOptions.value.find(o => o.id === id)
+    eventSearchSelection.value = null
+    eventSearchOptions.value = []
+    if (!opt) return
+
+    const date = new Date(opt.start)
+    weekStart.value = plannerView.value === 'day' ? dayjs(date).startOf('day').toDate() : startOfWeek(date)
+
+    const targetUserIds = opt.executing_users.map(u => u.id)
+    if (targetUserIds.length && !targetUserIds.some(uid => visibleUsers.value.some(u => u.id === uid))) {
+        selectedGroupIds.value = []
+    }
+    if (targetUserIds.length) {
+        const next = new Set(collapsedUsers.value)
+        targetUserIds.forEach(uid => next.delete(uid))
+        collapsedUsers.value = next
+    }
+
+    await fetchEvents()
+    await nextTick()
+    const el = gridScrollRef.value?.querySelector(`[data-event-id="${opt.id}"]`)
+    if (!el) {
+        page.props.flash.error = `Afspraak op ${nlDate(date)} gevonden, maar de monteur is niet zichtbaar in dit overzicht.`
+        return
+    }
+    highlightedEventId.value = opt.id
+    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    clearTimeout(highlightTimer)
+    highlightTimer = setTimeout(() => { highlightedEventId.value = null }, 2000)
+})
 
 function scrollToWorkdayStart() {
     const grid = gridScrollRef.value

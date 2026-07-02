@@ -6,6 +6,7 @@ use App\Http\Requests\EventCopyRequest;
 use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventFeedbackRequest;
 use App\Http\Requests\EventReadRequest;
+use App\Http\Requests\EventSearchRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
@@ -16,6 +17,7 @@ use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,10 +27,6 @@ class EventApiController extends Controller
 {
     public function index(EventReadRequest $request)
     {
-        $user = Auth::user();
-        $user_id = $user?->id;
-        $has_all = $user?->hasPermission('event.see_all');
-
         $base = Event::query();
 
         // Time range overlap conditions
@@ -44,17 +42,11 @@ class EventApiController extends Controller
             });
         }
 
-        if (! $has_all && $user_id) {
-            $base->where(function ($q) use ($user_id) {
-                $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user_id))
-                    ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user_id)->where('userables.type', 'owner'));
-            });
-        }
+        $base->visibleTo(Auth::user());
 
         $events = $base
             ->with([
-                'eventType',
-                'serviceOrders.customer',
+                ...$this->baseEventRelations(),
                 'serviceOrders.project:id,title,location',
                 'serviceOrders.taskInstances.serviceOrderTask',
                 'serviceOrders.taskInstances.product.brand',
@@ -62,13 +54,82 @@ class EventApiController extends Controller
                 'serviceOrders.taskInstances.product.productAttributeValueables.value',
                 'executingUsers',
                 'executions',
-                'customers',
             ])
             ->withCount(['remarks', 'images'])
             ->orderBy('start')
             ->get();
 
         return response()->json($this->withUserRoles($events));
+    }
+
+    public function search(EventSearchRequest $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $base = Event::query()->visibleTo(Auth::user());
+
+        if (! $request->user()?->can('seeBeyondCurrentWeek', Event::class)) {
+            $base->where('start', '<=', Carbon::now()->startOfDay()->addDays(7)->endOfDay());
+        }
+
+        $is_numeric_q = is_numeric($q);
+
+        $base->where(function ($query) use ($q, $is_numeric_q) {
+            $query->where('location', 'like', "%{$q}%")
+                ->orWhereHas('customers', fn ($sq) => $sq->where('name', 'like', "%{$q}%"))
+                ->orWhereHas('serviceOrders', function ($sq) use ($q, $is_numeric_q) {
+                    $sq->where(function ($ssq) use ($q, $is_numeric_q) {
+                        if ($is_numeric_q) {
+                            $ssq->orWhere('service_orders.id', $q);
+                        }
+                        $ssq->orWhere('external_purchaseorder_no', 'like', "%{$q}%")
+                            ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$q}%"))
+                            ->orWhereHas('project', function ($pq) use ($q, $is_numeric_q) {
+                                $pq->where('title', 'like', "%{$q}%");
+                                if ($is_numeric_q) {
+                                    $pq->orWhere('id', $q);
+                                }
+                            });
+                    });
+                });
+        });
+
+        $events = $base
+            ->with([
+                ...$this->baseEventRelations(),
+                'serviceOrders.project:id,title',
+                'executingUsers:id,name',
+            ])
+            ->orderByDesc('start')
+            ->limit(8)
+            ->get();
+
+        return response()->json($events->map(fn ($event) => $this->searchResultShape($event)));
+    }
+
+    private function baseEventRelations(): array
+    {
+        return ['eventType', 'serviceOrders.customer', 'customers'];
+    }
+
+    private function searchResultShape(Event $event): array
+    {
+        return [
+            'id' => $event->id,
+            'start' => $event->start,
+            'location' => $event->location,
+            'description' => $event->description,
+            'event_type_name' => $event->eventType?->name,
+            'color' => $event->eventType?->color ?? '#3b82f6',
+            'customer_name' => $event->serviceOrders->first()?->customer?->name ?? $event->customers->first()?->name,
+            'project_name' => $event->serviceOrders->first()?->project?->title,
+            'service_order_id' => $event->serviceOrders->first()?->id,
+            'executing_users' => $event->executingUsers->map(fn ($u) => ['id' => $u->id, 'name' => $u->name]),
+        ];
     }
 
     public function store(EventStoreRequest $request)
