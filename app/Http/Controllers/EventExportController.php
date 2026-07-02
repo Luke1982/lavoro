@@ -10,7 +10,7 @@ class EventExportController extends Controller
 {
     public function __invoke(EventExportRequest $request, PlannerExportService $service)
     {
-        $timezone = $request->validated('tz') ?: 'Europe/Amsterdam';
+        $timezone = $request->validated('tz') ?: config('app.display_timezone');
 
         $spreadsheet = $service->build(
             array_map('intval', $request->validated('user_ids')),

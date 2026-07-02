@@ -379,7 +379,7 @@
                         <td>
                             @if ($instance->signed_by)
                                 <div>{{ $instance->signed_by }}</div>
-                                <div class="muted" style="font-size:10px;">{{ $instance->signed_at?->format('d-m-Y H:i') }}</div>
+                                <div class="muted" style="font-size:10px;">{{ $instance->signed_at?->copy()->setTimezone(config('app.display_timezone'))->format('d-m-Y H:i') }}</div>
                                 <img src="{{ $instance->signature_base64 }}" alt="Handtekening"
                                     style="max-height:60px; max-width:180px; display:block; margin-top:4px;">
                             @else
@@ -405,7 +405,7 @@
             <tbody>
                 @foreach ($remarks as $remark)
                     <tr>
-                        <td>{{ $remark->created_at->format('d-m-Y H:i') }}</td>
+                        <td>{{ $remark->created_at->copy()->setTimezone(config('app.display_timezone'))->format('d-m-Y H:i') }}</td>
                         <td>{{ $remark->user->name ?? '—' }}</td>
                         <td>{{ $remark->content }}</td>
                     </tr>

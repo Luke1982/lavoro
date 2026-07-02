@@ -641,22 +641,23 @@ class ServiceOrderController extends Controller
         $company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($company);
         $description_text = trim((string) ($serviceorder->description ?? ''));
+        $display_timezone = config('app.display_timezone');
         $first_event = $serviceorder->events->sortBy('start')->first();
         $execution_location = $first_event?->location
             ?: $serviceorder->execution_location
             ?: $serviceorder->project?->location;
-        $planned_date = $first_event?->start ?? $serviceorder->created_at;
+        $planned_date = ($first_event?->start ?? $serviceorder->created_at)->copy()->setTimezone($display_timezone);
 
         $executing_users = $serviceorder->events
             ->sortBy('start')
-            ->flatMap(fn ($event) => $event->executingUsers->map(function ($user) use ($event) {
+            ->flatMap(fn ($event) => $event->executingUsers->map(function ($user) use ($event, $display_timezone) {
                 $execution = $event->executions->firstWhere('user_id', $user->id);
 
                 return [
                     'name' => $user->name,
-                    'date' => $event->start,
-                    'actual_start' => $execution?->actual_start,
-                    'actual_end' => $execution?->actual_end,
+                    'date' => $event->start->copy()->setTimezone($display_timezone),
+                    'actual_start' => $execution?->actual_start?->copy()->setTimezone($display_timezone),
+                    'actual_end' => $execution?->actual_end?->copy()->setTimezone($display_timezone),
                     'breaktime' => $user->pivot->breaktime,
                 ];
             }))
