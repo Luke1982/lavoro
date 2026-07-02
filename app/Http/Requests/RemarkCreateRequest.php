@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Class RemarkCreateRequest
  *
- * @package App\Http\Requests
  * @method object has() Has.
+ *
  * @property string $content The content of the remark.
  * @property string $remarkable_type The type of the remarkable entity.
  * @property int $remarkable_id The ID of the remarkable entity.
@@ -20,13 +22,19 @@ class RemarkCreateRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        if (ltrim((string) $this->remarkable_type, '\\') === 'App\\Models\\Event') {
+            $event = Event::find($this->remarkable_id);
+
+            return $event !== null && $this->user()->can('provideFeedback', $event);
+        }
+
         return true;
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

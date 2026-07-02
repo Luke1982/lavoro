@@ -2,19 +2,22 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
 use App\Models\Image;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Class ImageStoreRequest
  *
- * @method \Illuminate\Routing\Route|null route(string $key = null)   Magic to grab route params
- * @method mixed                  input(string $key = null, mixed $default = null)  Magic to grab any input
+ * @method \Illuminate\Routing\Route|null route(string $key = null) Magic to grab route params
+ * @method mixed input(string $key = null, mixed $default = null) Magic to grab any input
  *
- * @property UploadedFile[]        $images          Array of uploaded image files
- * @property int                   $imageable_id    ID of the model to attach images to
- * @property string                $imageable_type  FQN of the model (e.g. App\Models\Post)
- * @property string[]|null         $titles          Optional titles, keyed by original filename
+ * @property UploadedFile[] $images Array of uploaded image files
+ * @property int $imageable_id ID of the model to attach images to
+ * @property string $imageable_type FQN of the model (e.g. App\Models\Post)
+ * @property string[]|null $titles Optional titles, keyed by original filename
+ *
  * @method \App\Models\User|null user(string $guard = null)
  */
 class ImageStoreRequest extends FormRequest
@@ -24,22 +27,28 @@ class ImageStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        if (ltrim((string) $this->imageable_type, '\\') === 'App\\Models\\Event') {
+            $event = Event::find($this->imageable_id);
+
+            return $event !== null && $this->user()->can('provideFeedback', $event);
+        }
+
         return $this->user()->can('create', Image::class);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'images.*'       => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'imageable_id'   => 'required|integer',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'imageable_id' => 'required|integer',
             'imageable_type' => 'required|string',
-            'titles'         => 'array',
-            'internal'       => 'nullable|boolean',
+            'titles' => 'array',
+            'internal' => 'nullable|boolean',
         ];
     }
 }

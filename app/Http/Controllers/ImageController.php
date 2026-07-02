@@ -37,24 +37,24 @@ class ImageController extends Controller
         /**
          * @disregard
          */
-        if (!$request->hasFile('images')) {
+        if (! $request->hasFile('images')) {
             return redirect()->back()->withErrors(['error' => 'No images were uploaded.']);
         }
 
         $imageable_record = new ($request->imageable_type);
         $imageable_record = $imageable_record->find($request->imageable_id);
-        $array            = explode('\\', $request->imageable_type);
-        $modelname        = strtolower(array_pop($array));
-        $created_images   = [];
+        $array = explode('\\', $request->imageable_type);
+        $modelname = strtolower(array_pop($array));
+        $created_images = [];
         /**
          * @disregard
          */
         foreach ($request->file('images') as $image) {
-            $path      = 'uploaded/' . $modelname . '/' . $request->imageable_id . '/';
+            $path = 'uploaded/' . $modelname . '/' . $request->imageable_id . '/';
             $real_path = storage_path('app/' . $path);
 
             // Ensure the directory exists with proper permissions
-            if (!file_exists($real_path)) {
+            if (! file_exists($real_path)) {
                 mkdir($real_path, 0755, true);
             }
             $image->storePubliclyAs($path, $image->getClientOriginalName(), 'public');
@@ -74,6 +74,10 @@ class ImageController extends Controller
             $imageable_record->logActivity($label, category: 'image', metadata: [
                 'thumbnail_path' => $created_images[0]->path,
             ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json($created_images, 201);
         }
 
         return redirect()->back()->with([
@@ -118,7 +122,7 @@ class ImageController extends Controller
             array_pop($path_segments);
             $store_dir = (implode('/', $path_segments));
 
-            list($filename, $extension) = preg_split('/\./', $new_image_file->getClientOriginalName(), 2);
+            [$filename, $extension] = preg_split('/\./', $new_image_file->getClientOriginalName(), 2);
             $filename = preg_replace('/-TS\d{10}/', '', $filename);
             $new_filename = $filename . '-TS' . $time . '.' . $extension;
 
@@ -126,7 +130,7 @@ class ImageController extends Controller
 
             $image->update([
                 'updated_at' => now(),
-                'path' => $store_dir . '/' . $new_filename
+                'path' => $store_dir . '/' . $new_filename,
             ]);
         }
         /**
@@ -140,6 +144,10 @@ class ImageController extends Controller
                 'name' => $request->newTitle,
             ]);
         }
+        if ($request->wantsJson()) {
+            return response()->json($image);
+        }
+
         return redirect()->back()->with(
             [
                 'success' => 'Afbeelding bijgewerkt.',
@@ -167,20 +175,25 @@ class ImageController extends Controller
 
         $image->delete();
         Storage::delete($image->path);
+
+        if ($request->wantsJson()) {
+            return response()->json(['deleted' => true]);
+        }
+
         return redirect()->back()->with('success', 'Afbeelding verwijderd.');
     }
 
     public function setMain(ImageSetMainRequest $request, Image $image)
     {
         $imageable_type = (new ($request->imageable_type))->getMorphClass();
-        $imageable_id   = (int) $request->imageable_id;
+        $imageable_id = (int) $request->imageable_id;
 
         DB::table('imageables')
             ->where('imageable_type', $imageable_type)
             ->where('imageable_id', $imageable_id)
             ->update(['main' => false]);
 
-        if (!$request->boolean('currently_main')) {
+        if (! $request->boolean('currently_main')) {
             DB::table('imageables')
                 ->where('image_id', $image->id)
                 ->where('imageable_type', $imageable_type)
@@ -188,28 +201,32 @@ class ImageController extends Controller
                 ->update(['main' => true]);
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->back()->with('success', 'Hoofdafbeelding bijgewerkt.');
     }
 
     public function importFromUrl(ImageImportFromUrlRequest $request)
     {
-        $url            = $request->url;
+        $url = $request->url;
         $imageable_type = $request->imageable_type;
-        $imageable_id   = (int) $request->imageable_id;
-        $name           = $request->name ?? 'Geïmporteerde afbeelding';
+        $imageable_id = (int) $request->imageable_id;
+        $name = $request->name ?? 'Geïmporteerde afbeelding';
 
         $extension_map = [
             'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/gif'  => 'gif',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
             'image/webp' => 'webp',
         ];
 
         if (str_starts_with($url, 'data:image/')) {
-            if (!preg_match('/^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+\/=]+)$/', $url, $matches)) {
+            if (! preg_match('/^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+\/=]+)$/', $url, $matches)) {
                 return redirect()->back()->withErrors(['url' => 'Ongeldige base64 afbeelding.']);
             }
-            $mime      = $matches[1];
+            $mime = $matches[1];
             $extension = $extension_map[$mime] ?? 'jpg';
             $image_data = base64_decode($matches[2], strict: true);
             if ($image_data === false) {
@@ -220,27 +237,27 @@ class ImageController extends Controller
 
             $response = Http::timeout(15)->get($url);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return redirect()->back()->withErrors(['url' => 'De afbeelding kon niet worden gedownload.']);
             }
 
             $content_type = $response->header('Content-Type') ?? '';
-            $mime         = strtolower(explode(';', $content_type)[0]);
+            $mime = strtolower(explode(';', $content_type)[0]);
 
-            if (!array_key_exists($mime, $extension_map)) {
+            if (! array_key_exists($mime, $extension_map)) {
                 return redirect()->back()->withErrors(['url' => 'De URL verwijst niet naar een afbeelding.']);
             }
 
-            $extension  = $extension_map[$mime];
+            $extension = $extension_map[$mime];
             $image_data = $response->body();
         }
 
-        $array     = explode('\\', $imageable_type);
+        $array = explode('\\', $imageable_type);
         $modelname = strtolower(array_pop($array));
-        $path      = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
+        $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
         $real_path = storage_path('app/public/' . $path);
 
-        if (!file_exists($real_path)) {
+        if (! file_exists($real_path)) {
             mkdir($real_path, 0755, true);
         }
 
@@ -275,12 +292,12 @@ class ImageController extends Controller
     {
         $parsed = parse_url($url);
 
-        if (!isset($parsed['scheme']) || !in_array($parsed['scheme'], ['http', 'https'])) {
+        if (! isset($parsed['scheme']) || ! in_array($parsed['scheme'], ['http', 'https'])) {
             abort(422, 'Ongeldige URL.');
         }
 
         $host = $parsed['host'] ?? '';
-        $ip   = gethostbyname($host);
+        $ip = gethostbyname($host);
 
         $private_ranges = [
             '10.0.0.0/8',
@@ -301,12 +318,12 @@ class ImageController extends Controller
 
     private function ipInRange(string $ip, string $range): bool
     {
-        if (!str_contains($range, '/')) {
+        if (! str_contains($range, '/')) {
             return $ip === $range;
         }
 
         [$subnet, $bits] = explode('/', $range);
-        $ip_long     = ip2long($ip);
+        $ip_long = ip2long($ip);
         $subnet_long = ip2long($subnet);
 
         if ($ip_long === false || $subnet_long === false) {
@@ -314,6 +331,7 @@ class ImageController extends Controller
         }
 
         $mask = -1 << (32 - (int) $bits);
+
         return ($ip_long & $mask) === ($subnet_long & $mask);
     }
 }

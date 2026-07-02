@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EventCopyRequest;
 use App\Http\Requests\EventDestroyRequest;
+use App\Http\Requests\EventFeedbackRequest;
 use App\Http\Requests\EventReadRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
@@ -61,7 +62,9 @@ class EventApiController extends Controller
                 'serviceOrders.taskInstances.product.productAttributeValueables.value',
                 'executingUsers',
                 'executions',
+                'customers',
             ])
+            ->withCount(['remarks', 'images'])
             ->orderBy('start')
             ->get();
 
@@ -92,16 +95,24 @@ class EventApiController extends Controller
                     $eventable_id = $new_order->id;
                 }
 
+                $no_service_order = $request->boolean('no_service_order');
+                $customer_id = $data['customer_id'] ?? null;
+
                 unset($data['create_service_order'], $data['customer_id']);
-                $data['eventable_type'] = $eventable_type;
-                $data['eventable_id'] = $eventable_id;
+                $data['eventable_type'] = $no_service_order ? null : $eventable_type;
+                $data['eventable_id'] = $no_service_order ? null : $eventable_id;
 
                 $event = Event::create($data);
 
-                $model = $eventable_type::findOrFail($eventable_id);
-                $model->events()->attach($event->id);
-                if ($model instanceof ServiceOrder) {
-                    $model->advanceToPlannedStage();
+                $model = null;
+                if (! $no_service_order) {
+                    $model = $eventable_type::findOrFail($eventable_id);
+                    $model->events()->attach($event->id);
+                    if ($model instanceof ServiceOrder) {
+                        $model->advanceToPlannedStage();
+                    }
+                } elseif ($customer_id) {
+                    $event->customers()->attach($customer_id);
                 }
 
                 $executing_user_ids = $request['executing_user_ids'] ?? [];
@@ -112,12 +123,13 @@ class EventApiController extends Controller
                     $user_roles = (array) ($request->input('executing_user_roles', []));
                     $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
                     $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
-                    $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
-
-                    if ($model instanceof ServiceOrder) {
-                        $notify_service_order = $model;
-                        $notify_user_ids = $ids;
+                    if ($model) {
+                        $model->syncExecutingUsers($ids);
+                        $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
+                        if ($model instanceof ServiceOrder) {
+                            $notify_service_order = $model;
+                            $notify_user_ids = $ids;
+                        }
                     }
                 }
 
@@ -132,7 +144,7 @@ class EventApiController extends Controller
 
         $event->load([
             'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
-            'executingUsers', 'executions',
+            'executingUsers', 'executions', 'customers',
         ]);
 
         return response()->json($this->withUserRoles($event), 201);
@@ -147,10 +159,18 @@ class EventApiController extends Controller
             $payload['executing_user_roles'],
             $payload['executing_user_diverging_times'],
         );
+
+        $customer_id = $payload['customer_id'] ?? null;
+        unset($payload['customer_id']);
+
         $event->update($payload);
 
+        if ($event->no_service_order) {
+            $event->customers()->sync($customer_id ? [$customer_id] : []);
+        }
+
         $model = null;
-        if ($request->has('eventable_type') && $request->has('eventable_id')) {
+        if ($request->filled('eventable_type') && $request->filled('eventable_id')) {
             $class = $request->eventable_type;
             $model = $class::findOrFail($request->eventable_id);
 
@@ -218,7 +238,7 @@ class EventApiController extends Controller
 
         $event->load([
             'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
-            'executingUsers', 'executions',
+            'executingUsers', 'executions', 'customers',
         ]);
 
         return response()->json($this->withUserRoles($event));
@@ -298,6 +318,16 @@ class EventApiController extends Controller
 
         return response()->json([
             'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),
+        ]);
+    }
+
+    public function feedback(EventFeedbackRequest $request, Event $event)
+    {
+        $event->load(['remarks.user', 'images']);
+
+        return response()->json([
+            'remarks' => $event->remarks,
+            'images' => $event->images,
         ]);
     }
 

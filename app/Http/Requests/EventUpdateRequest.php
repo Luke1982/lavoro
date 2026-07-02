@@ -33,7 +33,7 @@ class EventUpdateRequest extends FormRequest
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_preliminary' => ['sometimes', 'boolean'],
             'eventable_type' => ['sometimes', 'nullable', 'string', 'in:\\App\\Models\\ServiceOrder'],
-            'eventable_id' => ['sometimes', 'required', 'exists:service_orders,id'],
+            'eventable_id' => ['sometimes', 'nullable', 'exists:service_orders,id'],
             'executing_user_ids' => ['sometimes', 'array', 'min:1'],
             'executing_user_ids.*' => ['exists:users,id'],
             'executing_user_breaktimes' => ['sometimes', 'nullable', 'array'],
@@ -46,6 +46,7 @@ class EventUpdateRequest extends FormRequest
             'executing_user_diverging_times.*.diverging_start' => ['nullable', 'date_format:H:i'],
             'executing_user_diverging_times.*.diverging_end' => ['nullable', 'date_format:H:i'],
             'breaktime' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'customer_id' => ['sometimes', 'nullable', 'exists:customers,id'],
         ];
     }
 }

@@ -47,6 +47,7 @@ class EventStoreRequest extends FormRequest
             'is_preliminary' => 'nullable|boolean',
             'eventable_type' => 'nullable|string|in:\\App\\Models\\ServiceOrder',
             'eventable_id' => 'nullable|exists:service_orders,id',
+            'no_service_order' => 'nullable|boolean',
             'create_service_order' => 'nullable|boolean',
             'customer_id' => 'required_if:create_service_order,true|nullable|exists:customers,id',
             'executing_user_ids' => 'required|array|min:1',
@@ -67,7 +68,11 @@ class EventStoreRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (! $this->boolean('create_service_order') && ! $this->filled('eventable_id')) {
+            if (
+                ! $this->boolean('create_service_order')
+                && ! $this->boolean('no_service_order')
+                && ! $this->filled('eventable_id')
+            ) {
                 $validator->errors()->add('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.');
             }
         });

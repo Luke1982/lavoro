@@ -21,9 +21,18 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('events/{event}/copy', [EventApiController::class, 'copy']);
     Route::post('events/{event}/send-confirmation', [EventApiController::class, 'sendConfirmation']);
+    Route::get('events/{event}/feedback', [EventApiController::class, 'feedback']);
     Route::get('events/{event}/execution', [EventExecutionController::class, 'show']);
     Route::post('events/{event}/execution/transition', [EventExecutionController::class, 'transition']);
     Route::patch('events/{event}/execution', [EventExecutionController::class, 'update']);
+
+    Route::post('remarks', [\App\Http\Controllers\RemarkController::class, 'store']);
+    Route::delete('remarks/{remark}', [\App\Http\Controllers\RemarkController::class, 'destroy']);
+
+    Route::post('images', [\App\Http\Controllers\ImageController::class, 'store']);
+    Route::delete('images/{image}', [\App\Http\Controllers\ImageController::class, 'destroy']);
+    Route::post('images/update/{image}', [\App\Http\Controllers\ImageController::class, 'update']);
+    Route::post('images/{image}/set-main', [\App\Http\Controllers\ImageController::class, 'setMain']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
     Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);

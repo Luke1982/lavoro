@@ -70,4 +70,13 @@ class EventPolicy
     {
         return $user->isAdmin() || $user->hasPermission('events.see_beyond_current_week');
     }
+
+    public function provideFeedback(User $user, Event $event): bool
+    {
+        if ($event->serviceOrders()->exists()) {
+            return false;
+        }
+
+        return $user->isAdmin() || $user->hasPermission('events.provide_feedback');
+    }
 }
