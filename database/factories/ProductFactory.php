@@ -78,8 +78,8 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'product_type_id' => ProductType::all()->random()->id,
-            'brand_id' => Brand::pluck('id')->random(),
+            'product_type_id' => ProductType::inRandomOrder()->first()?->id ?? ProductType::factory(),
+            'brand_id' => Brand::inRandomOrder()->first()?->id ?? Brand::factory(),
             'model' => $this->faker->randomElement($this->fake_models),
             'description' => $this->faker->sentence(),
             'start_sell' => $this->faker->dateTimeBetween('-1 year', '+1 year'),

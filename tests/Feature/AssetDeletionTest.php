@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Asset;
+use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class AssetDeletionTest extends TestCase
@@ -17,7 +19,12 @@ class AssetDeletionTest extends TestCase
     public function authenticatedUserCanDeleteAnAsset()
     {
         /** @var User $user */
-        $user       = User::factory()->create();
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'asset-manager']);
+        $permission = Permission::firstOrCreate(['name' => 'asset.delete'], ['label' => 'asset.delete']);
+        $role->permissions()->attach($permission->id);
+        $user->roles()->attach($role->id);
+
         $product    = Product::factory()->create();
         $customer   = Customer::factory()->create();
 
