@@ -83,6 +83,7 @@ const handleUndo = () => {
 
 defineExpose({
     isEmpty: () => !hasStrokes.value,
+    isSaved: () => isSaved.value,
     getDataUrl: () => signature.value.saveSignature('image/jpeg'),
     save: handleSave,
 });

@@ -401,7 +401,8 @@
                                         ter akkoord van de
                                         uitgevoerde werkzaamheden.</p>
                                 </div>
-                                <SignaturePad v-model="form.signature_base64" :readonly="serviceOrder.is_closed" />
+                                <SignaturePad ref="signaturePadRef" v-model="form.signature_base64"
+                                    :readonly="serviceOrder.is_closed" />
                                 <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                     <div
                                         class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
@@ -812,11 +813,36 @@ const form = useForm({
 });
 
 function closeViaStage() {
+    const has_unsaved_signature = editingSignature.value && signaturePadRef.value
+        && !signaturePadRef.value.isEmpty() && !signaturePadRef.value.isSaved()
+    if (has_unsaved_signature) {
+        isClosing.value = true
+        form.signature_base64 = signaturePadRef.value.getDataUrl()
+    }
     if (!canClose.value) {
         alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.')
+        isClosing.value = false
         return
     }
     if (!confirm('Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.')) {
+        isClosing.value = false
+        return
+    }
+    if (has_unsaved_signature) {
+        form.service_order_stage_id = props.closedStageId
+        form.put(`/serviceorders/${props.serviceOrder.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                editingSignature.value = false
+                isClosing.value = false
+                form.defaults()
+            },
+            onError: (errors) => {
+                isClosing.value = false
+                const msg = errors.service_order_stage_id || Object.values(errors)[0]
+                if (msg) usePage().props.flash.error = msg
+            },
+        })
         return
     }
     onStageChange(props.closedStageId)
@@ -864,6 +890,8 @@ const addServiceJobFromSelectedAsset = () => {
 };
 
 const isReverting = ref(false);
+const isClosing = ref(false);
+const signaturePadRef = ref(null);
 
 const typeOptions = [
     { value: 'installation', title: 'Installatie' },
@@ -889,6 +917,9 @@ watch(
     ([, , newSig], [, , oldSig]) => {
         if (isReverting.value) {
             isReverting.value = false;
+            return;
+        }
+        if (isClosing.value) {
             return;
         }
         const signatureChanged = newSig !== oldSig;
