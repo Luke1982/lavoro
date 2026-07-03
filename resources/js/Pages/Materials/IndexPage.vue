@@ -184,6 +184,7 @@ function updateMaterial(mat, patch, close = null) {
         ...patch,
     }, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => close?.(),
     })
 }

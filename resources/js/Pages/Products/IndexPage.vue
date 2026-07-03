@@ -102,7 +102,7 @@
                             </Link>
                             <div class="flex flex-col">
                                 <EditableTextField :model-value="product.model" type="input" :decoration="false"
-                                    @update="(val) => router.patch(`/products/${product.id}`, { model: val }, { preserveScroll: true })">
+                                    @update="(val) => router.patch(`/products/${product.id}`, { model: val }, { preserveScroll: true, preserveState: true })">
                                     <template #display><span class="font-bold">{{ product.brand.name }} {{ product.model }}</span></template>
                                 </EditableTextField>
                                 <span class="text-slate-600">{{ product.part_no }}</span>
@@ -124,14 +124,14 @@
                         <div class="col-span-2 items-start sm:items-center pr-2 hidden sm:flex">
                             <EditableTextField type="combobox" :model-value="product.brand_id" :options="brands"
                                 :decoration="false"
-                                @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true })">
+                                @update="(val) => router.patch(`/products/${product.id}`, { brand_id: val }, { preserveScroll: true, preserveState: true })">
                                 <template #display>{{ product.brand?.name }}</template>
                             </EditableTextField>
                         </div>
                         <div class="col-span-2 items-start sm:items-center hidden sm:flex pr-2">
                             <EditableTextField type="combobox" :model-value="product.product_type_id"
                                 :options="productTypes" :decoration="false"
-                                @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true })">
+                                @update="(val) => router.patch(`/products/${product.id}`, { product_type_id: val }, { preserveScroll: true, preserveState: true })">
                                 <template #display>{{ product.product_type?.name }}</template>
                             </EditableTextField>
                         </div>
@@ -512,6 +512,7 @@ function saveBulkEdit() {
 
     router.post('/products/bulk-update', payload, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             bulkEditOpen.value = false
             selectedIds.value = []
@@ -702,6 +703,7 @@ const bundleEdits = reactive({})
 function updateProduct(product_id, data, close = null) {
     router.patch(`/products/${product_id}`, data, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => close?.()
     })
 }

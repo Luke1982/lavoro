@@ -18,7 +18,7 @@
                 <div class="col-span-11 flex items-center">
                     <EditableTextField :model-value="unit.name" :decoration="false"
                         :readonly="!hasPermission('materialusageunit.update')"
-                        @update="(val) => router.put(`/materialusageunits/${unit.id}`, { name: val }, { preserveScroll: true })">
+                        @update="(val) => router.put(`/materialusageunits/${unit.id}`, { name: val }, { preserveScroll: true, preserveState: true })">
                         <template #display>{{ unit.name }}</template>
                     </EditableTextField>
                 </div>
@@ -63,6 +63,6 @@ const unitFields = [
 
 function deleteUnit(id) {
     if (!confirm('Weet je zeker dat je deze gebruikseenheid wilt verwijderen?')) return
-    useForm({}).delete(`/materialusageunits/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/materialusageunits/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

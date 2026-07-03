@@ -21,13 +21,13 @@
                 <div class="col-span-9 flex items-center">
                     <EditableTextField :model-value="attr.name" :decoration="false"
                         :readonly="!hasPermission('productattribute.update')"
-                        @update="(val) => router.patch(`/productattributes/${attr.id}`, { name: val }, { preserveScroll: true })">
+                        @update="(val) => router.patch(`/productattributes/${attr.id}`, { name: val }, { preserveScroll: true, preserveState: true })">
                         <template #display>{{ attr.name }}</template>
                     </EditableTextField>
                 </div>
                 <div class="col-span-2 flex items-center">
                     <SwitchComponent v-model="attr.searchable"
-                        @update="(val) => router.patch(`/productattributes/${attr.id}`, { searchable: val }, { preserveScroll: true })"
+                        @update="(val) => router.patch(`/productattributes/${attr.id}`, { searchable: val }, { preserveScroll: true, preserveState: true })"
                         class="mr-2" />
                     <span class="text-sm text-gray-600 dark:text-slate-400">
                         <template v-if="attr.searchable">Zoekbaar</template>
@@ -88,6 +88,6 @@ const innerAttributes = computed(() => props.attributes?.data || [])
 
 function deleteAttribute(id) {
     if (!confirm('Weet je zeker dat je dit kenmerk wilt verwijderen?')) return
-    useForm({}).delete(`/productattributes/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/productattributes/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

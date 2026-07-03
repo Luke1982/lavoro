@@ -120,11 +120,11 @@ function updateProject(project, patch) {
         project_manager_id: project.project_manager_id,
         status: project.status,
         ...patch,
-    }, { preserveScroll: true })
+    }, { preserveScroll: true, preserveState: true })
 }
 
 function deleteProject(id) {
     if (!confirm('Weet je zeker dat je dit project wilt verwijderen?')) return
-    useForm({}).delete(`/projects/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/projects/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

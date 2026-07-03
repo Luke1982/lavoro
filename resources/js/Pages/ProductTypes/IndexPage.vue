@@ -125,7 +125,7 @@ function onUpdate(type, patch) {
         typical_certificate_days: type.typical_certificate_days,
         parent_id: type.parent_id ?? null,
         ...patch,
-    }, { preserveScroll: true })
+    }, { preserveScroll: true, preserveState: true })
 }
 
 function onToggleAdding(id) {
@@ -138,6 +138,7 @@ function onSubmitChild(parentId) {
     if (!name) return
     useForm({ name, parent_id: parentId }).post('/producttypes', {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             addingChildTo[parentId] = false
             childNames[parentId] = ''
@@ -151,7 +152,7 @@ function onDelete(type) {
         ? 'Weet je zeker dat je dit producttype en al zijn subtypes wilt verwijderen?'
         : 'Weet je zeker dat je dit producttype wilt verwijderen?'
     if (!confirm(msg)) return
-    router.delete(`/producttypes/${type.id}`, { preserveScroll: true })
+    router.delete(`/producttypes/${type.id}`, { preserveScroll: true, preserveState: true })
 }
 
 provide('pt:addingChildTo', addingChildTo)

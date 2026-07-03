@@ -125,11 +125,11 @@ watch(
 )
 
 function saveTask(id, payload) {
-    router.patch(`/serviceordertasks/${id}`, payload, { preserveScroll: true })
+    router.patch(`/serviceordertasks/${id}`, payload, { preserveScroll: true, preserveState: true })
 }
 
 function deleteTask(id) {
     if (!confirm('Weet je zeker dat je deze taak wilt verwijderen?')) return
-    useForm({}).delete(`/serviceordertasks/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/serviceordertasks/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

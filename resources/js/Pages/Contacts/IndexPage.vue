@@ -161,6 +161,6 @@ function closeContactDrawer() {
 
 function deleteContact(id) {
     if (!confirm('Weet je zeker dat je dit contact wilt verwijderen?')) return
-    useForm({}).delete(`/contacts/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/contacts/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

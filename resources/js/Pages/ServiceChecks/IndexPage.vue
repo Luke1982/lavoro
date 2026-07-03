@@ -259,7 +259,7 @@ const addnewServiceCheckValue = (serviceCheckId) => {
 
 const deleteServiceCheck = (id) => {
     if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return
-    useForm({}).delete(`/servicechecks/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/servicechecks/${id}`, { preserveScroll: true, preserveState: true })
 }
 
 const toggleRecord = (id) => {

@@ -211,11 +211,11 @@ function onReorder() {
 }
 
 function saveStage(id, payload) {
-    router.patch(`/serviceorderstages/${id}`, payload, { preserveScroll: true })
+    router.patch(`/serviceorderstages/${id}`, payload, { preserveScroll: true, preserveState: true })
 }
 
 function deleteStage(id) {
     if (!confirm('Weet je zeker dat je deze fase wilt verwijderen?')) return
-    useForm({}).delete(`/serviceorderstages/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/serviceorderstages/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

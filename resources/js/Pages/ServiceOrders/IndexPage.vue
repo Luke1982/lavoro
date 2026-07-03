@@ -291,6 +291,7 @@ function saveBulkEdit() {
         service_order_stage_id: bulkEditValues['_stage_']?.id ?? bulkEditValues['_stage_'],
     }, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             bulkEditOpen.value = false
             selectedIds.value = []
@@ -302,19 +303,19 @@ function updateStage(so, stage_id) {
     router.patch(`/serviceorders/${so.id}`, {
         customer_id: so.customer_id,
         service_order_stage_id: stage_id,
-    }, { preserveScroll: true })
+    }, { preserveScroll: true, preserveState: true })
 }
 
 function updateInvoiceNo(so, val) {
     router.patch(`/serviceorders/${so.id}`, {
         customer_id: so.customer_id,
         external_invoice_no: val,
-    }, { preserveScroll: true })
+    }, { preserveScroll: true, preserveState: true })
 }
 
 function deleteServiceOrder(id) {
     if (confirm('Weet je zeker dat je deze werkbon wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
-        router.delete(`/serviceorders/${id}`, { preserveScroll: true })
+        router.delete(`/serviceorders/${id}`, { preserveScroll: true, preserveState: true })
     }
 }
 

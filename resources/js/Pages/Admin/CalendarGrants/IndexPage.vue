@@ -46,6 +46,7 @@ watch(add_viewer_id, (new_value) => {
         },
         {
             preserveScroll: true,
+            preserveState: true,
             onFinish: () => {
                 add_viewer_id.value = null;
             },
@@ -55,7 +56,7 @@ watch(add_viewer_id, (new_value) => {
 
 function removeViewer(grant_id) {
     if (!confirm('Toegang intrekken?')) return;
-    router.delete(`/admin/calendar-grants/${grant_id}`, { preserveScroll: true });
+    router.delete(`/admin/calendar-grants/${grant_id}`, { preserveScroll: true, preserveState: true });
 }
 </script>
 

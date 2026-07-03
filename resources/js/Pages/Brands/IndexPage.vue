@@ -16,7 +16,7 @@
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
                 <div class="col-span-12 flex items-center">
                     <EditableTextField :model-value="brand.name" :decoration="false"
-                        @update="(val) => router.patch(`/brands/${brand.id}`, { name: val }, { preserveScroll: true })">
+                        @update="(val) => router.patch(`/brands/${brand.id}`, { name: val }, { preserveScroll: true, preserveState: true })">
                         <template #display>{{ brand.name }}</template>
                     </EditableTextField>
                 </div>

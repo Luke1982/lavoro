@@ -73,6 +73,6 @@ const innerRelations = computed(() => props.relations?.data || [])
 
 function deleteRelation(id) {
     if (!confirm('Weet je zeker dat je dit relatietype wilt verwijderen?')) return
-    useForm({}).delete(`/productrelations/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/productrelations/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>

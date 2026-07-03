@@ -324,6 +324,7 @@ function saveBulkEdit() {
         status: statusOption.name,
     }, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             bulkEditOpen.value = false
             selectedIds.value = []

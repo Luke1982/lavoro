@@ -26,14 +26,14 @@
                         <template #open="{ close }">
                             <div @click.stop>
                                 <LucideIconPicker v-model="iconEdits[cat.id]"
-                                    @update:modelValue="(val) => { router.patch(`/materialcategories/${cat.id}`, { name: cat.name, icon: val }, { preserveScroll: true }); close() }" />
+                                    @update:modelValue="(val) => { router.patch(`/materialcategories/${cat.id}`, { name: cat.name, icon: val }, { preserveScroll: true, preserveState: true }); close() }" />
                             </div>
                         </template>
                     </EditableTextField>
                 </div>
                 <div class="col-span-8 flex items-center">
                     <EditableTextField :model-value="cat.name" :decoration="false"
-                        @update="(val) => router.patch(`/materialcategories/${cat.id}`, { name: val, icon: cat.icon }, { preserveScroll: true })">
+                        @update="(val) => router.patch(`/materialcategories/${cat.id}`, { name: val, icon: cat.icon }, { preserveScroll: true, preserveState: true })">
                         <template #display>{{ cat.name }}</template>
                     </EditableTextField>
                 </div>
@@ -84,6 +84,6 @@ function iconComponent(name) {
 
 function deleteCategory(id) {
     if (!confirm('Weet je zeker dat je deze categorie wilt verwijderen?')) return
-    useForm({}).delete(`/materialcategories/${id}`, { preserveScroll: true })
+    useForm({}).delete(`/materialcategories/${id}`, { preserveScroll: true, preserveState: true })
 }
 </script>
