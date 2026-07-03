@@ -208,6 +208,7 @@
                                     <button v-for="(chip, idx) in soChips" :key="'so-' + chip.so.id" type="button"
                                         class="absolute rounded-md border px-2 py-1 text-left cursor-pointer hover:brightness-95 shadow-sm tl-chip"
                                         :style="soChipStyle(chip, soPacked.lanes[idx])"
+                                        v-tooltip="{ html: true, content: soTooltipHtml(chip) }"
                                         @click="toggleSelect('serviceorder', chip.so)">
                                         <!--
                                             sticky + inline-block content wrapper — verified that
@@ -220,7 +221,7 @@
                                         -->
                                         <span class="sticky inline-block tl-chip-content">
                                             <span class="tl-chip-clamp">
-                                                <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-800 dark:text-slate-100">
+                                                <div class="tl-chip-title flex items-center gap-1 text-[11px] font-semibold text-gray-800 dark:text-slate-100">
                                                     <span class="truncate min-w-0">
                                                         #{{ chip.so.id }}<template v-if="chip.so.description"> {{ chip.so.description }}</template>
                                                     </span>
@@ -230,7 +231,7 @@
                                                         <ArrowTopRightOnSquareIcon class="size-3" />
                                                     </span>
                                                 </div>
-                                                <div class="text-[10px] text-gray-500 dark:text-slate-400 truncate">
+                                                <div class="tl-chip-daterange text-[10px] text-gray-500 dark:text-slate-400 truncate">
                                                     {{ soDateRangeLabel(chip.span) }}
                                                 </div>
                                                 <!--
@@ -275,13 +276,14 @@
                                     <button v-for="(chip, idx) in evChips" :key="'ev-' + chip.ev.id" type="button"
                                         class="absolute rounded-md border px-2 py-1 text-left cursor-pointer hover:brightness-95 shadow-sm tl-chip"
                                         :style="evChipStyle(chip, evPacked.lanes[idx])"
+                                        v-tooltip="{ html: true, content: evTooltipHtml(chip) }"
                                         @click="toggleSelect('event', chip.ev)">
                                         <span class="sticky inline-block tl-chip-content">
                                             <span class="tl-chip-clamp">
-                                                <div class="text-[11px] font-semibold truncate text-gray-800 dark:text-slate-100">
+                                                <div class="tl-chip-title text-[11px] font-semibold truncate text-gray-800 dark:text-slate-100">
                                                     {{ eventLabel(chip.ev) }}
                                                 </div>
-                                                <div class="text-[10px] text-gray-500 dark:text-slate-400 truncate">
+                                                <div class="tl-chip-daterange text-[10px] text-gray-500 dark:text-slate-400 truncate">
                                                     {{ eventDateRangeLabel(chip.ev) }}
                                                 </div>
                                                 <div v-if="chip.ev.executing_users.length" class="tl-compact-only flex items-center gap-1 mt-0.5 overflow-hidden">
@@ -309,10 +311,11 @@
                                     <button v-for="(chip, idx) in ticketChips" :key="'t-' + chip.t.id" type="button"
                                         class="absolute rounded-md border px-2 py-1 text-left cursor-pointer hover:brightness-95 shadow-sm tl-chip"
                                         :style="ticketChipStyle(chip, ticketPacked.lanes[idx])"
+                                        v-tooltip="{ html: true, content: ticketTooltipHtml(chip) }"
                                         @click="toggleSelect('ticket', chip.t)">
                                         <span class="sticky inline-block tl-chip-content">
                                             <span class="tl-chip-clamp">
-                                                <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-800 dark:text-slate-100">
+                                                <div class="tl-chip-title flex items-center gap-1 text-[11px] font-semibold text-gray-800 dark:text-slate-100">
                                                     <span class="truncate min-w-0">{{ chip.t.subject || 'Storing' }}</span>
                                                     <span class="shrink-0 text-gray-400 hover:text-lavoro-blue"
                                                         v-tooltip="'Open storing'"
@@ -320,7 +323,7 @@
                                                         <ArrowTopRightOnSquareIcon class="size-3" />
                                                     </span>
                                                 </div>
-                                                <div class="text-[10px] text-gray-500 dark:text-slate-400 truncate">
+                                                <div class="tl-chip-daterange text-[10px] text-gray-500 dark:text-slate-400 truncate">
                                                     {{ ticketDateRangeLabel(chip.t) }}
                                                 </div>
                                                 <div class="tl-detail-only text-[9px] text-gray-500 dark:text-slate-400 mt-0.5 truncate">
@@ -737,6 +740,41 @@ function ticketDateRangeLabel(t) {
     return t.closed_on ? `${s} – ${shortDate(t.closed_on)}` : `${s} – heden`
 }
 
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+function soTooltipHtml(chip) {
+    const so = chip.so
+    const title = escapeHtml(`#${so.id}${so.description ? ' ' + so.description : ''}`)
+    const users = so.executing_users.map(u => escapeHtml(u.name)).join(', ')
+    return `<div class="text-xs space-y-0.5">
+        <div class="font-semibold">${title}</div>
+        <div>${escapeHtml(soDateRangeLabel(chip.span))}</div>
+        ${so.stage ? `<div>${escapeHtml(so.stage.name)}</div>` : ''}
+        ${users ? `<div>${users}</div>` : ''}
+    </div>`
+}
+
+function evTooltipHtml(chip) {
+    const ev = chip.ev
+    const users = ev.executing_users.map(u => escapeHtml(u.name)).join(', ')
+    return `<div class="text-xs space-y-0.5">
+        <div class="font-semibold">${escapeHtml(eventLabel(ev))}</div>
+        <div>${escapeHtml(eventDateRangeLabel(ev))}</div>
+        ${users ? `<div>${users}</div>` : ''}
+    </div>`
+}
+
+function ticketTooltipHtml(chip) {
+    const t = chip.t
+    return `<div class="text-xs space-y-0.5">
+        <div class="font-semibold">${escapeHtml(t.subject || 'Storing')}</div>
+        <div>${escapeHtml(ticketDateRangeLabel(t))}</div>
+        <div>${escapeHtml(t.status)} · Prioriteit: ${escapeHtml(t.priority)}</div>
+    </div>`
+}
+
 // Converts a chip's forced min-width (px) into an equivalent percentage buffer (using the
 // container's estimated pixel width) so temporally-close chips don't visually overlap despite
 // not overlapping in time. Packing happens in pct-space (not time-space) since the axis mapping
@@ -973,10 +1011,16 @@ const drawerTitle = computed(() => {
 }
 
 /* Clip vertically to the parent's height (set by the vertical zoom slider) — no fade, no JS
-   line-counting, just a hard clip at the box's own edge. */
+   line-counting, just a hard clip at the box's own edge. Column by default (title/date/avatars
+   stacked, same look as the old plain block flow); the container query below switches to a row
+   instead once the chip is too short to stack without clipping the avatar row. */
 .tl-chip-clamp {
     max-height: 100%;
+    width: 100%;
+    max-width: 100cqw;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .tl-detail-only {
@@ -989,6 +1033,26 @@ const drawerTitle = computed(() => {
     }
     .tl-detail-only {
         display: revert;
+    }
+}
+
+@container (max-height: 52px) {
+    .tl-chip-clamp {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    .tl-chip-title {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .tl-chip-daterange {
+        min-width: 0;
+        flex: 0 1 auto;
+    }
+    .tl-compact-only {
+        flex: 0 0 auto;
+        margin-top: 0;
     }
 }
 
