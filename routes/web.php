@@ -269,6 +269,8 @@ Route::group(
         Route::post('customfields/values', [CustomFieldController::class, 'saveValues'])
             ->name('customfields.saveValues');
         Route::resource('projects', ProjectController::class);
+        Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
+            ->name('projects.timeline');
         Route::resource('projectmilestones', ProjectMilestoneController::class)
             ->only(['store', 'update', 'destroy']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])

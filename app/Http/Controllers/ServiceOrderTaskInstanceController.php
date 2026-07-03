@@ -49,7 +49,12 @@ class ServiceOrderTaskInstanceController extends Controller
 
         $update = ['is_complete' => $data['is_complete']];
 
-        if (!$data['is_complete']) {
+        if ($data['is_complete']) {
+            $update['completed_at'] = now();
+            $update['completed_by'] = auth()->id();
+        } else {
+            $update['completed_at']     = null;
+            $update['completed_by']     = null;
             $update['signed_by']        = null;
             $update['signature_base64'] = null;
             $update['signed_at']        = null;

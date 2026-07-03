@@ -82,6 +82,15 @@
             </BoxComponent>
 
             <BoxComponent class="mt-4">
+                <div class="flex items-center border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
+                    <CalendarIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
+                    <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Tijdlijn</h3>
+                </div>
+                <ProjectTimeline :project-id="project.id" :project-start-date="project.start_date"
+                    :project-end-date="project.end_date" :project-milestones="project.milestones" />
+            </BoxComponent>
+
+            <BoxComponent class="mt-4">
                 <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
                     <div class="flex items-center">
                         <ClipboardDocumentListIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
@@ -175,16 +184,17 @@
                                     aria-hidden="true" />
                                 <div class="relative flex space-x-3">
                                     <div>
-                                        <span v-if="ms.actual_date || !canUpdateMilestone"
+                                        <span v-if="!canUpdateMilestone"
                                             :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm']">
                                             <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
                                             <ClockIcon v-else class="size-4 text-white" />
                                         </span>
                                         <button v-else type="button"
-                                            v-tooltip="'Markeer als afgerond met vandaag als werkelijke datum'"
-                                            @click="markMilestoneActualToday(ms)"
+                                            v-tooltip="ms.actual_date ? 'Markeer als niet afgerond' : 'Markeer als afgerond met vandaag als werkelijke datum'"
+                                            @click="toggleMilestoneComplete(ms)"
                                             :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm cursor-pointer hover:brightness-110']">
-                                            <ClockIcon class="size-4 text-white" />
+                                            <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
+                                            <ClockIcon v-else class="size-4 text-white" />
                                         </button>
                                     </div>
                                     <div class="min-w-0 flex-1 pt-1">
@@ -362,6 +372,7 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
+import ProjectTimeline from '@/Components/Projects/ProjectTimeline.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import { formatLocalDateAsISO, nlDate, mapsLinkFromCustomer, hasPermission } from '@/Utilities/Utilities'
@@ -497,9 +508,8 @@ function deleteMilestone(id) {
     milestoneForm.delete(`/projectmilestones/${id}`, { preserveScroll: true })
 }
 
-function markMilestoneActualToday(ms) {
-    if (ms.actual_date) return
-    patchMilestoneField(ms.id, 'actual_date', formatLocalDateAsISO(new Date()))
+function toggleMilestoneComplete(ms) {
+    patchMilestoneField(ms.id, 'actual_date', ms.actual_date ? null : formatLocalDateAsISO(new Date()))
 }
 
 const serviceOrderForm = useForm({

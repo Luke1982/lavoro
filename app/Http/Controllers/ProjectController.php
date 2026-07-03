@@ -6,6 +6,7 @@ use App\Enums\ProjectStatuses;
 use App\Http\Requests\ProjectDestroyRequest;
 use App\Http\Requests\ProjectReadRequest;
 use App\Http\Requests\ProjectStoreRequest;
+use App\Http\Requests\ProjectTimelineRequest;
 use App\Http\Requests\ProjectUpdateRequest;
 use App\Models\Customer;
 use App\Models\Project;
@@ -81,5 +82,77 @@ class ProjectController extends Controller
         return redirect()
             ->route('projects.index')
             ->with('success', 'Project verwijderd.');
+    }
+
+    public function timeline(ProjectTimelineRequest $request, Project $project)
+    {
+        $project->load([
+            'milestones.assignedUser',
+            'serviceOrders.serviceOrderStage',
+            'serviceOrders.executingUsers',
+            'serviceOrders.taskInstances.completedBy',
+            'serviceOrders.events.executingUsers',
+            'serviceOrders.events.eventType',
+            'serviceOrders.tickets',
+        ]);
+
+        return response()->json([
+            'milestones' => $project->milestones->map(fn ($ms) => [
+                'id' => $ms->id,
+                'title' => $ms->title,
+                'projected_date' => $ms->projected_date,
+                'actual_date' => $ms->actual_date,
+                'assigned_user' => $ms->assignedUser ? [
+                    'id' => $ms->assignedUser->id,
+                    'name' => $ms->assignedUser->name,
+                ] : null,
+            ]),
+            'service_orders' => $project->serviceOrders->map(fn ($so) => [
+                'id' => $so->id,
+                'description' => $so->description,
+                'is_closed' => $so->is_closed,
+                'stage' => $so->serviceOrderStage ? [
+                    'name' => $so->serviceOrderStage->name,
+                    'is_closed_state' => $so->serviceOrderStage->is_closed_state,
+                ] : null,
+                'actual_start_time' => $so->actual_start_time,
+                'actual_end_time' => $so->actual_end_time,
+                'created_at' => $so->created_at,
+                'executing_users' => $so->executingUsers->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                ]),
+                'events' => $so->events->map(fn ($e) => [
+                    'id' => $e->id,
+                    'name' => $e->name,
+                    'start' => $e->start,
+                    'end' => $e->end,
+                    'color' => $e->eventType?->color,
+                    'executing_users' => $e->executingUsers->map(fn ($u) => [
+                        'id' => $u->id,
+                        'name' => $u->name,
+                    ]),
+                ]),
+                'task_instances' => $so->taskInstances->map(fn ($ti) => [
+                    'id' => $ti->id,
+                    'title' => $ti->title ?? $ti->serviceOrderTask?->title,
+                    'is_complete' => $ti->is_complete,
+                    'is_cancelled' => $ti->is_cancelled,
+                    'completed_at' => $ti->completed_at,
+                    'completed_by' => $ti->completedBy ? [
+                        'id' => $ti->completedBy->id,
+                        'name' => $ti->completedBy->name,
+                    ] : null,
+                ]),
+                'tickets' => $so->tickets->map(fn ($t) => [
+                    'id' => $t->id,
+                    'subject' => $t->subject,
+                    'status' => $t->status,
+                    'priority' => $t->priority,
+                    'created_at' => $t->created_at,
+                    'closed_on' => $t->closed_on,
+                ]),
+            ]),
+        ]);
     }
 }
