@@ -2,16 +2,29 @@
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task.
 
-**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in.
+**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also records each tenant's license type and extra module subscriptions.
+
+> **Revised 2026-07-03** against the current codebase. Changes from the original 2026-06-09 version:
+>
+> - **Task 24 (API) simplified.** The app uses `$middleware->statefulApi()` and there is no `createToken()` call anywhere — every API client (SPA and the Android app) authenticates with stateful Sanctum session cookies. The tenant therefore comes from the session on API requests too; the `X-Tenant-ID` header is kept only as a fallback for future bearer-token clients. The Inertia-prop + axios-default-header frontend steps are dropped.
+> - **Task 25 (Google webhook) fixed.** `RenewWatchChannelsJob` *and* `BackfillCalendarJob` already generate a random `watch_channel_token` that `GoogleWebhookController` validates with `hash_equals`. The original plan overwrote that token with a bare tenant id, silently removing the security check and missing the second creation site. Now the token is `"<tenant_key>|<random>"` — the webhook parses the prefix to pick the tenant and the full-token validation stays intact.
+> - **Remember-me preserved.** Login currently calls `Auth::attempt(..., true)`. The original plan dropped remember-me; this version stores the tenant id in a long-lived encrypted cookie so the recaller keeps working (Tasks 12 & 15).
+> - **Task 16 repurposed.** `LoginPage.vue` no longer renders company branding (it uses the static `/img/logo-neg.svg`), so the old "null-guard the login page" task is obsolete. The `company` prop passed by `AuthController::create()` is dead code and is removed in Task 15. Task 16 now implements the landlord license type + module subscriptions.
+> - **Task 19 made concrete.** The user routes use `UserStoreRequest` and `UserUpdateRequest` (see `UserController.php:48,61,97`); `UserUpdateRequest` is also used for `me.update` where no route user exists — the ignore logic accounts for that.
+> - **Task 23 seeder updated** for the stage flags added since June (`is_invoiced_state`, 2026-06-17; `is_incomplete_state`, 2026-06-19).
+> - **Service worker excluded from caching `/files/`** (new step in Task 14). `public/service-worker.js` caches same-origin GETs cache-first; `/files/images/{id}` ids are per-tenant auto-increments, so the same URL means different files in different tenants — cached responses could leak across tenants on a shared browser.
+> - **Central migration filenames re-dated** to `2026_07_03_*` (a real tenant migration dated `2026_06_09` now exists), and migration counts refreshed (176 files today: 2 stay central, 174 move to `tenant/`).
+> - **New code checked and covered:** FCM push notifications (`device_tokens`, `NewServiceOrderAssigned` — queued, so the queue bootstrapper carries tenant context; Firebase credentials are global env, see Known impact), event executions, plan groups, freeform materials, user roles (all ordinary tenant tables), the APK download / assetlinks routes (read `storage_path('app/releases/...')` directly, which the filesystem bootstrapper does not touch — they stay global by design).
+> - **Task 29 added:** a repeatable runbook for migrating customers who run their own dedicated-subdomain install (e.g. `spee.lavorofsm.nl`) into the multi-tenant app at `app.lavorofsm.nl`.
 
 **How it works, in plain terms:**
 
-Today there is one database for everything. After this change there is one small *central* database plus one full database per client company (a "tenant"). When someone logs in, we look up their email in the central database to find which company they belong to, switch every database query to that company's database for the rest of the request, and remember the company in their session for later requests.
+Today there is one database for everything. After this change there is one small *central* database plus one full database per client company (a "tenant"). When someone logs in, we look up their email in the central database to find which company they belong to, switch every database query to that company's database for the rest of the request, and remember the company in their session (and a long-lived cookie, for remember-me) for later requests.
 
 **What lives where:**
 
 Central database (small, shared infrastructure):
-- `tenants` — one row per client company
+- `tenants` — one row per client company, including its `license_type` and subscribed `modules`
 - `user_tenant_lookups` — maps an email to a tenant, used only when logging in
 - `jobs`, `job_batches`, `failed_jobs` — the queue, so the worker can read jobs without first knowing the tenant
 - `cache`, `cache_locks` — shared store; entries are isolated per tenant by a key prefix
@@ -19,10 +32,10 @@ Central database (small, shared infrastructure):
 
 Tenant database (one per client company, fully isolated):
 - `users`, `password_reset_tokens`
-- Every business table (customers, assets, service orders, tickets, etc.)
-- `roles`, `permissions`, `companies`, `general_settings`, Google integration tables — everything else
+- Every business table (customers, assets, service orders, tickets, events, projects, materials, device tokens, location pings, plan groups, etc.)
+- `roles`, `permissions`, `user_roles`, `companies`, `general_settings`, Google integration tables — everything else
 
-Uploaded files are fully separated on disk too: each tenant's files live under their own root, `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`, and are served only through authenticated controllers (never a public URL). See Task 14.
+Uploaded files are fully separated on disk too: each tenant's files live under their own root, `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`, and are served only through authenticated controllers (never a public URL). See Task 14. The Android APK under `storage/app/releases/` is global and intentionally unaffected.
 
 **Three hard constraints this design imposes (read before starting):**
 
@@ -115,7 +128,7 @@ git commit -m "feat(tenancy): add permanent central database connection"
 
 ## Task 3: Replace `config/tenancy.php`
 
-The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the filesystem bootstrapper (file isolation is done by path prefix in Task 14).
+The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the package filesystem bootstrapper (file isolation is done by disk-root repointing in Task 14).
 
 **Files:** `config/tenancy.php`
 
@@ -179,7 +192,7 @@ git commit -m "feat(tenancy): configure bootstrappers and migration path"
 
 ## Task 4: Create the `Tenant` model
 
-Represents one client company; lives in the central database. The MySQL database name is stored in the JSON `data` column under `tenancy_db_name`.
+Represents one client company; lives in the central database. The MySQL database name is stored in the JSON `data` column under `tenancy_db_name`. `license_type` and `modules` are real columns (declared as custom columns so stancl does not fold them into `data`). Module gating on the backend is `tenancy()->tenant->hasModule('...')`.
 
 **Files:** `app/Models/Tenant.php`
 
@@ -200,9 +213,19 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     protected $connection = 'central';
 
+    protected $casts = [
+        'data'    => 'array',
+        'modules' => 'array',
+    ];
+
     public static function getCustomColumns(): array
     {
-        return ['id', 'name'];
+        return ['id', 'name', 'license_type', 'modules'];
+    }
+
+    public function hasModule(string $module): bool
+    {
+        return in_array($module, $this->modules ?? [], true);
     }
 }
 ```
@@ -211,7 +234,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
 ```bash
 git add app/Models/Tenant.php
-git commit -m "feat(tenancy): add Tenant model"
+git commit -m "feat(tenancy): add Tenant model with license and modules"
 ```
 
 ---
@@ -255,11 +278,11 @@ git commit -m "feat(tenancy): add UserTenantLookup model"
 
 ## Task 6: Create central database migrations
 
-Both explicitly target the `central` connection. The `email` primary key is what enforces global email uniqueness across tenants.
+Both explicitly target the `central` connection. The `email` primary key is what enforces global email uniqueness across tenants. Dated `2026_07_03` so they sort after every existing migration (a tenant migration dated `2026_06_09` already exists).
 
 **Files:**
-- `database/migrations/2026_06_09_000001_create_tenants_table.php`
-- `database/migrations/2026_06_09_000002_create_user_tenant_lookups_table.php`
+- `database/migrations/2026_07_03_000001_create_tenants_table.php`
+- `database/migrations/2026_07_03_000002_create_user_tenant_lookups_table.php`
 
 - [ ] **Step 1: Create the tenants migration**
 
@@ -279,6 +302,8 @@ return new class extends Migration
         Schema::connection('central')->create('tenants', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->string('name');
+            $table->string('license_type')->default('basic');
+            $table->json('modules')->nullable();
             $table->json('data')->nullable();
             $table->timestamps();
         });
@@ -323,8 +348,8 @@ return new class extends Migration
 - [ ] **Step 3: Commit**
 
 ```bash
-git add database/migrations/2026_06_09_000001_create_tenants_table.php \
-        database/migrations/2026_06_09_000002_create_user_tenant_lookups_table.php
+git add database/migrations/2026_07_03_000001_create_tenants_table.php \
+        database/migrations/2026_07_03_000002_create_user_tenant_lookups_table.php
 git commit -m "feat(tenancy): add central DB migrations"
 ```
 
@@ -334,11 +359,11 @@ git commit -m "feat(tenancy): add central DB migrations"
 
 The session is read at the very start of every request, before we know the tenant. So the `sessions` table must be in the central database, and the session driver must be pointed at the `central` connection.
 
-The `sessions` table is currently created inside the framework users migration. We remove it from there and create it as its own central migration.
+The `sessions` table is currently created inside the framework users migration. We remove it from there and create it as its own central migration. Note the central migration keeps `user_id` as a plain indexed column with **no foreign key** — users live in tenant databases.
 
 **Files:**
 - `database/migrations/0001_01_01_000000_create_users_table.php` (remove the sessions block)
-- `database/migrations/2026_06_09_000003_create_sessions_table.php` (new, central)
+- `database/migrations/2026_07_03_000003_create_sessions_table.php` (new, central)
 - `.env` / `.env.example`
 
 - [ ] **Step 1: Remove the `sessions` block from the users migration**
@@ -385,13 +410,13 @@ Add to `.env` and `.env.example`:
 SESSION_CONNECTION=central
 ```
 
-`config/session.php` already reads `'connection' => env('SESSION_CONNECTION')`, so no config edit is needed. `SESSION_DRIVER=database` stays as-is.
+`config/session.php` already reads `'connection' => env('SESSION_CONNECTION')` (verified, line 76), so no config edit is needed. `SESSION_DRIVER=database` stays as-is.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add database/migrations/0001_01_01_000000_create_users_table.php \
-        database/migrations/2026_06_09_000003_create_sessions_table.php \
+        database/migrations/2026_07_03_000003_create_sessions_table.php \
         .env.example
 git commit -m "feat(tenancy): move sessions table to central connection"
 ```
@@ -402,11 +427,11 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 
 After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions. `php artisan migrate` runs these against the central database.
-- `database/migrations/tenant/` holds everything else (~143 files). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
+- `database/migrations/tenant/` holds everything else (174 files at the time of writing). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
 `0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations stay central.
 
-**Files:** move ~143 migration files.
+**Files:** move ~174 migration files.
 
 - [ ] **Step 1: Move the files**
 
@@ -421,9 +446,9 @@ done
 
 for f in database/migrations/2026_*.php; do
   base=$(basename "$f")
-  if [[ "$base" != "2026_06_09_000001_create_tenants_table.php" && \
-        "$base" != "2026_06_09_000002_create_user_tenant_lookups_table.php" && \
-        "$base" != "2026_06_09_000003_create_sessions_table.php" ]]; then
+  if [[ "$base" != "2026_07_03_000001_create_tenants_table.php" && \
+        "$base" != "2026_07_03_000002_create_user_tenant_lookups_table.php" && \
+        "$base" != "2026_07_03_000003_create_sessions_table.php" ]]; then
     git mv "$f" database/migrations/tenant/
   fi
 done
@@ -436,11 +461,11 @@ ls database/migrations/*.php
 # Expected exactly these 5:
 # 0001_01_01_000001_create_cache_table.php
 # 0001_01_01_000002_create_jobs_table.php
-# 2026_06_09_000001_create_tenants_table.php
-# 2026_06_09_000002_create_user_tenant_lookups_table.php
-# 2026_06_09_000003_create_sessions_table.php
+# 2026_07_03_000001_create_tenants_table.php
+# 2026_07_03_000002_create_user_tenant_lookups_table.php
+# 2026_07_03_000003_create_sessions_table.php
 
-ls database/migrations/tenant/ | wc -l   # ~143
+ls database/migrations/tenant/ | wc -l   # ~174
 ```
 
 - [ ] **Step 3: Commit**
@@ -454,7 +479,7 @@ git commit -m "feat(tenancy): split migrations into central and tenant directori
 
 ## Task 9: Pin the queue to the central database
 
-Jobs must always be stored centrally so the worker finds them regardless of tenant context.
+Jobs must always be stored centrally so the worker finds them regardless of tenant context. The `QueueTenancyBootstrapper` records the active tenant in each job payload and re-initializes it on the worker, so queued jobs (Google sync, FCM notifications) still run in the right tenant.
 
 **Files:** `config/queue.php`
 
@@ -614,9 +639,11 @@ git commit -m "feat(tenancy): register TenancyServiceProvider with tenant-creati
 
 ---
 
-## Task 12: Session-based tenancy middleware
+## Task 12: Session-based tenancy middleware (with remember-me cookie fallback)
 
-On every web request, after the session is read, switch to the tenant stored in the session. Always end tenancy after the response so the connection is not left switched (matters for long-running workers like Octane).
+On every web request, after the session is read, switch to the tenant stored in the session. If the session has no tenant (fresh session revived by the remember-me recaller), fall back to the long-lived `tenant_id` cookie set at login (Task 15) — this is what keeps `Auth::attempt(..., remember: true)` working, because the auth guard resolves the recaller *after* this middleware has already switched the database. Always end tenancy after the response so the connection is not left switched (matters for long-running workers like Octane).
+
+The cookie is encrypted/decrypted automatically by the web group's `EncryptCookies` middleware.
 
 **Files:** `app/Http/Middleware/InitializeTenancyBySession.php`, `bootstrap/app.php`
 
@@ -635,14 +662,18 @@ class InitializeTenancyBySession
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        $tenant_id = session('tenant_id');
+        $tenant_id = session('tenant_id') ?: $request->cookie('tenant_id');
 
         if ($tenant_id) {
             $tenant = Tenant::on('central')->find($tenant_id);
             if ($tenant) {
                 tenancy()->initialize($tenant);
+                if (!session('tenant_id')) {
+                    session(['tenant_id' => $tenant->id]);
+                }
             } else {
                 session()->forget('tenant_id');
+                cookie()->queue(cookie()->forget('tenant_id'));
             }
         }
 
@@ -666,13 +697,13 @@ $middleware->web(append: [
 ]);
 ```
 
-It must run before `HandleInertiaRequests` because Inertia shares `Auth::user()`, which queries the database.
+It must run before `HandleInertiaRequests` because Inertia shares `Auth::user()`, which queries the database. Note the Google webhook route lives in the web group too; it carries no session or cookie, so this middleware is a no-op there (the webhook resolves its tenant itself, Task 25).
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add app/Http/Middleware/InitializeTenancyBySession.php bootstrap/app.php
-git commit -m "feat(tenancy): initialize tenant from session on web requests"
+git commit -m "feat(tenancy): initialize tenant from session or remember-cookie on web requests"
 ```
 
 ---
@@ -681,9 +712,9 @@ git commit -m "feat(tenancy): initialize tenant from session on web requests"
 
 `AppServiceProvider` shares company data on every Inertia response, including the login page where no tenant is active. Querying `Company` then hits the central database, which has no `companies` table, and crashes. Return `null` when tenancy is not initialized. The logo URL points at the authenticated file route from Task 14 (not a public `/storage` path), so it resolves per tenant.
 
-**Files:** `app/Providers/AppServiceProvider.php`
+**Files:** `app/Providers/AppServiceProvider.php` (the share is at the bottom of `boot()`)
 
-- [ ] **Step 1: Add the guard at the top of the `Inertia::share('company', ...)` closure**
+- [ ] **Step 1: Replace the `Inertia::share('company', ...)` closure**
 
 ```php
 Inertia::share('company', function () {
@@ -715,18 +746,19 @@ git commit -m "fix: guard company Inertia share when tenancy not initialized"
 
 Each tenant gets a completely separate storage root: `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`. A custom filesystem bootstrapper repoints the `public` and `local` disk roots into the active tenant's folder whenever tenancy is initialized, so **upload code needs no changes** — `->store('uploaded/...', 'public')` automatically lands inside the tenant's folder, and the stored `path` stays relative (no tenant prefix in the database).
 
-Because files now live outside the web-served `public/storage` symlink, they are no longer reachable by URL. Instead, three small authenticated routes stream them through controllers. Tenant isolation is automatic: a file id from another tenant does not exist in this tenant's database, so route-model binding returns 404. (Documents already download through `DocumentController::download`, which uses `Storage::disk('public')` and therefore works unchanged — no document route is added here.)
+Because files now live outside the web-served `public/storage` symlink, they are no longer reachable by URL. Instead, three small authenticated routes stream them through controllers. Tenant isolation is automatic: a file id from another tenant does not exist in this tenant's database, so route-model binding returns 404. (Documents already download through `DocumentController::download`, which uses `Storage::disk('public')` and therefore works unchanged — no document route is added here. The APK download route reads `storage_path('app/releases/lavoro.apk')` directly, not through a disk, so it intentionally stays global.)
 
 **Files:**
 - `app/Tenancy/FilesystemTenancyBootstrapper.php` (new)
 - `app/Http/Controllers/FileController.php` (new)
 - `routes/web.php`
-- `app/Models/User.php` (avatar accessor)
-- The ~10 Vue files that hardcode `/storage/${...}` (images and company logos)
+- `app/Models/User.php` (avatar accessor, `getAvatarAttribute`)
+- `public/service-worker.js` (exclude `/files/` from caching)
+- The 10 Vue files that hardcode `/storage/${...}` (images and company logos)
 
 - [ ] **Step 1: Create the filesystem bootstrapper**
 
-This repoints the disk roots only — it deliberately does **not** call `useStoragePath`, so framework storage (logs, compiled views, framework cache) stays in the normal location; only uploaded-file disks move per tenant.
+This repoints the disk roots only — it deliberately does **not** call `useStoragePath`, so framework storage (logs, compiled views, framework cache, `app/releases`) stays in the normal location; only uploaded-file disks move per tenant.
 
 ```php
 <?php
@@ -823,7 +855,7 @@ Route::get('files/companies/{company}/logo/{variant?}', [\App\Http\Controllers\F
 
 - [ ] **Step 4: Change the `User` avatar accessor to return the route URL**
 
-In `app/Models/User.php`, the avatar accessor currently ends with `return Storage::url($files[0]);`. Keep the existence checks (so it still returns `null` when no avatar exists and the UI shows initials), but return the authenticated route instead:
+In `app/Models/User.php`, `getAvatarAttribute()` currently ends with `return Storage::url($files[0]);`. Keep the existence checks (so it still returns `null` when no avatar exists and the UI shows initials), but return the authenticated route instead:
 
 ```php
 $directory = "users/{$this->id}/avatar";
@@ -841,7 +873,23 @@ if (empty($files)) {
 return url("/files/avatars/{$this->id}");
 ```
 
-- [ ] **Step 5: Update the frontend to use the file routes instead of `/storage/`**
+- [ ] **Step 5: Exclude `/files/` from service-worker caching**
+
+`public/service-worker.js` serves same-origin GETs cache-first. Image/avatar ids are per-tenant auto-increments, so `/files/images/5` is a *different file* in each tenant; a cached copy could be shown to a user of another tenant on a shared browser, and stale copies would survive image replacement. In the `fetch` listener, add `/files/` to the early-return list:
+
+```js
+// Let the browser handle assets & API/Inertia calls
+if (
+    url.pathname.startsWith("/build/") ||
+    url.pathname.startsWith("/files/") ||
+    event.request.headers.get("X-Inertia") ||
+    url.pathname.startsWith("/api/")
+) {
+    return;
+}
+```
+
+- [ ] **Step 6: Update the frontend to use the file routes instead of `/storage/`**
 
 Find every hardcoded reference:
 
@@ -849,7 +897,7 @@ Find every hardcoded reference:
 grep -rn "/storage/" resources/js/
 ```
 
-Apply these conversions across the matching files (`Assets/IndexPage.vue`, `Assets/ShowPage.vue`, `Products/IndexPage.vue`, `Products/ShowPage.vue`, `ServiceOrders/ShowPage.vue`, `Components/Timeline/TimelineComponent.vue`, `Components/CustomerUpcomingActivity.vue`, `Components/ImageUploadComponent.vue`, `Companies/IndexPage.vue`, `Companies/Partials/EditCompanyModal.vue`):
+Apply these conversions across the matching files (verified list as of 2026-07-03: `Pages/Assets/IndexPage.vue`, `Pages/Assets/ShowPage.vue`, `Pages/Products/IndexPage.vue`, `Pages/Products/ShowPage.vue`, `Pages/ServiceOrders/ShowPage.vue`, `Components/Timeline/TimelineComponent.vue`, `Components/CustomerUpcomingActivity.vue`, `Components/ImageUploadComponent.vue`, `Pages/Companies/IndexPage.vue`, `Pages/Companies/Partials/EditCompanyModal.vue` — re-run the grep in case more were added):
 
 - Image displays bound to an `Image` model — replace the path build with the id route:
 
@@ -875,13 +923,14 @@ Apply these conversions across the matching files (`Assets/IndexPage.vue`, `Asse
 
 - In `ImageUploadComponent.vue`, a *freshly uploaded* preview may use a local object URL or a path returned from the upload response before an `Image` id exists. Leave object-URL previews as-is; for previews of already-saved images, use `/files/images/${image.id}`. Check each usage in this file specifically.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add app/Tenancy/FilesystemTenancyBootstrapper.php \
         app/Http/Controllers/FileController.php \
         routes/web.php \
         app/Models/User.php \
+        public/service-worker.js \
         resources/js/
 git commit -m "feat(tenancy): per-tenant storage roots with authenticated file serving"
 ```
@@ -890,7 +939,7 @@ git commit -m "feat(tenancy): per-tenant storage roots with authenticated file s
 
 ## Task 15: Update the login controller
 
-Look up the tenant from the email, switch to its database, then authenticate. Also remove the `exists:users,email` rule from the form request — it runs before tenancy is initialized and would query the central database, which has no `users` table.
+Look up the tenant from the email, switch to its database, then authenticate. Keep `remember: true` (current behavior) and pair it with a forever `tenant_id` cookie so the recaller can find its database on a fresh session (Task 12 reads it). Also remove the `exists:users,email` rule from the form request — it runs before tenancy is initialized and would query the central database, which has no `users` table. Finally, drop the `company` prop from `create()`: `LoginPage.vue` renders the static `/img/logo-neg.svg` and never reads it, and the query would crash against the central database.
 
 **Files:** `app/Http/Controllers/AuthController.php`, `app/Http/Requests/StoreUpdateAuthRequest.php`
 
@@ -924,7 +973,7 @@ class AuthController extends Controller
 {
     public function create()
     {
-        return inertia('Auth/LoginPage', ['company' => null]);
+        return inertia('Auth/LoginPage');
     }
 
     public function store(StoreUpdateAuthRequest $request)
@@ -938,12 +987,13 @@ class AuthController extends Controller
         $tenant = Tenant::on('central')->findOrFail($lookup->tenant_id);
         tenancy()->initialize($tenant);
 
-        if (!Auth::attempt($request->only('email', 'password'), false)) {
+        if (!Auth::attempt($request->only('email', 'password'), true)) {
             tenancy()->end();
             throw ValidationException::withMessages(['email' => 'Kon niet inloggen']);
         }
 
         session(['tenant_id' => $tenant->id]);
+        cookie()->queue(cookie()->forever('tenant_id', $tenant->id));
         $request->session()->regenerate();
 
         return redirect()->intended();
@@ -953,13 +1003,12 @@ class AuthController extends Controller
     {
         Auth::logout();
         $request->session()->invalidate();
+        cookie()->queue(cookie()->forget('tenant_id'));
 
         return redirect()->route('login');
     }
 }
 ```
-
-`remember` is `false`; persistent login is out of scope (see limitations).
 
 - [ ] **Step 3: Commit**
 
@@ -970,28 +1019,206 @@ git commit -m "feat(tenancy): resolve tenant before authenticating on login"
 
 ---
 
-## Task 16: Handle the null company prop on the login page
+## Task 16: Landlord license type and module subscriptions
 
-`AuthController::create()` now always passes `company: null`, and `Inertia::share('company')` is null for unauthenticated pages. The login page must not assume a company object.
+The `tenants` table already carries `license_type` and `modules` (Task 6) and the `Tenant` model exposes `hasModule()` (Task 4). This task adds the typed enums, CLI management, and frontend exposure. Management is CLI-only for now — there is no landlord admin UI (YAGNI).
 
-**Files:** `resources/js/Pages/Auth/LoginPage.vue`
+`TenantModule::comboBoxArray()` follows the existing enum convention in `app/Enums/` in case a UI needs it later. The initial module list mirrors the app's optional feature areas; extend the enum as commercial modules are defined.
 
-- [ ] **Step 1: Add null guards in the template**
+**Files:**
+- `app/Enums/TenantLicenseType.php` (new)
+- `app/Enums/TenantModule.php` (new)
+- `app/Console/Commands/SetTenantLicense.php` (new)
+- `app/Console/Commands/SetTenantModules.php` (new)
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `resources/js/Utilities/Utilities.js`
 
-Wherever the component uses `company.logo_url` or `company.name`, use optional chaining and `v-if`:
+- [ ] **Step 1: Create the license type enum**
 
-```vue
-<img v-if="company?.logo_url" :src="company.logo_url" alt="Logo" />
-<span v-if="company?.name">{{ company.name }}</span>
+```php
+<?php
+
+namespace App\Enums;
+
+enum TenantLicenseType: string
+{
+    case Basic      = 'basic';
+    case Premium    = 'premium';
+    case Enterprise = 'enterprise';
+
+    public static function comboBoxArray(): array
+    {
+        return array_map(
+            fn (self $case) => ['id' => $case->value, 'name' => ucfirst($case->value)],
+            self::cases()
+        );
+    }
+}
 ```
 
-The `defineProps({ company: Object })` declaration already accepts `null`; only the template needs guarding.
+- [ ] **Step 2: Create the module enum**
 
-- [ ] **Step 2: Commit**
+```php
+<?php
+
+namespace App\Enums;
+
+enum TenantModule: string
+{
+    case SnelStart        = 'snelstart';
+    case GoogleCalendar   = 'google_calendar';
+    case Projects         = 'projects';
+    case Tickets          = 'tickets';
+    case LocationTracking = 'location_tracking';
+
+    public static function comboBoxArray(): array
+    {
+        return array_map(
+            fn (self $case) => ['id' => $case->value, 'name' => $case->name],
+            self::cases()
+        );
+    }
+}
+```
+
+- [ ] **Step 3: Create the `tenant:license` command**
+
+Shows the current license when called without a type; validates against the enum when setting.
+
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Enums\TenantLicenseType;
+use App\Models\Tenant;
+use Illuminate\Console\Command;
+
+class SetTenantLicense extends Command
+{
+    protected $signature = 'tenant:license {id} {license_type?}';
+    protected $description = 'Show or set the license type of a tenant';
+
+    public function handle(): int
+    {
+        $tenant = Tenant::on('central')->find($this->argument('id'));
+        if (!$tenant) {
+            $this->error('Tenant not found.');
+            return self::FAILURE;
+        }
+
+        $license_type = $this->argument('license_type');
+
+        if (!$license_type) {
+            $this->info("Tenant '{$tenant->name}' has license: {$tenant->license_type}");
+            return self::SUCCESS;
+        }
+
+        if (!TenantLicenseType::tryFrom($license_type)) {
+            $valid = implode(', ', array_column(TenantLicenseType::cases(), 'value'));
+            $this->error("Invalid license type. Valid types: {$valid}");
+            return self::FAILURE;
+        }
+
+        $tenant->update(['license_type' => $license_type]);
+        $this->info("Tenant '{$tenant->name}' license set to: {$license_type}");
+        return self::SUCCESS;
+    }
+}
+```
+
+- [ ] **Step 4: Create the `tenant:modules` command**
+
+Shows subscribed modules when called without options; `--add` and `--remove` are repeatable.
+
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Enums\TenantModule;
+use App\Models\Tenant;
+use Illuminate\Console\Command;
+
+class SetTenantModules extends Command
+{
+    protected $signature = 'tenant:modules {id} {--add=*} {--remove=*}';
+    protected $description = 'Show or change the extra module subscriptions of a tenant';
+
+    public function handle(): int
+    {
+        $tenant = Tenant::on('central')->find($this->argument('id'));
+        if (!$tenant) {
+            $this->error('Tenant not found.');
+            return self::FAILURE;
+        }
+
+        $add    = $this->option('add');
+        $remove = $this->option('remove');
+        $valid  = array_column(TenantModule::cases(), 'value');
+
+        foreach (array_merge($add, $remove) as $module) {
+            if (!in_array($module, $valid, true)) {
+                $this->error("Unknown module '{$module}'. Valid modules: " . implode(', ', $valid));
+                return self::FAILURE;
+            }
+        }
+
+        if ($add || $remove) {
+            $modules = collect($tenant->modules ?? [])
+                ->merge($add)
+                ->unique()
+                ->reject(fn ($module) => in_array($module, $remove, true))
+                ->values()
+                ->all();
+            $tenant->update(['modules' => $modules]);
+        }
+
+        $current = implode(', ', $tenant->fresh()->modules ?? []) ?: '(none)';
+        $this->info("Tenant '{$tenant->name}' modules: {$current}");
+        return self::SUCCESS;
+    }
+}
+```
+
+- [ ] **Step 5: Share license and modules with the frontend**
+
+In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by `share()` (next to the existing `auth` key):
+
+```php
+'tenant' => tenancy()->initialized ? [
+    'license_type' => tenancy()->tenant->license_type,
+    'modules'      => tenancy()->tenant->modules ?? [],
+] : null,
+```
+
+- [ ] **Step 6: Add a `hasModule` helper to `resources/js/Utilities/Utilities.js`**
+
+Follow the same pattern as the existing `hasPermission` helper (which reads `usePage().props.auth.permissions`):
+
+```js
+export function hasModule(name) {
+    const tenant = usePage().props.tenant;
+    return !!tenant && tenant.modules.includes(name);
+}
+```
+
+- [ ] **Step 7: Verify the commands**
 
 ```bash
-git add resources/js/Pages/Auth/LoginPage.vue
-git commit -m "fix(login): handle null company before tenant is known"
+php artisan tenant:license some-id premium        # after a tenant exists (Task 21/26)
+php artisan tenant:modules some-id --add=snelstart --add=projects
+php artisan tenant:modules some-id --remove=projects
+php artisan tenant:modules some-id                # prints: snelstart
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add app/Enums/TenantLicenseType.php app/Enums/TenantModule.php \
+        app/Console/Commands/SetTenantLicense.php app/Console/Commands/SetTenantModules.php \
+        app/Http/Middleware/HandleInertiaRequests.php resources/js/Utilities/Utilities.js
+git commit -m "feat(tenancy): landlord license type and module subscriptions"
 ```
 
 ---
@@ -1165,7 +1392,7 @@ class UserObserver
 }
 ```
 
-- [ ] **Step 2: Register it in `AppServiceProvider::boot()`**
+- [ ] **Step 2: Register it in `AppServiceProvider::boot()`** (next to the existing `EventModel::observe` / `Ticket::observe` calls)
 
 ```php
 \App\Models\User::observe(\App\Observers\UserObserver::class);
@@ -1182,19 +1409,15 @@ git commit -m "feat(tenancy): sync central user lookup on user changes"
 
 ## Task 19: Enforce global email uniqueness at user creation/update
 
-The lookup table's email primary key would throw a raw SQL error if an admin created a user whose email already exists in another tenant. Validate it cleanly instead, in the form requests used by the user create/update routes.
+The lookup table's email primary key would throw a raw SQL error if an admin created a user whose email already exists in another tenant. Validate it cleanly instead. The routes use `UserStoreRequest` (store) and `UserUpdateRequest` (update **and** `me.update` via `updateSelf`, where there is no `{user}` route parameter — see `UserController.php:48,61,97`). `StoreUserRequest`/`UpdateUserRequest` also exist in `app/Http/Requests/` but are not referenced by the user routes; leave those untouched.
 
-First confirm which requests the routes use:
+The `central.` prefix on the unique rule tells the validator to query the central connection.
 
-```bash
-grep -nE "users|User" routes/web.php | grep -iE "store|update|post|put|resource"
-```
+**Files:** `app/Http/Requests/UserStoreRequest.php`, `app/Http/Requests/UserUpdateRequest.php`
 
-The repository has both `StoreUserRequest`/`UserStoreRequest` and `UpdateUserRequest`/`UserUpdateRequest`. Apply the rule to whichever pair the user routes actually reference.
+- [ ] **Step 1: Add a global-uniqueness rule to `UserStoreRequest::rules()`**
 
-**Files:** the user store request and the user update request.
-
-- [ ] **Step 1: Add a global-uniqueness rule to the store request `rules()`**
+Replace the current `'email' => 'required|email|unique:users,email',` line:
 
 ```php
 use Illuminate\Validation\Rule;
@@ -1202,29 +1425,37 @@ use Illuminate\Validation\Rule;
 // inside rules():
 'email' => [
     'required', 'email',
+    'unique:users,email',
     Rule::unique('central.user_tenant_lookups', 'email'),
 ],
 ```
 
-The `central.` prefix tells the validator to query the central connection.
+- [ ] **Step 2: Add the same rule to `UserUpdateRequest`, ignoring the user's current email**
 
-- [ ] **Step 2: Add the same rule to the update request, ignoring the user's current email**
+The request already derives `$ignore_id` from the route user or the authenticated user; mirror that logic for the email. Inside `rules()`, after the existing `$ignore_id` computation, add:
 
 ```php
-use Illuminate\Validation\Rule;
+$ignore_user = is_object($route_user)
+    ? $route_user
+    : ($route_user ? \App\Models\User::find($route_user) : null);
+$ignore_email = $ignore_user?->email ?? optional(request()->user())->email;
+```
 
-// inside rules(); $this->route('user') is the User being edited:
+and extend the email rules:
+
+```php
 'email' => [
-    'required', 'email',
-    Rule::unique('central.user_tenant_lookups', 'email')
-        ->ignore($this->route('user')?->email, 'email'),
+    'required',
+    'email',
+    Rule::unique('users', 'email')->ignore($ignore_id),
+    Rule::unique('central.user_tenant_lookups', 'email')->ignore($ignore_email, 'email'),
 ],
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/Http/Requests/
+git add app/Http/Requests/UserStoreRequest.php app/Http/Requests/UserUpdateRequest.php
 git commit -m "feat(tenancy): validate email is globally unique across tenants"
 ```
 
@@ -1232,7 +1463,7 @@ git commit -m "feat(tenancy): validate email is globally unique across tenants"
 
 ## Task 20: Make scheduled tasks run per tenant
 
-Loop over all tenants, switch into each, run the work, switch out. The Google jobs are dispatched normally (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it on the worker, so dispatching async keeps the scheduler fast and the job runs in the correct tenant context.
+Loop over all tenants, switch into each, run the work, switch out. The Google jobs are dispatched normally (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it on the worker, so dispatching async keeps the scheduler fast and the job runs in the correct tenant context. (The current file has exactly three schedules: `google-pull-changes`, `google-renew-watches`, `prune-location-pings` — verified 2026-07-03. If more schedules exist by implementation time, wrap them in the same per-tenant loop.)
 
 **Files:** `routes/console.php`
 
@@ -1295,7 +1526,7 @@ git commit -m "feat(tenancy): run scheduled tasks per tenant"
 
 ## Task 21: `tenant:create` command (with initial admin)
 
-Creates the tenant record (which fires the create→migrate→seed pipeline), then creates an initial admin user inside the new tenant so the company can actually log in. Creating the user fires the observer, which writes the central lookup row.
+Creates the tenant record (which fires the create→migrate→seed pipeline), then creates an initial admin user inside the new tenant so the company can actually log in. Creating the user fires the observer, which writes the central lookup row. License and modules can be set at creation time (validated against the Task 16 enums).
 
 **Files:** `app/Console/Commands/CreateTenant.php`
 
@@ -1306,6 +1537,8 @@ Creates the tenant record (which fires the create→migrate→seed pipeline), th
 
 namespace App\Console\Commands;
 
+use App\Enums\TenantLicenseType;
+use App\Enums\TenantModule;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -1314,21 +1547,38 @@ use Illuminate\Support\Str;
 
 class CreateTenant extends Command
 {
-    protected $signature = 'tenant:create {name} {admin_email} {--database=} {--admin-password=}';
+    protected $signature = 'tenant:create {name} {admin_email} {--database=} {--admin-password=} {--license=basic} {--modules=*}';
     protected $description = 'Create a tenant, its database, and an initial admin user';
 
-    public function handle(): void
+    public function handle(): int
     {
         $name     = $this->argument('name');
         $email    = $this->argument('admin_email');
         $database = $this->option('database') ?: 'lavoro_' . Str::slug($name, '_');
         $password = $this->option('admin-password') ?: Str::password(16);
+        $license  = $this->option('license');
+        $modules  = $this->option('modules');
+
+        if (!TenantLicenseType::tryFrom($license)) {
+            $this->error('Invalid license type: ' . $license);
+            return self::FAILURE;
+        }
+
+        $valid_modules = array_column(TenantModule::cases(), 'value');
+        foreach ($modules as $module) {
+            if (!in_array($module, $valid_modules, true)) {
+                $this->error('Unknown module: ' . $module);
+                return self::FAILURE;
+            }
+        }
 
         $this->info("Creating tenant '{$name}' (database {$database})...");
 
         $tenant = Tenant::create([
             'id'              => (string) Str::ulid(),
             'name'            => $name,
+            'license_type'    => $license,
+            'modules'         => array_values(array_unique($modules)),
             'tenancy_db_name' => $database,
         ]);
 
@@ -1346,8 +1596,10 @@ class CreateTenant extends Command
         tenancy()->end();
 
         $this->info("Tenant ID: {$tenant->id}");
+        $this->info("License: {$license}");
         $this->info("Admin: {$email}");
         $this->info("Password: {$password}");
+        return self::SUCCESS;
     }
 }
 ```
@@ -1421,6 +1673,8 @@ git commit -m "feat(tenancy): add tenant:delete for cleanup"
 
 Runs automatically when a new tenant database is created. It only seeds what the tenant migrations do not: the company record and default service order stages. Roles and permissions are already created by the existing `seed_*_permissions` migrations, so they must not be duplicated here.
 
+The stage rows carry all six semantic flags currently on `service_order_stages` (verified 2026-07-03): `is_plannable_state`, `is_planned_state`, `is_closed_state`, `is_planning_cancelled_state`, `is_invoiced_state`, `is_incomplete_state`.
+
 **Files:** `database/seeders/TenantDatabaseSeeder.php`
 
 - [ ] **Step 1: Create the seeder**
@@ -1443,14 +1697,26 @@ class TenantDatabaseSeeder extends Seeder
             ['name' => tenancy()->tenant->name]
         );
 
+        $default_flags = [
+            'is_plannable_state'          => false,
+            'is_planned_state'            => false,
+            'is_closed_state'             => false,
+            'is_planning_cancelled_state' => false,
+            'is_invoiced_state'           => false,
+            'is_incomplete_state'         => false,
+        ];
+
         $stages = [
-            ['name' => 'Nieuw',    'order' => 1, 'is_plannable_state' => true,  'is_planned_state' => false, 'is_closed_state' => false, 'is_planning_cancelled_state' => false],
-            ['name' => 'Gepland',  'order' => 2, 'is_plannable_state' => false, 'is_planned_state' => true,  'is_closed_state' => false, 'is_planning_cancelled_state' => false],
-            ['name' => 'Gesloten', 'order' => 3, 'is_plannable_state' => false, 'is_planned_state' => false, 'is_closed_state' => true,  'is_planning_cancelled_state' => false],
+            ['name' => 'Nieuw',    'order' => 1, 'is_plannable_state' => true],
+            ['name' => 'Gepland',  'order' => 2, 'is_planned_state' => true],
+            ['name' => 'Gesloten', 'order' => 3, 'is_closed_state' => true],
         ];
 
         foreach ($stages as $stage) {
-            ServiceOrderStage::firstOrCreate(['name' => $stage['name']], $stage);
+            ServiceOrderStage::firstOrCreate(
+                ['name' => $stage['name']],
+                array_merge($default_flags, $stage)
+            );
         }
     }
 }
@@ -1465,11 +1731,13 @@ git commit -m "feat(tenancy): add TenantDatabaseSeeder for company and stages"
 
 ---
 
-## Task 24: Sanctum API — tenant from `X-Tenant-ID` header
+## Task 24: API routes — tenant from the session (header fallback)
 
-API routes use `auth:sanctum`, which validates the bearer token against `personal_access_tokens` in the tenant database. To know which database before Sanctum runs, clients send `X-Tenant-ID`. Applied as a **named route middleware** (not a global prepend) so routes that must skip it (an API login endpoint, the Google webhook) can. The Inertia SPA also calls `/api/*`, so it sets the header from a shared Inertia prop.
+The API uses stateful Sanctum: `bootstrap/app.php` calls `$middleware->statefulApi()`, and there are **no bearer tokens anywhere** (`createToken` is never called) — the SPA and the Android app both authenticate with session cookies. `EnsureFrontendRequestsAreStateful` runs the session middleware for requests from stateful origins *before* route middleware, so by the time our middleware runs, `session('tenant_id')` is available. That means API tenancy works exactly like web tenancy, with **no frontend changes at all**.
 
-**Files:** `app/Http/Middleware/InitializeTenancyForApi.php`, `bootstrap/app.php`, `routes/api.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `resources/js/app.js`
+An `X-Tenant-ID` header is honored as a fallback so a future bearer-token client can work without touching this middleware again. Applied as a named route middleware (not a global prepend) so any future public API endpoint can skip it.
+
+**Files:** `app/Http/Middleware/InitializeTenancyForApi.php`, `bootstrap/app.php`, `routes/api.php`
 
 - [ ] **Step 1: Create the middleware**
 
@@ -1486,15 +1754,18 @@ class InitializeTenancyForApi
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        $tenant_id = $request->header('X-Tenant-ID');
+        $tenant_id = $request->hasSession()
+            ? $request->session()->get('tenant_id')
+            : null;
+        $tenant_id = $tenant_id ?: $request->header('X-Tenant-ID');
 
         if (!$tenant_id) {
-            return response()->json(['message' => 'X-Tenant-ID header is required.'], 400);
+            return response()->json(['message' => 'Tenant kon niet worden bepaald.'], 400);
         }
 
         $tenant = Tenant::on('central')->find($tenant_id);
         if (!$tenant) {
-            return response()->json(['message' => 'Unknown tenant.'], 400);
+            return response()->json(['message' => 'Onbekende tenant.'], 400);
         }
 
         tenancy()->initialize($tenant);
@@ -1517,88 +1788,87 @@ $middleware->alias([
 ]);
 ```
 
-- [ ] **Step 3: Apply it to the authenticated API routes in `routes/api.php`**
+- [ ] **Step 3: Apply it to the authenticated API group in `routes/api.php`**
 
-Wrap the existing `auth:sanctum` route groups so `tenant.api` runs first:
+The whole file is currently one `auth:sanctum` group; add `tenant.api` before it:
 
 ```php
-Route::middleware(['tenant.api', 'auth:sanctum'])->group(function () {
-    // all existing authenticated API routes
+Route::group(['middleware' => ['tenant.api', 'auth:sanctum']], function () {
+    // all existing routes unchanged
 });
 ```
 
-Leave out `tenant.api` for any future API-login route and for the Google webhook (Task 25).
-
-- [ ] **Step 4: Share `tenant_id` as an Inertia prop**
-
-In `app/Http/Middleware/HandleInertiaRequests.php`, add to the `share()` array:
-
-```php
-'tenant_id' => fn () => session('tenant_id'),
-```
-
-- [ ] **Step 5: Set the Axios default header in `resources/js/app.js`**
-
-Inside the Inertia `createInertiaApp({ setup({ el, App, props, plugin }) { ... } })` callback, before `app.mount(el)`, read the tenant id from the initial page props:
-
-```js
-import axios from 'axios'
-
-// inside setup(), before mount:
-const tenant_id = props.initialPage.props.tenant_id
-if (tenant_id) {
-    axios.defaults.headers.common['X-Tenant-ID'] = tenant_id
-}
-```
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add app/Http/Middleware/InitializeTenancyForApi.php \
-        bootstrap/app.php routes/api.php \
-        app/Http/Middleware/HandleInertiaRequests.php \
-        resources/js/app.js
-git commit -m "feat(tenancy): resolve tenant from X-Tenant-ID for API requests"
+git add app/Http/Middleware/InitializeTenancyForApi.php bootstrap/app.php routes/api.php
+git commit -m "feat(tenancy): resolve tenant from session on API requests"
 ```
 
 ---
 
 ## Task 25: Route the Google webhook to the right tenant
 
-The webhook arrives from Google with no session and no token. Embed the tenant id in the watch-channel token when creating the channel; Google returns it as `X-Goog-Channel-Token` on each notification.
+The webhook arrives from Google with no session and no cookie. The existing code already round-trips a random secret: `RenewWatchChannelsJob` and `BackfillCalendarJob` both store a `Str::random(40)` token on the calendar row, and `GoogleWebhookController` rejects notifications whose `X-Goog-Channel-Token` fails `hash_equals` against it. **Keep that check.** We only prepend the tenant key to the token — `"<tenant_key>|<random>"` — so the controller can pick the database before looking the channel up; the stored token is the full prefixed string, so the `hash_equals` comparison still covers the entire value Google echoes back.
 
-**Files:** `app/Jobs/Google/RenewWatchChannelsJob.php` (channel creation), `app/Http/Controllers/GoogleWebhookController.php`
+Channels created before this change carry unprefixed tokens and cannot be routed; they self-heal on renewal (Task 27 Step 6 forces it), and the 5-minute polling schedule covers the gap.
 
-- [ ] **Step 1: Set the channel token to the tenant id where the watch channel is created**
+**Files:** `app/Jobs/Google/RenewWatchChannelsJob.php`, `app/Jobs/Google/BackfillCalendarJob.php`, `app/Http/Controllers/GoogleWebhookController.php`
+
+- [ ] **Step 1: Prefix the token in `RenewWatchChannelsJob`**
+
+In `handle()`, the loop currently builds `$token = Str::random(40);`. Change it to:
 
 ```php
-$channel->setToken(tenancy()->tenant->getTenantKey());
+$token = tenancy()->tenant->getTenantKey() . '|' . Str::random(40);
 ```
 
-- [ ] **Step 2: Initialize tenancy from the header at the top of the webhook handler**
+- [ ] **Step 2: Prefix the token in `BackfillCalendarJob::registerWatch()`**
+
+Same change — replace `$token = \Illuminate\Support\Str::random(40);` with:
 
 ```php
-$tenant_id = $request->header('X-Goog-Channel-Token');
-if ($tenant_id) {
-    $tenant = \App\Models\Tenant::on('central')->find($tenant_id);
-    if ($tenant) {
-        tenancy()->initialize($tenant);
-    }
+$token = tenancy()->tenant->getTenantKey() . '|' . \Illuminate\Support\Str::random(40);
+```
+
+Both jobs are always dispatched from tenant context (scheduler loop or a tenant web request), so `tenancy()->tenant` is set when they run on the worker via the `QueueTenancyBootstrapper`.
+
+- [ ] **Step 3: Initialize tenancy from the token prefix in `GoogleWebhookController::handle()`**
+
+After the existing header reads and the `$channel_id || $resource_id` guard, before the `GoogleSyncedCalendar` lookup, add:
+
+```php
+$token_parts = explode('|', (string) $channel_token, 2);
+if (count($token_parts) !== 2) {
+    return response('Unknown channel', 404);
 }
+
+$tenant = \App\Models\Tenant::on('central')->find($token_parts[0]);
+if (!$tenant) {
+    return response('Unknown channel', 404);
+}
+
+tenancy()->initialize($tenant);
 ```
 
-- [ ] **Step 3: Commit**
+The rest of the method (channel lookup, full-token `hash_equals`, resource-id check, `PullCalendarChangesJob::dispatch`) stays exactly as it is — the dispatch happens inside tenant context, so the queue bootstrapper tags the job with the right tenant.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add app/Jobs/Google/RenewWatchChannelsJob.php app/Http/Controllers/GoogleWebhookController.php
-git commit -m "feat(tenancy): route Google webhook to tenant via channel token"
+git add app/Jobs/Google/RenewWatchChannelsJob.php \
+        app/Jobs/Google/BackfillCalendarJob.php \
+        app/Http/Controllers/GoogleWebhookController.php
+git commit -m "feat(tenancy): route Google webhook to tenant via prefixed channel token"
 ```
 
 ---
 
-## Task 26: `tenant:setup-existing` — register the current database
+## Task 26: `tenant:setup-existing` — register a pre-tenancy database
 
-Registers the existing database as tenant #1, copies its user emails into the central lookup, and prepares the file-path data migration. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated.
+Registers an already-existing, already-migrated database as a tenant and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. License and modules for this tenant are set afterwards with the Task 16 commands.
+
+This command is used twice: for the main install's database during deployment (Task 27), and again for every dedicated-subdomain install that gets absorbed later (Task 29).
 
 **Files:** `app/Console/Commands/SetupExistingTenant.php`
 
@@ -1619,37 +1889,55 @@ use Illuminate\Support\Str;
 class SetupExistingTenant extends Command
 {
     protected $signature = 'tenant:setup-existing {name} {database}';
-    protected $description = 'Register the existing database as the first tenant (one-time)';
+    protected $description = 'Register an existing pre-tenancy database as a tenant';
 
-    public function handle(): void
+    public function handle(): int
     {
         $id = (string) Str::ulid();
 
         DB::connection('central')->table('tenants')->insert([
-            'id'         => $id,
-            'name'       => $this->argument('name'),
-            'data'       => json_encode(['tenancy_db_name' => $this->argument('database')]),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'id'           => $id,
+            'name'         => $this->argument('name'),
+            'license_type' => 'basic',
+            'modules'      => json_encode([]),
+            'data'         => json_encode(['tenancy_db_name' => $this->argument('database')]),
+            'created_at'   => now(),
+            'updated_at'   => now(),
         ]);
 
         $tenant = Tenant::on('central')->findOrFail($id);
         tenancy()->initialize($tenant);
 
-        $count = 0;
-        User::query()->select('email')->cursor()->each(function (User $user) use ($id, &$count) {
+        $emails = User::query()->pluck('email');
+
+        $conflicts = UserTenantLookup::on('central')
+            ->whereIn('email', $emails)
+            ->where('tenant_id', '!=', $id)
+            ->pluck('email');
+
+        if ($conflicts->isNotEmpty()) {
+            tenancy()->end();
+            DB::connection('central')->table('tenants')->where('id', $id)->delete();
+            $this->error('Aborted: these emails already belong to another tenant:');
+            $conflicts->each(fn ($email) => $this->error("  - {$email}"));
+            $this->error('Resolve the duplicates in the source database first, then rerun.');
+            return self::FAILURE;
+        }
+
+        $emails->each(function (string $email) use ($id) {
             UserTenantLookup::on('central')->updateOrCreate(
-                ['email' => $user->email],
+                ['email' => $email],
                 ['tenant_id' => $id]
             );
-            $count++;
         });
 
         tenancy()->end();
 
         $this->info("Registered '{$this->argument('name')}' as tenant: {$id}");
-        $this->info("Populated {$count} email lookups.");
-        $this->warn("Now migrate existing files into tenants/{$id}/ — see deployment Task 27, Step 6.");
+        $this->info("Populated {$emails->count()} email lookups.");
+        $this->warn("Set the license with: php artisan tenant:license {$id} <type>");
+        $this->warn("Now migrate existing files into storage/tenant-{$id}/ — see Task 27 Step 5 / Task 29 Step 6.");
+        return self::SUCCESS;
     }
 }
 ```
@@ -1699,17 +1987,24 @@ The restored tenant database still contains a `sessions` table from before the s
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
 ```
 
-- [ ] **Step 4: Register the existing database as tenant #1**
+- [ ] **Step 4: Register the existing database as tenant #1 and set its license/modules**
 
 ```bash
 php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_tenant_acme
 ```
 
-Record the printed tenant ID — call it `TENANT_ID` for the next step.
+Record the printed tenant ID — call it `TENANT_ID` for the next steps. Then:
+
+```bash
+php artisan tenant:license "$TENANT_ID" premium
+php artisan tenant:modules "$TENANT_ID" --add=snelstart --add=google_calendar
+```
+
+(Pick the license and modules that match the customer's actual subscription.)
 
 - [ ] **Step 5: Move existing uploaded files into the tenant storage root**
 
-Task 14 puts each tenant's files under `storage/tenant-<id>/public/...`. Existing files currently sit in `storage/app/public/...`. Move them into the new root. **No database path rewrite is needed** — the stored `path` values are relative to the disk root, which is exactly what the per-tenant disk root now resolves against.
+Task 14 puts each tenant's files under `storage/tenant-<id>/public/...`. Existing files currently sit in `storage/app/public/...` (locally: `uploaded/` and `company-logos/`; production may also have `users/` avatar folders). Move them into the new root. **No database path rewrite is needed** — the stored `path` values are relative to the disk root, which is exactly what the per-tenant disk root now resolves against. The `app/releases/` folder (APK) stays where it is.
 
 ```bash
 TENANT_ID=<paste-from-step-4>
@@ -1730,19 +2025,29 @@ fi
 
 After this, e.g. an image whose stored `path` is `uploaded/customer/5/documents/x.jpg` resolves to `storage/tenant-<id>/public/uploaded/customer/5/documents/x.jpg`, served via `/files/images/<id>`.
 
-- [ ] **Step 6: Build front-end assets and verify**
+- [ ] **Step 6: Force-renew the Google watch channels**
+
+Existing watch channels carry tokens without the tenant prefix (Task 25), so the webhook cannot route them. Expire them so the hourly renewal recreates them with prefixed tokens on the next run (the 5-minute polling schedule keeps sync working meanwhile):
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" \
+  -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
+```
+
+- [ ] **Step 7: Build front-end assets and verify**
 
 ```bash
 npm run build
 
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro;"
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT id, name, license_type, modules FROM lavoro.tenants;"
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT COUNT(*) FROM lavoro.user_tenant_lookups;"
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro_tenant_acme;" | head
 ```
 
-- [ ] **Step 7: Smoke test**
+- [ ] **Step 8: Smoke test**
 
-Log in as an existing user. Confirm: the dashboard loads, an existing customer's documents/images display, and a previously uploaded avatar shows. Existing sessions are gone (the central `sessions` table is fresh), so everyone re-logs in — expected.
+Log in as an existing user. Confirm: the dashboard loads, an existing customer's documents/images display, and a previously uploaded avatar shows. Close the browser and reopen — remember-me should log you straight back in (session + tenant cookie). Existing sessions are gone (the central `sessions` table is fresh), so everyone re-logs in once — expected.
 
 ---
 
@@ -1751,22 +2056,22 @@ Log in as an existing user. Confirm: the dashboard loads, an existing customer's
 - [ ] **Step 1: Create a second tenant with an admin**
 
 ```bash
-php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123
+php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --license=basic --modules=google_calendar
 ```
 
-Confirm it prints a tenant ID, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
+Confirm it prints a tenant ID, license, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
 
 - [ ] **Step 2: Confirm web isolation**
 
 Log in as `admin@tweede.nl`. Confirm you see an empty data set (only the seeded stages), not the first tenant's data. Upload an image and confirm it lands under `storage/tenant-<second-id>/public/...` and displays via `/files/images/<id>`. Confirm that requesting another tenant's image id returns 404.
 
-- [ ] **Step 3: Confirm the API requires and respects the header**
+- [ ] **Step 3: Confirm the API resolves the tenant from the session**
+
+While logged in as each tenant's user in the browser, open `/api/events?start=...&end=...` (or watch the Planner's own XHR calls) and confirm each tenant only sees their own events. Then confirm the fallback path:
 
 ```bash
-# With header — succeeds:
-curl http://localhost/api/events -H "Authorization: Bearer <token>" -H "X-Tenant-ID: <tenant-id>" -H "Accept: application/json"
-# Without header — 400:
-curl http://localhost/api/events -H "Authorization: Bearer <token>" -H "Accept: application/json"
+# Unauthenticated, no session, no header — 400 from tenant.api:
+curl http://localhost/api/events -H "Accept: application/json"
 ```
 
 - [ ] **Step 4: Confirm a queued job runs in the right tenant**
@@ -1777,20 +2082,153 @@ php artisan queue:work --once --verbose
 
 Trigger a Google sync (or any queued import) from one tenant and confirm the data lands in that tenant's database, not the other's or the central one.
 
+- [ ] **Step 5: Confirm license/module data round-trips**
+
+```bash
+php artisan tenant:license <second-id>                 # prints: basic
+php artisan tenant:modules <second-id>                 # prints: google_calendar
+```
+
+And in the browser as the second tenant's user, check the Inertia page props include `tenant: { license_type: 'basic', modules: ['google_calendar'] }`.
+
+---
+
+## Task 29: Migrate a dedicated-subdomain install into the multi-tenant app
+
+Some customers run their own standalone copy of Lavoro on a dedicated subdomain — currently one at `spee.lavorofsm.nl` — each with its own database, storage, and `.env`. This task absorbs such an install into the multi-tenant app at `app.lavorofsm.nl` as a new tenant. It is a **repeatable runbook**: run it once per legacy install, in a maintenance window agreed with that customer. The steps below use the Spee install as the concrete example; substitute names for the next customer.
+
+**Prerequisites:**
+- Task 27 is complete: `app.lavorofsm.nl` is live and multi-tenant.
+- The legacy install is upgraded to the **latest pre-tenancy release** so its schema matches the files now in `database/migrations/tenant/`. Verify: `php artisan migrate:status` on the legacy host must show every migration Ran and none Pending.
+- SSH access to the legacy host, and the central MySQL user has `CREATE DATABASE`.
+
+- [ ] **Step 1: Freeze the legacy install and take a final backup**
+
+On the legacy host:
+
+```bash
+php artisan down
+mysqldump -u "$OLD_DB_USER" -p"$OLD_DB_PASS" "$OLD_DB_NAME" > /tmp/spee_final.sql
+```
+
+Also stop the legacy queue worker and scheduler cron so nothing writes to the database after the dump.
+
+- [ ] **Step 2: Transfer the dump and restore it as a tenant database**
+
+On the central server:
+
+```bash
+scp legacy-host:/tmp/spee_final.sql /tmp/spee_final.sql
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "CREATE DATABASE lavoro_tenant_spee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee < /tmp/spee_final.sql
+```
+
+- [ ] **Step 3: Drop the infrastructure tables from the copy**
+
+Sessions are central now; the queue/cache tables in the copy are unused (jobs live centrally). Only `sessions` matters — the rest is optional tidying:
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+  -e "DROP TABLE IF EXISTS sessions, cache, cache_locks, jobs, job_batches, failed_jobs;"
+```
+
+- [ ] **Step 4: Check for email collisions, then register the tenant**
+
+Every user email must be globally unique across tenants. Check up front:
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e \
+  "SELECT u.email FROM lavoro_tenant_spee.users u
+   JOIN lavoro.user_tenant_lookups l ON l.email = u.email;"
+```
+
+If this returns rows, resolve them with the customer first (change the email in the source database). Then register — the command aborts and rolls back by itself if a collision slipped through:
+
+```bash
+php artisan tenant:setup-existing "Spee" lavoro_tenant_spee
+```
+
+Record the printed tenant ID as `TENANT_ID`, then set the subscription:
+
+```bash
+php artisan tenant:license "$TENANT_ID" premium
+php artisan tenant:modules "$TENANT_ID" --add=google_calendar
+```
+
+- [ ] **Step 5: Bring the imported schema up to date**
+
+If the central app has gained tenant migrations newer than the legacy release, apply them (already-run migrations are recorded by filename in the imported `migrations` table, so only the new ones execute):
+
+```bash
+php artisan tenants:migrate --tenants="$TENANT_ID"
+```
+
+- [ ] **Step 6: Copy the uploaded files into the tenant storage root**
+
+On the central server, pull the legacy public disk into `storage/tenant-<id>/public/` (paths in the database are relative, so no rewrite is needed — same principle as Task 27 Step 5):
+
+```bash
+mkdir -p "storage/tenant-$TENANT_ID/public" "storage/tenant-$TENANT_ID/local"
+rsync -av legacy-host:/path/to/lavoro/storage/app/public/ "storage/tenant-$TENANT_ID/public/"
+rsync -av legacy-host:/path/to/lavoro/storage/app/private/ "storage/tenant-$TENANT_ID/local/"
+```
+
+- [ ] **Step 7: Re-home the Google Calendar integration**
+
+The imported `google_synced_calendars` rows hold watch channels registered against `https://spee.lavorofsm.nl/google/webhook` with unprefixed tokens. Expire them so the hourly renewal re-registers them against the central webhook URL with tenant-prefixed tokens (5-minute polling covers the gap):
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+  -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
+```
+
+The stored OAuth refresh tokens keep working — they are not domain-bound. But if the legacy install used its **own** Google Cloud OAuth client, reconnecting later from `app.lavorofsm.nl` requires the central OAuth client instead; in that case expect the customer to redo the Google connection once (Beheer → Google koppeling) and tell them so up front.
+
+- [ ] **Step 8: Redirect the old subdomain**
+
+Keep `spee.lavorofsm.nl` DNS and its TLS certificate alive, but replace the vhost with a permanent redirect so bookmarks, the installed PWA, and password-reset links in old emails all land correctly:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name spee.lavorofsm.nl;
+    # existing ssl_certificate lines stay
+
+    return 301 https://app.lavorofsm.nl$request_uri;
+}
+```
+
+- [ ] **Step 9: Verify**
+
+- Log in at `app.lavorofsm.nl` with a Spee user's existing email and password (passwords migrate as-is — same hashes). Confirm their customers, service orders, images, and documents all show.
+- Confirm `https://spee.lavorofsm.nl` redirects to `https://app.lavorofsm.nl`.
+- Confirm a calendar event created in the Planner still syncs to Google.
+- Confirm the first tenant's data is untouched and Spee users see none of it.
+
+- [ ] **Step 10: Decommission the legacy install (after a grace period)**
+
+Once the customer confirms everything works — suggest two weeks — remove the legacy app directory, drop its database on the old host, and remove its cron entries and queue worker. Keep the redirect vhost indefinitely; it costs nothing.
+
+**Client-side caveats to communicate to the customer:**
+
+- Everyone logs in again once — sessions and remember-me cookies do not carry over between domains.
+- A PWA installed from `spee.lavorofsm.nl` is bound to that origin. The redirect keeps it functional, but users should remove it and install the PWA fresh from `app.lavorofsm.nl`.
+- **Check the Android APK's base URL before migrating.** If the build the customer uses points at `spee.lavorofsm.nl`, plan an app update targeting `app.lavorofsm.nl` and have users reinstall and log in again; do not rely on the HTTP client following the 301 with cookies intact. FCM device tokens themselves are app-instance-bound, not domain-bound, so push notifications resume after re-login.
+
 ---
 
 ## Known impact and follow-up work
 
-1. **Existing test suite will break.** Tests likely run on SQLite with `RefreshDatabase` against the default connection; multi-database tenancy needs MySQL plus a central/tenant split. Before relying on `composer test`, the test bootstrap must create a central schema and at least one tenant, and tenant-scoped tests must initialize a tenant in `setUp()`. This plan does not modify tests (per project convention) but flags that they need a dedicated follow-up.
+1. **Existing test suite will break.** `phpunit.xml` pins tests to SQLite `:memory:`; multi-database tenancy needs MySQL plus a central/tenant split. Before relying on `composer test`, the test bootstrap must create a central schema and at least one tenant, and tenant-scoped tests must initialize a tenant in `setUp()`. This plan does not modify tests (per project convention) but flags that they need a dedicated follow-up. (Vitest frontend tests are unaffected.)
 
-2. **Remember-me is disabled.** Re-enabling persistent login requires storing `tenant_id` in a long-lived cookie and reading it as a fallback in `InitializeTenancyBySession`.
+2. **Login page shows no per-tenant branding.** It already renders the static Lavoro logo today, so nothing regresses; but per-tenant branding before login would require a two-step login (email → resolve tenant → branded password step).
 
-3. **Login page shows no branding.** Because the tenant is unknown before login, the page is generic. A two-step login (email → resolve tenant → branded password step) would restore per-tenant logos.
+3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which already closes the old world-readable hole. It does not yet apply per-resource permission checks — every authenticated user in the tenant can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
-4. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which already closes the old world-readable hole. It does not yet apply per-resource permission checks (e.g. "can this user view this customer's documents") — every authenticated user in the tenant can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required.
+4. **SnelStart, Microsoft Graph, and Firebase (FCM) credentials are global env vars.** All tenants share the same accounting connection, mail sender, and push-notification project. For true per-tenant integrations, move these into each tenant's `general_settings` (or the tenant `data` column) and resolve them from the active tenant context. Until the SnelStart credentials are per-tenant, gate the SnelStart UI/commands per tenant via the `snelstart` module subscription (Task 16).
 
-5. **SnelStart and Microsoft Graph credentials are global env vars.** For true per-tenant integrations, move them into each tenant's `general_settings` and resolve them from the active tenant context.
+5. **Module subscriptions are stored but not yet enforced.** Task 16 delivers the data model (`tenants.license_type`, `tenants.modules`), CLI management, `Tenant::hasModule()`, the shared `tenant` Inertia prop, and the `hasModule` JS helper — but no routes or UI are gated yet. Wiring the gates (e.g. hide SnelStart sync UI without the `snelstart` module, block project routes without `projects`) is deliberate follow-up work, to be decided per module with the customer contract in hand.
 
 6. **Scheduler scales linearly with tenant count.** Each scheduled tick iterates every tenant sequentially. At dozens of tenants the five-minute Google-pull tick may exceed its window (then `withoutOverlapping` silently skips a run). Revisit with chunking or a dedicated per-tenant scheduling strategy when tenant count grows.
 
-7. **API login endpoint.** If the mobile app authenticates via the web `/login` route today, add a dedicated `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues a Sanctum token, and returns both the token and `tenant_id` for the client to store and send as `X-Tenant-ID`.
+7. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
