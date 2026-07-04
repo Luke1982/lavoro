@@ -78,7 +78,12 @@
                             </div>
                         </div>
                         <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
-                            <span class="line-clamp-2">{{ so.description || '—' }}</span>
+                            <EditableTextField type="input" :decoration="false" :model-value="so.description"
+                                placeholder="—" @update="(val) => updateDescription(so, val)">
+                                <template #display>
+                                    <span class="line-clamp-2">{{ so.description || '—' }}</span>
+                                </template>
+                            </EditableTextField>
                         </div>
                         <div class="col-span-2 items-center hidden sm:flex pr-2">
                             <EditableTextField type="combobox" :model-value="so.service_order_stage_id"
@@ -310,6 +315,13 @@ function updateInvoiceNo(so, val) {
     router.patch(`/serviceorders/${so.id}`, {
         customer_id: so.customer_id,
         external_invoice_no: val,
+    }, { preserveScroll: true, preserveState: true })
+}
+
+function updateDescription(so, val) {
+    router.patch(`/serviceorders/${so.id}`, {
+        customer_id: so.customer_id,
+        description: val,
     }, { preserveScroll: true, preserveState: true })
 }
 
