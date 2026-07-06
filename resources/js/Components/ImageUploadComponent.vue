@@ -4,17 +4,18 @@
             <li v-for="image in props.existing" :key="image.id"
                 class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden"
                 :class="image.pivot?.main ? 'ring-2 ring-yellow-400' : ''">
-                <img :src="`/storage/${image.path}`" :alt="image.path" class="object-cover w-full h-48"
-                    @click="mayEdit() && openEditor(image)">
+                <a :href="`/storage/${image.path}`" class="glightbox contents">
+                    <img :src="`/storage/${image.path}`" :alt="image.path" class="object-cover w-full h-48">
+                </a>
                 <div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent text-center text-white pb-4 pt-8"
                     @click="mayUpdate() && changeTitle(image.name, image.id)">
                     {{ image.name }}
                 </div>
                 <div class="flex absolute top-2 left-2 gap-x-2">
-                    <a :href="`/storage/${image.path}`"
-                        class="glightbox text-black font-bold bg-white rounded-full p-2">
-                        <MagnifyingGlassIcon class="h-5 w-5" />
-                    </a>
+                    <button v-if="mayEdit()" @click.stop="openEditor(image)"
+                        class="text-black font-bold bg-white rounded-full p-2">
+                        <PencilIcon class="h-5 w-5" />
+                    </button>
                     <button v-if="mayUpdate()" @click.stop="setMain(image.id, image.pivot?.main)"
                         class="font-bold bg-white rounded-full p-2"
                         :class="image.pivot?.main ? 'text-yellow-400' : 'text-gray-400'"
@@ -57,7 +58,7 @@
             <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handleFiles" />
         </div>
 
-        <div class="mt-4" v-if="selectedFiles.length > 0">
+        <div class="mt-4" v-if="previewBeforeUpload && selectedFiles.length > 0">
             <h3 class="text-lg font-semibold">Deze foto's wil je uploaden</h3>
             <div class="grid grid-cols-4 gap-4 mt-2">
                 <div v-for="(file, index) in selectedFiles" :key="index"
@@ -73,7 +74,7 @@
                 </div>
             </div>
         </div>
-        <button v-if="selectedFiles.length > 0" :disabled="uploading"
+        <button v-if="previewBeforeUpload && selectedFiles.length > 0" :disabled="uploading"
             :class="[uploading ? 'bg-slate-500' : 'bg-lavoro-blue', 'w-full text-white rounded-md p-3 mt-3 font-bold']"
             @click="uploadPhotos">Verzenden</button>
 
@@ -104,9 +105,8 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import ImageEditor from 'tui-image-editor';
 import 'tui-image-editor/dist/tui-image-editor.min.css';
-import { TrashIcon, StarIcon, CameraIcon, PhotoIcon } from '@heroicons/vue/24/solid';
+import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilIcon } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
-import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { hasPermission } from '@/Utilities/Utilities.js';
 
 let lightbox = null;
@@ -143,6 +143,10 @@ const props = defineProps({
     canManage: {
         type: [Boolean, null],
         default: null
+    },
+    previewBeforeUpload: {
+        type: Boolean,
+        default: false
     },
 });
 
@@ -247,6 +251,10 @@ const addFiles = async (files) => {
     // Update selected files and upload form
     selectedFiles.value = [...selectedFiles.value, ...compressedFiles];
     uploadImagesForm.images = [...uploadImagesForm.images, ...compressedFiles.map((r) => r.file)];
+
+    if (!props.previewBeforeUpload) {
+        await uploadPhotos();
+    }
 };
 
 
