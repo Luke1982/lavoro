@@ -4,7 +4,7 @@
             <li v-for="image in props.existing" :key="image.id"
                 class="w-full md:w-full lg:w-[calc(50%-7px)] relative flex cursor-pointer rounded-md overflow-hidden"
                 :class="image.pivot?.main ? 'ring-2 ring-yellow-400' : ''">
-                <a :href="`/storage/${image.path}`" class="glightbox contents">
+                <a :href="`/storage/${image.path}`" class="glightbox contents" @click.capture="captureScrollBeforeOpen">
                     <img :src="`/storage/${image.path}`" :alt="image.path" class="object-cover w-full h-48">
                 </a>
                 <div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent text-center text-white pb-4 pt-8"
@@ -35,8 +35,8 @@
             Er zijn nog geen afbeeldingen.
         </div>
 
-        <div v-if="mayUpload()" @dragover.prevent="isDragging = true"
-            @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
+        <div v-if="mayUpload()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed rounded-lg',
                 isDragging ? 'bg-gray-200 border-gray-400 dark:bg-slate-700 dark:border-slate-600' : 'bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600'
             ]">
@@ -55,7 +55,8 @@
                 </button>
             </div>
             <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFiles" multiple />
-            <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handleFiles" />
+            <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden"
+                @change="handleFiles" />
         </div>
 
         <div class="mt-4" v-if="previewBeforeUpload && selectedFiles.length > 0">
@@ -108,15 +109,21 @@ import 'tui-image-editor/dist/tui-image-editor.min.css';
 import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilIcon } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import { hasPermission } from '@/Utilities/Utilities.js';
+import { useScrollLock } from '@/Composables/useScrollLock.js';
 
 let lightbox = null;
+const { captureScroll: captureScrollBeforeOpen, lock: lockBodyScroll, unlock: unlockBodyScroll } = useScrollLock();
+
 onMounted(() => {
     lightbox = GLightbox({
         selector: '.glightbox',
         touchNavigation: true,
         loop: true,
         zoomable: true,
+        closeEffect: 'none', // no animation delay before the page is unlocked
     });
+    lightbox.on('open', lockBodyScroll);
+    lightbox.on('close', unlockBodyScroll);
 });
 onUpdated(() => {
     nextTick(() => {
