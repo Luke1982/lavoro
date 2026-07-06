@@ -124,6 +124,14 @@
             <td style="text-align:center; vertical-align:middle;">
                 <h1 style="margin:0;">WERKBON <span class="muted">{{ $serviceOrder->id }}</span></h1>
             </td>
+            <td style="width:35%; text-align:right; vertical-align:middle;" class="small">
+                @if ($serviceOrder->serviceOrderStage)
+                    <div><span class="muted">Status:</span> {{ $serviceOrder->serviceOrderStage->name }}</div>
+                @endif
+                @if ($serviceOrder->external_purchaseorder_no)
+                    <div><span class="muted">Externe referentie:</span> {{ $serviceOrder->external_purchaseorder_no }}</div>
+                @endif
+            </td>
         </tr>
     </table>
     <div class="hr" style="margin-top:4px;"></div>
