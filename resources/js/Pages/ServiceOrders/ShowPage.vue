@@ -604,8 +604,8 @@
         </template>
     </DrawerComponent>
 
-    <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder" :user-roles="userRoles"
-        @confirm="handleSignatureConfirm" />
+    <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
+        :all-task-instances="allTaskInstances" :user-roles="userRoles" @confirm="handleSignatureConfirm" />
 </template>
 
 <script setup>
@@ -648,6 +648,7 @@ const props = defineProps({
         type: Object,
         required: true
     },
+    allTaskInstances: { type: Array, default: () => [] },
     allMaterials: {
         type: Array,
         required: true

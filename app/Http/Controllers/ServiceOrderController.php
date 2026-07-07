@@ -192,6 +192,8 @@ class ServiceOrderController extends Controller
 
         $user = Auth::user();
 
+        $all_task_instances = $service_order->taskInstances;
+
         if (! $user->isAdmin()) {
             $role_ids = $service_order->events
                 ->flatMap(fn ($event) => $event->executingUserRoleIds($user->id))
@@ -246,6 +248,7 @@ class ServiceOrderController extends Controller
 
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
+            'allTaskInstances' => $all_task_instances,
             'usersMissingTimes' => $users_missing_times,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),

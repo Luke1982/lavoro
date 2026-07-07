@@ -27,7 +27,7 @@
             </div>
 
             <div>
-                <TaskInstancesWidget :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
+                <TaskInstancesWidget :service-order-id="serviceOrder.id" :instances="allTaskInstances"
                     :available-tasks="[]" :products="[]" :user-roles="userRoles" :is-closed="true" />
             </div>
 
@@ -82,6 +82,7 @@ import { useScrollLock } from '@/Composables/useScrollLock.js';
 const props = defineProps({
     open: { type: Boolean, required: true },
     serviceOrder: { type: Object, required: true },
+    allTaskInstances: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
 });
 
