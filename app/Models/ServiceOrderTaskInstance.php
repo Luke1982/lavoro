@@ -49,6 +49,11 @@ class ServiceOrderTaskInstance extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function userRoles()
+    {
+        return $this->morphToMany(UserRole::class, 'userroleable')->withTimestamps();
+    }
+
     public function completedBy()
     {
         return $this->belongsTo(User::class, 'completed_by');

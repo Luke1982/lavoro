@@ -130,6 +130,26 @@ trait HasExecutingUsers
         }
     }
 
+    public function executingUserRoleIds(int $user_id): array
+    {
+        $userable_id = DB::table('userables')
+            ->where('userable_type', $this->getMorphClass())
+            ->where('userable_id', $this->getKey())
+            ->where('type', 'executing')
+            ->where('user_id', $user_id)
+            ->value('id');
+
+        if (! $userable_id) {
+            return [];
+        }
+
+        return DB::table('user_role_userable')
+            ->where('userable_id', $userable_id)
+            ->pluck('user_role_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
     public function executingUser()
     {
         return $this->executingUsers()->first();
