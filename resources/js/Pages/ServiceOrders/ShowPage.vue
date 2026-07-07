@@ -380,7 +380,7 @@
                                 <span class="block text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1">Naam</span>
                                 <span class="text-sm dark:text-slate-200">{{ serviceOrder.signed_by || 'Nog niet ondertekend' }}</span>
                             </div>
-                            <div v-if="serviceOrder.signature_base64" class="py-2">
+                            <div v-if="isSigned" class="py-2">
                                 <img :src="serviceOrder.signature_base64" alt="Handtekening" class="max-h-24">
                             </div>
                             <button v-if="hasPermission('serviceorder.close') || serviceOrder.is_closed"

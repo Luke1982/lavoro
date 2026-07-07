@@ -44,7 +44,7 @@
                 </div>
                 <div v-else-if="!serviceOrder.is_closed">
                     <TextInput v-model="signedByInput" label="Naam van tekeningsbevoegde" class="mb-4" />
-                    <SignaturePad ref="signaturePadRef" v-model="signatureInput" />
+                    <SignaturePad ref="signaturePadRef" />
                 </div>
             </div>
         </div>
@@ -90,8 +90,8 @@ const emit = defineEmits(['update:open', 'confirm']);
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 
 const isResigning = ref(false);
+const didLock = ref(false);
 const signedByInput = ref(props.serviceOrder.signed_by || '');
-const signatureInput = ref('');
 const signaturePadRef = ref(null);
 
 const isSigned = computed(() =>
@@ -137,8 +137,8 @@ watch(() => props.open, async (isOpen) => {
     if (isOpen) {
         isResigning.value = false;
         signedByInput.value = props.serviceOrder.signed_by || '';
-        signatureInput.value = '';
         lockScroll();
+        didLock.value = true;
         await nextTick();
         lightbox = GLightbox({
             selector: '.close-modal-lightbox',
@@ -151,12 +151,17 @@ watch(() => props.open, async (isOpen) => {
         lightbox.on('close', unlockScroll);
     } else {
         unlockScroll();
+        didLock.value = false;
         lightbox?.destroy();
         lightbox = null;
     }
 });
 
 onUnmounted(() => {
+    if (didLock.value) {
+        unlockScroll();
+        didLock.value = false;
+    }
     lightbox?.destroy();
 });
 </script>
