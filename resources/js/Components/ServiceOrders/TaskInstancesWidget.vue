@@ -35,6 +35,13 @@
                         <p v-if="instance.product" class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
                             {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
                         </p>
+                        <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
+                            <span v-for="role in instance.user_roles" :key="role.id"
+                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                                :style="{ backgroundColor: role.color }">
+                                {{ role.name }}
+                            </span>
+                        </div>
                     </div>
                     <div class="flex justify-end gap-x-3 sm:gap-x-1 sm:justify-start items-start">
                         <div class="flex flex-col items-end gap-2 flex-none">
@@ -109,13 +116,28 @@
                     <input type="number" v-model.number="newQuantity" min="1" max="999"
                         class="w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm" />
                 </div>
+                <div v-if="userRoles.length">
+                    <label
+                        class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
+                    <div class="flex gap-2 flex-wrap">
+                        <button v-for="role in userRoles" :key="role.id" type="button"
+                            @click="toggleRoleId(newUserRoleIds, role.id)" :class="[
+                                'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+                                newUserRoleIds.includes(role.id)
+                                    ? 'bg-lavoro-blue border-lavoro-blue text-white'
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                            ]">
+                            {{ role.name }}
+                        </button>
+                    </div>
+                </div>
                 <p v-if="addForm.errors.description || addForm.errors.title" class="text-xs text-red-600">
                     {{ addForm.errors.description || addForm.errors.title }}
                 </p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
-                    <button type="button" @click="addDrawerOpen = false"
+                    <button type="button" @click="addDrawerOpen = false; newUserRoleIds = []"
                         class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
                         Annuleren
                     </button>
@@ -156,6 +178,21 @@
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Aantal</label>
                     <input type="number" v-model.number="editQuantity" min="1" max="999"
                         class="w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm" />
+                </div>
+                <div v-if="userRoles.length">
+                    <label
+                        class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
+                    <div class="flex gap-2 flex-wrap">
+                        <button v-for="role in userRoles" :key="role.id" type="button"
+                            @click="toggleRoleId(editUserRoleIds, role.id)" :class="[
+                                'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+                                editUserRoleIds.includes(role.id)
+                                    ? 'bg-lavoro-blue border-lavoro-blue text-white'
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                            ]">
+                            {{ role.name }}
+                        </button>
+                    </div>
                 </div>
                 <p v-if="editForm.errors.title || editForm.errors.description" class="text-xs text-red-600">
                     {{ editForm.errors.title || editForm.errors.description }}
@@ -376,6 +413,7 @@ const props = defineProps({
     instances: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
     isClosed: { type: Boolean, default: false },
 })
 
@@ -400,6 +438,15 @@ const productOptions = computed(() => props.products.map(p => ({
     search: p.search ?? '',
 })))
 
+function toggleRoleId(list, id) {
+    const idx = list.value.indexOf(id)
+    if (idx === -1) {
+        list.value.push(id)
+    } else {
+        list.value.splice(idx, 1)
+    }
+}
+
 // ── Add drawer ────────────────────────────────────────────────────────────────
 const addDrawerOpen = ref(false)
 const newTaskId = ref(null)
@@ -407,6 +454,7 @@ const newTitle = ref('')
 const newDescription = ref('')
 const newProductId = ref(null)
 const newQuantity = ref(1)
+const newUserRoleIds = ref([])
 
 const addForm = useForm({
     service_order_id: props.serviceOrderId,
@@ -416,6 +464,7 @@ const addForm = useForm({
     title: '',
     description: '',
     is_complete: false,
+    user_role_ids: [],
 })
 
 function onNewTaskSelected(id) {
@@ -436,6 +485,7 @@ function addInstance() {
     addForm.quantity = newProductId.value ? newQuantity.value : 1
     addForm.title = newTitle.value.trim() || null
     addForm.description = newDescription.value.trim() || null
+    addForm.user_role_ids = newUserRoleIds.value
 
     addForm.post('/serviceordertaskinstances', {
         preserveScroll: true,
@@ -446,6 +496,7 @@ function addInstance() {
             newDescription.value = ''
             newProductId.value = null
             newQuantity.value = 1
+            newUserRoleIds.value = []
             addForm.reset()
             addForm.service_order_id = props.serviceOrderId
         },
@@ -459,8 +510,9 @@ const editTitle = ref('')
 const editDescription = ref('')
 const editProductId = ref(null)
 const editQuantity = ref(1)
+const editUserRoleIds = ref([])
 
-const editForm = useForm({ title: '', description: '', product_id: null, quantity: 1 })
+const editForm = useForm({ title: '', description: '', product_id: null, quantity: 1, user_role_ids: [] })
 
 function openEditDrawer(instance) {
     editingInstance.value = instance
@@ -468,6 +520,7 @@ function openEditDrawer(instance) {
     editDescription.value = instance.description ?? instance.service_order_task?.description ?? ''
     editProductId.value = instance.product_id ?? null
     editQuantity.value = instance.quantity ?? 1
+    editUserRoleIds.value = (instance.user_roles ?? []).map(r => r.id)
     editDrawerOpen.value = true
 }
 
@@ -476,6 +529,7 @@ function saveEdit() {
     editForm.description = editDescription.value.trim() || null
     editForm.product_id = editProductId.value
     editForm.quantity = editProductId.value ? editQuantity.value : 1
+    editForm.user_role_ids = editUserRoleIds.value
 
     editForm.patch(`/serviceordertaskinstances/${editingInstance.value.id}`, {
         preserveScroll: true,
@@ -484,6 +538,7 @@ function saveEdit() {
             editingInstance.value.description = editForm.description
             editingInstance.value.product_id = editForm.product_id
             editingInstance.value.quantity = editForm.quantity
+            editingInstance.value.user_roles = props.userRoles.filter(r => editForm.user_role_ids.includes(r.id))
             editDrawerOpen.value = false
             editForm.reset()
         },
