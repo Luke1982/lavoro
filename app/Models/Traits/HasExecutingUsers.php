@@ -14,7 +14,8 @@ trait HasExecutingUsers
             ->morphToMany(User::class, 'userable')
             ->withPivot('id', 'type', 'breaktime', 'has_diverging_times', 'diverging_start', 'diverging_end')
             ->wherePivot('type', 'executing')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->withTrashed();
     }
 
     public function hasExecutingUser(int $user_id): bool
@@ -24,7 +25,7 @@ trait HasExecutingUsers
 
     public function addExecutingUser(int $user_id): void
     {
-        if (! $this->hasExecutingUser($user_id)) {
+        if (!$this->hasExecutingUser($user_id)) {
             $this->executingUsers()->attach($user_id, ['type' => 'executing']);
         }
     }
@@ -43,8 +44,8 @@ trait HasExecutingUsers
         $new_ids = array_values(array_unique(array_map('intval', $user_ids)));
 
         $to_remove = array_diff($current_ids, $new_ids);
-        $to_add    = array_diff($new_ids, $current_ids);
-        $to_keep   = array_intersect($current_ids, $new_ids);
+        $to_add = array_diff($new_ids, $current_ids);
+        $to_keep = array_intersect($current_ids, $new_ids);
 
         if ($to_remove) {
             $this->executingUsers()->detach(array_values($to_remove));
@@ -58,11 +59,11 @@ trait HasExecutingUsers
             }
 
             if (array_key_exists($uid, $diverging_times)) {
-                $dt  = (array) $diverging_times[$uid];
+                $dt = (array) $diverging_times[$uid];
                 $has = (bool) ($dt['has_diverging_times'] ?? false);
                 $update['has_diverging_times'] = $has;
-                $update['diverging_start']     = $has ? ($dt['diverging_start'] ?? null) : null;
-                $update['diverging_end']       = $has ? ($dt['diverging_end'] ?? null) : null;
+                $update['diverging_start'] = $has ? ($dt['diverging_start'] ?? null) : null;
+                $update['diverging_end'] = $has ? ($dt['diverging_end'] ?? null) : null;
             }
 
             if ($update) {
@@ -72,14 +73,14 @@ trait HasExecutingUsers
 
         $attach = [];
         foreach ($to_add as $uid) {
-            $dt  = $diverging_times[$uid] ?? [];
+            $dt = $diverging_times[$uid] ?? [];
             $has = (bool) ($dt['has_diverging_times'] ?? false);
             $attach[$uid] = [
-                'type'                => 'executing',
-                'breaktime'           => (int) ($breaktimes[$uid] ?? 0),
+                'type' => 'executing',
+                'breaktime' => (int) ($breaktimes[$uid] ?? 0),
                 'has_diverging_times' => $has,
-                'diverging_start'     => $has ? ($dt['diverging_start'] ?? null) : null,
-                'diverging_end'       => $has ? ($dt['diverging_end'] ?? null) : null,
+                'diverging_start' => $has ? ($dt['diverging_start'] ?? null) : null,
+                'diverging_end' => $has ? ($dt['diverging_end'] ?? null) : null,
             ];
         }
 
@@ -116,10 +117,10 @@ trait HasExecutingUsers
             foreach (array_unique(array_map('intval', (array) $role_ids)) as $role_id) {
                 if ($role_id > 0) {
                     $inserts[] = [
-                        'userable_id'  => $userable_id,
+                        'userable_id' => $userable_id,
                         'user_role_id' => $role_id,
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
                 }
             }
@@ -139,7 +140,7 @@ trait HasExecutingUsers
             ->where('user_id', $user_id)
             ->value('id');
 
-        if (! $userable_id) {
+        if (!$userable_id) {
             return [];
         }
 

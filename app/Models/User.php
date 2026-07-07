@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Notifications\Notifiable;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
+
     use Notifiable;
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -77,6 +82,7 @@ class User extends Authenticatable
         if (empty($files)) {
             return null;
         }
+
         return Storage::url($files[0]);
     }
 
@@ -105,8 +111,9 @@ class User extends Authenticatable
     public function permissionNames(): array
     {
         $via_roles = $this->roles()->with('permissions:id,name')->get()
-            ->flatMap(fn($role) => $role->permissions->pluck('name'))
+            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
             ->all();
+
         return array_values(array_unique($via_roles));
     }
 
@@ -123,6 +130,7 @@ class User extends Authenticatable
         if ($this->isAdmin()) {
             return true;
         }
+
         return in_array($name, $this->permissionNames(), true);
     }
 
@@ -147,8 +155,10 @@ class User extends Authenticatable
         $asset_ids = $serviceorders->flatMap(function ($so) {
             $job_assets = $so->serviceJobs->pluck('asset_id');
             $ticket_assets = $so->tickets->pluck('asset_id');
+
             return $job_assets->merge($ticket_assets);
         })->unique()->values()->all();
+
         return $asset_ids;
     }
 
@@ -160,6 +170,7 @@ class User extends Authenticatable
     public function relevantProductIds(): array
     {
         $asset_ids = $this->relevantAssetIds();
+
         return Asset::whereIn('id', $asset_ids)->pluck('product_id')->unique()->values()->all();
     }
 
@@ -188,7 +199,7 @@ class User extends Authenticatable
         return $this->hasMany(CalendarGrant::class, 'viewer_user_id');
     }
 
-    public function unavailabilities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function unavailabilities(): HasMany
     {
         return $this->hasMany(UserUnavailability::class);
     }

@@ -5,17 +5,20 @@ namespace App\Models;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RemarkableTrait;
+use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ticket extends Model
 {
-    /** @use HasFactory<\Database\Factories\TicketFactory> */
-    use HasFactory;
-    use RemarkableTrait;
-    use HasCustomFields;
     use HasActivities;
+    use HasCustomFields;
+
+    /** @use HasFactory<TicketFactory> */
+    use HasFactory;
+
+    use RemarkableTrait;
 
     protected $fillable = [
         'asset_id',
@@ -37,12 +40,12 @@ class Ticket extends Model
 
     public function closedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'closed_by_id');
+        return $this->belongsTo(User::class, 'closed_by_id')->withTrashed();
     }
 
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by_id');
+        return $this->belongsTo(User::class, 'created_by_id')->withTrashed();
     }
 
     public function serviceOrder(): BelongsTo

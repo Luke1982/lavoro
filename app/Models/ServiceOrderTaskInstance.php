@@ -27,10 +27,10 @@ class ServiceOrderTaskInstance extends Model
     ];
 
     protected $casts = [
-        'is_complete'  => 'boolean',
-        'quantity'     => 'integer',
+        'is_complete' => 'boolean',
+        'quantity' => 'integer',
         'completed_at' => 'datetime',
-        'signed_at'    => 'datetime',
+        'signed_at' => 'datetime',
         'is_cancelled' => 'boolean',
     ];
 
@@ -56,7 +56,7 @@ class ServiceOrderTaskInstance extends Model
 
     public function completedBy()
     {
-        return $this->belongsTo(User::class, 'completed_by');
+        return $this->belongsTo(User::class, 'completed_by')->withTrashed();
     }
 
     public function assets()

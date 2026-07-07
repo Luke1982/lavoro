@@ -31,6 +31,8 @@
                     <span class="text-xs text-slate-400">Aangemaakt door</span>
                     <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ ticket.created_by.name
                         }}</span>
+                    <BadgeComponent v-if="ticket.created_by.deleted_at" color="gray" :hasDot="false"
+                        class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <ClockIcon class="size-4 text-slate-400 flex-none" />
@@ -177,8 +179,10 @@
                                 <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten
                                     door</span>
                             </div>
-                            <div class="col-span-12 sm:col-span-9 text-sm text-gray-600 dark:text-slate-300">
+                            <div class="col-span-12 sm:col-span-9 text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1.5">
                                 {{ ticket.closed_by.name }}
+                                <BadgeComponent v-if="ticket.closed_by.deleted_at" color="gray" :hasDot="false"
+                                    class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
                             </div>
                         </div>
                     </template>

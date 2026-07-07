@@ -282,6 +282,10 @@ Route::group(
 
         Route::resource('users', UserController::class)->except(['destroy', 'show', 'update']);
         Route::post('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('users/{user}/restore', [UserController::class, 'restore'])
+            ->name('users.restore')
+            ->withTrashed();
 
         Route::resource('userroles', UserRoleController::class)
             ->only(['index', 'store', 'update', 'destroy']);

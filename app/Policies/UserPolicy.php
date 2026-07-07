@@ -28,6 +28,16 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        return $user->hasPermission('user.delete');
+        return $user->id !== $model->id && $user->hasPermission('user.delete');
+    }
+
+    public function restore(User $user, User $model): bool
+    {
+        return $user->hasPermission('user.restore');
+    }
+
+    public function viewTrashed(User $user): bool
+    {
+        return $user->hasPermission('user.delete') || $user->hasPermission('user.restore');
     }
 }

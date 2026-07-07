@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Role;
+use App\Http\Requests\UserDeleteRequest;
+use App\Http\Requests\UserRestoreRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\UserAvatarService;
 
 class UserController extends Controller
@@ -14,19 +16,23 @@ class UserController extends Controller
     {
         abort_unless(auth()->user()->can('viewAny', User::class), 403);
         $users = User::all();
+        $deleted_users = auth()->user()->can('viewTrashed', User::class)
+            ? User::onlyTrashed()->get()
+            : collect();
 
         return inertia('Users/IndexPage', [
             'users' => $users,
+            'deletedUsers' => $deleted_users,
         ]);
     }
-
 
     public function create()
     {
         abort_unless(auth()->user()->can('create', User::class), 403);
+
         return inertia('Users/EditPage', [
             'user' => null,
-            'allRoles' => Role::orderBy('name')->get(['id','name']),
+            'allRoles' => Role::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -34,9 +40,10 @@ class UserController extends Controller
     {
         abort_unless(auth()->user()->can('view', $user), 403);
         $user->load('roles:id,name');
+
         return inertia('Users/EditPage', [
-            'user'             => $user,
-            'allRoles'         => Role::orderBy('name')->get(['id', 'name']),
+            'user' => $user,
+            'allRoles' => Role::orderBy('name')->get(['id', 'name']),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
@@ -69,7 +76,22 @@ class UserController extends Controller
             $user->roles()->sync($data['role_ids']);
         }
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
+
         return redirect()->route('users.index')->with('success', 'Gebruiker bijgewerkt');
+    }
+
+    public function destroy(UserDeleteRequest $request, User $user)
+    {
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'Gebruiker verwijderd');
+    }
+
+    public function restore(UserRestoreRequest $request, User $user)
+    {
+        $user->restore();
+
+        return redirect()->route('users.index')->with('success', 'Gebruiker hersteld');
     }
 
     /**
@@ -80,9 +102,10 @@ class UserController extends Controller
         $user = request()->user();
         abort_unless($user, 403);
         $user->load('roles:id,name');
+
         return inertia('Users/EditPage', [
-            'user'             => $user,
-            'allRoles'         => $user->isAdmin() ? Role::orderBy('name')->get(['id', 'name']) : [],
+            'user' => $user,
+            'allRoles' => $user->isAdmin() ? Role::orderBy('name')->get(['id', 'name']) : [],
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')

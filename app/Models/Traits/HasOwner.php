@@ -23,7 +23,7 @@ trait HasOwner
 
     public function owners(): MorphToMany
     {
-        return $this->morphToMany(User::class, 'userable')->withPivot('type')->withTimestamps();
+        return $this->morphToMany(User::class, 'userable')->withPivot('type')->withTimestamps()->withTrashed();
     }
 
     public function owner()

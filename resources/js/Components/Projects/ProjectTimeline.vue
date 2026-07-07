@@ -382,7 +382,7 @@
                         <ClockIcon v-else class="size-3.5 text-gray-400 shrink-0" />
                         <span :class="{ 'line-through text-gray-400': ti.is_cancelled }">{{ ti.title }}</span>
                         <span v-if="ti.completed_at" class="text-gray-400">
-                            · {{ nlDate(ti.completed_at) }}<template v-if="ti.completed_by"> door {{ ti.completed_by.name }}</template>
+                            · {{ nlDate(ti.completed_at) }}<template v-if="ti.completed_by"> door {{ ti.completed_by.name }}<template v-if="ti.completed_by.deleted_at"> (gedeactiveerd)</template></template>
                         </span>
                     </div>
                 </div>
