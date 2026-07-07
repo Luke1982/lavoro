@@ -377,48 +377,20 @@
                                 </EditableTextField>
                             </div>
                             <div class="py-2">
-                                <EditableTextField v-model="form.signed_by" class="w-full mb-5"
-                                    :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
-                                    @update="val => { form.signed_by = val; }">
-                                    <template #display>
-                                        <span class="text-xs">{{
-                                            serviceOrder.signed_by || `Klik hier om een naam van een tekeningsbevoegde
-                                            in te voeren`
-                                            }}</span>
-                                    </template>
-                                </EditableTextField>
+                                <span class="block text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1">Naam</span>
+                                <span class="text-sm dark:text-slate-200">{{ serviceOrder.signed_by || 'Nog niet ondertekend' }}</span>
                             </div>
-                            <div class="relative" v-if="!editingSignature">
-                                <img :src="serviceOrder.signature_base64" alt="">
-                                <PencilSquareIcon v-if="!serviceOrder.is_closed && hasPermission('serviceorder.close')"
-                                    class="absolute top-2 right-2 transform w-5 h-5 text-gray-600 dark:text-slate-400 cursor-pointer hover:text-gray-500 dark:hover:text-slate-300"
-                                    @click="editingSignature = true" />
+                            <div v-if="serviceOrder.signature_base64" class="py-2">
+                                <img :src="serviceOrder.signature_base64" alt="Handtekening" class="max-h-24">
                             </div>
-                            <div v-if="editingSignature && !serviceOrder.is_closed">
-                                <div class="mb-3">
-                                    <h3 class="font-bold text-gray-900 dark:text-slate-100">Handtekening</h3>
-                                    <p class="text-sm text-gray-500 dark:text-slate-400">Laat de klant hier ondertekenen
-                                        ter akkoord van de
-                                        uitgevoerde werkzaamheden.</p>
-                                </div>
-                                <SignaturePad ref="signaturePadRef" v-model="form.signature_base64"
-                                    :readonly="serviceOrder.is_closed" />
-                                <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <div
-                                        class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                                        <Shield class="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-sm text-gray-900 dark:text-slate-100">Juridisch
-                                            bindend</p>
-                                        <p class="text-sm text-gray-500 dark:text-slate-400">Deze handtekening is
-                                            juridisch bindend en wordt
-                                            opgeslagen bij deze werkbon.</p>
-                                    </div>
-                                </div>
-                            </div>
+                            <button v-if="hasPermission('serviceorder.close') || serviceOrder.is_closed"
+                                @click="showCloseModal = true"
+                                class="mt-4 w-full p-3 rounded-md ring-1 ring-gray-200 dark:ring-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
+                                <Signature class="w-5 h-5" />
+                                {{ isSigned ? 'Bekijk overzicht' : 'Bekijk & onderteken' }}
+                            </button>
                             <button
-                                v-if="closedStageId !== null && !serviceOrder.is_closed && hasPermission('serviceorder.close')"
+                                v-if="closedStageId !== null && isSigned && !serviceOrder.is_closed && hasPermission('serviceorder.close')"
                                 @click="closeViaStage"
                                 class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
                                 <Check class="w-5 h-5" />
@@ -631,6 +603,9 @@
             </div>
         </template>
     </DrawerComponent>
+
+    <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder" :user-roles="userRoles"
+        @confirm="handleSignatureConfirm" />
 </template>
 
 <script setup>
@@ -644,19 +619,19 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { DocumentTextIcon, PencilSquareIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
-import { Shield, Check, TrashIcon } from '@lucide/vue';
+import { DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
+import { Check, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
-import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
+import CloseServiceOrderModal from '@/Components/ServiceOrders/CloseServiceOrderModal.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { ticketPriorities } from '@/Components/data/TicketData';
@@ -697,7 +672,7 @@ const props = defineProps({
 });
 
 
-const editingSignature = ref(!props.serviceOrder.is_closed);
+const showCloseModal = ref(false);
 
 
 const internalCustomers = computed(() =>
@@ -814,39 +789,31 @@ const form = useForm({
 });
 
 function closeViaStage() {
-    const has_unsaved_signature = editingSignature.value && signaturePadRef.value
-        && !signaturePadRef.value.isEmpty() && !signaturePadRef.value.isSaved()
-    if (has_unsaved_signature) {
-        isClosing.value = true
-        form.signature_base64 = signaturePadRef.value.getDataUrl()
-    }
-    if (!canClose.value) {
+    if (!isSigned.value) {
         alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.')
-        isClosing.value = false
         return
     }
     if (!confirm('Weet je zeker dat je de werkbon wilt sluiten? Je kunt er daarna geen wijzigingen meer in aanbrengen.')) {
-        isClosing.value = false
-        return
-    }
-    if (has_unsaved_signature) {
-        form.service_order_stage_id = props.closedStageId
-        form.put(`/serviceorders/${props.serviceOrder.id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                editingSignature.value = false
-                isClosing.value = false
-                form.defaults()
-            },
-            onError: (errors) => {
-                isClosing.value = false
-                const msg = errors.service_order_stage_id || Object.values(errors)[0]
-                if (msg) usePage().props.flash.error = msg
-            },
-        })
         return
     }
     onStageChange(props.closedStageId)
+}
+
+function handleSignatureConfirm({ signed_by, signature_base64 }) {
+    form.signed_by = signed_by
+    form.signature_base64 = signature_base64
+    form.put(`/serviceorders/${props.serviceOrder.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.defaults()
+            showCloseModal.value = false
+        },
+        onError: (errors) => {
+            form.reset('signed_by', 'signature_base64')
+            const msg = errors.signed_by || errors.signature_base64 || Object.values(errors)[0]
+            if (msg) usePage().props.flash.error = msg
+        },
+    })
 }
 
 function reopenViaStage() {
@@ -891,8 +858,6 @@ const addServiceJobFromSelectedAsset = () => {
 };
 
 const isReverting = ref(false);
-const isClosing = ref(false);
-const signaturePadRef = ref(null);
 
 const typeOptions = [
     { value: 'installation', title: 'Installatie' },
@@ -903,8 +868,6 @@ const typeOptions = [
 watch(
     [
         () => form.description,
-        () => form.signed_by,
-        () => form.signature_base64,
         () => form.external_purchaseorder_no,
         () => form.external_invoice_no,
         () => form.financial_comments,
@@ -915,21 +878,14 @@ watch(
         () => form.project_id,
         () => form.type,
     ],
-    ([, , newSig], [, , oldSig]) => {
+    () => {
         if (isReverting.value) {
             isReverting.value = false;
             return;
         }
-        if (isClosing.value) {
-            return;
-        }
-        const signatureChanged = newSig !== oldSig;
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                if (signatureChanged) {
-                    editingSignature.value = false;
-                }
                 form.defaults();
             },
             onError: () => {
@@ -1069,9 +1025,9 @@ const exportSlot = computed(() => `chapter-${canSeeFinancials.value ? 2 : 1}`)
 
 const showFinancialUi = computed(() => canSeeFinancials.value && showFinancial.value);
 
-const canClose = computed(() => {
-    const name = (form.signed_by ?? '').toString().trim();
-    const sig = (form.signature_base64 ?? '').toString().trim();
+const isSigned = computed(() => {
+    const name = (props.serviceOrder.signed_by ?? '').toString().trim();
+    const sig = (props.serviceOrder.signature_base64 ?? '').toString().trim();
     return name.length > 0 && sig.length > 0;
 });
 
