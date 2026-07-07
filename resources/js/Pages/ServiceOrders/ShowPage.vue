@@ -128,8 +128,8 @@
                         </BoxComponent>
                         <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
                             :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
-                            :available-tasks="availableTasks" :products="products" :is-closed="serviceOrder.is_closed"
-                            class="my-4" />
+                            :available-tasks="availableTasks" :products="products" :user-roles="userRoles"
+                            :is-closed="serviceOrder.is_closed" class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
                             <div class="flex items-start sm:items-center gap-x-3 mb-3 justify-between">
                                 <div class="flex gap-x-3">
@@ -690,6 +690,7 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     snelStartEnabled: { type: Boolean, default: false },
     usersMissingTimes: { type: Array, default: () => [] },
