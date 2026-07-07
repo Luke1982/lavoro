@@ -2,29 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ServiceOrderTaskInstanceCancelRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceStoreRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
+use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
 use App\Models\Asset;
 use App\Models\Product;
 use App\Models\ServiceOrderTaskInstance;
-use App\Http\Requests\ServiceOrderTaskInstanceStoreRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
-use App\Http\Requests\ServiceOrderTaskInstanceCancelRequest;
 
 class ServiceOrderTaskInstanceController extends Controller
 {
     public function store(ServiceOrderTaskInstanceStoreRequest $request)
     {
-        ServiceOrderTaskInstance::create($request->validated());
+        $data = $request->validated();
+        $user_role_ids = $data['user_role_ids'] ?? [];
+        unset($data['user_role_ids']);
+
+        $instance = ServiceOrderTaskInstance::create($data);
+        $instance->userRoles()->sync($user_role_ids);
 
         return redirect()->back()->with('success', 'Taak is toegevoegd');
     }
 
     public function update(ServiceOrderTaskInstanceUpdateRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
-        $serviceordertaskinstance->update($request->validated());
+        $data = $request->validated();
+
+        if (array_key_exists('user_role_ids', $data)) {
+            $serviceordertaskinstance->userRoles()->sync($data['user_role_ids']);
+            unset($data['user_role_ids']);
+        }
+
+        $serviceordertaskinstance->update($data);
 
         return redirect()->back()->with('success', 'Taak is bijgewerkt');
     }
@@ -39,7 +51,7 @@ class ServiceOrderTaskInstanceController extends Controller
             ]);
         }
 
-        if (!$data['is_complete'] && $serviceordertaskinstance->product_id) {
+        if (! $data['is_complete'] && $serviceordertaskinstance->product_id) {
             if ($serviceordertaskinstance->assets()->exists()) {
                 return redirect()->back()->withErrors([
                     'task' => 'Deze taak heeft apparatuur geregistreerd en kan niet meer heropend worden.',
@@ -53,39 +65,39 @@ class ServiceOrderTaskInstanceController extends Controller
             $update['completed_at'] = now();
             $update['completed_by'] = auth()->id();
         } else {
-            $update['completed_at']     = null;
-            $update['completed_by']     = null;
-            $update['signed_by']        = null;
+            $update['completed_at'] = null;
+            $update['completed_by'] = null;
+            $update['signed_by'] = null;
             $update['signature_base64'] = null;
-            $update['signed_at']        = null;
+            $update['signed_at'] = null;
         }
 
         $serviceordertaskinstance->update($update);
 
-        if ($data['is_complete'] && !empty($data['assets'])) {
+        if ($data['is_complete'] && ! empty($data['assets'])) {
             $serviceordertaskinstance->loadMissing('serviceOrder');
             $customer_id = $serviceordertaskinstance->serviceOrder->customer_id;
-            $today       = now()->toDateString();
+            $today = now()->toDateString();
 
             foreach ($data['assets'] as $asset_data) {
                 $product = Product::with('productType')->find($asset_data['product_id']);
-                if (!$product) {
+                if (! $product) {
                     continue;
                 }
 
                 Asset::create([
-                    'customer_id'                    => $customer_id,
-                    'product_id'                     => $product->id,
+                    'customer_id' => $customer_id,
+                    'product_id' => $product->id,
                     'service_order_task_instance_id' => $serviceordertaskinstance->id,
-                    'serial_number'                  => $asset_data['serial_number'],
-                    'date_in_service'                => $today,
-                    'next_service_date'              => now()->addDays($product->effectiveCertificateDays())
-                                                         ->toDateString(),
+                    'serial_number' => $asset_data['serial_number'],
+                    'date_in_service' => $today,
+                    'next_service_date' => now()->addDays($product->effectiveCertificateDays())
+                        ->toDateString(),
                 ]);
             }
         }
 
-        $title  = $serviceordertaskinstance->title
+        $title = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
         $action = $data['is_complete'] ? 'voltooid' : 'heropend';
@@ -107,7 +119,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
     public function sign(ServiceOrderTaskInstanceSignRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
-        if (!$serviceordertaskinstance->is_complete) {
+        if (! $serviceordertaskinstance->is_complete) {
             return redirect()->back()->withErrors([
                 'sign' => 'Alleen voltooide taken kunnen ondertekend worden.',
             ]);
@@ -116,9 +128,9 @@ class ServiceOrderTaskInstanceController extends Controller
         $data = $request->validated();
 
         $serviceordertaskinstance->update([
-            'signed_by'        => $data['signed_by'],
+            'signed_by' => $data['signed_by'],
             'signature_base64' => $data['signature_base64'],
-            'signed_at'        => now(),
+            'signed_at' => now(),
         ]);
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
@@ -139,9 +151,9 @@ class ServiceOrderTaskInstanceController extends Controller
     public function unsign(ServiceOrderTaskInstanceUnsignRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
         $serviceordertaskinstance->update([
-            'signed_by'        => null,
+            'signed_by' => null,
             'signature_base64' => null,
-            'signed_at'        => null,
+            'signed_at' => null,
         ]);
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
@@ -170,13 +182,13 @@ class ServiceOrderTaskInstanceController extends Controller
         $data = $request->validated();
 
         $serviceordertaskinstance->update([
-            'is_cancelled'        => true,
+            'is_cancelled' => true,
             'cancellation_reason' => $data['cancellation_reason'],
         ]);
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
 
-        $title   = $serviceordertaskinstance->title
+        $title = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
         $message = 'Taak "' . $title . '" geannuleerd: ' . $data['cancellation_reason'];
