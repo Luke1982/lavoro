@@ -439,11 +439,11 @@ const productOptions = computed(() => props.products.map(p => ({
 })))
 
 function toggleRoleId(list, id) {
-    const idx = list.value.indexOf(id)
+    const idx = list.indexOf(id)
     if (idx === -1) {
-        list.value.push(id)
+        list.push(id)
     } else {
-        list.value.splice(idx, 1)
+        list.splice(idx, 1)
     }
 }
 
