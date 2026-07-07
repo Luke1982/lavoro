@@ -103,6 +103,13 @@ class ServiceOrderUpdateRequest extends FormRequest
                     $validator->errors()->add('service_order_stage_id', $message);
                 }
             }
+
+            if (blank($serviceorder->signed_by) || blank($serviceorder->signature_base64)) {
+                $validator->errors()->add(
+                    'service_order_stage_id',
+                    'De werkbon moet ondertekend zijn door de klant voordat deze gesloten kan worden.'
+                );
+            }
         });
     }
 
