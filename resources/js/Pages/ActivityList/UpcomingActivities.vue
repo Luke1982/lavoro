@@ -127,9 +127,9 @@
                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
                         Naar werkbon
                     </a>
-                    <a :href="createdEvent ? `/events?gotodate=${encodeURIComponent(createdEvent.start.split('T')[0])}&highlightevent=${encodeURIComponent(createdEvent.id)}` : '/events'"
+                    <a :href="calendarHref"
                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-                        Naar kalender
+                        Naar planner
                     </a>
                 </div>
             </div>
@@ -179,6 +179,16 @@ const loading = ref(false);
 const planningModalOpen = ref(false);
 const eventSuccessfullyCreated = ref(false);
 const createdEvent = ref(null);
+
+const calendarHref = computed(() => {
+    if (!createdEvent.value) return '/planner';
+    const params = new URLSearchParams({
+        gotodate: createdEvent.value.start.split('T')[0],
+        highlightevent: createdEvent.value.id,
+        executing_user_ids: (createdEvent.value.executing_users || []).map(u => u.id).join(','),
+    });
+    return `/planner?${params.toString()}`;
+});
 
 const eventForm = useForm({
     service_order_id: null,

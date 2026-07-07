@@ -8,7 +8,7 @@ class EventPayloadBuilder
 {
     public function build(Event $event): array
     {
-        $event->loadMissing(['eventType', 'serviceOrders.project', 'serviceOrders.customer']);
+        $event->loadMissing(['eventType', 'serviceOrders.project', 'serviceOrders.customer', 'executingUsers']);
 
         return [
             'summary' => $this->buildSummary($event),
@@ -80,7 +80,11 @@ class EventPayloadBuilder
         $service_order = $event->serviceOrders->first();
         $link = $service_order
             ? url('/serviceorders/' . $service_order->id)
-            : url('/events/' . $event->id);
+            : url('/planner?' . http_build_query([
+                'gotodate' => $event->start->format('Y-m-d'),
+                'highlightevent' => $event->id,
+                'executing_user_ids' => $event->executingUsers->pluck('id')->implode(','),
+            ]));
         $parts[] = '— Bekijk in Lavoro: ' . $link;
 
         return implode("\n\n", $parts);
@@ -97,6 +101,7 @@ class EventPayloadBuilder
         if ($is_all_day) {
             return ['date' => $dt->format('Y-m-d')];
         }
+
         return [
             'dateTime' => $dt->format(\DateTimeInterface::RFC3339),
             'timeZone' => 'Europe/Amsterdam',

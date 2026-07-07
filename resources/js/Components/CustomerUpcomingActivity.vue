@@ -84,8 +84,7 @@
                         <span class="text-xs text-gray-600 dark:text-slate-400 block mt-1">Eerder ingepland:</span>
                         <ul>
                             <li v-for="(ev, idx) in asset.earlier_planned_events" :key="idx" class="¨mt-1">
-                                <BadgeComponent color="red"
-                                    :url="`/events?gotodate=${encodeURIComponent((typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start)}&highlightevent=${encodeURIComponent(ev.event_id ?? '')}`"
+                                <BadgeComponent color="red" :url="planEventHref(ev)"
                                     :tooltip="'Deze machine had eerder een geplande afspraak op ' + nlDate(ev.start)">
                                     <Calendar1 class="inline-block size-4 mr-1" aria-hidden="true" />
                                     Werkbon {{ ev.service_order_id }} op {{ nlDate(ev.start) }}
@@ -188,6 +187,16 @@ const vIndeterminate = {
 
 const isAssetSelected = (assetId) => {
     return props.selectedAssets.some(a => a.id === assetId);
+};
+
+const planEventHref = (ev) => {
+    const date = (typeof ev.start === 'string' && ev.start.includes('T')) ? ev.start.split('T')[0] : ev.start;
+    const params = new URLSearchParams({
+        gotodate: date,
+        highlightevent: ev.event_id ?? '',
+        executing_user_ids: (ev.executing_user_ids || []).join(','),
+    });
+    return `/planner?${params.toString()}`;
 };
 
 const toggleAssetSelection = (asset) => {

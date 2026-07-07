@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AssetStatusses;
+use App\Http\Requests\ActivityListReadRequest;
 use App\Models\Asset;
 use App\Models\Customer;
-use App\Http\Requests\ActivityListReadRequest;
 use App\Models\EventType;
 use App\Models\User;
 use Carbon\Carbon;
@@ -15,12 +15,12 @@ class ActivityListController extends Controller
 {
     public function getUpcomingActivities(ActivityListReadRequest $request)
     {
-        $days   = (int) $request->input('days', 60);
+        $days = (int) $request->input('days', 60);
         $search = $request->filled('search') ? trim($request->input('search')) : null;
 
         return inertia('ActivityList/UpcomingActivities', [
             'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search),
-            'expiredAssets'  => $this->buildCustomerAssetList('expired', $days, $search),
+            'expiredAssets' => $this->buildCustomerAssetList('expired', $days, $search),
             'eventTypes' => EventType::all(),
             'allUsers' => User::all(['id', 'name']),
         ]);
@@ -37,7 +37,7 @@ class ActivityListController extends Controller
             ->with(['customer'])
             ->orderBy('next_service_date')
             ->get()
-            ->unique(fn($a) => $a->customer?->id)
+            ->unique(fn ($a) => $a->customer?->id)
             ->values();
 
         if ($main_assets->isEmpty()) {
@@ -60,7 +60,7 @@ class ActivityListController extends Controller
                 'product.mainImage',
                 'openTickets',
                 'pendingTickets',
-                'pendingServiceJobs.serviceOrder.pastOpenEvents',
+                'pendingServiceJobs.serviceOrder.pastOpenEvents.executingUsers',
                 'pendingServiceJobs.serviceOrder.comingEvents',
             ]);
 
@@ -82,7 +82,7 @@ class ActivityListController extends Controller
                 continue;
             }
             $assets = $inner_by_customer->get($main->customer->id, collect());
-            $assets->each(fn($a) => $this->attachEarlierPlannedEvents($a));
+            $assets->each(fn ($a) => $this->attachEarlierPlannedEvents($a));
 
             $main->customer->upcoming_asset_days = $days;
             $main->customer->setRelation('upcomingAssets', $assets->values());
@@ -101,10 +101,11 @@ class ActivityListController extends Controller
                     'start' => Carbon::parse($ev->start)->toIso8601String(),
                     'service_order_id' => $order_id,
                     'event_id' => $ev->id,
+                    'executing_user_ids' => $ev->executingUsers->pluck('id')->all(),
                 ];
             }
         }
-        usort($earlier, fn($a, $b) => strcmp($b['start'], $a['start']));
+        usort($earlier, fn ($a, $b) => strcmp($b['start'], $a['start']));
         $asset->has_past_planned_event = !empty($earlier);
         $asset->earlier_planned_events = $earlier;
     }
@@ -116,11 +117,11 @@ class ActivityListController extends Controller
         }
 
         return $query->where(function (Builder $q) use ($search) {
-            $q->whereHas('customer', fn(Builder $c) => $c->where('name', 'like', "%{$search}%"))
+            $q->whereHas('customer', fn (Builder $c) => $c->where('name', 'like', "%{$search}%"))
                 ->orWhere('serial_number', 'like', "%{$search}%")
                 ->orWhereHas('product', function (Builder $p) use ($search) {
                     $p->where('model', 'like', "%{$search}%")
-                        ->orWhereHas('brand', fn(Builder $b) => $b->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('brand', fn (Builder $b) => $b->where('name', 'like', "%{$search}%"));
                 });
         });
     }
@@ -137,7 +138,7 @@ class ActivityListController extends Controller
 
     public function map(ActivityListReadRequest $request)
     {
-        $days = (int)$request->input('days', 60);
+        $days = (int) $request->input('days', 60);
 
         $upcoming_customer_ids = $this->getUpcomingAssetsQuery($days)
             ->whereNotNull('customer_id')
@@ -158,19 +159,20 @@ class ActivityListController extends Controller
         $customers->transform(function ($c) use ($now, $expired_customer_ids) {
             $c->has_expired_assets = $expired_customer_ids->contains($c->id);
             $eligible = $c->assets->filter(
-                fn($a) => $a->next_service_date &&
+                fn ($a) => $a->next_service_date &&
                     $a->status !== AssetStatusses::inactive->value
             );
             $days = $eligible
-                ->map(fn($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
+                ->map(fn ($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
                 ->min();
             $c->next_service_in_days = $days; // int|null
             // earliest asset info
-            $earliest = $eligible->sortBy(fn($a) => $a->next_service_date)->first();
+            $earliest = $eligible->sortBy(fn ($a) => $a->next_service_date)->first();
             if ($earliest) {
                 $c->earliest_asset_serial = $earliest->serial_number;
                 $c->earliest_asset_product_type = $earliest->product?->productType?->name;
             }
+
             return $c;
         });
 

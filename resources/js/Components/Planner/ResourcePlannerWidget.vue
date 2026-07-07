@@ -1062,17 +1062,13 @@ async function searchEvents(q) {
     }
 }
 
-watch(eventSearchSelection, async (id) => {
-    if (!id) return
-    const opt = eventSearchOptions.value.find(o => o.id === id)
-    eventSearchSelection.value = null
-    eventSearchOptions.value = []
+async function jumpToEvent(opt) {
     if (!opt) return
 
     const date = new Date(opt.start)
     weekStart.value = plannerView.value === 'day' ? dayjs(date).startOf('day').toDate() : startOfWeek(date)
 
-    const targetUserIds = opt.executing_users.map(u => u.id)
+    const targetUserIds = (opt.executing_users || []).map(u => u.id)
     if (targetUserIds.length && !targetUserIds.some(uid => visibleUsers.value.some(u => u.id === uid))) {
         selectedGroupIds.value = []
     }
@@ -1093,6 +1089,34 @@ watch(eventSearchSelection, async (id) => {
     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
     clearTimeout(highlightTimer)
     highlightTimer = setTimeout(() => { highlightedEventId.value = null }, 2000)
+}
+
+watch(eventSearchSelection, async (id) => {
+    if (!id) return
+    const opt = eventSearchOptions.value.find(o => o.id === id)
+    eventSearchSelection.value = null
+    eventSearchOptions.value = []
+    await jumpToEvent(opt)
+})
+
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search)
+    const highlightevent = params.get('highlightevent')
+    if (!highlightevent) return
+
+    const gotodate = params.get('gotodate')
+    const executingUserIds = (params.get('executing_user_ids') || '')
+        .split(',')
+        .filter(Boolean)
+        .map(id => ({ id: Number(id) }))
+
+    jumpToEvent({
+        id: Number(highlightevent),
+        start: gotodate || new Date().toISOString(),
+        executing_users: executingUserIds,
+    })
+
+    window.history.replaceState(null, '', window.location.pathname)
 })
 
 function scrollToWorkdayStart() {

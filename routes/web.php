@@ -15,7 +15,6 @@ use App\Http\Controllers\CustomerImportController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\FreeformMaterialController;
@@ -256,8 +255,6 @@ Route::group(
             ->only(['store', 'update', 'destroy']);
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
             ->name('documents.download');
-        Route::resource('events', EventController::class)
-            ->only(['index', 'show']);
         Route::get('planner', [PlannerController::class, 'index'])
             ->name('planner.index');
         Route::get('planner/export', EventExportController::class)
