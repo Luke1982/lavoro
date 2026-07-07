@@ -29,6 +29,7 @@ use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
+use App\Models\UserRole;
 use App\Services\SnelStartClient;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -177,6 +178,7 @@ class ServiceOrderController extends Controller
             'events.executions',
             'customFields',
             'taskInstances.serviceOrderTask',
+            'taskInstances.userRoles',
             'taskInstances.product.brand',
             'taskInstances.product.productType',
             'taskInstances.product.productables.childProduct.brand',
@@ -187,6 +189,23 @@ class ServiceOrderController extends Controller
             'images',
             'internalImages',
         ])->findOrFail($id);
+
+        $user = Auth::user();
+
+        if (! $user->isAdmin()) {
+            $role_ids = $service_order->events
+                ->flatMap(fn ($event) => $event->executingUserRoleIds($user->id))
+                ->unique()
+                ->values()
+                ->all();
+
+            $visible_instances = $service_order->taskInstances->filter(
+                fn ($instance) => $instance->userRoles->isEmpty()
+                    || $instance->userRoles->pluck('id')->intersect($role_ids)->isNotEmpty()
+            )->values();
+
+            $service_order->setRelation('taskInstances', $visible_instances);
+        }
 
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
@@ -229,6 +248,7 @@ class ServiceOrderController extends Controller
             'serviceOrder' => $service_order,
             'usersMissingTimes' => $users_missing_times,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
+            'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
             'allMaterials' => ($mc = Material::count()) <= 50
                 ? Material::with('usageUnit')->get()
                 : collect(),
