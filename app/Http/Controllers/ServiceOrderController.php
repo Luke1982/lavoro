@@ -58,7 +58,12 @@ class ServiceOrderController extends Controller
         $per_page = $this->perPage($request, 25);
 
         $user = Auth::user();
-        $query = ServiceOrder::with(['customer', 'serviceOrderStage']);
+        $query = ServiceOrder::with([
+            'customer',
+            'serviceOrderStage',
+            'events' => fn ($q) => $q->orderBy('start'),
+            'events.executingUsers:id,name',
+        ]);
 
         if (!$user->isAdmin() && !$user->hasPermission('serviceorder.read')) {
             $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
@@ -466,7 +471,7 @@ class ServiceOrderController extends Controller
             $serviceorder->delete();
         });
 
-        return redirect()->route('serviceorders.index')
+        return redirect()->back()
             ->with('success', 'Werkbon succesvol verwijderd.');
     }
 

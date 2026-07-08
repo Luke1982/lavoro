@@ -49,7 +49,7 @@
                     <div class="col-span-2">Fase</div>
                     <div class="col-span-2">Extern factuurnr.</div>
                     <div class="col-span-2">Verzending</div>
-                    <div class="col-span-1">Aangemaakt</div>
+                    <div class="col-span-1">Uitvoeringsdata</div>
                     <div class="col-span-1 text-right">Acties</div>
                 </div>
             </div>
@@ -104,8 +104,26 @@
                                 {{ serviceOrderPillText(so) }}
                             </BadgeComponent>
                         </div>
-                        <div class="col-span-1 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
-                            {{ nlDate(so.created_at) }}
+                        <div class="col-span-1 hidden sm:flex flex-col gap-1.5 pr-2 text-slate-700 dark:text-slate-300">
+                            <div v-for="event in so.events" :key="event.id" class="text-xs">
+                                <div class="font-medium">
+                                    {{ nlDate(event.start) }} {{ nlTime(event.start) }}–{{ nlTime(event.end) }}
+                                </div>
+                                <div v-if="event.executing_users?.length" class="mt-0.5 flex flex-wrap gap-1.5">
+                                    <div v-for="u in event.executing_users" :key="u.id"
+                                        class="inline-flex items-center gap-1">
+                                        <span
+                                            class="h-4 w-4 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-gray-300 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600">
+                                            {{ initials(u.name) }}
+                                        </span>
+                                        <span class="leading-none">
+                                            {{ u.name }}<template v-if="u.pivot?.has_diverging_times">
+                                                ({{ u.pivot.diverging_start?.slice(0, 5) }}–{{ u.pivot.diverging_end?.slice(0, 5) }})</template>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span v-if="!so.events?.length" class="text-xs text-slate-400">—</span>
                         </div>
                         <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2">
                             <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
@@ -206,7 +224,7 @@ import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.v
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
-import { nlDate, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
+import { nlDate, nlTime, initials, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 
 const { serviceOrders, stages, perPage } = defineProps({
     serviceOrders: { type: Object, required: true },
