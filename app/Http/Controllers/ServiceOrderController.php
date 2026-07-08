@@ -60,7 +60,7 @@ class ServiceOrderController extends Controller
         $user = Auth::user();
         $query = ServiceOrder::with(['customer', 'serviceOrderStage']);
 
-        if (! $user->isAdmin() && ! $user->hasPermission('serviceorder.read')) {
+        if (!$user->isAdmin() && !$user->hasPermission('serviceorder.read')) {
             $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
         }
 
@@ -194,7 +194,7 @@ class ServiceOrderController extends Controller
 
         $all_task_instances = $service_order->taskInstances;
 
-        if (! $user->isAdmin()) {
+        if (!$user->isAdmin() && !$user->hasPermission('serviceorder.see_all_task_instances')) {
             $role_ids = $service_order->events
                 ->flatMap(fn ($event) => $event->executingUserRoleIds($user->id))
                 ->unique()
@@ -224,7 +224,7 @@ class ServiceOrderController extends Controller
             $reached_at = $latest?->created_at;
             $reached_by = $latest?->user?->name;
 
-            if (! $reached_at && $stage->id === $first_stage_id) {
+            if (!$reached_at && $stage->id === $first_stage_id) {
                 $reached_at = $service_order->created_at;
             }
 
@@ -240,7 +240,7 @@ class ServiceOrderController extends Controller
             ->flatMap(fn ($event) => $event->executingUsers->filter(function ($user) use ($event) {
                 $execution = $event->executions->firstWhere('user_id', $user->id);
 
-                return ! $execution || ! $execution->actual_start || ! $execution->actual_end;
+                return !$execution || !$execution->actual_start || !$execution->actual_end;
             }))
             ->pluck('name')
             ->unique()
@@ -318,10 +318,10 @@ class ServiceOrderController extends Controller
         $serviceorder->load('serviceOrderStage');
         $new_is_closed = $serviceorder->is_closed;
 
-        if ($new_is_closed && ! $previous_is_closed) {
+        if ($new_is_closed && !$previous_is_closed) {
             $serviceorder->closed_on = now();
             $serviceorder->save();
-        } elseif (! $new_is_closed && $previous_is_closed) {
+        } elseif (!$new_is_closed && $previous_is_closed) {
             $serviceorder->closed_on = null;
             $serviceorder->save();
         }
@@ -382,7 +382,7 @@ class ServiceOrderController extends Controller
     public function emailPdf(ServiceOrderEmailPdfRequest $request, ServiceOrder $serviceorder)
     {
         $serviceorder->load(['customer', 'serviceOrderStage']);
-        if (! $serviceorder->is_closed) {
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with('error', 'Sluit de werkbon af voordat je de PDF kunt e-mailen.');
         }
         $recipients = array_unique(array_filter([
@@ -399,7 +399,7 @@ class ServiceOrderController extends Controller
 
         $serviceorder->logActivity('Werkbon per e-mail verzonden naar: ' . implode(', ', $recipients));
         // Mark as sent to customer
-        if (! $serviceorder->sent_to_customer) {
+        if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
         }
@@ -410,7 +410,7 @@ class ServiceOrderController extends Controller
     public function emailPdfWithJobs(ServiceOrderEmailPdfWithChecksRequest $request, ServiceOrder $serviceorder)
     {
         $serviceorder->load(['customer', 'serviceJobs.asset.customer', 'serviceOrderStage']);
-        if (! $serviceorder->is_closed) {
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with(
                 'error',
                 'Sluit de werkbon af voordat je de PDF met keuringen kunt e-mailen.'
@@ -434,7 +434,7 @@ class ServiceOrderController extends Controller
         }
         Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
         $serviceorder->logActivity('Werkbon + keuringen per e-mail verzonden naar: ' . implode(', ', $recipients));
-        if (! $serviceorder->sent_to_customer) {
+        if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
         }
@@ -479,7 +479,7 @@ class ServiceOrderController extends Controller
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
         $serviceorder->load(['customer.billingCustomer', 'materials', 'serviceOrderStage']);
-        if (! $serviceorder->is_closed) {
+        if (!$serviceorder->is_closed) {
             return redirect()->back()->with('error', 'Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         }
         if ($serviceorder->materials->isEmpty()) {
@@ -488,7 +488,7 @@ class ServiceOrderController extends Controller
 
         $customer = $serviceorder->customer;
         $customer = $customer?->billingCustomer ?: $customer;
-        if (! $customer || ! $customer->snelstart_id) {
+        if (!$customer || !$customer->snelstart_id) {
             return redirect()->back()->with('error', 'Klant heeft geen gekoppeld SnelStart ID.');
         }
 
@@ -497,7 +497,7 @@ class ServiceOrderController extends Controller
         $skipped_null_quantity = [];
         $skipped_no_snelstart = [];
         foreach ($serviceorder->materials as $idx => $material) {
-            if (! $material->snelstart_id) {
+            if (!$material->snelstart_id) {
                 $skipped_no_snelstart[] = $material->name;
 
                 continue;
@@ -599,13 +599,13 @@ class ServiceOrderController extends Controller
                 'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
             );
             $skip_messages = [];
-            if (! empty($skipped_null_quantity)) {
+            if (!empty($skipped_null_quantity)) {
                 $skip_messages[] = 'Materialen zonder hoeveelheid: ' . implode(', ', $skipped_null_quantity);
             }
-            if (! empty($skipped_no_snelstart)) {
+            if (!empty($skipped_no_snelstart)) {
                 $skip_messages[] = 'Materialen zonder SnelStart ID: ' . implode(', ', $skipped_no_snelstart);
             }
-            if (! empty($skip_messages)) {
+            if (!empty($skip_messages)) {
                 $redirect = $redirect->with('error', implode(' | ', $skip_messages));
             }
 
@@ -722,7 +722,7 @@ class ServiceOrderController extends Controller
             'taskInstances' => $serviceorder->taskInstances,
             'images' => $serviceorder->images->map(function ($image) {
                 $path = storage_path('app/public/' . $image->path);
-                if (! file_exists($path)) {
+                if (!file_exists($path)) {
                     return null;
                 }
                 $mime = mime_content_type($path);
