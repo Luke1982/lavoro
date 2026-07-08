@@ -156,28 +156,32 @@ watch(() => props.searching, (n) => {
     internalSearching.value = n
 })
 
-// Determine the initial internalValue candidate
-const resolveOption = (id) => props.options.find(o => o.id === id) || null
-const resolveOptions = (ids) => Array.isArray(ids) ? ids.map(resolveOption).filter(Boolean) : []
+// initialId/initialIds always identify an option by its `id`, regardless of emitValue
+const resolveOptionById = (id) => props.options.find(o => o.id === id) || null
+const resolveOptionsById = (ids) => Array.isArray(ids) ? ids.map(resolveOptionById).filter(Boolean) : []
+
+// modelValue is keyed by `name` when emitValue is true, by `id` otherwise
+const resolveModelValue = (value) => props.options.find(o => (props.emitValue ? o.name : o.id) === value) || null
+const resolveModelValues = (values) => Array.isArray(values) ? values.map(resolveModelValue).filter(Boolean) : []
 
 const internalValue = ref(
     props.multiple
         ? (Array.isArray(props.modelValue) && props.modelValue.length
-            ? resolveOptions(props.modelValue)
-            : (props.initialIds?.length ? resolveOptions(props.initialIds) : []))
-        : (resolveOption(props.modelValue) || resolveOption(props.initialId) || null)
+            ? resolveModelValues(props.modelValue)
+            : (props.initialIds?.length ? resolveOptionsById(props.initialIds) : []))
+        : (resolveModelValue(props.modelValue) || resolveOptionById(props.initialId) || null)
 )
 
 // If parent hasn’t supplied a modelValue, but we have an initialId, emit it once on mount
 onMounted(() => {
     if (!props.multiple) {
         if ((props.modelValue === undefined || props.modelValue === null) && props.initialId != null) {
-            const initial = resolveOption(props.initialId)
+            const initial = resolveOptionById(props.initialId)
             if (initial) emit('update:modelValue', props.emitValue ? initial.name : initial.id)
         }
     } else {
         if ((!Array.isArray(props.modelValue) || props.modelValue.length === 0) && props.initialIds?.length) {
-            const selected = resolveOptions(props.initialIds)
+            const selected = resolveOptionsById(props.initialIds)
             if (selected.length) emit('update:modelValue', props.emitValue ? selected.map(o => o.name) : selected.map(o => o.id))
         }
     }
@@ -196,10 +200,9 @@ watch(internalValue, (val) => {
 // Keep internalValue updated when external modelValue changes
 watch(() => props.modelValue, (newVal) => {
     if (!props.multiple) {
-        const option = resolveOption(newVal)
-        internalValue.value = option || null
+        internalValue.value = resolveModelValue(newVal)
     } else {
-        internalValue.value = resolveOptions(newVal)
+        internalValue.value = resolveModelValues(newVal)
     }
 })
 

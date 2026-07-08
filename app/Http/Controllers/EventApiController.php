@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventTrigger;
+use App\Enums\StandardEmailTriggerType;
 use App\Http\Requests\EventCopyRequest;
 use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventFeedbackRequest;
@@ -17,6 +19,7 @@ use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
+use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -208,7 +211,13 @@ class EventApiController extends Controller
             'executingUsers', 'executions', 'customers',
         ]);
 
-        return response()->json($this->withUserRoles($event), 201);
+        return response()->json(array_merge(
+            $this->withUserRoles($event)->toArray(),
+            [
+                'pending_standard_emails' => $this->pendingStandardEmails($event, EventTrigger::event_created),
+                'queued_standard_emails' => $this->queuedStandardEmailNames($event, EventTrigger::event_created),
+            ]
+        ), 201);
     }
 
     public function update(EventUpdateRequest $request, Event $event)
@@ -302,14 +311,23 @@ class EventApiController extends Controller
             'executingUsers', 'executions', 'customers',
         ]);
 
-        return response()->json($this->withUserRoles($event));
+        return response()->json(array_merge(
+            $this->withUserRoles($event)->toArray(),
+            [
+                'pending_standard_emails' => $this->pendingStandardEmails($event, EventTrigger::event_updated),
+                'queued_standard_emails' => $this->queuedStandardEmailNames($event, EventTrigger::event_updated),
+            ]
+        ));
     }
 
     public function destroy(EventDestroyRequest $request, Event $event)
     {
+        $event->load(['serviceOrders.customer', 'customers']);
+        $pending = $this->pendingStandardEmails($event, EventTrigger::event_deleted);
+
         $event->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['pending_standard_emails' => $pending]);
     }
 
     public function copy(EventCopyRequest $request, Event $event)
@@ -390,6 +408,29 @@ class EventApiController extends Controller
             'remarks' => $event->remarks,
             'images' => $event->images,
         ]);
+    }
+
+    private function pendingStandardEmails(Event $event, EventTrigger $trigger): array
+    {
+        return StandardEmailTriggerResolver::matching(
+            $event,
+            $trigger,
+            [StandardEmailTriggerType::confirm->name, StandardEmailTriggerType::allowedit->name]
+        )->map(fn ($match) => [
+            'standard_email_id' => $match->standard_email_id,
+            'name' => $match->standardEmail->name,
+            'trigger' => $trigger->name,
+            'trigger_type' => $match->trigger_type,
+        ])->values()->all();
+    }
+
+    private function queuedStandardEmailNames(Event $event, EventTrigger $trigger): array
+    {
+        return StandardEmailTriggerResolver::matching(
+            $event,
+            $trigger,
+            [StandardEmailTriggerType::background->name]
+        )->map(fn ($match) => $match->standardEmail->name)->values()->all();
     }
 
     private function withUserRoles($events)

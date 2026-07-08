@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EventStatusses;
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model
 {
+    use HasActivities;
     use HasExecutingUsers;
     use HasFactory;
     use HasOwner;
@@ -70,6 +72,11 @@ class Event extends Model
     public function customers()
     {
         return $this->morphedByMany(Customer::class, 'eventable');
+    }
+
+    public function primaryCustomer(): ?Customer
+    {
+        return $this->serviceOrders->first()?->customer ?? $this->customers->first();
     }
 
     public function executions(): HasMany

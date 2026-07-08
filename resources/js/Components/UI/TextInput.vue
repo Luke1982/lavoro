@@ -10,7 +10,7 @@
             <input :type="type" :name="name" :id="id" v-model="internalValue" :autocomplete="autocomplete"
                 :disabled="disabled" :step="step || undefined" :min="min !== null ? min : undefined"
                 class="transition-colors duration-200 focus:outline-none" :class="{
-                    'dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 sm:text-sm sm:leading-6': !hasError,
+                    'bg-white dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 sm:text-sm sm:leading-6': !hasError,
                     'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError && !disabled,
                     'ring-1 ring-inset ring-gray-200 dark:ring-slate-600 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed': disabled && !hasError,
                     'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 placeholder:text-red-300 sm:text-sm sm:leading-6 border-red-500': hasError,

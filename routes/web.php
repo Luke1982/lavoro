@@ -3,6 +3,8 @@
 use App\Http\Controllers\ActivityListController;
 use App\Http\Controllers\Admin\CalendarGrantController;
 use App\Http\Controllers\Admin\GeneralSettingsController;
+use App\Http\Controllers\Admin\StandardAttachmentController;
+use App\Http\Controllers\Admin\StandardEmailController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetRelationController;
 use App\Http\Controllers\AuthController;
@@ -348,6 +350,10 @@ Route::group(
                 'admin/settings/serviceorder-min-images',
                 [GeneralSettingsController::class, 'updateServiceOrderMinImages'],
             )->name('admin.settings.serviceorder-min-images');
+            Route::resource('standard-emails', StandardEmailController::class)
+                ->except(['show', 'create', 'edit']);
+            Route::resource('standard-attachments', StandardAttachmentController::class)
+                ->except(['show', 'create', 'edit']);
         });
     }
 );

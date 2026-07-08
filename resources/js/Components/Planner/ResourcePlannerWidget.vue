@@ -445,6 +445,13 @@
                     @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
             </div>
         </ModalDialog>
+
+        <EmailPreviewModal :key="standardEmailPreviewModalKey" :open="standardEmailPreviewModal.open"
+            @update:open="standardEmailPreviewModal.open = $event"
+            :event-id="standardEmailPreviewModal.eventId" :standard-email-id="standardEmailPreviewModal.standardEmailId"
+            :to="standardEmailPreviewModal.to" :subject="standardEmailPreviewModal.subject"
+            :body="standardEmailPreviewModal.body" :trigger="standardEmailPreviewModal.trigger"
+            :editable="standardEmailPreviewModal.editable" @sent="onPendingStandardEmailSent" />
     </div>
 </template>
 
@@ -468,8 +475,10 @@ import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
+import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
+import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -669,6 +678,13 @@ const exportDrawerOpen = ref(false)
 
 const unavailOverrideDialog = ref({ open: false, users: [] })
 let pendingOverrideAction = null
+
+const pendingStandardEmailQueue = ref([])
+const {
+    previewModal: standardEmailPreviewModal,
+    previewModalKey: standardEmailPreviewModalKey,
+    openPreview: openStandardEmailPreview,
+} = useStandardEmailPreview()
 
 function getBlockedUsers(userId, dayIso, startMin, endMin) {
     const absStart = startMin + dayStartHour.value * 60
@@ -1650,15 +1666,34 @@ async function deleteEvent(ev) {
     try {
         await axios.get('sanctum/csrf-cookie')
         const r = await axios.delete(`/api/events/${ev.id}`)
-        if (r.status !== 204) throw new Error('bad response')
+        if (r.status !== 200) throw new Error('bad response')
         events.value = events.value.filter(x => x.id !== ev.id)
         if (ev.eventable_id && ev.eventable_type === '\\App\\Models\\ServiceOrder') {
             emit('service-order-unplanned', ev.eventable_id)
         }
         page.props.flash.success = 'Afspraak verwijderd'
+        if (Array.isArray(r.data?.pending_standard_emails) && r.data.pending_standard_emails.length > 0) {
+            pendingStandardEmailQueue.value = r.data.pending_standard_emails.map((item) => ({ ...item, eventId: ev.id }))
+            processNextPendingStandardEmail()
+        }
     } catch (e) {
         console.error('Failed to delete event', e)
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet verwijderen'
+    }
+}
+
+async function processNextPendingStandardEmail() {
+    if (pendingStandardEmailQueue.value.length === 0) return
+    const next = pendingStandardEmailQueue.value.shift()
+    await openStandardEmailPreview(next.eventId, next.standard_email_id, {
+        trigger: next.trigger,
+        editable: next.trigger_type === 'allowedit',
+    })
+}
+
+function onPendingStandardEmailSent() {
+    if (pendingStandardEmailQueue.value.length > 0) {
+        processNextPendingStandardEmail()
     }
 }
 
@@ -2028,8 +2063,13 @@ function closeModal() {
     modalInitial.value = null
 }
 
-function onSaved() {
+function onSaved(payload) {
     closeModal()
     fetchEvents()
+    const pending = payload?.pendingStandardEmails
+    if (payload?.eventId && Array.isArray(pending) && pending.length > 0) {
+        pendingStandardEmailQueue.value = pending.map((item) => ({ ...item, eventId: payload.eventId }))
+        processNextPendingStandardEmail()
+    }
 }
 </script>

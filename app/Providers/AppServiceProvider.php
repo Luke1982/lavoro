@@ -14,9 +14,13 @@ use App\Models\Company;
 use Illuminate\Support\Facades\Storage;
 use App\Models\CalendarGrant;
 use App\Models\Event as EventModel;
+use App\Models\StandardAttachment;
+use App\Models\StandardEmail;
 use App\Models\UserUnavailability;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
+use App\Policies\StandardAttachmentPolicy;
+use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
 use Illuminate\Support\Facades\Gate;
 
@@ -38,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
         Gate::policy(UserUnavailability::class, UserUnavailabilityPolicy::class);
+        Gate::policy(StandardEmail::class, StandardEmailPolicy::class);
+        Gate::policy(StandardAttachment::class, StandardAttachmentPolicy::class);
 
         EventModel::observe(\App\Observers\EventObserver::class);
         \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);

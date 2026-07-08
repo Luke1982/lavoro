@@ -286,6 +286,37 @@
                         </p>
                     </div>
 
+                    <div v-if="editingExisting && form.id" class="pb-2">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                                <EnvelopeIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">E-mail</span>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <ComboBox v-model="selectedStandardEmailId"
+                                :options="standardEmails.map(e => ({ id: e.id, name: e.name }))" class="flex-1"
+                                placeholder="Kies standaard e-mail..." :emitValue="true" />
+                            <button type="button" @click="sendSelectedStandardEmail" :disabled="!selectedStandardEmailId"
+                                class="px-4 py-2 rounded-xl bg-lavoro-blue text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                                Versturen
+                            </button>
+                        </div>
+                        <div v-if="emailHistory.length" class="flex flex-col gap-2">
+                            <div v-for="item in emailHistory" :key="item.id"
+                                class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm">
+                                <div class="min-w-0">
+                                    <p class="text-gray-700 dark:text-gray-300 truncate">{{ item.description }}</p>
+                                    <p class="text-xs text-gray-400">{{ nlDate(item.created_at) }} {{ nlTime(item.created_at) }}</p>
+                                </div>
+                                <button v-if="item.standard_email_id" type="button" @click="resendHistoryItem(item)"
+                                    class="text-xs text-lavoro-blue font-medium hover:underline shrink-0 ml-2">
+                                    Opnieuw versturen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Footer -->
@@ -316,6 +347,10 @@
                 </div>
 
             </div>
+        <EmailPreviewModal :key="previewModalKey" :open="previewModal.open" @update:open="previewModal.open = $event"
+            :event-id="previewModal.eventId" :standard-email-id="previewModal.standardEmailId" :to="previewModal.to"
+            :subject="previewModal.subject" :body="previewModal.body" :trigger="previewModal.trigger"
+            :editable="previewModal.editable" @sent="onEmailSent" />
         </div>
     </Teleport>
 </template>
@@ -327,13 +362,15 @@ import axios from 'axios'
 import {
     XMarkIcon, CalendarDaysIcon, TagIcon, CheckCircleIcon, DocumentTextIcon,
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
-    UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon,
+    UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon, EnvelopeIcon,
 } from '@heroicons/vue/24/outline'
 import { ClockFading as ClockFadingIcon } from '@lucide/vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import { formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -354,6 +391,10 @@ const visible = ref(false)
 const saving = ref(false)
 const showUserSelector = ref(false)
 const userToAdd = ref(null)
+const standardEmails = ref([])
+const emailHistory = ref([])
+const selectedStandardEmailId = ref(null)
+const { previewModal, previewModalKey, openPreview } = useStandardEmailPreview()
 
 function snapMinute(time) {
     if (!time) return '08:00'
@@ -566,6 +607,33 @@ function closeModal() {
     setTimeout(() => emit('close'), 200)
 }
 
+async function loadStandardEmails() {
+    if (!form.id) return
+    const { data } = await axios.get(`/api/events/${form.id}/standard-emails`)
+    standardEmails.value = data
+}
+
+async function loadEmailHistory() {
+    if (!form.id) return
+    const { data } = await axios.get(`/api/events/${form.id}/email-history`)
+    emailHistory.value = data
+}
+
+function sendSelectedStandardEmail() {
+    if (!selectedStandardEmailId.value) return
+    openPreview(form.id, selectedStandardEmailId.value)
+    selectedStandardEmailId.value = null
+}
+
+function resendHistoryItem(item) {
+    if (!item.standard_email_id) return
+    openPreview(form.id, item.standard_email_id)
+}
+
+function onEmailSent() {
+    loadEmailHistory()
+}
+
 async function save() {
     if (saving.value) return
 
@@ -602,6 +670,10 @@ async function save() {
             customer_id: selectedCustomer.value,
             eventable_id: form.create_service_order ? null : (form.eventable_id || null),
         }
+        let pendingStandardEmails = []
+        let queuedStandardEmails = []
+        let savedEventId = null
+        let successMessage = ''
         if (props.editingExisting && form.id) {
             const authId = page.props.auth?.user?.id ?? null
             const canUpdate = hasPermission('event.update_others') ||
@@ -609,14 +681,27 @@ async function save() {
             if (!canUpdate) return
             const r = await axios.put(`/api/events/${form.id}`, payload)
             if (r.status !== 200) throw new Error('bad')
-            page.props.flash.success = 'Afspraak succesvol bijgewerkt'
+            successMessage = 'Afspraak succesvol bijgewerkt'
+            pendingStandardEmails = Array.isArray(r.data?.pending_standard_emails) ? r.data.pending_standard_emails : []
+            queuedStandardEmails = Array.isArray(r.data?.queued_standard_emails) ? r.data.queued_standard_emails : []
+            savedEventId = r.data.id
         } else {
             if (!hasPermission('event.create')) return
             const r = await axios.post('/api/events', payload)
             if (r.status !== 201) throw new Error('bad')
-            page.props.flash.success = 'Afspraak succesvol opgeslagen'
+            successMessage = 'Afspraak succesvol opgeslagen'
+            pendingStandardEmails = Array.isArray(r.data?.pending_standard_emails) ? r.data.pending_standard_emails : []
+            queuedStandardEmails = Array.isArray(r.data?.queued_standard_emails) ? r.data.queued_standard_emails : []
+            savedEventId = r.data.id
         }
-        emit('saved')
+        if (queuedStandardEmails.length > 0) {
+            successMessage += ' — standaard e-mail wordt verzonden: ' + queuedStandardEmails.join(', ')
+        }
+        page.props.flash.success = successMessage
+        // The parent closes this modal as soon as 'saved' fires, so any pending
+        // trigger emails must be handled by the parent — this modal (and any
+        // child EmailPreviewModal it hosts) is unmounted immediately after.
+        emit('saved', { eventId: savedEventId, pendingStandardEmails })
     } catch (e) {
         if (e.response?.status === 422) {
             const errs = e.response.data?.errors || {}
@@ -633,6 +718,10 @@ onMounted(() => {
     requestAnimationFrame(() => { visible.value = true })
     if (!form.eventable_id && internalServiceOrders.value.length > 0) {
         form.eventable_id = internalServiceOrders.value[0].id
+    }
+    if (props.editingExisting && form.id) {
+        loadStandardEmails()
+        loadEmailHistory()
     }
 })
 </script>

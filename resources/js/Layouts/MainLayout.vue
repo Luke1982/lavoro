@@ -133,6 +133,20 @@
                                                     <Cog6ToothIcon class="size-6 shrink-0" />
                                                     Instellingen
                                                 </Link>
+                                                <Link @click="sidebarOpen = false" :href="'/standard-emails'" :class="[
+                                                    currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <EnvelopeIcon class="size-6 shrink-0" />
+                                                    Standaard e-mails
+                                                </Link>
+                                                <Link @click="sidebarOpen = false" :href="'/standard-attachments'" :class="[
+                                                    currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                                ]">
+                                                    <PaperClipIcon class="size-6 shrink-0" />
+                                                    Standaard bijlagen
+                                                </Link>
                                             </div>
                                             <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
                                                 <Link @click="sidebarOpen = false" :href="'/users'" :class="[
@@ -279,6 +293,20 @@
                                     <Cog6ToothIcon class="size-6 shrink-0" />
                                     Instellingen
                                 </Link>
+                                <Link :href="'/standard-emails'" :class="[
+                                    currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <EnvelopeIcon class="size-6 shrink-0" />
+                                    Standaard e-mails
+                                </Link>
+                                <Link :href="'/standard-attachments'" :class="[
+                                    currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
+                                ]">
+                                    <PaperClipIcon class="size-6 shrink-0" />
+                                    Standaard bijlagen
+                                </Link>
                             </div>
                             <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
                                 <Link :href="'/users'" :class="[
@@ -405,6 +433,8 @@ import {
     TagIcon,
     DocumentTextIcon,
     Bars4Icon,
+    EnvelopeIcon,
+    PaperClipIcon,
 } from '@heroicons/vue/24/outline'
 import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
