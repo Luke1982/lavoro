@@ -169,6 +169,7 @@ class TicketController extends Controller
     /**
      * Show all tickets matching the current list filters as markers on a map,
      * grouped by customer (a customer's address holds the coordinates, not the ticket).
+     * Closed tickets are excluded: the map is for locating outstanding work, not history.
      *
      * @return Response
      */
@@ -177,7 +178,9 @@ class TicketController extends Controller
         $data = $request->validated();
 
         $query = $this->applyTicketFilters(
-            Ticket::with('asset.customer')->whereHas('asset.customer'),
+            Ticket::with('asset.customer')
+                ->whereHas('asset.customer')
+                ->where('status', '!=', TicketStatusses::gesloten->value),
             $data
         );
 
