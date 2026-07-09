@@ -84,4 +84,9 @@ class EventPolicy
 
         return $user->isAdmin() || $user->hasPermission('events.provide_feedback');
     }
+
+    public function releaseTimes(User $user, Event $event): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('events.release_times');
+    }
 }

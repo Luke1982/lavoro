@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EventCompletionStatus;
 use App\Http\Requests\EventExecutionTransitionRequest;
 use App\Http\Requests\EventExecutionUpdateRequest;
+use App\Http\Requests\EventReleaseTimesRequest;
 use App\Models\Event;
 use Illuminate\Support\Facades\Auth;
 
@@ -53,6 +54,22 @@ class EventExecutionController extends Controller
         $execution->save();
 
         return response()->json($this->payload($execution));
+    }
+
+    public function release(EventReleaseTimesRequest $request, Event $event)
+    {
+        $event->executions()
+            ->where('completion_status', EventCompletionStatus::completed->value)
+            ->update([
+                'completion_status' => EventCompletionStatus::planned->value,
+                'actual_start' => null,
+                'actual_end' => null,
+                'signature_base64' => null,
+            ]);
+
+        return response()->json([
+            'executions' => $event->executions()->get(['user_id', 'completion_status', 'actual_start', 'actual_end']),
+        ]);
     }
 
     private function payload($execution): array
