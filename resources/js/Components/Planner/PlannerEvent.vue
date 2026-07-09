@@ -91,7 +91,7 @@
                     {{ feedbackCount }}
                 </span>
             </button>
-            <EventExecutionControls :event="event" class="pointer-events-auto"
+            <EventExecutionControls :event="event" :user-id="userId" class="pointer-events-auto"
                 @changed="$emit('changed')" />
             <span v-for="role in currentUserRoles" :key="role.id"
                 class="inline-flex items-center rounded px-1 py-px text-[9px] font-semibold leading-none text-white"

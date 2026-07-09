@@ -149,7 +149,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <EventExecutionControls :event="ev" @changed="fetchEvents" />
+                                                <EventExecutionControls :event="ev" :user-id="relevantUserId" @changed="fetchEvents" />
                                                 <button v-if="hasPermission('event.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
                                                     class="p-1 text-gray-400 hover:text-lavoro-blue relative" title="Terugkoppeling">
                                                     <MessageCircleReply class="size-4" />

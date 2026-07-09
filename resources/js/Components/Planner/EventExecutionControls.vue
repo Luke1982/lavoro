@@ -61,12 +61,14 @@ import { nlTime, formatLocalDateAsISO, localToUtcDatetime, hasPermission } from 
 
 const props = defineProps({
     event: { type: Object, required: true },
+    userId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['changed'])
 
 const page = usePage()
 const authUserId = computed(() => page.props.auth?.user?.id ?? null)
+const rowUserId = computed(() => props.userId ?? authUserId.value)
 
 const busy = ref(false)
 const modalOpen = ref(false)
@@ -81,12 +83,11 @@ const myExecution = computed(() =>
 )
 const isMine = computed(() => !!myExecution.value && hasPermission('event.execute'))
 const status = computed(() => myExecution.value?.completion_status ?? 'Gepland')
-const canRelease = computed(() =>
-    hasPermission('event.release_times') &&
-    (props.event.executing_users || []).some(u =>
-        u.completion_status === 'Afgerond' && u.actual_start && u.actual_end
-    )
-)
+const canRelease = computed(() => {
+    if (!hasPermission('event.release_times')) return false
+    const execution = (props.event.executing_users || []).find(u => u.id === rowUserId.value)
+    return !!execution && execution.completion_status === 'Afgerond' && !!execution.actual_start && !!execution.actual_end
+})
 const executeOthersTarget = computed(() => {
     if (!hasPermission('event.execute_others')) return null
     return (props.event.executing_users || []).find(u =>
