@@ -115,13 +115,13 @@
             <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
                 leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
                 <div v-if="eventsLoading"
-                    class="absolute inset-0 z-50 flex items-start justify-center pt-16 pointer-events-none">
-                    <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full px-4 py-2 shadow text-xs text-gray-500 dark:text-slate-400">
-                        <svg class="animate-spin size-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                    class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                    <div class="flex flex-col items-center gap-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl px-6 py-5 shadow-lg text-sm font-medium text-gray-600 dark:text-slate-300">
+                        <svg class="animate-spin size-6 shrink-0 text-lavoro-blue" viewBox="0 0 24 24" fill="none">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                         </svg>
-                        Laden…
+                        Afspraken worden geladen…
                     </div>
                 </div>
             </Transition>
