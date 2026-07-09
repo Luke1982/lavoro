@@ -83,7 +83,9 @@ const isMine = computed(() => !!myExecution.value && hasPermission('event.execut
 const status = computed(() => myExecution.value?.completion_status ?? 'Gepland')
 const canRelease = computed(() =>
     hasPermission('event.release_times') &&
-    (props.event.executing_users || []).some(u => u.completion_status === 'Afgerond')
+    (props.event.executing_users || []).some(u =>
+        u.completion_status === 'Afgerond' && u.actual_start && u.actual_end
+    )
 )
 const executeOthersTarget = computed(() => {
     if (!hasPermission('event.execute_others')) return null
