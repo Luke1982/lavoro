@@ -13,6 +13,16 @@
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
             </div>
+            <div class="flex flex-col mt-4">
+                <div class="flex items-center gap-3">
+                    <SwitchComponent v-model="needsClosingFilter" />
+                    <span class="text-sm font-bold text-gray-900 dark:text-slate-200">Alleen te sluiten</span>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                    Toont werkbonnen waarvan alle afspraken al voorbij zijn maar die nog niet op een
+                    gesloten fase staan. Geannuleerde afspraken tellen hierbij niet mee.
+                </p>
+            </div>
             <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>
                 <span v-for="filter in activeFilters" :key="filter.key"
                     class="inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 bg-white dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
@@ -222,6 +232,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import { nlDate, nlTime, initials, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
@@ -231,6 +242,7 @@ const { serviceOrders, stages, perPage } = defineProps({
     stages: { type: Array, default: () => [] },
     search: { type: String, default: '' },
     onlyStage: { type: Array, default: () => [] },
+    onlyNeedsClosing: { type: Boolean, default: false },
     perPage: { type: Number, default: 25 },
 })
 
@@ -239,25 +251,52 @@ const stagesFromUrl = typeof window !== 'undefined'
     : []
 const stageFilter = ref(stagesFromUrl)
 
+const needsClosingFromUrl = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('onlyNeedsClosing') === '1'
+    : false
+const needsClosingFilter = ref(needsClosingFromUrl)
+
 watch(stageFilter, val => {
     if (val.length) localStorage.setItem('serviceOrderFilter_stage', val.join(','))
     else localStorage.removeItem('serviceOrderFilter_stage')
 })
 
+watch(needsClosingFilter, val => {
+    if (val) localStorage.setItem('serviceOrderFilter_needsClosing', '1')
+    else localStorage.removeItem('serviceOrderFilter_needsClosing')
+})
+
 onMounted(() => {
-    if (stagesFromUrl.length) return
-    const ls = (localStorage.getItem('serviceOrderFilter_stage') || '').split(',').map(Number).filter(Boolean)
-    if (!ls.length) return
-    stageFilter.value = ls
-    router.get('/serviceorders', { onlyStage: ls.join(',') }, { replace: true, preserveState: true, preserveScroll: true })
+    const ls_stage = (localStorage.getItem('serviceOrderFilter_stage') || '').split(',').map(Number).filter(Boolean)
+    const ls_needs_closing = localStorage.getItem('serviceOrderFilter_needsClosing') === '1'
+
+    let restored_stage = false
+    let restored_needs_closing = false
+
+    if (!stagesFromUrl.length && ls_stage.length) {
+        stageFilter.value = ls_stage
+        restored_stage = true
+    }
+    if (!needsClosingFromUrl && ls_needs_closing) {
+        needsClosingFilter.value = true
+        restored_needs_closing = true
+    }
+
+    if (restored_stage || restored_needs_closing) {
+        router.get('/serviceorders', {
+            onlyStage: stageFilter.value.join(','),
+            onlyNeedsClosing: needsClosingFilter.value ? '1' : undefined,
+        }, { replace: true, preserveState: true, preserveScroll: true })
+    }
 })
 
 const filterParams = computed(() => ({
     onlyStage: stageFilter.value.join(','),
+    onlyNeedsClosing: needsClosingFilter.value ? '1' : undefined,
 }))
 
 const activeFilters = computed(() => {
-    return stageFilter.value.flatMap(id => {
+    const stage_filters = stageFilter.value.flatMap(id => {
         const match = stages.find(s => s.id === id)
         return match ? [{
             key: `stage-${id}`,
@@ -266,11 +305,20 @@ const activeFilters = computed(() => {
             clear: () => { stageFilter.value = stageFilter.value.filter(x => x !== id) },
         }] : []
     })
+    const needs_closing_filter = needsClosingFilter.value ? [{
+        key: 'needs-closing',
+        label: 'Te sluiten',
+        value: 'Ja',
+        clear: () => { needsClosingFilter.value = false },
+    }] : []
+    return [...stage_filters, ...needs_closing_filter]
 })
 
 function clearAllFilters() {
     stageFilter.value = []
+    needsClosingFilter.value = false
     localStorage.removeItem('serviceOrderFilter_stage')
+    localStorage.removeItem('serviceOrderFilter_needsClosing')
 }
 
 const selectedIds = ref([])

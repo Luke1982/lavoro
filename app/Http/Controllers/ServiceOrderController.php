@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
 use App\Http\Requests\ServiceOrderBulkUpdateRequest;
@@ -55,6 +56,7 @@ class ServiceOrderController extends Controller
             explode(',', (string) $request->get('onlyStage', '')),
             fn ($v) => is_numeric($v)
         ));
+        $only_needs_closing = $request->boolean('onlyNeedsClosing');
         $per_page = $this->perPage($request, 25);
 
         $user = Auth::user();
@@ -83,11 +85,20 @@ class ServiceOrderController extends Controller
             $query->whereIn('service_order_stage_id', $only_stages);
         }
 
+        if ($only_needs_closing) {
+            $query->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
+                ->whereDoesntHave('events', fn ($q) => $q
+                    ->where('status', '!=', EventStatusses::cancelled->value)
+                    ->where('end', '>=', now()))
+                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true));
+        }
+
         return inertia('ServiceOrders/IndexPage', [
             'serviceOrders' => $query->orderByDesc('created_at')->paginate($per_page)->withQueryString(),
             'stages' => ServiceOrderStage::orderBy('order')->get(),
             'search' => $search,
             'onlyStage' => $only_stages,
+            'onlyNeedsClosing' => $only_needs_closing,
             'perPage' => $per_page,
         ]);
     }

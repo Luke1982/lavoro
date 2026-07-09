@@ -10,6 +10,7 @@ class ServiceOrderIndexRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
+
         return $user && (
             $user->isAdmin() ||
             $user->hasPermission('serviceorder.read') ||
@@ -20,9 +21,10 @@ class ServiceOrderIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search'    => ['sometimes', 'nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'onlyStage' => ['sometimes', 'nullable', 'string'],
-            'perPage'   => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+            'onlyNeedsClosing' => ['sometimes', 'nullable', 'boolean'],
+            'perPage' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }
