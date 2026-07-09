@@ -8,7 +8,7 @@
                     <ChevronLeftIcon class="size-5" />
                 </button>
                 <span class="font-semibold text-sm">{{ weekTitle }}</span>
-                <button v-if="hasPermission('events.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')"
+                <button v-if="hasPermission('event.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')"
                     class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Volgende week"
                     @click="shiftWeek(1)">
                     <ChevronRightIcon class="size-5" />
@@ -150,7 +150,7 @@
                                                     </div>
                                                 </div>
                                                 <EventExecutionControls :event="ev" @changed="fetchEvents" />
-                                                <button v-if="hasPermission('events.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
+                                                <button v-if="hasPermission('event.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
                                                     class="p-1 text-gray-400 hover:text-lavoro-blue relative" title="Terugkoppeling">
                                                     <MessageCircleReply class="size-4" />
                                                     <span v-if="((ev.remarks_count || 0) + (ev.images_count || 0)) > 0"
@@ -288,7 +288,7 @@
                     @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
                 <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
                     :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
-                    :can-manage="hasPermission('events.provide_feedback')"
+                    :can-manage="hasPermission('event.provide_feedback')"
                     @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
             </div>
         </ModalDialog>
@@ -373,7 +373,7 @@ const weekTitle = computed(() => {
 })
 
 function shiftWeek(direction) {
-    if (!hasPermission('events.see_beyond_current_week') && direction === 1) {
+    if (!hasPermission('event.see_beyond_current_week') && direction === 1) {
         if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')) return
     }
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()

@@ -429,7 +429,7 @@
                     @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
                 <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
                     :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
-                    :can-manage="hasPermission('events.provide_feedback')"
+                    :can-manage="hasPermission('event.provide_feedback')"
                     @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
             </div>
         </ModalDialog>
@@ -595,7 +595,7 @@ const max_forward_date = computed(() => dayjs().add(7, 'day'))
 const showPrevButton = computed(() => true)
 
 const showNextButton = computed(() => {
-    if (hasPermission('events.see_beyond_current_week')) return true
+    if (hasPermission('event.see_beyond_current_week')) return true
     if (plannerView.value === 'day') {
         return dayjs(weekStart.value).isBefore(max_forward_date.value, 'day')
     }
@@ -993,7 +993,7 @@ watch(plannerView, () => {
 })
 
 function shiftPeriod(direction) {
-    if (!hasPermission('events.see_beyond_current_week') && direction === 1) {
+    if (!hasPermission('event.see_beyond_current_week') && direction === 1) {
         const limit = max_forward_date.value
         if (plannerView.value === 'day') {
             if (!dayjs(weekStart.value).isBefore(limit, 'day')) return

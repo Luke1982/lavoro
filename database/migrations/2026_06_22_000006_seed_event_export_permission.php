@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration
 {
     private array $permissions = [
-        ['name' => 'event.export', 'label' => 'Mag de planning exporteren'],
+        ['name' => 'event.export', 'label' => 'Mag de afsprakenplanning exporteren'],
     ];
 
     public function up(): void

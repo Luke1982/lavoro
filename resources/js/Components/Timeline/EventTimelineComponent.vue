@@ -42,7 +42,7 @@
                                 </div>
                                 <div class="text-right text-[11px] whitespace-nowrap text-gray-500 dark:text-slate-500">
                                     <time :datetime="ev.start">{{ ev.compactDate }}</time>
-                                    <button v-if="hasPermission('events.provide_feedback') && !ev.service_order_id" @click="feedback.openFeedback(ev)"
+                                    <button v-if="hasPermission('event.provide_feedback') && !ev.service_order_id" @click="feedback.openFeedback(ev)"
                                         class="mt-1 text-gray-400 hover:text-lavoro-blue" title="Terugkoppeling">
                                         <MessageCircleReply class="size-4 inline" />
                                     </button>
@@ -79,7 +79,7 @@
                     @created="feedback.onRemarkCreated" @deleted="feedback.onRemarkDeleted" />
                 <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
                     :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
-                    :can-manage="hasPermission('events.provide_feedback')"
+                    :can-manage="hasPermission('event.provide_feedback')"
                     @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
             </div>
         </ModalDialog>

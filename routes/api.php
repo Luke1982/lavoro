@@ -32,6 +32,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('events/{event}/execution/transition', [EventExecutionController::class, 'transition']);
     Route::patch('events/{event}/execution', [EventExecutionController::class, 'update']);
     Route::post('events/{event}/execution/release', [EventExecutionController::class, 'release']);
+    Route::get('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'showFor']);
+    Route::patch('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'updateFor']);
 
     Route::post('remarks', [\App\Http\Controllers\RemarkController::class, 'store']);
     Route::delete('remarks/{remark}', [\App\Http\Controllers\RemarkController::class, 'destroy']);

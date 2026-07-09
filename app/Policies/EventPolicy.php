@@ -73,7 +73,7 @@ class EventPolicy
 
     public function seeBeyondCurrentWeek(User $user): bool
     {
-        return $user->isAdmin() || $user->hasPermission('events.see_beyond_current_week');
+        return $user->isAdmin() || $user->hasPermission('event.see_beyond_current_week');
     }
 
     public function provideFeedback(User $user, Event $event): bool
@@ -82,11 +82,20 @@ class EventPolicy
             return false;
         }
 
-        return $user->isAdmin() || $user->hasPermission('events.provide_feedback');
+        return $user->isAdmin() || $user->hasPermission('event.provide_feedback');
     }
 
     public function releaseTimes(User $user, Event $event): bool
     {
-        return $user->isAdmin() || $user->hasPermission('events.release_times');
+        return $user->isAdmin() || $user->hasPermission('event.release_times');
+    }
+
+    public function executeOthers(User $user, Event $event, int $target_user_id): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('event.execute_others') && $event->hasExecutingUser($target_user_id);
     }
 }

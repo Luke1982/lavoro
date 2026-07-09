@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isMine || canRelease" class="flex items-center gap-1" @click.stop @pointerdown.stop>
+    <div v-if="isMine || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
         <template v-if="isMine">
             <template v-if="status === 'Afgerond'">
                 <Check class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
@@ -29,10 +29,20 @@
             <RotateCcw class="size-4" />
         </button>
 
+        <button v-if="executeOthersTarget" type="button"
+            v-tooltip="`Tijden invullen namens ${executeOthersTarget.name}`"
+            class="p-1 rounded text-blue-600 hover:bg-blue-50 disabled:opacity-40"
+            :disabled="busy" @click="openModalForOther">
+            <UserPen class="size-4" />
+        </button>
+
         <ExecutionModal v-if="modalOpen" :open="modalOpen"
             :initial-signature="editSignature" :busy="busy"
             @update:open="modalOpen = $event" @confirm="onModalConfirm">
             <div class="grid grid-cols-2 gap-3">
+                <p v-if="targetUserName" class="col-span-2 text-xs text-gray-500 dark:text-slate-400">
+                    Namens: {{ targetUserName }}
+                </p>
                 <TextInput v-model="editStart" type="time" label="Starttijd" />
                 <TextInput v-model="editEnd" type="time" label="Eindtijd" />
             </div>
@@ -46,7 +56,7 @@ import axios from 'axios'
 import { usePage } from '@inertiajs/vue3'
 import ExecutionModal from '@/Components/Planner/ExecutionModal.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { Clock, Check, X, Ban, RotateCcw } from '@lucide/vue'
+import { Clock, Check, X, Ban, RotateCcw, UserPen } from '@lucide/vue'
 import { nlTime, formatLocalDateAsISO, localToUtcDatetime, hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -63,6 +73,8 @@ const modalOpen = ref(false)
 const editSignature = ref('')
 const editStart = ref('')
 const editEnd = ref('')
+const targetUserId = ref(null)
+const targetUserName = ref('')
 
 const myExecution = computed(() =>
     props.event.executing_users?.find(u => u.id === authUserId.value) ?? null
@@ -70,9 +82,15 @@ const myExecution = computed(() =>
 const isMine = computed(() => !!myExecution.value && hasPermission('event.execute'))
 const status = computed(() => myExecution.value?.completion_status ?? 'Gepland')
 const canRelease = computed(() =>
-    hasPermission('events.release_times') &&
+    hasPermission('event.release_times') &&
     (props.event.executing_users || []).some(u => u.completion_status === 'Afgerond')
 )
+const executeOthersTarget = computed(() => {
+    if (!hasPermission('event.execute_others')) return null
+    return (props.event.executing_users || []).find(u =>
+        u.id !== authUserId.value && u.completion_status !== 'Afgerond' && u.completion_status !== 'Geannuleerd'
+    ) ?? null
+})
 
 async function postTransition(payload) {
     if (busy.value) return
@@ -109,6 +127,26 @@ async function openModal() {
     busy.value = true
     try {
         const { data } = await axios.get(`/api/events/${props.event.id}/execution`)
+        targetUserId.value = null
+        targetUserName.value = ''
+        editSignature.value = data.signature_base64 ?? ''
+        editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
+        editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
+        modalOpen.value = true
+    } finally {
+        busy.value = false
+    }
+}
+
+async function openModalForOther() {
+    if (busy.value) return
+    const target = executeOthersTarget.value
+    if (!target) return
+    busy.value = true
+    try {
+        const { data } = await axios.get(`/api/events/${props.event.id}/users/${target.id}/execution`)
+        targetUserId.value = target.id
+        targetUserName.value = target.name
         editSignature.value = data.signature_base64 ?? ''
         editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
         editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
@@ -124,7 +162,10 @@ async function onModalConfirm(signature) {
     try {
         const date_iso = formatLocalDateAsISO(props.event.start)
         await axios.get('sanctum/csrf-cookie')
-        await axios.patch(`/api/events/${props.event.id}/execution`, {
+        const url = targetUserId.value
+            ? `/api/events/${props.event.id}/users/${targetUserId.value}/execution`
+            : `/api/events/${props.event.id}/execution`
+        await axios.patch(url, {
             actual_start: localToUtcDatetime(date_iso, editStart.value),
             actual_end: localToUtcDatetime(date_iso, editEnd.value),
             signature_base64: signature,

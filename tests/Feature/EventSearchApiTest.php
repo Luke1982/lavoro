@@ -163,7 +163,7 @@ class EventSearchApiTest extends TestCase
 
     public function test_search_includes_far_future_events_with_permission(): void
     {
-        $searcher = $this->search_user(['event.read', 'event.see_all', 'events.see_beyond_current_week']);
+        $searcher = $this->search_user(['event.read', 'event.see_all', 'event.see_beyond_current_week']);
 
         $far_event = $this->event_for_customer('Van der Wetering BV', [
             'start' => now()->addDays(30),

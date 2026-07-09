@@ -19,7 +19,7 @@ class EventFeedbackPermissionTest extends TestCase
     {
         $user = User::factory()->create();
         $role = Role::firstOrCreate(['name' => 'planner']);
-        $permission = Permission::firstOrCreate(['name' => 'events.provide_feedback'], ['label' => 'x']);
+        $permission = Permission::firstOrCreate(['name' => 'event.provide_feedback'], ['label' => 'x']);
         $role->permissions()->attach($permission->id);
         $user->roles()->attach($role->id);
         $event = Event::factory()->create();
@@ -47,7 +47,7 @@ class EventFeedbackPermissionTest extends TestCase
     {
         $user = \App\Models\User::factory()->create();
         $role = \App\Models\Role::firstOrCreate(['name' => 'planner']);
-        $permission = \App\Models\Permission::firstOrCreate(['name' => 'events.provide_feedback'], ['label' => 'x']);
+        $permission = \App\Models\Permission::firstOrCreate(['name' => 'event.provide_feedback'], ['label' => 'x']);
         $role->permissions()->attach($permission->id);
         $user->roles()->attach($role->id);
 

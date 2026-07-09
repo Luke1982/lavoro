@@ -83,7 +83,7 @@
             </template>
         </VDropdown>
         <div class="absolute top-1 right-2 flex items-center gap-1 pointer-events-none">
-            <button v-if="hasPermission('events.provide_feedback') && !event.eventable_id" class="pointer-events-auto relative"
+            <button v-if="hasPermission('event.provide_feedback') && !event.eventable_id" class="pointer-events-auto relative"
                 @click.stop="$emit('open-feedback', event)" v-tooltip="'Terugkoppeling'">
                 <MessageCircleReply class="size-3 text-gray-500 hover:text-lavoro-blue" />
                 <span v-if="feedbackCount > 0"

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EventCompletionStatus;
+use App\Http\Requests\EventExecutionShowOthersRequest;
 use App\Http\Requests\EventExecutionTransitionRequest;
+use App\Http\Requests\EventExecutionUpdateOthersRequest;
 use App\Http\Requests\EventExecutionUpdateRequest;
 use App\Http\Requests\EventReleaseTimesRequest;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class EventExecutionController extends Controller
@@ -46,6 +49,31 @@ class EventExecutionController extends Controller
     public function update(EventExecutionUpdateRequest $request, Event $event)
     {
         $execution = $event->executionFor(Auth::id());
+
+        $execution->actual_start = $request->validated('actual_start');
+        $execution->actual_end = $request->validated('actual_end');
+        $execution->signature_base64 = $request->validated('signature_base64');
+        $execution->completion_status = EventCompletionStatus::completed->value;
+        $execution->save();
+
+        return response()->json($this->payload($execution));
+    }
+
+    public function showFor(EventExecutionShowOthersRequest $request, Event $event, User $target_user)
+    {
+        $execution = $event->executionFor($target_user->id);
+
+        return response()->json([
+            'completion_status' => $execution->completion_status,
+            'actual_start' => $execution->actual_start,
+            'actual_end' => $execution->actual_end,
+            'signature_base64' => $execution->signature_base64,
+        ]);
+    }
+
+    public function updateFor(EventExecutionUpdateOthersRequest $request, Event $event, User $target_user)
+    {
+        $execution = $event->executionFor($target_user->id);
 
         $execution->actual_start = $request->validated('actual_start');
         $execution->actual_end = $request->validated('actual_end');
