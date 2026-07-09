@@ -131,6 +131,8 @@ Route::group(
         Route::resource('assetrelations', AssetRelationController::class)->only(['store', 'destroy']);
         Route::post('tickets/bulk-update', [TicketController::class, 'bulkUpdate'])
             ->name('tickets.bulk-update');
+        Route::get('tickets/map', [TicketController::class, 'map'])
+            ->name('tickets.map'); // requires ticket.see_all
         Route::resource('tickets', TicketController::class);
         Route::resource('materials', MaterialController::class)
             ->except(['edit', 'create']);

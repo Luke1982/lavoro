@@ -21,6 +21,13 @@
     <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
         search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="false"
         :search-other-params="computedOtherParams" :has-active-filters="hasActiveFilters">
+        <template #actions>
+            <button type="button" @click="openMap"
+                class="rounded-lavoro-sm bg-lavoro-blue text-white pl-3 pr-2 sm:px-5 py-3 cursor-pointer text-sm flex items-center">
+                <MapIcon class="size-5 inline-block mr-2" />
+                <span class="hidden sm:inline">Kaart</span>
+            </button>
+        </template>
         <template #filters>
             <div class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col md:flex-row gap-4 w-full">
@@ -240,7 +247,7 @@ import StatCard from '@/Components/UI/StatCard.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
-import { EyeIcon, AlertCircleIcon } from '@lucide/vue'
+import { EyeIcon, AlertCircleIcon, MapIcon } from '@lucide/vue'
 import { hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -374,5 +381,10 @@ function updatePriority(ticket, value) {
 
 function fullAddress(customer) {
     return [customer.address, customer.postal_code, customer.city].filter(Boolean).join(' ')
+}
+
+function openMap() {
+    const params = new URLSearchParams(computedOtherParams.value)
+    window.open(`/tickets/map?${params.toString()}`, 'ticketsMap', 'width=1200,height=800')
 }
 </script>
