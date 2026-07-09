@@ -23,7 +23,7 @@ class PlannerController extends Controller
         $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
 
         $so_scope = function ($q) use ($user, $can_read_all) {
-            if (! $can_read_all) {
+            if (!$can_read_all) {
                 $q->whereHas('executingUsers', fn ($uq) => $uq->where('users.id', $user->id));
             }
         };
@@ -51,7 +51,14 @@ class PlannerController extends Controller
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'unplannedServiceOrders' => ServiceOrder::with(['customer', 'serviceOrderStage'])
+            'unplannedServiceOrders' => ServiceOrder::with([
+                'customer',
+                'serviceOrderStage',
+                'taskInstances' => fn ($q) => $q->where('is_cancelled', false),
+                'taskInstances.serviceOrderTask:id,title',
+                'taskInstances.product:id,brand_id,model',
+                'taskInstances.product.brand:id,name',
+            ])
                 ->withCount('events')
                 ->whereNull('project_id')
                 ->whereHas('serviceOrderStage', function ($q) {
@@ -105,7 +112,7 @@ class PlannerController extends Controller
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'planGroups' => $plan_groups,
-            'defaultPlannerMinutes'       => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
             'latestPings' => LocationPing::query()
                 ->whereIn('id', function ($sub) {

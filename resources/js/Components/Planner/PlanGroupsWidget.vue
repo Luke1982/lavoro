@@ -81,38 +81,66 @@
                     <span class="text-xs font-medium text-lavoro-dark">Monteurs</span>
                 </div>
 
-                <div v-for="user in sortedAllUsers" :key="user.id"
-                    class="flex items-center gap-2 px-3 py-1.5 border-t border-t-lavoro-gray-150">
-
-                    <!-- Avatar -->
-                    <div class="h-6 w-6 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 overflow-hidden">
-                        <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full" :alt="user.name" />
-                        <span v-else>{{ initials(user.name) }}</span>
-                    </div>
-
-                    <!-- Name -->
-                    <span class="flex-1 text-xs truncate text-lavoro-dark min-w-0">{{ user.name }}</span>
-
-                    <!-- Group toggles (plannable only) -->
-                    <div v-if="user.plannable && planGroups.length" class="flex items-center gap-0.5 shrink-0">
-                        <button
-                            v-for="group in planGroups"
-                            :key="group.id"
-                            class="h-4 w-4 rounded-sm border transition-all"
-                            :class="user.plan_group_ids.includes(group.id)
-                                ? 'border-transparent'
-                                : 'border-gray-300 dark:border-slate-600 bg-transparent'"
-                            :style="user.plan_group_ids.includes(group.id) ? { background: group.color } : {}"
-                            :title="group.name"
-                            @click="toggleUserGroup(user, group.id)" />
-                    </div>
-
-                    <!-- Plannable checkbox -->
-                    <input type="checkbox" :checked="user.plannable"
-                        class="h-3.5 w-3.5 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer shrink-0"
-                        :title="user.plannable ? 'Inplanbaar — klik om uit te zetten' : 'Niet inplanbaar — klik om aan te zetten'"
-                        @change="$emit('plannable-toggled', user.id, $event.target.checked)" />
+                <div v-if="allUsers.length" class="px-3 pb-2">
+                    <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
+                        <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
+                        <input v-model="userSearchQuery" type="text" placeholder="Zoeken op naam..."
+                            class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
+                    </label>
                 </div>
+
+                <div class="flex flex-col" v-auto-animate>
+                    <div v-for="user in visibleUsers" :key="user.id"
+                        class="flex items-center gap-2 px-3 py-1.5 border-t border-t-lavoro-gray-150">
+
+                        <!-- Avatar -->
+                        <div class="h-6 w-6 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 overflow-hidden">
+                            <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full" :alt="user.name" />
+                            <span v-else>{{ initials(user.name) }}</span>
+                        </div>
+
+                        <!-- Name -->
+                        <span class="flex-1 text-xs truncate text-lavoro-dark min-w-0">{{ user.name }}</span>
+
+                        <!-- Group toggles (plannable only) -->
+                        <div v-if="user.plannable && planGroups.length" class="flex items-center gap-0.5 shrink-0">
+                            <button
+                                v-for="group in planGroups"
+                                :key="group.id"
+                                class="h-4 w-4 rounded-sm border transition-all"
+                                :class="user.plan_group_ids.includes(group.id)
+                                    ? 'border-transparent'
+                                    : 'border-gray-300 dark:border-slate-600 bg-transparent'"
+                                :style="user.plan_group_ids.includes(group.id) ? { background: group.color } : {}"
+                                :title="group.name"
+                                @click="toggleUserGroup(user, group.id)" />
+                        </div>
+
+                        <!-- Plannable checkbox -->
+                        <input type="checkbox" :checked="user.plannable"
+                            class="h-3.5 w-3.5 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer shrink-0"
+                            :title="user.plannable ? 'Inplanbaar — klik om uit te zetten' : 'Niet inplanbaar — klik om aan te zetten'"
+                            @change="$emit('plannable-toggled', user.id, $event.target.checked)" />
+                    </div>
+
+                    <div v-if="allUsers.length && filteredUsers.length === 0"
+                        class="px-3 py-3 text-[10px] text-gray-400 italic">
+                        Geen monteurs gevonden voor "{{ userSearchQuery }}".
+                    </div>
+                </div>
+
+                <button v-if="filteredUsers.length > maxVisibleUsers" type="button"
+                    class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-lavoro-blue hover:underline"
+                    @click="isUsersExpanded = !isUsersExpanded">
+                    <template v-if="isUsersExpanded">
+                        <ChevronUpIcon class="size-3.5" />
+                        Toon minder
+                    </template>
+                    <template v-else>
+                        <ChevronDownIcon class="size-3.5" />
+                        Toon alle ({{ filteredUsers.length }})
+                    </template>
+                </button>
             </div>
 
         </div>
@@ -122,8 +150,12 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
-import { PlusIcon, TrashIcon, Bars3Icon } from '@heroicons/vue/24/outline'
+import {
+    PlusIcon, TrashIcon, Bars3Icon,
+    MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon,
+} from '@heroicons/vue/24/outline'
 import { initials } from '@/Utilities/Utilities'
+import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
 const props = defineProps({
     planGroups: { type: Array, default: () => [] },
@@ -151,6 +183,17 @@ const dropTargetGroupId = ref(undefined)
 const sortedAllUsers = computed(() =>
     [...props.allUsers].sort((a, b) => a.name.localeCompare(b.name))
 )
+
+const maxVisibleUsers = 4
+
+const {
+    searchQuery: userSearchQuery,
+    isExpanded: isUsersExpanded,
+    filteredItems: filteredUsers,
+    visibleItems: visibleUsers,
+} = useExpandableFilter(sortedAllUsers, (user, query) =>
+    user.name.toLowerCase().includes(query),
+    maxVisibleUsers)
 
 function usersInGroup(groupId) {
     return props.allUsers.filter(u => u.plan_group_ids.includes(groupId))

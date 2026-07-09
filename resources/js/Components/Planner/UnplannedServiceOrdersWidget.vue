@@ -30,6 +30,22 @@
                     <p v-if="so.description" class="mt-1 text-xs text-gray-600 dark:text-slate-400 line-clamp-2">
                         {{ so.description }}
                     </p>
+                    <ul v-if="so.task_instances?.length" class="mt-1.5 space-y-0.5">
+                        <li v-for="ti in so.task_instances.slice(0, maxVisibleTasks)" :key="ti.id"
+                            class="text-xs text-gray-600 dark:text-slate-400 flex items-start gap-1.5">
+                            <span class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
+                            <span class="min-w-0">
+                                {{ effectiveTitle(ti) }}
+                                <span v-if="ti.product" class="text-indigo-500 dark:text-indigo-400">
+                                    — {{ ti.quantity }}× {{ ti.product.brand.name }} {{ ti.product.model }}
+                                </span>
+                            </span>
+                        </li>
+                        <li v-if="so.task_instances.length > maxVisibleTasks"
+                            class="text-xs text-gray-400 dark:text-slate-500 pl-2.5">
+                            +{{ so.task_instances.length - maxVisibleTasks }} meer
+                        </li>
+                    </ul>
                     <div class="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 dark:text-slate-500">
                         <ArrowsRightLeftIcon class="size-3" />
                         <span>Sleep naar de planning (standaard min.)</span>
@@ -66,7 +82,6 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon,
@@ -74,27 +89,28 @@ import {
 } from '@heroicons/vue/24/outline'
 import { nlDate } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
+import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
 const props = defineProps({
     serviceOrders: { type: Array, default: () => [] },
 })
 
 const maxVisible = 4
-const searchQuery = ref('')
-const isExpanded = ref(false)
+const maxVisibleTasks = 5
 
-const filteredServiceOrders = computed(() => {
-    const query = searchQuery.value.trim().toLowerCase()
-    if (!query) return props.serviceOrders
-    return props.serviceOrders.filter(so =>
-        so.customer?.name?.toLowerCase().includes(query) ||
-        so.description?.toLowerCase().includes(query)
-    )
-})
+const {
+    searchQuery,
+    isExpanded,
+    filteredItems: filteredServiceOrders,
+    visibleItems: visibleServiceOrders,
+} = useExpandableFilter(() => props.serviceOrders, (so, query) =>
+    so.customer?.name?.toLowerCase().includes(query) ||
+    so.description?.toLowerCase().includes(query),
+    maxVisible)
 
-const visibleServiceOrders = computed(() =>
-    isExpanded.value ? filteredServiceOrders.value : filteredServiceOrders.value.slice(0, maxVisible)
-)
+function effectiveTitle(ti) {
+    return ti.title || ti.service_order_task?.title || '(geen titel)'
+}
 
 function onDragStart(e, so) {
     setServiceOrderDragData(e, so)
