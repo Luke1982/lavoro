@@ -90,7 +90,9 @@ class ServiceOrderController extends Controller
                 ->whereDoesntHave('events', fn ($q) => $q
                     ->where('status', '!=', EventStatusses::cancelled->value)
                     ->where('end', '>=', now()))
-                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true));
+                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where(fn ($sub) => $sub
+                    ->where('is_closed_state', true)
+                    ->orWhere('is_invoiced_state', true)));
         }
 
         return inertia('ServiceOrders/IndexPage', [

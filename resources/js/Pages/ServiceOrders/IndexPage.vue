@@ -20,7 +20,7 @@
                 </div>
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
                     Toont werkbonnen waarvan alle afspraken al voorbij zijn maar die nog niet op een
-                    gesloten fase staan. Geannuleerde afspraken tellen hierbij niet mee.
+                    gesloten of gefactureerde fase staan. Geannuleerde afspraken tellen hierbij niet mee.
                 </p>
             </div>
             <div v-if="activeFilters.length" class="flex flex-wrap gap-2 mt-3" v-auto-animate>

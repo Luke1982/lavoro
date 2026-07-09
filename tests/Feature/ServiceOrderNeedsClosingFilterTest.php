@@ -42,6 +42,16 @@ class ServiceOrderNeedsClosingFilterTest extends TestCase
         return [$open_stage, $closed_stage];
     }
 
+    private function invoiced_stage(): ServiceOrderStage
+    {
+        return ServiceOrderStage::create([
+            'name' => 'Gefactureerd',
+            'order' => 3,
+            'is_closed_state' => false,
+            'is_invoiced_state' => true,
+        ]);
+    }
+
     private function service_order_in_stage(ServiceOrderStage $stage): ServiceOrder
     {
         $customer = Customer::factory()->create();
@@ -114,6 +124,21 @@ class ServiceOrderNeedsClosingFilterTest extends TestCase
         [, $closed_stage] = $this->open_and_closed_stages();
 
         $service_order = $this->service_order_in_stage($closed_stage);
+        $this->attach_event($service_order, [
+            'status' => 'Afgerond',
+            'start' => now()->subDays(2),
+            'end' => now()->subDay(),
+        ]);
+
+        $this->assertNotContains($service_order->id, $this->fetch_ids_with_filter($admin));
+    }
+
+    public function test_excludes_order_on_an_invoiced_stage(): void
+    {
+        $admin = $this->admin_user();
+        $invoiced_stage = $this->invoiced_stage();
+
+        $service_order = $this->service_order_in_stage($invoiced_stage);
         $this->attach_event($service_order, [
             'status' => 'Afgerond',
             'start' => now()->subDays(2),

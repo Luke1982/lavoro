@@ -13,8 +13,9 @@ A serviceorder matches the "needs closing" filter when all of the following hold
 1. It has at least one **non-cancelled** event.
 2. None of its non-cancelled events have an `end` time in the future (i.e. all of them have
    already finished).
-3. Its current `ServiceOrderStage.is_closed_state` is not `true` (no stage also counts as "not
-   closed").
+3. Its current stage is not `is_closed_state` and not `is_invoiced_state` (no stage also counts
+   as "not closed"). Invoiced orders are excluded because an invoiced stage doesn't count as
+   "open" either, even when it isn't flagged as closed.
 
 Cancelled events (`status = Geannuleerd`) are ignored entirely — both when checking "has events"
 and when checking "all events are in the past". A serviceorder whose only events are cancelled
@@ -34,7 +35,9 @@ This is independent of, and combines with (AND), the existing stage filter and s
 if ($request->boolean('onlyNeedsClosing')) {
     $query->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
         ->whereDoesntHave('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value)->where('end', '>=', now()))
-        ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true));
+        ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where(fn ($sub) => $sub
+            ->where('is_closed_state', true)
+            ->orWhere('is_invoiced_state', true)));
 }
 ```
 
