@@ -90,9 +90,10 @@ const canRelease = computed(() => {
 })
 const executeOthersTarget = computed(() => {
     if (!hasPermission('event.execute_others')) return null
-    return (props.event.executing_users || []).find(u =>
-        u.id !== authUserId.value && u.completion_status !== 'Afgerond' && u.completion_status !== 'Geannuleerd'
-    ) ?? null
+    if (rowUserId.value === authUserId.value) return null
+    const execution = (props.event.executing_users || []).find(u => u.id === rowUserId.value)
+    if (!execution || execution.completion_status === 'Afgerond' || execution.completion_status === 'Geannuleerd') return null
+    return execution
 })
 
 async function postTransition(payload) {
