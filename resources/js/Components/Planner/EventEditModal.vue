@@ -293,13 +293,20 @@
                             </div>
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">E-mail</span>
                         </div>
-                        <div class="flex gap-2 mb-3">
+                        <div class="flex flex-wrap gap-2 mb-3">
                             <ComboBox v-model="selectedStandardEmailId"
                                 :options="standardEmails.map(e => ({ id: e.id, name: e.name }))" class="flex-1"
-                                placeholder="Kies standaard e-mail..." :emitValue="true" />
-                            <button type="button" @click="sendSelectedStandardEmail" :disabled="!selectedStandardEmailId"
-                                class="px-4 py-2 rounded-xl bg-lavoro-blue text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-                                Versturen
+                                placeholder="Kies standaard e-mail..." />
+                            <button type="button" @click="sendSelectedStandardEmailWithEdit" :disabled="!selectedStandardEmailId"
+                                v-tooltip="'Bewerken en verzenden'"
+                                class="px-3 py-2 rounded-xl border border-lavoro-blue text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 disabled:opacity-50">
+                                <MailQuestionMark class="h-4 w-4" />
+                            </button>
+                            <button type="button" @click="sendSelectedStandardEmailDirect"
+                                :disabled="!selectedStandardEmailId || sendingDirect"
+                                v-tooltip="'Direct verzenden'"
+                                class="px-3 py-2 rounded-xl bg-lavoro-blue text-white hover:bg-blue-700 disabled:opacity-50">
+                                <SendHorizontal class="h-4 w-4" />
                             </button>
                         </div>
                         <div v-if="emailHistory.length" class="flex flex-col gap-2">
@@ -364,7 +371,7 @@ import {
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
     UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon, EnvelopeIcon,
 } from '@heroicons/vue/24/outline'
-import { ClockFading as ClockFadingIcon } from '@lucide/vue'
+import { ClockFading as ClockFadingIcon, MailQuestionMark, SendHorizontal } from '@lucide/vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
@@ -394,7 +401,8 @@ const userToAdd = ref(null)
 const standardEmails = ref([])
 const emailHistory = ref([])
 const selectedStandardEmailId = ref(null)
-const { previewModal, previewModalKey, openPreview } = useStandardEmailPreview()
+const sendingDirect = ref(false)
+const { previewModal, previewModalKey, openPreview, sendDirect } = useStandardEmailPreview()
 
 function snapMinute(time) {
     if (!time) return '08:00'
@@ -619,10 +627,20 @@ async function loadEmailHistory() {
     emailHistory.value = data
 }
 
-function sendSelectedStandardEmail() {
+function sendSelectedStandardEmailWithEdit() {
     if (!selectedStandardEmailId.value) return
     openPreview(form.id, selectedStandardEmailId.value)
     selectedStandardEmailId.value = null
+}
+
+async function sendSelectedStandardEmailDirect() {
+    if (!selectedStandardEmailId.value || sendingDirect.value) return
+    const id = selectedStandardEmailId.value
+    selectedStandardEmailId.value = null
+    sendingDirect.value = true
+    const sent = await sendDirect(form.id, id)
+    sendingDirect.value = false
+    if (sent) loadEmailHistory()
 }
 
 function resendHistoryItem(item) {

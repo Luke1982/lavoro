@@ -28,9 +28,12 @@
 <script setup>
 import { ref, watch } from 'vue'
 import axios from 'axios'
+import { usePage } from '@inertiajs/vue3'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
+
+const page = usePage()
 
 const props = defineProps({
     open: { type: Boolean, required: true },
@@ -60,15 +63,18 @@ async function send() {
     sending.value = true
     try {
         await axios.get('sanctum/csrf-cookie')
-        await axios.post(`/api/events/${props.eventId}/standard-emails/send`, {
+        const r = await axios.post(`/api/events/${props.eventId}/standard-emails/send`, {
             standard_email_id: props.standardEmailId,
             to: localTo.value,
             subject: localSubject.value,
             body: localBody.value,
             trigger: props.trigger,
         })
+        page.props.flash.success = r.data?.message || ('E-mail verzonden aan ' + localTo.value)
         emit('sent')
         emit('update:open', false)
+    } catch (e) {
+        page.props.flash.error = e.response?.data?.message || 'Kon e-mail niet verzenden'
     } finally {
         sending.value = false
     }
