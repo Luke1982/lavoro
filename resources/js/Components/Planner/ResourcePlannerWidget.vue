@@ -111,7 +111,7 @@
             old "scroll buffer" feel) and lets native drag-to-edge auto-scroll do its job.
         -->
         <PlannerLoadingOverlay :loading="eventsLoading">
-            <div class="absolute inset-0 overflow-auto [overscroll-behavior:contain]" ref="gridScrollRef"
+            <div class="h-full overflow-auto [overscroll-behavior:contain]" ref="gridScrollRef"
                 @dragleave="onGridDragLeave">
                 <!-- Sticky header row: sidebar label + day/time bars -->
                 <div class="sticky top-0 z-30 flex w-max min-w-full">

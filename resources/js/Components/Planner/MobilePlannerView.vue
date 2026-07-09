@@ -79,7 +79,7 @@
 
         <!-- Timeline -->
         <PlannerLoadingOverlay :loading="eventsLoading">
-            <div class="absolute inset-0 overflow-y-auto">
+            <div class="h-full overflow-y-auto">
                 <div v-if="!eventsLoading && timelineEvents.length === 0"
                     class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
                     Geen afspraken deze week
