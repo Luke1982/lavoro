@@ -113,7 +113,8 @@
                     </Link>
                 </div>
                 <div class="col-span-1 items-center hidden lg:flex pr-2">
-                    <Link :href="`/assets/${ticket.asset.id}`" class="text-lavoro-darkerblue underline">
+                    <Link :href="`/assets/${ticket.asset.id}`" class="text-lavoro-darkerblue underline truncate"
+                        :title="ticket.asset.serial_number">
                         {{ ticket.asset.serial_number }}
                     </Link>
                 </div>
