@@ -267,6 +267,10 @@ Route::group(
             ->except(['show', 'edit', 'create']);
         Route::post('customfields/values', [CustomFieldController::class, 'saveValues'])
             ->name('customfields.saveValues');
+        Route::resource('standard-emails', StandardEmailController::class)
+            ->except(['show', 'create', 'edit']);
+        Route::resource('standard-attachments', StandardAttachmentController::class)
+            ->except(['show', 'create', 'edit']);
         Route::resource('projects', ProjectController::class);
         Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
             ->name('projects.timeline');
@@ -350,10 +354,6 @@ Route::group(
                 'admin/settings/serviceorder-min-images',
                 [GeneralSettingsController::class, 'updateServiceOrderMinImages'],
             )->name('admin.settings.serviceorder-min-images');
-            Route::resource('standard-emails', StandardEmailController::class)
-                ->except(['show', 'create', 'edit']);
-            Route::resource('standard-attachments', StandardAttachmentController::class)
-                ->except(['show', 'create', 'edit']);
         });
     }
 );

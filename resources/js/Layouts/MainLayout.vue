@@ -133,14 +133,16 @@
                                                     <Cog6ToothIcon class="size-6 shrink-0" />
                                                     Instellingen
                                                 </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/standard-emails'" :class="[
+                                            </div>
+                                            <div class="px-6 mb-2 space-y-1" v-if="canManageStandardEmails || canManageStandardAttachments">
+                                                <Link v-if="canManageStandardEmails" @click="sidebarOpen = false" :href="'/standard-emails'" :class="[
                                                     currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
                                                     <EnvelopeIcon class="size-6 shrink-0" />
                                                     Standaard e-mails
                                                 </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/standard-attachments'" :class="[
+                                                <Link v-if="canManageStandardAttachments" @click="sidebarOpen = false" :href="'/standard-attachments'" :class="[
                                                     currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                                 ]">
@@ -293,14 +295,16 @@
                                     <Cog6ToothIcon class="size-6 shrink-0" />
                                     Instellingen
                                 </Link>
-                                <Link :href="'/standard-emails'" :class="[
+                            </div>
+                            <div class="px-6 mb-2 space-y-1" v-if="canManageStandardEmails || canManageStandardAttachments">
+                                <Link v-if="canManageStandardEmails" :href="'/standard-emails'" :class="[
                                     currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
                                     <EnvelopeIcon class="size-6 shrink-0" />
                                     Standaard e-mails
                                 </Link>
-                                <Link :href="'/standard-attachments'" :class="[
+                                <Link v-if="canManageStandardAttachments" :href="'/standard-attachments'" :class="[
                                     currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                                     'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
                                 ]">
@@ -499,6 +503,8 @@ const dismissGoogleBanner = () => {
 const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
 const canSeeUsers = computed(() => isAdmin.value || hasPermission('user.read'))
 const canSeeUserRoles = computed(() => isAdmin.value || hasPermission('userrole.read'))
+const canManageStandardEmails = computed(() => isAdmin.value || hasPermission('standardemail.manage'))
+const canManageStandardAttachments = computed(() => isAdmin.value || hasPermission('standardattachment.manage'))
 const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
 const companyLogo = computed(() => page.props.company?.logo_url || null)
 const companyName = computed(() => page.props.company?.name || null)
