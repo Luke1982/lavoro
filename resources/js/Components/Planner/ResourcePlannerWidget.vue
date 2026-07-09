@@ -110,307 +110,295 @@
             `[overscroll-behavior:contain]` stops wheel deltas from chaining out (kills the
             old "scroll buffer" feel) and lets native drag-to-edge auto-scroll do its job.
         -->
-        <div class="flex-1 min-h-0 overflow-auto relative [overscroll-behavior:contain]" ref="gridScrollRef"
-            @dragleave="onGridDragLeave">
-            <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
-                leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
-                <div v-if="eventsLoading"
-                    class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-                    <div class="flex flex-col items-center gap-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl px-6 py-5 shadow-lg text-sm font-medium text-gray-600 dark:text-slate-300">
-                        <svg class="animate-spin size-6 shrink-0 text-lavoro-blue" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                        </svg>
-                        Afspraken worden geladen…
-                    </div>
-                </div>
-            </Transition>
-
-            <!-- Sticky header row: sidebar label + day/time bars -->
-            <div class="sticky top-0 z-30 flex w-max min-w-full">
-                <div class="sticky left-0 z-10 w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
-                    :style="{ height: headerHeight + 'px' }">
-                    <!-- Group filter -->
-                    <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
-                        <span class="text-[10px] text-gray-400 shrink-0">Groepen:</span>
-                        <button v-for="group in groups" :key="group.id"
-                            class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
-                            :class="selectedGroupIds.includes(group.id)
-                                ? 'text-white border-transparent'
-                                : 'text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
-                            :style="selectedGroupIds.includes(group.id) ? { background: group.color, borderColor: group.color } : {}"
-                            :title="group.name" @click="toggleGroupFilter(group.id)">
-                            {{ group.name }}
-                        </button>
-                        <button v-if="selectedGroupIds.length"
-                            class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0" title="Alle groepen tonen"
-                            @click="selectedGroupIds = []">✕</button>
-                    </div>
-                    <!-- Monteurs count + collapse -->
-                    <div class="flex items-center justify-between">
-                        <span>Monteurs ({{ visibleUsers.length }})</span>
-                        <button v-if="visibleUsers.length" @click="toggleAllRows"
-                            class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
-                            <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
-                            <ChevronRightIcon v-else class="size-3.5" />
-                            {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
-                        </button>
-                    </div>
-                </div>
-                <div class="flex-1 bg-white dark:bg-slate-900" :style="{ minWidth: gridMinWidth + 'px' }">
-                    <div class="grid border-b border-gray-200 dark:border-slate-800"
-                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
-                        <div v-for="day in weekDays" :key="'dh-' + day.iso"
-                            class="px-3 flex items-center justify-center text-sm font-semibold border-l border-gray-200 dark:border-slate-800 first:border-l-0">
-                            <span class="uppercase">{{ dayLabel(day.date) }}</span>
-                            <span v-if="isToday(day.date)"
-                                class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
-                                {{ String(day.date.getDate()).padStart(2, '0') }}
-                            </span>
+        <PlannerLoadingOverlay :loading="eventsLoading">
+            <div class="absolute inset-0 overflow-auto [overscroll-behavior:contain]" ref="gridScrollRef"
+                @dragleave="onGridDragLeave">
+                <!-- Sticky header row: sidebar label + day/time bars -->
+                <div class="sticky top-0 z-30 flex w-max min-w-full">
+                    <div class="sticky left-0 z-10 w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
+                        :style="{ height: headerHeight + 'px' }">
+                        <!-- Group filter -->
+                        <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
+                            <span class="text-[10px] text-gray-400 shrink-0">Groepen:</span>
+                            <button v-for="group in groups" :key="group.id"
+                                class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
+                                :class="selectedGroupIds.includes(group.id)
+                                    ? 'text-white border-transparent'
+                                    : 'text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
+                                :style="selectedGroupIds.includes(group.id) ? { background: group.color, borderColor: group.color } : {}"
+                                :title="group.name" @click="toggleGroupFilter(group.id)">
+                                {{ group.name }}
+                            </button>
+                            <button v-if="selectedGroupIds.length"
+                                class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0" title="Alle groepen tonen"
+                                @click="selectedGroupIds = []">✕</button>
+                        </div>
+                        <!-- Monteurs count + collapse -->
+                        <div class="flex items-center justify-between">
+                            <span>Monteurs ({{ visibleUsers.length }})</span>
+                            <button v-if="visibleUsers.length" @click="toggleAllRows"
+                                class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
+                                <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
+                                <ChevronRightIcon v-else class="size-3.5" />
+                                {{ allRowsCollapsed ? 'Alles uitklappen' : 'Alles inklappen' }}
+                            </button>
                         </div>
                     </div>
-                    <div class="grid border-b border-gray-200 dark:border-slate-800  dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
-                        :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: hourHeaderHeight + 'px' }">
-                        <div v-for="day in weekDays" :key="'hh-' + day.iso"
-                            class="grid border-l border-gray-200 dark:border-slate-800 first:border-l-0 relative"
-                            :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
-                            <div v-for="h in hourCount" :key="'hl-' + day.iso + '-' + h"
-                                class="border-l border-gray-100 dark:border-slate-800/70 first:border-l-0 flex items-end pb-1 pl-1">
-                                {{ String(dayStartHour + h - 1).padStart(2, '0') }}:00
+                    <div class="flex-1 bg-white dark:bg-slate-900" :style="{ minWidth: gridMinWidth + 'px' }">
+                        <div class="grid border-b border-gray-200 dark:border-slate-800"
+                            :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
+                            <div v-for="day in weekDays" :key="'dh-' + day.iso"
+                                class="px-3 flex items-center justify-center text-sm font-semibold border-l border-gray-200 dark:border-slate-800 first:border-l-0">
+                                <span class="uppercase">{{ dayLabel(day.date) }}</span>
+                                <span v-if="isToday(day.date)"
+                                    class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
+                                    {{ String(day.date.getDate()).padStart(2, '0') }}
+                                </span>
                             </div>
                         </div>
+                        <div class="grid border-b border-gray-200 dark:border-slate-800  dark:bg-slate-900 text-[11px] text-gray-500 dark:text-slate-400"
+                            :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: hourHeaderHeight + 'px' }">
+                            <div v-for="day in weekDays" :key="'hh-' + day.iso"
+                                class="grid border-l border-gray-200 dark:border-slate-800 first:border-l-0 relative"
+                                :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
+                                <div v-for="h in hourCount" :key="'hl-' + day.iso + '-' + h"
+                                    class="border-l border-gray-100 dark:border-slate-800/70 first:border-l-0 flex items-end pb-1 pl-1">
+                                    {{ String(dayStartHour + h - 1).padStart(2, '0') }}:00
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body row: frozen resource sidebar + scrolling time grid -->
+                <div class="flex w-max min-w-full">
+                    <!-- Resource sidebar (frozen left via sticky) -->
+                    <div class="sticky left-0 z-20 w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
+                        <div class="absolute top-0 left-0 pointer-events-none"
+                            style="width: 0; overflow: visible; z-index: 1;">
+                            <div v-for="(bar, i) in groupBars" :key="i" class="absolute rounded-sm"
+                                :style="{ top: bar.top + 'px', height: bar.height + 'px', left: bar.x + 'px', width: BAR_W + 'px', background: bar.color }" />
+                        </div>
+                        <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
+                            class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
+                            <button
+                                class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                @click="toggleAllDay"
+                                :aria-label="allDayState === 'closed' ? 'Projecten uitklappen' : allDayState === 'partial' ? 'Alle projecten tonen' : 'Projecten inklappen'">
+                                <ChevronRightIcon v-if="allDayState === 'closed'" class="size-4" />
+                                <ChevronDownIcon v-else-if="allDayState === 'partial'" class="size-4" />
+                                <ChevronDoubleDownIcon v-else class="size-4" />
+                            </button>
+                            <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
+                        </div>
+                        <div v-for="(user, idx) in visibleUsers" :key="user.id"
+                            :style="{ height: rowHeightFor(user.id) + 'px' }"
+                            class="relative flex flex-col pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
+                            :class="[
+                                idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
+                                latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
+                            ]">
+                            <button
+                                class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                                @click="toggleUserRow(user.id)"
+                                :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
+                                <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
+                                <ChevronRightIcon v-else class="size-4" />
+                            </button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
+                                    :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
+                                    <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
+                                        :alt="user.name" />
+                                    <span v-else>{{ initials(user.name) }}</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold truncate">{{ user.name }}</div>
+                                    <div v-if="!collapsedUsers.has(user.id)"
+                                        class="text-xs text-gray-500 dark:text-slate-400">
+                                        {{ userHoursLabel(user.id) }}</div>
+                                </div>
+                            </div>
+                            <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]"
+                                class="flex flex-col flex-1 min-h-0">
+                                <div class="flex items-center justify-between mb-0.5 shrink-0">
+                                    <span class="text-[10px] text-gray-400 dark:text-slate-500 font-medium">Locatie</span>
+                                    <button @click.stop="toggleMapExpand(user.id)"
+                                        class="rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                                        :title="mapExpandedUsers.has(user.id) ? 'Kaart verkleinen' : 'Kaart vergroten'">
+                                        <ArrowsPointingInIcon v-if="mapExpandedUsers.has(user.id)" class="size-3" />
+                                        <ArrowsPointingOutIcon v-else class="size-3" />
+                                    </button>
+                                </div>
+                                <div class="flex-1 min-h-0">
+                                    <TechnicianMiniMap :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
+                                        :ping="latestPings[user.id]" />
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="visibleUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
+                            Geen inplanbare monteurs.
+                            Schakel "Inplanbaar" in op een gebruiker via Gebruikers.
+                        </div>
+                    </div>
+
+                    <!-- Time grid (scrolls with the header; bodyRef is the positioning context for overlays) -->
+                    <div class="flex-1 relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
+                            <!-- All-day project band -->
+                            <div v-if="showProjects && allDayLaneHeight"
+                                class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                                :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                                <!-- Full project stack; scrolls with the grid (labels/hanging-SOs stay sticky to the left edge). -->
+                                <div class="relative"
+                                    :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
+                                    <!-- Day gridlines -->
+                                    <div class="absolute inset-0 grid pointer-events-none"
+                                        :style="{ gridTemplateColumns: dayGridTemplate }">
+                                        <div v-for="day in weekDays" :key="'adg-' + day.iso"
+                                            class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
+                                    </div>
+
+                                    <template v-for="track in visibleTracks" :key="'track-' + track.id">
+                                        <!-- Project bar (background spans full range; label sticks to the viewport) -->
+                                        <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
+                                            :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
+                                            :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
+                                            <!-- Label sticks to the left visible grid edge (just past the frozen sidebar) while scrolling horizontally. -->
+                                            <div class="sticky left-64 inline-block max-w-full px-2 py-1">
+                                                <div
+                                                    class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
+                                                    {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
+                                                        track.continuesRight ?
+                                                            ' ▸' : '' }}
+                                                </div>
+                                                <div v-if="track.customerName"
+                                                    class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
+                                                    {{ track.customerName }}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
+                                        <div v-if="track.serviceOrders.length" class="absolute"
+                                            :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.hangingTop + 'px' }">
+                                            <!-- The whole group sticks under its project's visible portion while scrolling horizontally. -->
+                                            <div class="sticky left-64 inline-flex flex-wrap content-start gap-1"
+                                                :style="{ maxWidth: '100%' }">
+                                                <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
+                                                    draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
+                                                    @dragend="onProjectServiceOrderDragEnd"
+                                                    :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
+                                                    class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                                    :title="`Sleep naar de planning — werkbon #${so.id}`">
+                                                    <ArrowsRightLeftIcon
+                                                        class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
+                                                    <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
+                                                    <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
+                                                        so.description || 'Werkbon' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Locked-event group overlays -->
+                            <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
+                                class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
+                                    top: (ov.top - 5 - ov.nestingLevel * 5) + 'px',
+                                    height: (ov.height + 10 + ov.nestingLevel * 10) + 'px',
+                                    left: `calc(${ov.leftPct}% - ${5 + ov.nestingLevel * 5}px)`,
+                                    width: `calc(${ov.widthPct}% + ${10 + ov.nestingLevel * 10}px)`,
+                                    borderColor: ov.color,
+                                    opacity: 0.5,
+                                }" />
+
+                            <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
+                                class="grid relative transition-[height] duration-200 ease-in-out"
+                                :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
+                                :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
+
+                                <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
+                                    class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
+                                    :data-user-id="user.id" :data-day-iso="day.iso"
+                                    @pointerdown="onCellPointerDown($event, user, day)"
+                                    @dragover.prevent="onDragOver($event, user, day)"
+                                    @drop.prevent="onExternalDrop($event, user, day)">
+                                    <!-- Hour grid lines -->
+                                    <div class="absolute inset-0 grid pointer-events-none"
+                                        :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
+                                        <div v-for="h in hourCount" :key="'hgl-' + user.id + '-' + day.iso + '-' + h"
+                                            class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
+                                    </div>
+
+                                    <!-- Unavailability overlays -->
+                                    <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
+                                        :key="'block-' + user.id + '-' + day.iso + '-' + oi">
+                                        <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
+                                            :style="{
+                                                left: overlay.left + '%',
+                                                width: overlay.width + '%',
+                                                background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
+                                            }">
+                                            <span
+                                                class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
+                                                {{ overlay.label || 'Niet beschikbaar' }}
+                                            </span>
+                                        </div>
+                                    </template>
+
+                                    <!-- Now indicator -->
+                                    <div v-if="isToday(day.date) && nowOffsetPercent !== null"
+                                        class="absolute top-0 bottom-0 w-px bg-red-500/70 pointer-events-none z-10"
+                                        :style="{ left: nowOffsetPercent + '%' }">
+                                        <div class="absolute -top-1 -translate-x-1/2 size-2 rounded-full bg-red-500"></div>
+                                    </div>
+
+                                    <!-- Events for this user/day -->
+                                    <PlannerEvent v-for="ev in eventsFor(user.id, day.iso)" :key="ev.id + '-' + user.id"
+                                        :event="ev" :user-id="user.id" :day="day" :slot-minutes="slotMinutes"
+                                        :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
+                                        :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
+                                        :is-locked="ev.executing_user_ids.length > 1"
+                                        :is-being-dragged="drag.eventId === ev.id"
+                                        :is-highlighted="highlightedEventId === ev.id"
+                                        :user-roles="userRoles"
+                                        @click="handleEventClick(ev)"
+                                        @contextmenu="onEventContextMenu($event, ev)"
+                                        @pointerdown-on-event="onEventPointerDown($event, ev, user)"
+                                        @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)"
+                                        @changed="fetchEvents()"
+                                        @open-feedback="feedback.openFeedback" />
+
+                                    <!-- Live selection rectangle (click-drag-create) -->
+                                    <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
+                                        class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
+                                        :style="{ left: selectRect.left + '%', width: selectRect.width + '%' }">
+                                        <div
+                                            class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300  dark:bg-slate-900 rounded px-1">
+                                            {{ formatTimeFromMinutes(selectRect.startMinutes) }} –
+                                            {{ formatTimeFromMinutes(selectRect.endMinutes) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Drag ghost (floats above grid) -->
+                            <div v-if="dragGhost"
+                                class="absolute pointer-events-none rounded-md border-2 border-dashed /90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
+                                :style="dragGhost.style">
+                                <div class="font-semibold truncate">{{ dragGhost.title }}</div>
+                                <div class="text-[11px]">
+                                    {{ formatTimeFromDate(dragGhost.start) }} – {{ formatTimeFromDate(dragGhost.end) }}
+                                </div>
+                                <div v-if="dragGhost.userName" class="text-[10px] opacity-75">→ {{ dragGhost.userName }}
+                                </div>
+                            </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Body row: frozen resource sidebar + scrolling time grid -->
-            <div class="flex w-max min-w-full">
-                <!-- Resource sidebar (frozen left via sticky) -->
-                <div class="sticky left-0 z-20 w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
-                    <div class="absolute top-0 left-0 pointer-events-none"
-                        style="width: 0; overflow: visible; z-index: 1;">
-                        <div v-for="(bar, i) in groupBars" :key="i" class="absolute rounded-sm"
-                            :style="{ top: bar.top + 'px', height: bar.height + 'px', left: bar.x + 'px', width: BAR_W + 'px', background: bar.color }" />
-                    </div>
-                    <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
-                        class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
-                        <button
-                            class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
-                            @click="toggleAllDay"
-                            :aria-label="allDayState === 'closed' ? 'Projecten uitklappen' : allDayState === 'partial' ? 'Alle projecten tonen' : 'Projecten inklappen'">
-                            <ChevronRightIcon v-if="allDayState === 'closed'" class="size-4" />
-                            <ChevronDownIcon v-else-if="allDayState === 'partial'" class="size-4" />
-                            <ChevronDoubleDownIcon v-else class="size-4" />
-                        </button>
-                        <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
-                    </div>
-                    <div v-for="(user, idx) in visibleUsers" :key="user.id"
-                        :style="{ height: rowHeightFor(user.id) + 'px' }"
-                        class="relative flex flex-col pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
-                        :class="[
-                            idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
-                            latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
-                        ]">
-                        <button
-                            class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
-                            @click="toggleUserRow(user.id)"
-                            :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
-                            <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
-                            <ChevronRightIcon v-else class="size-4" />
-                        </button>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <div class="rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-xs font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 transition-all duration-200 ease-in-out"
-                                :class="collapsedUsers.has(user.id) ? 'h-7 w-7' : 'h-10 w-10'">
-                                <img v-if="user.avatar" :src="user.avatar" class="object-cover w-full h-full"
-                                    :alt="user.name" />
-                                <span v-else>{{ initials(user.name) }}</span>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="text-sm font-semibold truncate">{{ user.name }}</div>
-                                <div v-if="!collapsedUsers.has(user.id)"
-                                    class="text-xs text-gray-500 dark:text-slate-400">
-                                    {{ userHoursLabel(user.id) }}</div>
-                            </div>
-                        </div>
-                        <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]"
-                            class="flex flex-col flex-1 min-h-0">
-                            <div class="flex items-center justify-between mb-0.5 shrink-0">
-                                <span class="text-[10px] text-gray-400 dark:text-slate-500 font-medium">Locatie</span>
-                                <button @click.stop="toggleMapExpand(user.id)"
-                                    class="rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
-                                    :title="mapExpandedUsers.has(user.id) ? 'Kaart verkleinen' : 'Kaart vergroten'">
-                                    <ArrowsPointingInIcon v-if="mapExpandedUsers.has(user.id)" class="size-3" />
-                                    <ArrowsPointingOutIcon v-else class="size-3" />
-                                </button>
-                            </div>
-                            <div class="flex-1 min-h-0">
-                                <TechnicianMiniMap :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
-                                    :ping="latestPings[user.id]" />
-                            </div>
-                        </div>
-                    </div>
-                    <div v-if="visibleUsers.length === 0" class="p-4 text-xs text-gray-500 dark:text-slate-400">
-                        Geen inplanbare monteurs.
-                        Schakel "Inplanbaar" in op een gebruiker via Gebruikers.
-                    </div>
-                </div>
-
-                <!-- Time grid (scrolls with the header; bodyRef is the positioning context for overlays) -->
-                <div class="flex-1 relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
-                        <!-- All-day project band -->
-                        <div v-if="showProjects && allDayLaneHeight"
-                            class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
-                            :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                            <!-- Full project stack; scrolls with the grid (labels/hanging-SOs stay sticky to the left edge). -->
-                            <div class="relative"
-                                :style="{ height: allDayContentHeight + 'px', minWidth: gridMinWidth + 'px' }">
-                                <!-- Day gridlines -->
-                                <div class="absolute inset-0 grid pointer-events-none"
-                                    :style="{ gridTemplateColumns: dayGridTemplate }">
-                                    <div v-for="day in weekDays" :key="'adg-' + day.iso"
-                                        class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
-                                </div>
-
-                                <template v-for="track in visibleTracks" :key="'track-' + track.id">
-                                    <!-- Project bar (background spans full range; label sticks to the viewport) -->
-                                    <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
-                                        :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
-                                        :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
-                                        <!-- Label sticks to the left visible grid edge (just past the frozen sidebar) while scrolling horizontally. -->
-                                        <div class="sticky left-64 inline-block max-w-full px-2 py-1">
-                                            <div
-                                                class="text-xs font-semibold leading-tight truncate text-indigo-900 dark:text-indigo-200">
-                                                {{ track.continuesLeft ? '◂ ' : '' }}{{ track.title }}{{
-                                                    track.continuesRight ?
-                                                        ' ▸' : '' }}
-                                            </div>
-                                            <div v-if="track.customerName"
-                                                class="text-[10px] leading-tight truncate text-indigo-600/80 dark:text-indigo-300/80">
-                                                {{ track.customerName }}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
-                                    <div v-if="track.serviceOrders.length" class="absolute"
-                                        :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.hangingTop + 'px' }">
-                                        <!-- The whole group sticks under its project's visible portion while scrolling horizontally. -->
-                                        <div class="sticky left-64 inline-flex flex-wrap content-start gap-1"
-                                            :style="{ maxWidth: '100%' }">
-                                            <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
-                                                draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                                @dragend="onProjectServiceOrderDragEnd"
-                                                :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                                class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
-                                                :title="`Sleep naar de planning — werkbon #${so.id}`">
-                                                <ArrowsRightLeftIcon
-                                                    class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
-                                                <span class="text-xs font-semibold shrink-0">#{{ so.id }}</span>
-                                                <span class="text-[11px] text-gray-500 dark:text-slate-400 truncate">{{
-                                                    so.description || 'Werkbon' }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Locked-event group overlays -->
-                        <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
-                            class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
-                                top: (ov.top - 5 - ov.nestingLevel * 5) + 'px',
-                                height: (ov.height + 10 + ov.nestingLevel * 10) + 'px',
-                                left: `calc(${ov.leftPct}% - ${5 + ov.nestingLevel * 5}px)`,
-                                width: `calc(${ov.widthPct}% + ${10 + ov.nestingLevel * 10}px)`,
-                                borderColor: ov.color,
-                                opacity: 0.5,
-                            }" />
-
-                        <div v-for="(user, idx) in visibleUsers" :key="'row-' + user.id"
-                            class="grid relative transition-[height] duration-200 ease-in-out"
-                            :style="{ gridTemplateColumns: dayGridTemplate, height: rowHeightFor(user.id) + 'px' }"
-                            :class="idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : ''">
-
-                            <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
-                                class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
-                                :data-user-id="user.id" :data-day-iso="day.iso"
-                                @pointerdown="onCellPointerDown($event, user, day)"
-                                @dragover.prevent="onDragOver($event, user, day)"
-                                @drop.prevent="onExternalDrop($event, user, day)">
-                                <!-- Hour grid lines -->
-                                <div class="absolute inset-0 grid pointer-events-none"
-                                    :style="{ gridTemplateColumns: `repeat(${hourCount}, minmax(0, 1fr))` }">
-                                    <div v-for="h in hourCount" :key="'hgl-' + user.id + '-' + day.iso + '-' + h"
-                                        class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
-                                </div>
-
-                                <!-- Unavailability overlays -->
-                                <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
-                                    :key="'block-' + user.id + '-' + day.iso + '-' + oi">
-                                    <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
-                                        :style="{
-                                            left: overlay.left + '%',
-                                            width: overlay.width + '%',
-                                            background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
-                                        }">
-                                        <span
-                                            class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
-                                            {{ overlay.label || 'Niet beschikbaar' }}
-                                        </span>
-                                    </div>
-                                </template>
-
-                                <!-- Now indicator -->
-                                <div v-if="isToday(day.date) && nowOffsetPercent !== null"
-                                    class="absolute top-0 bottom-0 w-px bg-red-500/70 pointer-events-none z-10"
-                                    :style="{ left: nowOffsetPercent + '%' }">
-                                    <div class="absolute -top-1 -translate-x-1/2 size-2 rounded-full bg-red-500"></div>
-                                </div>
-
-                                <!-- Events for this user/day -->
-                                <PlannerEvent v-for="ev in eventsFor(user.id, day.iso)" :key="ev.id + '-' + user.id"
-                                    :event="ev" :user-id="user.id" :day="day" :slot-minutes="slotMinutes"
-                                    :day-start-hour="dayStartHour" :day-end-hour="dayEndHour"
-                                    :row-height="rowHeightFor(user.id)" :event-padding-y="paddingYFor(user.id)"
-                                    :is-locked="ev.executing_user_ids.length > 1"
-                                    :is-being-dragged="drag.eventId === ev.id"
-                                    :is-highlighted="highlightedEventId === ev.id"
-                                    :user-roles="userRoles"
-                                    @click="handleEventClick(ev)"
-                                    @contextmenu="onEventContextMenu($event, ev)"
-                                    @pointerdown-on-event="onEventPointerDown($event, ev, user)"
-                                    @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)"
-                                    @changed="fetchEvents()"
-                                    @open-feedback="feedback.openFeedback" />
-
-                                <!-- Live selection rectangle (click-drag-create) -->
-                                <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
-                                    class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
-                                    :style="{ left: selectRect.left + '%', width: selectRect.width + '%' }">
-                                    <div
-                                        class="absolute -top-5 left-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300  dark:bg-slate-900 rounded px-1">
-                                        {{ formatTimeFromMinutes(selectRect.startMinutes) }} –
-                                        {{ formatTimeFromMinutes(selectRect.endMinutes) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Drag ghost (floats above grid) -->
-                        <div v-if="dragGhost"
-                            class="absolute pointer-events-none rounded-md border-2 border-dashed /90 dark:bg-slate-800/90 shadow-lg z-30 px-2 py-1 text-xs"
-                            :style="dragGhost.style">
-                            <div class="font-semibold truncate">{{ dragGhost.title }}</div>
-                            <div class="text-[11px]">
-                                {{ formatTimeFromDate(dragGhost.start) }} – {{ formatTimeFromDate(dragGhost.end) }}
-                            </div>
-                            <div v-if="dragGhost.userName" class="text-[10px] opacity-75">→ {{ dragGhost.userName }}
-                            </div>
-                        </div>
-                </div>
-            </div>
-        </div>
+        </PlannerLoadingOverlay>
 
         <!-- Create/edit modal -->
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
@@ -475,6 +463,7 @@ import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
+import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'

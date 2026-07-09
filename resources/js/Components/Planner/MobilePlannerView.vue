@@ -78,187 +78,175 @@
         </div>
 
         <!-- Timeline -->
-        <div class="flex-1 overflow-y-auto relative">
-            <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0"
-                leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
-                <div v-if="eventsLoading"
-                    class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-                    <div class="flex flex-col items-center gap-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl px-6 py-5 shadow-lg text-sm font-medium text-gray-600 dark:text-slate-300">
-                        <svg class="animate-spin size-6 shrink-0 text-lavoro-blue" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                        </svg>
-                        Afspraken worden geladen…
-                    </div>
+        <PlannerLoadingOverlay :loading="eventsLoading">
+            <div class="absolute inset-0 overflow-y-auto">
+                <div v-if="!eventsLoading && timelineEvents.length === 0"
+                    class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
+                    Geen afspraken deze week
                 </div>
-            </Transition>
 
-            <div v-if="!eventsLoading && timelineEvents.length === 0"
-                class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
-                Geen afspraken deze week
-            </div>
+                <div v-else class="pb-24">
+                    <template v-for="group in groupedByDay" :key="group.dayIso">
+                        <!-- Sticky day header -->
+                        <div
+                            class="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                            {{ dayLabel(group.dayIso) }}
+                        </div>
 
-            <div v-else class="pb-24">
-                <template v-for="group in groupedByDay" :key="group.dayIso">
-                    <!-- Sticky day header -->
-                    <div
-                        class="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
-                        {{ dayLabel(group.dayIso) }}
-                    </div>
-
-                    <div class="pt-4 pl-3">
-                        <div v-for="(ev, index) in group.events" :key="ev.id" class="flex">
-                            <!-- Left: time + duration (narrowed ~20%) -->
-                            <div class="w-[51px] shrink-0 flex flex-col items-end pr-2 pt-1">
-                                <div class="text-sm font-semibold tabular-nums leading-none">{{ effectiveStartTime(ev)
-                                    }}
+                        <div class="pt-4 pl-3">
+                            <div v-for="(ev, index) in group.events" :key="ev.id" class="flex">
+                                <!-- Left: time + duration (narrowed ~20%) -->
+                                <div class="w-[51px] shrink-0 flex flex-col items-end pr-2 pt-1">
+                                    <div class="text-sm font-semibold tabular-nums leading-none">{{ effectiveStartTime(ev)
+                                        }}
+                                    </div>
+                                    <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ durationLabel(ev) }}
+                                    </div>
                                 </div>
-                                <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ durationLabel(ev) }}
+
+                                <!-- Centre: dot + connecting line -->
+                                <div class="relative flex flex-col items-center w-5 shrink-0">
+                                    <div v-if="index < group.events.length - 1"
+                                        class="absolute bottom-0 w-0.5 bg-blue-300 dark:bg-blue-700"
+                                        :class="index === 0 ? 'top-4' : 'top-0'"></div>
+                                    <div
+                                        class="size-3 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-900 mt-1 shrink-0 relative z-10">
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Centre: dot + connecting line -->
-                            <div class="relative flex flex-col items-center w-5 shrink-0">
-                                <div v-if="index < group.events.length - 1"
-                                    class="absolute bottom-0 w-0.5 bg-blue-300 dark:bg-blue-700"
-                                    :class="index === 0 ? 'top-4' : 'top-0'"></div>
-                                <div
-                                    class="size-3 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-900 mt-1 shrink-0 relative z-10">
-                                </div>
-                            </div>
-
-                            <!-- Right: event card -->
-                            <div class="flex-1 pl-3 pr-4 pb-5">
-                                <div class="rounded-xl overflow-hidden border"
-                                    :class="canEdit(ev) ? 'cursor-pointer' : ''" :style="{
-                                        backgroundColor: `color-mix(in srgb, ${eventColor(ev)} 6%, white)`,
-                                        borderColor: `color-mix(in srgb, ${eventColor(ev)} 9%, #e5e7eb)`,
-                                        ...(isClosedForUser(ev) ? { backgroundImage: COMPLETED_PATTERN } : {}),
-                                    }" @click="handleEventTap(ev)">
-                                    <div class="p-3">
-                                        <!-- Title + avatars at top right -->
-                                        <div class="flex items-start gap-2">
-                                            <div class="font-semibold text-sm leading-tight flex-1 min-w-0">{{ ev.name
-                                                || ev.title }}</div>
-                                            <div class="flex items-center flex-shrink-0">
-                                                <span v-if="selectedUserId === null && canSeeAll"
-                                                    class="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[7rem]">
-                                                    {{resolveExecutingUsers(ev).map(u => u.name).join(', ')}}
-                                                </span>
-                                                <div v-else class="flex items-center">
-                                                    <template
-                                                        v-for="(u, i) in resolveExecutingUsers(ev).slice(0, MAX_AVATARS)"
-                                                        :key="u.id">
-                                                        <div class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-[10px] font-semibold overflow-hidden"
-                                                            :style="{ marginLeft: i > 0 ? '-0.375rem' : '0' }">
-                                                            <img v-if="u.avatar" :src="u.avatar"
-                                                                class="w-full h-full object-cover" :alt="u.name" />
-                                                            <span v-else>{{ initials(u.name) }}</span>
-                                                        </div>
-                                                    </template>
-                                                    <div v-if="resolveExecutingUsers(ev).length > MAX_AVATARS"
-                                                        class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold -ml-1.5">
-                                                        +{{ resolveExecutingUsers(ev).length - MAX_AVATARS }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <EventExecutionControls :event="ev" @changed="fetchEvents" />
-                                            <button v-if="hasPermission('events.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
-                                                class="p-1 text-gray-400 hover:text-lavoro-blue relative" title="Terugkoppeling">
-                                                <MessageCircleReply class="size-4" />
-                                                <span v-if="((ev.remarks_count || 0) + (ev.images_count || 0)) > 0"
-                                                    class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-lavoro-blue text-white text-[9px] leading-[14px] text-center font-semibold">
-                                                    {{ (ev.remarks_count || 0) + (ev.images_count || 0) }}
-                                                </span>
-                                            </button>
-                                        </div>
-
-                                        <!-- Current user's roles -->
-                                        <div v-if="currentUserRoles(ev).length" class="mt-1 flex flex-wrap gap-1">
-                                            <span v-for="role in currentUserRoles(ev)" :key="role.id"
-                                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
-                                                :style="{ backgroundColor: role.color }">
-                                                {{ role.name }}
-                                            </span>
-                                        </div>
-
-                                        <!-- Customer name -->
-                                        <div v-if="ev.customer_name"
-                                            class="text-xs text-gray-600 dark:text-slate-400 mt-1 leading-snug">
-                                            {{ ev.customer_name }}
-                                        </div>
-
-                                        <!-- Address -->
-                                        <div v-if="ev.location"
-                                            class="text-xs text-gray-500 dark:text-slate-400 leading-snug">
-                                            {{ ev.location }}
-                                        </div>
-
-                                        <!-- Description -->
-                                        <div v-if="ev.description"
-                                            class="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug whitespace-pre-line">
-                                            {{ ev.description }}
-                                        </div>
-
-                                        <!-- Coworkers + roles -->
-                                        <div v-if="coworkersForEvent(ev).length > 0" class="mt-2 flex flex-col gap-1">
-                                            <div v-for="u in coworkersForEvent(ev)" :key="u.id"
-                                                class="flex items-center gap-1.5 flex-wrap">
-                                                <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{
-                                                    u.name }}</span>
-                                                <span v-for="r in u.roles" :key="r.id"
-                                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" :style="{
-                                                        backgroundColor: `color-mix(in srgb, ${r.color} 18%, white)`,
-                                                        color: `color-mix(in srgb, ${r.color} 70%, black)`,
-                                                    }">
-                                                    {{ r.name }}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <!-- WB badge -->
-                                        <div class="mt-2">
-                                            <button v-if="ev.eventable_id"
-                                                class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 transition"
-                                                @click.stop="router.visit(`/serviceorders/${ev.eventable_id}`)">
-                                                <BuildingOfficeIcon class="size-3.5 shrink-0" />
-                                                <span>{{ formatWbNumber(ev.eventable_id) }}</span>
-                                                <TriangleAlert v-if="ev.is_incomplete"
-                                                    class="size-3.5 shrink-0 text-amber-500"
-                                                    v-tooltip="'Werkbon gedeeltelijk afgerond'" />
-                                                <CircleCheck v-else-if="ev.is_closed"
-                                                    class="size-3.5 shrink-0 text-green-600"
-                                                    v-tooltip="'Werkbon afgerond'" />
-                                                <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
-                                            </button>
-                                            <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
-                                                Eigen planning
-                                            </span>
-                                        </div>
-
-                                        <!-- Task instances -->
-                                        <div v-if="ev.task_instances?.length" class="mt-2 space-y-2">
-                                            <div v-for="ti in ev.task_instances" :key="ti.id">
-                                                <div class="flex items-start gap-1.5 text-xs">
-                                                    <span
-                                                        class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
-                                                    <div class="flex-1 min-w-0">
-                                                        <span class="text-gray-600 dark:text-slate-300 font-medium">{{
-                                                            ti.title }}</span>
-                                                        <template v-if="ti.product">
-                                                            <div class="text-gray-500 dark:text-slate-400 mt-0.5">
-                                                                {{ ti.product.name }}
-                                                                <span class="text-gray-400 dark:text-slate-500">× {{
-                                                                    ti.quantity }}</span>
-                                                            </div>
-                                                            <div v-if="ti.product.specific_attributes?.length"
-                                                                class="text-gray-400 dark:text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                                                                <span v-for="attr in ti.product.specific_attributes"
-                                                                    :key="attr.name">
-                                                                    {{ attr.name }}: {{ attr.value }}
-                                                                </span>
+                                <!-- Right: event card -->
+                                <div class="flex-1 pl-3 pr-4 pb-5">
+                                    <div class="rounded-xl overflow-hidden border"
+                                        :class="canEdit(ev) ? 'cursor-pointer' : ''" :style="{
+                                            backgroundColor: `color-mix(in srgb, ${eventColor(ev)} 6%, white)`,
+                                            borderColor: `color-mix(in srgb, ${eventColor(ev)} 9%, #e5e7eb)`,
+                                            ...(isClosedForUser(ev) ? { backgroundImage: COMPLETED_PATTERN } : {}),
+                                        }" @click="handleEventTap(ev)">
+                                        <div class="p-3">
+                                            <!-- Title + avatars at top right -->
+                                            <div class="flex items-start gap-2">
+                                                <div class="font-semibold text-sm leading-tight flex-1 min-w-0">{{ ev.name
+                                                    || ev.title }}</div>
+                                                <div class="flex items-center flex-shrink-0">
+                                                    <span v-if="selectedUserId === null && canSeeAll"
+                                                        class="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[7rem]">
+                                                        {{resolveExecutingUsers(ev).map(u => u.name).join(', ')}}
+                                                    </span>
+                                                    <div v-else class="flex items-center">
+                                                        <template
+                                                            v-for="(u, i) in resolveExecutingUsers(ev).slice(0, MAX_AVATARS)"
+                                                            :key="u.id">
+                                                            <div class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-[10px] font-semibold overflow-hidden"
+                                                                :style="{ marginLeft: i > 0 ? '-0.375rem' : '0' }">
+                                                                <img v-if="u.avatar" :src="u.avatar"
+                                                                    class="w-full h-full object-cover" :alt="u.name" />
+                                                                <span v-else>{{ initials(u.name) }}</span>
                                                             </div>
                                                         </template>
+                                                        <div v-if="resolveExecutingUsers(ev).length > MAX_AVATARS"
+                                                            class="size-6 rounded-full ring-2 ring-white dark:ring-slate-800 bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold -ml-1.5">
+                                                            +{{ resolveExecutingUsers(ev).length - MAX_AVATARS }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <EventExecutionControls :event="ev" @changed="fetchEvents" />
+                                                <button v-if="hasPermission('events.provide_feedback') && !ev.eventable_id" @click.stop="feedback.openFeedback(ev)"
+                                                    class="p-1 text-gray-400 hover:text-lavoro-blue relative" title="Terugkoppeling">
+                                                    <MessageCircleReply class="size-4" />
+                                                    <span v-if="((ev.remarks_count || 0) + (ev.images_count || 0)) > 0"
+                                                        class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-lavoro-blue text-white text-[9px] leading-[14px] text-center font-semibold">
+                                                        {{ (ev.remarks_count || 0) + (ev.images_count || 0) }}
+                                                    </span>
+                                                </button>
+                                            </div>
+
+                                            <!-- Current user's roles -->
+                                            <div v-if="currentUserRoles(ev).length" class="mt-1 flex flex-wrap gap-1">
+                                                <span v-for="role in currentUserRoles(ev)" :key="role.id"
+                                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                                                    :style="{ backgroundColor: role.color }">
+                                                    {{ role.name }}
+                                                </span>
+                                            </div>
+
+                                            <!-- Customer name -->
+                                            <div v-if="ev.customer_name"
+                                                class="text-xs text-gray-600 dark:text-slate-400 mt-1 leading-snug">
+                                                {{ ev.customer_name }}
+                                            </div>
+
+                                            <!-- Address -->
+                                            <div v-if="ev.location"
+                                                class="text-xs text-gray-500 dark:text-slate-400 leading-snug">
+                                                {{ ev.location }}
+                                            </div>
+
+                                            <!-- Description -->
+                                            <div v-if="ev.description"
+                                                class="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug whitespace-pre-line">
+                                                {{ ev.description }}
+                                            </div>
+
+                                            <!-- Coworkers + roles -->
+                                            <div v-if="coworkersForEvent(ev).length > 0" class="mt-2 flex flex-col gap-1">
+                                                <div v-for="u in coworkersForEvent(ev)" :key="u.id"
+                                                    class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{
+                                                        u.name }}</span>
+                                                    <span v-for="r in u.roles" :key="r.id"
+                                                        class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" :style="{
+                                                            backgroundColor: `color-mix(in srgb, ${r.color} 18%, white)`,
+                                                            color: `color-mix(in srgb, ${r.color} 70%, black)`,
+                                                        }">
+                                                        {{ r.name }}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- WB badge -->
+                                            <div class="mt-2">
+                                                <button v-if="ev.eventable_id"
+                                                    class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 transition"
+                                                    @click.stop="router.visit(`/serviceorders/${ev.eventable_id}`)">
+                                                    <BuildingOfficeIcon class="size-3.5 shrink-0" />
+                                                    <span>{{ formatWbNumber(ev.eventable_id) }}</span>
+                                                    <TriangleAlert v-if="ev.is_incomplete"
+                                                        class="size-3.5 shrink-0 text-amber-500"
+                                                        v-tooltip="'Werkbon gedeeltelijk afgerond'" />
+                                                    <CircleCheck v-else-if="ev.is_closed"
+                                                        class="size-3.5 shrink-0 text-green-600"
+                                                        v-tooltip="'Werkbon afgerond'" />
+                                                    <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
+                                                </button>
+                                                <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
+                                                    Eigen planning
+                                                </span>
+                                            </div>
+
+                                            <!-- Task instances -->
+                                            <div v-if="ev.task_instances?.length" class="mt-2 space-y-2">
+                                                <div v-for="ti in ev.task_instances" :key="ti.id">
+                                                    <div class="flex items-start gap-1.5 text-xs">
+                                                        <span
+                                                            class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
+                                                        <div class="flex-1 min-w-0">
+                                                            <span class="text-gray-600 dark:text-slate-300 font-medium">{{
+                                                                ti.title }}</span>
+                                                            <template v-if="ti.product">
+                                                                <div class="text-gray-500 dark:text-slate-400 mt-0.5">
+                                                                    {{ ti.product.name }}
+                                                                    <span class="text-gray-400 dark:text-slate-500">× {{
+                                                                        ti.quantity }}</span>
+                                                                </div>
+                                                                <div v-if="ti.product.specific_attributes?.length"
+                                                                    class="text-gray-400 dark:text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                                                    <span v-for="attr in ti.product.specific_attributes"
+                                                                        :key="attr.name">
+                                                                        {{ attr.name }}: {{ attr.value }}
+                                                                    </span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -267,10 +255,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
+                </div>
             </div>
-        </div>
+        </PlannerLoadingOverlay>
 
         <!-- FAB: create new event -->
         <button v-if="canCreate"
@@ -331,6 +319,7 @@ import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
+import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { MapIcon, TriangleAlert, CircleCheck, MessageCircleReply } from '@lucide/vue'
 const props = defineProps({
