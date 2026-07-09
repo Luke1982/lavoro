@@ -59,13 +59,15 @@
                         @update:model-value="toggleSelectAll"
                     />
                 </div>
-                <div class="flex-1 grid grid-cols-12 p-4">
+                <div class="flex-1 grid grid-cols-[repeat(18,minmax(0,1fr))] p-4">
                     <div class="col-span-3">Onderwerp</div>
                     <div class="col-span-2">Product</div>
                     <div class="col-span-2">Type</div>
                     <div class="col-span-1">Serienr.</div>
                     <div class="col-span-2">Klant</div>
-                    <div class="col-span-1">Status</div>
+                    <div class="col-span-3">Adres</div>
+                    <div class="col-span-2">Prioriteit</div>
+                    <div class="col-span-2">Status</div>
                     <div class="col-span-1 text-right">Acties</div>
                 </div>
             </div>
@@ -78,18 +80,18 @@
                         @update:model-value="toggleSelectTicket(ticket.id)"
                     />
                 </div>
-                <div class="flex-1 grid grid-cols-12 p-4">
-                <div class="col-span-10 lg:col-span-3 flex flex-col">
+                <div class="flex-1 grid grid-cols-[repeat(18,minmax(0,1fr))] p-4">
+                <div class="col-span-[15] lg:col-span-3 flex flex-col">
                     <Link :href="`/tickets/${ticket.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
                         {{ ticket.subject }}
                     </Link>
                     <div class="flex flex-wrap gap-1 lg:hidden mt-1">
                         <span
-                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', statusClasses(ticket.status)]">
+                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', ticketStatusClasses(ticket.status)]">
                             {{ ticket.status }}
                         </span>
                         <span
-                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', priorityClasses(ticket.priority)]">
+                            :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', ticketPriorityClasses(ticket.priority)]">
                             {{ ticket.priority }}
                         </span>
                     </div>
@@ -113,13 +115,32 @@
                         {{ ticket.asset.customer.name }}
                     </Link>
                 </div>
-                <div class="col-span-1 items-center hidden lg:flex pr-2">
+                <div class="col-span-3 items-center hidden lg:flex pr-2">
+                    <a v-if="ticket.asset.customer.address" :href="mapsLinkFromCustomer(ticket.asset.customer)"
+                        target="_blank" rel="noopener"
+                        class="text-lavoro-darkerblue underline truncate" :title="fullAddress(ticket.asset.customer)">
+                        {{ fullAddress(ticket.asset.customer) }}
+                    </a>
+                    <span v-else class="text-slate-400">&mdash;</span>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                    <EditableTextField type="combobox" v-model="ticket.priority" :options="priorityRowOptions"
+                        :readonly="!hasPermission('ticket.alter_priority')" :decoration="false" class="w-full"
+                        @update:modelValue="value => updatePriority(ticket, value)">
+                        <template #display>
+                            <BadgeComponent :color="priorityBadgeColor(ticket.priority)" :has-dot="false">
+                                {{ ticket.priority }}
+                            </BadgeComponent>
+                        </template>
+                    </EditableTextField>
+                </div>
+                <div class="col-span-2 items-center hidden lg:flex pr-2">
                     <span
-                        :class="['inline-flex items-center rounded px-2 py-1 text-xs font-medium ring-1 ring-inset', statusClasses(ticket.status)]">
+                        :class="['inline-flex items-center rounded px-2 py-1 text-xs font-medium ring-1 ring-inset', ticketStatusClasses(ticket.status)]">
                         {{ ticket.status }}
                     </span>
                 </div>
-                <div class="col-span-2 lg:col-span-1 flex items-center justify-end">
+                <div class="col-span-[3] lg:col-span-1 flex items-center justify-end">
                     <div class="border-1 border-lavoro-darkergray rounded-full p-2">
                         <Link :href="`/tickets/${ticket.id}`" class="text-sm text-lavoro-darkerblue">
                             <EyeIcon class="h-5 w-5" />
@@ -217,7 +238,10 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import StatCard from '@/Components/UI/StatCard.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
+import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import { EyeIcon, AlertCircleIcon } from '@lucide/vue'
+import { hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
     tickets: { type: Object, required: true },
@@ -332,20 +356,23 @@ function saveBulkEdit() {
     })
 }
 
-function statusClasses(status) {
-    const s = (status || '').toLowerCase()
-    if (s === 'open') return 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50'
-    if (s === 'in behandeling') return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50'
-    if (s === 'gesloten') return 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50'
-    return 'bg-gray-50 text-gray-700 ring-gray-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
+// Combobox options for the inline priority editor: id kept equal to the display
+// value so it can bind directly to ticket.priority without an id<->name lookup.
+const priorityRowOptions = computed(() => props.priorityOptions.map(o => ({ id: o.name, name: o.name })))
+
+function priorityBadgeColor(priority) {
+    const p = (priority || '').toLowerCase()
+    if (p === 'hoog') return 'red'
+    if (p === 'normaal') return 'yellow'
+    if (p === 'laag') return 'green'
+    return 'gray'
 }
 
-function priorityClasses(priority) {
-    if (!priority) return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
-    const p = priority.toLowerCase()
-    if (p === 'hoog') return 'bg-red-100 text-red-700 ring-red-300 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50'
-    if (p === 'normaal') return 'bg-yellow-100 text-yellow-700 ring-yellow-300 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50'
-    if (p === 'laag') return 'bg-green-100 text-green-700 ring-green-300 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50'
-    return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60'
+function updatePriority(ticket, value) {
+    router.patch(`/tickets/${ticket.id}`, { priority: value }, { preserveScroll: true, preserveState: true })
+}
+
+function fullAddress(customer) {
+    return [customer.address, customer.postal_code, customer.city].filter(Boolean).join(' ')
 }
 </script>
