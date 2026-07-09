@@ -3,7 +3,7 @@
         search-placeholder="Zoek klant..." search-url="/customers" :paginator="false"
         :add-label="canCreate && !importPreview ? 'Nieuwe klant' : ''"
         @add="() => canCreate && (addCustomerDrawerOpen = true)">
-        <template v-if="!importPreview && (snelStartEnabled || canCreate)" #actions>
+        <template v-if="!importPreview && canCreate" #actions>
             <div class="relative" ref="actionsMenuRef">
                 <button @click="actionsOpen = !actionsOpen"
                     class="cursor-pointer inline-flex items-center gap-x-1.5 px-3 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition">
@@ -14,12 +14,6 @@
                 </button>
                 <div v-if="actionsOpen"
                     class="absolute right-0 top-full mt-1 z-50 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg ring-1 ring-gray-200 dark:ring-slate-700 py-1">
-                    <button v-if="snelStartEnabled" @click="importCustomers(); actionsOpen = false"
-                        :disabled="importingCustomers"
-                        class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
-                        <ArrowPathIcon class="h-4 w-4 text-indigo-500 shrink-0" />
-                        SnelStart klanten importeren
-                    </button>
                     <a v-if="canCreate" href="/customers/import/example" @click="actionsOpen = false"
                         class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition">
                         <ArrowDownTrayIcon class="h-4 w-4 text-gray-400 dark:text-slate-400 shrink-0" />
@@ -36,6 +30,27 @@
             <input ref="fileInputRef" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileUpload" />
         </template>
     </IndexHeaderComponent>
+
+    <ModalDialog v-model:open="snelStartPromptOpen" title="SnelStart klanten importeren?" max-width-class="sm:max-w-md">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Dit bestand lijkt een klantenexport uit SnelStart te zijn, geen bestand in ons eigen formaat.
+            Wil je dit bestand converteren en als klanten importeren?
+        </p>
+        <template #footer>
+            <div class="flex gap-3 justify-end">
+                <button type="button"
+                    class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
+                    @click="declineSnelStartImport">
+                    Nee
+                </button>
+                <button type="button" :disabled="previewForm.processing"
+                    class="rounded-md bg-lavoro-green px-3 py-2 text-sm font-semibold text-gray-900 hover:opacity-90 disabled:opacity-60"
+                    @click="confirmSnelStartImport">
+                    Ja, importeren
+                </button>
+            </div>
+        </template>
+    </ModalDialog>
 
     <DrawerComponent v-if="canCreate" v-model="addCustomerDrawerOpen" title="Nieuwe klant toevoegen"
         subtitle="Vul onderstaande velden in om een nieuwe klant toe te voegen.">
@@ -267,18 +282,19 @@
 
 <script setup>
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { ChevronDownIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline';
+import { ChevronDownIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
+import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { hasPermission } from '@/Utilities/Utilities';
 
-defineProps({
+const props = defineProps({
     customers: {
         type: Object,
         required: true,
@@ -287,7 +303,7 @@ defineProps({
         type: Array,
         default: null,
     },
-    snelStartEnabled: {
+    snelStartImportDetected: {
         type: Boolean,
         default: false,
     },
@@ -306,24 +322,33 @@ const handleClickOutside = (e) => {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
-const importingCustomers = ref(false)
-const importForm = useForm({})
-const importCustomers = () => {
-    importingCustomers.value = true;
-    importForm.post('/imports/snelstart/customers', {
-        preserveScroll: true,
-        onFinish: () => importingCustomers.value = false,
-    });
-}
-
-const previewForm = useForm({ file: null })
+const previewForm = useForm({ file: null, convert_from_snelstart: false, skip_snelstart_prompt: false })
 const triggerFileInput = () => fileInputRef.value?.click()
 const handleFileUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
     previewForm.file = file
+    previewForm.convert_from_snelstart = false
+    previewForm.skip_snelstart_prompt = false
     e.target.value = ''
     previewForm.post('/customers/import/preview', { forceFormData: true })
+}
+
+const snelStartPromptOpen = ref(false)
+watch(() => props.snelStartImportDetected, (detected) => {
+    if (detected) snelStartPromptOpen.value = true
+})
+
+const confirmSnelStartImport = () => {
+    snelStartPromptOpen.value = false
+    previewForm.convert_from_snelstart = true
+    previewForm.post('/customers/import/preview', { forceFormData: true, preserveScroll: true })
+}
+
+const declineSnelStartImport = () => {
+    snelStartPromptOpen.value = false
+    previewForm.skip_snelstart_prompt = true
+    previewForm.post('/customers/import/preview', { forceFormData: true, preserveScroll: true })
 }
 
 const confirmForm = useForm({})

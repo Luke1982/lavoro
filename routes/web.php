@@ -187,8 +187,6 @@ Route::group(
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);
         // Manual SnelStart imports
-        Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
-            ->name('imports.snelstart.customers');
         Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
             ->name('imports.snelstart.materials');
         Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])

@@ -50,7 +50,6 @@ class CustomerController extends Controller
 
         return inertia('Customers/IndexPage', [
             'customers' => $customers,
-            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
         ]);
     }
 

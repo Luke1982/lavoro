@@ -35,6 +35,20 @@ class CustomerImportController extends Controller
         'Locatiecode'      => 'location_code',
     ];
 
+    private const SNELSTART_COLUMNS = [
+        'Naam'            => 'name',
+        'Contactpersoon'  => 'contactname',
+        'Adres'           => 'address',
+        'Postcode'        => 'postal_code',
+        'Plaats'          => 'city',
+        'LandNaam'        => 'country',
+        'Telefoon'        => 'phone',
+        'MobieleTelefoon' => 'mobile',
+        'Email'           => 'email',
+    ];
+
+    private const SNELSTART_SIGNATURE_COLUMNS = ['Relatiecode', 'LandNaam'];
+
     private const EXAMPLE_ROW = [
         'Voorbeeld BV',
         'info@voorbeeld.nl',
@@ -77,11 +91,17 @@ class CustomerImportController extends Controller
         }
 
         $header = array_shift($raw_rows);
-        $col_map = [];
-        foreach ($header as $idx => $cell) {
-            $cell = trim((string) ($cell ?? ''));
-            if (isset(self::COLUMNS[$cell])) {
-                $col_map[$idx] = self::COLUMNS[$cell];
+        $col_map = self::columnMap($header, self::COLUMNS);
+
+        if (!in_array('name', $col_map, true)) {
+            if ($request->boolean('convert_from_snelstart')) {
+                $col_map = self::columnMap($header, self::SNELSTART_COLUMNS);
+            } elseif (!$request->boolean('skip_snelstart_prompt') && self::looksLikeSnelStartExport($header)) {
+                return inertia('Customers/IndexPage', [
+                    'customers'               => $this->customersProp($request),
+                    'importPreview'           => null,
+                    'snelStartImportDetected' => true,
+                ]);
             }
         }
 
@@ -133,23 +153,48 @@ class CustomerImportController extends Controller
 
         session(['customer_import_preview' => $preview_rows]);
 
+        return inertia('Customers/IndexPage', [
+            'customers'     => $this->customersProp($request),
+            'importPreview' => $preview_rows,
+        ]);
+    }
+
+    private function customersProp($request)
+    {
         $user = $request->user();
         $search = $request->input('search');
 
         if ($user->isAdmin() || $user->hasPermission('customer.read')) {
-            $customers = Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
+            return Customer::with(['upcomingAssets', 'openTickets', 'pendingTickets', 'closedTickets'])
                 ->orderBy('name')
                 ->paginate(25)
                 ->appends(['search' => $search]);
-        } else {
-            $customers = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25);
         }
 
-        return inertia('Customers/IndexPage', [
-            'customers'        => $customers,
-            'importPreview'    => $preview_rows,
-            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
-        ]);
+        return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25);
+    }
+
+    private static function columnMap(array $header, array $columns): array
+    {
+        $col_map = [];
+        foreach ($header as $idx => $cell) {
+            $cell = trim((string) ($cell ?? ''));
+            if (isset($columns[$cell])) {
+                $col_map[$idx] = $columns[$cell];
+            }
+        }
+        return $col_map;
+    }
+
+    private static function looksLikeSnelStartExport(array $header): bool
+    {
+        $cells = array_map(fn ($cell) => trim((string) ($cell ?? '')), $header);
+        foreach (self::SNELSTART_SIGNATURE_COLUMNS as $signature_column) {
+            if (!in_array($signature_column, $cells, true)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public function confirm(CustomerImportConfirmRequest $request)
