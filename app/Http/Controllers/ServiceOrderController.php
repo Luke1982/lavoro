@@ -85,6 +85,9 @@ class ServiceOrderController extends Controller
             $query->whereIn('service_order_stage_id', $only_stages);
         }
 
+        $closed_stage_id = ServiceOrderStage::where('is_closed_state', true)->value('id');
+        $only_closed_stage = count($only_stages) === 1 && (int) $only_stages[0] === $closed_stage_id;
+
         if ($only_needs_closing) {
             $query->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
                 ->whereDoesntHave('events', fn ($q) => $q
@@ -96,7 +99,8 @@ class ServiceOrderController extends Controller
         }
 
         return inertia('ServiceOrders/IndexPage', [
-            'serviceOrders' => $query->orderByDesc('created_at')->paginate($per_page)->withQueryString(),
+            'serviceOrders' => $query->orderByDesc($only_closed_stage ? 'closed_on' : 'created_at')
+                ->paginate($per_page)->withQueryString(),
             'stages' => ServiceOrderStage::orderBy('order')->get(),
             'search' => $search,
             'onlyStage' => $only_stages,
