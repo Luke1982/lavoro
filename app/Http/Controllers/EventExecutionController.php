@@ -92,7 +92,6 @@ class EventExecutionController extends Controller
                 'completion_status' => EventCompletionStatus::planned->value,
                 'actual_start' => null,
                 'actual_end' => null,
-                'signature_base64' => null,
             ]);
 
         return response()->json([
