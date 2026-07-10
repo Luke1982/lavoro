@@ -72,9 +72,12 @@
                     </div>
                     <div class="flex-1 grid grid-cols-12 p-4">
                         <div class="col-span-10 sm:col-span-2 flex flex-col">
-                            <Link :href="`/serviceorders/${so.id}`" class="font-bold mb-1">
+                            <Link :href="`/serviceorders/${so.id}`" class="font-bold">
                                 {{ so.customer?.name ?? '—' }}
                             </Link>
+                            <span v-if="so.customer?.city" class="text-slate-600 text-xs mb-1">
+                                {{ so.customer.city }}
+                            </span>
                             <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
                                 Inkoopordernr.: {{ so.external_purchaseorder_no }}
                             </span>
