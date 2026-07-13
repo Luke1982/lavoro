@@ -697,13 +697,18 @@ class ServiceOrderController extends Controller
             ->sortBy('start')
             ->flatMap(fn ($event) => $event->executingUsers->map(function ($user) use ($event, $display_timezone) {
                 $execution = $event->executions->firstWhere('user_id', $user->id);
+                $actual_start = $execution?->actual_start;
+                $actual_end = $execution?->actual_end;
 
                 return [
                     'name' => $user->name,
                     'date' => $event->start->copy()->setTimezone($display_timezone),
-                    'actual_start' => $execution?->actual_start?->copy()->setTimezone($display_timezone),
-                    'actual_end' => $execution?->actual_end?->copy()->setTimezone($display_timezone),
+                    'actual_start' => $actual_start?->copy()->setTimezone($display_timezone),
+                    'actual_end' => $actual_end?->copy()->setTimezone($display_timezone),
                     'breaktime' => $user->pivot->breaktime,
+                    'hours' => $actual_start && $actual_end
+                        ? round($actual_start->floatDiffInHours($actual_end), 2)
+                        : null,
                 ];
             }))
             ->values();

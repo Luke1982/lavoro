@@ -19,8 +19,10 @@ class PlannerExportService
         'Project',
         'Geplande start',
         'Geplande eind',
+        'Geplande uren',
         'Werkelijke start',
         'Werkelijke eind',
+        'Werkelijke uren',
         'Status',
     ];
 
@@ -59,12 +61,12 @@ class PlannerExportService
             $spreadsheet->addSheet($sheet);
 
             $sheet->fromArray([self::HEADERS], null, 'A1');
-            $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:L1')->getFont()->setBold(true);
 
             $row = 2;
             foreach ($events as $event) {
                 $member = $event->executingUsers->firstWhere('id', $user->id);
-                if (! $member) {
+                if (!$member) {
                     continue;
                 }
 
@@ -72,7 +74,7 @@ class PlannerExportService
                 $row++;
             }
 
-            foreach (range('A', 'J') as $column) {
+            foreach (range('A', 'L') as $column) {
                 $sheet->getColumnDimension($column)->setAutoSize(true);
             }
         }
@@ -96,10 +98,21 @@ class PlannerExportService
         [$planned_start, $planned_end] = $this->plannedTimes($event, $member);
         $this->writeDateTime($sheet, 'F' . $row, $planned_start, $tz);
         $this->writeDateTime($sheet, 'G' . $row, $planned_end, $tz);
-        $this->writeDateTime($sheet, 'H' . $row, $execution?->actual_start, $tz);
-        $this->writeDateTime($sheet, 'I' . $row, $execution?->actual_end, $tz);
+        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end));
+        $this->writeDateTime($sheet, 'I' . $row, $execution?->actual_start, $tz);
+        $this->writeDateTime($sheet, 'J' . $row, $execution?->actual_end, $tz);
+        $sheet->setCellValue('K' . $row, $this->hours($execution?->actual_start, $execution?->actual_end));
 
-        $sheet->setCellValue('J' . $row, $execution?->completion_status ?? 'Gepland');
+        $sheet->setCellValue('L' . $row, $execution?->completion_status ?? 'Gepland');
+    }
+
+    private function hours(?Carbon $start, ?Carbon $end): ?float
+    {
+        if (!$start || !$end) {
+            return null;
+        }
+
+        return round($start->floatDiffInHours($end), 2);
     }
 
     private function plannedTimes(Event $event, User $member): array
@@ -120,7 +133,7 @@ class PlannerExportService
 
     private function writeDateTime(Worksheet $sheet, string $cell, ?Carbon $value, string $tz): void
     {
-        if (! $value) {
+        if (!$value) {
             return;
         }
 

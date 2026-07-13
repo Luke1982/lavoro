@@ -197,11 +197,12 @@
         <table class="table small compact">
             <thead>
                 <tr>
-                    <th style="width:30%">Naam</th>
-                    <th style="width:18%">Datum</th>
-                    <th style="width:17%">Starttijd</th>
-                    <th style="width:17%">Eindtijd</th>
-                    <th style="width:18%">Pauze</th>
+                    <th style="width:24%">Naam</th>
+                    <th style="width:15%">Datum</th>
+                    <th style="width:14%">Starttijd</th>
+                    <th style="width:14%">Eindtijd</th>
+                    <th style="width:14%">Pauze</th>
+                    <th style="width:19%">Uren</th>
                 </tr>
             </thead>
             <tbody>
@@ -216,6 +217,7 @@
                             <td colspan="2" class="muted">Nog geen tijden ingevuld</td>
                         @endif
                         <td>{{ $executor['breaktime'] }} min</td>
+                        <td>{{ $executor['hours'] !== null ? number_format($executor['hours'], 2, ',', '.') . ' uur' : '—' }}</td>
                     </tr>
                 @endforeach
             </tbody>
