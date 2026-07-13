@@ -24,6 +24,7 @@ import {
     AdjustmentsHorizontalIcon,
     WrenchScrewdriverIcon,
     ClipboardDocumentListIcon,
+    ClipboardDocumentCheckIcon,
 } from '@heroicons/vue/24/outline'
 import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
 
@@ -91,6 +92,7 @@ export function useSidebarNav() {
             requiresPermission: 'customer.read',
             children: [
                 { name: 'Contacten', href: '/contacts', icon: UserIcon, current: false, requiresPermission: 'contact.read' },
+                { name: 'Onderhoudscontracten', href: '/maintenancecontracts', icon: ClipboardDocumentCheckIcon, current: false, requiresPermission: 'maintenancecontract.read' },
             ],
             open: false,
         },
