@@ -26,6 +26,10 @@
         <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
             {{ serviceOrder.service_order_stage.name }}
         </BadgeComponent>
+        <BadgeComponent color="purple" :hasDot="false" v-if="serviceOrder.maintenance_contract_id"
+            :url="`/maintenancecontracts/${serviceOrder.maintenance_contract_id}`">
+            Onderhoudscontract {{ serviceOrder.maintenance_contract_id }}
+        </BadgeComponent>
         <BadgeComponent color="orange" v-if="usersMissingTimes.length"
             :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
             Tijden ontbreken: {{ usersMissingTimes.join(', ') }}

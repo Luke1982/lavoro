@@ -24,6 +24,7 @@ use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
+use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\MaterialSupplierController;
@@ -67,6 +68,23 @@ Route::group(
     function () {
         Route::get('/', DashboardController::class);
         Route::resource('contacts', ContactController::class)->except(['create', 'edit']);
+        Route::resource('maintenancecontracts', MaintenanceContractController::class)->except(['create', 'edit']);
+        Route::post(
+            'maintenancecontracts/{maintenancecontract}/assets/{asset}',
+            [MaintenanceContractController::class, 'attachAsset']
+        )->name('maintenancecontracts.attachAsset');
+        Route::put(
+            'maintenancecontracts/{maintenancecontract}/assets/{assetable_id}',
+            [MaintenanceContractController::class, 'updateAssetable']
+        )->name('maintenancecontracts.updateAssetable');
+        Route::delete(
+            'maintenancecontracts/{maintenancecontract}/assets/{assetable_id}',
+            [MaintenanceContractController::class, 'detachAsset']
+        )->name('maintenancecontracts.detachAsset');
+        Route::post(
+            'maintenancecontracts/{maintenancecontract}/generate-serviceorders',
+            [MaintenanceContractController::class, 'generateServiceOrders']
+        )->name('maintenancecontracts.generateServiceOrders');
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
         Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');

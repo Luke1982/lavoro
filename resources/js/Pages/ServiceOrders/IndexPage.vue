@@ -81,6 +81,12 @@
                             <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
                                 Inkoopordernr.: {{ so.external_purchaseorder_no }}
                             </span>
+                            <div v-if="so.maintenance_contract_id" class="mt-2">
+                                <BadgeComponent color="purple" :has-dot="false"
+                                    :url="`/maintenancecontracts/${so.maintenance_contract_id}`">
+                                    Onderhoudscontract {{ so.maintenance_contract_id }}
+                                </BadgeComponent>
+                            </div>
                             <div class="flex flex-wrap gap-2 mt-2 sm:hidden">
                                 <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
                                     {{ so.service_order_stage?.name ?? 'Geen fase' }}

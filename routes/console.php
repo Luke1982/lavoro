@@ -26,3 +26,8 @@ Schedule::job(new \App\Jobs\Google\RenewWatchChannelsJob())
 Schedule::call(function () {
     LocationPing::where('recorded_at', '<', now()->subDay())->delete();
 })->hourly()->name('prune-location-pings')->withoutOverlapping();
+
+Schedule::command('maintenancecontracts:generate-serviceorders')
+    ->hourly()
+    ->name('maintenancecontracts-generate-serviceorders')
+    ->withoutOverlapping();

@@ -127,6 +127,53 @@ export const projectStatusClass = (status) => {
     return map[status] || "";
 };
 
+export const maintenanceContractStatusText = (status) => {
+    switch (status) {
+        case "actief":
+            return "Actief";
+        case "toekomstig":
+            return "Toekomstig";
+        case "verlopen":
+            return "Verlopen";
+        case "geannuleerd":
+            return "Geannuleerd";
+        default:
+            return status || "";
+    }
+};
+
+export const maintenanceContractStatusClasses = (status) => {
+    switch (status) {
+        case "actief":
+            return "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700/50";
+        case "toekomstig":
+            return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50";
+        case "verlopen":
+            return "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50";
+        case "geannuleerd":
+            return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600";
+        default:
+            return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600";
+    }
+};
+
+// Maps to BadgeComponent's `color` prop (a fixed palette of named colors),
+// not a raw class string like maintenanceContractStatusClasses above.
+export const maintenanceContractStatusBadgeColor = (status) => {
+    switch (status) {
+        case "actief":
+            return "green";
+        case "toekomstig":
+            return "blue";
+        case "verlopen":
+            return "orange";
+        case "geannuleerd":
+            return "gray";
+        default:
+            return "gray";
+    }
+};
+
 export const formatProductSalePeriod = (startDate, endDate) => {
     const start = nlDateOrEmpty(startDate);
     const end = nlDateOrEmpty(endDate);

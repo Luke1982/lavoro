@@ -208,6 +208,32 @@
                                 </div>
                             </BoxComponent>
 
+                            <BoxComponent>
+                                <div
+                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                                    <div class="flex items-center">
+                                        <ClipboardDocumentCheckIcon
+                                            class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <h2 class="font-semibold text-base dark:text-slate-200">Onderhoudscontracten</h2>
+                                    </div>
+                                    <PlusCircleIcon v-if="canCreateMaintenanceContract"
+                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                        @click="showMaintenanceContractDrawer = true"
+                                        v-tooltip="`Nieuw onderhoudscontract voor ${form.name}`" />
+                                </div>
+                                <div v-if="!customer.maintenance_contracts?.length"
+                                    class="text-sm text-gray-500 dark:text-slate-400">
+                                    Geen onderhoudscontracten
+                                </div>
+                                <div v-else class="space-y-2" v-auto-animate>
+                                    <Link v-for="contract in customer.maintenance_contracts" :key="contract.id"
+                                        :href="`/maintenancecontracts/${contract.id}`"
+                                        class="block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+                                        {{ contract.display_title }}
+                                    </Link>
+                                </div>
+                            </BoxComponent>
+
                             <BoxComponent v-if="canUpdate">
                                 <div
                                     class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 items-center">
@@ -420,6 +446,86 @@
         </template>
     </DrawerComponent>
 
+    <DrawerComponent v-model="showMaintenanceContractDrawer" :title="`Nieuw onderhoudscontract voor ${form.name}`"
+        subtitle="Vul de gegevens in van het nieuwe contract.">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700" v-auto-animate>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMaintenanceContractForm.title" type="text" placeholder="Optioneel" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Startdatum</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMaintenanceContractForm.start_date" type="date"
+                        :hasError="Boolean(newMaintenanceContractForm.errors.start_date)"
+                        :errorMessage="newMaintenanceContractForm.errors.start_date" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einddatum</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMaintenanceContractForm.end_date" type="date" placeholder="Optioneel" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
+                <div class="sm:col-span-2">
+                    <CurrencyInput v-model="newMaintenanceContractForm.price"
+                        :hasError="Boolean(newMaintenanceContractForm.errors.price)"
+                        :errorMessage="newMaintenanceContractForm.errors.price" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.price_interval" />
+                </div>
+            </div>
+            <div v-if="newMaintenanceContractForm.price_interval === 'Aangepast (dagen)'"
+                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newMaintenanceContractForm.price_interval_days" type="number" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
+                <div class="sm:col-span-2">
+                    <SwitchComponent v-model="newMaintenanceContractForm.manage_frequency_per_asset" />
+                </div>
+            </div>
+            <template v-if="!newMaintenanceContractForm.manage_frequency_per_asset">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Servicefrequentie</label>
+                    <div class="sm:col-span-2">
+                        <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.frequency" />
+                    </div>
+                </div>
+                <div v-if="newMaintenanceContractForm.frequency === 'Aangepast (dagen)'"
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
+                    <div class="sm:col-span-2">
+                        <TextInput v-model="newMaintenanceContractForm.frequency_days" type="number" />
+                    </div>
+                </div>
+            </template>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeMaintenanceContractDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewMaintenanceContract" :disabled="newMaintenanceContractForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
+
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${form.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
             :bare="true" :required-productables-by-product="requiredProductablesByProduct"
@@ -430,7 +536,7 @@
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import {
-    BuildingOffice2Icon, ClipboardDocumentListIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon,
+    BuildingOffice2Icon, ClipboardDocumentListIcon, ClipboardDocumentCheckIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon,
     XCircleIcon, FolderIcon, UserIcon, UserGroupIcon, MapPinIcon, EnvelopeIcon,
     PhoneIcon, DevicePhoneMobileIcon, BanknotesIcon,
     ReceiptPercentIcon, BuildingLibraryIcon, ChevronRightIcon, ClockIcon,
@@ -441,6 +547,8 @@ import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
+import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
@@ -491,6 +599,10 @@ const props = defineProps({
     requiredProductablesByProduct: {
         type: Object,
         default: () => ({}),
+    },
+    contractIntervalOptions: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -577,6 +689,46 @@ function closeContactDrawer() {
     newContactForm.reset()
     newContactForm.clearErrors()
     newContactForm.customer_id = props.customer.id
+}
+
+const canCreateMaintenanceContract = computed(() => hasPermission('maintenancecontract.create'))
+const showMaintenanceContractDrawer = ref(false)
+
+// comboBoxArray() gives {id: case-name, name: case-value}; the model casts by
+// value, so both id and name must be the value for direct v-model binding.
+const maintenanceContractIntervalOptions = computed(() =>
+    (props.contractIntervalOptions || []).map(o => ({ id: o.name, name: o.name }))
+)
+
+const newMaintenanceContractForm = useForm({
+    customer_id: props.customer.id,
+    title: '',
+    start_date: '',
+    end_date: '',
+    price: null,
+    price_interval: 'Maandelijks',
+    price_interval_days: null,
+    manage_frequency_per_asset: false,
+    frequency: 'Jaarlijks',
+    frequency_days: null,
+})
+
+function submitNewMaintenanceContract() {
+    newMaintenanceContractForm.post('/maintenancecontracts', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showMaintenanceContractDrawer.value = false
+            newMaintenanceContractForm.reset()
+            newMaintenanceContractForm.customer_id = props.customer.id
+        },
+    })
+}
+
+function closeMaintenanceContractDrawer() {
+    showMaintenanceContractDrawer.value = false
+    newMaintenanceContractForm.reset()
+    newMaintenanceContractForm.clearErrors()
+    newMaintenanceContractForm.customer_id = props.customer.id
 }
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));

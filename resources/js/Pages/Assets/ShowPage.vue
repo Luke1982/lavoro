@@ -306,6 +306,25 @@
                         alt="{{ image.name }}" class="w-full h-auto rounded-lg mb-4" />
                 </div>
             </BoxComponent>
+            <BoxComponent v-if="hasPermission('maintenancecontract.read')" class="mt-6">
+                <h2 class="text-center border-b border-gray-300 pb-2 mb-2">
+                    <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
+                    Onderhoudscontracten
+                </h2>
+                <div v-if="!asset.maintenance_contracts?.length" class="text-sm text-gray-400 dark:text-slate-500 text-center py-2">
+                    Niet gekoppeld aan een onderhoudscontract
+                </div>
+                <div v-else class="space-y-2 mt-3">
+                    <Link v-for="contract in asset.maintenance_contracts" :key="contract.id"
+                        :href="`/maintenancecontracts/${contract.id}`"
+                        class="flex items-center justify-between gap-2 rounded-md border border-gray-200 dark:border-slate-700/60 p-3 hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <span class="text-sm font-medium text-gray-800 dark:text-slate-200 truncate">{{ contract.display_title }}</span>
+                        <BadgeComponent :color="maintenanceContractStatusBadgeColor(contract.status)" :has-dot="false">
+                            {{ maintenanceContractStatusText(contract.status) }}
+                        </BadgeComponent>
+                    </Link>
+                </div>
+            </BoxComponent>
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -324,7 +343,8 @@ import TextInput from '@/Components/UI/TextInput.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { hasPermission } from '@/Utilities/Utilities';
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import { hasPermission, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 
 const openNewTicketForm = ref(false);

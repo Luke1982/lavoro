@@ -132,4 +132,11 @@ class Asset extends Model
             'parent_asset_id'
         );
     }
+
+    public function maintenanceContracts()
+    {
+        return $this->morphedByMany(MaintenanceContract::class, 'assetable')
+            ->withPivot(['id', 'frequency', 'frequency_days', 'last_generated_at'])
+            ->withTimestamps();
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContractInterval;
 use App\Enums\ProjectStatuses;
 use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
@@ -92,6 +93,7 @@ class CustomerController extends Controller
             'projects.serviceOrders.serviceJobs',
             'customFields',
             'contacts',
+            'maintenanceContracts',
         ]);
 
         $user = Auth::user();
@@ -132,6 +134,7 @@ class CustomerController extends Controller
             'statuses' => ProjectStatuses::comboBoxArray(),
             'customFields' => $customer->allCustomFieldsWithValues(),
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'contractIntervalOptions' => ContractInterval::comboBoxArray(),
         ]);
     }
 

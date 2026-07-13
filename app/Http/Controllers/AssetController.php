@@ -209,6 +209,7 @@ class AssetController extends Controller
             'parentAssetRelations.parentAsset.product.brand',
             'parentAssetRelations.parentAsset.product.productType',
             'parentAssetRelations.productable.productRelation',
+            'maintenanceContracts.customer',
         ]);
 
         $currentTypeId = $asset->product?->productType?->id;

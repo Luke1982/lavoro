@@ -31,6 +31,7 @@ class ServiceOrder extends Model
         'description',
         'customer_id',
         'project_id',
+        'maintenance_contract_id',
         'closed_on',
         'signed_by',
         'signature_base64',
@@ -113,6 +114,11 @@ class ServiceOrder extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function maintenanceContract()
+    {
+        return $this->belongsTo(MaintenanceContract::class);
     }
 
     public function serviceOrderStage()

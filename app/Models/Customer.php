@@ -53,6 +53,11 @@ class Customer extends Model
             ->orderBy('next_service_date');
     }
 
+    public function maintenanceContracts()
+    {
+        return $this->hasMany(MaintenanceContract::class)->orderByDesc('start_date');
+    }
+
     public function upcomingAssets()
     {
         return $this->hasMany(Asset::class)
