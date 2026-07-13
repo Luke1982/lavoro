@@ -16,6 +16,14 @@
     --radius-lavoro-lg: 24px;
     --radius-lavoro-md: 16px;
     --radius-lavoro-sm: 8px;
+    --color-sidebar-bg: #0b1220;
+    --color-sidebar-hover: #121a2b;
+    --color-sidebar-card: #121a2b;
+    --color-sidebar-active: #1e40ff;
+    --color-sidebar-indicator: #b8ff3d;
+    --color-sidebar-text: #e6eeff;
+    --color-sidebar-muted: #94a3b8;
+    --color-sidebar-border: #1f2937;
 }
 
 @utility bg-svg {
@@ -31,4 +39,19 @@
         opacity: 0.2;
         z-index: -1;
     }
+}
+
+@keyframes sidebarItemIn {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@utility sidebar-item {
+    animation: sidebarItemIn 0.35s ease-out both;
 }

@@ -27,171 +27,7 @@
                                 </div>
                             </TransitionChild>
 
-                            <div
-                                class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6 pb-2 ring-1 ring-white/10">
-
-                                <nav class="flex flex-1 flex-col mt-4">
-                                    <ul role="list" class="flex flex-1 flex-col gap-y-7">
-                                        <li>
-                                            <ul role="list" class="-mx-2 space-y-1">
-                                                <li v-for="item in filteredNavigation" :key="item.name">
-                                                    <div class="flex items-center justify-between">
-                                                        <Link :href="item.href" @click="handleNavClick(item)" :class="[
-                                                            item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
-                                                        ]">
-                                                            <component :is="item.icon" class="size-6 shrink-0"
-                                                                aria-hidden="true" />
-                                                            {{ item.name }}
-                                                        </Link>
-                                                        <button v-if="visibleChildren(item).length"
-                                                            class="p-2 text-gray-400 hover:text-white"
-                                                            @click.stop="item.open = !item.open">
-                                                            <ChevronDownIcon
-                                                                class="size-4 transition-transform duration-200"
-                                                                :class="item.open ? 'rotate-180' : ''" />
-                                                        </button>
-                                                    </div>
-
-                                                    <transition
-                                                        enter-active-class="transition-all duration-200 ease-out"
-                                                        enter-from-class="max-h-0 opacity-0"
-                                                        enter-to-class="max-h-96 opacity-100"
-                                                        leave-active-class="transition-all duration-200 ease-in"
-                                                        leave-from-class="max-h-96 opacity-100"
-                                                        leave-to-class="max-h-0 opacity-0">
-                                                        <ul v-if="visibleChildren(item).length" v-show="item.open"
-                                                            class="overflow-hidden">
-                                                            <li v-for="child in visibleChildren(item)"
-                                                                :key="child.name">
-                                                                <Link :href="child.href" @click="sidebarOpen = false"
-                                                                    :class="[
-                                                                        child.current
-                                                                            ? 'bg-gray-800 text-white'
-                                                                            : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                                        'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
-                                                                    ]">
-                                                                    <component v-if="child.icon" :is="child.icon"
-                                                                        class="size-5 shrink-0" aria-hidden="true" />
-                                                                    <span>{{ child.name }}</span>
-                                                                </Link>
-                                                            </li>
-                                                        </ul>
-                                                    </transition>
-                                                </li>
-                                            </ul>
-                                        </li>
-
-                                        <li>
-                                            <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
-                                            <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                                <li v-for="list in filteredLists" :key="list.name">
-                                                    <Link :href="list.href" @click="sidebarOpen = false" :class="[
-                                                        list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                    ]">
-                                                        <span
-                                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                                list.initial }}</span>
-                                                        <span>{{ list.name }}</span>
-                                                    </Link>
-                                                </li>
-                                            </ul>
-                                        </li>
-
-                                        <li class="-mx-6 mt-auto">
-                                            <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
-                                                <img v-if="companyLogo" class="h-8 w-auto ml-2 mb-2" :src="companyLogo"
-                                                    :alt="companyName || 'Bedrijf'" />
-
-                                                <Link :href="'/companies'" @click="sidebarOpen = false" :class="[
-                                                    isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <BuildingOffice2Icon class="size-6 shrink-0" />
-                                                    Bedrijf
-                                                </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/roles'" :class="[
-                                                    currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <UsersIcon class="size-6 shrink-0" />
-                                                    Rollen
-                                                </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/admin/calendar-grants'"
-                                                    :class="[
-                                                        currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                    ]">
-                                                    <CalendarIcon class="size-6 shrink-0" />
-                                                    Agenda-toegang
-                                                </Link>
-                                                <Link @click="sidebarOpen = false" :href="'/admin/settings'" :class="[
-                                                    currentPath.startsWith('/admin/settings') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <Cog6ToothIcon class="size-6 shrink-0" />
-                                                    Instellingen
-                                                </Link>
-                                            </div>
-                                            <div class="px-6 mb-2 space-y-1" v-if="canManageStandardEmails || canManageStandardAttachments">
-                                                <Link v-if="canManageStandardEmails" @click="sidebarOpen = false" :href="'/standard-emails'" :class="[
-                                                    currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <EnvelopeIcon class="size-6 shrink-0" />
-                                                    Standaard e-mails
-                                                </Link>
-                                                <Link v-if="canManageStandardAttachments" @click="sidebarOpen = false" :href="'/standard-attachments'" :class="[
-                                                    currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <PaperClipIcon class="size-6 shrink-0" />
-                                                    Standaard bijlagen
-                                                </Link>
-                                            </div>
-                                            <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
-                                                <Link @click="sidebarOpen = false" :href="'/users'" :class="[
-                                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                ]">
-                                                    <UsersIcon class="size-6 shrink-0" />
-                                                    Gebruikers
-                                                </Link>
-                                            </div>
-                                            <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
-                                                <Link @click="sidebarOpen = false" :href="'/technical-management'"
-                                                    :class="[
-                                                        currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                                    ]">
-                                                    <WrenchScrewdriverIcon class="size-6 shrink-0" />
-                                                    Technisch beheer
-                                                </Link>
-                                            </div>
-                                            <Link @click="sidebarOpen = false" :href="'/me/edit'"
-                                                class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
-                                                <div
-                                                    class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
-                                                    <img v-if="authUser?.avatar" :src="authUser.avatar"
-                                                        class="object-cover w-full h-full" />
-                                                    <span v-else class="text-xs font-medium text-white">{{ initials
-                                                    }}</span>
-                                                </div>
-                                                <span class="sr-only">Profiel</span>
-                                                <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
-                                            </Link>
-                                            <div class="px-6 pb-4">
-                                                <button @click="logout"
-                                                    class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <ArrowRightOnRectangleIcon class="size-5" />
-                                                    Uitloggen
-                                                </button>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </div>
+                            <SidebarContent @navigate="sidebarOpen = false" @logout="logout" />
                         </DialogPanel>
                     </TransitionChild>
                 </div>
@@ -200,165 +36,7 @@
 
         <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
             :style="{ width: desktopCollapsed ? '0px' : '18rem', transition: 'width 300ms ease-in-out' }">
-            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-lavoro-darkblue px-6">
-                <div class="flex shrink-0 flex-col items-start">
-                    <img src="/img/logo-neg.svg" alt="" class="h-15 mt-3">
-                </div>
-                <nav class="flex flex-1 flex-col">
-                    <ul role="list" class="flex flex-1 flex-col gap-y-7">
-                        <li>
-                            <ul role="list" class="-mx-2 space-y-1">
-                                <li v-for="item in filteredNavigation" :key="item.name">
-                                    <div class="flex items-center justify-between">
-                                        <Link :href="item.href" @click="updateCurrent(item)" :class="[
-                                            item.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold flex-1'
-                                        ]">
-                                            <component :is="item.icon" class="size-6 shrink-0" aria-hidden="true" />
-                                            {{ item.name }}
-                                        </Link>
-                                        <button v-if="visibleChildren(item).length"
-                                            class="p-2 text-gray-400 hover:text-white"
-                                            @click.stop="item.open = !item.open">
-                                            <ChevronDownIcon class="size-4 transition-transform duration-200"
-                                                :class="item.open ? 'rotate-180' : ''" />
-                                        </button>
-                                    </div>
-                                    <transition enter-active-class="transition-all duration-200 ease-out"
-                                        enter-from-class="max-h-0 opacity-0" enter-to-class="max-h-96 opacity-100"
-                                        leave-active-class="transition-all duration-200 ease-in"
-                                        leave-from-class="max-h-96 opacity-100" leave-to-class="max-h-0 opacity-0">
-                                        <ul v-if="visibleChildren(item).length" v-show="item.open"
-                                            class="overflow-hidden">
-                                            <li v-for="child in visibleChildren(item)" :key="child.name">
-                                                <Link :href="child.href" :class="[
-                                                    child.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                                    'group flex gap-x-3 rounded-md p-1 text-sm/6 font-medium pl-11'
-                                                ]">
-                                                    <component v-if="child.icon" :is="child.icon"
-                                                        class="size-5 shrink-0" aria-hidden="true" />
-                                                    <span>{{ child.name }}</span>
-                                                </Link>
-                                            </li>
-                                        </ul>
-                                    </transition>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li>
-                            <div class="text-xs/6 font-semibold text-gray-400">Lijsten</div>
-                            <ul role="list" class="-mx-2 mt-2 space-y-1">
-                                <li v-for="list in filteredLists" :key="list.name">
-                                    <Link :href="list.href" @click="sidebarOpen = false" :class="[
-                                        list.current ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                        'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                    ]">
-                                        <span
-                                            class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">{{
-                                                list.initial }}</span>
-                                        <span>{{ list.name }}</span>
-                                    </Link>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li class="-mx-6 mt-auto">
-                            <img v-if="companyLogo" class="h-8 w-auto ml-8 mb-3" :src="companyLogo"
-                                :alt="companyName || 'Bedrijf'" />
-                            <div class="px-6 mb-2 space-y-1" v-if="isAdmin">
-                                <Link :href="'/companies'" :class="[
-                                    isCompanyCurrent ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <BuildingOffice2Icon class="size-6 shrink-0" />
-                                    Bedrijf
-                                </Link>
-                                <Link :href="'/roles'" :class="[
-                                    currentPath.startsWith('/roles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <UsersIcon class="size-6 shrink-0" />
-                                    Rollen
-                                </Link>
-                                <Link :href="'/admin/calendar-grants'" :class="[
-                                    currentPath.startsWith('/admin/calendar-grants') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <CalendarIcon class="size-6 shrink-0" />
-                                    Agenda-toegang
-                                </Link>
-                                <Link :href="'/admin/settings'" :class="[
-                                    currentPath.startsWith('/admin/settings') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <Cog6ToothIcon class="size-6 shrink-0" />
-                                    Instellingen
-                                </Link>
-                            </div>
-                            <div class="px-6 mb-2 space-y-1" v-if="canManageStandardEmails || canManageStandardAttachments">
-                                <Link v-if="canManageStandardEmails" :href="'/standard-emails'" :class="[
-                                    currentPath.startsWith('/standard-emails') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <EnvelopeIcon class="size-6 shrink-0" />
-                                    Standaard e-mails
-                                </Link>
-                                <Link v-if="canManageStandardAttachments" :href="'/standard-attachments'" :class="[
-                                    currentPath.startsWith('/standard-attachments') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <PaperClipIcon class="size-6 shrink-0" />
-                                    Standaard bijlagen
-                                </Link>
-                            </div>
-                            <div class="px-6 mb-2 space-y-1" v-if="canSeeUsers">
-                                <Link :href="'/users'" :class="[
-                                    currentPath.startsWith('/users') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <UsersIcon class="size-6 shrink-0" />
-                                    Gebruikers
-                                </Link>
-                                <Link v-if="canSeeUserRoles" :href="'/userroles'" :class="[
-                                    currentPath.startsWith('/userroles') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-1 pl-11 text-sm/6 font-medium'
-                                ]">
-                                    <TagIcon class="size-5 shrink-0" />
-                                    Gebruikersrollen
-                                </Link>
-                            </div>
-                            <div class="px-6 mb-2 space-y-1" v-if="isTechnischBeheer">
-                                <Link :href="'/technical-management'" :class="[
-                                    currentPath.startsWith('/technical-management') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold'
-                                ]">
-                                    <WrenchScrewdriverIcon class="size-6 shrink-0" />
-                                    Technisch beheer
-                                </Link>
-                            </div>
-                            <Link :href="'/me/edit'"
-                                class="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-gray-800">
-                                <div
-                                    class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
-                                    <img v-if="authUser?.avatar" :src="authUser.avatar"
-                                        class="object-cover w-full h-full" />
-                                    <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
-                                </div>
-                                <span class="sr-only">Profiel</span>
-                                <span aria-hidden="true">{{ authUser?.name || 'Gebruiker' }}</span>
-                            </Link>
-                            <div class="px-6 pb-6">
-                                <button @click="logout"
-                                    class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    <ArrowRightOnRectangleIcon class="size-5" />
-                                    Uitloggen
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
+            <SidebarContent @logout="logout" />
         </div>
 
         <button
@@ -369,8 +47,8 @@
                 :class="desktopCollapsed ? 'rotate-180' : ''" />
         </button>
 
-        <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-xs sm:px-6 lg:hidden">
-            <button type="button" class="-m-2.5 p-2.5 text-gray-400 lg:hidden" @click="toggleSidebar">
+        <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-sidebar-bg px-4 py-4 shadow-xs sm:px-6 lg:hidden">
+            <button type="button" class="-m-2.5 p-2.5 text-sidebar-muted lg:hidden" @click="toggleSidebar">
                 <span class="sr-only">Open sidebar</span>
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
@@ -378,7 +56,7 @@
             <img src="/img/logo-neg.svg" class="h-6" alt="">
             <Link :href="'/me/edit'">
                 <span class="sr-only">Profiel</span>
-                <div class="size-8 rounded-full bg-gray-800 overflow-hidden flex items-center justify-center">
+                <div class="size-8 rounded-full bg-sidebar-card overflow-hidden flex items-center justify-center">
                     <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
                     <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
                 </div>
@@ -405,44 +83,13 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import {
-    Bars3Icon,
-    CalendarIcon,
-    CheckIcon,
-    CubeIcon,
-    ExclamationCircleIcon,
-    FingerPrintIcon,
-    HomeIcon,
-    PuzzlePieceIcon,
-    Square3Stack3DIcon,
-    UserIcon,
-    UsersIcon,
-    XMarkIcon,
-    SwatchIcon,
-    TruckIcon,
-    ChevronDownIcon,
-    ChevronLeftIcon,
-    Squares2X2Icon,
-    FolderIcon,
-    ScaleIcon,
-    AdjustmentsHorizontalIcon,
-    BuildingOffice2Icon,
-    ArrowRightOnRectangleIcon,
-    WrenchScrewdriverIcon,
-    ClipboardDocumentListIcon,
-    Cog6ToothIcon,
-    LinkIcon,
-    TagIcon,
-    DocumentTextIcon,
-    Bars4Icon,
-    EnvelopeIcon,
-    PaperClipIcon,
-} from '@heroicons/vue/24/outline'
-import { ClipboardList as ClipboardListIcon } from '@lucide/vue'
+import { Bars3Icon, ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
-import { hasPermission, initials as getInitials } from '@/Utilities/Utilities'
+import { hasPermission } from '@/Utilities/Utilities'
+import { useSidebarNav } from '@/Composables/useSidebarNav.js'
+import SidebarContent from '@/Components/Layout/SidebarContent.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
@@ -466,6 +113,9 @@ const { register: register_push } = usePushNotifications()
 const { check: check_update } = useAppUpdate()
 const { init: init_deep_links } = useDeepLinks()
 
+const page = usePage()
+const { authUser, initials, currentTopTitle } = useSidebarNav()
+
 onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
@@ -488,10 +138,6 @@ onMounted(async () => {
     }
 })
 
-const page = usePage()
-const authUser = computed(() => page.props.auth.user)
-const isAdmin = computed(() => !!page.props.auth.isAdmin)
-
 const googleBannerDismissed = ref(typeof window !== 'undefined' && window.sessionStorage?.getItem('google_banner_dismissed') === '1')
 const showGoogleReconnectBanner = computed(() => !!authUser.value?.google_integration?.disabled_at && !googleBannerDismissed.value)
 const dismissGoogleBanner = () => {
@@ -499,190 +145,6 @@ const dismissGoogleBanner = () => {
     if (typeof window !== 'undefined') {
         window.sessionStorage?.setItem('google_banner_dismissed', '1')
     }
-}
-const isTechnischBeheer = computed(() => (page.props.auth?.permissions || []).includes('technical.management'))
-const canSeeUsers = computed(() => isAdmin.value || hasPermission('user.read'))
-const canSeeUserRoles = computed(() => isAdmin.value || hasPermission('userrole.read'))
-const canManageStandardEmails = computed(() => isAdmin.value || hasPermission('standardemail.manage'))
-const canManageStandardAttachments = computed(() => isAdmin.value || hasPermission('standardattachment.manage'))
-const initials = computed(() => authUser.value?.name ? getInitials(authUser.value.name) : '')
-const companyLogo = computed(() => page.props.company?.logo_url || null)
-const companyName = computed(() => page.props.company?.name || null)
-
-const navigation = ref([
-    { name: 'Dashboard', href: '/', icon: HomeIcon, current: true },
-    {
-        name: 'Klanten',
-        href: '/customers',
-        icon: UsersIcon,
-        current: false,
-        requiresPermission: 'customer.read',
-        children: [
-            { name: 'Contacten', href: '/contacts', icon: UserIcon, current: false, requiresPermission: 'contact.read' },
-        ],
-        open: false,
-    },
-    {
-        name: 'Producten',
-        href: '/products',
-        icon: CubeIcon,
-        current: false,
-        requiresPermission: 'product.read',
-        children: [
-            { name: 'Product types', href: '/producttypes', icon: Square3Stack3DIcon, current: false, requiresPermission: 'producttype.read' },
-            { name: 'Merken', href: '/brands', icon: FingerPrintIcon, current: false, requiresPermission: 'brand.read' },
-            { name: 'Kenmerken', href: '/productattributes', icon: TagIcon, current: false, requiresPermission: 'productattribute.read' },
-            { name: 'Relatietypes', href: '/productrelations', icon: LinkIcon, current: false, requiresPermission: 'productrelation.read' },
-        ],
-        open: false,
-    },
-    { name: 'Machines', href: '/assets', icon: PuzzlePieceIcon, current: false, requiresPermission: 'asset.read' },
-    { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false, requiresPermission: 'ticket.see_all' },
-    {
-        name: 'Werkbonnen',
-        href: '/serviceorders',
-        icon: DocumentTextIcon,
-        current: false,
-        requiresAnyPermission: ['serviceorder.read', 'serviceorder.read_own'],
-        children: [
-            { name: 'Fases', href: '/serviceorderstages', icon: Bars4Icon, current: false, requiresPermission: 'serviceorderstage.read' },
-            { name: 'Taken', href: '/serviceordertasks', icon: ClipboardListIcon, current: false, requiresPermission: 'serviceordertask.read' },
-        ],
-        open: false,
-    },
-    {
-        name: 'Keurpunten',
-        href: '/servicechecks',
-        icon: CheckIcon,
-        current: false,
-        requiresPermission: 'servicecheck.read',
-        children: [
-            { name: 'Groepen', href: '/servicecheckgroups', icon: Squares2X2Icon, current: false, requiresPermission: 'servicecheckgroup.read' }
-        ],
-        open: false,
-    },
-    {
-        name: 'Materialen',
-        href: '/materials',
-        icon: SwatchIcon,
-        current: false,
-        requiresPermission: 'material.read',
-        children: [
-            { name: 'Categorieën', href: '/materialcategories', icon: FolderIcon, current: false, requiresPermission: 'materialcategory.read' },
-            { name: 'Gebruikseenheden', href: '/materialusageunits', icon: ScaleIcon, current: false, requiresPermission: 'materialusageunit.read' }
-        ],
-        open: false,
-    },
-    {
-        name: 'Leveranciers',
-        href: '/suppliers',
-        icon: TruckIcon,
-        current: false,
-        requiresPermission: 'supplier.read',
-    },
-    {
-        name: 'Planner',
-        href: '/planner',
-        icon: CalendarIcon,
-        current: false,
-        requiresPermission: 'event.read',
-        children: [
-            { name: 'Afspraaktypes', href: '/eventtypes', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: 'eventtype.read' },
-            { name: 'Gebruikersrollen', href: '/userroles', icon: AdjustmentsHorizontalIcon, current: false, requiresPermission: canSeeUserRoles },
-        ],
-        open: false,
-    },
-    { name: 'Extra velden', href: '/customfields', icon: WrenchScrewdriverIcon, current: false, requiresPermission: 'customfield.read' },
-    { name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read' },
-])
-
-const canSeeNavItem = (item) => {
-    if (item?.adminOnly) return isAdmin.value;
-    if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission);
-    if (!item?.requiresPermission) return true;
-    return hasPermission(item.requiresPermission);
-}
-
-const filteredNavigation = computed(() => navigation.value.filter(canSeeNavItem))
-
-const currentPath = computed(() => {
-    const url = page?.url
-    if (url && typeof url === 'string') return url
-    return typeof window !== 'undefined' ? window.location.pathname : ''
-})
-
-// Load persisted open state
-const savedOpenState = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('navOpenState') || '{}') : {}
-
-const initializeNavState = () => {
-    const path = currentPath.value
-    navigation.value.forEach((item) => {
-        item.current = false
-        if (item.children) {
-            if (Object.prototype.hasOwnProperty.call(savedOpenState, item.name)) {
-                item.open = !!savedOpenState[item.name]
-            }
-            item.children.forEach((c) => {
-                c.current = (path === c.href) || path.startsWith(c.href + '/')
-            })
-            const anyChildCurrent = item.children.some((c) => c.current)
-            if (anyChildCurrent) {
-                item.open = true
-                item.current = true
-            }
-        } else {
-            if ((path === item.href) || path.startsWith(item.href + '/')) {
-                item.current = true
-            }
-        }
-    })
-}
-
-initializeNavState()
-watch(() => page?.url, () => initializeNavState())
-
-// Persist open state on changes
-watch(navigation, (val) => {
-    if (typeof window === 'undefined') return
-    const state = {}
-    val.forEach((item) => {
-        if (item.children) state[item.name] = !!item.open
-    })
-    localStorage.setItem('navOpenState', JSON.stringify(state))
-}, { deep: true })
-
-const lists = [
-    { id: 1, name: 'Aankomende keuringen en storingen', href: '/upcomingactivities', initial: 'A', current: false, requiresPermission: 'activitylist.read' }
-]
-
-// Children of a nav item the user can see
-const visibleChildren = (item) => {
-    if (!item?.children) return []
-    return item.children.filter(canSeeNavItem)
-}
-
-// Filter lists by permission too
-const filteredLists = computed(() => lists.filter(canSeeNavItem))
-
-const isCompanyCurrent = computed(() => currentPath.value === '/companies')
-
-/**
- * Set the active top-level nav gation item.
- * @param {{name: tring}} item
- */
-const updateCurrent = (item) => {
-    navigation.value.forEach((navItem) => {
-        navItem.current = navItem.name === item.name
-    })
-}
-
-/**
- * Handle a mobile navigation click: update active item and close the sidebar.
- * @param {{name:string}} item
- */
-const handleNavClick = (item) => {
-    updateCurrent(item)
-    sidebarOpen.value = false
 }
 
 const sidebarOpen = ref(false)
@@ -701,35 +163,6 @@ const toggleDesktopSidebar = () => {
         localStorage.setItem('desktopSidebarCollapsed', desktopCollapsed.value ? '1' : '0')
     }
 }
-
-const currentTopTitle = computed(() => {
-    const path = currentPath.value.split('?')[0]
-
-    for (const item of navigation.value) {
-        if (item.children) {
-            for (const child of item.children) {
-                if (path === child.href || path.startsWith(child.href + '/')) {
-                    return child.name
-                }
-            }
-        }
-    }
-
-    for (const item of navigation.value) {
-        if (item.href === '/') continue
-        if (path === item.href || path.startsWith(item.href + '/')) {
-            return item.name
-        }
-    }
-
-    for (const list of lists) {
-        if (path === list.href || path.startsWith(list.href + '/')) {
-            return list.name
-        }
-    }
-
-    return 'Dashboard'
-})
 
 const logout = async () => {
     await stop_tracking()

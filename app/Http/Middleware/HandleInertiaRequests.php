@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\GeneralSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-use App\Models\GeneralSetting;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             $user_data = array_merge(
                 $request->user()->only(['id', 'name', 'email', 'avatar']),
                 [
+                    'roles' => $request->user()->roles()->pluck('name')->all(),
                     'google_integration' => $integration
                         ? [
                             'email' => $integration->google_account_email,
@@ -73,10 +74,11 @@ class HandleInertiaRequests extends Middleware
                     'location_tracking_end',
                     'location_tracking_days',
                 ])->pluck('value', 'key');
+
                 return [
                     'start' => $rows->get('location_tracking_start', '07:00'),
-                    'end'   => $rows->get('location_tracking_end', '18:00'),
-                    'days'  => array_map('intval', explode(',', $rows->get('location_tracking_days', '1,2,3,4,5'))),
+                    'end' => $rows->get('location_tracking_end', '18:00'),
+                    'days' => array_map('intval', explode(',', $rows->get('location_tracking_days', '1,2,3,4,5'))),
                 ];
             })() : null,
         ];
