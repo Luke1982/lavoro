@@ -148,11 +148,16 @@
                         <div class="grid border-b border-gray-200 dark:border-slate-800"
                             :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
                             <div v-for="day in weekDays" :key="'dh-' + day.iso"
-                                class="px-3 flex items-center justify-center text-sm font-semibold border-l border-gray-200 dark:border-slate-800 first:border-l-0">
-                                <span class="uppercase">{{ dayLabel(day.date) }}</span>
-                                <span v-if="isToday(day.date)"
-                                    class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
-                                    {{ String(day.date.getDate()).padStart(2, '0') }}
+                                class="px-3 flex flex-col items-center justify-center border-l border-gray-200 dark:border-slate-800 first:border-l-0">
+                                <div class="flex items-center text-sm font-semibold">
+                                    <span class="uppercase">{{ dayLabel(day.date) }}</span>
+                                    <span v-if="isToday(day.date)"
+                                        class="inline-block ml-2 rounded-full bg-blue-600 text-white text-xs px-2 py-0.5">
+                                        {{ String(day.date.getDate()).padStart(2, '0') }}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] font-normal text-gray-400 dark:text-slate-500">
+                                    Week {{ weekNumber(day.date) }}
                                 </span>
                             </div>
                         </div>
@@ -625,7 +630,7 @@ let suppressClickUntil = 0
 
 const HOUR_PX_MIN = 60
 const SLOT_PX_MIN = 56
-const dayHeaderHeight = 44
+const dayHeaderHeight = 52
 const hourHeaderHeight = 44
 const headerHeight = dayHeaderHeight + hourHeaderHeight
 
@@ -944,6 +949,10 @@ function startOfWeek(date) {
 function dayLabel(date) {
     const days = ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA']
     return `${days[date.getDay()]} ${dayjs(date).format('DD-MM')}`
+}
+
+function weekNumber(date) {
+    return dayjs(date).isoWeek()
 }
 
 function isToday(date) {
