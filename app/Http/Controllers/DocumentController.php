@@ -6,6 +6,7 @@ use App\Http\Requests\DocumentDestroyRequest;
 use App\Http\Requests\DocumentStoreRequest;
 use App\Http\Requests\DocumentUpdateRequest;
 use App\Models\Document;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
@@ -47,6 +48,15 @@ class DocumentController extends Controller
 
     public function destroy(DocumentDestroyRequest $request, Document $document)
     {
+        $link = DB::table('documentables')->where('document_id', $document->id)->first();
+
+        if ($link) {
+            $documentable_record = (new ($link->documentable_type))->find($link->documentable_id);
+            if ($documentable_record && method_exists($documentable_record, 'logActivity')) {
+                $documentable_record->logActivity(sprintf('Document verwijderd: %s', $document->name));
+            }
+        }
+
         Storage::disk('public')->delete($document->path);
         $document->delete();
 

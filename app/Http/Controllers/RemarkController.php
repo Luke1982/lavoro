@@ -45,6 +45,13 @@ class RemarkController extends Controller
             }
         }
 
+        if ($link) {
+            $remarkable_record = (new ($link->remarkable_type))->find($link->remarkable_id);
+            if ($remarkable_record && method_exists($remarkable_record, 'logActivity')) {
+                $remarkable_record->logActivity(sprintf('Opmerking verwijderd: %s', $remark->content));
+            }
+        }
+
         $remark->delete();
 
         if (request()->wantsJson()) {
