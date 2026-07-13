@@ -699,6 +699,7 @@ class ServiceOrderController extends Controller
                 $execution = $event->executions->firstWhere('user_id', $user->id);
                 $actual_start = $execution?->actual_start;
                 $actual_end = $execution?->actual_end;
+                $breaktime_minutes = (int) $user->pivot->breaktime;
 
                 return [
                     'name' => $user->name,
@@ -707,7 +708,7 @@ class ServiceOrderController extends Controller
                     'actual_end' => $actual_end?->copy()->setTimezone($display_timezone),
                     'breaktime' => $user->pivot->breaktime,
                     'hours' => $actual_start && $actual_end
-                        ? round($actual_start->floatDiffInHours($actual_end), 2)
+                        ? round($actual_start->floatDiffInHours($actual_end) - ($breaktime_minutes / 60), 2)
                         : null,
                 ];
             }))

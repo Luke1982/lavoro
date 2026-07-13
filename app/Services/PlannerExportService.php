@@ -88,6 +88,7 @@ class PlannerExportService
         $project = $service_order?->project;
         $customer = $service_order?->customer;
         $execution = $event->executions->firstWhere('user_id', $user->id);
+        $breaktime_minutes = (int) ($member->pivot->breaktime ?? 0);
 
         $sheet->setCellValue('A' . $row, $event->name ?: $event->eventType?->name);
         $sheet->setCellValue('B' . $row, $service_order ? 'WB-' . str_pad((string) $service_order->id, 4, '0', STR_PAD_LEFT) : null);
@@ -98,21 +99,24 @@ class PlannerExportService
         [$planned_start, $planned_end] = $this->plannedTimes($event, $member);
         $this->writeDateTime($sheet, 'F' . $row, $planned_start, $tz);
         $this->writeDateTime($sheet, 'G' . $row, $planned_end, $tz);
-        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end));
+        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end, $breaktime_minutes));
         $this->writeDateTime($sheet, 'I' . $row, $execution?->actual_start, $tz);
         $this->writeDateTime($sheet, 'J' . $row, $execution?->actual_end, $tz);
-        $sheet->setCellValue('K' . $row, $this->hours($execution?->actual_start, $execution?->actual_end));
+        $sheet->setCellValue(
+            'K' . $row,
+            $this->hours($execution?->actual_start, $execution?->actual_end, $breaktime_minutes)
+        );
 
         $sheet->setCellValue('L' . $row, $execution?->completion_status ?? 'Gepland');
     }
 
-    private function hours(?Carbon $start, ?Carbon $end): ?float
+    private function hours(?Carbon $start, ?Carbon $end, int $breaktime_minutes): ?float
     {
         if (!$start || !$end) {
             return null;
         }
 
-        return round($start->floatDiffInHours($end), 2);
+        return round($start->floatDiffInHours($end) - ($breaktime_minutes / 60), 2);
     }
 
     private function plannedTimes(Event $event, User $member): array
