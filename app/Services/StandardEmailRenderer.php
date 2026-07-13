@@ -24,10 +24,10 @@ class StandardEmailRenderer
         $customer = $event->primaryCustomer();
 
         $replacements = [
-            '{{event_start_date}}' => $event->start?->format('d-m-Y') ?? '',
-            '{{event_start_time}}' => $event->start?->format('H:i') ?? '',
-            '{{event_end_date}}' => $event->end?->format('d-m-Y') ?? '',
-            '{{event_end_time}}' => $event->end?->format('H:i') ?? '',
+            '{{event_start_date}}' => $event->start?->clone()->timezone('Europe/Amsterdam')->format('d-m-Y') ?? '',
+            '{{event_start_time}}' => $event->start?->clone()->timezone('Europe/Amsterdam')->format('H:i') ?? '',
+            '{{event_end_date}}' => $event->end?->clone()->timezone('Europe/Amsterdam')->format('d-m-Y') ?? '',
+            '{{event_end_time}}' => $event->end?->clone()->timezone('Europe/Amsterdam')->format('H:i') ?? '',
             '{{event_name}}' => $event->name ?? '',
             '{{event_location}}' => $event->location ?? '',
             '{{customer_name}}' => $customer?->name ?? '',
