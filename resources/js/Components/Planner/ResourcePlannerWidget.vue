@@ -65,38 +65,82 @@
             </div>
 
             <div class="ml-auto flex items-center gap-2">
-                <button v-if="hasPermission('event.export')"
-                    class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
-                    @click="exportDrawerOpen = true">
-                    <ArrowDownTrayIcon class="size-4 shrink-0" />
-                    Exporteren
-                </button>
                 <button v-if="allPingsArray.length > 0"
                     class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                     @click="mapModalOpen = true">
                     <MapIcon class="size-4 shrink-0" />
                     Monteurkaart
                 </button>
-                <template v-if="hasPermission('settings.update_default_planner_minutes')">
-                    <label class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">Standaard min.</label>
-                    <input type="number" v-model.number="plannerMinutes" min="15" max="1200" step="15"
-                        class="w-25 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 text-sm px-2 py-1.5 text-center"
-                        @blur="savePlannerMinutes" />
-                </template>
-                <SelectMenuComponent v-model="slotMinutes" :options="slotOptions" :icon="Squares2X2Icon">
-                    <template #sr-label>Slotgrootte</template>
-                </SelectMenuComponent>
-                <label class="text-xs text-gray-500 dark:text-slate-400 ml-2">Dag</label>
-                <select v-model.number="dayStartHour"
-                    class="rounded-md border border-gray-300 dark:border-slate-700  dark:bg-slate-800 text-sm px-2 py-1">
-                    <option v-for="h in 12" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
-                </select>
-                <span class="text-xs">tot</span>
-                <select v-model.number="dayEndHour"
-                    class="rounded-md border border-gray-300 dark:border-slate-700  dark:bg-slate-800 text-sm px-2 py-1">
-                    <option v-for="h in 24" :key="h" :value="h">{{ String(h).padStart(2, '0') }}:00</option>
-                </select>
+
+                <button ref="settingsButtonRef" @click="settingsOpen = !settingsOpen"
+                    class="flex items-center rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
+                    :class="settingsOpen ? 'bg-gray-100 dark:bg-slate-800' : ''" aria-label="Planner-instellingen"
+                    title="Instellingen">
+                    <EllipsisVerticalIcon class="size-5" />
+                </button>
             </div>
+
+            <Teleport to="body">
+                <transition enter-active-class="transition ease-out duration-100"
+                    enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
+                    leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
+                    leave-to-class="transform opacity-0 scale-95">
+                    <div v-if="settingsOpen" ref="settingsPanelRef" :style="settingsPanelStyle"
+                        class="w-80 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100">
+                        <button v-if="hasPermission('event.export')"
+                            class="flex items-center justify-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800"
+                            @click="settingsOpen = false; exportDrawerOpen = true">
+                            <ArrowDownTrayIcon class="size-4 shrink-0" />
+                            Exporteren
+                        </button>
+
+                        <div v-if="hasPermission('planner.manage_settings')" class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-500 dark:text-slate-400">Standaard minuten</label>
+                            <input type="number" v-model.number="plannerMinutes" min="15" max="1200" step="15"
+                                class="w-full rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-center"
+                                @blur="savePlannerMinutes" />
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-500 dark:text-slate-400">Slotgrootte</label>
+                            <select v-model.number="slotMinutes"
+                                class="w-full rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5">
+                                <option v-for="opt in slotOptions" :key="opt.value" :value="opt.value">{{ opt.title }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div v-if="hasPermission('planner.manage_settings')"
+                            class="flex flex-col gap-1.5">
+                            <label class="text-xs text-gray-500 dark:text-slate-400">Leidende kleur afspraak</label>
+                            <div class="flex items-center justify-between gap-2">
+                                <span
+                                    :class="leadingColorRole ? 'text-gray-400 dark:text-slate-500' : 'font-medium'">Afspraaktype</span>
+                                <SwitchComponent v-model="leadingColorRole" />
+                                <span
+                                    :class="leadingColorRole ? 'font-medium' : 'text-gray-400 dark:text-slate-500'">Monteurrol</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-500 dark:text-slate-400">Dagweergave</label>
+                            <div class="flex items-center gap-2">
+                                <select v-model.number="dayStartHour"
+                                    class="flex-1 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5">
+                                    <option v-for="h in 12" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0')
+                                        }}:00</option>
+                                </select>
+                                <span class="text-xs text-gray-500 dark:text-slate-400">tot</span>
+                                <select v-model.number="dayEndHour"
+                                    class="flex-1 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5">
+                                    <option v-for="h in 24" :key="h" :value="h">{{ String(h).padStart(2, '0') }}:00
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+            </Teleport>
         </div>
 
         <!--
@@ -369,6 +413,7 @@
                                         :is-being-dragged="drag.eventId === ev.id"
                                         :is-highlighted="highlightedEventId === ev.id"
                                         :user-roles="userRoles"
+                                        :leading-color="leadingColorRole ? 'role' : 'event'"
                                         @click="handleEventClick(ev)"
                                         @contextmenu="onEventContextMenu($event, ev)"
                                         @pointerdown-on-event="onEventPointerDown($event, ev, user)"
@@ -452,14 +497,16 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, Squares2X2Icon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon } from '@heroicons/vue/24/outline'
+import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
+import { onClickOutside } from '@vueuse/core'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
-import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TechnicianMiniMap from '@/Components/Planner/TechnicianMiniMap.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
@@ -496,6 +543,8 @@ const props = defineProps({
     eventPaddingY: { type: Number, default: 14 },
     /** Default duration in minutes for new events created by drop or single click */
     defaultPlannerMinutes: { type: Number, default: 120 },
+    /** Which color leads the event box: 'event' (event type) or 'role' (first user role) */
+    defaultLeadingColor: { type: String, default: 'event' },
     /** Plan groups for sorting and color bars */
     groups: { type: Array, default: () => [] },
     /** Latest location ping per user_id, keyed by user_id */
@@ -573,9 +622,12 @@ const slotMinutes = ref(loadInt(SLOT_STORAGE_KEY, props.defaultSlotMinutes))
 const dayStartHour = ref(loadInt(DAY_START_STORAGE_KEY, props.defaultDayStartHour))
 const dayEndHour = ref(loadInt(DAY_END_STORAGE_KEY, props.defaultDayEndHour))
 
+const leadingColorRole = ref(props.defaultLeadingColor === 'role')
+
 watch(slotMinutes, v => localStorage.setItem(SLOT_STORAGE_KEY, v))
 watch(dayStartHour, v => localStorage.setItem(DAY_START_STORAGE_KEY, v))
 watch(dayEndHour, v => localStorage.setItem(DAY_END_STORAGE_KEY, v))
+watch(leadingColorRole, saveLeadingColor)
 
 function loadStoredWeekStart() {
     const stored = localStorage.getItem(WEEK_STORAGE_KEY)
@@ -669,6 +721,36 @@ const collapsedUsers = ref(new Set())
 const mapExpandedUsers = ref(new Set())
 const mapModalOpen = ref(false)
 const exportDrawerOpen = ref(false)
+
+const settingsOpen = ref(false)
+const settingsButtonRef = ref(null)
+const settingsPanelRef = ref(null)
+const settingsPanelStyle = ref({ position: 'fixed', zIndex: 9999 })
+let stopSettingsAutoUpdate = null
+
+async function updateSettingsPosition() {
+    if (!settingsButtonRef.value || !settingsPanelRef.value) return
+    const { x, y } = await computePosition(settingsButtonRef.value, settingsPanelRef.value, {
+        placement: 'bottom-end',
+        strategy: 'fixed',
+        middleware: [offset(8), flip(), shift({ padding: 8 })],
+    })
+    settingsPanelStyle.value = { position: 'fixed', zIndex: 9999, top: `${y}px`, left: `${x}px` }
+}
+
+watch(settingsPanelRef, (el) => {
+    stopSettingsAutoUpdate?.()
+    stopSettingsAutoUpdate = null
+    if (el && settingsButtonRef.value) {
+        stopSettingsAutoUpdate = autoUpdate(settingsButtonRef.value, el, updateSettingsPosition)
+    }
+})
+
+onClickOutside(settingsPanelRef, () => { settingsOpen.value = false }, { ignore: [settingsButtonRef] })
+
+function onSettingsKeydown(e) {
+    if (e.key === 'Escape') settingsOpen.value = false
+}
 
 const unavailOverrideDialog = ref({ open: false, users: [] })
 let pendingOverrideAction = null
@@ -981,12 +1063,15 @@ onMounted(() => {
     nextTick(() => scrollToWorkdayStart())
     startPolling()
     window.addEventListener('dragend', onPlannerDragEnd)
+    window.addEventListener('keydown', onSettingsKeydown)
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
     stopPolling()
     window.removeEventListener('dragend', onPlannerDragEnd)
+    window.removeEventListener('keydown', onSettingsKeydown)
     stopDragAutoScroll()
+    stopSettingsAutoUpdate?.()
     clearTimeout(highlightTimer)
 })
 
@@ -1803,6 +1888,7 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
 }
 
 const plannerMinutes = ref(props.defaultPlannerMinutes)
+let lastSavedPlannerMinutes = props.defaultPlannerMinutes
 
 const feedback = useEventFeedback()
 const feedbackTitle = computed(() => feedback.activeEvent.value
@@ -2008,10 +2094,34 @@ async function savePlannerMinutes() {
     try {
         await axios.get('sanctum/csrf-cookie')
         await axios.put('/api/settings/defaultplannerminutes', { value: plannerMinutes.value })
+        lastSavedPlannerMinutes = plannerMinutes.value
         page.props.flash.success = `Standaard planminuten opgeslagen (${plannerMinutes.value} min)`
     } catch (e) {
         console.error('Failed to save planner minutes', e)
+        plannerMinutes.value = lastSavedPlannerMinutes
         page.props.flash.error = e.response?.data?.message || 'Kon standaard planminuten niet opslaan'
+    }
+}
+
+let revertingLeadingColor = false
+
+async function saveLeadingColor() {
+    if (revertingLeadingColor) {
+        revertingLeadingColor = false
+        return
+    }
+    const value = leadingColorRole.value ? 'role' : 'event'
+    try {
+        await axios.get('sanctum/csrf-cookie')
+        await axios.put('/api/settings/planner_leading_color', { value })
+        page.props.flash.success = value === 'role'
+            ? 'Leidende kleur ingesteld op monteurrol'
+            : 'Leidende kleur ingesteld op afspraaktype'
+    } catch (e) {
+        console.error('Failed to save leading color', e)
+        revertingLeadingColor = true
+        leadingColorRole.value = !leadingColorRole.value
+        page.props.flash.error = e.response?.data?.message || 'Kon leidende kleur niet opslaan'
     }
 }
 

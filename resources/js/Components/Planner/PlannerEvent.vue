@@ -146,6 +146,7 @@ const props = defineProps({
     isBeingDragged: { type: Boolean, default: false },
     isHighlighted: { type: Boolean, default: false },
     userRoles: { type: Array, default: () => [] },
+    leadingColor: { type: String, default: 'event' },
 })
 
 const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed', 'open-feedback'])
@@ -161,6 +162,8 @@ const currentUserRoles = computed(() => {
         .map(id => props.userRoles.find(r => r.id === id))
         .filter(Boolean)
 })
+
+const firstRoleColor = computed(() => currentUserRoles.value[0]?.color || null)
 
 function roleInitials(name) {
     return name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
@@ -228,7 +231,9 @@ const style = computed(() => {
     const endMin = Math.min(totalMin.value, effectiveEndMin.value)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
-    const color = isClosedForUser.value ? '#6b7280' : (props.event.color || '#3b82f6')
+    const eventColor = props.event.color || '#3b82f6'
+    const baseColor = props.leadingColor === 'role' ? (firstRoleColor.value || eventColor) : eventColor
+    const color = isClosedForUser.value ? '#6b7280' : baseColor
     const bgStrength = props.event.is_preliminary ? '8%' : '18%'
     return {
         left: leftPct + '%',

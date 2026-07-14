@@ -113,6 +113,7 @@ class PlannerController extends Controller
                 ]),
             'planGroups' => $plan_groups,
             'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
             'latestPings' => LocationPing::query()
                 ->whereIn('id', function ($sub) {

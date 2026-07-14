@@ -17,6 +17,7 @@
                     :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
                     :user-roles="userRoles" :projects="projects" :groups="planGroupsRef"
                     :default-planner-minutes="props.defaultPlannerMinutes"
+                    :default-leading-color="props.defaultLeadingColor"
                     :latest-pings="props.latestPings"
                     :allow-override-unavailability="props.allowOverrideUnavailability"
                     @service-order-planned="onServiceOrderPlanned"
@@ -58,6 +59,7 @@ const props = defineProps({
     unplannedServiceOrders: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     defaultPlannerMinutes: { type: Number, default: 120 },
+    defaultLeadingColor: { type: String, default: 'event' },
     planGroups: { type: Array, default: () => [] },
     allPlanUsers: { type: Array, default: () => [] },
     latestPings: { type: Object, default: () => ({}) },

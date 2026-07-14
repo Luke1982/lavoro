@@ -51,7 +51,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::get('unavailabilities', [UnavailabilityApiController::class, 'index']);
 
-    Route::put('settings/{key}', [GeneralSettingController::class, 'update']);
+    Route::put('settings/{key}', [GeneralSettingController::class, 'update'])
+        ->whereIn('key', ['defaultplannerminutes', 'planner_leading_color']);
 
     // Plan groups — reorder MUST be registered before {group} to avoid wildcard capture
     Route::get('plan-groups', [UserPlanGroupController::class, 'index']);

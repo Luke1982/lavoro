@@ -75,7 +75,7 @@ class EventApiController extends Controller
 
         $base = Event::query()->visibleTo(Auth::user());
 
-        if (! $request->user()?->can('seeBeyondCurrentWeek', Event::class)) {
+        if (!$request->user()?->can('seeBeyondCurrentWeek', Event::class)) {
             $base->where('start', '<=', Carbon::now()->startOfDay()->addDays(7)->endOfDay());
         }
 
@@ -169,7 +169,7 @@ class EventApiController extends Controller
                 $event = Event::create($data);
 
                 $model = null;
-                if (! $no_service_order) {
+                if (!$no_service_order) {
                     $model = $eventable_type::findOrFail($eventable_id);
                     $model->events()->attach($event->id);
                     if ($model instanceof ServiceOrder) {
@@ -376,7 +376,7 @@ class EventApiController extends Controller
             ->with(['customer', 'taskInstances.serviceOrderTask'])
             ->first();
 
-        if (! $service_order) {
+        if (!$service_order) {
             return response()->json(['message' => 'Geen werkbon gekoppeld aan deze afspraak.'], 422);
         }
 
@@ -444,6 +444,7 @@ class EventApiController extends Controller
 
         $roles_by_userable = DB::table('user_role_userable')
             ->whereIn('userable_id', $pivot_ids)
+            ->orderBy('user_role_id')
             ->get()
             ->groupBy('userable_id')
             ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all());

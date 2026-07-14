@@ -10,13 +10,18 @@ class GeneralSettingUpdateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('settings.update_default_planner_minutes'));
+
+        return $user && ($user->isAdmin() || $user->hasPermission('planner.manage_settings'));
     }
 
     public function rules(): array
     {
         return [
-            'value' => ['required', 'integer', 'min:15', 'max:1200'],
+            'value' => match ($this->route('key')) {
+                'defaultplannerminutes' => ['required', 'integer', 'min:15', 'max:1200'],
+                'planner_leading_color' => ['required', 'string', 'in:event,role'],
+                default => ['prohibited'],
+            },
         ];
     }
 }
