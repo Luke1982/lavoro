@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'pr-5': !editing, 'pb-2': editing, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
+        :class="{ 'pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />

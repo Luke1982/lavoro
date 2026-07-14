@@ -149,11 +149,11 @@
             <!-- Rows -->
             <div v-auto-animate>
                 <div v-for="material in materials" :key="material.id"
-                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
+                    class="relative grid grid-cols-12 pt-8 pb-3 md:py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
 
                     <!-- Icon + name + code -->
                     <div :class="(showFinancial && showUnforseen) ? 'md:col-span-4' : 'md:col-span-5'"
-                        class="col-span-11 flex items-center gap-3 sm:pl-3">
+                        class="col-span-12 flex items-center gap-3 sm:pl-3">
                         <div
                             class="w-10 h-10 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex-none">
                             <component :is="getMaterialIcon(material)"
@@ -171,7 +171,7 @@
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-center mt-2 md:mt-0">
                         <template v-if="canUpdate && !sentToAdministration && !isClosed">
-                            <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-20"
+                            <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full md:w-20"
                                 :error="quantityErrors[material.pivot.id]"
                                 @update="val => { form.quantity = Number(val); updateQuantity(material.pivot.id) }">
                                 <template #display>
@@ -214,9 +214,9 @@
                     </div>
 
                     <!-- Delete -->
-                    <div class="col-span-1 flex justify-end pr-0 sm:pr-2">
+                    <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
                         <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed"
-                            class="size-10 sm:size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
+                            class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
                             @click="detachMaterial(material.pivot.id)"
                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
                     </div>
@@ -224,9 +224,9 @@
 
                 <!-- Freeform rows -->
                 <div v-for="freeform in freeformMaterials" :key="'freeform-' + freeform.id"
-                    class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
+                    class="relative grid grid-cols-12 pt-8 pb-3 md:py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
                     <div :class="(showFinancial && showUnforseen) ? 'md:col-span-4' : 'md:col-span-5'"
-                        class="col-span-11 flex items-center gap-3 sm:pl-3">
+                        class="col-span-12 flex items-center gap-3 sm:pl-3">
                         <div
                             class="w-10 h-10 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex-none">
                             <PencilIcon class="size-5 text-indigo-500 dark:text-indigo-400" />
@@ -250,7 +250,7 @@
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-center mt-2 md:mt-0">
                         <template v-if="canUpdateFreeform && !sentToAdministration && !isClosed">
-                            <EditableTextField inputType="number" v-model="freeform.quantity" class="w-20"
+                            <EditableTextField inputType="number" v-model="freeform.quantity" class="w-full md:w-20"
                                 @update="val => updateFreeformMaterial(freeform.id, { quantity: Number(val) })">
                                 <template #display>
                                     <span class="text-xs">{{ freeform.quantity }}</span>
@@ -273,9 +273,9 @@
                     <div v-if="showFinancial" class="col-span-5 md:col-span-2 mt-2 md:mt-0">
                         <span class="text-sm text-gray-400 dark:text-slate-500">—</span>
                     </div>
-                    <div class="col-span-1 flex justify-end pr-0 sm:pr-2">
+                    <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
                         <TrashIcon v-if="canDeleteFreeform && !sentToAdministration && !isClosed"
-                            class="size-10 sm:size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
+                            class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
                             @click="deleteFreeformMaterial(freeform.id)" v-tooltip="'Verwijder deze vrije regel'" />
                     </div>
                 </div>
