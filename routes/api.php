@@ -7,7 +7,10 @@ use App\Http\Controllers\EventApiController;
 use App\Http\Controllers\EventExecutionController;
 use App\Http\Controllers\EventStandardEmailController;
 use App\Http\Controllers\GeneralSettingController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProjectApiController;
+use App\Http\Controllers\RemarkController;
+use App\Http\Controllers\ServiceOrderEventWidgetController;
 use App\Http\Controllers\UnavailabilityApiController;
 use App\Http\Controllers\UserPlanGroupController;
 use App\Http\Controllers\UserPlannableController;
@@ -35,13 +38,15 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'showFor']);
     Route::patch('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'updateFor']);
 
-    Route::post('remarks', [\App\Http\Controllers\RemarkController::class, 'store']);
-    Route::delete('remarks/{remark}', [\App\Http\Controllers\RemarkController::class, 'destroy']);
+    Route::get('serviceorders/{service_order}/event-widget', [ServiceOrderEventWidgetController::class, 'show']);
 
-    Route::post('images', [\App\Http\Controllers\ImageController::class, 'store']);
-    Route::delete('images/{image}', [\App\Http\Controllers\ImageController::class, 'destroy']);
-    Route::post('images/update/{image}', [\App\Http\Controllers\ImageController::class, 'update']);
-    Route::post('images/{image}/set-main', [\App\Http\Controllers\ImageController::class, 'setMain']);
+    Route::post('remarks', [RemarkController::class, 'store']);
+    Route::delete('remarks/{remark}', [RemarkController::class, 'destroy']);
+
+    Route::post('images', [ImageController::class, 'store']);
+    Route::delete('images/{image}', [ImageController::class, 'destroy']);
+    Route::post('images/update/{image}', [ImageController::class, 'update']);
+    Route::post('images/{image}/set-main', [ImageController::class, 'setMain']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
     Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);

@@ -129,9 +129,10 @@ import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOn
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
 import { ClockFading, TriangleAlert, CircleCheck, Banknote, MessageCircleReply } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
-import { nlTime, hasPermission } from '@/Utilities/Utilities'
+import { nlTime, hasPermission, roleInitials } from '@/Utilities/Utilities'
+import { useEventLeadingColor, COMPLETED_PATTERN } from '@/Composables/useEventLeadingColor'
 
-const COMPLETED_PATTERN = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(107,114,128,0.07) 6px, rgba(107,114,128,0.07) 12px)'
+const { rolesForUser, resolveLeadingColor } = useEventLeadingColor()
 
 const props = defineProps({
     event: { type: Object, required: true },
@@ -155,19 +156,13 @@ const totalMin = computed(() => (props.dayEndHour - props.dayStartHour) * 60)
 const feedbackCount = computed(() => (props.event.remarks_count || 0) + (props.event.images_count || 0))
 const popoverTriggers = ['hover', 'focus']
 
-const currentUserRoles = computed(() => {
-    const user = props.event.executing_users?.find(u => u.id === props.userId)
-    if (!user?.user_role_ids?.length) return []
-    return user.user_role_ids
-        .map(id => props.userRoles.find(r => r.id === id))
-        .filter(Boolean)
-})
+const currentUserRoles = computed(() => rolesForUser(
+    props.event.executing_users?.find(u => u.id === props.userId)?.user_role_ids,
+    props.userRoles
+))
 
 const firstRoleColor = computed(() => currentUserRoles.value[0]?.color || null)
 
-function roleInitials(name) {
-    return name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
-}
 
 const userStatus = computed(() =>
     props.event.executing_users?.find(u => u.id === props.userId)?.completion_status ?? 'Gepland'
@@ -231,9 +226,12 @@ const style = computed(() => {
     const endMin = Math.min(totalMin.value, effectiveEndMin.value)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
-    const eventColor = props.event.color || '#3b82f6'
-    const baseColor = props.leadingColor === 'role' ? (firstRoleColor.value || eventColor) : eventColor
-    const color = isClosedForUser.value ? '#6b7280' : baseColor
+    const color = resolveLeadingColor({
+        eventColor: props.event.color,
+        roleColor: firstRoleColor.value,
+        leadingColor: props.leadingColor,
+        isClosed: isClosedForUser.value,
+    })
     const bgStrength = props.event.is_preliminary ? '8%' : '18%'
     return {
         left: leftPct + '%',

@@ -117,6 +117,32 @@ export const initials = (name = "") => {
     );
 };
 
+export const roleInitials = (name = "") =>
+    String(name)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word) => word[0])
+        .join("")
+        .slice(0, 3)
+        .toUpperCase();
+
+export const eventStatusBadgeClass = (status) => {
+    const base = "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium";
+    switch (status) {
+        case "Gepland":
+            return base + " bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
+        case "Gaande":
+            return base + " bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
+        case "Afgerond":
+            return base + " bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800";
+        case "Geannuleerd":
+            return base + " bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
+        default:
+            return base + " bg-gray-100 text-gray-600 border-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600";
+    }
+};
+
 export const projectStatusClass = (status) => {
     const map = {
         "Niet gestart": "text-gray-500 dark:text-slate-400",

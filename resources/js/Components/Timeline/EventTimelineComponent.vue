@@ -21,7 +21,7 @@
                                     <p class="flex items-center gap-2 flex-wrap">
                                         <span v-if="ev.name" class="font-medium text-gray-800 dark:text-slate-200">{{
                                             ev.name }}</span>
-                                        <span v-if="ev.status" :class="statusBadgeClass(ev.status)"
+                                        <span v-if="ev.status" :class="eventStatusBadgeClass(ev.status)"
                                             class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium tracking-wide">{{
                                                 ev.status }}</span>
                                     </p>
@@ -88,7 +88,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
+import { nlDate, nlTime, hasPermission, eventStatusBadgeClass } from '@/Utilities/Utilities'
 import { Link } from '@inertiajs/vue3'
 import { MessageCircleReply } from '@lucide/vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
@@ -155,17 +155,6 @@ const feedbackTitle = computed(() => feedback.activeEvent.value
     ? ('Terugkoppeling — ' + (feedback.activeEvent.value.name || ('#' + feedback.activeEvent.value.id)))
     : 'Terugkoppeling')
 
-// Map status to badge classes
-const statusBadgeClass = (status) => {
-    const base = 'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium'
-    switch (status) {
-        case 'Gepland': return base + ' bg-blue-50 text-blue-700 border-blue-200'
-        case 'Gaande': return base + ' bg-amber-50 text-amber-700 border-amber-200'
-        case 'Afgerond': return base + ' bg-green-50 text-green-700 border-green-200'
-        case 'Geannuleerd': return base + ' bg-red-50 text-red-700 border-red-200'
-        default: return base + ' bg-gray-100 text-gray-600 border-gray-200'
-    }
-}
 </script>
 
 <style scoped>

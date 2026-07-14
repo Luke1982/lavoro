@@ -31,6 +31,7 @@ use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
 use App\Models\UserRole;
+use App\Services\ServiceOrderEventWidget;
 use App\Services\SnelStartClient;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -174,7 +175,7 @@ class ServiceOrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(ServiceOrderEventWidget $event_widget, string $id)
     {
         $service_order = ServiceOrder::with([
             'customer.assets.product.brand',
@@ -258,22 +259,14 @@ class ServiceOrderController extends Controller
             ]);
         });
 
-        $users_missing_times = $service_order->events
-            ->flatMap(fn ($event) => $event->executingUsers->filter(function ($user) use ($event) {
-                $execution = $event->executions->firstWhere('user_id', $user->id);
-
-                return !$execution || !$execution->actual_start || !$execution->actual_end;
-            }))
-            ->pluck('name')
-            ->unique()
-            ->values();
-
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
             'allTaskInstances' => $all_task_instances,
-            'usersMissingTimes' => $users_missing_times,
+            'usersMissingTimes' => $event_widget->usersMissingTimes($service_order),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
+            'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
+            'eventWidgetEvents' => $event_widget->events($service_order, $user),
             'allMaterials' => ($mc = Material::count()) <= 50
                 ? Material::with('usageUnit')->get()
                 : collect(),

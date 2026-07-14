@@ -30,9 +30,9 @@
             :url="`/maintenancecontracts/${serviceOrder.maintenance_contract_id}`">
             Onderhoudscontract {{ serviceOrder.maintenance_contract_id }}
         </BadgeComponent>
-        <BadgeComponent color="orange" v-if="usersMissingTimes.length"
+        <BadgeComponent color="orange" v-if="missingTimes.length"
             :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
-            Tijden ontbreken: {{ usersMissingTimes.join(', ') }}
+            Tijden ontbreken: {{ missingTimes.join(', ') }}
         </BadgeComponent>
     </div>
     <ChaptersComponent>
@@ -302,6 +302,15 @@
                                 <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
                             </div>
                             <TimelineComponent :activities="timelineItems" />
+                        </BoxComponent>
+                        <BoxComponent v-if="eventWidgetEvents.length" class="mt-6">
+                            <div class="flex">
+                                <CalendarDaysIcon class="size-6 mr-2 flex-none object-cover" />
+                                <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Afspraken</h3>
+                            </div>
+                            <EventsWidget :service-order-id="serviceOrder.id" :events="eventWidgetEvents"
+                                :user-roles="userRoles" :leading-color="defaultLeadingColor"
+                                @times-updated="missingTimes = $event" />
                         </BoxComponent>
                         <BoxComponent class="mt-6"
                             v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.remarks.length > 0)">
@@ -635,6 +644,7 @@ import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
+import EventsWidget from '@/Components/ServiceOrders/EventsWidget.vue';
 import CloseServiceOrderModal from '@/Components/ServiceOrders/CloseServiceOrderModal.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
@@ -674,8 +684,12 @@ const props = defineProps({
     projects: { type: Array, default: () => [] },
     snelStartEnabled: { type: Boolean, default: false },
     usersMissingTimes: { type: Array, default: () => [] },
+    defaultLeadingColor: { type: String, default: 'event' },
+    eventWidgetEvents: { type: Array, default: () => [] },
 });
 
+const missingTimes = ref(props.usersMissingTimes);
+watch(() => props.usersMissingTimes, (value) => { missingTimes.value = value });
 
 const showCloseModal = ref(false);
 
