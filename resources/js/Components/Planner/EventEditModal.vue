@@ -142,28 +142,40 @@
                                     <span class="font-normal text-gray-400 dark:text-gray-500">(optioneel)</span>
                                 </span>
                             </div>
-                            <ComboBox v-if="!form.create_service_order && !form.no_service_order" v-model="form.eventable_id"
-                                :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
-                                placeholder="Zoek werkbon..." :hasError="Boolean(form.errors.eventable_id)"
-                                :errorMessage="form.errors.eventable_id" />
-                            <p v-else-if="form.create_service_order" class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
-                                Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
-                            </p>
-                            <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
-                                Deze afspraak heeft geen werkbon nodig.
-                            </p>
-                            <label v-if="!editingExisting" class="flex items-center gap-2 mt-2 select-none"
-                                :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
-                                <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
-                                    class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
-                                    aan</span>
-                            </label>
-                            <label v-if="!editingExisting" class="flex items-center gap-2 mt-2 select-none cursor-pointer">
-                                <input type="checkbox" v-model="form.no_service_order"
-                                    class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Geen werkbon nodig</span>
-                            </label>
+                            <template v-if="editingExisting && form.no_service_order && !linkingServiceOrder">
+                                <p class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                                    Deze afspraak heeft geen werkbon nodig.
+                                </p>
+                                <button type="button" @click="startLinkingServiceOrder"
+                                    class="text-sm text-lavoro-blue font-medium hover:underline flex items-center gap-1">
+                                    <PlusIcon class="h-4 w-4" />
+                                    Werkbon koppelen
+                                </button>
+                            </template>
+                            <template v-else>
+                                <ComboBox v-if="!form.create_service_order && !form.no_service_order" v-model="form.eventable_id"
+                                    :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
+                                    placeholder="Zoek werkbon..." :hasError="Boolean(form.errors.eventable_id)"
+                                    :errorMessage="form.errors.eventable_id" />
+                                <p v-else-if="form.create_service_order" class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                                    Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
+                                </p>
+                                <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
+                                    Deze afspraak heeft geen werkbon nodig.
+                                </p>
+                                <label v-if="!editingExisting || linkingServiceOrder" class="flex items-center gap-2 mt-2 select-none"
+                                    :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
+                                    <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
+                                        class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
+                                        aan</span>
+                                </label>
+                                <label v-if="!editingExisting || linkingServiceOrder" class="flex items-center gap-2 mt-2 select-none cursor-pointer">
+                                    <input type="checkbox" v-model="form.no_service_order"
+                                        class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Geen werkbon nodig</span>
+                                </label>
+                            </template>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 mb-2">
@@ -396,6 +408,7 @@ const page = usePage()
 
 const visible = ref(false)
 const saving = ref(false)
+const linkingServiceOrder = ref(false)
 const showUserSelector = ref(false)
 const userToAdd = ref(null)
 const standardEmails = ref([])
@@ -610,6 +623,11 @@ function removeUser(id) {
     form.executing_user_ids = form.executing_user_ids.filter(i => i !== id)
 }
 
+function startLinkingServiceOrder() {
+    linkingServiceOrder.value = true
+    form.no_service_order = false
+}
+
 function closeModal() {
     visible.value = false
     setTimeout(() => emit('close'), 200)
@@ -659,7 +677,7 @@ async function save() {
         form.setError('executing_user_ids', 'Voeg minimaal één uitvoerende gebruiker toe.')
         return
     }
-    if (!props.editingExisting && !form.create_service_order && !form.no_service_order && !form.eventable_id) {
+    if ((!props.editingExisting || linkingServiceOrder.value) && !form.create_service_order && !form.no_service_order && !form.eventable_id) {
         form.setError('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.')
         return
     }

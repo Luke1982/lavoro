@@ -231,30 +231,51 @@ class EventApiController extends Controller
         );
 
         $customer_id = $payload['customer_id'] ?? null;
-        unset($payload['customer_id']);
+        unset($payload['customer_id'], $payload['create_service_order']);
 
         $event->update($payload);
 
-        if ($event->no_service_order) {
+        $create_new = $request->boolean('create_service_order');
+        $eventable_type = $create_new ? '\\App\\Models\\ServiceOrder' : $request->eventable_type;
+        $eventable_id = $create_new ? null : $request->eventable_id;
+        $linking = $create_new || ($eventable_type && $eventable_id);
+
+        if ($event->no_service_order && !$linking) {
             $event->customers()->sync($customer_id ? [$customer_id] : []);
         }
 
         $model = null;
-        if ($request->filled('eventable_type') && $request->filled('eventable_id')) {
-            $class = $request->eventable_type;
-            $model = $class::findOrFail($request->eventable_id);
+        if ($linking) {
+            $model = DB::transaction(function () use (
+                $event,
+                $create_new,
+                $customer_id,
+                $eventable_type,
+                $eventable_id
+            ) {
+                if ($create_new) {
+                    $eventable_id = ServiceOrder::create(['customer_id' => $customer_id])->id;
+                }
 
-            DB::table('eventables')
-                ->where('event_id', $event->id)
-                ->where('eventable_type', [
-                    substr($request->eventable_type, 1),
-                ])
-                ->delete();
+                $model = $eventable_type::findOrFail($eventable_id);
 
-            $model->events()->attach($event->id);
-            if ($model instanceof ServiceOrder) {
-                $model->advanceToPlannedStage();
-            }
+                DB::table('eventables')
+                    ->where('event_id', $event->id)
+                    ->where('eventable_type', substr($eventable_type, 1))
+                    ->delete();
+
+                $model->events()->attach($event->id);
+                if ($model instanceof ServiceOrder) {
+                    $model->advanceToPlannedStage();
+                }
+
+                if ($event->no_service_order) {
+                    $event->customers()->detach();
+                    $event->update(['no_service_order' => false]);
+                }
+
+                return $model;
+            });
         }
 
         if ($request->has('executing_user_ids')) {
