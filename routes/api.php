@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\GoogleIntegrationStatusController;
 use App\Http\Controllers\Api\LocationPingController;
+use App\Http\Controllers\Api\SerialOcrController;
 use App\Http\Controllers\EventApiController;
 use App\Http\Controllers\EventExecutionController;
 use App\Http\Controllers\EventStandardEmailController;
@@ -42,6 +43,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::post('remarks', [RemarkController::class, 'store']);
     Route::delete('remarks/{remark}', [RemarkController::class, 'destroy']);
+
+    Route::post('ocr/serial', [SerialOcrController::class, 'scan'])
+        ->middleware('throttle:20,1');
 
     Route::post('images', [ImageController::class, 'store']);
     Route::delete('images/{image}', [ImageController::class, 'destroy']);

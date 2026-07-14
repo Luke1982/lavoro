@@ -68,11 +68,13 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newAssetForm.serial_number"
+                <div class="sm:col-span-2 flex items-start gap-2">
+                    <TextInput v-model="newAssetForm.serial_number" class="flex-1"
                         :placeholder="isNewBundle ? 'Bundel — geen serienummer' : 'Serienummer'" :disabled="isNewBundle"
                         :hasError="Boolean(newAssetForm.errors.serial_number)"
                         :errorMessage="newAssetForm.errors.serial_number" />
+                    <ScanSerialButton :disabled="isNewBundle" class="mt-0.5"
+                        @picked="newAssetForm.serial_number = $event" />
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
@@ -117,9 +119,10 @@
             Dit product vereist de volgende onderdelen. Voer voor elk onderdeel het serienummer in.
         </p>
         <div class="mt-4 space-y-4">
-            <div v-for="(child, index) in pendingChildren" :key="index">
+            <div v-for="(child, index) in pendingChildren" :key="index" class="flex items-end gap-2">
                 <TextInput v-model="child.serial_number" :label="`${child.relation_name}: ${child.name}`"
-                    placeholder="Serienummer" />
+                    placeholder="Serienummer" class="flex-1" />
+                <ScanSerialButton class="mb-0.5" @picked="child.serial_number = $event" />
             </div>
         </div>
         <template #footer>
@@ -245,6 +248,7 @@ import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
+import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';

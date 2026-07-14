@@ -228,6 +228,7 @@
                                 <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
                                 <input v-model="input.serial_number" type="text" :placeholder="`Serienummer ${i + 1}`"
                                     :class="['flex-1 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', serialError && !input.serial_number.trim() ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
+                                <ScanSerialButton @picked="input.serial_number = $event" />
                             </div>
                         </div>
                     </div>
@@ -407,6 +408,7 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
+import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },

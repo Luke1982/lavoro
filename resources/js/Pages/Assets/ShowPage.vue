@@ -31,8 +31,12 @@
                         <div class="w-1/3 text-xs">Serienummer</div>
                         <div class="w-2/3 mr-0 md:mr-3">
                             <span v-if="asset.product.bundle" class="text-sm text-gray-500 italic">Bundel</span>
-                            <EditableTextField v-else v-model="form.serial_number" :readonly="!canUpdate"
-                                :error="form.errors.serial_number" @revert="form.clearErrors('serial_number')" />
+                            <div v-else class="flex items-center gap-2">
+                                <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
+                                    class="flex-1 min-w-0" :error="form.errors.serial_number"
+                                    @revert="form.clearErrors('serial_number')" />
+                                <ScanSerialButton v-if="canUpdate" @picked="form.serial_number = $event" />
+                            </div>
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex">
@@ -340,6 +344,7 @@ import { ref, watch, computed, reactive } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
+import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCreationForm from '@/Components/TicketCreationForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';

@@ -18,10 +18,14 @@
                 <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
                     assetForm.errors.product_id }}</p>
 
-                <TextInput v-model="assetForm.serial_number"
-                    :placeholder="isSelectedBundle ? 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden' : 'Serienummer'"
-                    :disabled="isSelectedBundle" :has-error="!!assetForm.errors.serial_number"
-                    :error-message="assetForm.errors.serial_number ?? ''" />
+                <div class="flex items-start gap-2">
+                    <TextInput v-model="assetForm.serial_number" class="flex-1"
+                        :placeholder="isSelectedBundle ? 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden' : 'Serienummer'"
+                        :disabled="isSelectedBundle" :has-error="!!assetForm.errors.serial_number"
+                        :error-message="assetForm.errors.serial_number ?? ''" />
+                    <ScanSerialButton :disabled="isSelectedBundle" class="mt-0.5"
+                        @picked="assetForm.serial_number = $event" />
+                </div>
             </div>
             <div class="border-t border-gray-200 my-3"></div>
             <div class="p-6 grid grid-cols-1 gap-3">
@@ -38,10 +42,14 @@
                                 {{ slot.part.relation_name }}: {{ slot.part.name }}
                                 <span v-if="slot.part.quantity > 1">({{ slot.q + 1 }}/{{ slot.part.quantity }})</span>
                             </label>
-                            <TextInput v-model="assetForm.child_assets[slot.idx].serial_number"
-                                :placeholder="'Serienummer ' + slot.part.name" class="w-full"
-                                :has-error="!!assetForm.errors[`child_assets.${slot.idx}.serial_number`]"
-                                :error-message="assetForm.errors[`child_assets.${slot.idx}.serial_number`] ?? ''" />
+                            <div class="flex items-start gap-2">
+                                <TextInput v-model="assetForm.child_assets[slot.idx].serial_number"
+                                    :placeholder="'Serienummer ' + slot.part.name" class="flex-1"
+                                    :has-error="!!assetForm.errors[`child_assets.${slot.idx}.serial_number`]"
+                                    :error-message="assetForm.errors[`child_assets.${slot.idx}.serial_number`] ?? ''" />
+                                <ScanSerialButton class="mt-0.5"
+                                    @picked="assetForm.child_assets[slot.idx].serial_number = $event" />
+                            </div>
                         </div>
                     </div>
                 </Transition>
@@ -73,6 +81,7 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
+import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';

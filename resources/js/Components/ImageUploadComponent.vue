@@ -110,6 +110,9 @@ import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilIcon } from '@heroico
 import GLightbox from 'glightbox';
 import { hasPermission } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
+import { useImageCompression } from '@/Composables/useImageCompression.js';
+
+const { compressImage } = useImageCompression();
 
 let lightbox = null;
 const { captureScroll: captureScrollBeforeOpen, lock: lockBodyScroll, unlock: unlockBodyScroll } = useScrollLock();
@@ -443,53 +446,6 @@ function dataUrlToBlob(dataUrl) {
 
     return new Blob([bytes], { type: mimeType });
 }
-
-function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                // Calculate new dimensions
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth || height > maxHeight) {
-                    if (width > height) {
-                        height = (maxHeight / width) * height;
-                        width = maxWidth;
-                    } else {
-                        width = (maxWidth / height) * width;
-                        height = maxHeight;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                // Draw the resized image onto the canvas
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // Convert the canvas to a Blob
-                canvas.toBlob((blob) => {
-                    resolve(new File([blob], file.name, { type: file.type }));
-                }, file.type, quality);
-            };
-
-            img.onerror = (err) => reject(err);
-        };
-
-        reader.onerror = (err) => reject(err);
-        reader.readAsDataURL(file);
-    });
-}
-
 
 </script>
 
