@@ -8,7 +8,8 @@
 
             <div class="fixed inset-0 overflow-hidden">
                 <div class="absolute inset-0 overflow-hidden">
-                    <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
+                    <div ref="viewportContainer"
+                        class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                         <TransitionChild as="template"
                             enter="transform transition ease-in-out duration-500 sm:duration-700"
                             enter-from="translate-x-full" enter-to="translate-x-0"
@@ -61,6 +62,7 @@
 <script setup>
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const open = defineModel({ type: Boolean, default: false })
 
@@ -69,6 +71,43 @@ defineProps({
     subtitle: { type: String, default: '' },
     maxWidthClass: { type: String, default: 'max-w-md' },
 })
+
+const viewportContainer = ref(null)
+
+function apply_viewport() {
+    const visual_viewport = window.visualViewport
+    const element = viewportContainer.value
+    if (!visual_viewport || !element) return
+    element.style.height = visual_viewport.height + 'px'
+    element.style.top = visual_viewport.offsetTop + 'px'
+    element.style.bottom = 'auto'
+}
+
+function attach_viewport_listeners() {
+    const visual_viewport = window.visualViewport
+    if (!visual_viewport) return
+    visual_viewport.addEventListener('resize', apply_viewport)
+    visual_viewport.addEventListener('scroll', apply_viewport)
+}
+
+function detach_viewport_listeners() {
+    const visual_viewport = window.visualViewport
+    if (!visual_viewport) return
+    visual_viewport.removeEventListener('resize', apply_viewport)
+    visual_viewport.removeEventListener('scroll', apply_viewport)
+}
+
+watch(open, async (is_open) => {
+    if (is_open) {
+        await nextTick()
+        attach_viewport_listeners()
+        apply_viewport()
+    } else {
+        detach_viewport_listeners()
+    }
+})
+
+onBeforeUnmount(detach_viewport_listeners)
 </script>
 
 <style>
