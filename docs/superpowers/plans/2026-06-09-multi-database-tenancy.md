@@ -16,6 +16,12 @@
 > - **Central migration filenames re-dated** to `2026_07_03_*` (a real tenant migration dated `2026_06_09` now exists), and migration counts refreshed (176 files today: 2 stay central, 174 move to `tenant/`).
 > - **New code checked and covered:** FCM push notifications (`device_tokens`, `NewServiceOrderAssigned` — queued, so the queue bootstrapper carries tenant context; Firebase credentials are global env, see Known impact), event executions, plan groups, freeform materials, user roles (all ordinary tenant tables), the APK download / assetlinks routes (read `storage_path('app/releases/...')` directly, which the filesystem bootstrapper does not touch — they stay global by design).
 > - **Task 29 added:** a repeatable runbook for migrating customers who run their own dedicated-subdomain install (e.g. `spee.lavorofsm.nl`) into the multi-tenant app at `app.lavorofsm.nl`.
+>
+> **Revised again 2026-07-10** to close out four items previously left as "Known impact" follow-up work:
+> - **Task 20 (scheduler) reworked.** Two of the three scheduled ticks used to run a query or delete inline, per tenant, inside the scheduler process. They now only dispatch a queued job per tenant — the tick's cost no longer scales with data volume, addressing the old Known impact point 6.
+> - **Task 30 added.** Tests move off SQLite (incompatible with multi-database tenancy) onto a dedicated, clearly-named MySQL test database, with a hard runtime assertion and a narrow-grant MySQL user as independent layers guaranteeing a test run can never reach a live database. Closes the old Known impact point 1.
+> - **Task 31 added.** Module subscriptions are now actually enforced — a `tenant.module` route middleware on the SnelStart, Google Calendar, Tickets, and Projects routes, plus matching frontend gating. Closes the old Known impact point 5.
+> - **Task 32 added.** Microsoft Graph mail credentials move from a single global env-configured mailbox to per-tenant `general_settings`, with a fallback to the global credentials and a fix for `MailManager`'s mailer caching across tenants on long-running queue workers. Narrows the old Known impact point 4 to just SnelStart and Firebase, which remain global.
 
 **How it works, in plain terms:**
 
@@ -1461,21 +1467,82 @@ git commit -m "feat(tenancy): validate email is globally unique across tenants"
 
 ---
 
-## Task 20: Make scheduled tasks run per tenant
+## Task 20: Make scheduled tasks run per tenant, without per-tenant work blocking the scheduler tick
 
-Loop over all tenants, switch into each, run the work, switch out. The Google jobs are dispatched normally (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it on the worker, so dispatching async keeps the scheduler fast and the job runs in the correct tenant context. (The current file has exactly three schedules: `google-pull-changes`, `google-renew-watches`, `prune-location-pings` — verified 2026-07-03. If more schedules exist by implementation time, wrap them in the same per-tenant loop.)
+Loop over all tenants, switch into each, and dispatch **one queued job per tenant per schedule** — the scheduler tick itself must never run a data query or delete inline, only cheap config-swap + single-row `INSERT INTO jobs` work. The Google jobs are dispatched from tenant context (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it automatically when the worker picks it up, so the job body needs no manual `tenancy()->initialize()` call of its own. (The current file has exactly three schedules: `google-pull-changes`, `google-renew-watches`, `prune-location-pings` — verified 2026-07-03. If more schedules exist by implementation time, wrap them in the same per-tenant dispatch-only pattern.)
 
-**Files:** `routes/console.php`
+Two of the three schedules currently do real work *inside the scheduler tick*: `google-pull-changes` runs a `whereHas` query per tenant before dispatching, and `prune-location-pings` runs a synchronous `DELETE` per tenant with no queue involved at all. Both are moved into their own tiny queued jobs so the tick becomes pure dispatch — this is what keeps the tick's wall time roughly constant as tenant count grows (see Known impact point 6). `RenewWatchChannelsJob` was already a single `dispatch()` call per tenant and needs no change.
 
-- [ ] **Step 1: Rewrite `routes/console.php`**
+**Files:**
+- `app/Jobs/Google/DispatchTenantCalendarPullsJob.php` (new)
+- `app/Jobs/PruneLocationPingsJob.php` (new)
+- `routes/console.php`
+
+- [ ] **Step 1: Create the calendar-pull dispatch job**
 
 ```php
 <?php
 
-use App\Jobs\Google\PullCalendarChangesJob;
-use App\Jobs\Google\RenewWatchChannelsJob;
+namespace App\Jobs\Google;
+
 use App\Models\GoogleSyncedCalendar;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class DispatchTenantCalendarPullsJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function handle(): void
+    {
+        GoogleSyncedCalendar::query()
+            ->whereHas('integration', fn ($q) => $q->whereNull('disabled_at'))
+            ->pluck('id')
+            ->each(fn ($id) => PullCalendarChangesJob::dispatch($id));
+    }
+}
+```
+
+This runs on the worker with tenancy already initialized (tagged by `QueueTenancyBootstrapper` at dispatch time, same as any other tenant-context job), so the `whereHas` query and the `PullCalendarChangesJob` dispatches it makes both land against the correct tenant database automatically.
+
+- [ ] **Step 2: Create the location-ping pruning job**
+
+```php
+<?php
+
+namespace App\Jobs;
+
 use App\Models\LocationPing;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class PruneLocationPingsJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function handle(): void
+    {
+        LocationPing::where('recorded_at', '<', now()->subDay())->delete();
+    }
+}
+```
+
+- [ ] **Step 3: Rewrite `routes/console.php` so every tick only dispatches**
+
+`cursor()` replaces `get()` so the central tenant list is streamed rather than loaded into memory in one array — cheap either way at today's tenant count, but it's the free half of the "chunking" mitigation Known impact point 6 calls for.
+
+```php
+<?php
+
+use App\Jobs\Google\DispatchTenantCalendarPullsJob;
+use App\Jobs\Google\RenewWatchChannelsJob;
+use App\Jobs\PruneLocationPingsJob;
 use App\Models\Tenant;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -1486,20 +1553,15 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::call(function () {
-    Tenant::on('central')->get()->each(function (Tenant $tenant) {
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) {
         tenancy()->initialize($tenant);
-
-        GoogleSyncedCalendar::query()
-            ->whereHas('integration', fn ($q) => $q->whereNull('disabled_at'))
-            ->pluck('id')
-            ->each(fn ($id) => PullCalendarChangesJob::dispatch($id));
-
+        DispatchTenantCalendarPullsJob::dispatch();
         tenancy()->end();
     });
 })->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();
 
 Schedule::call(function () {
-    Tenant::on('central')->get()->each(function (Tenant $tenant) {
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) {
         tenancy()->initialize($tenant);
         RenewWatchChannelsJob::dispatch();
         tenancy()->end();
@@ -1507,19 +1569,21 @@ Schedule::call(function () {
 })->hourly()->name('google-renew-watches')->withoutOverlapping();
 
 Schedule::call(function () {
-    Tenant::on('central')->get()->each(function (Tenant $tenant) {
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) {
         tenancy()->initialize($tenant);
-        LocationPing::where('recorded_at', '<', now()->subDay())->delete();
+        PruneLocationPingsJob::dispatch();
         tenancy()->end();
     });
 })->hourly()->name('prune-location-pings')->withoutOverlapping();
 ```
 
-- [ ] **Step 2: Commit**
+Every tick body is now: swap config, one `INSERT` into the central `jobs` table, revert config — no query, no delete, nothing whose cost scales with a tenant's data volume. The remaining linear cost is strictly "number of tenants × one INSERT", which is the part `withoutOverlapping` can comfortably absorb even at a few hundred tenants.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add routes/console.php
-git commit -m "feat(tenancy): run scheduled tasks per tenant"
+git add app/Jobs/Google/DispatchTenantCalendarPullsJob.php app/Jobs/PruneLocationPingsJob.php routes/console.php
+git commit -m "feat(tenancy): keep per-tenant scheduler ticks dispatch-only"
 ```
 
 ---
@@ -2217,18 +2281,452 @@ Once the customer confirms everything works — suggest two weeks — remove the
 
 ---
 
+## Task 30: Tenant-aware test suite — MySQL only, and it must be structurally impossible to hit a live database
+
+`phpunit.xml` currently pins tests to SQLite `:memory:`, which is fast, trivially isolated (a throwaway in-process database per run), and — critically — physically cannot be a live database. Multi-database tenancy does not work on SQLite (see Prerequisites), so tests must move to MySQL. Moving to MySQL removes the "physically cannot be live" guarantee SQLite gave us for free, so this task rebuilds that guarantee explicitly, in three independent layers, rather than trusting a correctly-set env var:
+
+1. **Distinct database names.** The central test database is `lavoro_test_central`, never `lavoro` (the dev/prod name from Task 2). Tenant test databases get their own prefix, `lavoro_test_` (Task 3 set `lavoro_`), configured via a new env var so it can differ from the runtime prefix without touching `config/tenancy.php` again per environment.
+2. **A hard runtime assertion.** The test bootstrap refuses to run — throws before a single query executes — if the resolved central database name doesn't contain `test`. This is the layer that survives someone fat-fingering `.env` or copy-pasting production values into `phpunit.xml` later.
+3. **A distinct MySQL user with narrow grants (operational, done once outside the app).** Create a MySQL user that only has privileges on `lavoro_test_%` — even a fully wrong config in (1) and a bypassed assertion in (2) still cannot reach `lavoro` or any `lavoro_<tenant-id>` database, because the user has no grant on it. Document this as a required local/CI setup step; it is not something the application can enforce in code.
+
+**How the existing 16 `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and default (tenant) connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it.
+
+**Files:**
+- `phpunit.xml`
+- `config/tenancy.php` (make the prefix env-overridable)
+- `tests/Concerns/RefreshesTenantDatabase.php` (new)
+- `tests/TestCase.php`
+- The 16 existing test files using `RefreshDatabase`
+
+- [ ] **Step 1: Make the tenant database prefix env-overridable**
+
+In `config/tenancy.php` (written in Task 3), change:
+
+```php
+'prefix' => 'lavoro_',
+```
+
+to:
+
+```php
+'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_'),
+```
+
+- [ ] **Step 2: Point `phpunit.xml` at a dedicated, clearly-named MySQL test database**
+
+Replace the sqlite block:
+
+```xml
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+```
+
+with:
+
+```xml
+<env name="DB_CONNECTION" value="mysql"/>
+<env name="DB_HOST" value="127.0.0.1"/>
+<env name="DB_PORT" value="3306"/>
+<env name="DB_DATABASE" value="lavoro_test_central"/>
+<env name="DB_USERNAME" value="lavoro_test"/>
+<env name="DB_PASSWORD" value="lavoro_test"/>
+<env name="TENANCY_DB_PREFIX" value="lavoro_test_"/>
+<env name="SESSION_CONNECTION" value="central"/>
+```
+
+Also remove `SESSION_DRIVER` value `array` is fine to keep — the session table itself is never touched by tests that don't explicitly exercise auth, and `SESSION_CONNECTION=central` only matters when the `database` driver is used. Leave `SESSION_DRIVER=array` as-is.
+
+- [ ] **Step 3: Create the tenancy test-setup trait**
+
+```php
+<?php
+
+namespace Tests\Concerns;
+
+use App\Models\Tenant;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
+
+trait RefreshesTenantDatabase
+{
+    protected static ?Tenant $testTenant = null;
+
+    protected function setUpTenancy(): void
+    {
+        $central_db = config('database.connections.central.database');
+        if (!str_contains($central_db, 'test')) {
+            throw new RuntimeException(
+                "Refusing to run tests against central database '{$central_db}' — " .
+                "its name must contain 'test'. Check phpunit.xml's DB_DATABASE."
+            );
+        }
+
+        $prefix = config('tenancy.database.prefix');
+        if (!str_contains($prefix, 'test')) {
+            throw new RuntimeException(
+                "Refusing to run tests with tenant database prefix '{$prefix}' — " .
+                "it must contain 'test'. Check phpunit.xml's TENANCY_DB_PREFIX."
+            );
+        }
+
+        if (!static::$testTenant) {
+            Artisan::call('migrate:fresh', ['--database' => 'central', '--force' => true]);
+            static::$testTenant = Tenant::create(['id' => 'test-tenant', 'name' => 'Test Tenant']);
+        }
+
+        tenancy()->initialize(static::$testTenant);
+
+        DB::connection('central')->beginTransaction();
+        DB::connection('mysql')->beginTransaction();
+    }
+
+    protected function tearDownTenancy(): void
+    {
+        DB::connection('mysql')->rollBack();
+        DB::connection('central')->rollBack();
+        tenancy()->end();
+    }
+}
+```
+
+The two `str_contains(..., 'test')` checks are layer (2) from the description above — they run before any migration or query, on every single test, and throw rather than silently proceeding. `Tenant::create()` synchronously runs the full `TenantCreated` pipeline from Task 11 (`CreateDatabase`, `MigrateDatabase`, `SeedDatabase` — `shouldBeQueued(false)`), so the first test that runs creates a real `lavoro_test_test-tenant` MySQL database, migrates it with the tenant migrations from Task 8, and seeds it with `TenantDatabaseSeeder` (Task 23). It is left behind after the run — cheap to keep, and `migrate:fresh` on the next run only refreshes the central schema, so a stale tenant database from a previous run is simply reused (its migrations already match, since `MigrateDatabase` is idempotent per the framework's migration tracking). If the tenant migrations change between runs and you want a fully clean slate, drop `lavoro_test_test-tenant` manually — it is a throwaway.
+
+- [ ] **Step 4: Use the trait in the base `TestCase`**
+
+Replace `tests/TestCase.php`:
+
+```php
+<?php
+
+namespace Tests;
+
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Tests\Concerns\RefreshesTenantDatabase;
+
+abstract class TestCase extends BaseTestCase
+{
+    use RefreshesTenantDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpTenancy();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->tearDownTenancy();
+        parent::tearDown();
+    }
+}
+```
+
+- [ ] **Step 5: Remove `RefreshDatabase` from the existing test files**
+
+Tenant-database refresh is now handled centrally by `TestCase`, so the per-file trait is redundant (and would try to migrate/refresh the single default connection using Laravel's normal single-connection logic, which doesn't know about the `central` connection at all).
+
+```bash
+grep -rl "RefreshDatabase" tests/
+```
+
+In each matching file, remove the `use Illuminate\Foundation\Testing\RefreshDatabase;` import and the `use RefreshDatabase;` trait line inside the test class. Leave everything else in those files untouched.
+
+- [ ] **Step 6: Set up the local/CI test database and user (operational, run once)**
+
+```sql
+CREATE DATABASE IF NOT EXISTS lavoro_test_central CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'lavoro_test'@'127.0.0.1' IDENTIFIED BY 'lavoro_test';
+GRANT ALL PRIVILEGES ON `lavoro\_test\_%`.* TO 'lavoro_test'@'127.0.0.1';
+FLUSH PRIVILEGES;
+```
+
+The escaped underscores in `lavoro\_test\_%` matter — an unescaped `_` is a MySQL wildcard that would also match e.g. `lavoroXtest_evil`. This user cannot create, read, or drop `lavoro` or any `lavoro_<tenant-id>` database — that is layer (3) from the description above, and it holds even if every application-level check in Step 3 were somehow bypassed.
+
+- [ ] **Step 7: Run the suite and verify**
+
+```bash
+composer test
+```
+
+Expected: all previously-passing tests still pass, running against `lavoro_test_central` and a `lavoro_test_test-tenant` tenant database. Confirm with `SHOW DATABASES LIKE 'lavoro%';` that no test run ever created or touched `lavoro` itself.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add phpunit.xml config/tenancy.php tests/Concerns/RefreshesTenantDatabase.php tests/TestCase.php tests/
+git commit -m "test(tenancy): run the suite against isolated, clearly-named MySQL test databases"
+```
+
+---
+
+## Task 31: Enforce module subscriptions on gated features
+
+Task 16 built the data model (`tenants.modules`), the `Tenant::hasModule()` check, the shared `tenant` Inertia prop, and the `hasModule()` JS helper — but nothing consumed them, so a tenant without e.g. the `tickets` module could still use every ticket route. This task wires the actual gates: a backend route middleware (authoritative — this is what actually blocks access) plus frontend nav/UI hiding using the existing helper (a UX nicety, not the security boundary).
+
+Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc controller checks — module gating is a tenancy/subscription concern that sits a layer above per-user permissions, so it's implemented as route middleware (the same pattern already used for `tenant.api` in Task 24), applied on top of the existing `auth` group and permission checks, not instead of them.
+
+**Files:**
+- `app/Http/Middleware/EnsureTenantHasModule.php` (new)
+- `bootstrap/app.php`
+- `routes/web.php`
+- `app/Http/Controllers/CustomerController.php:53`, `app/Http/Controllers/CustomerImportController.php:151`, `app/Http/Controllers/ServiceOrderController.php:285` (existing `snelStartEnabled` flags)
+- `resources/js/Layouts/MainLayout.vue`
+- `resources/js/Components/GoogleCalendarSection.vue`
+- `resources/js/Pages/Admin/GeneralSettingsPage.vue`
+
+- [ ] **Step 1: Create the middleware**
+
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Enums\TenantModule;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureTenantHasModule
+{
+    public function handle(Request $request, Closure $next, string $module): Response
+    {
+        abort_unless(TenantModule::tryFrom($module) !== null, 500, "Onbekende module '{$module}'.");
+
+        abort_unless(
+            tenancy()->initialized && tenancy()->tenant->hasModule($module),
+            403,
+            'Deze functie is niet beschikbaar in uw abonnement.'
+        );
+
+        return $next($request);
+    }
+}
+```
+
+- [ ] **Step 2: Register the alias in `bootstrap/app.php`**, next to `tenant.api` from Task 24
+
+```php
+$middleware->alias([
+    'admin'        => EnsureUserIsAdmin::class,
+    'tenant.api'   => \App\Http\Middleware\InitializeTenancyForApi::class,
+    'tenant.module' => \App\Http\Middleware\EnsureTenantHasModule::class,
+]);
+```
+
+- [ ] **Step 3: Apply it to the module-gated route groups in `routes/web.php`**
+
+Inside the existing `auth` group (started at line 65):
+
+Tickets (line ~132-136) — wrap the three ticket routes:
+
+```php
+Route::middleware('tenant.module:tickets')->group(function () {
+    Route::post('tickets/bulk-update', [TicketController::class, 'bulkUpdate'])
+        ->name('tickets.bulk-update');
+    Route::get('tickets/map', [TicketController::class, 'map'])
+        ->name('tickets.map');
+    Route::resource('tickets', TicketController::class);
+});
+```
+
+SnelStart (line ~190-212) — wrap the import and send-to-SnelStart routes:
+
+```php
+Route::middleware('tenant.module:snelstart')->group(function () {
+    Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
+        ->name('imports.snelstart.customers');
+    Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
+        ->name('imports.snelstart.materials');
+    Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
+        ->name('serviceorders.sendToSnelStart');
+});
+```
+
+Projects (line ~276-280):
+
+```php
+Route::middleware('tenant.module:projects')->group(function () {
+    Route::resource('projects', ProjectController::class);
+    Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
+        ->name('projects.timeline');
+    Route::resource('projectmilestones', ProjectMilestoneController::class);
+});
+```
+
+Google Calendar (line ~305-310):
+
+```php
+Route::middleware('tenant.module:google_calendar')->group(function () {
+    Route::get('google/oauth/start', [GoogleOAuthController::class, 'start'])
+        ->name('google.oauth.start');
+    Route::get('google/oauth/callback', [GoogleOAuthController::class, 'callback'])
+        ->name('google.oauth.callback');
+    Route::delete('google/integration', [GoogleOAuthController::class, 'destroy'])
+        ->name('google.integration.destroy');
+});
+```
+
+Location tracking — inside the nested `admin` group (line ~316), wrap the settings route at line ~344:
+
+```php
+Route::put('admin/settings/location-tracking', [GeneralSettingsController::class, 'updateLocationTracking'])
+    ->middleware('tenant.module:location_tracking')
+    ->name('admin.settings.location-tracking');
+```
+
+(Use the controller/action already on that route — copy it from the current line 344-346 rather than retyping the signature from scratch, since the exact method name should match what's there today.)
+
+Also add the same `tenant.module:google_calendar` middleware to `GET api/google/integration/status` in `routes/api.php:46` (inside the `tenant.api` group from Task 24), so the status check itself 403s for tenants without the module rather than reporting "not connected".
+
+- [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flags**
+
+`CustomerController.php:53`, `CustomerImportController.php:151`, and `ServiceOrderController.php:285` each compute:
+
+```php
+'snelStartEnabled' => filled(config('services.snelstart.client_key')),
+```
+
+Change all three to also require the module:
+
+```php
+'snelStartEnabled' => filled(config('services.snelstart.client_key'))
+    && tenancy()->initialized
+    && tenancy()->tenant->hasModule('snelstart'),
+```
+
+This reuses the exact prop the Vue components (`Customers/IndexPage.vue`, `ServiceOrders/ShowPage.vue`) already gate their SnelStart buttons on — no frontend changes needed for SnelStart.
+
+- [ ] **Step 5: Gate the Tickets and Projects nav items**
+
+In `resources/js/Layouts/MainLayout.vue`, add `requiresModule` next to the existing `requiresPermission` on these two entries (~line 540 and ~line 596):
+
+```js
+{ name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false, requiresPermission: 'ticket.see_all', requiresModule: 'tickets' },
+```
+
+```js
+{ name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read', requiresModule: 'projects' },
+```
+
+Extend `canSeeNavItem` (~line 599) to also check it:
+
+```js
+import { hasModule, hasPermission, initials as getInitials } from '@/Utilities/Utilities'
+
+const canSeeNavItem = (item) => {
+    if (item?.adminOnly) return isAdmin.value;
+    if (item?.requiresModule && !hasModule(item.requiresModule)) return false;
+    if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission);
+    if (!item?.requiresPermission) return true;
+    return hasPermission(item.requiresPermission);
+}
+```
+
+- [ ] **Step 6: Gate the Google Calendar section and location-tracking settings**
+
+In `resources/js/Components/GoogleCalendarSection.vue`, import `hasModule` from `@/Utilities/Utilities` and wrap the section's root template element in `v-if="hasModule('google_calendar')"`.
+
+In `resources/js/Pages/Admin/GeneralSettingsPage.vue`, do the same around the location-tracking settings block, using `hasModule('location_tracking')`.
+
+- [ ] **Step 7: Verify**
+
+- As a tenant without the `tickets` module: `GET /tickets` returns 403; the "Storingen" nav item does not render.
+- `php artisan tenant:modules <id> --add=tickets`, reload: the route works and the nav item appears.
+- Same pattern for `projects`, `google_calendar`, `snelstart`, `location_tracking`.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php routes/api.php \
+        app/Http/Controllers/CustomerController.php app/Http/Controllers/CustomerImportController.php \
+        app/Http/Controllers/ServiceOrderController.php \
+        resources/js/Layouts/MainLayout.vue resources/js/Components/GoogleCalendarSection.vue \
+        resources/js/Pages/Admin/GeneralSettingsPage.vue
+git commit -m "feat(tenancy): enforce module subscriptions on gated routes and UI"
+```
+
+---
+
+## Task 32: Per-tenant Microsoft Graph mail credentials
+
+Today `Mail::extend('graph', ...)` (`AppServiceProvider.php:83`) builds the transport entirely from `config('services.graph.*')`, which reads global `GRAPH_TENANT_ID` / `GRAPH_CLIENT_ID` / `GRAPH_CLIENT_SECRET` / `GRAPH_USER_ID` / `GRAPH_ENDPOINT` env vars — every tenant sends mail through the same Azure app registration and mailbox. Move these into each tenant's `general_settings` table (already a tenant-scoped table per the top-of-plan table, using the existing `GeneralSetting::get`/`set` key-value helper — the same mechanism Known impact point 4 recommends), read per-request from the active tenant, and fall back to the global env values when a tenant hasn't configured its own mailbox yet, so nothing regresses for the current single tenant during the Task 27 migration.
+
+**The subtlety this task exists to handle:** `Illuminate\Mail\MailManager` caches a resolved `graph` transport instance for the lifetime of the container. In a classic PHP-FPM request that's harmless (one tenant per request/process). On a queue worker processing jobs for multiple tenants in sequence without restarting, the *first* tenant's credentials would get cached and silently reused for a *later* tenant's queued mail (e.g. `SendStandardEmailJob`) in the same worker process. This is fixed by forgetting the resolved mailer whenever tenancy switches, mirroring the `forgetDriver`/`forgetDisk` pattern already used by `PrefixCacheBootstrapper` (Task 10) and `FilesystemTenancyBootstrapper` (Task 14).
+
+**Files:** `app/Providers/AppServiceProvider.php`, `app/Providers/TenancyServiceProvider.php`
+
+- [ ] **Step 1: Rewrite the `Mail::extend('graph', ...)` closure**
+
+In `AppServiceProvider::boot()`, replace the existing closure:
+
+```php
+Mail::extend('graph', function () {
+    $tenant_setting = fn (string $key, string $config_key) => tenancy()->initialized
+        ? GeneralSetting::get($key, config("services.graph.{$config_key}"))
+        : config("services.graph.{$config_key}");
+
+    return new GraphTransport(
+        tenantId: $tenant_setting('graph_tenant_id', 'tenant_id'),
+        clientId: $tenant_setting('graph_client_id', 'client_id'),
+        clientSecret: $tenant_setting('graph_client_secret', 'client_secret'),
+        fromAddress: config('mail.from.address'),
+        userId: $tenant_setting('graph_user_id', 'user_id'),
+        graphEndpoint: $tenant_setting('graph_endpoint', 'endpoint'),
+        dispatcher: app('events'),
+        logger: app('log')->channel()
+    );
+});
+```
+
+Add `use App\Models\GeneralSetting;` to the file's imports.
+
+- [ ] **Step 2: Forget the cached mailer whenever tenancy switches**
+
+In `TenancyServiceProvider::boot()` (Task 11), add listeners for both tenancy events next to the existing ones:
+
+```php
+Event::listen(TenancyInitialized::class, function () {
+    app('mail.manager')->forgetMailers();
+});
+Event::listen(TenancyEnded::class, function () {
+    app('mail.manager')->forgetMailers();
+});
+```
+
+These run in addition to (not instead of) the existing `BootstrapTenancy` / `RevertToCentralContext` listeners already registered for those events — Laravel dispatches all listeners for an event, order doesn't matter here since both only affect mailer resolution, not tenancy state itself.
+
+- [ ] **Step 3: Set a tenant's Graph credentials via `GeneralSetting`**
+
+No new CLI command — `general_settings` is a plain key-value tenant table, so this is done the same way any other tenant setting is set today (e.g. through `php artisan tinker` while tenancy is initialized for that tenant, or a future admin UI). Document the four keys tenants can override: `graph_tenant_id`, `graph_client_id`, `graph_client_secret`, `graph_user_id` (optional — omit to send as the shared mailbox), `graph_endpoint` (optional — omit to use the default `https://graph.microsoft.com/v1.0`).
+
+- [ ] **Step 4: Verify**
+
+- With no tenant-specific settings: mail still sends via the global `GRAPH_*` env credentials (unchanged behavior).
+- Set `graph_tenant_id`/`graph_client_id`/`graph_client_secret` via `GeneralSetting::set()` for the test tenant from Task 28, send a test mail (`php artisan` equivalent of `TestGraphMail`), confirm it authenticates against the tenant-specific Azure app registration (check the Microsoft Entra sign-in log for that tenant ID, or deliberately misconfigure the secret and confirm the send fails with that tenant's error rather than silently succeeding via the global credentials).
+- Dispatch two queued `SendStandardEmailJob`s for two different tenants with different Graph credentials back-to-back on the same worker process; confirm both use their own tenant's credentials (this is the scenario Step 2 fixes — without it, the second job would silently reuse the first tenant's transport).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php
+git commit -m "feat(tenancy): resolve Microsoft Graph mail credentials per tenant"
+```
+
+---
+
 ## Known impact and follow-up work
 
-1. **Existing test suite will break.** `phpunit.xml` pins tests to SQLite `:memory:`; multi-database tenancy needs MySQL plus a central/tenant split. Before relying on `composer test`, the test bootstrap must create a central schema and at least one tenant, and tenant-scoped tests must initialize a tenant in `setUp()`. This plan does not modify tests (per project convention) but flags that they need a dedicated follow-up. (Vitest frontend tests are unaffected.)
+1. ~~Existing test suite will break.~~ **Resolved by Task 30.** `phpunit.xml` moves from SQLite `:memory:` to a dedicated MySQL test database (`lavoro_test_central` plus a `lavoro_test_`-prefixed tenant database), with a hard runtime assertion and a narrowly-grants-only MySQL user as two independent layers ensuring a misconfiguration cannot make a test run reach `lavoro` or a real customer database. (Vitest frontend tests are unaffected.)
 
 2. **Login page shows no per-tenant branding.** It already renders the static Lavoro logo today, so nothing regresses; but per-tenant branding before login would require a two-step login (email → resolve tenant → branded password step).
 
 3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which already closes the old world-readable hole. It does not yet apply per-resource permission checks — every authenticated user in the tenant can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
-4. **SnelStart, Microsoft Graph, and Firebase (FCM) credentials are global env vars.** All tenants share the same accounting connection, mail sender, and push-notification project. For true per-tenant integrations, move these into each tenant's `general_settings` (or the tenant `data` column) and resolve them from the active tenant context. Until the SnelStart credentials are per-tenant, gate the SnelStart UI/commands per tenant via the `snelstart` module subscription (Task 16).
+4. **SnelStart and Firebase (FCM) credentials are still global env vars.** ~~Microsoft Graph~~ Microsoft Graph mail is **resolved per tenant as of Task 32** (tenant `general_settings` keys, falling back to the global env credentials for tenants that haven't configured their own mailbox). SnelStart and Firebase remain shared across all tenants — the same `general_settings` pattern used for Graph in Task 32 applies directly if/when per-tenant SnelStart or FCM credentials are needed; until then SnelStart access is already gated per tenant by the `snelstart` module subscription (Task 31).
 
-5. **Module subscriptions are stored but not yet enforced.** Task 16 delivers the data model (`tenants.license_type`, `tenants.modules`), CLI management, `Tenant::hasModule()`, the shared `tenant` Inertia prop, and the `hasModule` JS helper — but no routes or UI are gated yet. Wiring the gates (e.g. hide SnelStart sync UI without the `snelstart` module, block project routes without `projects`) is deliberate follow-up work, to be decided per module with the customer contract in hand.
+5. ~~Module subscriptions are stored but not yet enforced.~~ **Resolved by Task 31.** The `tenant.module` route middleware gates tickets, projects, SnelStart imports/send, and Google Calendar OAuth routes; the `snelStartEnabled` Inertia props and the Tickets/Projects nav items in `MainLayout.vue` are gated the same way on the frontend. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing.
 
-6. **Scheduler scales linearly with tenant count.** Each scheduled tick iterates every tenant sequentially. At dozens of tenants the five-minute Google-pull tick may exceed its window (then `withoutOverlapping` silently skips a run). Revisit with chunking or a dedicated per-tenant scheduling strategy when tenant count grows.
+6. ~~Scheduler scales linearly with tenant count.~~ **Mitigated by Task 20.** Every scheduled tick now only dispatches one queued job per tenant (a config swap plus a single `INSERT` into the central `jobs` table) instead of running a query or delete inline per tenant, so tick cost no longer scales with each tenant's data volume — only with tenant *count*, which is cheap. If tenant count itself grows into the hundreds and the dispatch loop alone becomes the bottleneck, chunking the central tenant list (already using `cursor()` rather than `get()`) or splitting the loop across multiple scheduled entries are the next levers.
 
 7. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
