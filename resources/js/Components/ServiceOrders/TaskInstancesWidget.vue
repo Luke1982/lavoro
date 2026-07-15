@@ -611,15 +611,23 @@ function buildSerialGroups(instance) {
     return groups
 }
 
-function cancelSerials() {
+function resetSerialState() {
     const id = serialInstance.value?.id
-    serialDrawerOpen.value = false
     serialInstance.value = null
     serialGroups.value = []
     serialError.value = ''
+    serialSubmitting.value = false
     // Force checkbox to remount so it reverts to unchecked
     if (id) checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
 }
+
+function cancelSerials() {
+    serialDrawerOpen.value = false
+}
+
+watch(serialDrawerOpen, (is_open) => {
+    if (!is_open && serialInstance.value) resetSerialState()
+})
 
 function submitSerials() {
     const all_inputs = serialGroups.value.flatMap(g => g.inputs)
@@ -771,11 +779,16 @@ const uncompleteSignedConfirmOpen = ref(false)
 const uncompleteSignedInstance = ref(null)
 
 function cancelUncomplete() {
-    const id = uncompleteSignedInstance.value?.id
     uncompleteSignedConfirmOpen.value = false
-    uncompleteSignedInstance.value = null
-    if (id) checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
 }
+
+watch(uncompleteSignedConfirmOpen, (is_open) => {
+    if (!is_open && uncompleteSignedInstance.value) {
+        const id = uncompleteSignedInstance.value.id
+        uncompleteSignedInstance.value = null
+        checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
+    }
+})
 
 function confirmUncomplete() {
     const instance = uncompleteSignedInstance.value
