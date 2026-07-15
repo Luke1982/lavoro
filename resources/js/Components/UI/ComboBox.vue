@@ -25,7 +25,7 @@
 
             <Teleport to="body">
                 <div v-if="open && (filteredOptions.length > 0 || showEmptyState)" ref="floatingRef"
-                    :style="dropdownStyle">
+                    data-combobox-dropdown :style="dropdownStyle">
                     <ComboboxOptions v-if="filteredOptions.length > 0"
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
                         <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"

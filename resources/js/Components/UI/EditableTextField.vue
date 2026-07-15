@@ -139,14 +139,17 @@ function onWrapperClick(event) {
 
 let closeTimer = null;
 
-function save() {
-    let value = local.value;
+function commit(value) {
     if (props.inputType === 'number' && typeof value === 'string') {
         value = value.replace(',', '.');
     }
     lastSubmittedValue.value = value;
     model.value = value;
     emit('update', value);
+}
+
+function save() {
+    commit(local.value);
 
     clearTimeout(closeTimer);
     closeTimer = setTimeout(() => {
@@ -167,17 +170,28 @@ function revert() {
 }
 
 // Combobox selection saves immediately — there's no save button in combobox mode
-// because selecting an option is itself the commit action.
+// because selecting an option is itself the commit action. Multi-select keeps the
+// editor open across selections so several options can be (de)selected in a row;
+// it closes on an outside click. Single-select still closes after choosing.
 function onComboBoxSelect(value) {
     local.value = value;
-    save();
+    if (props.multiple) {
+        commit(value);
+    } else {
+        save();
+    }
 }
 
 function handleOutsideClick(e) {
     if (rootRef.value && !rootRef.value.contains(e.target)) {
+        // The combobox dropdown is teleported to <body>, so a click on an option
+        // lands outside rootRef — don't treat that as leaving the field.
+        if (e.target.closest('[data-combobox-dropdown]')) return;
         if (inErrorState.value) return;
         if (slots.open) {
             editing.value = false;
+        } else if (props.type === 'combobox' && props.multiple) {
+            editing.value = false; // already committed on each selection
         } else {
             save();
         }
