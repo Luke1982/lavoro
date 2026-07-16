@@ -680,6 +680,12 @@ const dragGhost = ref(null)
 const selectRect = ref(null)
 let suppressClickUntil = 0
 
+// Guards a click from rescheduling the event it meant to open. Either axis may
+// cross it: gating on horizontal travel alone would strand a drag straight down
+// onto another user, which never moves sideways.
+const MOVE_THRESHOLD_PX = 12
+let pendingMove = null
+
 const HOUR_PX_MIN = 60
 const SLOT_PX_MIN = 56
 const dayHeaderHeight = 52
@@ -1386,19 +1392,22 @@ function onEventPointerDown(e, ev, user) {
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
     const startMin = minutesFromDayStart(ev.start)
-    drag.value = {
-        mode: 'move',
-        eventId: ev.id,
-        originalEvent: ev,
-        cursorOffsetMinutes: info.minutes - startMin,
-        durationMinutes: (ev.end - ev.start) / 60000,
-        previewStart: new Date(ev.start),
-        previewEnd: new Date(ev.end),
-        previewUserId: user.id,
-        ghostRect: null,
-        isLocked: ev.executing_user_ids.length > 1,
+    pendingMove = {
+        originX: e.clientX,
+        originY: e.clientY,
+        drag: {
+            mode: 'move',
+            eventId: ev.id,
+            originalEvent: ev,
+            cursorOffsetMinutes: info.minutes - startMin,
+            durationMinutes: (ev.end - ev.start) / 60000,
+            previewStart: new Date(ev.start),
+            previewEnd: new Date(ev.end),
+            previewUserId: user.id,
+            ghostRect: null,
+            isLocked: ev.executing_user_ids.length > 1,
+        },
     }
-    updateGhost(e.clientX, e.clientY)
     e.preventDefault()
     e.stopPropagation()
 }
@@ -1428,6 +1437,13 @@ function dateFromDayIsoAndMinutes(dayIso, minutes) {
 }
 
 function onWindowPointerMove(e) {
+    if (pendingMove) {
+        const dx = Math.abs(e.clientX - pendingMove.originX)
+        const dy = Math.abs(e.clientY - pendingMove.originY)
+        if (dx < MOVE_THRESHOLD_PX && dy < MOVE_THRESHOLD_PX) return
+        drag.value = pendingMove.drag
+        pendingMove = null
+    }
     if (!drag.value.mode) return
     if (drag.value.mode === 'select') {
         const info = cellInfoFromPoint(e.clientX, e.clientY)
@@ -1518,6 +1534,7 @@ function updateGhost(clientX, clientY) {
 }
 
 async function onWindowPointerUp() {
+    pendingMove = null
     if (!drag.value.mode) return
     const mode = drag.value.mode
     if (mode === 'select') {
