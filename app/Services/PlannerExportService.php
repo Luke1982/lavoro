@@ -21,11 +21,11 @@ class PlannerExportService
         'Project',
         'Geplande start',
         'Geplande eind',
-        'Geplande uren',
+        'Geplande uren (excl. pauze)',
         'Werkelijke start',
         'Werkelijke eind',
-        'Werkelijke uren',
-        'Pauze',
+        'Werkelijke uren (excl. pauze)',
+        'Pauze (uren)',
         'Status',
     ];
 
@@ -112,7 +112,7 @@ class PlannerExportService
             $this->hours($execution?->actual_start, $execution?->actual_end, $breaktime_minutes)
         );
 
-        $sheet->setCellValue('L' . $row, $breaktime_minutes);
+        $sheet->setCellValue('L' . $row, round($breaktime_minutes / 60, 2));
         $sheet->setCellValue('M' . $row, $execution?->completion_status ?? 'Gepland');
     }
 
