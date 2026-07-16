@@ -303,7 +303,9 @@ function onSelect(newOption) {
         const arr = Array.isArray(newOption) ? newOption : internalValue.value
         const payload = props.emitValue ? arr.map(o => o.name) : arr.map(o => o.id)
         emit('update:modelValue', payload)
-        query.value = ''
+        // Deliberately keep `query`: the editor stays open across multi-select
+        // toggles, so the typed text remains in the input and the list must keep
+        // matching it. onBlur clears the query when the field is actually left.
     }
 }
 </script>
