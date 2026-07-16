@@ -14,6 +14,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerImportController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
@@ -87,6 +88,12 @@ Route::group(
         )->name('maintenancecontracts.generateServiceOrders');
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
+        Route::resource('locations', LocationController::class)
+            ->only(['index', 'show', 'store', 'update', 'destroy']);
+        Route::patch('locations/{location}/coords', [LocationController::class, 'updateCoords'])
+            ->name('locations.updateCoords');
+        Route::get('combo/customers/{customer}/locations', [ComboSearchController::class, 'locationsForCustomer'])
+            ->name('combo.customer.locations');
         Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');
         Route::get('combo/materials', [ComboSearchController::class, 'materials'])->name('combo.materials');
         Route::get('combo/products', [ComboSearchController::class, 'products'])->name('combo.products');
@@ -144,6 +151,8 @@ Route::group(
         Route::post('productattributevalueables', [ProductAttributeValueableController::class, 'store'])
             ->name('productattributevalueables.store');
         Route::resource('assets', AssetController::class);
+        Route::patch('assets/{asset}/location', [AssetController::class, 'updateLocation'])
+            ->name('assets.updateLocation');
         Route::post('assets/{asset}/child', [AssetController::class, 'storeChild'])
             ->name('assets.storeChild');
         Route::resource('assetrelations', AssetRelationController::class)->only(['store', 'destroy']);

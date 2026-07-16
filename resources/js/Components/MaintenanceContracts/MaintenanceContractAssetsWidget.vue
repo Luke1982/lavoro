@@ -94,7 +94,7 @@ import { PuzzlePieceIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue'
-import { hasPermission } from '@/Utilities/Utilities'
+import { hasPermission, mapAssetForSelect } from '@/Utilities/Utilities'
 
 const props = defineProps({
     maintenanceContractId: { type: Number, required: true },
@@ -116,22 +116,11 @@ function assetDisplayName(asset) {
     return `${asset.product.brand?.name ?? ''} ${asset.product.model ?? ''}`.trim() || asset.serial_number
 }
 
-// Same mapping AssetSelectMenu expects everywhere else it's used (see
-// ServiceOrders/ShowPage.vue's customerAssets computed).
 const attachedAssetIds = computed(() => props.assets.map(a => a.id))
 const availableAssets = computed(() =>
     props.customerAssets
         .filter(a => !attachedAssetIds.value.includes(a.id))
-        .map(a => ({
-            id: a.id,
-            name: assetDisplayName(a),
-            category: a.product?.product_type?.name ?? null,
-            article_number: a.product?.part_no ?? null,
-            serial_number: a.serial_number,
-            is_bundle: !!a.product?.bundle,
-            next_service_date: a.next_service_date,
-            thumbnail_url: a.product?.images?.length > 0 ? `/storage/${a.product.images[0]?.path}` : null,
-        }))
+        .map(mapAssetForSelect)
 )
 
 const addForm = useForm({ frequency: null, frequency_days: null })

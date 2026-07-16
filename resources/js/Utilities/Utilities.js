@@ -228,3 +228,28 @@ export const nextServiceIso = (product, fallbackDays = 365) => {
     d.setDate(d.getDate() + days);
     return d.toISOString().slice(0, 10);
 };
+
+/**
+ * Shape an asset into the object AssetSelectMenu expects.
+ * Exposes brand, model, serial_number and location explicitly so the
+ * component's search can filter on them precisely.
+ */
+export function mapAssetForSelect(asset) {
+    const brand = asset.product?.brand?.name ?? '';
+    const model = asset.product?.model ?? '';
+    return {
+        id: asset.id,
+        name: `${brand} ${model}`.trim() || asset.serial_number || `Machine #${asset.id}`,
+        brand,
+        model,
+        category: asset.product?.product_type?.name ?? null,
+        article_number: asset.product?.part_no ?? null,
+        serial_number: asset.serial_number,
+        is_bundle: !!asset.product?.bundle,
+        next_service_date: asset.next_service_date,
+        location: asset.location
+            ? { id: asset.location.id, title: asset.location.title, city: asset.location.city }
+            : null,
+        thumbnail_url: asset.product?.images?.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
+    };
+}

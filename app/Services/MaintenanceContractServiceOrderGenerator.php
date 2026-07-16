@@ -65,21 +65,47 @@ class MaintenanceContractServiceOrderGenerator
             return [];
         }
 
-        return [$this->createServiceOrderForAssets($contract, $due_assets, 'automatisch gegenereerd')];
+        return $this->createServiceOrdersGroupedByLocation($contract, $due_assets, 'automatisch gegenereerd');
     }
 
     /**
-     * Creates one werkbon right now for every machine on the contract, ignoring due dates.
+     * Creates one werkbon per location right now for every machine on the contract, ignoring due dates.
+     *
+     * @return array<int, ServiceOrder>
      */
-    public function generateNowForContract(MaintenanceContract $contract): ?ServiceOrder
+    public function generateNowForContract(MaintenanceContract $contract): array
     {
         $assets = $contract->assets->all();
 
         if (empty($assets)) {
-            return null;
+            return [];
         }
 
-        return $this->createServiceOrderForAssets($contract, $assets, 'handmatig aangemaakt');
+        return $this->createServiceOrdersGroupedByLocation($contract, $assets, 'handmatig aangemaakt');
+    }
+
+    /**
+     * Groups the assets by their location and creates one werkbon per group,
+     * so each generated werkbon is location-coherent and inherits its location_id.
+     *
+     * @param  array<int, Asset>  $assets
+     * @return array<int, ServiceOrder>
+     */
+    private function createServiceOrdersGroupedByLocation(
+        MaintenanceContract $contract,
+        array $assets,
+        string $activity_verb
+    ): array {
+        return collect($assets)
+            ->groupBy(fn (Asset $asset) => $asset->location_id ?? 0)
+            ->map(fn ($group) => $this->createServiceOrderForAssets(
+                $contract,
+                $group->all(),
+                $activity_verb,
+                $group->first()->location_id
+            ))
+            ->values()
+            ->all();
     }
 
     /**
@@ -88,10 +114,12 @@ class MaintenanceContractServiceOrderGenerator
     private function createServiceOrderForAssets(
         MaintenanceContract $contract,
         array $assets,
-        string $activity_verb
+        string $activity_verb,
+        ?int $location_id = null
     ): ServiceOrder {
         $service_order = ServiceOrder::create([
             'customer_id' => $contract->customer_id,
+            'location_id' => $location_id,
             'maintenance_contract_id' => $contract->id,
         ]);
 

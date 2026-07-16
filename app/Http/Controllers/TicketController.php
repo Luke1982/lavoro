@@ -178,7 +178,7 @@ class TicketController extends Controller
         $data = $request->validated();
 
         $query = $this->applyTicketFilters(
-            Ticket::with('asset.customer')
+            Ticket::with('asset.customer', 'asset.location')
                 ->whereHas('asset.customer')
                 ->where('status', '!=', TicketStatusses::gesloten->value),
             $data
@@ -186,20 +186,26 @@ class TicketController extends Controller
 
         $tickets = $query->get(['id', 'subject', 'priority', 'status', 'asset_id']);
 
-        $customers = $tickets
-            ->groupBy(fn ($ticket) => $ticket->asset->customer->id)
-            ->map(function ($tickets_for_customer) {
-                $customer = $tickets_for_customer->first()->asset->customer;
+        $items = $tickets
+            ->groupBy(fn ($ticket) => $ticket->asset->location_id
+                ? 'loc:' . $ticket->asset->location_id
+                : 'cust:' . $ticket->asset->customer->id)
+            ->map(function ($group) {
+                $asset = $group->first()->asset;
+                $location = $asset->location;
+                $customer = $asset->customer;
 
                 return [
-                    'id' => $customer->id,
-                    'name' => $customer->name,
-                    'address' => $customer->address,
-                    'postal_code' => $customer->postal_code,
-                    'city' => $customer->city,
-                    'lat' => $customer->lat,
-                    'lon' => $customer->lon,
-                    'tickets' => $tickets_for_customer->map(fn ($ticket) => [
+                    'type' => $location ? 'location' : 'customer',
+                    'id' => $location ? $location->id : $customer->id,
+                    'customer_id' => $customer->id,
+                    'name' => $location ? ($customer->name . ' — ' . $location->title) : $customer->name,
+                    'address' => $location ? $location->address : $customer->address,
+                    'postal_code' => $location ? $location->postal_code : $customer->postal_code,
+                    'city' => $location ? $location->city : $customer->city,
+                    'lat' => $location ? $location->lat : $customer->lat,
+                    'lon' => $location ? $location->lon : $customer->lon,
+                    'tickets' => $group->map(fn ($ticket) => [
                         'id' => $ticket->id,
                         'subject' => $ticket->subject,
                         'priority' => $ticket->priority,
@@ -210,7 +216,7 @@ class TicketController extends Controller
             ->values();
 
         return inertia('Tickets/TicketsMap', [
-            'customers' => $customers,
+            'items' => $items,
         ]);
     }
 

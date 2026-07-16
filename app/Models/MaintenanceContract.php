@@ -17,6 +17,7 @@ class MaintenanceContract extends Model
 
     /** @use HasFactory<MaintenanceContractFactory> */
     use HasFactory;
+
     use RemarkableTrait;
 
     protected $fillable = [
@@ -79,6 +80,11 @@ class MaintenanceContract extends Model
         return $this->morphToMany(Asset::class, 'assetable')
             ->withPivot(['id', 'frequency', 'frequency_days', 'last_generated_at'])
             ->withTimestamps();
+    }
+
+    public function getLocationsAttribute()
+    {
+        return $this->assets->map->location->filter()->unique('id')->values();
     }
 
     public function generatedServiceOrders()

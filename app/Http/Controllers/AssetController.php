@@ -6,6 +6,7 @@ use App\Http\Requests\AssetChildStoreRequest;
 use App\Http\Requests\AssetDestroyRequest;
 use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
+use App\Http\Requests\AssetUpdateLocationRequest;
 use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
 use App\Models\AssetRelation;
@@ -45,9 +46,9 @@ class AssetController extends Controller
             'product.productType',
             'customer',
         ])->withCount([
-            'tickets as open_tickets_count' => fn($q) => $q->where('status', 'Open'),
-            'tickets as pending_tickets_count' => fn($q) => $q->where('status', 'In behandeling'),
-            'tickets as closed_tickets_count' => fn($q) => $q->where('status', 'Gesloten'),
+            'tickets as open_tickets_count' => fn ($q) => $q->where('status', 'Open'),
+            'tickets as pending_tickets_count' => fn ($q) => $q->where('status', 'In behandeling'),
+            'tickets as closed_tickets_count' => fn ($q) => $q->where('status', 'Gesloten'),
         ]);
 
         if ($search !== '') {
@@ -125,6 +126,7 @@ class AssetController extends Controller
             $asset = Asset::create([
                 'product_id' => $validated['product_id'],
                 'customer_id' => $validated['customer_id'],
+                'location_id' => $validated['location_id'] ?? null,
                 'serial_number' => $validated['serial_number'] ?? null,
                 'next_service_date' => $validated['next_service_date'] ?? null,
                 'date_in_service' => $validated['date_in_service'] ?? null,
@@ -133,7 +135,7 @@ class AssetController extends Controller
 
             foreach ($validated['child_assets'] ?? [] as $childData) {
                 $productable = Productable::find($childData['productable_id']);
-                if (! $productable || ! $productable->is_required) {
+                if (!$productable || !$productable->is_required) {
                     continue;
                 }
 
@@ -201,6 +203,7 @@ class AssetController extends Controller
             'product.productables.childProduct.productType',
             'product.productables.productRelation',
             'customer',
+            'location',
             'servicejobs',
             'customFields',
             'childAssetRelations.childAsset.product.brand',
@@ -220,16 +223,16 @@ class AssetController extends Controller
             ? ProductType::query()->where('parent_id', $currentTypeId)->pluck('id')->all()
             : [];
 
-        $productHasChildTypes = ! empty($childTypeIds);
+        $productHasChildTypes = !empty($childTypeIds);
 
         if ($productHasChildTypes) {
             $eligibleChildAssets = Asset::query()
-                ->whereHas('product', fn($q) => $q->whereIn('product_type_id', $childTypeIds))
+                ->whereHas('product', fn ($q) => $q->whereIn('product_type_id', $childTypeIds))
                 ->where('customer_id', $asset->customer_id)
                 ->whereNotIn('id', [...$existingChildIds, $asset->id])
                 ->with(['product.brand', 'product.productType'])
                 ->get()
-                ->map(fn($a) => [
+                ->map(fn ($a) => [
                     'id' => $a->id,
                     'name' => $a->product->brand->name . ' ' . $a->product->model
                         . ' (' . $a->product->productType->name . ')'
@@ -301,6 +304,13 @@ class AssetController extends Controller
 
         return redirect()->route('assets.show', $asset->id)
             ->with('success', 'Machine bijgewerkt.');
+    }
+
+    public function updateLocation(AssetUpdateLocationRequest $request, Asset $asset)
+    {
+        $asset->update(['location_id' => $request->validated()['location_id'] ?? null]);
+
+        return redirect()->back()->with('success', 'Locatie van de machine bijgewerkt.');
     }
 
     /**

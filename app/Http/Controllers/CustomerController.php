@@ -25,10 +25,10 @@ class CustomerController extends Controller
     {
         $search = $request->input('search');
         $customers = Customer::withCount([
-                'tickets as open_tickets_count' => fn ($q) => $q->where('tickets.status', 'Open'),
-                'tickets as pending_tickets_count' => fn ($q) => $q->where('tickets.status', 'In behandeling'),
-                'tickets as closed_tickets_count' => fn ($q) => $q->where('tickets.status', 'Gesloten'),
-            ])
+            'tickets as open_tickets_count' => fn ($q) => $q->where('tickets.status', 'Open'),
+            'tickets as pending_tickets_count' => fn ($q) => $q->where('tickets.status', 'In behandeling'),
+            'tickets as closed_tickets_count' => fn ($q) => $q->where('tickets.status', 'Gesloten'),
+        ])
             ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('invoice_email', 'like', "%{$search}%")
@@ -79,6 +79,7 @@ class CustomerController extends Controller
         $customer->load([
             'activeAssets.product.brand',
             'activeAssets.product.productType',
+            'activeAssets.location',
             'activeAssets.openTickets',
             'activeAssets.pendingTickets',
             'activeAssets.closedTickets',
@@ -94,11 +95,12 @@ class CustomerController extends Controller
             'customFields',
             'contacts',
             'maintenanceContracts',
+            'locations' => fn ($q) => $q->withCount(['assets', 'serviceOrders']),
         ]);
 
         $user = Auth::user();
         $has_all = $user->hasPermission('event.view_all');
-        if (! $has_all) {
+        if (!$has_all) {
             foreach ($customer->serviceOrders as $order) {
                 $order->setRelation('events', $order->events->filter(function ($e) use ($user) {
                     $executing_ids = $e->executingUsers->pluck('id')->all();

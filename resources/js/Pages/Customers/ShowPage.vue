@@ -228,10 +228,15 @@
                                 <div v-else class="space-y-2" v-auto-animate>
                                     <Link v-for="contract in customer.maintenance_contracts" :key="contract.id"
                                         :href="`/maintenancecontracts/${contract.id}`"
-                                        class="block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+                                        class="block text-sm text-lavoro-blue hover:underline dark:text-lavoro-blue">
                                         {{ contract.display_title }}
                                     </Link>
                                 </div>
+                            </BoxComponent>
+
+                            <BoxComponent>
+                                <CustomerLocationsWidget :customer-id="customer.id"
+                                    :locations="customer.locations || []" />
                             </BoxComponent>
 
                             <BoxComponent v-if="canUpdate">
@@ -274,9 +279,13 @@
                             <ComboBox :options="productTypeOptions" v-model="selectedProductTypeIds" multiple
                                 placeholder="Filter apparaat type" />
                         </div>
+                        <div v-if="locationFilterOptions.length" class="w-full md:w-72 mt-3 md:mt-0">
+                            <ComboBox :options="locationFilterOptions" v-model="selectedLocationIds" multiple
+                                placeholder="Filter op locatie" />
+                        </div>
                         <div class="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
-                            <template v-if="selectedProductTypeIds.length">
-                                <span v-for="pt in selectedProductTypes" :key="pt.id"
+                            <template v-if="hasActiveFilters">
+                                <span v-for="pt in selectedProductTypes" :key="`pt-${pt.id}`"
                                     class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200 dark:text-slate-200 dark:ring-slate-700">
                                     {{ pt.name }}
                                     <button type="button" @click="removeProductType(pt.id)"
@@ -289,14 +298,28 @@
                                         <span class="absolute -inset-1" />
                                     </button>
                                 </span>
+                                <span v-for="loc in selectedLocations" :key="`loc-${loc.id}`"
+                                    class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-lavoro-blue ring-1 ring-inset ring-lavoro-blue/30 dark:text-lavoro-lightblue dark:ring-lavoro-blue/40">
+                                    {{ loc.name }}
+                                    <button type="button" @click="removeLocation(loc.id)"
+                                        class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+                                        <span class="sr-only">Remove</span>
+                                        <svg viewBox="0 0 14 14"
+                                            class="h-3.5 w-3.5 text-lavoro-blue/60 stroke-lavoro-blue/75 dark:text-lavoro-blue dark:stroke-lavoro-blue">
+                                            <path d="M4 4l6 6m0-6l-6 6" />
+                                        </svg>
+                                        <span class="absolute -inset-1" />
+                                    </button>
+                                </span>
                                 <button type="button" @click="resetFilters"
                                     class="text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">Reset</button>
                             </template>
-                            <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle apparaat types</span>
+                            <span v-else class="text-xs text-gray-500 dark:text-slate-400">Alle machines</span>
                         </div>
                     </div>
                     <div class="mt-4" v-if="canReadAssets && hasAssetsFiltered">
-                        <AssetListComponent :assets="assetsFiltered" />
+                        <AssetListComponent :assets="assetsFiltered" :customer-id="customer.id"
+                            :locations="customer.locations || []" />
                     </div>
                     <p v-if="canReadAssets && !hasAssetsFiltered"
                         class="text-sm text-gray-400 dark:text-slate-500 italic mt-4">
@@ -559,6 +582,7 @@ import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { useComboSearch } from '@/Composables/useComboSearch';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
+import CustomerLocationsWidget from '@/Components/Locations/CustomerLocationsWidget.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
@@ -746,6 +770,7 @@ const clearBillingCustomer = () => {
 };
 
 const selectedProductTypeIds = ref([]);
+const selectedLocationIds = ref([]);
 
 const productTypeOptions = computed(() => {
     const map = new Map();
@@ -756,19 +781,50 @@ const productTypeOptions = computed(() => {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 });
 
+const locationFilterOptions = computed(() => {
+    const map = new Map();
+    let hasNone = false;
+    (props.assets || []).forEach(a => {
+        if (a.location) {
+            if (!map.has(a.location.id)) map.set(a.location.id, { id: a.location.id, name: a.location.title });
+        } else {
+            hasNone = true;
+        }
+    });
+    const opts = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    if (hasNone) opts.push({ id: 'none', name: 'Geen locatie' });
+    return opts;
+});
+
 const selectedProductTypes = computed(() => {
     const optionMap = Object.fromEntries(productTypeOptions.value.map(o => [o.id, o]));
     return selectedProductTypeIds.value.map(id => optionMap[id]).filter(Boolean);
 });
 
+const selectedLocations = computed(() => {
+    const optionMap = Object.fromEntries(locationFilterOptions.value.map(o => [o.id, o]));
+    return selectedLocationIds.value.map(id => optionMap[id]).filter(Boolean);
+});
+
 const removeProductType = (id) => {
     selectedProductTypeIds.value = selectedProductTypeIds.value.filter(x => x !== id);
 };
-const resetFilters = () => { selectedProductTypeIds.value = []; };
+const removeLocation = (id) => {
+    selectedLocationIds.value = selectedLocationIds.value.filter(x => x !== id);
+};
+const resetFilters = () => { selectedProductTypeIds.value = []; selectedLocationIds.value = []; };
+
+const hasActiveFilters = computed(() => selectedProductTypeIds.value.length > 0 || selectedLocationIds.value.length > 0);
 
 const assetsFiltered = computed(() => {
-    if (!selectedProductTypeIds.value.length) return props.assets;
-    return (props.assets || []).filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
+    let result = props.assets || [];
+    if (selectedProductTypeIds.value.length) {
+        result = result.filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
+    }
+    if (selectedLocationIds.value.length) {
+        result = result.filter(a => selectedLocationIds.value.includes(a.location?.id ?? 'none'));
+    }
+    return result;
 });
 
 const hasAssetsFiltered = computed(() => assetsFiltered.value.length > 0);

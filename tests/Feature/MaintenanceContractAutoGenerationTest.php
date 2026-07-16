@@ -179,12 +179,12 @@ class MaintenanceContractAutoGenerationTest extends TestCase
             'frequency' => ContractInterval::jaarlijks->value,
         ]);
 
-        $service_order = app(MaintenanceContractServiceOrderGenerator::class)
+        $service_orders = app(MaintenanceContractServiceOrderGenerator::class)
             ->generateNowForContract($contract);
 
-        $this->assertNotNull($service_order);
+        $this->assertCount(1, $service_orders);
         $this->assertDatabaseHas('service_orders', [
-            'id' => $service_order->id,
+            'id' => $service_orders[0]->id,
             'maintenance_contract_id' => $contract->id,
         ]);
     }

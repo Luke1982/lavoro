@@ -17,7 +17,7 @@
                 <input type="checkbox" :checked="customerState(mainAsset.customer.id).all"
                     v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
                     @change="$emit('selectAll', mainAsset.customer.id)"
-                    class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500" />
+                    class="cursor-pointer size-4 accent-lavoro-blue dark:accent-lavoro-blue" />
             </div>
             <div class="hidden xl:block col-span-3">Merk en model</div>
             <div class="hidden xl:block col-span-2">Type en Serienummer</div>
@@ -26,11 +26,21 @@
             <div class="col-span-11 xl:hidden text-gray-600 dark:text-slate-400">Activa en storingen, klik links om
                 alles van deze klant te selecteren</div>
         </div>
-        <div v-for="asset in mainAsset.customer.upcoming_assets" :key="asset.id" class="grid grid-cols-12 mb-7">
+        <template v-for="group in locationGroups" :key="group.location ? `loc-${group.location.id}` : 'no-loc'">
+            <div class="flex items-center gap-2 mt-4 mb-3 pb-1 border-b border-gray-200 dark:border-slate-700">
+                <MapPin class="size-4 text-lavoro-blue shrink-0" />
+                <span class="font-semibold text-sm text-gray-700 dark:text-slate-200">
+                    {{ group.location ? group.location.title : 'Geen locatie' }}
+                </span>
+                <span v-if="group.location" class="text-xs text-gray-400 dark:text-slate-500 truncate">
+                    {{ [group.location.address, group.location.city].filter(Boolean).join(', ') }}
+                </span>
+            </div>
+            <div v-for="asset in group.assets" :key="asset.id" class="grid grid-cols-12 mb-7">
             <div class="flex col-span-1">
                 <input type="checkbox" :id="`assetcheckbox-${asset.id}`" :checked="isAssetSelected(asset.id)"
                     @change="toggleAssetSelection({ id: asset.id, customer_id: mainAsset.customer.id })"
-                    class="cursor-pointer size-4 accent-indigo-600 dark:accent-indigo-500">
+                    class="cursor-pointer size-4 accent-lavoro-blue dark:accent-lavoro-blue">
                 <div
                     class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 items-center justify-center ml-2 hidden sm:flex">
                     <img :src="asset.product.main_image?.[0] ? `/storage/${asset.product.main_image[0].path}` : '/img/placeholder.png'"
@@ -52,7 +62,7 @@
                                 <span class="inline text-gray-600 font-bold">{{ asset.product.product_type.name }}
                                     met s/n </span>
                                 <Link :href="`/assets/${asset.id}`"
-                                    class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300 inline">
+                                    class="cursor-pointer underline text-lavoro-blue dark:text-lavoro-blue hover:dark:text-lavoro-lightblue inline">
                                     {{ asset.serial_number }}</Link>,
                                 <span> verloopt op {{
                                     nlDate(asset.next_service_date)
@@ -99,7 +109,7 @@
                 <span class="text-xs font-bold xl:hidden">Serienummer</span>
                 <span class="inline text-sm">{{ asset.product.product_type.name }} met s/n</span>
                 <Link :href="`/assets/${asset.id}`"
-                    class="cursor-pointer underline text-indigo-700 dark:text-indigo-400 hover:dark:text-indigo-300 inline">
+                    class="cursor-pointer underline text-lavoro-blue dark:text-lavoro-blue hover:dark:text-lavoro-lightblue inline">
                     {{ asset.serial_number }}</Link>
             </div>
             <div class="col-span-3 xl:col-span-2 sm:flex flex-col mt-5 xl:mt-0 hidden">
@@ -155,18 +165,20 @@
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </template>
     </BoxComponent>
 </template>
 
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
 import BoxComponent from '@/Components/BoxComponent.vue';
-import { Calendar1, ClockAlert } from '@lucide/vue';
+import { Calendar1, ClockAlert, MapPin } from '@lucide/vue';
 
 const props = defineProps({
     mainAsset: { type: Object, required: true },
@@ -179,6 +191,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:selectedAssets', 'update:selectedTickets', 'selectAll']);
+
+const assetById = computed(() => {
+    const map = {};
+    (props.mainAsset.customer.upcoming_assets ?? []).forEach(a => { map[a.id] = a; });
+    return map;
+});
+
+const locationGroups = computed(() => {
+    const groups = props.mainAsset.customer.location_groups;
+    if (!groups || !groups.length) {
+        return [{ location: null, assets: props.mainAsset.customer.upcoming_assets ?? [] }];
+    }
+    return groups.map(g => ({
+        location: g.location,
+        assets: (g.asset_ids ?? []).map(id => assetById.value[id]).filter(Boolean),
+    }));
+});
 
 const vIndeterminate = {
     mounted(el, { value }) { el.indeterminate = !!value },

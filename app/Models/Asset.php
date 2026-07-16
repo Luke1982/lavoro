@@ -6,18 +6,21 @@ use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Models\Traits\HasCustomFields;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\AssetsFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Asset extends Model
 {
-    /** @use HasFactory<\Database\Factories\AssetsFactory> */
-    use HasFactory;
     use HasCustomFields;
+
+    /** @use HasFactory<AssetsFactory> */
+    use HasFactory;
 
     protected $fillable = [
         'product_id',
         'customer_id',
+        'location_id',
         'service_order_task_instance_id',
         'serial_number',
         'next_service_date',
@@ -60,6 +63,11 @@ class Asset extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
     }
 
     public function tickets()

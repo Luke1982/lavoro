@@ -15,6 +15,7 @@ class AssetStoreRequest extends FormRequest
         if (!$user) {
             return false;
         }
+
         return $user->hasPermission('asset.create');
     }
 
@@ -28,15 +29,15 @@ class AssetStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'serial_number.unique'                       => 'Er bestaat al een machine met dit serienummer voor dit product.',
-            'serial_number.required'                     => 'Serienummer is verplicht.',
+            'serial_number.unique' => 'Er bestaat al een machine met dit serienummer voor dit product.',
+            'serial_number.required' => 'Serienummer is verplicht.',
             'child_assets.*.serial_number.required_with' => 'Serienummer is verplicht.',
         ];
     }
 
     public function rules(): array
     {
-        $product   = Product::find($this->input('product_id'));
+        $product = Product::find($this->input('product_id'));
         $is_bundle = $product?->bundle ?? false;
 
         $serial_rules = $is_bundle
@@ -45,19 +46,23 @@ class AssetStoreRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('assets', 'serial_number')->where(fn($q) => $q->where('product_id', $this->input('product_id'))),
+                Rule::unique('assets', 'serial_number')->where(fn ($q) => $q->where('product_id', $this->input('product_id'))),
             ];
 
         return [
-            'product_id'    => ['required', 'exists:products,id'],
-            'customer_id'   => ['required', 'exists:customers,id'],
+            'product_id' => ['required', 'exists:products,id'],
+            'customer_id' => ['required', 'exists:customers,id'],
+            'location_id' => [
+                'nullable',
+                Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
+            ],
             'serial_number' => $serial_rules,
-            'is_active'     => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
             'next_service_date' => ['nullable', 'date'],
-            'date_in_service'   => ['nullable', 'date'],
-            'child_assets'                    => ['nullable', 'array'],
-            'child_assets.*.productable_id'   => ['required_with:child_assets', 'integer', 'exists:productables,id'],
-            'child_assets.*.serial_number'    => ['required_with:child_assets', 'string', 'max:255'],
+            'date_in_service' => ['nullable', 'date'],
+            'child_assets' => ['nullable', 'array'],
+            'child_assets.*.productable_id' => ['required_with:child_assets', 'integer', 'exists:productables,id'],
+            'child_assets.*.serial_number' => ['required_with:child_assets', 'string', 'max:255'],
         ];
     }
 }

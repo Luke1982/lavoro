@@ -58,6 +58,7 @@ class ActivityListController extends Controller
                 'product.brand',
                 'product.productType',
                 'product.mainImage',
+                'location',
                 'openTickets',
                 'pendingTickets',
                 'pendingServiceJobs.serviceOrder.pastOpenEvents.executingUsers',
@@ -86,6 +87,18 @@ class ActivityListController extends Controller
 
             $main->customer->upcoming_asset_days = $days;
             $main->customer->setRelation('upcomingAssets', $assets->values());
+
+            $groups = $assets->groupBy('location_id')->map(function ($group) {
+                $location = $group->first()->location;
+
+                return [
+                    'location' => $location
+                        ? $location->only(['id', 'title', 'address', 'postal_code', 'city'])
+                        : null,
+                    'asset_ids' => $group->pluck('id')->values(),
+                ];
+            })->sortBy(fn ($group) => $group['location'] ? 0 : 1)->values();
+            $main->customer->setAttribute('location_groups', $groups);
         }
 
         return $main_assets;
@@ -151,33 +164,54 @@ class ActivityListController extends Controller
         $customer_ids = $upcoming_customer_ids->merge($expired_customer_ids)->unique();
 
         $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => function ($q) {
-            $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-                ->with(['product.productType']);
+            $q->select('id', 'customer_id', 'location_id', 'next_service_date', 'status', 'serial_number', 'product_id')
+                ->with(['product.productType', 'location']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 
         $now = Carbon::now();
-        $customers->transform(function ($c) use ($now, $expired_customer_ids) {
-            $c->has_expired_assets = $expired_customer_ids->contains($c->id);
+        $items = collect();
+
+        foreach ($customers as $c) {
             $eligible = $c->assets->filter(
                 fn ($a) => $a->next_service_date &&
                     $a->status !== AssetStatusses::inactive->value
             );
-            $days = $eligible
-                ->map(fn ($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
-                ->min();
-            $c->next_service_in_days = $days; // int|null
-            // earliest asset info
-            $earliest = $eligible->sortBy(fn ($a) => $a->next_service_date)->first();
-            if ($earliest) {
-                $c->earliest_asset_serial = $earliest->serial_number;
-                $c->earliest_asset_product_type = $earliest->product?->productType?->name;
-            }
 
-            return $c;
-        });
+            foreach ($eligible->groupBy('location_id') as $group) {
+                $location = $group->first()->location;
+                $days_min = $group
+                    ->map(fn ($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
+                    ->min();
+                $has_expired = $group->contains(fn ($a) => Carbon::parse($a->next_service_date)->lt($now));
+                $earliest = $group->sortBy(fn ($a) => $a->next_service_date)->first();
+
+                $items->push([
+                    'type' => $location ? 'location' : 'customer',
+                    'id' => $location ? $location->id : $c->id,
+                    'customer_id' => $c->id,
+                    'name' => $location ? ($c->name . ' — ' . $location->title) : $c->name,
+                    'address' => $location ? $location->address : $c->address,
+                    'postal_code' => $location ? $location->postal_code : $c->postal_code,
+                    'city' => $location ? $location->city : $c->city,
+                    'lat' => $location ? $location->lat : $c->lat,
+                    'lon' => $location ? $location->lon : $c->lon,
+                    'has_expired_assets' => $has_expired,
+                    'next_service_in_days' => $days_min,
+                    'earliest_asset_serial' => $earliest?->serial_number,
+                    'earliest_asset_product_type' => $earliest?->product?->productType?->name,
+                    'assets' => $group->map(fn ($a) => [
+                        'id' => $a->id,
+                        'serial_number' => $a->serial_number,
+                        'next_service_date' => $a->next_service_date,
+                        'status' => $a->status,
+                        'product' => ['product_type' => ['name' => $a->product?->productType?->name]],
+                    ])->values(),
+                ]);
+            }
+        }
 
         return inertia('ActivityList/UpcomingActivitiesMap', [
-            'customers' => $customers,
+            'items' => $items->values(),
         ]);
     }
 }

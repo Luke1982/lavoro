@@ -103,12 +103,24 @@
                                         label="Extern factuurnummer" v-model="form.external_invoice_no"
                                         @update="val => { form.external_invoice_no = val; }"
                                         placeholder="Extern factuurnummer" />
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-xs text-gray-400 dark:text-slate-400">Locatie</span>
+                                        <ComboBox :options="locationOptions" v-model="form.location_id"
+                                            :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                            placeholder="Geen locatie (vrije invoer)"
+                                            @update:model-value="onLocationChange" />
+                                    </div>
                                 </div>
                                 <!-- Right column -->
-                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70">
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70" v-auto-animate>
                                     <EditableTextField :disabled="true" label="Adres">
                                         <template #display>
-                                            <a :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
+                                            <a v-if="selectedLocation" :href="mapsLinkFromCustomer(selectedLocation)"
+                                                target="_blank" class="underline text-lavoro-blue dark:text-slate-200 ">{{
+                                                    selectedLocation.address }}, {{ selectedLocation.postal_code }} {{
+                                                    selectedLocation.city }}
+                                            </a>
+                                            <a v-else :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
                                                 class="underline text-lavoro-blue dark:text-slate-200 ">{{
                                                     serviceOrder.customer.address
                                                 }}, {{
@@ -122,7 +134,7 @@
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
                                         @update="val => { form.external_purchaseorder_no = val; }"
                                         placeholder="Externe referentie" />
-                                    <EditableTextField
+                                    <EditableTextField v-if="!form.location_id"
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         label="Uitvoeringslocatie" v-model="form.execution_location"
                                         @update="val => { form.execution_location = val; }"
@@ -223,18 +235,18 @@
                                                         :class="active ? 'text-white' : 'text-gray-900 dark:text-slate-100'">
                                                         {{ option.subject }}</p>
                                                     <p class="text-xs mt-0.5 sm:truncate"
-                                                        :class="active ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400'">
+                                                        :class="active ? 'text-lavoro-lightblue' : 'text-gray-500 dark:text-slate-400'">
                                                         {{ option.product_type }}: {{ option.asset_name }} ({{
                                                             option.serial_number }})
                                                     </p>
                                                     <p class="text-xs mt-0.5 sm:line-clamp-1"
-                                                        :class="active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-500'">
+                                                        :class="active ? 'text-lavoro-lightblue' : 'text-gray-400 dark:text-slate-500'">
                                                         {{ option.description }}</p>
                                                 </div>
                                                 <div
                                                     class="flex-shrink-0 text-right flex flex-col items-start sm:items-end gap-1">
                                                     <span class="text-xs whitespace-nowrap"
-                                                        :class="active ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'">Sinds
+                                                        :class="active ? 'text-lavoro-lightblue' : 'text-gray-400 dark:text-slate-500'">Sinds
                                                         {{ nlDate(option.created_at) }}</span>
                                                     <span
                                                         :class="[active ? 'bg-white/20 text-white' : ticketPriorityBadgeClass(option.priority), 'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap']">
@@ -252,7 +264,7 @@
                                     <span class="text-sm font-semibold text-gray-700 dark:text-slate-300">Gekoppelde
                                         storingen</span>
                                     <span
-                                        class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold">{{
+                                        class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-lavoro-lightblue dark:bg-lavoro-darkblue/40 text-lavoro-blue dark:text-lavoro-lightblue text-xs font-bold">{{
                                             serviceOrder.tickets.length }}</span>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4" v-auto-animate>
@@ -502,7 +514,7 @@
                                     @click="selectExportItem('werkbon')"
                                     :class="['text-left px-3 py-2 rounded-md text-sm font-medium border transition-colors w-full',
                                         selectedExportItem?.type === 'werkbon'
-                                            ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300'
+                                            ? 'bg-lavoro-lightblue border-lavoro-blue text-lavoro-blue dark:bg-lavoro-darkblue/30 dark:border-lavoro-blue dark:text-lavoro-lightblue'
                                             : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700']">
                                     <div class="flex items-center justify-between gap-2">
                                         <span>Werkbon</span>
@@ -518,7 +530,7 @@
                                         @click="selectExportItem('job', job.id)"
                                         :class="['text-left px-3 py-2 rounded-md text-sm border transition-colors w-full',
                                             selectedExportItem?.type === 'job' && selectedExportItem?.id === job.id
-                                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300'
+                                                ? 'bg-lavoro-lightblue border-lavoro-blue text-lavoro-blue dark:bg-lavoro-darkblue/30 dark:border-lavoro-blue dark:text-lavoro-lightblue'
                                                 : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700']">
                                         <div class="flex items-start justify-between gap-2">
                                             <div>
@@ -588,7 +600,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
-                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
                     }}
                 </p>
@@ -600,7 +612,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Omschrijving</label>
                 <textarea v-model="newTicketForm.description" rows="4" placeholder="Beschrijf het probleem in detail..."
-                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
                 <p v-if="newTicketForm.errors.description" class="mt-1 text-sm text-red-600">{{
                     newTicketForm.errors.description }}</p>
             </div>
@@ -630,14 +642,15 @@ import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses } from '@/Utilities/Utilities';
+import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Check, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
+import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
@@ -755,17 +768,11 @@ const customerAssets = computed(() =>
         const jobs = asset.servicejobs ?? []
         const completed = jobs.map(j => j.completed_on).filter(Boolean).sort()
         return {
-            id: asset.id,
-            name: `${asset.product.brand.name} ${asset.product.model}`,
-            category: asset.product.product_type.name,
-            article_number: asset.product.part_no,
-            serial_number: asset.serial_number,
-            is_bundle: !!asset.product.bundle,
+            ...mapAssetForSelect(asset),
             date_in_service: asset.date_in_service ? nlDate(asset.date_in_service) : null,
             next_service_date: asset.next_service_date ? nlDate(asset.next_service_date) : null,
             last_service_date: completed.length ? nlDate(completed[completed.length - 1]) : null,
             total_servicejobs: jobs.length,
-            thumbnail_url: asset.product.images.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
         }
     })
 );
@@ -805,6 +812,30 @@ const form = useForm({
     ...props.serviceOrder,
     actual_start_time: props.serviceOrder.actual_start_time ? props.serviceOrder.actual_start_time.substring(0, 5) : null,
     actual_end_time: props.serviceOrder.actual_end_time ? props.serviceOrder.actual_end_time.substring(0, 5) : null,
+});
+
+const { locations: locationOptions, load: loadLocations } = useCustomerLocations();
+
+const selectedLocation = computed(() => {
+    if (!form.location_id) return null;
+    const fromOptions = locationOptions.value.find(l => l.id === form.location_id);
+    if (fromOptions) return fromOptions;
+    const saved = props.serviceOrder.location;
+    return saved && saved.id === form.location_id ? saved : null;
+});
+
+const onLocationChange = (value) => {
+    form.location_id = value;
+    if (value) {
+        form.execution_location = null;
+    }
+};
+
+onMounted(() => loadLocations(form.customer_id));
+
+watch(() => form.customer_id, (customerId) => {
+    form.location_id = null;
+    loadLocations(customerId);
 });
 
 function closeViaStage() {
@@ -891,6 +922,7 @@ watch(
         () => form.external_invoice_no,
         () => form.financial_comments,
         () => form.execution_location,
+        () => form.location_id,
         () => form.actual_start_time,
         () => form.actual_end_time,
         () => form.customer_id,

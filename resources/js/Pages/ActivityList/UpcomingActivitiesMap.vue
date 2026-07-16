@@ -3,7 +3,7 @@
         <div id="map" class="w-full h-full"></div>
         <GeocodingStatusOverlay :status="geocodingStatus" :geocoded-count="geocodedCount"
             :total-to-geocode="totalToGeocode" :progress="progress" :failed-geocodes="failedGeocodes"
-            :total="customers.length" />
+            :total="items.length" />
     </div>
 </template>
 
@@ -15,8 +15,8 @@ import { useCustomerMapMarkers } from '@/Composables/useCustomerMapMarkers';
 
 defineOptions({ layout: EmptyLayout });
 
-const { customers } = defineProps({
-    customers: { type: Array, required: true }
+const { items } = defineProps({
+    items: { type: Array, required: true }
 });
 
 const classifyColor = (days) => {
@@ -32,17 +32,18 @@ const classifyColor = (days) => {
     return 'green';
 };
 
-const scrollToCustomer = (customer) => {
+const scrollToCustomer = (item) => {
+    const customerId = item.customer_id ?? item.id;
     setTimeout(() => {
         if (window.opener && window.opener.scrollToCustomer) {
             try {
-                window.opener.scrollToCustomer(customer.id);
+                window.opener.scrollToCustomer(customerId);
             } catch (e) {
                 console.debug('scrollToCustomer failed', e);
             }
         } else if (window.opener) {
             try {
-                window.opener.postMessage({ type: 'scrollToCustomer', id: customer.id }, '*');
+                window.opener.postMessage({ type: 'scrollToCustomer', id: customerId }, '*');
             } catch (e) {
                 console.debug('postMessage scrollToCustomer failed', e);
             }
@@ -51,10 +52,13 @@ const scrollToCustomer = (customer) => {
 };
 
 const { geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
-    items: customers,
+    items,
     markerColor: (c) => c.has_expired_assets ? 'red' : classifyColor(c.next_service_in_days),
     popupComponent: MapPopup,
     onMarkerClick: scrollToCustomer,
+    coordsUrl: (item) => item.type === 'location'
+        ? `/locations/${item.id}/coords`
+        : `/customers/${item.id}/coords`,
 });
 </script>
 

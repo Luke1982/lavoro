@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CustomerSearchRequest;
+use App\Http\Requests\LocationSearchRequest;
 use App\Http\Requests\MaterialSearchRequest;
 use App\Http\Requests\ProductSearchRequest;
 use App\Http\Requests\ServiceOrderSearchRequest;
@@ -21,11 +22,11 @@ class ComboSearchController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $results = Customer::query()
-            ->when($q !== '', fn($query) => $query->where('name', 'like', "%{$q}%"))
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
             ->orderBy('name')
             ->limit(25)
             ->get(['id', 'name', 'city'])
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->city ? "{$c->name} – {$c->city}" : $c->name,
             ]);
@@ -38,7 +39,7 @@ class ComboSearchController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $results = Material::query()
-            ->when($q !== '', fn($query) => $query->where('name', 'like', "%{$q}%"))
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
             ->with('usageUnit')
             ->orderBy('name')
             ->limit(25)
@@ -54,14 +55,14 @@ class ComboSearchController extends Controller
         $results = Product::query()
             ->when(
                 $q !== '',
-                fn($query) => $query->where('model', 'like', "%{$q}%")
-                    ->orWhereHas('brand', fn($bq) => $bq->where('name', 'like', "%{$q}%"))
+                fn ($query) => $query->where('model', 'like', "%{$q}%")
+                    ->orWhereHas('brand', fn ($bq) => $bq->where('name', 'like', "%{$q}%"))
             )
             ->with(['brand', 'productType'])
             ->orderBy('model')
             ->limit(25)
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => "{$p->brand->name} {$p->model} ({$p->productType->name})",
                 'bundle' => $p->bundle,
@@ -77,7 +78,7 @@ class ComboSearchController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $results = Supplier::query()
-            ->when($q !== '', fn($query) => $query->where('name', 'like', "%{$q}%"))
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
             ->orderBy('name')
             ->limit(25)
             ->get(['id', 'name']);
@@ -100,13 +101,36 @@ class ComboSearchController extends Controller
                     $query->orWhere('id', $include_id);
                 }
             })
-            ->when(! $can_read_all, fn($query) => $query->whereHas(
+            ->when(!$can_read_all, fn ($query) => $query->whereHas(
                 'executingUsers',
-                fn($uq) => $uq->where('users.id', $user->id)
+                fn ($uq) => $uq->where('users.id', $user->id)
             ))
             ->orderByDesc('created_at')
             ->limit(50)
             ->get(['id', 'created_at']);
+
+        return response()->json($results);
+    }
+
+    public function locationsForCustomer(LocationSearchRequest $request, Customer $customer): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $results = $customer->locations()
+            ->when($q !== '', fn ($query) => $query->where(fn ($sub) => $sub
+                ->where('title', 'like', "%{$q}%")
+                ->orWhere('location_code', 'like', "%{$q}%")
+                ->orWhere('city', 'like', "%{$q}%")))
+            ->orderBy('title')
+            ->limit(50)
+            ->get(['id', 'title', 'address', 'postal_code', 'city'])
+            ->map(fn ($l) => [
+                'id' => $l->id,
+                'name' => $l->city ? "{$l->title} – {$l->city}" : $l->title,
+                'address' => $l->address,
+                'postal_code' => $l->postal_code,
+                'city' => $l->city,
+            ]);
 
         return response()->json($results);
     }

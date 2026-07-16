@@ -27,8 +27,8 @@ class EventPayloadBuilder
 
         $service_order = $event->serviceOrders->first();
 
-        if (!empty($service_order?->execution_location)) {
-            return $service_order->execution_location;
+        if (!empty($service_order?->resolved_location)) {
+            return $service_order->resolved_location;
         }
 
         if (!empty($service_order?->project?->location)) {

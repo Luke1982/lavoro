@@ -30,6 +30,7 @@ class ServiceOrder extends Model
     protected $fillable = [
         'description',
         'customer_id',
+        'location_id',
         'project_id',
         'maintenance_contract_id',
         'closed_on',
@@ -53,9 +54,9 @@ class ServiceOrder extends Model
         'type' => ServiceOrderTypes::class,
     ];
 
-    protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced'];
+    protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced', 'resolved_location'];
 
-    protected $with = ['serviceOrderStage'];
+    protected $with = ['serviceOrderStage', 'location'];
 
     protected static function booted(): void
     {
@@ -106,9 +107,26 @@ class ServiceOrder extends Model
         return $this->serviceOrderStage?->is_invoiced_state === true;
     }
 
+    public function getResolvedLocationAttribute(): ?string
+    {
+        if ($this->location) {
+            return $this->location->addressLine();
+        }
+        if (!empty($this->execution_location)) {
+            return $this->execution_location;
+        }
+
+        return $this->relationLoaded('project') ? $this->project?->location : null;
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
     }
 
     public function project()
@@ -166,7 +184,7 @@ class ServiceOrder extends Model
     public function advanceToPlannedStage(): void
     {
         $planned = ServiceOrderStage::where('is_planned_state', true)->first();
-        if (! $planned) {
+        if (!$planned) {
             return;
         }
         $current = $this->serviceOrderStage;
@@ -181,7 +199,7 @@ class ServiceOrder extends Model
     public function revertToPlanningCancelledStage(): void
     {
         $cancelled = ServiceOrderStage::where('is_planning_cancelled_state', true)->first();
-        if (! $cancelled) {
+        if (!$cancelled) {
             return;
         }
         $this->service_order_stage_id = $cancelled->id;

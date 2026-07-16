@@ -18,6 +18,7 @@ export function useCustomerMapMarkers({
     mapElementId = 'map',
     center = [52.1, 5.29],
     zoom = 7,
+    coordsUrl = (item) => `/customers/${item.id}/coords`,
 }) {
     const map = ref(null);
     const added = new Set();
@@ -83,7 +84,7 @@ export function useCustomerMapMarkers({
                 item.lat = data.lat;
                 item.lon = data.lon;
                 addMarker(item);
-                await axios.patch(`/customers/${item.id}/coords`, { lat: item.lat, lon: item.lon });
+                await axios.patch(coordsUrl(item), { lat: item.lat, lon: item.lon });
             } else {
                 console.warn('Geocode failed for customer:', item.name, `(ID: ${item.id})`);
                 console.warn('Query sent:', query);

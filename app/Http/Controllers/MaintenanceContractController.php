@@ -67,9 +67,11 @@ class MaintenanceContractController extends Controller
             'customer.assets.product.brand',
             'customer.assets.product.productType',
             'customer.assets.product.images',
+            'customer.assets.location',
             'assets.product.brand',
             'assets.product.productType',
             'assets.product.images',
+            'assets.location',
             'activities' => function ($q) {
                 $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },
@@ -225,11 +227,16 @@ class MaintenanceContractController extends Controller
         MaintenanceContractGenerateServiceOrdersRequest $request,
         MaintenanceContract $maintenancecontract
     ) {
-        $service_order = (new MaintenanceContractServiceOrderGenerator)->generateNowForContract($maintenancecontract);
+        $service_orders = (new MaintenanceContractServiceOrderGenerator)->generateNowForContract($maintenancecontract);
+        $count = count($service_orders);
 
-        $message = $service_order
-            ? "Werkbon #{$service_order->id} aangemaakt."
-            : 'Voeg eerst machines toe aan het contract voordat je een werkbon aanmaakt.';
+        if ($count === 0) {
+            $message = 'Voeg eerst machines toe aan het contract voordat je een werkbon aanmaakt.';
+        } elseif ($count === 1) {
+            $message = "Werkbon #{$service_orders[0]->id} aangemaakt.";
+        } else {
+            $message = "{$count} werkbonnen aangemaakt (één per locatie).";
+        }
 
         return redirect()->back()->with('success', $message);
     }

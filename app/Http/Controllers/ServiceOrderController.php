@@ -17,6 +17,7 @@ use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Mail\ServiceOrderPdfMail;
 use App\Mail\ServiceOrderWithJobsPdfMail;
+use App\Models\Asset;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\GeneralSetting;
@@ -42,6 +43,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class ServiceOrderController extends Controller
 {
@@ -126,6 +128,11 @@ class ServiceOrderController extends Controller
         $serviceorder = ServiceOrder::create($request->validate([
             'customer_id' => 'required|exists:customers,id',
             'project_id' => 'nullable|exists:projects,id',
+            'location_id' => [
+                'nullable',
+                Rule::exists('locations', 'id')
+                    ->where(fn ($q) => $q->where('customer_id', $request->input('customer_id'))),
+            ],
         ]));
         $redirect = 'back';
 
@@ -157,6 +164,15 @@ class ServiceOrderController extends Controller
             $redirect = 'serviceorders.show';
         }
 
+        if (!$serviceorder->location_id && $request->has('assets')) {
+            $location_ids = Asset::whereIn('id', $request->input('assets'))
+                ->pluck('location_id')->filter()->unique();
+            if ($location_ids->count() === 1) {
+                $serviceorder->location_id = $location_ids->first();
+                $serviceorder->save();
+            }
+        }
+
         if ($request->input('json')) {
             return response()->json($serviceorder);
         }
@@ -180,6 +196,7 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'customer.assets.product.brand',
             'customer.assets.product.productType',
+            'customer.assets.location',
             'customer.assets.servicejobs:id,asset_id,completed_on',
             'serviceOrderStage',
             'customer.assets.product.images',
@@ -681,9 +698,9 @@ class ServiceOrderController extends Controller
         $description_text = trim((string) ($serviceorder->description ?? ''));
         $display_timezone = config('app.display_timezone');
         $first_event = $serviceorder->events->sortBy('start')->first();
-        $execution_location = $first_event?->location
-            ?: $serviceorder->execution_location
-            ?: $serviceorder->project?->location;
+        $execution_location = $serviceorder->location_id
+            ? $serviceorder->resolved_location
+            : ($first_event?->location ?: $serviceorder->resolved_location);
         $planned_date = ($first_event?->start ?? $serviceorder->created_at)->copy()->setTimezone($display_timezone);
 
         $executing_users = $serviceorder->events

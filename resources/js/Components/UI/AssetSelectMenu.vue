@@ -19,6 +19,11 @@
                             <p class="text-xs text-gray-400 dark:text-slate-400 truncate">
                                 {{ [model.category, model.article_number].filter(Boolean).join(' • ') }}
                             </p>
+                            <span v-if="model.location"
+                                class="inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium text-lavoro-blue ring-1 ring-inset ring-lavoro-blue/60">
+                                <Target class="size-3 shrink-0" />
+                                <span class="truncate">{{ [model.location.title, model.location.city].filter(Boolean).join(' · ') }}</span>
+                            </span>
                         </div>
                         <div v-else key="empty" class="min-w-0">
                             <p class="text-sm text-gray-400 dark:text-slate-500">{{ placeholder }}</p>
@@ -33,10 +38,18 @@
                 leave-to-class="opacity-0">
                 <ListboxOptions
                     class="absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg outline-1 outline-black/5 dark:outline-white/10 max-h-72 focus:outline-none">
-                    <ListboxOption v-for="asset in assets" :key="asset.id" :value="asset" as="template"
+                    <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 p-2 border-b border-gray-100 dark:border-slate-700">
+                        <input v-model="search" type="text"
+                            placeholder="Zoek op merk, model, serienummer of locatie" @keydown.stop @click.stop
+                            class="w-full rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-lavoro-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-lavoro-blue" />
+                    </div>
+                    <p v-if="!filteredAssets.length" class="px-3 py-4 text-sm text-gray-400 dark:text-slate-500">
+                        Geen machines gevonden.
+                    </p>
+                    <ListboxOption v-for="asset in filteredAssets" :key="asset.id" :value="asset" as="template"
                         v-slot="{ active, selected: isSelected }">
                         <li :class="[
-                            active ? 'bg-indigo-600' : '',
+                            active ? 'bg-lavoro-blue' : '',
                             'flex items-center gap-3 px-3 py-2.5 cursor-default select-none',
                         ]">
                             <img v-if="asset.thumbnail_url" :src="asset.thumbnail_url" :alt="asset.name"
@@ -55,22 +68,29 @@
                                     </span>
                                 </div>
                                 <p :class="[
-                                    active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-400',
+                                    active ? 'text-lavoro-lightblue' : 'text-gray-400 dark:text-slate-400',
                                     'text-xs truncate',
                                 ]">
                                     {{ [asset.category, asset.article_number].filter(Boolean).join(' • ') }}
                                 </p>
                                 <p :class="[
-                                    active ? 'text-indigo-200' : 'text-gray-400 dark:text-slate-400',
+                                    active ? 'text-lavoro-lightblue' : 'text-gray-400 dark:text-slate-400',
                                     'text-xs truncate',
                                 ]">
                                     {{ [asset.serial_number, asset.next_service_date ? 'Keuring: ' +
                                         asset.next_service_date :
                                         null].filter(Boolean).join(' • ') }}
                                 </p>
+                                <span v-if="asset.location" :class="[
+                                    active ? 'text-white ring-white/60' : 'text-lavoro-blue ring-lavoro-blue/60',
+                                    'inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset',
+                                ]">
+                                    <Target class="size-3 shrink-0" />
+                                    <span class="truncate">{{ [asset.location.title, asset.location.city].filter(Boolean).join(' · ') }}</span>
+                                </span>
                             </div>
                             <CheckIcon v-if="isSelected"
-                                :class="[active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400', 'size-5 shrink-0']"
+                                :class="[active ? 'text-white' : 'text-lavoro-blue dark:text-lavoro-blue', 'size-5 shrink-0']"
                                 aria-hidden="true" />
                         </li>
                     </ListboxOption>
@@ -84,6 +104,7 @@
 import { computed, ref } from 'vue'
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/vue'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/vue/20/solid'
+import { Target } from '@lucide/vue'
 
 const props = defineProps({
     assets: {
@@ -107,6 +128,18 @@ const model = defineModel()
 const direction = ref('down')
 const transitionName = computed(() => `asset-label-${direction.value}`)
 
+const search = ref('')
+
+const filteredAssets = computed(() => {
+    const term = search.value.trim().toLowerCase()
+    if (!term) return props.assets
+    return props.assets.filter((a) => {
+        const haystack = [a.brand, a.model, a.serial_number, a.location?.title, a.location?.city]
+            .filter(Boolean).join(' ').toLowerCase()
+        return haystack.includes(term)
+    })
+})
+
 function onSelect(asset) {
     const oldIndex = props.assets.findIndex(a => a.id === model.value?.id)
     const newIndex = props.assets.findIndex(a => a.id === asset?.id)
@@ -120,6 +153,7 @@ function onSelect(asset) {
         model.value = asset
         emit('select', asset)
     }
+    search.value = ''
 }
 </script>
 

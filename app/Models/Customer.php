@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Models\Traits\HasCustomFields;
+use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
-    /** @use HasFactory<\Database\Factories\CustomerFactory> */
-    use HasFactory;
     use HasCustomFields;
+
+    /** @use HasFactory<CustomerFactory> */
+    use HasFactory;
 
     protected $fillable = [
         'snelstart_id',
@@ -39,11 +41,16 @@ class Customer extends Model
         'lon',
     ];
 
-    public int|null $upcoming_asset_days = null;
+    public ?int $upcoming_asset_days = null;
 
     public function assets()
     {
         return $this->hasMany(Asset::class)->orderBy('next_service_date');
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(Location::class)->orderBy('title');
     }
 
     public function activeAssets()
@@ -98,6 +105,7 @@ class Customer extends Model
             'id'
         );
         $relation->getQuery()->where('tickets.status', 'Open');
+
         return $relation;
     }
 
@@ -112,6 +120,7 @@ class Customer extends Model
             'id'
         );
         $relation->getQuery()->where('tickets.status', 'In behandeling');
+
         return $relation;
     }
 
@@ -126,6 +135,7 @@ class Customer extends Model
             'id'
         );
         $relation->getQuery()->where('tickets.status', 'Gesloten');
+
         return $relation;
     }
 

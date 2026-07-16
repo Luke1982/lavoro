@@ -15,6 +15,7 @@ class AssetUpdateRequest extends FormRequest
         if (!$user) {
             return false;
         }
+
         return $user->isAdmin() || $user->hasPermission('asset.update');
     }
 
@@ -28,14 +29,14 @@ class AssetUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'serial_number.unique'    => 'Er bestaat al een machine met dit serienummer voor dit product.',
-            'serial_number.required'  => 'Serienummer is verplicht.',
+            'serial_number.unique' => 'Er bestaat al een machine met dit serienummer voor dit product.',
+            'serial_number.required' => 'Serienummer is verplicht.',
         ];
     }
 
     public function rules(): array
     {
-        $product   = Product::find($this->input('product_id'));
+        $product = Product::find($this->input('product_id'));
         $is_bundle = $product?->bundle ?? false;
 
         $serial_rules = $is_bundle
@@ -46,16 +47,20 @@ class AssetUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique('assets', 'serial_number')
                     ->ignore($this->route('asset')?->id)
-                    ->where(fn($q) => $q->where('product_id', $this->input('product_id'))),
+                    ->where(fn ($q) => $q->where('product_id', $this->input('product_id'))),
             ];
 
         return [
-            'product_id'        => 'required|exists:products,id',
-            'serial_number'     => $serial_rules,
+            'product_id' => 'required|exists:products,id',
+            'serial_number' => $serial_rules,
             'next_service_date' => 'nullable|date',
-            'date_in_service'   => 'nullable|date',
-            'customer_id'       => 'required|exists:customers,id',
-            'status'            => 'required|in:Actief,Niet actief',
+            'date_in_service' => 'nullable|date',
+            'customer_id' => 'required|exists:customers,id',
+            'location_id' => [
+                'nullable',
+                Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
+            ],
+            'status' => 'required|in:Actief,Niet actief',
         ];
     }
 }

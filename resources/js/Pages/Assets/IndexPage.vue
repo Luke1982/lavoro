@@ -45,7 +45,7 @@
     </IndexHeaderComponent>
     <DrawerComponent v-if="canCreate" v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen"
         subtitle="Vul onderstaande velden in om een nieuwe machine toe te voegen.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700" v-auto-animate>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Product</label>
                 <div class="sm:col-span-2">
@@ -64,6 +64,14 @@
                         :searching="customerSearching" @change="searchCustomers"
                         :hasError="Boolean(newAssetForm.errors.customer_id)"
                         :errorMessage="newAssetForm.errors.customer_id" />
+                </div>
+            </div>
+            <div v-if="newAssetLocationOptions.length"
+                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatie</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="newAssetLocationOptions" v-model="newAssetForm.location_id"
+                        placeholder="Geen locatie" />
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
@@ -241,6 +249,7 @@ import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { RotateCcwIcon } from '@lucide/vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
@@ -344,11 +353,19 @@ const { options: customerOptions, searching: customerSearching, search: searchCu
 const newAssetForm = useForm({
     product_id: null,
     customer_id: null,
+    location_id: null,
     serial_number: '',
     date_in_service: todayIso(),
     next_service_date: '',
     is_active: true,
     child_assets: [],
+})
+
+const { locations: newAssetLocationOptions, load: loadNewAssetLocations } = useCustomerLocations()
+
+watch(() => newAssetForm.customer_id, (customerId) => {
+    newAssetForm.location_id = null
+    loadNewAssetLocations(customerId)
 })
 
 const isNewBundle = computed(() => {

@@ -163,8 +163,8 @@ class PlannerExportService
             return $event->location;
         }
 
-        if ($service_order?->execution_location) {
-            return $service_order->execution_location;
+        if ($service_order?->resolved_location) {
+            return $service_order->resolved_location;
         }
 
         if ($project?->location) {

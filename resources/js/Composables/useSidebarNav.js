@@ -5,6 +5,7 @@ import {
     HomeIcon,
     UsersIcon,
     UserIcon,
+    MapPinIcon,
     CubeIcon,
     Square3Stack3DIcon,
     FingerPrintIcon,
@@ -91,6 +92,7 @@ export function useSidebarNav() {
             current: false,
             requiresPermission: 'customer.read',
             children: [
+                { name: 'Locaties', href: '/locations', icon: MapPinIcon, current: false, requiresPermission: 'location.read' },
                 { name: 'Contacten', href: '/contacts', icon: UserIcon, current: false, requiresPermission: 'contact.read' },
                 { name: 'Onderhoudscontracten', href: '/maintenancecontracts', icon: ClipboardDocumentCheckIcon, current: false, requiresPermission: 'maintenancecontract.read' },
             ],

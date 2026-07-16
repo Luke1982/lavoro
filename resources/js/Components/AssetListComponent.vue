@@ -8,7 +8,7 @@
                 class="w-20 flex items-center justify-center bg-slate-600 text-white font-semibold text-sm select-none dark:bg-slate-700">
                 {{ asset.product.product_type.name.slice(0, 2).toUpperCase() }}
             </div>
-            <div class="flex-1 p-4 pr-8">
+            <div class="flex-1 p-4" :class="customerId ? 'pr-16' : 'pr-8'">
                 <div class="flex flex-col text-sm">
                     <Link :href="`/assets/${asset.id}`"
                         class="font-medium text-gray-900 dark:text-slate-100 hover:text-gray-700 dark:hover:text-slate-300 leading-snug line-clamp-2">
@@ -31,6 +31,10 @@
                             <template v-else>SN {{ asset.serial_number }}</template>
                         </span>
                     </div>
+                    <div v-if="asset.location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
+                        <LocateFixed class="h-3.5 w-3.5" />
+                        <span>{{ [asset.location.title, asset.location.city].filter(Boolean).join(' · ') }}</span>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-3">
                     <span v-if="asset.open_tickets.length"
@@ -52,22 +56,90 @@
                     </span>
                 </div>
             </div>
-            <TrashIcon
-                class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer absolute top-2 right-2 opacity-80 hover:opacity-100"
-                @click="deleteAsset(asset.id)" v-tooltip="'Verwijder machine'" />
+            <div class="absolute top-2 right-2 flex items-center gap-2">
+                <LocateFixed v-if="customerId"
+                    class="w-5 h-5 text-slate-500 dark:text-slate-400 cursor-pointer opacity-80 hover:opacity-100 hover:text-lavoro-blue"
+                    @click="openLocateModal(asset)" v-tooltip="'Locatie toewijzen'" />
+                <TrashIcon
+                    class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer opacity-80 hover:opacity-100"
+                    @click="deleteAsset(asset.id)" v-tooltip="'Verwijder machine'" />
+            </div>
         </div>
     </div>
+
+    <ModalDialog v-if="customerId" :open="locateModalOpen" title="Locatie toewijzen" max-width-class="sm:max-w-md"
+        @update:open="locateModalOpen = $event">
+        <div class="space-y-3">
+            <p class="text-sm text-gray-600 dark:text-slate-300">
+                Kies de locatie voor deze machine{{ locateAsset ? ` (${assetLabel(locateAsset)})` : '' }}.
+            </p>
+            <ComboBox :options="locationOptions" v-model="selectedLocationId" placeholder="Geen locatie" />
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="locateModalOpen = false"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="saveLocation" :disabled="savingLocation"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </ModalDialog>
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Link, useForm, router } from '@inertiajs/vue3';
 import { CalendarDaysIcon, HashtagIcon, TrashIcon } from '@heroicons/vue/24/outline';
-defineProps({
+import { LocateFixed } from '@lucide/vue';
+import ModalDialog from '@/Components/UI/ModalDialog.vue';
+import ComboBox from '@/Components/UI/ComboBox.vue';
+
+const props = defineProps({
     assets: {
         type: Array,
         required: true,
     },
+    customerId: {
+        type: Number,
+        default: null,
+    },
+    locations: {
+        type: Array,
+        default: () => [],
+    },
 });
+
+const locationOptions = computed(() => props.locations.map(l => ({ id: l.id, name: l.title })));
+
+const locateModalOpen = ref(false);
+const locateAsset = ref(null);
+const selectedLocationId = ref(null);
+const savingLocation = ref(false);
+
+const assetLabel = (asset) =>
+    `${asset.product?.brand?.name ?? ''} ${asset.product?.model ?? ''}`.trim() || asset.serial_number || `#${asset.id}`;
+
+const openLocateModal = (asset) => {
+    locateAsset.value = asset;
+    selectedLocationId.value = asset.location_id ?? asset.location?.id ?? null;
+    locateModalOpen.value = true;
+};
+
+const saveLocation = () => {
+    if (!locateAsset.value) return;
+    savingLocation.value = true;
+    router.patch(`/assets/${locateAsset.value.id}/location`, { location_id: selectedLocationId.value }, {
+        preserveScroll: true,
+        onFinish: () => {
+            savingLocation.value = false;
+            locateModalOpen.value = false;
+        },
+    });
+};
 
 const dotClasses = (nextServiceDate) => {
     if (!nextServiceDate) {

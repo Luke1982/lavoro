@@ -101,6 +101,11 @@
                     :assets="maintenanceContract.assets" :customer-assets="maintenanceContract.customer.assets || []"
                     :manage-per-asset="maintenanceContract.manage_frequency_per_asset"
                     :interval-options="intervalOptions" />
+                <div v-if="contractLocations.length" class="mt-4 flex flex-wrap items-center gap-1">
+                    <span class="text-xs text-gray-500 dark:text-slate-400 mr-1">Locaties in dit contract:</span>
+                    <BadgeComponent v-for="loc in contractLocations" :key="loc.id" color="gray" :has-dot="false"
+                        :url="`/locations/${loc.id}`">{{ loc.title }}</BadgeComponent>
+                </div>
             </BoxComponent>
 
             <BoxComponent class="mt-4">
@@ -237,6 +242,14 @@ const props = defineProps({
 
 const canUpdate = computed(() => hasPermission('maintenancecontract.update'))
 const canGenerate = computed(() => hasPermission('maintenancecontract.generate'))
+
+const contractLocations = computed(() => {
+    const map = new Map()
+    ;(props.maintenanceContract.assets || []).forEach(a => {
+        if (a.location) map.set(a.location.id, a.location)
+    })
+    return [...map.values()]
+})
 const generating = ref(false)
 
 function generateServiceOrders() {

@@ -83,6 +83,20 @@
                             </EditableTextField>
                         </div>
                     </div>
+                    <div class="w-full md:w-1/2 flex">
+                        <div class="w-1/3 text-xs">Locatie</div>
+                        <div class="w-2/3 mr-0 md:mr-3">
+                            <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
+                                :readonly="!canUpdate" :error="form.errors.location_id"
+                                @revert="form.clearErrors('location_id')">
+                                <template #display>
+                                    <Link v-if="asset.location" :href="`/locations/${asset.location.id}`"
+                                        class="text-blue-600 underline">{{ asset.location.title }}</Link>
+                                    <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie</span>
+                                </template>
+                            </EditableTextField>
+                        </div>
+                    </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="asset" :model-id="asset.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
@@ -339,8 +353,9 @@ import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
+import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import TicketCard from '@/Components/TicketCard.vue';
-import { ref, watch, computed, reactive } from 'vue';
+import { ref, watch, computed, reactive, onMounted } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
@@ -395,6 +410,16 @@ const form = useForm({
     date_in_service: props.asset.date_in_service,
     status: props.asset.status,
     customer_id: props.asset.customer.id,
+    location_id: props.asset.location_id ?? null,
+});
+
+const { locations: locationOptions, load: loadLocations } = useCustomerLocations();
+
+onMounted(() => loadLocations(form.customer_id));
+
+watch(() => form.customer_id, (customerId) => {
+    form.location_id = null;
+    loadLocations(customerId);
 });
 
 const canUpdate = computed(() => hasPermission('asset.update'))
@@ -416,6 +441,7 @@ watch(
         () => form.product_id,
         () => form.status,
         () => form.customer_id,
+        () => form.location_id,
         () => form.serial_number,
         () => form.next_service_date,
         () => form.date_in_service,

@@ -6,6 +6,7 @@ use App\Enums\ServiceOrderTypes;
 use App\Models\GeneralSetting;
 use App\Models\ServiceOrderStage;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Class ServiceOrderUpdateRequest
@@ -23,6 +24,17 @@ class ServiceOrderUpdateRequest extends FormRequest
             || $this->user()->can('complete', $this->route('serviceorder'));
     }
 
+    /**
+     * A linked location is the source of truth for where the work happens, so a
+     * selected location and a free-text execution_location can never coexist.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('location_id')) {
+            $this->merge(['execution_location' => null]);
+        }
+    }
+
     public function rules(): array
     {
         $completion_rules = [
@@ -34,12 +46,16 @@ class ServiceOrderUpdateRequest extends FormRequest
             'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
         ];
 
-        if (! $this->user()->can('update', $this->route('serviceorder'))) {
+        if (!$this->user()->can('update', $this->route('serviceorder'))) {
             return $completion_rules;
         }
 
         $update_rules = [
             'customer_id' => 'required|exists:customers,id',
+            'location_id' => [
+                'nullable',
+                Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
+            ],
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
             'external_invoice_no' => 'nullable|string|max:255',
@@ -59,7 +75,7 @@ class ServiceOrderUpdateRequest extends FormRequest
         $validator->after(function ($validator) {
             $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
 
-            if (! $new_stage) {
+            if (!$new_stage) {
                 return;
             }
 
@@ -69,7 +85,7 @@ class ServiceOrderUpdateRequest extends FormRequest
                 return;
             }
 
-            if (! $this->user()->can('updateStage', [$serviceorder, $new_stage])) {
+            if (!$this->user()->can('updateStage', [$serviceorder, $new_stage])) {
                 $validator->errors()->add(
                     'service_order_stage_id',
                     'Je hebt geen toestemming om de werkbon naar deze fase te verplaatsen.'
@@ -78,7 +94,7 @@ class ServiceOrderUpdateRequest extends FormRequest
                 return;
             }
 
-            if (! $new_stage->is_closed_state) {
+            if (!$new_stage->is_closed_state) {
                 return;
             }
 
