@@ -46,6 +46,7 @@ class PlannerExportService
                 'eventType',
                 'executingUsers',
                 'executions',
+                'linkedLocation',
                 'serviceOrders.customer',
                 'serviceOrders.project',
             ])
@@ -159,6 +160,16 @@ class PlannerExportService
 
     private function location(Event $event, $service_order, $project, $customer): ?string
     {
+        // Same precedence as the Google payload: explicit links beat free text,
+        // and the appointment's own link is more specific than the werkbon's.
+        if ($event->location_id) {
+            return $event->resolved_location;
+        }
+
+        if ($service_order?->location_id) {
+            return $service_order->resolved_location;
+        }
+
         if ($event->location) {
             return $event->location;
         }

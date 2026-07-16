@@ -74,7 +74,7 @@
                             </div>
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
-                                <div class="flex flex-col gap-6 md:pr-8">
+                                <div class="flex flex-col gap-6 md:pr-8" v-auto-animate>
                                     <EditableTextField
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         type="combobox" label="Klant" v-model="form.customer_id"
@@ -103,13 +103,18 @@
                                         label="Extern factuurnummer" v-model="form.external_invoice_no"
                                         @update="val => { form.external_invoice_no = val; }"
                                         placeholder="Extern factuurnummer" />
-                                    <div class="flex flex-col gap-1">
-                                        <span class="text-xs text-gray-400 dark:text-slate-400">Locatie</span>
-                                        <ComboBox :options="locationOptions" v-model="form.location_id"
-                                            :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
-                                            placeholder="Geen locatie (vrije invoer)"
-                                            @update:model-value="onLocationChange" />
-                                    </div>
+                                    <EditableTextField v-if="showLocationPicker"
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        type="combobox" label="Locatie" v-model="form.location_id"
+                                        :options="locationOptions" :error="form.errors.location_id"
+                                        @update="onLocationChange" @revert="form.clearErrors('location_id')">
+                                        <template #display>
+                                            <Link v-if="selectedLocation" :href="`/locations/${selectedLocation.id}`"
+                                                class="underline text-lavoro-blue">{{ selectedLocationLabel }}</Link>
+                                            <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie (vrije
+                                                invoer)</span>
+                                        </template>
+                                    </EditableTextField>
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70" v-auto-animate>
@@ -816,6 +821,8 @@ const form = useForm({
 
 const { locations: locationOptions, load: loadLocations } = useCustomerLocations();
 
+const showLocationPicker = computed(() => locationOptions.value.length > 0 || !!form.location_id);
+
 const selectedLocation = computed(() => {
     if (!form.location_id) return null;
     const fromOptions = locationOptions.value.find(l => l.id === form.location_id);
@@ -823,6 +830,11 @@ const selectedLocation = computed(() => {
     const saved = props.serviceOrder.location;
     return saved && saved.id === form.location_id ? saved : null;
 });
+
+// Combo options carry `name` ("titel – plaats"); the eager-loaded relation carries `title`.
+const selectedLocationLabel = computed(() =>
+    selectedLocation.value ? (selectedLocation.value.name ?? selectedLocation.value.title) : null
+);
 
 const onLocationChange = (value) => {
     form.location_id = value;

@@ -29,7 +29,7 @@ class StandardEmailRenderer
             '{{event_end_date}}' => $event->end?->clone()->timezone('Europe/Amsterdam')->format('d-m-Y') ?? '',
             '{{event_end_time}}' => $event->end?->clone()->timezone('Europe/Amsterdam')->format('H:i') ?? '',
             '{{event_name}}' => $event->name ?? '',
-            '{{event_location}}' => $event->location ?? '',
+            '{{event_location}}' => $event->resolved_location ?? '',
             '{{customer_name}}' => $customer?->name ?? '',
         ];
 

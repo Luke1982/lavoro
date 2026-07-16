@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ResolvesEventLocation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -19,6 +20,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class EventStoreRequest extends FormRequest
 {
+    use ResolvesEventLocation;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -44,6 +47,7 @@ class EventStoreRequest extends FormRequest
             'start' => 'required|date_format:Y-m-d H:i',
             'end' => 'required|date_format:Y-m-d H:i|after_or_equal:start',
             'location' => 'nullable|string|max:255',
+            'location_id' => ['nullable', 'integer', $this->locationRule()],
             'is_preliminary' => 'nullable|boolean',
             'eventable_type' => 'nullable|string|in:\\App\\Models\\ServiceOrder',
             'eventable_id' => 'nullable|exists:service_orders,id',
@@ -69,9 +73,9 @@ class EventStoreRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             if (
-                ! $this->boolean('create_service_order')
-                && ! $this->boolean('no_service_order')
-                && ! $this->filled('eventable_id')
+                !$this->boolean('create_service_order')
+                && !$this->boolean('no_service_order')
+                && !$this->filled('eventable_id')
             ) {
                 $validator->errors()->add('eventable_id', 'Koppel een werkbon aan de afspraak of maak een nieuwe aan.');
             }

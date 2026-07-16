@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ResolvesEventLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EventUpdateRequest extends FormRequest
 {
+    use ResolvesEventLocation;
+
     public function authorize(): bool
     {
         $event = $this->route('event');
@@ -31,6 +34,7 @@ class EventUpdateRequest extends FormRequest
             'start' => ['sometimes', 'date_format:Y-m-d H:i'],
             'end' => ['sometimes', 'date_format:Y-m-d H:i', 'after_or_equal:start'],
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'location_id' => ['sometimes', 'nullable', 'integer', $this->locationRule()],
             'is_preliminary' => ['sometimes', 'boolean'],
             'eventable_type' => ['sometimes', 'nullable', 'string', 'in:\\App\\Models\\ServiceOrder'],
             'eventable_id' => ['sometimes', 'nullable', 'exists:service_orders,id'],

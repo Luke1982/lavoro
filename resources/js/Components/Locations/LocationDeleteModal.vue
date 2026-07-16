@@ -73,14 +73,17 @@ const moveError = ref('');
 
 const assetCount = computed(() => props.location?.assets_count ?? props.location?.assets?.length ?? 0);
 const serviceOrderCount = computed(() => props.location?.service_orders_count ?? 0);
-const totalCount = computed(() => assetCount.value + serviceOrderCount.value);
+const eventCount = computed(() => props.location?.events_count ?? 0);
+const totalCount = computed(() => assetCount.value + serviceOrderCount.value + eventCount.value);
 const locationOptions = computed(() => props.otherLocations.map(l => ({ id: l.id, name: l.title })));
 
 const summary = computed(() => {
     const parts = [];
     if (assetCount.value) parts.push(`${assetCount.value} ${assetCount.value === 1 ? 'machine' : 'machines'}`);
     if (serviceOrderCount.value) parts.push(`${serviceOrderCount.value} ${serviceOrderCount.value === 1 ? 'werkbon' : 'werkbonnen'}`);
-    return parts.join(' en ');
+    if (eventCount.value) parts.push(`${eventCount.value} ${eventCount.value === 1 ? 'afspraak' : 'afspraken'}`);
+    if (parts.length <= 1) return parts.join('');
+    return parts.slice(0, -1).join(', ') + ' en ' + parts[parts.length - 1];
 });
 
 watch(() => props.open, (isOpen) => {

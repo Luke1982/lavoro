@@ -103,6 +103,11 @@
                                 :class="hasPermission('customer.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''">
                                 {{ ticket.asset.customer.name }}
                             </component>
+                            <span v-if="ticket.asset.location">(<component
+                                    :is="hasPermission('location.read') ? Link : 'span'"
+                                    :href="`/locations/${ticket.asset.location.id}`"
+                                    :class="hasPermission('location.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''"
+                                >{{ ticket.asset.location.title }}</component>)</span>
                         </div>
                     </div>
 

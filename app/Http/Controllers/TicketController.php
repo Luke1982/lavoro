@@ -34,6 +34,7 @@ class TicketController extends Controller
         $query = $this->applyTicketFilters(
             Ticket::with([
                 'asset.customer',
+                'asset.location',
                 'asset.product.brand',
                 'asset.product.productType',
             ]),
@@ -288,6 +289,7 @@ class TicketController extends Controller
     {
         $ticket->load([
             'asset.customer',
+            'asset.location',
             'asset.product.productType',
             'asset.product.brand',
             'images',

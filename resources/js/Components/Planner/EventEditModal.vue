@@ -185,8 +185,26 @@
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Locatie</span>
                             </div>
-                            <TextInput v-model="form.location" label="" type="text" class="w-full"
-                                placeholder="Zoek locatie..." />
+                            <div class="flex items-center gap-2" v-auto-animate>
+                                <TextInput v-if="locationMode === 'freeform'" v-model="form.location" label=""
+                                    type="text" class="flex-1 min-w-0" placeholder="Zoek locatie..." />
+                                <ComboBox v-else v-model="selectedLocationId" :options="locationOptions"
+                                    :initial-id="selectedLocationId" class="flex-1 min-w-0"
+                                    placeholder="Kies een locatie" @update:model-value="onLocationPicked" />
+
+                                <button v-if="locationMode === 'freeform' && hasLocations" type="button"
+                                    @click="switchToPickerLocation"
+                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
+                                    v-tooltip="'Kies een locatie van deze klant'">
+                                    <LocateFixed class="size-5" />
+                                </button>
+                                <button v-if="locationMode === 'picker'" type="button"
+                                    @click="switchToFreeformLocation"
+                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
+                                    v-tooltip="'Vrije invoer'">
+                                    <PencilSquareIcon class="size-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -382,13 +400,15 @@ import {
     XMarkIcon, CalendarDaysIcon, TagIcon, CheckCircleIcon, DocumentTextIcon,
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
     UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon, EnvelopeIcon,
+    PencilSquareIcon,
 } from '@heroicons/vue/24/outline'
-import { ClockFading as ClockFadingIcon, MailQuestionMark, SendHorizontal } from '@lucide/vue'
+import { ClockFading as ClockFadingIcon, LocateFixed, MailQuestionMark, SendHorizontal } from '@lucide/vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import { formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import { useCustomerLocations } from '@/Composables/useCustomerLocations'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 
 const props = defineProps({
@@ -439,6 +459,7 @@ const form = useForm({
     eventable_id: props.initial.eventable_id || '',
     customer_id: props.initial.customer_id || null,
     location: props.initial.location || '',
+    location_id: props.initial.location_id || null,
     executing_user_ids: props.initial.executing_user_ids || [],
     create_service_order: false,
     no_service_order: props.initial.no_service_order || false,
@@ -501,6 +522,55 @@ const selectedCustomer = ref(
     || props.allCustomers[0]?.id
     || null
 )
+
+/**
+ * An appointment is either at one of the customer's locations (location_id) or
+ * at a free-text address. Picking a location also writes its address into the
+ * free-text field, so consumers that read `location` keep working; the link
+ * stays the source of truth. The picker is only offered when the selected
+ * customer actually has locations.
+ */
+const { locations: locationOptions, load: loadCustomerLocations } = useCustomerLocations()
+const hasLocations = computed(() => locationOptions.value.length > 0)
+const locationMode = ref(props.initial.location_id ? 'picker' : 'freeform')
+const selectedLocationId = ref(props.initial.location_id || null)
+
+const locationAddress = (loc) => [loc.address, [loc.postal_code, loc.city].filter(Boolean).join(' ')]
+    .map(part => (part || '').trim())
+    .filter(Boolean)
+    .join(', ')
+
+function onLocationPicked(id) {
+    selectedLocationId.value = id
+    form.location_id = id
+    const loc = locationOptions.value.find(l => l.id === id)
+    if (loc) {
+        form.location = locationAddress(loc)
+    }
+}
+
+function switchToPickerLocation() {
+    locationMode.value = 'picker'
+}
+
+function switchToFreeformLocation() {
+    locationMode.value = 'freeform'
+    selectedLocationId.value = null
+    form.location_id = null
+}
+
+watch(selectedCustomer, (id) => {
+    switchToFreeformLocation()
+    loadCustomerLocations(id)
+})
+
+watch(hasLocations, (has) => {
+    if (!has && locationMode.value === 'picker') {
+        switchToFreeformLocation()
+    }
+})
+
+onMounted(() => loadCustomerLocations(selectedCustomer.value))
 
 const serviceOrderResults = ref([])
 

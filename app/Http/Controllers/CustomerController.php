@@ -95,7 +95,7 @@ class CustomerController extends Controller
             'customFields',
             'contacts',
             'maintenanceContracts',
-            'locations' => fn ($q) => $q->withCount(['assets', 'serviceOrders']),
+            'locations' => fn ($q) => $q->withCount(['assets', 'serviceOrders', 'events']),
         ]);
 
         $user = Auth::user();

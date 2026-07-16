@@ -36,6 +36,11 @@ class Location extends Model
         return $this->hasMany(ServiceOrder::class);
     }
 
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
+
     public function addressLine(): string
     {
         return collect([$this->address, trim($this->postal_code . ' ' . $this->city)])

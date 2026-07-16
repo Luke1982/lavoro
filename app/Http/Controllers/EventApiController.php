@@ -83,6 +83,9 @@ class EventApiController extends Controller
 
         $base->where(function ($query) use ($q, $is_numeric_q) {
             $query->where('location', 'like', "%{$q}%")
+                ->orWhereHas('linkedLocation', fn ($lq) => $lq->where('title', 'like', "%{$q}%")
+                    ->orWhere('address', 'like', "%{$q}%")
+                    ->orWhere('city', 'like', "%{$q}%"))
                 ->orWhereHas('customers', fn ($sq) => $sq->where('name', 'like', "%{$q}%"))
                 ->orWhereHas('serviceOrders', function ($sq) use ($q, $is_numeric_q) {
                     $sq->where(function ($ssq) use ($q, $is_numeric_q) {
@@ -124,7 +127,7 @@ class EventApiController extends Controller
         return [
             'id' => $event->id,
             'start' => $event->start,
-            'location' => $event->location,
+            'location' => $event->resolved_location,
             'description' => $event->description,
             'event_type_name' => $event->eventType?->name,
             'color' => $event->eventType?->color ?? '#3b82f6',
@@ -370,6 +373,7 @@ class EventApiController extends Controller
                 'start' => $event->start->copy()->addDays($days),
                 'end' => $event->end->copy()->addDays($days),
                 'location' => $event->location,
+                'location_id' => $event->location_id,
                 'is_preliminary' => $event->is_preliminary,
             ]);
 

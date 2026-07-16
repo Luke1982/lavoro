@@ -2,12 +2,15 @@
 
 namespace App\Services\Google;
 
+use App\Jobs\Google\PushEventJob;
 use App\Models\Event;
+use App\Models\EventType;
 use App\Models\GoogleSyncedCalendar;
 use App\Models\GoogleSyncedEvent;
 use App\Models\User;
 use Carbon\Carbon;
 use Google\Service\Calendar\Event as GoogleEvent;
+use Google\Service\Calendar\EventDateTime;
 use Illuminate\Support\Facades\Log;
 
 class IncomingChangeHandler
@@ -15,8 +18,7 @@ class IncomingChangeHandler
     public function __construct(
         private GoogleCalendarApi $api,
         private EventPayloadBuilder $payload_builder,
-    ) {
-    }
+    ) {}
 
     public function apply(GoogleEvent $g_event, GoogleSyncedCalendar $cal): void
     {
@@ -42,16 +44,19 @@ class IncomingChangeHandler
         if (!$event) {
             $this->api->deleteEvent($cal->integration, $cal->google_calendar_id, $g_event->getId());
             $mapping->delete();
+
             return;
         }
 
         if ($g_event->getStatus() === 'cancelled') {
             $this->handleDeletion($event, $cal, $mapping, $actor);
+
             return;
         }
 
         if ($event->trashed()) {
             $this->handleUncancel($event, $cal, $mapping, $actor);
+
             return;
         }
 
@@ -65,6 +70,7 @@ class IncomingChangeHandler
     {
         if ($actor->can('update', $event)) {
             $event->restore();
+
             return;
         }
         $this->api->deleteEvent($cal->integration, $cal->google_calendar_id, $mapping->google_event_id);
@@ -75,6 +81,7 @@ class IncomingChangeHandler
     {
         if ($actor->can('delete', $event)) {
             $event->delete();
+
             return;
         }
         $payload = $this->payload_builder->build($event);
@@ -97,6 +104,7 @@ class IncomingChangeHandler
                 'start' => $changed['new_start'],
                 'end' => $changed['new_end'],
             ]);
+
             return;
         }
         $this->correctivePush($event, $cal, $mapping);
@@ -112,20 +120,32 @@ class IncomingChangeHandler
         if ($event->origin === 'lavoro') {
             $this->correctivePush($event, $cal, $mapping);
             $this->logRevert($event, $actor, 'text-lavoro-origin');
+
             return;
         }
 
         if (!$actor->can('update', $event)) {
             $this->correctivePush($event, $cal, $mapping);
             $this->logRevert($event, $actor, 'text-unauthorized');
+
             return;
         }
 
+        /**
+         * Location is owned by Lavoro and is never accepted from Google: it may
+         * be derived from a linked location, and letting a calendar edit win
+         * would silently diverge from the werkbon/appointment it belongs to.
+         * Name and description are still fair game.
+         */
         $event->update([
             'name' => $changed['new_name'],
             'description' => $changed['new_description'],
-            'location' => $changed['new_location'],
         ]);
+
+        if ($changed['location']) {
+            $this->correctivePush($event, $cal, $mapping);
+            $this->logRevert($event, $actor, 'location-owned-by-lavoro');
+        }
     }
 
     private function applyToNew(GoogleEvent $g_event, GoogleSyncedCalendar $cal, User $actor): void
@@ -140,6 +160,7 @@ class IncomingChangeHandler
             Log::warning('Refused incoming Google event — calendar owner user not found', [
                 'cal_id' => $cal->id,
             ]);
+
             return;
         }
 
@@ -153,6 +174,7 @@ class IncomingChangeHandler
                 'cal_id' => $cal->id,
                 'actor_id' => $actor->id,
             ]);
+
             return;
         }
 
@@ -161,25 +183,26 @@ class IncomingChangeHandler
 
         $event_type_id = config('google.default_event_type_id');
         if (!$event_type_id) {
-            $event_type = \App\Models\EventType::first();
+            $event_type = EventType::first();
             if (!$event_type) {
                 $this->api->deleteEvent($cal->integration, $cal->google_calendar_id, $g_event->getId());
                 Log::warning('Refused incoming Google event — no EventType available', [
                     'cal_id' => $cal->id,
                 ]);
+
                 return;
             }
             $event_type_id = $event_type->id;
         }
 
-        $event = \App\Models\Event::withoutEvents(function () use (
+        $event = Event::withoutEvents(function () use (
             $g_event,
             $start,
             $end,
             $event_type_id,
             $owner_user
         ) {
-            $event = \App\Models\Event::create([
+            $event = Event::create([
                 'name' => $g_event->getSummary() ?? '(geen titel)',
                 'description' => $g_event->getDescription(),
                 'location' => $g_event->getLocation(),
@@ -191,6 +214,7 @@ class IncomingChangeHandler
             ]);
             $event->owners()->attach($owner_user->id, ['type' => 'owner']);
             $event->executingUsers()->attach($owner_user->id, ['type' => 'executing']);
+
             return $event;
         });
 
@@ -202,7 +226,7 @@ class IncomingChangeHandler
             'last_pushed_at' => now(),
         ]);
 
-        \App\Jobs\Google\PushEventJob::dispatch($event->id);
+        PushEventJob::dispatch($event->id);
     }
 
     private function detectFieldChanges(Event $event, GoogleEvent $g_event): array
@@ -236,11 +260,12 @@ class IncomingChangeHandler
         ]);
     }
 
-    private function parseGoogleDateTime(\Google\Service\Calendar\EventDateTime $dt): Carbon
+    private function parseGoogleDateTime(EventDateTime $dt): Carbon
     {
         if ($dt->getDateTime()) {
             return Carbon::parse($dt->getDateTime());
         }
+
         return Carbon::parse($dt->getDate() . 'T00:00:00', 'Europe/Amsterdam');
     }
 

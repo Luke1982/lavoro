@@ -119,15 +119,23 @@
                     </Link>
                 </div>
                 <div class="col-span-2 items-center hidden lg:flex pr-2">
-                    <Link :href="`/customers/${ticket.asset.customer.id}`" class="text-lavoro-darkerblue underline">
-                        {{ ticket.asset.customer.name }}
-                    </Link>
+                    <div class="flex flex-col min-w-0">
+                        <Link :href="`/customers/${ticket.asset.customer.id}`"
+                            class="text-lavoro-darkerblue underline truncate">
+                            {{ ticket.asset.customer.name }}
+                        </Link>
+                        <Link v-if="ticket.asset.location" :href="`/locations/${ticket.asset.location.id}`"
+                            class="text-xs text-lavoro-blue truncate"
+                            :title="ticket.asset.location.title">
+                            {{ ticket.asset.location.title }}
+                        </Link>
+                    </div>
                 </div>
                 <div class="col-span-3 items-center hidden lg:flex pr-2">
-                    <a v-if="ticket.asset.customer.address" :href="mapsLinkFromCustomer(ticket.asset.customer)"
+                    <a v-if="addressSource(ticket).address" :href="mapsLinkFromCustomer(addressSource(ticket))"
                         target="_blank" rel="noopener"
-                        class="text-lavoro-darkerblue underline truncate" :title="fullAddress(ticket.asset.customer)">
-                        {{ fullAddress(ticket.asset.customer) }}
+                        class="text-lavoro-darkerblue underline truncate" :title="fullAddress(addressSource(ticket))">
+                        {{ fullAddress(addressSource(ticket)) }}
                     </a>
                     <span v-else class="text-slate-400">&mdash;</span>
                 </div>
@@ -380,8 +388,16 @@ function updatePriority(ticket, value) {
     router.patch(`/tickets/${ticket.id}`, { priority: value }, { preserveScroll: true, preserveState: true })
 }
 
-function fullAddress(customer) {
-    return [customer.address, customer.postal_code, customer.city].filter(Boolean).join(' ')
+/**
+ * A ticket's work happens at the asset's location when it has one, otherwise at
+ * the customer's own address. Both shapes carry address/postal_code/city.
+ */
+function addressSource(ticket) {
+    return ticket.asset.location ?? ticket.asset.customer
+}
+
+function fullAddress(addressable) {
+    return [addressable.address, addressable.postal_code, addressable.city].filter(Boolean).join(' ')
 }
 
 function openMap() {

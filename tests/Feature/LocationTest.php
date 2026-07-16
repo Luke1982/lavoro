@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\Event;
 use App\Models\Location;
 use App\Models\MaintenanceContract;
 use App\Models\Permission;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use App\Services\Google\EventPayloadBuilder;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -185,6 +187,199 @@ class LocationTest extends TestCase
         $fresh = $order->fresh();
         $this->assertEquals($location->id, $fresh->location_id);
         $this->assertNull($fresh->execution_location);
+    }
+
+    public function test_google_payload_uses_the_werkbon_location_over_the_event_free_text(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'address' => 'Dorpsstraat 1',
+            'postal_code' => '1234AB',
+            'city' => 'Utrecht',
+        ]);
+        $order = ServiceOrder::factory()->create([
+            'customer_id' => $customer->id,
+            'location_id' => $location->id,
+        ]);
+        $event = Event::factory()->create(['location' => 'Oude vrije invoer']);
+        $event->serviceOrders()->attach($order->id);
+
+        $payload = app(EventPayloadBuilder::class)->build($event->fresh());
+
+        $this->assertEquals('Dorpsstraat 1, 1234AB Utrecht', $payload['location']);
+    }
+
+    public function test_google_payload_falls_back_to_the_event_location_without_a_werkbon_location(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = ServiceOrder::factory()->create([
+            'customer_id' => $customer->id,
+            'location_id' => null,
+        ]);
+        $event = Event::factory()->create(['location' => 'Vrije invoer']);
+        $event->serviceOrders()->attach($order->id);
+
+        $payload = app(EventPayloadBuilder::class)->build($event->fresh());
+
+        $this->assertEquals('Vrije invoer', $payload['location']);
+    }
+
+    public function test_event_resolved_location_prefers_its_linked_location(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'address' => 'Kerkweg 9',
+            'postal_code' => '9999ZZ',
+            'city' => 'Groningen',
+        ]);
+        $event = Event::factory()->create([
+            'location' => 'Oude tekst',
+            'location_id' => $location->id,
+        ]);
+
+        $this->assertEquals('Kerkweg 9, 9999ZZ Groningen', $event->fresh()->resolved_location);
+    }
+
+    public function test_google_payload_prefers_the_events_own_linked_location(): void
+    {
+        $customer = Customer::factory()->create();
+        $order_location = Location::factory()->create(['customer_id' => $customer->id, 'address' => 'Werkbonweg 1']);
+        $event_location = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'address' => 'Afspraakweg 2',
+            'postal_code' => '1111AA',
+            'city' => 'Assen',
+        ]);
+        $order = ServiceOrder::factory()->create([
+            'customer_id' => $customer->id,
+            'location_id' => $order_location->id,
+        ]);
+        $event = Event::factory()->create([
+            'location' => 'Vrije tekst',
+            'location_id' => $event_location->id,
+        ]);
+        $event->serviceOrders()->attach($order->id);
+
+        $payload = app(EventPayloadBuilder::class)->build($event->fresh());
+
+        $this->assertEquals('Afspraakweg 2, 1111AA Assen', $payload['location']);
+    }
+
+    public function test_deleting_a_location_moves_events_to_the_target(): void
+    {
+        $customer = Customer::factory()->create();
+        $from = Location::factory()->create(['customer_id' => $customer->id]);
+        $to = Location::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create(['location_id' => $from->id]);
+
+        $this->actingAs($this->admin())
+            ->delete("/locations/{$from->id}", ['disposition' => 'move', 'target_location_id' => $to->id])
+            ->assertRedirect();
+
+        $this->assertEquals($to->id, $event->fresh()->location_id);
+    }
+
+    public function test_deleting_a_location_detaches_events(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create(['location_id' => $location->id]);
+
+        $this->actingAs($this->admin())
+            ->delete("/locations/{$location->id}", ['disposition' => 'detach'])
+            ->assertRedirect();
+
+        $this->assertNull($event->fresh()->location_id);
+    }
+
+    public function test_copying_an_event_keeps_its_linked_location(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create(['customer_id' => $customer->id]);
+        $order = ServiceOrder::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create(['location_id' => $location->id]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->postJson("/api/events/{$event->id}/copy", ['offsets' => [7]])
+            ->assertSuccessful();
+
+        $copy = Event::where('id', '!=', $event->id)->latest('id')->first();
+        $this->assertNotNull($copy);
+        $this->assertEquals($location->id, $copy->location_id);
+    }
+
+    public function test_event_location_must_belong_to_the_events_customer(): void
+    {
+        $customer = Customer::factory()->create();
+        $other = Customer::factory()->create();
+        $foreign = Location::factory()->create(['customer_id' => $other->id]);
+        $order = ServiceOrder::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create();
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/events/{$event->id}", ['location_id' => $foreign->id])
+            ->assertJsonValidationErrors('location_id');
+
+        $this->assertNull($event->fresh()->location_id);
+    }
+
+    public function test_event_location_is_rejected_when_no_customer_can_be_resolved(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create();
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/events/{$event->id}", ['location_id' => $location->id])
+            ->assertJsonValidationErrors('location_id');
+
+        $this->assertNull($event->fresh()->location_id);
+    }
+
+    public function test_linking_a_location_to_an_event_clears_its_free_text(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create(['customer_id' => $customer->id]);
+        $order = ServiceOrder::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create(['location' => 'Oude tekst']);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/events/{$event->id}", [
+                'location_id' => $location->id,
+                'location' => 'Zou genegeerd moeten worden',
+            ])->assertSuccessful();
+
+        $fresh = $event->fresh();
+        $this->assertEquals($location->id, $fresh->location_id);
+        $this->assertNull($fresh->location);
+    }
+
+    public function test_event_search_finds_and_shows_a_linked_location(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'title' => 'Vestiging Zwolle',
+            'address' => 'Industrieweg 5',
+            'postal_code' => '8000AA',
+            'city' => 'Zwolle',
+        ]);
+        Event::factory()->create([
+            'location' => null,
+            'location_id' => $location->id,
+            'start' => now()->addDay(),
+            'end' => now()->addDay()->addHour(),
+        ]);
+
+        $this->actingAs($this->admin())
+            ->getJson('/api/events/search?q=Industrieweg')
+            ->assertOk()
+            ->assertJsonFragment(['location' => 'Industrieweg 5, 8000AA Zwolle']);
     }
 
     public function test_manual_generation_creates_one_order_per_location(): void

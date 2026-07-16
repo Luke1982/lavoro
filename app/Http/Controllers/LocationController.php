@@ -17,7 +17,7 @@ class LocationController extends Controller
         $customer_id = $request->input('customer_id');
 
         $locations = Location::with('customer:id,name')
-            ->withCount(['assets', 'serviceOrders'])
+            ->withCount(['assets', 'serviceOrders', 'events'])
             ->when($customer_id, fn ($query) => $query->where('customer_id', $customer_id))
             ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
@@ -41,7 +41,7 @@ class LocationController extends Controller
             'customer:id,name',
             'assets.product.brand',
             'assets.product.productType',
-        ])->loadCount('serviceOrders');
+        ])->loadCount(['serviceOrders', 'events']);
 
         return inertia('Locations/ShowPage', [
             'location' => $location,
@@ -69,6 +69,7 @@ class LocationController extends Controller
 
         $location->assets()->update(['location_id' => $target]);
         $location->serviceOrders()->update(['location_id' => $target]);
+        $location->events()->update(['location_id' => $target]);
 
         $location->delete();
 

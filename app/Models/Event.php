@@ -30,6 +30,7 @@ class Event extends Model
         'end',
         'status',
         'location',
+        'location_id',
         'origin',
         'is_preliminary',
         'no_service_order',
@@ -42,6 +43,11 @@ class Event extends Model
         'no_service_order' => 'boolean',
     ];
 
+    protected $appends = ['resolved_location'];
+
+    /** Kept eager so the appended resolved_location can never trigger an N+1. */
+    protected $with = ['linkedLocation'];
+
     public static function statusses()
     {
         return EventStatusses::comboBoxArray();
@@ -49,7 +55,7 @@ class Event extends Model
 
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        if (! $user || $user->hasPermission('event.see_all')) {
+        if (!$user || $user->hasPermission('event.see_all')) {
             return $query;
         }
 
@@ -62,6 +68,29 @@ class Event extends Model
     public function eventType()
     {
         return $this->belongsTo(EventType::class);
+    }
+
+    /**
+     * The linked customer location. Deliberately not named `location()`: that
+     * name is already taken by the free-text `location` column, which would
+     * shadow the relation on attribute access.
+     */
+    public function linkedLocation()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    /**
+     * Where this appointment happens: a linked location's address wins over the
+     * free-text location, which is only a snapshot.
+     */
+    public function getResolvedLocationAttribute(): ?string
+    {
+        if ($this->linkedLocation) {
+            return $this->linkedLocation->addressLine();
+        }
+
+        return $this->location ?: null;
     }
 
     public function serviceOrders()

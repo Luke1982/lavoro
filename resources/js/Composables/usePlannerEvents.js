@@ -43,8 +43,14 @@ function mapEvent(ev) {
         is_incomplete: ev.service_orders?.[0]?.is_incomplete ?? false,
         is_invoiced: ev.service_orders?.[0]?.is_invoiced ?? false,
         from_google: ev.origin === "google",
-        location: ev.location
-            || ev.service_orders?.[0]?.execution_location
+        location_id: ev.location_id ?? null,
+        // Mirrors the backend chain (EventPayloadBuilder / PlannerExportService):
+        // this appointment's linked location, then the werkbon's linked location,
+        // then free text, then the werkbon's / project's / customer's address.
+        location: (ev.location_id ? ev.resolved_location : null)
+            || (ev.service_orders?.[0]?.location_id ? ev.service_orders?.[0]?.resolved_location : null)
+            || ev.location
+            || ev.service_orders?.[0]?.resolved_location
             || ev.service_orders?.[0]?.project?.location
             || [customer?.address, customer?.city].filter(Boolean).join(', ')
             || null,
