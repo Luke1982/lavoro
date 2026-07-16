@@ -45,6 +45,7 @@ class ServiceOrderUpdateRequest extends FormRequest
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
             'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
+            'work_completed' => 'sometimes|boolean',
         ];
 
         if (!$this->user()->can('update', $this->route('serviceorder'))) {
@@ -123,6 +124,8 @@ class ServiceOrderUpdateRequest extends FormRequest
 
     public function withValidator($validator): void
     {
+        $this->guardWorkCompleted($validator);
+
         $validator->after(function ($validator) {
             $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
 
@@ -177,6 +180,35 @@ class ServiceOrderUpdateRequest extends FormRequest
                     'De werkbon moet ondertekend zijn door de klant voordat deze gesloten kan worden.'
                 );
             }
+        });
+    }
+
+    /**
+     * Whether the work on site is finished is a record of what the engineer found, so it
+     * freezes along with the rest of the werkbon once it closes. The stage change that
+     * closes the order may still carry it, since the order is only closed after this.
+     */
+    private function guardWorkCompleted($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (!$this->has('work_completed')) {
+                return;
+            }
+
+            $serviceorder = $this->route('serviceorder');
+
+            if (!$serviceorder->is_closed) {
+                return;
+            }
+
+            if ($this->boolean('work_completed') === (bool) $serviceorder->work_completed) {
+                return;
+            }
+
+            $validator->errors()->add(
+                'work_completed',
+                'De werkbon is gesloten. Je kunt niet meer wijzigen of de werkzaamheden gereed zijn.'
+            );
         });
     }
 

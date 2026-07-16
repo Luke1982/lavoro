@@ -45,13 +45,24 @@ class ServiceOrder extends Model
         'actual_start_time',
         'actual_end_time',
         'service_order_stage_id',
+        'work_completed',
         'type',
     ];
 
     protected $casts = [
         'sent_to_administration' => 'boolean',
         'sent_to_customer' => 'boolean',
+        'work_completed' => 'boolean',
         'type' => ServiceOrderTypes::class,
+    ];
+
+    /**
+     * Work being finished is the normal outcome, so the switch starts on and is turned
+     * off for the exception. Repeating the column default here keeps a fresh instance in
+     * step with it, so the switch never sees the null it renders as a third state.
+     */
+    protected $attributes = [
+        'work_completed' => true,
     ];
 
     protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced'];

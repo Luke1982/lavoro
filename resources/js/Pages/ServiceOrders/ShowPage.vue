@@ -635,7 +635,8 @@
     </DrawerComponent>
 
     <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
-        :all-task-instances="allTaskInstances" :user-roles="userRoles" @confirm="handleSignatureConfirm" />
+        :all-task-instances="allTaskInstances" :user-roles="userRoles" @confirm="handleSignatureConfirm"
+        @update-work-completed="updateWorkCompleted" />
 
     <CustomerTransferModal v-model:open="showTransferModal" context="serviceorder"
         :subject-id="serviceOrder.id" :customer-id="form.customer_id"
@@ -866,6 +867,19 @@ function closeViaStage() {
         return
     }
     onStageChange(props.closedStageId)
+}
+
+function updateWorkCompleted(work_completed) {
+    useForm({
+        customer_id: props.serviceOrder.customer.id,
+        work_completed,
+    }).patch(`/serviceorders/${props.serviceOrder.id}`, {
+        preserveScroll: true,
+        onError: (errors) => {
+            const msg = errors.work_completed || Object.values(errors)[0]
+            if (msg) usePage().props.flash.error = msg
+        },
+    })
 }
 
 function handleSignatureConfirm({ signed_by, signature_base64 }) {

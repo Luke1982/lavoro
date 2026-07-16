@@ -32,6 +32,21 @@
             </div>
 
             <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-slate-100">Werkzaamheden gereed</h3>
+                        <p class="text-sm text-gray-500 dark:text-slate-400">
+                            {{ serviceOrder.is_closed
+                                ? 'De werkbon is gesloten, dit kan niet meer worden gewijzigd.'
+                                : 'Zet uit als er op locatie nog werk te doen is.' }}
+                        </p>
+                    </div>
+                    <SwitchComponent :model-value="serviceOrder.work_completed" :disabled="serviceOrder.is_closed"
+                        @update:modelValue="(v) => emit('update-work-completed', v)" />
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
                 <h3 class="font-bold text-gray-900 dark:text-slate-100 mb-3">Handtekening</h3>
 
                 <div v-if="isSigned && !isResigning">
@@ -76,6 +91,7 @@ import RemarksComponent from '@/Components/RemarksComponent.vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 
@@ -86,7 +102,7 @@ const props = defineProps({
     userRoles: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:open', 'confirm']);
+const emit = defineEmits(['update:open', 'confirm', 'update-work-completed']);
 
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 

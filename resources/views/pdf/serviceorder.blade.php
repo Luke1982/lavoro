@@ -457,6 +457,10 @@
                             <td class="label">Naam:</td>
                             <td>{{ $serviceOrder->signed_by ?? '—' }}</td>
                         </tr>
+                        <tr>
+                            <td class="label" style="white-space:nowrap;">Werkzaamheden gereed:</td>
+                            <td>{{ $serviceOrder->work_completed ? 'Ja' : 'Nee' }}</td>
+                        </tr>
                     </table>
                 </td>
                 <td>
