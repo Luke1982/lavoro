@@ -4,11 +4,11 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AssetRelationDestroyRequest extends FormRequest
+class AssetDetachParentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('delete', $this->route('assetrelation'));
+        return $this->user()->can('detachParent', $this->route('asset'));
     }
 
     public function rules(): array

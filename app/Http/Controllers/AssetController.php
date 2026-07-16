@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssetAttachChildRequest;
 use App\Http\Requests\AssetChildStoreRequest;
 use App\Http\Requests\AssetDestroyRequest;
+use App\Http\Requests\AssetDetachParentRequest;
 use App\Http\Requests\AssetReadRequest;
 use App\Http\Requests\AssetStoreRequest;
+use App\Http\Requests\AssetTransferPreviewRequest;
 use App\Http\Requests\AssetUpdateLocationRequest;
 use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
-use App\Models\AssetRelation;
 use App\Models\Customer;
+use App\Models\Location;
 use App\Models\Product;
 use App\Models\Productable;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
+use App\Services\AssetTransferService;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
 use Illuminate\Support\Facades\DB;
@@ -139,19 +143,15 @@ class AssetController extends Controller
                     continue;
                 }
 
-                $childAsset = Asset::create([
+                Asset::create([
                     'product_id' => $productable->productable_id,
-                    'customer_id' => $validated['customer_id'],
+                    'customer_id' => null,
+                    'parent_asset_id' => $asset->id,
+                    'productable_id' => $productable->id,
+                    'product_relation_id' => $productable->product_relation_id,
                     'serial_number' => $childData['serial_number'],
                     'next_service_date' => $validated['next_service_date'] ?? null,
                     'status' => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
-                ]);
-
-                AssetRelation::create([
-                    'parent_asset_id' => $asset->id,
-                    'child_asset_id' => $childAsset->id,
-                    'productable_id' => $productable->id,
-                    'product_relation_id' => $productable->product_relation_id,
                 ]);
             }
 
@@ -206,17 +206,17 @@ class AssetController extends Controller
             'linkedLocation',
             'servicejobs',
             'customFields',
-            'childAssetRelations.childAsset.product.brand',
-            'childAssetRelations.childAsset.product.productType',
-            'childAssetRelations.productable.productRelation',
-            'parentAssetRelations.parentAsset.product.brand',
-            'parentAssetRelations.parentAsset.product.productType',
-            'parentAssetRelations.productable.productRelation',
+            'childAssets.product.brand',
+            'childAssets.product.productType',
+            'childAssets.productRelation',
+            'parentAsset.product.brand',
+            'parentAsset.product.productType',
+            'parentAsset.productRelation',
             'maintenanceContracts.customer',
         ]);
 
         $currentTypeId = $asset->product?->productType?->id;
-        $existingChildIds = $asset->childAssetRelations()->pluck('child_asset_id')->all();
+        $existingChildIds = $asset->childAssets()->pluck('id')->all();
         $eligibleChildAssets = [];
 
         $childTypeIds = $currentTypeId
@@ -228,7 +228,7 @@ class AssetController extends Controller
         if ($productHasChildTypes) {
             $eligibleChildAssets = Asset::query()
                 ->whereHas('product', fn ($q) => $q->whereIn('product_type_id', $childTypeIds))
-                ->where('customer_id', $asset->customer_id)
+                ->where('customer_id', $asset->resolvedCustomerId())
                 ->whereNotIn('id', [...$existingChildIds, $asset->id])
                 ->with(['product.brand', 'product.productType'])
                 ->get()
@@ -244,8 +244,17 @@ class AssetController extends Controller
 
         $customer_count = Customer::count();
         $product_count = Product::count();
-        $preselected_customer = $asset->customer
-            ? [['id' => $asset->customer->id, 'name' => $asset->customer->name]]
+
+        /**
+         * A child machine has no customer of its own — it is owned through the machine it
+         * sits in — so the page is told who that is rather than reading customer_id off
+         * the asset and finding null.
+         */
+        $root = $asset->rootAsset();
+        $owning_customer = $root->customer;
+
+        $preselected_customer = $owning_customer
+            ? [['id' => $owning_customer->id, 'name' => $owning_customer->name]]
             : [];
 
         return inertia('Assets/ShowPage', [
@@ -260,6 +269,9 @@ class AssetController extends Controller
             'eligibleChildAssets' => $eligibleChildAssets,
             'productHasChildTypes' => $productHasChildTypes,
             'productRelations' => ProductRelation::orderBy('name')->get(['id', 'name']),
+            'owningCustomer' => $owning_customer
+                ? ['id' => $owning_customer->id, 'name' => $owning_customer->name]
+                : null,
         ]);
     }
 
@@ -267,24 +279,97 @@ class AssetController extends Controller
     {
         $productable = Productable::find($request->productable_id);
 
-        DB::transaction(function () use ($asset, $productable, $request) {
-            $child = Asset::create([
-                'product_id' => $productable->productable_id,
-                'customer_id' => $asset->customer_id,
-                'serial_number' => $request->serial_number,
-                'next_service_date' => null,
-                'status' => 'Actief',
-            ]);
-
-            AssetRelation::create([
-                'parent_asset_id' => $asset->id,
-                'child_asset_id' => $child->id,
-                'productable_id' => $productable->id,
-                'product_relation_id' => $productable->product_relation_id,
-            ]);
-        });
+        Asset::create([
+            'product_id' => $productable->productable_id,
+            'customer_id' => null,
+            'parent_asset_id' => $asset->id,
+            'productable_id' => $productable->id,
+            'product_relation_id' => $productable->product_relation_id,
+            'serial_number' => $request->serial_number,
+            'next_service_date' => null,
+            'status' => 'Actief',
+        ]);
 
         return redirect()->back()->with('success', 'Onderdeel-machine aangemaakt en gekoppeld.');
+    }
+
+    /**
+     * Hangs an existing standalone machine under this one. It gives up its own customer
+     * and location in the process — from here on it is owned through its parent.
+     */
+    public function attachChild(AssetAttachChildRequest $request, Asset $asset)
+    {
+        $child = Asset::findOrFail($request->validated('child_asset_id'));
+
+        $child->update([
+            'parent_asset_id' => $asset->id,
+            'product_relation_id' => $request->validated('product_relation_id'),
+            'customer_id' => null,
+            'location_id' => null,
+        ]);
+
+        return redirect()->back()->with('success', 'Machine gekoppeld.');
+    }
+
+    /**
+     * Feeds the transfer confirmation modal on the contract, werkbon and machine pages.
+     * Resolves whichever record is having its customer changed down to the set of root
+     * machines that would move, then asks the transfer service what that would entail.
+     */
+    public function transferPreview(AssetTransferPreviewRequest $request)
+    {
+        $subject = $request->subject();
+        $new_customer_id = (int) $request->validated('customer_id');
+
+        $roots = match ($request->validated('context')) {
+            'contract' => $subject->assets->map->rootAsset(),
+            'serviceorder' => $subject->serviceJobs()->with('asset')->get()
+                ->pluck('asset')->filter()->map->rootAsset(),
+            'asset' => collect([$subject->rootAsset()]),
+        };
+
+        $roots = $roots->unique('id')->values();
+
+        $service = app(AssetTransferService::class);
+
+        return response()->json(array_merge(
+            $service->preview($roots, $new_customer_id),
+            [
+                'target_locations' => Location::where('customer_id', $new_customer_id)
+                    ->orderBy('title')
+                    ->get()
+                    ->map(fn (Location $location) => [
+                        'id' => $location->id,
+                        'label' => $location->title ?: $location->addressLine(),
+                    ])
+                    ->values()
+                    ->all(),
+            ]
+        ));
+    }
+
+    /**
+     * Cuts a machine loose from its parent. Because a machine must be owned either by a
+     * customer or by a parent, detaching is also an ownership decision: it inherits the
+     * customer and location of the root it used to hang under.
+     */
+    public function detachParent(AssetDetachParentRequest $request, Asset $asset)
+    {
+        if ($asset->parent_asset_id === null) {
+            return redirect()->back()->with('error', 'Deze machine hangt niet onder een andere machine.');
+        }
+
+        $root = $asset->rootAsset();
+
+        $asset->update([
+            'parent_asset_id' => null,
+            'product_relation_id' => null,
+            'productable_id' => null,
+            'customer_id' => $root->customer_id,
+            'location_id' => $root->location_id,
+        ]);
+
+        return redirect()->back()->with('success', 'Koppeling verwijderd.');
     }
 
     /**
@@ -300,7 +385,29 @@ class AssetController extends Controller
      */
     public function update(AssetUpdateRequest $request, Asset $asset)
     {
-        $asset->update($request->validated());
+        $validated = $request->validated();
+
+        $asset_strategy = $validated['asset_strategy'] ?? null;
+        $location_map = $validated['location_map'] ?? [];
+        unset($validated['asset_strategy'], $validated['location_map']);
+
+        if ($asset_strategy === 'transfer') {
+            $new_customer_id = (int) $validated['customer_id'];
+            unset($validated['customer_id'], $validated['location_id']);
+
+            $asset->update($validated);
+
+            app(AssetTransferService::class)->transfer(
+                collect([$asset->refresh()]),
+                $new_customer_id,
+                $location_map
+            );
+
+            return redirect()->route('assets.show', $asset->id)
+                ->with('success', 'Machine bijgewerkt en overgedragen aan de nieuwe klant.');
+        }
+
+        $asset->update($validated);
 
         return redirect()->route('assets.show', $asset->id)
             ->with('success', 'Machine bijgewerkt.');

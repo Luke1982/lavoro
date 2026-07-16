@@ -636,6 +636,11 @@
 
     <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
         :all-task-instances="allTaskInstances" :user-roles="userRoles" @confirm="handleSignatureConfirm" />
+
+    <CustomerTransferModal v-model:open="showTransferModal" context="serviceorder"
+        :subject-id="serviceOrder.id" :customer-id="form.customer_id"
+        :new-customer-name="selectedCustomer?.name ?? ''"
+        @confirm="onTransferConfirm" @cancel="onTransferCancel" />
 </template>
 
 <script setup>
@@ -646,6 +651,7 @@ import OneThirdTwoThirds from '@/Layouts/OneThirdTwoThirds.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
 import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
@@ -676,6 +682,7 @@ import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 
 const props = defineProps({
+    customerAssets: { type: Array, default: () => [] },
     serviceOrder: {
         type: Object,
         required: true
@@ -728,7 +735,7 @@ const selectedCustomer = computed(() =>
     props.customers.find(c => c.id === form.customer_id) ?? props.serviceOrder.customer
 );
 
-const internalAssets = props.serviceOrder.customer.assets.slice().sort((a, b) =>
+const internalAssets = props.customerAssets.slice().sort((a, b) =>
     a.product.product_type.name.localeCompare(b.product.product_type.name)
 ).map((asset) => {
     return {
@@ -769,7 +776,7 @@ watch(
 )
 
 const customerAssets = computed(() =>
-    props.serviceOrder.customer.assets.map(asset => {
+    props.customerAssets.map(asset => {
         const jobs = asset.servicejobs ?? []
         const completed = jobs.map(j => j.completed_on).filter(Boolean).sort()
         return {
@@ -937,7 +944,6 @@ watch(
         () => form.location_id,
         () => form.actual_start_time,
         () => form.actual_end_time,
-        () => form.customer_id,
         () => form.project_id,
         () => form.type,
     ],
@@ -959,6 +965,53 @@ watch(
         });
     }
 )
+
+const showTransferModal = ref(false);
+
+/**
+ * Customer changes are kept out of the auto-save watcher above: the jobs on this werkbon
+ * sit on the current customer's machines, so moving the werkbon has to say what happens to
+ * them before anything is saved. Without jobs there is nothing to strand.
+ */
+watch(() => form.customer_id, (customerId) => {
+    if (isReverting.value) {
+        isReverting.value = false;
+        return;
+    }
+
+    if (customerId === props.serviceOrder.customer.id) {
+        return;
+    }
+
+    if (!props.jobs.length) {
+        form.put(`/serviceorders/${props.serviceOrder.id}`, {
+            preserveScroll: true,
+            onSuccess: () => form.defaults(),
+        });
+        return;
+    }
+
+    showTransferModal.value = true;
+});
+
+function onTransferConfirm({ asset_strategy, location_map }) {
+    form.transform(data => ({ ...data, asset_strategy, location_map }))
+        .put(`/serviceorders/${props.serviceOrder.id}`, {
+            preserveScroll: true,
+            onSuccess: () => form.defaults(),
+            onError: () => {
+                isReverting.value = true;
+                form.reset();
+                usePage().props.flash.error = usePage().props.errors;
+            },
+            onFinish: () => form.transform(data => data),
+        });
+}
+
+function onTransferCancel() {
+    isReverting.value = true;
+    form.customer_id = props.serviceOrder.customer.id;
+}
 
 const attachTicket = () => {
     if (!hasPermission('ticket.add_to_serviceorder')) return;

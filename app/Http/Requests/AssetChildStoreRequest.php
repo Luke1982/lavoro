@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\Asset;
-use App\Models\AssetRelation;
 use App\Models\Productable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -12,14 +11,14 @@ class AssetChildStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', AssetRelation::class);
+        return $this->user()->can('attachChild', $this->route('asset'));
     }
 
     public function rules(): array
     {
         return [
             'productable_id' => ['required', 'integer', 'exists:productables,id'],
-            'serial_number'  => ['required', 'string', 'max:255'],
+            'serial_number' => ['required', 'string', 'max:255'],
         ];
     }
 
@@ -39,7 +38,7 @@ class AssetChildStoreRequest extends FormRequest
                 }
 
                 /** @var Asset $asset */
-                $asset       = $this->route('asset');
+                $asset = $this->route('asset');
                 $productable = Productable::find($this->productable_id);
 
                 if ($productable->product_id !== $asset->product_id) {
@@ -47,6 +46,7 @@ class AssetChildStoreRequest extends FormRequest
                         'productable_id',
                         'Dit onderdeel hoort niet bij het product van deze machine.'
                     );
+
                     return;
                 }
 
@@ -59,10 +59,11 @@ class AssetChildStoreRequest extends FormRequest
                         'serial_number',
                         'Er bestaat al een machine met dit serienummer voor dit product.'
                     );
+
                     return;
                 }
 
-                $usedCount = AssetRelation::where('parent_asset_id', $asset->id)
+                $usedCount = Asset::where('parent_asset_id', $asset->id)
                     ->where('productable_id', $productable->id)
                     ->count();
 

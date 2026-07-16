@@ -50,7 +50,7 @@ class AssetUpdateRequest extends FormRequest
                     ->where(fn ($q) => $q->where('product_id', $this->input('product_id'))),
             ];
 
-        return [
+        return array_merge([
             'product_id' => 'required|exists:products,id',
             'serial_number' => $serial_rules,
             'next_service_date' => 'nullable|date',
@@ -61,6 +61,38 @@ class AssetUpdateRequest extends FormRequest
                 Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
             ],
             'status' => 'required|in:Actief,Niet actief',
+        ], $this->customerChangeRules());
+    }
+
+    /**
+     * Handing a machine to another customer strands its contract attachments and its
+     * location with the previous owner, so the caller has to confirm the transfer. Same
+     * rule as the contract and werkbon pages — all three go through AssetTransferService.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function customerChangeRules(): array
+    {
+        $asset = $this->route('asset');
+
+        if (!$asset || !$this->has('customer_id')) {
+            return [];
+        }
+
+        if ((int) $this->input('customer_id') === (int) $asset->customer_id) {
+            return [];
+        }
+
+        return [
+            'asset_strategy' => ['required', 'in:transfer'],
+            'location_map' => ['nullable', 'array'],
+            'location_map.*' => [
+                'nullable',
+                'integer',
+                Rule::exists('locations', 'id')->where(
+                    fn ($query) => $query->where('customer_id', $this->input('customer_id'))
+                ),
+            ],
         ];
     }
 }

@@ -35,7 +35,7 @@
                     <EditableTextField v-model="form.customer_id" type="combobox" label="Klant"
                         :options="internalCustomers"
                         :error="form.errors.customer_id" :readonly="!canUpdate"
-                        @update="() => patch('customer_id')" @revert="form.clearErrors('customer_id')">
+                        @update="onCustomerUpdate" @revert="form.clearErrors('customer_id')">
                         <template #display>
                             <component :is="hasPermission('customer.read') ? Link : 'span'"
                                 :href="`/customers/${selectedCustomer.id}`"
@@ -98,7 +98,7 @@
 
             <BoxComponent class="mt-4">
                 <MaintenanceContractAssetsWidget :maintenance-contract-id="maintenanceContract.id"
-                    :assets="maintenanceContract.assets" :customer-assets="maintenanceContract.customer.assets || []"
+                    :assets="maintenanceContract.assets" :customer-assets="customerAssets"
                     :manage-per-asset="maintenanceContract.manage_frequency_per_asset"
                     :interval-options="intervalOptions" />
                 <div v-if="contractLocations.length" class="mt-4 flex flex-wrap items-center gap-1">
@@ -214,6 +214,11 @@
             </BoxComponent>
         </template>
     </TwoThirdsOneThird>
+
+    <CustomerTransferModal v-model:open="showTransferModal" context="contract"
+        :subject-id="maintenanceContract.id" :customer-id="form.customer_id"
+        :new-customer-name="selectedCustomer?.name ?? ''"
+        @confirm="onTransferConfirm" @cancel="onTransferCancel" />
 </template>
 
 <script setup>
@@ -226,6 +231,7 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
@@ -236,6 +242,7 @@ import { hasPermission, nlDate, maintenanceContractStatusText, maintenanceContra
 
 const props = defineProps({
     maintenanceContract: { type: Object, required: true },
+    customerAssets: { type: Array, default: () => [] },
     customers: { type: Array, default: () => [] },
     contractIntervalOptions: { type: Array, default: () => [] },
 })
@@ -373,5 +380,40 @@ function patch(...fields) {
         fields.forEach(f => { payload[f] = data[f] })
         return payload
     }).patch(`/maintenancecontracts/${props.maintenanceContract.id}`, { preserveScroll: true })
+}
+
+const showTransferModal = ref(false)
+
+/**
+ * The machines on this contract belong to the current customer, so handing the contract to
+ * someone else has to say what happens to them. Confirm first, then save customer and
+ * strategy together — a bare customer_id would be rejected by the backend anyway.
+ */
+function onCustomerUpdate() {
+    if (form.customer_id === props.maintenanceContract.customer.id) {
+        return
+    }
+
+    if (!props.maintenanceContract.assets.length) {
+        patch('customer_id')
+        return
+    }
+
+    showTransferModal.value = true
+}
+
+function onTransferConfirm({ asset_strategy, location_map }) {
+    form.transform(data => ({
+        customer_id: data.customer_id,
+        asset_strategy,
+        location_map,
+    })).patch(`/maintenancecontracts/${props.maintenanceContract.id}`, {
+        preserveScroll: true,
+        onFinish: () => form.transform(data => data),
+    })
+}
+
+function onTransferCancel() {
+    form.customer_id = props.maintenanceContract.customer.id
 }
 </script>

@@ -14,6 +14,7 @@ use App\Http\Requests\MaintenanceContractUpdateRequest;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\MaintenanceContract;
+use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use Carbon\Carbon;
 
@@ -64,10 +65,7 @@ class MaintenanceContractController extends Controller
     public function show(MaintenanceContractReadRequest $request, MaintenanceContract $maintenancecontract)
     {
         $maintenancecontract->load([
-            'customer.assets.product.brand',
-            'customer.assets.product.productType',
-            'customer.assets.product.images',
-            'customer.assets.linkedLocation',
+            'customer',
             'assets.product.brand',
             'assets.product.productType',
             'assets.product.images',
@@ -79,8 +77,23 @@ class MaintenanceContractController extends Controller
             'generatedServiceOrders.serviceJobs.asset.product.brand',
         ]);
 
+        /**
+         * Every machine of the customer at any depth. Child machines have no customer_id,
+         * so customer->assets returns roots only and a component could never be put on a
+         * contract.
+         */
+        $customer_assets = $maintenancecontract->customer
+            ? $maintenancecontract->customer->assetTree([
+                'product.brand',
+                'product.productType',
+                'product.images',
+                'linkedLocation',
+            ])
+            : collect();
+
         return inertia('MaintenanceContracts/ShowPage', [
             'maintenanceContract' => $maintenancecontract,
+            'customerAssets' => $customer_assets,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
         ]);
@@ -100,6 +113,14 @@ class MaintenanceContractController extends Controller
         $was_contract_wide = !$maintenancecontract->manage_frequency_per_asset;
         $original = $maintenancecontract->getAttributes();
 
+        $asset_strategy = $validated['asset_strategy'] ?? null;
+        $location_map = $validated['location_map'] ?? [];
+        unset($validated['asset_strategy'], $validated['location_map']);
+
+        $transfer_roots = $asset_strategy === 'transfer'
+            ? $maintenancecontract->assets->map->rootAsset()->unique('id')->values()
+            : collect();
+
         if (array_key_exists('cancelled', $validated)) {
             $is_already_cancelled = $maintenancecontract->cancelled_at !== null;
             if ($validated['cancelled'] && !$is_already_cancelled) {
@@ -113,6 +134,20 @@ class MaintenanceContractController extends Controller
         }
 
         $maintenancecontract->update($validated);
+
+        /**
+         * Ordered deliberately: the contract already belongs to the new customer by the
+         * time the machines move, so the transfer sees it as a contract of the new owner
+         * and leaves its attachments alone. Only the old customer's other contracts lose
+         * the machines.
+         */
+        if ($transfer_roots->isNotEmpty()) {
+            app(AssetTransferService::class)->transfer(
+                $transfer_roots,
+                $maintenancecontract->customer_id,
+                $location_map
+            );
+        }
 
         $switched_to_individual = array_key_exists('manage_frequency_per_asset', $validated)
             && $validated['manage_frequency_per_asset']

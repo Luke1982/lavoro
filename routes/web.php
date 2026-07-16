@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\GeneralSettingsController;
 use App\Http\Controllers\Admin\StandardAttachmentController;
 use App\Http\Controllers\Admin\StandardEmailController;
 use App\Http\Controllers\AssetController;
-use App\Http\Controllers\AssetRelationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ComboSearchController;
@@ -14,7 +13,6 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerImportController;
-use App\Http\Controllers\LocationController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
@@ -25,6 +23,7 @@ use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
@@ -150,12 +149,17 @@ Route::group(
             ->name('productattributevalues.destroy');
         Route::post('productattributevalueables', [ProductAttributeValueableController::class, 'store'])
             ->name('productattributevalueables.store');
+        Route::post('assets/transfer-preview', [AssetController::class, 'transferPreview'])
+            ->name('assets.transferPreview');
         Route::resource('assets', AssetController::class);
         Route::patch('assets/{asset}/location', [AssetController::class, 'updateLocation'])
             ->name('assets.updateLocation');
         Route::post('assets/{asset}/child', [AssetController::class, 'storeChild'])
             ->name('assets.storeChild');
-        Route::resource('assetrelations', AssetRelationController::class)->only(['store', 'destroy']);
+        Route::post('assets/{asset}/children', [AssetController::class, 'attachChild'])
+            ->name('assets.attachChild');
+        Route::delete('assets/{asset}/parent', [AssetController::class, 'detachParent'])
+            ->name('assets.detachParent');
         Route::post('tickets/bulk-update', [TicketController::class, 'bulkUpdate'])
             ->name('tickets.bulk-update');
         Route::get('tickets/map', [TicketController::class, 'map'])

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ServiceOrderTypes;
+use App\Models\Asset;
 use App\Models\GeneralSetting;
 use App\Models\ServiceOrderStage;
 use Illuminate\Foundation\Http\FormRequest;
@@ -67,7 +68,57 @@ class ServiceOrderUpdateRequest extends FormRequest
             $update_rules['financial_comments'] = 'nullable|string';
         }
 
-        return array_merge($completion_rules, $update_rules);
+        return array_merge($completion_rules, $update_rules, $this->customerChangeRules());
+    }
+
+    /**
+     * A werkbon whose jobs sit on machines the new customer does not own would be billed
+     * to one customer while listing another's machines — and the PDF mails those serial
+     * numbers to the new customer. So the caller has to say what happens to the machines.
+     * Enforced here rather than only in the modal, so the endpoint alone cannot recreate
+     * the leak.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function customerChangeRules(): array
+    {
+        if (!$this->changesCustomerAwayFromItsMachines()) {
+            return [];
+        }
+
+        return [
+            'asset_strategy' => ['required', 'in:transfer'],
+            'location_map' => ['nullable', 'array'],
+            'location_map.*' => [
+                'nullable',
+                'integer',
+                Rule::exists('locations', 'id')->where(
+                    fn ($query) => $query->where('customer_id', $this->input('customer_id'))
+                ),
+            ],
+        ];
+    }
+
+    private function changesCustomerAwayFromItsMachines(): bool
+    {
+        $serviceorder = $this->route('serviceorder');
+
+        if (!$serviceorder || !$this->has('customer_id')) {
+            return false;
+        }
+
+        $new_customer_id = (int) $this->input('customer_id');
+
+        if ($new_customer_id === (int) $serviceorder->customer_id) {
+            return false;
+        }
+
+        return $serviceorder->serviceJobs()
+            ->with('asset')
+            ->get()
+            ->pluck('asset')
+            ->filter()
+            ->contains(fn (Asset $asset) => $asset->resolvedCustomerId() !== $new_customer_id);
     }
 
     public function withValidator($validator): void

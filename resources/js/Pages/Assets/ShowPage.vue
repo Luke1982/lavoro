@@ -74,11 +74,15 @@
                         <div class="w-2/3 mr-0 md:mr-3">
                             <EditableTextField type="combobox" v-model="form.customer_id" :options="customerOptions"
                                 :has-external-searching="customersUseAjax" :searching="customerSearching" @change="searchCustomers"
-                                :readonly="!canUpdate" :error="form.errors.customer_id"
+                                :readonly="!canUpdate || isChildAsset" :error="form.errors.customer_id"
                                 @revert="form.clearErrors('customer_id')">
                                 <template #display>
-                                    <Link :href="`/customers/${asset.customer.id}`" class="text-blue-600 underline">{{
-                                        asset.customer.name }}</Link>
+                                    <Link v-if="owningCustomer" :href="`/customers/${owningCustomer.id}`"
+                                        class="text-blue-600 underline">{{ owningCustomer.name }}</Link>
+                                    <span v-else class="text-gray-400">—</span>
+                                    <span v-if="isChildAsset" class="text-xs text-gray-400 ml-2">
+                                        via bovenliggende machine
+                                    </span>
                                 </template>
                             </EditableTextField>
                         </div>
@@ -118,7 +122,7 @@
                 <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
             <BoxComponent
-                v-if="asset.child_asset_relations?.length || asset.parent_asset_relations?.length || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
+                v-if="asset.child_assets?.length || asset.parent_asset || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
                 class="mt-5">
                 <div class="flex items-center py-3 border-t border-gray-200">
                     <LinkIcon class="size-5 text-gray-500 mr-2" />
@@ -144,25 +148,25 @@
                                 </span>
                             </div>
                             <span class="text-xs"
-                                :class="childRelationsForSlot(slot.id).length >= slot.quantity ? 'text-gray-400' : 'text-blue-500'">
-                                {{ childRelationsForSlot(slot.id).length }} / {{ slot.quantity }}
+                                :class="childAssetsForSlot(slot.id).length >= slot.quantity ? 'text-gray-400' : 'text-blue-500'">
+                                {{ childAssetsForSlot(slot.id).length }} / {{ slot.quantity }}
                             </span>
                         </div>
-                        <div v-for="rel in childRelationsForSlot(slot.id)" :key="rel.id"
+                        <div v-for="child in childAssetsForSlot(slot.id)" :key="child.id"
                             class="flex items-center justify-between py-1 pl-2 border-b border-gray-100 dark:border-slate-600">
                             <div>
-                                <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
-                                    {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                                <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                                    {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
-                                    (rel.child_asset.serial_number ?? '—') }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
+                                    (child.serial_number ?? '—') }}</span>
                             </div>
-                            <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
+                            <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
-                        <div v-if="hasPermission('assetrelation.create') && childRelationsForSlot(slot.id).length < slot.quantity"
+                        <div v-if="hasPermission('assetrelation.create') && childAssetsForSlot(slot.id).length < slot.quantity"
                             class="mt-1.5 pl-2">
                             <div v-if="creatingForSlot !== slot.id">
                                 <button @click="openNewChildForm(slot.id)"
@@ -188,24 +192,22 @@
                         </div>
                     </div>
 
-                    <!-- Relations linked without a productable slot (manual links) -->
-                    <div v-if="unslottedChildRelations.length" class="mt-2">
+                    <!-- Children linked without a productable slot (manual links) -->
+                    <div v-if="unslottedChildAssets.length" class="mt-2">
                         <p class="text-xs text-gray-400 mb-1">Overige koppelingen</p>
-                        <div v-for="rel in unslottedChildRelations" :key="rel.id"
+                        <div v-for="child in unslottedChildAssets" :key="child.id"
                             class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
                             <div>
-                                <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
-                                    {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                                <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                                    {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
-                                    rel.child_asset.serial_number }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
+                                    child.serial_number }}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
-                                }}</span>
-                                <button v-if="hasPermission('assetrelation.delete')"
-                                    @click="removeAssetRelation(rel.id)" class="text-red-400 hover:text-red-600"
-                                    v-tooltip="'Koppeling verwijderen'">
+                                <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
+                                <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
+                                    class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                     <TrashIcon class="size-4" />
                                 </button>
                             </div>
@@ -214,21 +216,20 @@
                 </div>
 
                 <!-- Flat list fallback when product has no defined related products -->
-                <div v-else-if="asset.child_asset_relations?.length">
+                <div v-else-if="asset.child_assets?.length">
                     <p class="text-xs text-gray-400 mb-1">Onderdelen</p>
-                    <div v-for="rel in asset.child_asset_relations" :key="rel.id"
+                    <div v-for="child in asset.child_assets" :key="child.id"
                         class="flex items-center justify-between py-1 border-b border-gray-50">
                         <div>
-                            <Link :href="`/assets/${rel.child_asset.id}`" class="text-blue-600 underline text-sm">
-                                {{ rel.child_asset.product.brand.name }} {{ rel.child_asset.product.model }}
+                            <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                                {{ child.product.brand.name }} {{ child.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ rel.child_asset.product?.bundle ? 'Bundel' :
-                                rel.child_asset.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
+                                child.serial_number }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—'
-                            }}</span>
-                            <button v-if="hasPermission('assetrelation.delete')" @click="removeAssetRelation(rel.id)"
+                            <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
+                            <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
                             </button>
@@ -236,22 +237,21 @@
                     </div>
                 </div>
 
-                <div v-if="asset.parent_asset_relations?.length" class="mt-2">
+                <div v-if="asset.parent_asset" class="mt-2">
                     <p class="text-xs text-gray-400 mb-1">Onderdeel van</p>
-                    <div v-for="rel in asset.parent_asset_relations" :key="rel.id"
-                        class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
+                    <div class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
                         <div>
-                            <Link :href="`/assets/${rel.parent_asset.id}`" class="text-blue-600 underline text-sm">
-                                {{ rel.parent_asset.product.brand.name }} {{ rel.parent_asset.product.model }}
+                            <Link :href="`/assets/${asset.parent_asset.id}`" class="text-blue-600 underline text-sm">
+                                {{ asset.parent_asset.product.brand.name }} {{ asset.parent_asset.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ rel.parent_asset.product?.bundle ? 'Bundel' :
-                                rel.parent_asset.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ asset.parent_asset.product?.bundle ? 'Bundel' :
+                                asset.parent_asset.serial_number }}</span>
                         </div>
-                        <span class="text-xs text-gray-400">{{ rel.productable?.product_relation?.name ?? '—' }}</span>
+                        <span class="text-xs text-gray-400">{{ asset.product_relation?.name ?? '—' }}</span>
                     </div>
                 </div>
 
-                <div v-if="!asset.product.productables?.length && productHasChildTypes && !eligibleChildAssets.length && !asset.child_asset_relations?.length && hasPermission('assetrelation.create')"
+                <div v-if="!asset.product.productables?.length && productHasChildTypes && !eligibleChildAssets.length && !asset.child_assets?.length && hasPermission('assetrelation.create')"
                     class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300">
                     Er zijn geen machines van de juiste subtypes gevonden bij deze klant om te koppelen. Voeg eerst een
                     onderdeel-machine toe aan de klant.
@@ -345,17 +345,22 @@
             </BoxComponent>
         </template>
     </TwoThirdsOneThird>
+
+    <CustomerTransferModal v-model:open="showTransferModal" context="asset" :subject-id="asset.id"
+        :customer-id="form.customer_id" :new-customer-name="newCustomerName"
+        @confirm="onTransferConfirm" @cancel="onTransferCancel" />
 </template>
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import TicketCard from '@/Components/TicketCard.vue';
-import { ref, watch, computed, reactive, onMounted } from 'vue';
+import { ref, watch, computed, reactive, onMounted, nextTick } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
@@ -391,6 +396,7 @@ const props = defineProps({
     eligibleChildAssets: { type: Array, default: () => [] },
     productHasChildTypes: { type: Boolean, default: false },
     productRelations: { type: Array, default: () => [] },
+    owningCustomer: { type: Object, default: null },
 });
 
 const statusOptions = [
@@ -409,24 +415,35 @@ const form = useForm({
     next_service_date: props.asset.next_service_date,
     date_in_service: props.asset.date_in_service,
     status: props.asset.status,
-    customer_id: props.asset.customer.id,
+    customer_id: props.owningCustomer?.id ?? null,
     location_id: props.asset.location_id ?? null,
 });
+
+/** A child machine is owned through its parent, so its customer is not editable here. */
+const isChildAsset = computed(() => Boolean(props.asset.parent_asset_id))
 
 const { locations: locationOptions, load: loadLocations } = useCustomerLocations();
 
 onMounted(() => loadLocations(form.customer_id));
 
+/**
+ * Picking another customer invalidates the current location and is handled by the transfer
+ * modal, so neither the clearing nor the customer change itself may reach the auto-save.
+ */
+const suppressAutoSave = ref(false);
+
 watch(() => form.customer_id, (customerId) => {
+    suppressAutoSave.value = true;
     form.location_id = null;
     loadLocations(customerId);
+    nextTick(() => { suppressAutoSave.value = false });
 });
 
 const canUpdate = computed(() => hasPermission('asset.update'))
 const canDelete = computed(() => hasPermission('asset.delete'))
 
 const updateAsset = () => {
-    if (!canUpdate.value) return;
+    if (!canUpdate.value || suppressAutoSave.value) return;
     form.put(`/assets/${props.asset.id}`);
 };
 
@@ -440,7 +457,6 @@ watch(
     [
         () => form.product_id,
         () => form.status,
-        () => form.customer_id,
         () => form.location_id,
         () => form.serial_number,
         () => form.next_service_date,
@@ -449,18 +465,43 @@ watch(
     updateAsset
 )
 
+const showTransferModal = ref(false)
+
+const newCustomerName = computed(() =>
+    customerOptions.value.find(option => option.id === form.customer_id)?.name ?? ''
+)
+
+watch(() => form.customer_id, (customerId) => {
+    if (customerId && customerId !== props.owningCustomer?.id) {
+        showTransferModal.value = true
+    }
+})
+
+function onTransferConfirm({ asset_strategy, location_map }) {
+    form.transform(data => ({ ...data, asset_strategy, location_map }))
+        .put(`/assets/${props.asset.id}`, {
+            onFinish: () => form.transform(data => data),
+        })
+}
+
+function onTransferCancel() {
+    suppressAutoSave.value = true
+    form.customer_id = props.owningCustomer?.id ?? null
+    nextTick(() => { suppressAutoSave.value = false })
+}
+
 const addingManualLink = ref(false)
 const manualLink = reactive({ child_asset_id: null, product_relation_id: null })
 
 const creatingForSlot = ref(null)
 const newChildForm = useForm({ productable_id: null, serial_number: '' })
 
-function childRelationsForSlot(productableId) {
-    return props.asset.child_asset_relations?.filter(r => r.productable_id === productableId) ?? []
+function childAssetsForSlot(productableId) {
+    return props.asset.child_assets?.filter(child => child.productable_id === productableId) ?? []
 }
 
-const unslottedChildRelations = computed(() =>
-    props.asset.child_asset_relations?.filter(r => !r.productable_id) ?? []
+const unslottedChildAssets = computed(() =>
+    props.asset.child_assets?.filter(child => !child.productable_id) ?? []
 )
 
 function openNewChildForm(slotId) {
@@ -487,8 +528,7 @@ function submitNewChild(productableId) {
 }
 
 function submitManualLink() {
-    router.post('/assetrelations', {
-        parent_asset_id: props.asset.id,
+    router.post(`/assets/${props.asset.id}/children`, {
         child_asset_id: manualLink.child_asset_id,
         product_relation_id: manualLink.product_relation_id,
     }, {
@@ -501,8 +541,16 @@ function submitManualLink() {
     })
 }
 
-function removeAssetRelation(relationId) {
-    router.delete(`/assetrelations/${relationId}`, { preserveScroll: true })
+/**
+ * A machine belongs to either a customer or a parent, so cutting one loose is also an
+ * ownership decision: it takes over the customer and location of the machine it hung under.
+ */
+function detachChild(childAssetId) {
+    if (!confirm('De machine wordt losgekoppeld en komt rechtstreeks bij de klant van deze machine te staan. Doorgaan?')) {
+        return
+    }
+
+    router.delete(`/assets/${childAssetId}/parent`, { preserveScroll: true })
 }
 
 </script>

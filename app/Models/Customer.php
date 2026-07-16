@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Models\Traits\HasCustomFields;
 use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Customer extends Model
 {
@@ -43,9 +45,39 @@ class Customer extends Model
 
     public ?int $upcoming_asset_days = null;
 
+    /**
+     * Root machines only. Children carry no customer_id, so they fall outside this
+     * relation by construction — use assetTree() when the whole tree is wanted.
+     */
     public function assets()
     {
         return $this->hasMany(Asset::class)->orderBy('next_service_date');
+    }
+
+    /**
+     * Every machine belonging to this customer at any depth: the roots plus each
+     * descendant hanging under them.
+     *
+     * @param  array<int, string>  $with
+     * @return Collection<int, Asset>
+     */
+    public function assetTree(array $with = []): Collection
+    {
+        $ids = collect(DB::select(
+            'WITH RECURSIVE asset_tree (id) AS ('
+            . ' SELECT id FROM assets WHERE customer_id = ?'
+            . ' UNION ALL'
+            . ' SELECT assets.id FROM assets'
+            . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
+            . ') SELECT id FROM asset_tree',
+            [$this->id]
+        ))->pluck('id');
+
+        return Asset::query()
+            ->whereIn('id', $ids)
+            ->with($with)
+            ->orderBy('next_service_date')
+            ->get();
     }
 
     public function locations()

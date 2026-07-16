@@ -32,6 +32,7 @@ use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
 use App\Models\UserRole;
+use App\Services\AssetTransferService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\SnelStartClient;
 use App\Traits\ReadsPerPage;
@@ -194,12 +195,7 @@ class ServiceOrderController extends Controller
     public function show(ServiceOrderEventWidget $event_widget, string $id)
     {
         $service_order = ServiceOrder::with([
-            'customer.assets.product.brand',
-            'customer.assets.product.productType',
-            'customer.assets.linkedLocation',
-            'customer.assets.servicejobs:id,asset_id,completed_on',
             'serviceOrderStage',
-            'customer.assets.product.images',
             'servicejobs.asset.product.brand',
             'customer.tickets.asset.product.brand',
             'customer.tickets.asset.product.productType',
@@ -231,6 +227,21 @@ class ServiceOrderController extends Controller
         ])->findOrFail($id);
 
         $user = Auth::user();
+
+        /**
+         * The customer's machines at every depth, not just the roots. Child machines carry
+         * no customer_id, so customer->assets would silently drop them and a job could
+         * never be booked on a component.
+         */
+        $customer_assets = $service_order->customer
+            ? $service_order->customer->assetTree([
+                'product.brand',
+                'product.productType',
+                'product.images',
+                'linkedLocation',
+                'servicejobs:id,asset_id,completed_on',
+            ])
+            : collect();
 
         $all_task_instances = $service_order->taskInstances;
 
@@ -278,6 +289,7 @@ class ServiceOrderController extends Controller
 
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
+            'customerAssets' => $customer_assets,
             'allTaskInstances' => $all_task_instances,
             'usersMissingTimes' => $event_widget->usersMissingTimes($service_order),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
@@ -319,6 +331,15 @@ class ServiceOrderController extends Controller
     {
         $data = $request->validated();
 
+        $asset_strategy = $data['asset_strategy'] ?? null;
+        $location_map = $data['location_map'] ?? [];
+        unset($data['asset_strategy'], $data['location_map']);
+
+        $transfer_roots = $asset_strategy === 'transfer'
+            ? $serviceorder->serviceJobs()->with('asset')->get()
+                ->pluck('asset')->filter()->map->rootAsset()->unique('id')->values()
+            : collect();
+
         $previous_stage_id = $serviceorder->service_order_stage_id;
         $previous_is_closed = $serviceorder->is_closed;
         $previous_customer_id = $serviceorder->customer_id;
@@ -328,8 +349,34 @@ class ServiceOrderController extends Controller
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
         $previous_project_title = $serviceorder->project?->title;
+        $previous_contract_title = $serviceorder->maintenanceContract?->display_title;
 
         $serviceorder->update($data);
+
+        if ($transfer_roots->isNotEmpty()) {
+            app(AssetTransferService::class)->transfer(
+                $transfer_roots,
+                $serviceorder->customer_id,
+                $location_map
+            );
+        }
+
+        /**
+         * A werkbon generated from a contract stops being that contract's work the moment
+         * it belongs to someone else, so the link goes rather than leaving the old
+         * customer's contract reporting an order billed elsewhere. The activity line keeps
+         * the provenance.
+         */
+        if (
+            array_key_exists('customer_id', $data)
+            && $data['customer_id'] != $previous_customer_id
+            && $serviceorder->maintenance_contract_id !== null
+        ) {
+            $serviceorder->update(['maintenance_contract_id' => null]);
+            $serviceorder->logActivity(
+                'Losgekoppeld van contract door klantwijziging: ' . ($previous_contract_title ?? 'onbekend')
+            );
+        }
 
         if (
             array_key_exists('external_invoice_no', $data)
