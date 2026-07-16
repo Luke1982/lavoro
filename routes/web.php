@@ -52,6 +52,7 @@ use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ServiceOrderController;
 use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskController;
+use App\Http\Controllers\ServiceOrderTaskInstanceAssetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
 use App\Http\Controllers\SnelStartImportController;
 use App\Http\Controllers\SupplierController;
@@ -214,6 +215,14 @@ Route::group(
             'serviceordertaskinstances/{serviceordertaskinstance}/cancel',
             [ServiceOrderTaskInstanceController::class, 'cancel']
         )->name('serviceordertaskinstances.cancel');
+        Route::post(
+            'serviceordertaskinstances/{serviceordertaskinstance}/assets',
+            [ServiceOrderTaskInstanceAssetController::class, 'store']
+        )->name('serviceordertaskinstances.assets.store');
+        Route::patch(
+            'serviceordertaskinstances/{serviceordertaskinstance}/assets/{asset}',
+            [ServiceOrderTaskInstanceAssetController::class, 'update']
+        )->name('serviceordertaskinstances.assets.update');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

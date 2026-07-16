@@ -219,6 +219,7 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productType',
             'taskInstances.product.productables.childProduct.brand',
             'taskInstances.product.productables.childProduct.productType',
+            'taskInstances.assets',
             'project:id,title',
             'documents',
             'internalDocuments',
@@ -242,6 +243,8 @@ class ServiceOrderController extends Controller
                 'servicejobs:id,asset_id,completed_on',
             ])
             : collect();
+
+        $service_order->taskInstances->each->append('serial_slots');
 
         $all_task_instances = $service_order->taskInstances;
 

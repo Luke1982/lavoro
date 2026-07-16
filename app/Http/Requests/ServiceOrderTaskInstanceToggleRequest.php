@@ -10,6 +10,7 @@ class ServiceOrderTaskInstanceToggleRequest extends FormRequest
     public function authorize(): bool
     {
         $user = Auth::user();
+
         return $user && ($user->isAdmin()
             || $user->hasPermission('serviceordertaskinstance.open_close')
             || $user->hasPermission('serviceordertaskinstance.update'));
@@ -18,10 +19,7 @@ class ServiceOrderTaskInstanceToggleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'is_complete'              => ['required', 'boolean'],
-            'assets'                   => ['sometimes', 'array'],
-            'assets.*.product_id'      => ['required_with:assets', 'integer', 'exists:products,id'],
-            'assets.*.serial_number'   => ['required_with:assets', 'string', 'max:255'],
+            'is_complete' => ['required', 'boolean'],
         ];
     }
 }

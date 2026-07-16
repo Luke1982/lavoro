@@ -9,9 +9,8 @@ use App\Http\Requests\ServiceOrderTaskInstanceStoreRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
-use App\Models\Asset;
-use App\Models\Product;
 use App\Models\ServiceOrderTaskInstance;
+use App\Services\TaskInstanceSerialSlotService;
 
 class ServiceOrderTaskInstanceController extends Controller
 {
@@ -41,8 +40,11 @@ class ServiceOrderTaskInstanceController extends Controller
         return redirect()->back()->with('success', 'Taak is bijgewerkt');
     }
 
-    public function toggle(ServiceOrderTaskInstanceToggleRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
-    {
+    public function toggle(
+        ServiceOrderTaskInstanceToggleRequest $request,
+        ServiceOrderTaskInstance $serviceordertaskinstance,
+        TaskInstanceSerialSlotService $slots,
+    ) {
         $data = $request->validated();
 
         if ($data['is_complete'] && $serviceordertaskinstance->is_cancelled) {
@@ -51,7 +53,20 @@ class ServiceOrderTaskInstanceController extends Controller
             ]);
         }
 
-        if (! $data['is_complete'] && $serviceordertaskinstance->product_id) {
+        if ($data['is_complete'] && $serviceordertaskinstance->product_id) {
+            $serviceordertaskinstance->loadMissing([
+                'product.productables.childProduct',
+                'assets',
+            ]);
+
+            if (!$slots->allSlotsFilled($serviceordertaskinstance)) {
+                return redirect()->back()->withErrors([
+                    'task' => 'Vul eerst alle serienummers in voordat je deze taak voltooit.',
+                ]);
+            }
+        }
+
+        if (!$data['is_complete'] && $serviceordertaskinstance->product_id) {
             if ($serviceordertaskinstance->assets()->exists()) {
                 return redirect()->back()->withErrors([
                     'task' => 'Deze taak heeft apparatuur geregistreerd en kan niet meer heropend worden.',
@@ -73,29 +88,6 @@ class ServiceOrderTaskInstanceController extends Controller
         }
 
         $serviceordertaskinstance->update($update);
-
-        if ($data['is_complete'] && ! empty($data['assets'])) {
-            $serviceordertaskinstance->loadMissing('serviceOrder');
-            $customer_id = $serviceordertaskinstance->serviceOrder->customer_id;
-            $today = now()->toDateString();
-
-            foreach ($data['assets'] as $asset_data) {
-                $product = Product::with('productType')->find($asset_data['product_id']);
-                if (! $product) {
-                    continue;
-                }
-
-                Asset::create([
-                    'customer_id' => $customer_id,
-                    'product_id' => $product->id,
-                    'service_order_task_instance_id' => $serviceordertaskinstance->id,
-                    'serial_number' => $asset_data['serial_number'],
-                    'date_in_service' => $today,
-                    'next_service_date' => now()->addDays($product->effectiveCertificateDays())
-                        ->toDateString(),
-                ]);
-            }
-        }
 
         $title = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
@@ -119,7 +111,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
     public function sign(ServiceOrderTaskInstanceSignRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
-        if (! $serviceordertaskinstance->is_complete) {
+        if (!$serviceordertaskinstance->is_complete) {
             return redirect()->back()->withErrors([
                 'sign' => 'Alleen voltooide taken kunnen ondertekend worden.',
             ]);

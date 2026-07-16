@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Asset;
 use App\Models\Productable;
+use App\Rules\UniqueSerialForProduct;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -16,9 +17,16 @@ class AssetChildStoreRequest extends FormRequest
 
     public function rules(): array
     {
+        $productable = Productable::find($this->input('productable_id'));
+
         return [
             'productable_id' => ['required', 'integer', 'exists:productables,id'],
-            'serial_number' => ['required', 'string', 'max:255'],
+            'serial_number' => [
+                'required',
+                'string',
+                'max:255',
+                UniqueSerialForProduct::forProduct($productable?->productable_id),
+            ],
         ];
     }
 
@@ -45,19 +53,6 @@ class AssetChildStoreRequest extends FormRequest
                     $validator->errors()->add(
                         'productable_id',
                         'Dit onderdeel hoort niet bij het product van deze machine.'
-                    );
-
-                    return;
-                }
-
-                $duplicate = Asset::where('product_id', $productable->productable_id)
-                    ->where('serial_number', $this->serial_number)
-                    ->exists();
-
-                if ($duplicate) {
-                    $validator->errors()->add(
-                        'serial_number',
-                        'Er bestaat al een machine met dit serienummer voor dit product.'
                     );
 
                     return;

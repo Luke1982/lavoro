@@ -35,6 +35,19 @@
                         <p v-if="instance.product" class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
                             {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
                         </p>
+                        <div v-if="serialCounts(instance).expected" class="mt-1">
+                            <component :is="canToggle ? 'button' : 'span'" :type="canToggle ? 'button' : null"
+                                @click="canToggle && openSerialDrawer(instance)" :class="[
+                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors',
+                                    canToggle ? 'cursor-pointer hover:opacity-80' : '',
+                                    serialCounts(instance).filled >= serialCounts(instance).expected
+                                        ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
+                                        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
+                                ]">
+                                <ScanBarcodeIcon class="w-3 h-3" />
+                                {{ serialCounts(instance).filled }}/{{ serialCounts(instance).expected }} serienummers
+                            </component>
+                        </div>
                         <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
                             <span v-for="role in instance.user_roles" :key="role.id"
                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
@@ -217,18 +230,37 @@
             :subtitle="serialInstance ? `Voer de serienummers in voor: ${effectiveTitle(serialInstance)}` : ''"
             max-width-class="max-w-lg">
             <div class="p-4 sm:p-6 space-y-6">
-                <template v-for="(group, idx) in serialGroups" :key="idx">
+                <p class="text-xs text-gray-500 dark:text-slate-400">
+                    Elk serienummer wordt los opgeslagen als machine. Je kunt tussendoor stoppen en later verder gaan.
+                </p>
+                <template v-for="group in serialGroups" :key="group.product_id">
                     <div>
                         <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                             {{ group.label }}
-                            <span class="text-xs font-normal text-gray-400 ml-1">({{ group.inputs.length }}×)</span>
+                            <span class="text-xs font-normal text-gray-400 ml-1">
+                                ({{ group.rows.filter(r => r.asset_id).length }}/{{ group.expected }})
+                            </span>
                         </p>
                         <div class="space-y-2">
-                            <div v-for="(input, i) in group.inputs" :key="i" class="flex items-center gap-2">
-                                <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
-                                <input v-model="input.serial_number" type="text" :placeholder="`Serienummer ${i + 1}`"
-                                    :class="['flex-1 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', serialError && !input.serial_number.trim() ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
-                                <ScanSerialButton @picked="input.serial_number = $event" />
+                            <div v-for="(row, i) in group.rows" :key="row.asset_id ?? `new-${i}`">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
+                                    <input v-model="row.serial_number" type="text"
+                                        :placeholder="`Serienummer ${i + 1}`" @input="row.error = ''"
+                                        :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', row.error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
+                                    <ScanSerialButton @picked="row.serial_number = $event; row.error = ''" />
+                                    <button v-if="rowIsDirty(row)" type="button" :disabled="serialSubmitting"
+                                        @click="saveRow(row)" v-tooltip="'Serienummer opslaan'"
+                                        class="flex-none p-1.5 rounded-md bg-lavoro-green text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                                        <CheckIcon class="w-4 h-4" />
+                                    </button>
+                                    <span v-else-if="row.asset_id" class="flex-none p-1.5"
+                                        v-tooltip="'Opgeslagen als machine'">
+                                        <CheckIcon class="w-4 h-4 text-green-500" />
+                                    </span>
+                                    <span v-else class="flex-none w-7" />
+                                </div>
+                                <p v-if="row.error" class="text-xs text-red-600 mt-1 ml-7">{{ row.error }}</p>
                             </div>
                         </div>
                     </div>
@@ -237,13 +269,14 @@
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
-                    <button type="button" @click="cancelSerials"
+                    <button type="button" @click="serialDrawerOpen = false"
                         class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
-                        Annuleren
+                        Sluiten
                     </button>
-                    <button type="button" :disabled="serialSubmitting" @click="submitSerials"
+                    <button type="button" :disabled="serialSubmitting || (!serialHasDirty && !serialCanComplete)"
+                        @click="saveSerials({ complete: serialCanComplete })"
                         class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                        {{ serialSubmitting ? 'Opslaan...' : 'Opslaan en voltooien' }}
+                        {{ serialPrimaryLabel }}
                     </button>
                 </div>
             </template>
@@ -396,9 +429,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon } from '@lucide/vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { router, useForm, usePage } from '@inertiajs/vue3'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon } from '@lucide/vue'
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -547,13 +580,12 @@ function saveEdit() {
     })
 }
 
-// ── Toggle + serial number prompt ─────────────────────────────────────────────
-const serialDrawerOpen = ref(false)
-const serialInstance = ref(null)
-const serialGroups = ref([])
-const serialError = ref('')
-const serialSubmitting = ref(false)
+// ── Toggle ────────────────────────────────────────────────────────────────────
 const checkboxResetKeys = ref({})
+
+function resetCheckbox(id) {
+    checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
+}
 
 function toggleComplete(instance, new_value) {
     if (!canToggle.value) return
@@ -564,118 +596,220 @@ function toggleComplete(instance, new_value) {
         return
     }
 
-    if (new_value && instance.product_id && instance.product) {
-        const groups = buildSerialGroups(instance)
-        if (groups.length > 0) {
-            serialInstance.value = instance
-            serialGroups.value = groups
-            serialError.value = ''
-            serialDrawerOpen.value = true
-            return
-        }
-    }
+    const counts = serialCounts(instance)
 
-    doToggle(instance, new_value, [])
-}
-
-function buildSerialGroups(instance) {
-    const product = instance.product
-    const qty = instance.quantity ?? 1
-    const groups = []
-
-    if (!product.bundle) {
-        const label = [product.brand?.name, product.model].filter(Boolean).join(' ')
-        groups.push({
-            label,
-            inputs: Array.from({ length: qty }, () => ({
-                product_id: product.id,
-                serial_number: '',
-            })),
-        })
-    } else {
-        for (const productable of product.productables ?? []) {
-            const child = productable.child_product
-            if (!child) continue
-            const count = (productable.quantity ?? 1) * qty
-            const label = [child.brand?.name, child.model].filter(Boolean).join(' ')
-            groups.push({
-                label,
-                inputs: Array.from({ length: count }, () => ({
-                    product_id: child.id,
-                    serial_number: '',
-                })),
-            })
-        }
-    }
-
-    return groups
-}
-
-function resetSerialState() {
-    const id = serialInstance.value?.id
-    serialInstance.value = null
-    serialGroups.value = []
-    serialError.value = ''
-    serialSubmitting.value = false
-    // Force checkbox to remount so it reverts to unchecked
-    if (id) checkboxResetKeys.value = { ...checkboxResetKeys.value, [id]: (checkboxResetKeys.value[id] ?? 0) + 1 }
-}
-
-function cancelSerials() {
-    serialDrawerOpen.value = false
-}
-
-watch(serialDrawerOpen, (is_open) => {
-    if (!is_open && serialInstance.value) resetSerialState()
-})
-
-function submitSerials() {
-    const all_inputs = serialGroups.value.flatMap(g => g.inputs)
-
-    if (all_inputs.length === 0) {
-        serialError.value = 'Geen serienummer-velden beschikbaar. Controleer het product en de hoeveelheid.'
+    if (new_value && counts.filled < counts.expected) {
+        resetCheckbox(instance.id)
+        openSerialDrawer(instance)
         return
     }
 
-    const has_empty = all_inputs.some(i => !i.serial_number.trim())
-    if (has_empty) {
-        serialError.value = 'Vul alle serienummers in.'
-        return
-    }
-
-    const assets = all_inputs.map(i => ({
-        product_id: i.product_id,
-        serial_number: i.serial_number.trim(),
-    }))
-
-    serialSubmitting.value = true
-    doToggle(serialInstance.value, true, assets)
+    doToggle(instance, new_value)
 }
 
-function doToggle(instance, new_value, assets) {
-    const previous = instance.is_complete
-    instance.is_complete = new_value
+function doToggle(instance, new_value) {
+    const row = internalInstances.value.find(i => i.id === instance.id) ?? instance
+    const previous = row.is_complete
+    row.is_complete = new_value
 
-    const payload = { is_complete: new_value }
-    if (assets.length) payload.assets = assets
-
-    useForm(payload).patch(`/serviceordertaskinstances/${instance.id}/toggle`, {
+    useForm({ is_complete: new_value }).patch(`/serviceordertaskinstances/${row.id}/toggle`, {
         preserveScroll: true,
         onError: (errors) => {
-            instance.is_complete = previous
-            serialSubmitting.value = false
+            row.is_complete = previous
+            resetCheckbox(row.id)
             if (errors.task) {
                 usePage().props.flash.error = errors.task
             }
         },
-        onSuccess: () => {
-            serialDrawerOpen.value = false
-            serialInstance.value = null
-            serialGroups.value = []
-            serialError.value = ''
-            serialSubmitting.value = false
-        },
     })
+}
+
+// ── Serial numbers ────────────────────────────────────────────────────────────
+const serialDrawerOpen = ref(false)
+const serialInstance = ref(null)
+const serialGroups = ref([])
+const serialError = ref('')
+const serialSubmitting = ref(false)
+
+function serialCounts(instance) {
+    const slots = instance.serial_slots ?? []
+
+    return {
+        expected: slots.reduce((total, group) => total + group.expected, 0),
+        filled: slots.reduce((total, group) => total + Math.min(group.expected, group.assets.length), 0),
+    }
+}
+
+/**
+ * The server decides which machines a task expects; a row is only ever a saved asset
+ * or an empty slot waiting for one.
+ */
+function buildSerialGroups(instance) {
+    return (instance.serial_slots ?? []).map(group => {
+        const saved = group.assets.map(asset => ({
+            asset_id: asset.id,
+            product_id: group.product_id,
+            serial_number: asset.serial_number ?? '',
+            saved_serial: asset.serial_number ?? '',
+            error: '',
+        }))
+        const empty = Array.from({ length: Math.max(0, group.expected - saved.length) }, () => ({
+            asset_id: null,
+            product_id: group.product_id,
+            serial_number: '',
+            saved_serial: '',
+            error: '',
+        }))
+
+        return {
+            product_id: group.product_id,
+            label: group.label,
+            expected: group.expected,
+            rows: [...saved, ...empty],
+        }
+    })
+}
+
+function openSerialDrawer(instance) {
+    serialInstance.value = instance
+    serialGroups.value = buildSerialGroups(instance)
+    serialError.value = ''
+    serialSubmitting.value = false
+    serialDrawerOpen.value = true
+}
+
+watch(serialDrawerOpen, (is_open) => {
+    if (!is_open) {
+        serialInstance.value = null
+        serialGroups.value = []
+        serialError.value = ''
+        serialSubmitting.value = false
+    }
+})
+
+function serialRows() {
+    return serialGroups.value.flatMap(g => g.rows)
+}
+
+function rowIsDirty(row) {
+    return row.serial_number.trim() !== '' && row.serial_number.trim() !== row.saved_serial
+}
+
+const serialHasDirty = computed(() => serialRows().some(rowIsDirty))
+
+const serialCanComplete = computed(() => {
+    if (!serialInstance.value || serialInstance.value.is_complete || serialInstance.value.is_cancelled) return false
+
+    return serialRows().every(row => row.serial_number.trim() !== '')
+})
+
+const serialPrimaryLabel = computed(() => {
+    if (serialSubmitting.value) return 'Opslaan...'
+    if (serialCanComplete.value) return serialHasDirty.value ? 'Opslaan en voltooien' : 'Voltooien'
+
+    return 'Opslaan'
+})
+
+function inertiaVisit(method, url, data) {
+    return new Promise((resolve) => {
+        router[method](url, data, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => resolve({ ok: true }),
+            onError: (errors) => resolve({ ok: false, errors }),
+        })
+    })
+}
+
+/**
+ * Rows that were just sent come back as saved assets in the refreshed props, so they are
+ * dropped here — leaving them in would re-apply their serial to the next empty slot.
+ * Anything still typed but unsent is carried over so a save never loses what is on screen.
+ */
+async function syncSerialGroups(sent = []) {
+    await nextTick()
+
+    const fresh = props.instances.find(i => i.id === serialInstance.value?.id)
+
+    if (!fresh) {
+        serialDrawerOpen.value = false
+        return
+    }
+
+    const leftovers = {}
+    serialGroups.value.forEach(group => {
+        leftovers[group.product_id] = group.rows
+            .filter(row => !row.asset_id && row.serial_number.trim() !== '' && !sent.includes(row))
+            .map(row => row.serial_number)
+    })
+
+    serialInstance.value = fresh
+    serialGroups.value = buildSerialGroups(fresh)
+    serialGroups.value.forEach(group => {
+        const queue = leftovers[group.product_id] ?? []
+        group.rows.filter(row => !row.asset_id).forEach((row, i) => {
+            if (queue[i] !== undefined) row.serial_number = queue[i]
+        })
+    })
+}
+
+async function saveRow(row) {
+    await saveSerials({ complete: false, rows: [row] })
+}
+
+async function saveSerials({ complete, rows = null }) {
+    if (serialSubmitting.value) return
+
+    const dirty = (rows ?? serialRows()).filter(rowIsDirty)
+    serialError.value = ''
+    dirty.forEach(row => { row.error = '' })
+    serialSubmitting.value = true
+
+    for (const row of dirty.filter(r => r.asset_id)) {
+        const result = await inertiaVisit(
+            'patch',
+            `/serviceordertaskinstances/${serialInstance.value.id}/assets/${row.asset_id}`,
+            { serial_number: row.serial_number.trim() },
+        )
+
+        if (!result.ok) {
+            row.error = result.errors.serial_number ?? 'Opslaan is mislukt.'
+            serialSubmitting.value = false
+            return
+        }
+    }
+
+    const created = dirty.filter(r => !r.asset_id)
+
+    if (created.length) {
+        const result = await inertiaVisit(
+            'post',
+            `/serviceordertaskinstances/${serialInstance.value.id}/assets`,
+            {
+                assets: created.map(row => ({
+                    product_id: row.product_id,
+                    serial_number: row.serial_number.trim(),
+                })),
+            },
+        )
+
+        if (!result.ok) {
+            created.forEach((row, i) => {
+                row.error = result.errors[`assets.${i}.serial_number`] ?? ''
+            })
+            serialError.value = result.errors.assets ?? ''
+            serialSubmitting.value = false
+            return
+        }
+    }
+
+    await syncSerialGroups(dirty)
+    serialSubmitting.value = false
+
+    if (complete && serialInstance.value) {
+        doToggle(serialInstance.value, true)
+        serialDrawerOpen.value = false
+    }
 }
 
 // ── Sign ──────────────────────────────────────────────────────────────────────

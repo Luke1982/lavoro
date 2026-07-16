@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Product;
+use App\Rules\UniqueSerialForProduct;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,6 @@ class AssetStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'serial_number.unique' => 'Er bestaat al een machine met dit serienummer voor dit product.',
             'serial_number.required' => 'Serienummer is verplicht.',
             'child_assets.*.serial_number.required_with' => 'Serienummer is verplicht.',
         ];
@@ -46,7 +46,7 @@ class AssetStoreRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('assets', 'serial_number')->where(fn ($q) => $q->where('product_id', $this->input('product_id'))),
+                UniqueSerialForProduct::forProduct($this->input('product_id')),
             ];
 
         return [

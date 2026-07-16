@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\TaskInstanceSerialSlotService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -67,5 +68,18 @@ class ServiceOrderTaskInstance extends Model
     public function getEffectiveDescriptionAttribute(): string
     {
         return $this->description ?? $this->serviceOrderTask?->description ?? '';
+    }
+
+    /**
+     * The machines this task is expected to deliver and the ones registered so far.
+     * Not appended by default: it walks the product's bundle tree, so only the pages
+     * that show the serial drawer ask for it.
+     *
+     * @return array<int, array{product_id: int, label: string, expected: int,
+     *                          assets: array<int, array{id: int, serial_number: ?string}>}>
+     */
+    public function getSerialSlotsAttribute(): array
+    {
+        return app(TaskInstanceSerialSlotService::class)->groups($this);
     }
 }

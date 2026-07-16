@@ -15,7 +15,7 @@
                             enter-from="translate-x-full" enter-to="translate-x-0"
                             leave="transform transition ease-in-out duration-500 sm:duration-700"
                             leave-from="translate-x-0" leave-to="translate-x-full">
-                            <DialogPanel :class="['pointer-events-auto w-screen', maxWidthClass]">
+                            <DialogPanel :class="['pointer-events-auto w-screen min-w-0', maxWidthClass]">
                                 <div
                                     class="relative flex h-full flex-col bg-white shadow-xl dark:bg-gray-800 dark:after:absolute dark:after:inset-y-0 dark:after:left-0 dark:after:w-px dark:after:bg-white/10">
                                     <div
