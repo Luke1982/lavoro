@@ -44,9 +44,7 @@ class Event extends Model
         'no_service_order' => 'boolean',
     ];
 
-    protected $appends = ['resolved_location'];
-
-    /** Kept eager so the appended resolved_location can never trigger an N+1. */
+    /** Kept eager so EventLocationResolver never triggers an N+1 walking events. */
     protected $with = ['linkedLocation'];
 
     public static function statusses()

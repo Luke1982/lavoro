@@ -54,7 +54,7 @@ class ServiceOrder extends Model
         'type' => ServiceOrderTypes::class,
     ];
 
-    protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced', 'resolved_location'];
+    protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced'];
 
     protected $with = ['serviceOrderStage', 'linkedLocation'];
 

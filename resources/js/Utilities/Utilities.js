@@ -230,6 +230,19 @@ export const nextServiceIso = (product, fallbackDays = 365) => {
 };
 
 /**
+ * The one address format used across the app: "Dorpsstraat 1, 1234AB Utrecht".
+ * Mirrors App\Support\AddressFormatter so an address never renders two ways.
+ * Takes anything with address/postal_code/city — a location, a customer.
+ */
+export const formatAddress = (addressable) => [
+    addressable?.address,
+    [addressable?.postal_code, addressable?.city].filter(Boolean).join(' '),
+]
+    .map((part) => (part || '').trim())
+    .filter(Boolean)
+    .join(', ');
+
+/**
  * Shape an asset into the object AssetSelectMenu expects.
  * Exposes brand, model, serial_number and location explicitly so the
  * component's search can filter on them precisely.

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Support\AddressFormatter;
 
 /**
  * The single definition of "where does this appointment happen".
@@ -56,8 +57,6 @@ class EventLocationResolver
             return null;
         }
 
-        return collect([$customer->address, trim($customer->postal_code . ' ' . $customer->city)])
-            ->filter()
-            ->implode(', ') ?: null;
+        return AddressFormatter::format($customer->address, $customer->postal_code, $customer->city);
     }
 }

@@ -134,8 +134,8 @@
                 <div class="col-span-3 items-center hidden lg:flex pr-2">
                     <a v-if="addressSource(ticket).address" :href="mapsLinkFromCustomer(addressSource(ticket))"
                         target="_blank" rel="noopener"
-                        class="text-lavoro-darkerblue underline truncate" :title="fullAddress(addressSource(ticket))">
-                        {{ fullAddress(addressSource(ticket)) }}
+                        class="text-lavoro-darkerblue underline truncate" :title="formatAddress(addressSource(ticket))">
+                        {{ formatAddress(addressSource(ticket)) }}
                     </a>
                     <span v-else class="text-slate-400">&mdash;</span>
                 </div>
@@ -257,7 +257,7 @@ import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import { EyeIcon, AlertCircleIcon, MapIcon } from '@lucide/vue'
-import { hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
+import { formatAddress, hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
     tickets: { type: Object, required: true },
@@ -396,9 +396,7 @@ function addressSource(ticket) {
     return ticket.asset.linked_location ?? ticket.asset.customer
 }
 
-function fullAddress(addressable) {
-    return [addressable.address, addressable.postal_code, addressable.city].filter(Boolean).join(' ')
-}
+
 
 function openMap() {
     const params = new URLSearchParams(computedOtherParams.value)

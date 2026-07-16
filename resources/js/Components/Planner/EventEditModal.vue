@@ -406,7 +406,7 @@ import { ClockFading as ClockFadingIcon, LocateFixed, MailQuestionMark, SendHori
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
-import { formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
+import { formatAddress, formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
 import { useCustomerLocations } from '@/Composables/useCustomerLocations'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
@@ -535,17 +535,12 @@ const hasLocations = computed(() => locationOptions.value.length > 0)
 const locationMode = ref(props.initial.location_id ? 'picker' : 'freeform')
 const selectedLocationId = ref(props.initial.location_id || null)
 
-const locationAddress = (loc) => [loc.address, [loc.postal_code, loc.city].filter(Boolean).join(' ')]
-    .map(part => (part || '').trim())
-    .filter(Boolean)
-    .join(', ')
-
 function onLocationPicked(id) {
     selectedLocationId.value = id
     form.location_id = id
     const loc = locationOptions.value.find(l => l.id === id)
     if (loc) {
-        form.location = locationAddress(loc)
+        form.location = formatAddress(loc)
     }
 }
 

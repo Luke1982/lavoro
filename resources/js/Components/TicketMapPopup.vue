@@ -2,7 +2,7 @@
     <div class="min-w-[240px]">
         <h3 class="font-bold text-base mb-1">{{ customer.name }}</h3>
         <p class="text-sm text-gray-600 mb-2">
-            {{ [customer.address, customer.postal_code, customer.city].filter(Boolean).join(' ') }}
+            {{ formatAddress(customer) }}
         </p>
 
         <div v-if="customer.tickets?.length" class="border-t border-gray-200 pt-2 mt-2 max-h-[200px] overflow-y-auto">
@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ticketPriorityClasses, ticketStatusClasses } from '@/Utilities/Utilities';
+import { formatAddress, ticketPriorityClasses, ticketStatusClasses } from '@/Utilities/Utilities';
 
 defineProps({
     customer: { type: Object, required: true }

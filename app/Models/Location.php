@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AddressFormatter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -43,8 +44,6 @@ class Location extends Model
 
     public function addressLine(): string
     {
-        return collect([$this->address, trim($this->postal_code . ' ' . $this->city)])
-            ->filter(fn ($part) => $part !== null && $part !== '')
-            ->implode(', ');
+        return AddressFormatter::format($this->address, $this->postal_code, $this->city) ?? '';
     }
 }
