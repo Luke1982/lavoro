@@ -785,8 +785,8 @@ const locationFilterOptions = computed(() => {
     const map = new Map();
     let hasNone = false;
     (props.assets || []).forEach(a => {
-        if (a.location) {
-            if (!map.has(a.location.id)) map.set(a.location.id, { id: a.location.id, name: a.location.title });
+        if (a.linked_location) {
+            if (!map.has(a.linked_location.id)) map.set(a.linked_location.id, { id: a.linked_location.id, name: a.linked_location.title });
         } else {
             hasNone = true;
         }
@@ -822,7 +822,7 @@ const assetsFiltered = computed(() => {
         result = result.filter(a => selectedProductTypeIds.value.includes(a?.product?.product_type?.id));
     }
     if (selectedLocationIds.value.length) {
-        result = result.filter(a => selectedLocationIds.value.includes(a.location?.id ?? 'none'));
+        result = result.filter(a => selectedLocationIds.value.includes(a.linked_location?.id ?? 'none'));
     }
     return result;
 });

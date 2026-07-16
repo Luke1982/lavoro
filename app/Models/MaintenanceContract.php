@@ -84,7 +84,7 @@ class MaintenanceContract extends Model
 
     public function getLocationsAttribute()
     {
-        return $this->assets->map->location->filter()->unique('id')->values();
+        return $this->assets->map->linkedLocation->filter()->unique('id')->values();
     }
 
     public function generatedServiceOrders()

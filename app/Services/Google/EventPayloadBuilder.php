@@ -3,17 +3,21 @@
 namespace App\Services\Google;
 
 use App\Models\Event;
+use App\Services\EventLocationResolver;
 
 class EventPayloadBuilder
 {
+    public function __construct(private EventLocationResolver $location_resolver) {}
+
     public function build(Event $event): array
     {
         $event->loadMissing([
             'eventType',
             'linkedLocation',
             'serviceOrders.project',
+            'customers',
             'serviceOrders.customer',
-            'serviceOrders.location',
+            'serviceOrders.linkedLocation',
             'executingUsers',
         ]);
 
@@ -28,49 +32,7 @@ class EventPayloadBuilder
 
     private function buildLocation(Event $event): ?string
     {
-        /**
-         * A location linked to this appointment is the most specific choice
-         * there is — the planner picked it for this visit — so it wins outright.
-         */
-        if ($event->location_id) {
-            return $event->resolved_location;
-        }
-
-        $service_order = $event->serviceOrders->first();
-
-        /**
-         * Then a location linked to the werkbon: still an explicit link, and it
-         * beats the event's free-text location, which is only a snapshot taken
-         * when the event was planned.
-         */
-        if ($service_order?->location_id) {
-            return $service_order->resolved_location;
-        }
-
-        if (!empty($event->location)) {
-            return $event->location;
-        }
-
-        if (!empty($service_order?->resolved_location)) {
-            return $service_order->resolved_location;
-        }
-
-        if (!empty($service_order?->project?->location)) {
-            return $service_order->project->location;
-        }
-
-        $customer = $service_order?->customer;
-        if ($customer) {
-            $parts = array_filter([
-                $customer->address,
-                trim($customer->postal_code . ' ' . $customer->city),
-            ]);
-            if ($parts) {
-                return implode(', ', $parts);
-            }
-        }
-
-        return null;
+        return $this->location_resolver->resolve($event);
     }
 
     private function buildSummary(Event $event): string

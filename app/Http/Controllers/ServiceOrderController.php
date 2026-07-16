@@ -196,7 +196,7 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'customer.assets.product.brand',
             'customer.assets.product.productType',
-            'customer.assets.location',
+            'customer.assets.linkedLocation',
             'customer.assets.servicejobs:id,asset_id,completed_on',
             'serviceOrderStage',
             'customer.assets.product.images',

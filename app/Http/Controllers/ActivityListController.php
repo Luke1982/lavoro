@@ -58,7 +58,7 @@ class ActivityListController extends Controller
                 'product.brand',
                 'product.productType',
                 'product.mainImage',
-                'location',
+                'linkedLocation',
                 'openTickets',
                 'pendingTickets',
                 'pendingServiceJobs.serviceOrder.pastOpenEvents.executingUsers',
@@ -89,7 +89,7 @@ class ActivityListController extends Controller
             $main->customer->setRelation('upcomingAssets', $assets->values());
 
             $groups = $assets->groupBy('location_id')->map(function ($group) {
-                $location = $group->first()->location;
+                $location = $group->first()->linkedLocation;
 
                 return [
                     'location' => $location
@@ -165,7 +165,7 @@ class ActivityListController extends Controller
 
         $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => function ($q) {
             $q->select('id', 'customer_id', 'location_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-                ->with(['product.productType', 'location']);
+                ->with(['product.productType', 'linkedLocation']);
         }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 
         $now = Carbon::now();
@@ -178,7 +178,7 @@ class ActivityListController extends Controller
             );
 
             foreach ($eligible->groupBy('location_id') as $group) {
-                $location = $group->first()->location;
+                $location = $group->first()->linkedLocation;
                 $days_min = $group
                     ->map(fn ($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
                     ->min();

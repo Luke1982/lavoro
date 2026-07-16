@@ -90,8 +90,8 @@
                                 :readonly="!canUpdate" :error="form.errors.location_id"
                                 @revert="form.clearErrors('location_id')">
                                 <template #display>
-                                    <Link v-if="asset.location" :href="`/locations/${asset.location.id}`"
-                                        class="text-blue-600 underline">{{ asset.location.title }}</Link>
+                                    <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"
+                                        class="text-blue-600 underline">{{ asset.linked_location.title }}</Link>
                                     <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie</span>
                                 </template>
                             </EditableTextField>

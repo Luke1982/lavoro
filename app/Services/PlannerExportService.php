@@ -11,6 +11,8 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class PlannerExportService
 {
+    public function __construct(private EventLocationResolver $location_resolver) {}
+
     private const HEADERS = [
         'Afspraak',
         'Werkbon',
@@ -48,6 +50,7 @@ class PlannerExportService
                 'executions',
                 'linkedLocation',
                 'serviceOrders.customer',
+                'customers',
                 'serviceOrders.project',
             ])
             ->orderBy('start')
@@ -95,7 +98,7 @@ class PlannerExportService
         $sheet->setCellValue('A' . $row, $event->name ?: $event->eventType?->name);
         $sheet->setCellValue('B' . $row, $service_order ? 'WB-' . str_pad((string) $service_order->id, 4, '0', STR_PAD_LEFT) : null);
         $sheet->setCellValue('C' . $row, $customer?->name);
-        $sheet->setCellValue('D' . $row, $this->location($event, $service_order, $project, $customer));
+        $sheet->setCellValue('D' . $row, $this->location_resolver->resolve($event));
         $sheet->setCellValue('E' . $row, $project?->title);
 
         [$planned_start, $planned_end] = $this->plannedTimes($event, $member);
@@ -156,37 +159,6 @@ class PlannerExportService
 
         $sheet->setCellValue($cell, $serial);
         $sheet->getStyle($cell)->getNumberFormat()->setFormatCode(self::DATETIME_FORMAT);
-    }
-
-    private function location(Event $event, $service_order, $project, $customer): ?string
-    {
-        // Same precedence as the Google payload: explicit links beat free text,
-        // and the appointment's own link is more specific than the werkbon's.
-        if ($event->location_id) {
-            return $event->resolved_location;
-        }
-
-        if ($service_order?->location_id) {
-            return $service_order->resolved_location;
-        }
-
-        if ($event->location) {
-            return $event->location;
-        }
-
-        if ($service_order?->resolved_location) {
-            return $service_order->resolved_location;
-        }
-
-        if ($project?->location) {
-            return $project->location;
-        }
-
-        if ($customer) {
-            return collect([$customer->address, $customer->city])->filter()->implode(', ') ?: null;
-        }
-
-        return null;
     }
 
     private function sheetTitle(string $name, int $index, array &$used_titles): string

@@ -827,7 +827,7 @@ const selectedLocation = computed(() => {
     if (!form.location_id) return null;
     const fromOptions = locationOptions.value.find(l => l.id === form.location_id);
     if (fromOptions) return fromOptions;
-    const saved = props.serviceOrder.location;
+    const saved = props.serviceOrder.linked_location;
     return saved && saved.id === form.location_id ? saved : null;
 });
 

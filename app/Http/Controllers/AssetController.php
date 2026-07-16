@@ -203,7 +203,7 @@ class AssetController extends Controller
             'product.productables.childProduct.productType',
             'product.productables.productRelation',
             'customer',
-            'location',
+            'linkedLocation',
             'servicejobs',
             'customFields',
             'childAssetRelations.childAsset.product.brand',

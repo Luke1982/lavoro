@@ -67,11 +67,11 @@ class MaintenanceContractController extends Controller
             'customer.assets.product.brand',
             'customer.assets.product.productType',
             'customer.assets.product.images',
-            'customer.assets.location',
+            'customer.assets.linkedLocation',
             'assets.product.brand',
             'assets.product.productType',
             'assets.product.images',
-            'assets.location',
+            'assets.linkedLocation',
             'activities' => function ($q) {
                 $q->with('user:id,name')->orderByDesc('activityables.created_at');
             },

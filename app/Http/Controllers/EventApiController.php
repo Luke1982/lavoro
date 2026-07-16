@@ -62,6 +62,8 @@ class EventApiController extends Controller
             ->orderBy('start')
             ->get();
 
+        $events->each->append('display_location');
+
         return response()->json($this->withUserRoles($events));
     }
 

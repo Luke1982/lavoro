@@ -7,6 +7,7 @@ use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
+use App\Services\EventLocationResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -81,7 +82,7 @@ class Event extends Model
     }
 
     /**
-     * Where this appointment happens: a linked location's address wins over the
+     * This appointment's own location: a linked location's address wins over the
      * free-text location, which is only a snapshot.
      */
     public function getResolvedLocationAttribute(): ?string
@@ -91,6 +92,16 @@ class Event extends Model
         }
 
         return $this->location ?: null;
+    }
+
+    /**
+     * The full escalation (see EventLocationResolver) — the address actually
+     * shown for this appointment. Append it explicitly on queries that eager-load
+     * serviceOrders; it is not appended globally to avoid an N+1.
+     */
+    public function getDisplayLocationAttribute(): ?string
+    {
+        return app(EventLocationResolver::class)->resolve($this);
     }
 
     public function serviceOrders()

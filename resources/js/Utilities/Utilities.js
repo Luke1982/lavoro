@@ -247,8 +247,8 @@ export function mapAssetForSelect(asset) {
         serial_number: asset.serial_number,
         is_bundle: !!asset.product?.bundle,
         next_service_date: asset.next_service_date,
-        location: asset.location
-            ? { id: asset.location.id, title: asset.location.title, city: asset.location.city }
+        location: asset.linked_location
+            ? { id: asset.linked_location.id, title: asset.linked_location.title, city: asset.linked_location.city }
             : null,
         thumbnail_url: asset.product?.images?.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
     };

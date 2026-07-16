@@ -124,10 +124,10 @@
                             class="text-lavoro-darkerblue underline truncate">
                             {{ ticket.asset.customer.name }}
                         </Link>
-                        <Link v-if="ticket.asset.location" :href="`/locations/${ticket.asset.location.id}`"
+                        <Link v-if="ticket.asset.linked_location" :href="`/locations/${ticket.asset.linked_location.id}`"
                             class="text-xs text-lavoro-blue truncate"
-                            :title="ticket.asset.location.title">
-                            {{ ticket.asset.location.title }}
+                            :title="ticket.asset.linked_location.title">
+                            {{ ticket.asset.linked_location.title }}
                         </Link>
                     </div>
                 </div>
@@ -393,7 +393,7 @@ function updatePriority(ticket, value) {
  * the customer's own address. Both shapes carry address/postal_code/city.
  */
 function addressSource(ticket) {
-    return ticket.asset.location ?? ticket.asset.customer
+    return ticket.asset.linked_location ?? ticket.asset.customer
 }
 
 function fullAddress(addressable) {

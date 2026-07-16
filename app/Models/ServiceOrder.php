@@ -56,7 +56,7 @@ class ServiceOrder extends Model
 
     protected $appends = ['is_closed', 'is_incomplete', 'is_invoiced', 'resolved_location'];
 
-    protected $with = ['serviceOrderStage', 'location'];
+    protected $with = ['serviceOrderStage', 'linkedLocation'];
 
     protected static function booted(): void
     {
@@ -109,8 +109,8 @@ class ServiceOrder extends Model
 
     public function getResolvedLocationAttribute(): ?string
     {
-        if ($this->location) {
-            return $this->location->addressLine();
+        if ($this->linkedLocation) {
+            return $this->linkedLocation->addressLine();
         }
         if (!empty($this->execution_location)) {
             return $this->execution_location;
@@ -124,9 +124,9 @@ class ServiceOrder extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function location()
+    public function linkedLocation()
     {
-        return $this->belongsTo(Location::class);
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function project()

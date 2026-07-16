@@ -246,7 +246,7 @@ const canGenerate = computed(() => hasPermission('maintenancecontract.generate')
 const contractLocations = computed(() => {
     const map = new Map()
     ;(props.maintenanceContract.assets || []).forEach(a => {
-        if (a.location) map.set(a.location.id, a.location)
+        if (a.linked_location) map.set(a.linked_location.id, a.linked_location)
     })
     return [...map.values()]
 })

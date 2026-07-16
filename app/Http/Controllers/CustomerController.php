@@ -79,7 +79,7 @@ class CustomerController extends Controller
         $customer->load([
             'activeAssets.product.brand',
             'activeAssets.product.productType',
-            'activeAssets.location',
+            'activeAssets.linkedLocation',
             'activeAssets.openTickets',
             'activeAssets.pendingTickets',
             'activeAssets.closedTickets',

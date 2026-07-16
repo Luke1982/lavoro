@@ -31,9 +31,9 @@
                             <template v-else>SN {{ asset.serial_number }}</template>
                         </span>
                     </div>
-                    <div v-if="asset.location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
+                    <div v-if="asset.linked_location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
                         <LocateFixed class="h-3.5 w-3.5" />
-                        <span>{{ [asset.location.title, asset.location.city].filter(Boolean).join(' · ') }}</span>
+                        <span>{{ [asset.linked_location.title, asset.linked_location.city].filter(Boolean).join(' · ') }}</span>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-3">
@@ -125,7 +125,7 @@ const assetLabel = (asset) =>
 
 const openLocateModal = (asset) => {
     locateAsset.value = asset;
-    selectedLocationId.value = asset.location_id ?? asset.location?.id ?? null;
+    selectedLocationId.value = asset.location_id ?? asset.linked_location?.id ?? null;
     locateModalOpen.value = true;
 };
 

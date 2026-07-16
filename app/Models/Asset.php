@@ -65,9 +65,9 @@ class Asset extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function location()
+    public function linkedLocation()
     {
-        return $this->belongsTo(Location::class);
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function tickets()
