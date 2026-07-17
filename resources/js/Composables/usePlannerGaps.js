@@ -57,11 +57,8 @@ export function eventsOnDay(events, userId, dayIso) {
 }
 
 /**
- * Splits the workday into what is bookable and what is not.
- *
- * A null userId means "across every mechanic": busy is the union of everyone's
- * events and nothing is blocked, since unavailability belongs to a person and
- * says nothing about the team.
+ * Splits one mechanic's workday into what is bookable and what is not.
+ * Use daySegmentsAcrossUsers for the room the team as a whole has.
  */
 export function daySegmentsFor({
     events,
@@ -75,8 +72,7 @@ export function daySegmentsFor({
     const busy = mergeBands(
         eventsOnDay(events, userId, dayIso).map((ev) => eventMinutesFor(ev, userId, dayIso))
     );
-    const blocked =
-        userId === null ? [] : mergeBands(unavailabilityBandsFor(plannableUsers, userId, dayIso));
+    const blocked = mergeBands(unavailabilityBandsFor(plannableUsers, userId, dayIso));
 
     const workday = { startMin: dayStartHour * 60, endMin: dayEndHour * 60 };
     const segments = [];
@@ -101,4 +97,62 @@ export function daySegmentsFor({
     return segments
         .filter((segment) => segment.endMin - segment.startMin >= minSegmentMinutes)
         .sort((a, b) => a.startMin - b.startMin);
+}
+
+function sameUsers(a, b) {
+    return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+/**
+ * The day's room across the whole team, as stretches of "these mechanics are
+ * free". Room that only some of them have is still room, so the day is cut at
+ * every point somebody's availability changes rather than only where nobody at
+ * all is booked.
+ *
+ * Each segment carries the mechanics free for the whole of it, so a caller can
+ * name them. Stretches nobody is free for are left out entirely.
+ */
+export function daySegmentsAcrossUsers({
+    events,
+    plannableUsers,
+    dayIso,
+    dayStartHour,
+    dayEndHour,
+    minSegmentMinutes = MIN_SEGMENT_MINUTES,
+}) {
+    const freeByUser = plannableUsers.map((user) => ({
+        id: user.id,
+        free: daySegmentsFor({
+            events,
+            plannableUsers,
+            userId: user.id,
+            dayIso,
+            dayStartHour,
+            dayEndHour,
+            minSegmentMinutes: 0,
+        }).filter((segment) => segment.kind === "free"),
+    }));
+
+    const bounds = [
+        ...new Set(freeByUser.flatMap((u) => u.free.flatMap((s) => [s.startMin, s.endMin]))),
+    ].sort((a, b) => a - b);
+
+    const merged = [];
+    for (let i = 0; i < bounds.length - 1; i++) {
+        const startMin = bounds[i];
+        const endMin = bounds[i + 1];
+        const userIds = freeByUser
+            .filter((u) => u.free.some((s) => s.startMin <= startMin && s.endMin >= endMin))
+            .map((u) => u.id);
+        if (!userIds.length) continue;
+
+        const previous = merged[merged.length - 1];
+        if (previous?.endMin === startMin && sameUsers(previous.userIds, userIds)) {
+            previous.endMin = endMin;
+            continue;
+        }
+        merged.push({ kind: "free", startMin, endMin, label: null, userIds });
+    }
+
+    return merged.filter((segment) => segment.endMin - segment.startMin >= minSegmentMinutes);
 }

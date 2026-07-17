@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { daySegmentsFor, eventsOnDay } from '@/Composables/usePlannerGaps'
+import { daySegmentsAcrossUsers, daySegmentsFor, eventsOnDay } from '@/Composables/usePlannerGaps'
 
 // These guard a bug class that fails silently: when the gap maths is wrong the
 // planner sees a plausible screen that reports a busy mechanic as free, and
@@ -104,23 +104,6 @@ describe('daySegmentsFor', () => {
             ])
         })
 
-        it('never applies across all mechanics, since it belongs to a person', () => {
-            expect(segmentsFor({ plannableUsers: [withLunch], userId: null }))
-                .toEqual([{ kind: 'free', startMin: 420, endMin: 1080, label: null }])
-        })
-    })
-
-    describe('across all mechanics', () => {
-        it('counts only time nobody has booked as free', () => {
-            const events = [
-                event(`${WEDNESDAY}T08:00`, `${WEDNESDAY}T12:00`, [1]),
-                event(`${WEDNESDAY}T11:00`, `${WEDNESDAY}T15:00`, [2]),
-            ]
-            expect(shapeOf(segmentsFor({ plannableUsers: [jan, piet], userId: null, events }))).toEqual([
-                ['free', 420, 480],
-                ['free', 900, 1080],
-            ])
-        })
     })
 
     // An appointment running across midnight used to be attributed only to the
@@ -149,6 +132,74 @@ describe('daySegmentsFor', () => {
     it('offers room at the weekend', () => {
         expect(segmentsFor({ dayIso: SATURDAY }))
             .toEqual([{ kind: 'free', startMin: 420, endMin: 1080, label: null }])
+    })
+})
+
+describe('daySegmentsAcrossUsers', () => {
+    function across(overrides) {
+        return daySegmentsAcrossUsers({
+            plannableUsers: [jan, piet],
+            dayIso: WEDNESDAY,
+            dayStartHour: 7,
+            dayEndHour: 18,
+            events: [],
+            ...overrides,
+        })
+    }
+
+    it('names everyone when the whole team is free', () => {
+        expect(across({})).toEqual([
+            { kind: 'free', startMin: 420, endMin: 1080, label: null, userIds: [1, 2] },
+        ])
+    })
+
+    // Room only some of the team has is still room worth offering.
+    it('keeps a stretch one mechanic is booked for, naming only who is free', () => {
+        const events = [event(`${WEDNESDAY}T09:00`, `${WEDNESDAY}T11:00`, [1])]
+        expect(across({ events }).map(s => [s.startMin, s.endMin, s.userIds])).toEqual([
+            [420, 540, [1, 2]],
+            [540, 660, [2]],
+            [660, 1080, [1, 2]],
+        ])
+    })
+
+    it('drops only the stretches nobody at all is free for', () => {
+        const events = [
+            event(`${WEDNESDAY}T07:00`, `${WEDNESDAY}T12:00`, [1]),
+            event(`${WEDNESDAY}T07:00`, `${WEDNESDAY}T12:00`, [2]),
+        ]
+        expect(across({ events }).map(s => [s.startMin, s.endMin, s.userIds])).toEqual([
+            [720, 1080, [1, 2]],
+        ])
+    })
+
+    it('leaves a mechanic on holiday out of the free list', () => {
+        const away = {
+            ...piet,
+            unavailabilities: [
+                { type: 'holiday', date: WEDNESDAY, end_date: WEDNESDAY, start_time: null, end_time: null, label: 'Vakantie' },
+            ],
+        }
+        expect(across({ plannableUsers: [jan, away] })).toEqual([
+            { kind: 'free', startMin: 420, endMin: 1080, label: null, userIds: [1] },
+        ])
+    })
+
+    it('still offers a short stretch, naming only who is free for it', () => {
+        const events = [event(`${WEDNESDAY}T09:00`, `${WEDNESDAY}T09:20`, [1])]
+        expect(across({ events }).map(s => [s.startMin, s.endMin, s.userIds])).toEqual([
+            [420, 540, [1, 2]],
+            [540, 560, [2]],
+            [560, 1080, [1, 2]],
+        ])
+    })
+
+    it('ignores a stretch too short to be worth planning', () => {
+        const events = [event(`${WEDNESDAY}T07:10`, `${WEDNESDAY}T18:00`, [1])]
+        // Jan's 10m of room before the job is a sliver; Piet's whole day is not.
+        expect(across({ events }).map(s => [s.startMin, s.endMin, s.userIds])).toEqual([
+            [430, 1080, [2]],
+        ])
     })
 })
 

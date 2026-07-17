@@ -8,9 +8,8 @@
                     <ChevronLeftIcon class="size-5" />
                 </button>
                 <span class="font-semibold text-sm">{{ weekTitle }}</span>
-                <button v-if="hasPermission('event.see_beyond_current_week') || dayjs(weekStart).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')"
-                    class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Volgende week"
-                    @click="shiftWeek(1)">
+                <button v-if="canShiftForward" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
+                    aria-label="Volgende week" @click="shiftWeek(1)">
                     <ChevronRightIcon class="size-5" />
                 </button>
                 <span v-else class="w-10 shrink-0" />
@@ -90,7 +89,8 @@
             <MobileLaneView v-if="showLaneView" :plannable-users="plannableUsers" :week-days="weekDays"
                 :events="events" :day-start-hour="WORKDAY_START_HOUR" :day-end-hour="WORKDAY_END_HOUR"
                 :allow-override-unavailability="allowOverrideUnavailability" :can-create="canCreate"
-                @slot-tap="handleSlotTap" @event-tap="handleEventTap" />
+                :can-go-forward="canShiftForward" @slot-tap="handleSlotTap" @event-tap="handleEventTap"
+                @flip-week="shiftWeek" />
 
             <div v-else class="h-full overflow-y-auto">
                 <div v-if="!eventsLoading && timelineEvents.length === 0 && !showsGaps"
@@ -161,6 +161,10 @@
                                         </div>
                                         <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                                             {{ gapCaption(item) }}
+                                        </div>
+                                        <div v-if="freeUsersLabel(item)"
+                                            class="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 leading-snug">
+                                            {{ freeUsersLabel(item) }}
                                         </div>
                                     </button>
                                 </div>
@@ -239,7 +243,12 @@ import {
     formatTimeLabel,
 } from '@/Utilities/plannerOverlaps'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
-import { daySegmentsFor, eventMinutesFor, eventsOnDay } from '@/Composables/usePlannerGaps'
+import {
+    daySegmentsAcrossUsers,
+    daySegmentsFor,
+    eventMinutesFor,
+    eventsOnDay,
+} from '@/Composables/usePlannerGaps'
 import { blockedUsersAt, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
@@ -308,10 +317,13 @@ const weekTitle = computed(() => {
     return `${first.getDate()} ${months[first.getMonth()]} ${first.getFullYear()} – ${last.getDate()} ${months[last.getMonth()]} ${last.getFullYear()}`
 })
 
+const canShiftForward = computed(() =>
+    hasPermission('event.see_beyond_current_week') ||
+    dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')
+)
+
 function shiftWeek(direction) {
-    if (!hasPermission('event.see_beyond_current_week') && direction === 1) {
-        if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')) return
-    }
+    if (direction === 1 && !canShiftForward.value) return
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
 }
 
@@ -322,6 +334,10 @@ const rootEl = ref(null)
 useSwipe(rootEl, {
     threshold: 50,
     onSwipeEnd(_, direction) {
+        // In lane view the sideways axis belongs to the lanes: panning across
+        // mechanics must never change the week. That view offers its own
+        // deliberate pull past the edge instead.
+        if (showLaneView.value) return
         if (direction === 'left') shiftWeek(1)
         else if (direction === 'right') shiftWeek(-1)
     },
@@ -393,15 +409,19 @@ const timelineEvents = computed(() =>
 // plain stack of what they have to do.
 const showsGaps = computed(() => canSeeAll.value)
 
+// With a mechanic picked the room is theirs. Across the team, room that only
+// some of them have is still worth showing, so those stretches name who is free.
 function segmentsForDay(dayIso) {
-    return daySegmentsFor({
+    const shared = {
         events: events.value,
         plannableUsers: props.plannableUsers,
-        userId: selectedUserId.value,
         dayIso,
         dayStartHour: WORKDAY_START_HOUR,
         dayEndHour: WORKDAY_END_HOUR,
-    })
+    }
+    return selectedUserId.value === null
+        ? daySegmentsAcrossUsers(shared)
+        : daySegmentsFor({ ...shared, userId: selectedUserId.value })
 }
 
 function eventItem(ev, dayIso) {
@@ -456,12 +476,22 @@ function gapCaption(item) {
     if (item.kind === 'blocked') {
         return gapTappable(item) ? `${range} — tik om toch in te plannen` : range
     }
-    if (selectedUserId.value === null) return `${range} — niemand ingepland`
     return range
 }
 
-// Lanes answer a question the stacked list cannot: with every mechanic mixed
-// into one timeline, a gap belongs to nobody in particular.
+// Naming the mechanics is what makes a shared stretch useful: "3u vrij" across
+// the team means nothing without knowing whose.
+function freeUsersLabel(item) {
+    if (!item.userIds) return null
+    if (item.userIds.length === props.plannableUsers.length) return 'Alle monteurs vrij'
+    const names = item.userIds
+        .map(id => props.plannableUsers.find(u => u.id === id)?.name)
+        .filter(Boolean)
+    if (!names.length) return null
+    return names.length === 1 ? `${names[0]} vrij` : `${names.join(', ')} vrij`
+}
+
+// Lanes give each mechanic a column of their own, which the shared list cannot.
 const laneView = ref(false)
 const showLaneView = computed(() => showsGaps.value && selectedUserId.value === null && laneView.value)
 
