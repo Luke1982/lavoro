@@ -33,8 +33,10 @@ use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
 use App\Models\UserRole;
 use App\Services\AssetTransferService;
+use App\Services\EventLocationResolver;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\SnelStartClient;
+use App\Support\AddressFormatter;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
@@ -212,6 +214,7 @@ class ServiceOrderController extends Controller
             'events.eventType',
             'events.executingUsers:id,name',
             'events.executions',
+            ...EventLocationResolver::relations('events.'),
             'customFields',
             'taskInstances.serviceOrderTask',
             'taskInstances.userRoles',
@@ -220,7 +223,7 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productables.childProduct.brand',
             'taskInstances.product.productables.childProduct.productType',
             'taskInstances.assets',
-            'project:id,title',
+            'project:id,title,location',
             'documents',
             'internalDocuments',
             'images',
@@ -292,6 +295,7 @@ class ServiceOrderController extends Controller
 
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
+            'mapLocation' => $this->mapLocation($service_order),
             'customerAssets' => $customer_assets,
             'allTaskInstances' => $all_task_instances,
             'usersMissingTimes' => $event_widget->usersMissingTimes($service_order),
@@ -317,6 +321,29 @@ class ServiceOrderController extends Controller
                 ->get()
                 ->map->toComboOption(),
         ]);
+    }
+
+    /**
+     * What the sidebar map pins, and which field it came from, so the map can
+     * label itself. The customer is the last resort the order itself won't give.
+     */
+    private function mapLocation(ServiceOrder $service_order): array
+    {
+        $location = $service_order->locationWithSource();
+
+        if ($location['address'] || !$service_order->customer) {
+            return $location;
+        }
+
+        $customer_address = AddressFormatter::format(
+            $service_order->customer->address,
+            $service_order->customer->postal_code,
+            $service_order->customer->city,
+        );
+
+        return $customer_address
+            ? ['address' => $customer_address, 'source' => 'customer']
+            : ['address' => null, 'source' => null];
     }
 
     /**

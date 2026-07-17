@@ -13,12 +13,8 @@ class EventPayloadBuilder
     {
         $event->loadMissing([
             'eventType',
-            'linkedLocation',
-            'serviceOrders.project',
-            'customers',
-            'serviceOrders.customer',
-            'serviceOrders.linkedLocation',
             'executingUsers',
+            ...EventLocationResolver::relations(),
         ]);
 
         return [

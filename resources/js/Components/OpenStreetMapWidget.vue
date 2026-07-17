@@ -1,6 +1,10 @@
 <template>
     <div class="relative w-full h-52">
         <div ref="mapContainer" class="w-full h-full" />
+        <span v-if="sourceLabel && !loading && !notFound"
+            class="absolute bottom-0 right-0 z-[650] rounded-tl-md bg-white/85 dark:bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:text-slate-300">
+            {{ sourceLabel }}
+        </span>
         <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-100"
             leave-active-class="transition-opacity duration-300" leave-to-class="opacity-0">
             <div v-if="loading || notFound"
@@ -19,8 +23,9 @@ import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const { address } = defineProps({
-    address: { type: String, required: true }
+const { address, sourceLabel } = defineProps({
+    address: { type: String, required: true },
+    sourceLabel: { type: String, default: '' }
 });
 
 const mapContainer = ref(null);

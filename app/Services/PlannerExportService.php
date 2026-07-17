@@ -49,10 +49,7 @@ class PlannerExportService
                 'eventType',
                 'executingUsers',
                 'executions',
-                'linkedLocation',
-                'serviceOrders.customer',
-                'customers',
-                'serviceOrders.project',
+                ...EventLocationResolver::relations(),
             ])
             ->orderBy('start')
             ->get();

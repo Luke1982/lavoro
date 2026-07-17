@@ -88,6 +88,7 @@ class ServiceOrderEventWidget
             'status' => $event->status,
             'start' => $event->start,
             'end' => $event->end,
+            'location' => $event->display_location,
             'event_type' => $event->eventType ? [
                 'id' => $event->eventType->id,
                 'name' => $event->eventType->name,

@@ -22,6 +22,24 @@ use App\Support\AddressFormatter;
  */
 class EventLocationResolver
 {
+    /**
+     * Every relation resolve() walks. Spread into with()/load() so the escalation
+     * can't N+1, and so a new branch below only needs its relation adding here.
+     * The prefix roots the paths somewhere other than the event itself ('events.').
+     *
+     * Both linkedLocation hops are missing on purpose: Event::$with and
+     * ServiceOrder::$with already load them. Project is left unconstrained so it
+     * survives being merged with a caller's own column-constrained with().
+     */
+    public static function relations(string $prefix = ''): array
+    {
+        return array_map(fn ($relation) => $prefix . $relation, [
+            'serviceOrders.customer',
+            'serviceOrders.project',
+            'customers',
+        ]);
+    }
+
     public function resolve(Event $event): ?string
     {
         if ($event->location_id) {

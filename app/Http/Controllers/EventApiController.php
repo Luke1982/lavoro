@@ -19,6 +19,7 @@ use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
+use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -121,7 +122,7 @@ class EventApiController extends Controller
 
     private function baseEventRelations(): array
     {
-        return ['eventType', 'serviceOrders.customer', 'customers'];
+        return ['eventType', ...EventLocationResolver::relations()];
     }
 
     private function searchResultShape(Event $event): array

@@ -14,6 +14,11 @@
                         <p class="mt-0.5 text-xs text-gray-600 dark:text-slate-400">
                             {{ ev.startFormatted }} – {{ ev.endFormatted }}
                         </p>
+                        <a v-if="ev.location" :href="mapsLinkFromAddress(ev.location)" target="_blank"
+                            class="mt-0.5 inline-flex items-start gap-1 text-xs text-lavoro-blue dark:text-slate-300 underline">
+                            <MapPin class="size-3 mt-0.5 shrink-0" />
+                            {{ ev.location }}
+                        </a>
                     </div>
                 </div>
                 <ul v-if="ev.executingUsers.length" class="mt-2 space-y-1.5 pl-5">
@@ -48,8 +53,8 @@
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { usePage } from '@inertiajs/vue3'
-import { Clock } from '@lucide/vue'
-import { nlDate, nlTime, roleInitials, eventStatusBadgeClass } from '@/Utilities/Utilities'
+import { Clock, MapPin } from '@lucide/vue'
+import { nlDate, nlTime, roleInitials, eventStatusBadgeClass, mapsLinkFromAddress } from '@/Utilities/Utilities'
 import { useEventLeadingColor } from '@/Composables/useEventLeadingColor'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
 
@@ -89,6 +94,7 @@ const mappedEvents = computed(() => localEvents.value
             id: ev.id,
             title: `${ev.event_type?.name || 'Afspraak'}${ev.name ? ': ' + ev.name : ''}`,
             status: ev.status || null,
+            location: ev.location || null,
             startFormatted: formatDateTime(ev.start),
             endFormatted: formatDateTime(ev.end),
             accentColor: resolveLeadingColor({

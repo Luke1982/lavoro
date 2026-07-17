@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ServiceOrderEventWidgetRequest;
 use App\Models\ServiceOrder;
+use App\Services\EventLocationResolver;
 use App\Services\ServiceOrderEventWidget;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,6 +16,7 @@ class ServiceOrderEventWidgetController extends Controller
             'events.eventType',
             'events.executingUsers:id,name',
             'events.executions',
+            ...EventLocationResolver::relations('events.'),
         ]);
 
         return response()->json([

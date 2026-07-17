@@ -23,11 +23,13 @@ export const localToUtcDatetime = (dateStr, timeStr) =>
 
 export const nlTime = (date) => dayjs(date).format("HH:mm");
 
-export const mapsLinkFromCustomer = (customer) => {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+export const mapsLinkFromAddress = (address) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+export const mapsLinkFromCustomer = (customer) =>
+    mapsLinkFromAddress(
         customer.address + " " + customer.postal_code + " " + customer.city,
-    )}`;
-};
+    );
 
 import { usePage } from "@inertiajs/vue3";
 

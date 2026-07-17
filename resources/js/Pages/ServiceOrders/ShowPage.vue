@@ -118,22 +118,6 @@
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70" v-auto-animate>
-                                    <EditableTextField :disabled="true" label="Adres">
-                                        <template #display>
-                                            <a v-if="selectedLocation" :href="mapsLinkFromCustomer(selectedLocation)"
-                                                target="_blank" class="underline text-lavoro-blue dark:text-slate-200 ">{{
-                                                    selectedLocation.address }}, {{ selectedLocation.postal_code }} {{
-                                                    selectedLocation.city }}
-                                            </a>
-                                            <a v-else :href="mapsLinkFromCustomer(serviceOrder.customer)" target="_blank"
-                                                class="underline text-lavoro-blue dark:text-slate-200 ">{{
-                                                    serviceOrder.customer.address
-                                                }}, {{
-                                                    serviceOrder.customer.postal_code }} {{
-                                                    serviceOrder.customer.city }}
-                                            </a>
-                                        </template>
-                                    </EditableTextField>
                                     <EditableTextField
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
@@ -310,8 +294,8 @@
                     </template>
                     <template #sidebar>
                         <BoxComponent padding="p-0" extra-classes="overflow-hidden">
-                            <OpenStreetMapWidget :key="serviceOrder.customer_id"
-                                :address="`${serviceOrder.customer.address}, ${serviceOrder.customer.postal_code} ${serviceOrder.customer.city}`" />
+                            <OpenStreetMapWidget :key="mapLocation.address"
+                                :address="mapLocation.address ?? ''" :source-label="mapSourceLabel" />
                         </BoxComponent>
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
                             <div class="flex">
@@ -654,7 +638,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { mapsLinkFromCustomer, nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
+import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Check, TrashIcon } from '@lucide/vue';
@@ -712,6 +696,7 @@ const props = defineProps({
     usersMissingTimes: { type: Array, default: () => [] },
     defaultLeadingColor: { type: String, default: 'event' },
     eventWidgetEvents: { type: Array, default: () => [] },
+    mapLocation: { type: Object, default: () => ({ address: null, source: null }) },
 });
 
 const missingTimes = ref(props.usersMissingTimes);
@@ -840,6 +825,15 @@ const selectedLocation = computed(() => {
 });
 
 // Combo options carry `name` ("titel – plaats"); the eager-loaded relation carries `title`.
+const mapSourceLabels = {
+    location: 'Locatie',
+    execution_location: 'Uitvoeringslocatie',
+    project: 'Projectlocatie',
+    customer: 'Klantadres',
+};
+
+const mapSourceLabel = computed(() => mapSourceLabels[props.mapLocation.source] ?? '');
+
 const selectedLocationLabel = computed(() =>
     selectedLocation.value ? (selectedLocation.value.name ?? selectedLocation.value.title) : null
 );

@@ -118,16 +118,30 @@ class ServiceOrder extends Model
         return $this->serviceOrderStage?->is_invoiced_state === true;
     }
 
-    public function getResolvedLocationAttribute(): ?string
+    /**
+     * The order's execution address plus which field it came from, so a caller
+     * that displays it can say what it is showing. Stops before the customer:
+     * that fallback belongs to whoever is displaying, not to this order.
+     */
+    public function locationWithSource(): array
     {
         if ($this->linkedLocation) {
-            return $this->linkedLocation->addressLine();
+            return ['address' => $this->linkedLocation->addressLine(), 'source' => 'location'];
         }
         if (!empty($this->execution_location)) {
-            return $this->execution_location;
+            return ['address' => $this->execution_location, 'source' => 'execution_location'];
         }
 
-        return $this->relationLoaded('project') ? $this->project?->location : null;
+        $project_location = $this->relationLoaded('project') ? $this->project?->location : null;
+
+        return !empty($project_location)
+            ? ['address' => $project_location, 'source' => 'project']
+            : ['address' => null, 'source' => null];
+    }
+
+    public function getResolvedLocationAttribute(): ?string
+    {
+        return $this->locationWithSource()['address'];
     }
 
     public function customer()
