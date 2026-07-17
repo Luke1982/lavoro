@@ -131,6 +131,7 @@ import { ClockFading, TriangleAlert, CircleCheck, Banknote, MessageCircleReply }
 import { router } from '@inertiajs/vue3'
 import { nlTime, hasPermission, roleInitials } from '@/Utilities/Utilities'
 import { useEventLeadingColor, COMPLETED_PATTERN } from '@/Composables/useEventLeadingColor'
+import { effectiveMinutesFor } from '@/Utilities/plannerOverlaps'
 
 const { rolesForUser, resolveLeadingColor } = useEventLeadingColor()
 
@@ -148,6 +149,8 @@ const props = defineProps({
     isHighlighted: { type: Boolean, default: false },
     userRoles: { type: Array, default: () => [] },
     leadingColor: { type: String, default: 'event' },
+    renderStartMin: { type: Number, default: null },
+    renderEndMin: { type: Number, default: null },
 })
 
 const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed', 'open-feedback'])
@@ -172,12 +175,9 @@ const isClosedForUser = computed(() =>
     userStatus.value === 'Afgerond' || userStatus.value === 'Geannuleerd'
 )
 
-function minutesFromDayStart(date) {
-    return date.getHours() * 60 + date.getMinutes() - props.dayStartHour * 60
-}
-
 const durationMinutes = computed(() => (props.event.end - props.event.start) / 60000)
-const isShort = computed(() => durationMinutes.value < 60)
+const isClipped = computed(() => props.renderStartMin !== null || props.renderEndMin !== null)
+const isShort = computed(() => durationMinutes.value < 60 || isClipped.value)
 const userBreaktime = computed(() =>
     props.event.executing_users?.find(u => u.id === props.userId)?.breaktime ?? 0
 )
@@ -190,21 +190,7 @@ const isSourceWithDivergingCompanions = computed(() =>
     !divergingUser.value && (props.event.executing_users?.some(u => u.has_diverging_times) ?? false)
 )
 
-const effectiveStartMin = computed(() => {
-    if (divergingUser.value?.diverging_start) {
-        const [h, m] = divergingUser.value.diverging_start.slice(0, 5).split(':').map(Number)
-        return h * 60 + m - props.dayStartHour * 60
-    }
-    return minutesFromDayStart(props.event.start)
-})
-
-const effectiveEndMin = computed(() => {
-    if (divergingUser.value?.diverging_end) {
-        const [h, m] = divergingUser.value.diverging_end.slice(0, 5).split(':').map(Number)
-        return h * 60 + m - props.dayStartHour * 60
-    }
-    return minutesFromDayStart(props.event.end)
-})
+const effectiveMinutes = computed(() => effectiveMinutesFor(props.event, props.userId, props.dayStartHour))
 
 const effectiveStartLabel = computed(() =>
     divergingUser.value?.diverging_start
@@ -222,8 +208,8 @@ const effectiveEndLabel = computed(() =>
 const isCompact = computed(() => props.rowHeight < 70)
 
 const style = computed(() => {
-    const startMin = Math.max(0, effectiveStartMin.value)
-    const endMin = Math.min(totalMin.value, effectiveEndMin.value)
+    const startMin = Math.max(0, props.renderStartMin ?? effectiveMinutes.value.startMin)
+    const endMin = Math.min(totalMin.value, props.renderEndMin ?? effectiveMinutes.value.endMin)
     const leftPct = (startMin / totalMin.value) * 100
     const widthPct = Math.max(2, ((endMin - startMin) / totalMin.value) * 100)
     const color = resolveLeadingColor({

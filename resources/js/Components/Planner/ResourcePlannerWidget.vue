@@ -414,12 +414,19 @@
                                         :is-highlighted="highlightedEventId === ev.id"
                                         :user-roles="userRoles"
                                         :leading-color="leadingColorRole ? 'role' : 'event'"
+                                        :render-start-min="clipFor(user.id, day.iso, ev.id)?.startMin ?? null"
+                                        :render-end-min="clipFor(user.id, day.iso, ev.id)?.endMin ?? null"
                                         @click="handleEventClick(ev)"
                                         @contextmenu="onEventContextMenu($event, ev)"
                                         @pointerdown-on-event="onEventPointerDown($event, ev, user)"
                                         @pointerdown-on-resize="onResizePointerDown($event, ev, user, $event.edge)"
                                         @changed="fetchEvents()"
                                         @open-feedback="feedback.openFeedback" />
+
+                                    <!-- Contested time between overlapping events -->
+                                    <PlannerOverlapBand v-for="band in overlapBandsFor(user.id, day.iso)"
+                                        :key="band.id" :band="band" :day-start-hour="dayStartHour"
+                                        :day-end-hour="dayEndHour" :event-padding-y="paddingYFor(user.id)" />
 
                                     <!-- Live selection rectangle (click-drag-create) -->
                                     <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
@@ -505,6 +512,9 @@ import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
+import PlannerOverlapBand from '@/Components/Planner/PlannerOverlapBand.vue'
+import { computeLaneOverlaps, effectiveMinutesFor, isCancelledForUser } from '@/Utilities/plannerOverlaps'
+import { useEventLeadingColor } from '@/Composables/useEventLeadingColor'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -959,6 +969,49 @@ const lockedGroupOverlays = computed(() => {
 
     return raw
 })
+
+const { resolveLeadingColor, firstRoleColor } = useEventLeadingColor()
+
+// Mirrors the 2% minimum card width PlannerEvent enforces, so a clipped card can
+// never end up narrower than the floor it would be widened back to.
+const MIN_CARD_WIDTH_RATIO = 0.02
+
+const laneOverlaps = computed(() => {
+    const map = new Map()
+    const leading = leadingColorRole.value ? 'role' : 'event'
+    const minClipMinutes = (dayEndHour.value - dayStartHour.value) * 60 * MIN_CARD_WIDTH_RATIO
+
+    for (const user of visibleUsers.value) {
+        for (const day of weekDays.value) {
+            const laneEvents = eventsFor(user.id, day.iso)
+                .filter(ev => !isCancelledForUser(ev, user.id))
+                .map(ev => {
+                    const executing = ev.executing_users?.find(u => u.id === user.id)
+                    return {
+                        id: ev.id,
+                        ...effectiveMinutesFor(ev, user.id, dayStartHour.value),
+                        color: resolveLeadingColor({
+                            eventColor: ev.color,
+                            roleColor: firstRoleColor(executing?.user_role_ids, props.userRoles),
+                            leadingColor: leading,
+                            isClosed: executing?.completion_status === 'Afgerond',
+                        }),
+                    }
+                })
+            map.set(`${user.id}-${day.iso}`, computeLaneOverlaps(laneEvents, minClipMinutes))
+        }
+    }
+
+    return map
+})
+
+function overlapBandsFor(userId, dayIso) {
+    return laneOverlaps.value.get(`${userId}-${dayIso}`)?.bands ?? []
+}
+
+function clipFor(userId, dayIso, eventId) {
+    return laneOverlaps.value.get(`${userId}-${dayIso}`)?.clips.get(eventId) ?? null
+}
 
 function toggleAllDay() {
     const order = ['closed', 'partial', 'full']
