@@ -76,7 +76,7 @@
             </div>
 
             <!-- WB badge -->
-            <div class="mt-2">
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
                 <button v-if="event.eventable_id"
                     class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 transition"
                     @click.stop="router.visit(`/serviceorders/${event.eventable_id}`)">
@@ -90,6 +90,11 @@
                 </button>
                 <span v-else class="text-xs text-gray-400 dark:text-slate-500 italic">
                     Eigen planning
+                </span>
+                <span v-if="travelTime > 0"
+                    class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm">
+                    <Car class="size-3.5 shrink-0" />
+                    <span>{{ travelTime }} min reistijd</span>
                 </span>
             </div>
 
@@ -124,7 +129,7 @@
 import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { BuildingOfficeIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
-import { TriangleAlert, CircleCheck, MessageCircleReply } from '@lucide/vue'
+import { TriangleAlert, CircleCheck, MessageCircleReply, Car } from '@lucide/vue'
 import { hasPermission, initials, formatWbNumber } from '@/Utilities/Utilities'
 import { isClosedForUser } from '@/Utilities/plannerOverlaps'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
@@ -170,4 +175,8 @@ const currentUserRoles = computed(() => {
     if (props.selectedUserId === null) return []
     return executingUsers.value.find(u => u.id === props.selectedUserId)?.roles ?? []
 })
+
+const travelTime = computed(() =>
+    props.event.executing_users.find(u => u.id === props.relevantUserId)?.travel_time_minutes ?? 0
+)
 </script>

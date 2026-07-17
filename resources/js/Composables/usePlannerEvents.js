@@ -28,6 +28,7 @@ function mapEvent(ev) {
             completion_status: u.pivot?.completion_status ?? "planned",
             actual_start: u.pivot?.actual_start ?? null,
             actual_end: u.pivot?.actual_end ?? null,
+            travel_time_minutes: u.pivot?.travel_time_minutes ?? 0,
             has_signature: u.pivot?.has_signature ?? false,
         })),
         eventable_id: ev.service_orders?.[0]?.id ?? null,

@@ -22,6 +22,7 @@ class EventExecutionController extends Controller
             'completion_status' => $execution->completion_status,
             'actual_start' => $execution->actual_start,
             'actual_end' => $execution->actual_end,
+            'travel_time_minutes' => $execution->travel_time_minutes,
             'signature_base64' => $execution->signature_base64,
         ]);
     }
@@ -52,6 +53,7 @@ class EventExecutionController extends Controller
 
         $execution->actual_start = $request->validated('actual_start');
         $execution->actual_end = $request->validated('actual_end');
+        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
         $execution->signature_base64 = $request->validated('signature_base64');
         $execution->completion_status = EventCompletionStatus::completed->value;
         $execution->save();
@@ -67,6 +69,7 @@ class EventExecutionController extends Controller
             'completion_status' => $execution->completion_status,
             'actual_start' => $execution->actual_start,
             'actual_end' => $execution->actual_end,
+            'travel_time_minutes' => $execution->travel_time_minutes,
             'signature_base64' => $execution->signature_base64,
         ]);
     }
@@ -77,6 +80,7 @@ class EventExecutionController extends Controller
 
         $execution->actual_start = $request->validated('actual_start');
         $execution->actual_end = $request->validated('actual_end');
+        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
         $execution->signature_base64 = $request->validated('signature_base64');
         $execution->completion_status = EventCompletionStatus::completed->value;
         $execution->save();
@@ -92,10 +96,17 @@ class EventExecutionController extends Controller
                 'completion_status' => EventCompletionStatus::planned->value,
                 'actual_start' => null,
                 'actual_end' => null,
+                'travel_time_minutes' => 0,
             ]);
 
         return response()->json([
-            'executions' => $event->executions()->get(['user_id', 'completion_status', 'actual_start', 'actual_end']),
+            'executions' => $event->executions()->get([
+                'user_id',
+                'completion_status',
+                'actual_start',
+                'actual_end',
+                'travel_time_minutes',
+            ]),
         ]);
     }
 
@@ -105,6 +116,7 @@ class EventExecutionController extends Controller
             'completion_status' => $execution->completion_status,
             'actual_start' => $execution->actual_start,
             'actual_end' => $execution->actual_end,
+            'travel_time_minutes' => $execution->travel_time_minutes,
             'has_signature' => filled($execution->signature_base64),
         ];
     }

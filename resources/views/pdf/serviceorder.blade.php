@@ -197,12 +197,13 @@
         <table class="table small compact">
             <thead>
                 <tr>
-                    <th style="width:24%">Naam</th>
-                    <th style="width:15%">Datum</th>
-                    <th style="width:14%">Starttijd</th>
-                    <th style="width:14%">Eindtijd</th>
-                    <th style="width:14%">Pauze</th>
-                    <th style="width:19%">Uren</th>
+                    <th style="width:22%">Naam</th>
+                    <th style="width:13%">Datum</th>
+                    <th style="width:12%">Starttijd</th>
+                    <th style="width:12%">Eindtijd</th>
+                    <th style="width:13%">Reistijd</th>
+                    <th style="width:12%">Pauze</th>
+                    <th style="width:16%">Uren</th>
                 </tr>
             </thead>
             <tbody>
@@ -216,6 +217,7 @@
                         @else
                             <td colspan="2" class="muted">Nog geen tijden ingevuld</td>
                         @endif
+                        <td>{{ $executor['travel_time_minutes'] }} min</td>
                         <td>{{ $executor['breaktime'] }} min</td>
                         <td>{{ $executor['hours'] !== null ? number_format($executor['hours'], 2, ',', '.') . ' uur' : '—' }}</td>
                     </tr>

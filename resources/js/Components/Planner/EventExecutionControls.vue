@@ -45,6 +45,7 @@
                 </p>
                 <TextInput v-model="editStart" type="time" label="Starttijd" />
                 <TextInput v-model="editEnd" type="time" label="Eindtijd" />
+                <TextInput v-model="editTravelTime" type="number" min="0" max="1440" label="Reistijd (min)" />
             </div>
         </ExecutionModal>
     </div>
@@ -75,6 +76,7 @@ const modalOpen = ref(false)
 const editSignature = ref('')
 const editStart = ref('')
 const editEnd = ref('')
+const editTravelTime = ref(0)
 const targetUserId = ref(null)
 const targetUserName = ref('')
 
@@ -136,6 +138,7 @@ async function openModal() {
         editSignature.value = data.signature_base64 ?? ''
         editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
         editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
+        editTravelTime.value = data.travel_time_minutes ?? 0
         modalOpen.value = true
     } finally {
         busy.value = false
@@ -154,6 +157,7 @@ async function openModalForOther() {
         editSignature.value = data.signature_base64 ?? ''
         editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
         editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
+        editTravelTime.value = data.travel_time_minutes ?? 0
         modalOpen.value = true
     } finally {
         busy.value = false
@@ -172,6 +176,7 @@ async function onModalConfirm(signature) {
         await axios.patch(url, {
             actual_start: localToUtcDatetime(date_iso, editStart.value),
             actual_end: localToUtcDatetime(date_iso, editEnd.value),
+            travel_time_minutes: Number(editTravelTime.value) || 0,
             signature_base64: signature,
         })
         emit('changed')

@@ -766,6 +766,7 @@ class ServiceOrderController extends Controller
                     'date' => $event->start->copy()->setTimezone($display_timezone),
                     'actual_start' => $actual_start?->copy()->setTimezone($display_timezone),
                     'actual_end' => $actual_end?->copy()->setTimezone($display_timezone),
+                    'travel_time_minutes' => (int) ($execution?->travel_time_minutes ?? 0),
                     'breaktime' => $user->pivot->breaktime,
                     'hours' => $actual_start && $actual_end
                         ? round($actual_start->floatDiffInHours($actual_end) - ($breaktime_minutes / 60), 2)

@@ -490,6 +490,7 @@ class EventApiController extends Controller
                 $user->pivot->setAttribute('completion_status', $execution->completion_status ?? 'Gepland');
                 $user->pivot->setAttribute('actual_start', $execution?->actual_start);
                 $user->pivot->setAttribute('actual_end', $execution?->actual_end);
+                $user->pivot->setAttribute('travel_time_minutes', (int) ($execution?->travel_time_minutes ?? 0));
                 $user->pivot->setAttribute('has_signature', filled($execution?->signature_base64));
             }
         }

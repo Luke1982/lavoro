@@ -25,6 +25,7 @@ class PlannerExportService
         'Werkelijke start',
         'Werkelijke eind',
         'Werkelijke uren (excl. pauze)',
+        'Reistijd (uren)',
         'Pauze (uren)',
         'Status',
     ];
@@ -66,7 +67,7 @@ class PlannerExportService
             $spreadsheet->addSheet($sheet);
 
             $sheet->fromArray([self::HEADERS], null, 'A1');
-            $sheet->getStyle('A1:M1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:N1')->getFont()->setBold(true);
 
             $row = 2;
             foreach ($events as $event) {
@@ -79,7 +80,7 @@ class PlannerExportService
                 $row++;
             }
 
-            foreach (range('A', 'M') as $column) {
+            foreach (range('A', 'N') as $column) {
                 $sheet->getColumnDimension($column)->setAutoSize(true);
             }
         }
@@ -112,8 +113,9 @@ class PlannerExportService
             $this->hours($execution?->actual_start, $execution?->actual_end, $breaktime_minutes)
         );
 
-        $sheet->setCellValue('L' . $row, round($breaktime_minutes / 60, 2));
-        $sheet->setCellValue('M' . $row, $execution?->completion_status ?? 'Gepland');
+        $sheet->setCellValue('L' . $row, round((int) ($execution?->travel_time_minutes ?? 0) / 60, 2));
+        $sheet->setCellValue('M' . $row, round($breaktime_minutes / 60, 2));
+        $sheet->setCellValue('N' . $row, $execution?->completion_status ?? 'Gepland');
     }
 
     private function hours(?Carbon $start, ?Carbon $end, int $breaktime_minutes): ?float

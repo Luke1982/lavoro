@@ -93,6 +93,11 @@
             </button>
             <EventExecutionControls :event="event" :user-id="userId" class="pointer-events-auto"
                 @changed="$emit('changed')" />
+            <span v-if="userTravelTime > 0" v-tooltip="`Reistijd: ${userTravelTime} min`"
+                class="pointer-events-auto inline-flex items-center gap-0.5 rounded bg-gray-100 dark:bg-slate-700 px-1 py-px text-[9px] font-semibold leading-none text-gray-600 dark:text-slate-300">
+                <Car class="size-2.5" />
+                {{ userTravelTime }}m
+            </span>
             <span v-for="role in currentUserRoles" :key="role.id"
                 class="inline-flex items-center rounded px-1 py-px text-[9px] font-semibold leading-none text-white"
                 :style="{ backgroundColor: role.color }" v-tooltip="role.name">
@@ -127,7 +132,7 @@
 import { computed } from 'vue'
 import { ClockIcon, ExclamationTriangleIcon, BuildingOfficeIcon, ArrowTopRightOnSquareIcon, MapPinIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
-import { ClockFading, TriangleAlert, CircleCheck, Banknote, MessageCircleReply } from '@lucide/vue'
+import { ClockFading, TriangleAlert, CircleCheck, Banknote, MessageCircleReply, Car } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import { nlTime, hasPermission, roleInitials } from '@/Utilities/Utilities'
 import { useEventLeadingColor, COMPLETED_PATTERN } from '@/Composables/useEventLeadingColor'
@@ -180,6 +185,9 @@ const isClipped = computed(() => props.renderStartMin !== null || props.renderEn
 const isShort = computed(() => durationMinutes.value < 60 || isClipped.value)
 const userBreaktime = computed(() =>
     props.event.executing_users?.find(u => u.id === props.userId)?.breaktime ?? 0
+)
+const userTravelTime = computed(() =>
+    props.event.executing_users?.find(u => u.id === props.userId)?.travel_time_minutes ?? 0
 )
 
 const divergingUser = computed(() =>

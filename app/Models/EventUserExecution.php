@@ -12,12 +12,14 @@ class EventUserExecution extends Model
         'completion_status',
         'actual_start',
         'actual_end',
+        'travel_time_minutes',
         'signature_base64',
     ];
 
     protected $casts = [
         'actual_start' => 'datetime',
         'actual_end' => 'datetime',
+        'travel_time_minutes' => 'integer',
     ];
 
     public function event()

@@ -16,6 +16,7 @@ class EventExecutionUpdateOthersRequest extends FormRequest
         return [
             'actual_start' => ['required', 'date'],
             'actual_end' => ['required', 'date', 'after:actual_start'],
+            'travel_time_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
             'signature_base64' => ['required', 'string'],
         ];
     }
