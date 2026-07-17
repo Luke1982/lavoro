@@ -1,5 +1,5 @@
 <template>
-    <BoxComponent>
+    <component :is="boxed ? BoxComponent : 'div'">
         <div class="flex items-center justify-between mb-5">
             <div class="flex">
                 <ClipboardListIcon class="size-6 mr-2 flex-none object-cover" />
@@ -425,7 +425,7 @@
                 </div>
             </template>
         </ModalDialog>
-    </BoxComponent>
+    </component>
 </template>
 
 <script setup>
@@ -450,6 +450,8 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
     isClosed: { type: Boolean, default: false },
+    /** Opt out where the widget is one section among others that sit flush, rather than a card of its own. */
+    boxed: { type: Boolean, default: true },
 })
 
 const canCreate = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.create'))

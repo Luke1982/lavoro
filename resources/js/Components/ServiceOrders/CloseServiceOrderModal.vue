@@ -28,7 +28,7 @@
 
             <div>
                 <TaskInstancesWidget :service-order-id="serviceOrder.id" :instances="allTaskInstances"
-                    :available-tasks="[]" :products="[]" :user-roles="userRoles" :is-closed="true" />
+                    :available-tasks="[]" :products="[]" :user-roles="userRoles" :is-closed="true" :boxed="false" />
             </div>
 
             <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
