@@ -388,7 +388,7 @@
                                             :style="{
                                                 left: overlay.left + '%',
                                                 width: overlay.width + '%',
-                                                background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)',
+                                                background: UNAVAILABLE_PATTERN,
                                             }">
                                             <span
                                                 class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
@@ -511,9 +511,10 @@ import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasP
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
+import { isBlockedAt, blockedUsersAt, unavailabilityBandsFor, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import PlannerOverlapBand from '@/Components/Planner/PlannerOverlapBand.vue'
-import { computeLaneOverlaps, effectiveMinutesFor, isCancelledForUser } from '@/Utilities/plannerOverlaps'
+import { computeLaneOverlaps, effectiveMinutesFor, isCancelledForUser, UNAVAILABLE_PATTERN } from '@/Utilities/plannerOverlaps'
 import { useEventLeadingColor } from '@/Composables/useEventLeadingColor'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
@@ -768,8 +769,12 @@ function onSettingsKeydown(e) {
     if (e.key === 'Escape') settingsOpen.value = false
 }
 
-const unavailOverrideDialog = ref({ open: false, users: [] })
-let pendingOverrideAction = null
+const {
+    dialog: unavailOverrideDialog,
+    request: requestOverride,
+    confirm: onOverrideConfirm,
+    cancel: onOverrideCancel,
+} = useUnavailabilityOverride()
 
 const pendingStandardEmailQueue = ref([])
 const {
@@ -778,37 +783,14 @@ const {
     openPreview: openStandardEmailPreview,
 } = useStandardEmailPreview()
 
+// The grid measures minutes from dayStartHour; the shared helpers work in
+// absolute minutes from midnight.
+function toAbsMin(gridMin) {
+    return gridMin + dayStartHour.value * 60
+}
+
 function getBlockedUsers(userId, dayIso, startMin, endMin) {
-    const absStart = startMin + dayStartHour.value * 60
-    const absEnd = endMin + dayStartHour.value * 60
-    const user = props.plannableUsers.find(u => u.id === userId)
-    if (!user) return []
-    return user.unavailabilities
-        .filter(unav => {
-            if (!unavailabilityMatchesDay(unav, dayIso)) return false
-            if (unav.start_time === null) return true
-            const [sh, sm] = unav.start_time.split(':').map(Number)
-            const [eh, em] = unav.end_time.split(':').map(Number)
-            return absStart < eh * 60 + em && absEnd > sh * 60 + sm
-        })
-        .map(unav => ({ name: user.name, label: unav.label }))
-}
-
-function requestOverride(affectedUsers, actionFn) {
-    unavailOverrideDialog.value = { open: true, users: affectedUsers }
-    pendingOverrideAction = actionFn
-}
-
-function onOverrideConfirm() {
-    unavailOverrideDialog.value = { open: false, users: [] }
-    const fn = pendingOverrideAction
-    pendingOverrideAction = null
-    fn?.()
-}
-
-function onOverrideCancel() {
-    unavailOverrideDialog.value = { open: false, users: [] }
-    pendingOverrideAction = null
+    return blockedUsersAt(props.plannableUsers, userId, dayIso, toAbsMin(startMin), toAbsMin(endMin))
 }
 
 const allPingsArray = computed(() =>
@@ -1283,58 +1265,20 @@ function scrollToWorkdayStart() {
     grid.scrollLeft = 0
 }
 
-function userUnavailabilitiesFor(userId) {
-    return props.plannableUsers.find(u => u.id === userId)?.unavailabilities ?? []
-}
-
-function unavailabilityMatchesDay(unav, dayIso) {
-    if (unav.type === 'holiday') {
-        const end = unav.end_date ?? unav.date
-        return dayIso >= unav.date && dayIso <= end
-    }
-    if (unav.type === 'recurring') {
-        // dayjs: 0=Sun,1=Mon..6=Sat → convert to 0=Mon..6=Sun
-        const dow = (dayjs(dayIso).day() + 6) % 7
-        if (dow !== unav.day_of_week) return false
-        if (unav.repeat === 'biweekly' && unav.reference_date) {
-            const weeksDiff = Math.abs(dayjs(unav.reference_date).startOf('isoWeek').diff(dayjs(dayIso).startOf('isoWeek'), 'week'))
-            return weeksDiff % 2 === 0
-        }
-        return true
-    }
-    return false
-}
-
 function isBlockedAtTime(userId, dayIso, startMin, endMin) {
-    const absStart = startMin + dayStartHour.value * 60
-    const absEnd = endMin + dayStartHour.value * 60
-    return userUnavailabilitiesFor(userId).some(unav => {
-        if (!unavailabilityMatchesDay(unav, dayIso)) return false
-        if (unav.start_time === null) return true
-        const [sh, sm] = unav.start_time.split(':').map(Number)
-        const [eh, em] = unav.end_time.split(':').map(Number)
-        return absStart < eh * 60 + em && absEnd > sh * 60 + sm
-    })
+    return isBlockedAt(props.plannableUsers, userId, dayIso, toAbsMin(startMin), toAbsMin(endMin))
 }
 
 function getBlockOverlays(userId, dayIso) {
     const totalMin = (dayEndHour.value - dayStartHour.value) * 60
-    return userUnavailabilitiesFor(userId)
-        .filter(unav => unavailabilityMatchesDay(unav, dayIso))
-        .map(unav => {
-            if (unav.start_time === null) {
-                return { left: 0, width: 100, label: unav.label }
-            }
-            const [sh, sm] = unav.start_time.split(':').map(Number)
-            const [eh, em] = unav.end_time.split(':').map(Number)
-            const offsetStart = sh * 60 + sm - dayStartHour.value * 60
-            const offsetEnd = eh * 60 + em - dayStartHour.value * 60
-            const clampedStart = Math.max(0, offsetStart)
-            const clampedEnd = Math.min(totalMin, offsetEnd)
+    return unavailabilityBandsFor(props.plannableUsers, userId, dayIso)
+        .map(band => {
+            const clampedStart = Math.max(0, band.startMin - dayStartHour.value * 60)
+            const clampedEnd = Math.min(totalMin, band.endMin - dayStartHour.value * 60)
             return {
                 left: (clampedStart / totalMin) * 100,
                 width: Math.max(0, ((clampedEnd - clampedStart) / totalMin) * 100),
-                label: unav.label,
+                label: band.label,
             }
         })
 }

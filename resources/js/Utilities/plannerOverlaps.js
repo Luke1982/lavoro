@@ -1,4 +1,10 @@
 const CANCELLED_STATUS = 'Geannuleerd'
+const COMPLETED_STATUS = 'Afgerond'
+
+export const MINUTES_PER_DAY = 24 * 60
+
+export const UNAVAILABLE_PATTERN =
+    'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156,163,175,0.35) 4px, rgba(156,163,175,0.35) 8px)'
 
 /**
  * Resolves the time range a card actually occupies in a lane, honouring the
@@ -17,17 +23,32 @@ export function effectiveMinutesFor(event, userId, dayStartHour) {
     }
 }
 
+export function completionStatusFor(event, userId) {
+    return event.executing_users?.find(u => u.id === userId)?.completion_status ?? null
+}
+
 export function isCancelledForUser(event, userId) {
-    return event.executing_users?.find(u => u.id === userId)?.completion_status === CANCELLED_STATUS
+    return completionStatusFor(event, userId) === CANCELLED_STATUS
+}
+
+export function isClosedForUser(event, userId) {
+    const status = completionStatusFor(event, userId)
+    return status === COMPLETED_STATUS || status === CANCELLED_STATUS
 }
 
 function minutesFromDate(date, dayStartHour) {
     return date.getHours() * 60 + date.getMinutes() - dayStartHour * 60
 }
 
-function minutesFromTimeString(time, dayStartHour) {
+export function minutesFromTimeString(time, dayStartHour = 0) {
     const [h, m] = time.slice(0, 5).split(':').map(Number)
     return h * 60 + m - dayStartHour * 60
+}
+
+export function formatTimeLabel(minutes) {
+    const h = Math.floor(minutes / 60)
+    const m = Math.round(minutes % 60)
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 export function formatDurationLabel(minutes) {
@@ -49,7 +70,10 @@ export function blendColors(colors) {
     })
 }
 
-function subtractRegions(range, regions) {
+/**
+ * The parts of `range` left uncovered by `regions`, in order.
+ */
+export function subtractRegions(range, regions) {
     let pieces = [range]
     for (const region of regions) {
         const remaining = []

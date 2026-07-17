@@ -4,7 +4,8 @@
         <MobilePlannerView :event-types="eventTypes" :all-customers="allCustomers"
             :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
             :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"
-            :user-roles="userRoles" :latest-pings="props.latestPings" />
+            :user-roles="userRoles" :latest-pings="props.latestPings"
+            :allow-override-unavailability="props.allowOverrideUnavailability" />
     </div>
 
     <!-- Desktop (md and up) -->

@@ -216,6 +216,11 @@ export const formatProductSalePeriod = (startDate, endDate) => {
 
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
+const _dayNames = ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"];
+export const nlDayName = (date) => _dayNames[dayjs(date).day()];
+
+export const formatWbNumber = (serviceOrderId) => `WB-${String(serviceOrderId).padStart(4, "0")}`;
+
 const _currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
 export const nlCurrency = (value) => _currencyFormatter.format(Number(value) || 0);
 
