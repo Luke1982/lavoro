@@ -107,30 +107,18 @@
 
     <!-- Pull past the edge to change week. Only shows once the lanes have run
          out of scroll, so panning across mechanics never nudges it. -->
-    <div v-if="pull !== 0" class="absolute inset-y-0 z-40 flex items-center pointer-events-none"
-        :class="pull > 0 ? 'left-0' : 'right-0'">
-        <div class="flex items-center gap-1.5 px-3 py-2 shadow-lg text-xs font-semibold whitespace-nowrap"
-            :class="[
-                pull > 0 ? 'rounded-r-full' : 'rounded-l-full',
-                pullArmed
-                    ? 'bg-lavoro-green text-gray-900'
-                    : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-300',
-            ]" :style="{ opacity: 0.35 + pullProgress * 0.65, transform: `scale(${0.9 + pullProgress * 0.1})` }">
-            <ChevronLeftIcon v-if="pull > 0" class="size-4 shrink-0" />
-            <span>{{ pull > 0 ? 'Vorige week' : 'Volgende week' }}</span>
-            <ChevronRightIcon v-if="pull < 0" class="size-4 shrink-0" />
-        </div>
-    </div>
+    <WeekFlipIndicator :pull="pull" :armed="pullArmed" :progress="pullProgress" />
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import dayjs from '@/Utilities/dayjs'
 import { initials, nlDayName, formatWbNumber } from '@/Utilities/Utilities'
 import { UNAVAILABLE_PATTERN, formatDurationLabel } from '@/Utilities/plannerOverlaps'
 import { daySegmentsFor, eventMinutesFor, eventsOnDay } from '@/Composables/usePlannerGaps'
+import { usePullToFlip } from '@/Composables/usePullToFlip'
+import WeekFlipIndicator from '@/Components/Planner/WeekFlipIndicator.vue'
 
 const props = defineProps({
     plannableUsers: { type: Array, default: () => [] },
@@ -251,79 +239,11 @@ function segmentTappable(segment) {
     return segment.kind === 'free' || props.allowOverrideUnavailability
 }
 
-// ── Pull past the edge to change week ────────────────────────────────────────
-//
-// Panning sideways across the mechanics is the common gesture here, so it must
-// never change the week by itself. The pull is therefore measured from the
-// point the lanes run out of scroll rather than from where the finger landed,
-// and it has to travel a deliberate distance from there before it counts.
-
-const PULL_THRESHOLD = 90
-const MAX_PULL = 130
-
+// Panning sideways across the mechanics is the common gesture here, so the week
+// only changes on a deliberate pull past the edge of the lanes.
 const scrollEl = ref(null)
-const pull = ref(0)
-let pullAnchorX = null
-let lastX = null
-
-const pullProgress = computed(() => Math.min(1, Math.abs(pull.value) / PULL_THRESHOLD))
-const pullArmed = computed(() => Math.abs(pull.value) >= PULL_THRESHOLD)
-
-function atLeftEdge() {
-    return (scrollEl.value?.scrollLeft ?? 0) <= 0
-}
-
-function atRightEdge() {
-    const el = scrollEl.value
-    if (!el) return false
-    return el.scrollLeft >= el.scrollWidth - el.clientWidth - 1
-}
-
-function resetPull() {
-    pull.value = 0
-    pullAnchorX = null
-}
-
-function onTouchStart(e) {
-    if (e.touches.length !== 1) return
-    lastX = e.touches[0].clientX
-    resetPull()
-}
-
-function onTouchMove(e) {
-    if (lastX === null || e.touches.length !== 1) {
-        resetPull()
-        return
-    }
-    const x = e.touches[0].clientX
-    const movingRight = x > lastX
-    lastX = x
-
-    // Pulling right at the left edge asks for the previous week; pulling left at
-    // the right edge asks for the next one. Anything else is an ordinary pan.
-    const stuck = (movingRight && atLeftEdge()) || (!movingRight && atRightEdge())
-    if (pullAnchorX === null) {
-        if (!stuck) return
-        pullAnchorX = x
-    }
-
-    const travelled = x - pullAnchorX
-    const wantsForward = travelled < 0
-    if (wantsForward && !props.canGoForward) {
-        resetPull()
-        return
-    }
-    // Scrolling back off the edge abandons the pull.
-    if ((travelled > 0 && !atLeftEdge()) || (travelled < 0 && !atRightEdge())) {
-        resetPull()
-        return
-    }
-    pull.value = Math.max(-MAX_PULL, Math.min(MAX_PULL, travelled))
-}
-
-function onTouchEnd() {
-    if (pullArmed.value) emit('flip-week', pull.value > 0 ? -1 : 1)
-    resetPull()
-    lastX = null
-}
+const { pull, pullArmed, pullProgress, onTouchStart, onTouchMove, onTouchEnd } = usePullToFlip(scrollEl, {
+    canGoForward: () => props.canGoForward,
+    onFlip: (direction) => emit('flip-week', direction),
+})
 </script>

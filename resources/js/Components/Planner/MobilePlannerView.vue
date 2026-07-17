@@ -92,13 +92,16 @@
                 :can-go-forward="canShiftForward" @slot-tap="handleSlotTap" @event-tap="handleEventTap"
                 @flip-week="shiftWeek" />
 
-            <div v-else class="h-full overflow-y-auto">
-                <div v-if="!eventsLoading && timelineEvents.length === 0 && !showsGaps"
-                    class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
-                    Geen afspraken deze week
-                </div>
+            <div v-else class="relative h-full">
+                <div ref="listScrollEl" class="h-full overflow-y-auto" @touchstart.passive="onListTouchStart"
+                    @touchmove.passive="onListTouchMove" @touchend.passive="onListTouchEnd"
+                    @touchcancel.passive="onListTouchEnd">
+                    <div v-if="!eventsLoading && timelineEvents.length === 0 && !showsGaps"
+                        class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
+                        Geen afspraken deze week
+                    </div>
 
-                <div v-else class="pb-24">
+                    <div v-else class="pb-24">
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div
@@ -179,8 +182,10 @@
                                 </div>
                             </div>
                         </div>
-                    </template>
+                        </template>
+                    </div>
                 </div>
+                <WeekFlipIndicator :pull="listPull" :armed="listPullArmed" :progress="listPullProgress" />
             </div>
         </PlannerLoadingOverlay>
 
@@ -224,7 +229,6 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useSwipe } from '@vueuse/core'
 import { usePage } from '@inertiajs/vue3'
 import {
     ChevronLeftIcon,
@@ -250,10 +254,12 @@ import {
     eventsOnDay,
 } from '@/Composables/usePlannerGaps'
 import { blockedUsersAt, useUnavailabilityOverride } from '@/Composables/useUnavailability'
+import { usePullToFlip } from '@/Composables/usePullToFlip'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import MobileEventCard from '@/Components/Planner/MobileEventCard.vue'
 import MobileLaneView from '@/Components/Planner/MobileLaneView.vue'
+import WeekFlipIndicator from '@/Components/Planner/WeekFlipIndicator.vue'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
@@ -327,21 +333,24 @@ function shiftWeek(direction) {
     weekStart.value = dayjs(weekStart.value).add(direction * 7, 'day').toDate()
 }
 
+// The stacked list scrolls vertically, so a horizontal pull past its edge is
+// free to change week with the same deliberate gesture the lane view uses.
+const listScrollEl = ref(null)
+const {
+    pull: listPull,
+    pullArmed: listPullArmed,
+    pullProgress: listPullProgress,
+    onTouchStart: onListTouchStart,
+    onTouchMove: onListTouchMove,
+    onTouchEnd: onListTouchEnd,
+} = usePullToFlip(listScrollEl, {
+    canGoForward: () => canShiftForward.value,
+    onFlip: (direction) => shiftWeek(direction),
+})
+
 // ── Event fetching ────────────────────────────────────────────────────────────
 
 const rootEl = ref(null)
-
-useSwipe(rootEl, {
-    threshold: 50,
-    onSwipeEnd(_, direction) {
-        // In lane view the sideways axis belongs to the lanes: panning across
-        // mechanics must never change the week. That view offers its own
-        // deliberate pull past the edge instead.
-        if (showLaneView.value) return
-        if (direction === 'left') shiftWeek(1)
-        else if (direction === 'right') shiftWeek(-1)
-    },
-})
 
 const dayCount = ref(7)
 const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(

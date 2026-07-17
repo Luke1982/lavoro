@@ -71,11 +71,21 @@ export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => fal
     const eventsLoading = ref(false);
 
     let fetchInFlight = false;
+    let refetchQueued = false;
     let lastEventsFingerprint = null;
     let pollTimer = null;
 
     async function fetchEvents({ silent = false } = {}) {
-        if (fetchInFlight) return;
+        // A background poll must never swallow a week change: when the user asks
+        // for fresh data mid-poll, show the overlay now and refetch once the poll
+        // in flight lands, so the new week always loads and is never left stale.
+        if (fetchInFlight) {
+            if (!silent) {
+                eventsLoading.value = true;
+                refetchQueued = true;
+            }
+            return;
+        }
         fetchInFlight = true;
         if (!silent) eventsLoading.value = true;
         try {
@@ -97,7 +107,12 @@ export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => fal
             if (!silent) console.error("Failed to fetch events for planner", e);
         } finally {
             fetchInFlight = false;
-            if (!silent) eventsLoading.value = false;
+            if (refetchQueued) {
+                refetchQueued = false;
+                fetchEvents();
+            } else if (!silent) {
+                eventsLoading.value = false;
+            }
         }
     }
 
