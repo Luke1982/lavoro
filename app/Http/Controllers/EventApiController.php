@@ -236,7 +236,12 @@ class EventApiController extends Controller
         );
 
         $customer_id = $payload['customer_id'] ?? null;
-        unset($payload['customer_id'], $payload['create_service_order']);
+        $service_order_customer_action = $payload['service_order_customer_action'] ?? null;
+        unset(
+            $payload['customer_id'],
+            $payload['create_service_order'],
+            $payload['service_order_customer_action'],
+        );
 
         $event->update($payload);
 
@@ -256,13 +261,23 @@ class EventApiController extends Controller
                 $create_new,
                 $customer_id,
                 $eventable_type,
-                $eventable_id
+                $eventable_id,
+                $service_order_customer_action
             ) {
                 if ($create_new) {
                     $eventable_id = ServiceOrder::create(['customer_id' => $customer_id])->id;
                 }
 
                 $model = $eventable_type::findOrFail($eventable_id);
+
+                if (
+                    $service_order_customer_action === 'move'
+                    && $model instanceof ServiceOrder
+                    && $customer_id
+                    && $model->customer_id !== (int) $customer_id
+                ) {
+                    $model->moveToCustomer((int) $customer_id);
+                }
 
                 DB::table('eventables')
                     ->where('event_id', $event->id)
@@ -280,6 +295,26 @@ class EventApiController extends Controller
                 }
 
                 return $model;
+            });
+        }
+
+        /**
+         * An `eventable_id` that is present but empty means the werkbon was
+         * cleared on purpose, which is the only way to take one off an existing
+         * appointment. Callers that mean "leave the werkbon alone" — the drag
+         * reschedule, the inline edits — omit the key entirely, so an explicit
+         * null is never ambiguous and must never pass silently.
+         */
+        $unlinking = !$linking && $request->has('eventable_id');
+
+        if ($unlinking && $event->serviceOrders()->exists()) {
+            DB::transaction(function () use ($event, $customer_id) {
+                foreach ($event->serviceOrders as $service_order) {
+                    $service_order->revertToPlanningCancelledStage();
+                }
+                $event->serviceOrders()->detach();
+                $event->update(['no_service_order' => true]);
+                $event->customers()->sync($customer_id ? [$customer_id] : []);
             });
         }
 

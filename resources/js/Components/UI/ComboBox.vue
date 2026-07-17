@@ -197,6 +197,24 @@ watch(internalValue, (val) => {
     }
 })
 
+/**
+ * Options frequently arrive after mount (async search endpoints). A modelValue
+ * that could not be resolved against an empty list would otherwise leave the
+ * input blank for good. Only fills a gap: an already resolved selection — and a
+ * deliberate deselection, which nulls modelValue — is never overwritten.
+ */
+watch(() => props.options, () => {
+    if (props.multiple) {
+        if (!internalValue.value?.length) {
+            internalValue.value = resolveModelValues(props.modelValue)
+        }
+        return
+    }
+    if (!internalValue.value) {
+        internalValue.value = resolveModelValue(props.modelValue)
+    }
+})
+
 // Keep internalValue updated when external modelValue changes
 watch(() => props.modelValue, (newVal) => {
     if (!props.multiple) {

@@ -207,6 +207,25 @@ class ServiceOrder extends Model
         $this->logActivity("Fase gewijzigd naar: {$planned->name} (door koppeling agenda)");
     }
 
+    /**
+     * Repoints the order at another customer. The linked location is dropped
+     * along the way: locations belong to a customer, so the old one is by
+     * definition unreachable from the new one. The project link is deliberately
+     * kept — unlinking it is a bigger decision than this move gets to make.
+     */
+    public function moveToCustomer(int $customer_id): void
+    {
+        $previous = $this->customer?->name;
+
+        $this->update([
+            'customer_id' => $customer_id,
+            'location_id' => null,
+        ]);
+
+        $new = $this->refresh()->customer?->name;
+        $this->logActivity('Klant gewijzigd van ' . $previous . ' naar ' . $new . ' (via agenda)');
+    }
+
     public function revertToPlanningCancelledStage(): void
     {
         $cancelled = ServiceOrderStage::where('is_planning_cancelled_state', true)->first();

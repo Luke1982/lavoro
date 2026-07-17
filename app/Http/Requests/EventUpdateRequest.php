@@ -52,6 +52,7 @@ class EventUpdateRequest extends FormRequest
             'executing_user_diverging_times.*.diverging_end' => ['nullable', 'date_format:H:i'],
             'breaktime' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'customer_id' => ['sometimes', 'required_if:create_service_order,true', 'nullable', 'exists:customers,id'],
+            'service_order_customer_action' => ['sometimes', 'nullable', 'in:move'],
         ];
     }
 }

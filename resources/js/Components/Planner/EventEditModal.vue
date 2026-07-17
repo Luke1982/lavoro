@@ -388,6 +388,11 @@
             :event-id="previewModal.eventId" :standard-email-id="previewModal.standardEmailId" :to="previewModal.to"
             :subject="previewModal.subject" :body="previewModal.body" :trigger="previewModal.trigger"
             :editable="previewModal.editable" @sent="onEmailSent" />
+        <ServiceOrderCustomerChangeDialog :open="serviceOrderChange.open"
+            :service-order-id="serviceOrderChange.service_order_id"
+            :old-customer-name="serviceOrderChange.old_customer_name"
+            :new-customer-name="serviceOrderChange.new_customer_name" @move="confirmServiceOrderMove"
+            @detach="confirmServiceOrderDetach" @cancel="cancelServiceOrderChange" />
         </div>
     </Teleport>
 </template>
@@ -406,6 +411,7 @@ import { ClockFading as ClockFadingIcon, LocateFixed, MailQuestionMark, SendHori
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
+import ServiceOrderCustomerChangeDialog from '@/Components/Planner/ServiceOrderCustomerChangeDialog.vue'
 import { formatAddress, formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPermission, nlDate, initials } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
 import { useCustomerLocations } from '@/Composables/useCustomerLocations'
@@ -464,6 +470,7 @@ const form = useForm({
     create_service_order: false,
     no_service_order: props.initial.no_service_order || false,
     is_preliminary: props.initial.is_preliminary || false,
+    service_order_customer_action: null,
 })
 
 const userBreaktimes = ref(
@@ -524,6 +531,25 @@ const selectedCustomer = ref(
 )
 
 /**
+ * In AJAX mode every search replaces the option list, so the customer a user is
+ * switching away from may no longer be in it. The dialog has to name both sides
+ * of the swap, so remember every name that passes through.
+ */
+const customerNameCache = ref(
+    Object.fromEntries(initialCustomerOptions.map(c => [String(c.id), c.name]))
+)
+if (props.initial.customer_id && props.initial.customer_name) {
+    customerNameCache.value[String(props.initial.customer_id)] = props.initial.customer_name
+}
+watch(customerOptions, (options) => {
+    options.forEach(c => { customerNameCache.value[String(c.id)] = c.name })
+}, { immediate: true })
+
+function customerName(id) {
+    return customerNameCache.value[String(id)] || 'onbekende klant'
+}
+
+/**
  * An appointment is either at one of the customer's locations (location_id) or
  * at a free-text address. Picking a location also writes its address into the
  * free-text field, so consumers that read `location` keep working; the link
@@ -554,11 +580,6 @@ function switchToFreeformLocation() {
     form.location_id = null
 }
 
-watch(selectedCustomer, (id) => {
-    switchToFreeformLocation()
-    loadCustomerLocations(id)
-})
-
 watch(hasLocations, (has) => {
     if (!has && locationMode.value === 'picker') {
         switchToFreeformLocation()
@@ -568,6 +589,13 @@ watch(hasLocations, (has) => {
 onMounted(() => loadCustomerLocations(selectedCustomer.value))
 
 const serviceOrderResults = ref([])
+
+/**
+ * The combo endpoint only lists orders of the selected customer, so an order
+ * being moved along to a new customer would drop out of its own picker until
+ * the save lands. Keep it in the list until the user picks something else.
+ */
+const pinnedServiceOrder = ref(null)
 
 async function fetchServiceOrders() {
     if (!selectedCustomer.value) {
@@ -587,12 +615,17 @@ async function fetchServiceOrders() {
     }
 }
 
-const internalServiceOrders = computed(() =>
-    serviceOrderResults.value.map(so => ({
+const internalServiceOrders = computed(() => {
+    const results = [...serviceOrderResults.value]
+    const pinned = pinnedServiceOrder.value
+    if (pinned && !results.some(so => so.id === pinned.id)) {
+        results.unshift(pinned)
+    }
+    return results.map(so => ({
         id: so.id,
         name: `Order ${so.id} van ${nlDate(so.created_at)}`,
     }))
-)
+})
 
 const selectedUsers = computed(() =>
     form.executing_user_ids
@@ -604,13 +637,94 @@ const availableUsers = computed(() =>
     props.allUsers.filter(u => !form.executing_user_ids.includes(u.id))
 )
 
-watch(selectedCustomer, (val, oldVal) => {
-    if (val === oldVal) return
-    if (!val) {
+const serviceOrderChange = ref({
+    open: false,
+    service_order_id: null,
+    old_customer_name: '',
+    new_customer_name: '',
+    previous_customer_id: null,
+})
+
+let suppress_customer_watcher = false
+
+function applyCustomerChange(id) {
+    switchToFreeformLocation()
+    loadCustomerLocations(id)
+    if (!id) {
         form.create_service_order = false
     }
     form.eventable_id = ''
+    form.service_order_customer_action = null
+    pinnedServiceOrder.value = null
     fetchServiceOrders()
+}
+
+/**
+ * A linked werkbon owns the customer of its event, so switching customer is
+ * never a silent edit: the werkbon either moves along or is let go. Nothing is
+ * applied until that is answered, which keeps a dismissed dialog a true no-op.
+ */
+watch(selectedCustomer, (val, oldVal) => {
+    if (suppress_customer_watcher) return
+    if (val === oldVal) return
+
+    if (props.editingExisting && form.eventable_id && !form.no_service_order) {
+        serviceOrderChange.value = {
+            open: true,
+            service_order_id: form.eventable_id,
+            old_customer_name: customerName(oldVal),
+            new_customer_name: customerName(val),
+            previous_customer_id: oldVal,
+        }
+        return
+    }
+
+    applyCustomerChange(val)
+})
+
+function confirmServiceOrderMove() {
+    pinnedServiceOrder.value = serviceOrderResults.value.find(
+        so => so.id === form.eventable_id
+    ) || pinnedServiceOrder.value
+    serviceOrderChange.value.open = false
+    switchToFreeformLocation()
+    loadCustomerLocations(selectedCustomer.value)
+    form.service_order_customer_action = 'move'
+    fetchServiceOrders()
+}
+
+function confirmServiceOrderDetach() {
+    serviceOrderChange.value.open = false
+    applyCustomerChange(selectedCustomer.value)
+    form.no_service_order = true
+    linkingServiceOrder.value = false
+}
+
+function cancelServiceOrderChange() {
+    const previous = serviceOrderChange.value.previous_customer_id
+    serviceOrderChange.value.open = false
+    if (previous && !customerOptions.value.some(c => c.id === previous)) {
+        customerOptions.value = [
+            { id: previous, name: customerName(previous) },
+            ...customerOptions.value,
+        ]
+    }
+    suppress_customer_watcher = true
+    selectedCustomer.value = previous
+    nextTick(() => { suppress_customer_watcher = false })
+}
+
+/**
+ * Moving away from the pinned werkbon leaves the move without a subject: another
+ * werkbon already belongs to the new customer, and clearing the field unlinks
+ * instead. Either way the customer still travels with the appointment.
+ */
+watch(() => form.eventable_id, (val) => {
+    if (form.service_order_customer_action !== 'move') return
+    if (val !== pinnedServiceOrder.value?.id) {
+        form.service_order_customer_action = null
+        pinnedServiceOrder.value = null
+    }
 })
 
 watch(() => form.no_service_order, (val) => {
