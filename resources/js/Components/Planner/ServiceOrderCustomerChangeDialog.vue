@@ -23,7 +23,7 @@
                         leave-from="opacity-100 translate-y-0 sm:scale-100"
                         leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                         <DialogPanel
-                            class="relative transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                            class="relative transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
                             <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                 <div class="sm:flex sm:items-start">
                                     <div
@@ -47,7 +47,7 @@
                             <div
                                 class="bg-gray-50 dark:bg-slate-900/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                                 <button type="button"
-                                    class="inline-flex w-full min-w-0 justify-center rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white shadow-xs hover:opacity-90 sm:ml-3 sm:w-auto sm:max-w-xs"
+                                    class="inline-flex w-full min-w-0 justify-center rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white shadow-xs hover:opacity-90 sm:ml-3 sm:w-auto sm:max-w-md"
                                     @click="$emit('move')">
                                     <span class="truncate">Werkbon meeverhuizen naar {{ newCustomerName }}</span>
                                 </button>
@@ -57,7 +57,7 @@
                                     Werkbon loskoppelen
                                 </button>
                                 <button type="button"
-                                    class="mt-3 inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 sm:mt-0 sm:mr-auto sm:w-auto"
+                                    class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-gray-500 dark:text-slate-400 shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 sm:mt-0 sm:mr-auto sm:w-auto"
                                     @click="$emit('cancel')">
                                     Annuleren
                                 </button>
