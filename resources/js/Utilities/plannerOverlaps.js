@@ -120,13 +120,31 @@ function contestedRegions(laneEvents) {
     return regions
 }
 
-function largestCoincidentGroup(laneEvents) {
+function coincidentGroups(laneEvents) {
     const groups = new Map()
     for (const ev of laneEvents) {
         const key = `${ev.startMin}-${ev.endMin}`
-        groups.set(key, (groups.get(key) ?? 0) + 1)
+        const group = groups.get(key) ?? []
+        group.push(ev)
+        groups.set(key, group)
     }
-    return Math.max(...groups.values())
+    return [...groups.values()].filter(group => group.length > 1)
+}
+
+/**
+ * Cards sharing exactly the same start and end hide each other completely, so
+ * they split the lane into horizontal slots instead. A group only stacks when
+ * the lane can give every slot a readable height.
+ */
+function assignStackSlots(laneEvents, maxStackSlots) {
+    const stacks = new Map()
+
+    for (const group of coincidentGroups(laneEvents)) {
+        if (group.length > maxStackSlots) continue
+        group.forEach((ev, slot) => stacks.set(ev.id, { slot, total: group.length }))
+    }
+
+    return stacks
 }
 
 /**
@@ -144,10 +162,15 @@ function largestCoincidentGroup(laneEvents) {
  * A stretch shorter than `minClipMinutes` is too narrow to stay readable or
  * grabbable, so those cards keep their true box as well and the band is drawn
  * over them.
+ *
+ * Cards with identical times stack into slots when the lane can fit
+ * `maxStackSlots` of them, which keeps every card clickable. A group too large
+ * for the lane stays unstacked and the band reports it as hidden instead.
  */
-export function computeLaneOverlaps(laneEvents, minClipMinutes = 0) {
+export function computeLaneOverlaps(laneEvents, { minClipMinutes = 0, maxStackSlots = 1 } = {}) {
     const clips = new Map()
     const regions = contestedRegions(laneEvents)
+    const stacks = assignStackSlots(laneEvents, maxStackSlots)
 
     for (const ev of laneEvents) {
         const pieces = subtractRegions({ startMin: ev.startMin, endMin: ev.endMin }, regions)
@@ -159,17 +182,22 @@ export function computeLaneOverlaps(laneEvents, minClipMinutes = 0) {
     }
 
     const bands = regions.map(region => {
-        const stackCount = largestCoincidentGroup(region.covering)
+        const unstacked = coincidentGroups(region.covering).filter(group => !stacks.has(group[0].id))
+        const hiddenCount = unstacked.length ? Math.max(...unstacked.map(group => group.length)) : 0
+
         return {
             id: region.covering.map(ev => ev.id).join('-'),
             startMin: region.startMin,
             endMin: region.endMin,
             color: blendColors(region.covering.map(ev => ev.color)),
             durationMin: region.endMin - region.startMin,
-            stackCount: stackCount > 1 ? stackCount : 0,
+            hiddenCount,
+            // Stacked cards are all visible, so the hatch belongs behind them
+            // rather than over the content it is pointing at.
+            behindCards: region.covering.every(ev => stacks.has(ev.id)),
             coversCards: region.covering.some(ev => clips.get(ev.id) === null),
         }
     })
 
-    return { clips, bands }
+    return { clips, bands, stacks }
 }

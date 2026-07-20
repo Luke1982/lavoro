@@ -156,6 +156,8 @@ const props = defineProps({
     leadingColor: { type: String, default: 'event' },
     renderStartMin: { type: Number, default: null },
     renderEndMin: { type: Number, default: null },
+    stackSlot: { type: Number, default: 0 },
+    stackTotal: { type: Number, default: 1 },
 })
 
 const emit = defineEmits(['click', 'contextmenu', 'pointerdown-on-event', 'pointerdown-on-resize', 'changed', 'open-feedback'])
@@ -212,8 +214,23 @@ const effectiveEndLabel = computed(() =>
         : formatTime(props.event.end)
 )
 
-// Lane is collapsed/compact — show only the title so nothing overflows the short card.
-const isCompact = computed(() => props.rowHeight < 70)
+const isStacked = computed(() => props.stackTotal > 1)
+
+// Lane is collapsed/compact — show only the title so nothing overflows the short
+// card. A stacked card only gets its share of the lane.
+const isCompact = computed(() => props.rowHeight / props.stackTotal < 70)
+
+// Identical cards split the lane into slots so none of them is unreachable.
+const STACK_GAP = 3
+
+const stackGeometry = computed(() => {
+    const laneHeight = props.rowHeight - props.eventPaddingY * 2
+    const slotHeight = laneHeight / props.stackTotal
+    return {
+        top: props.eventPaddingY + props.stackSlot * slotHeight + 'px',
+        height: Math.max(1, slotHeight - STACK_GAP) + 'px',
+    }
+})
 
 const style = computed(() => {
     const startMin = Math.max(0, props.renderStartMin ?? effectiveMinutes.value.startMin)
@@ -230,13 +247,14 @@ const style = computed(() => {
     return {
         left: leftPct + '%',
         width: widthPct + '%',
-        top: props.eventPaddingY + 'px',
-        bottom: props.eventPaddingY + 'px',
+        ...(isStacked.value
+            ? stackGeometry.value
+            : { top: props.eventPaddingY + 'px', bottom: props.eventPaddingY + 'px' }),
         backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, white)`,
         ...(isClosedForUser.value ? { backgroundImage: COMPLETED_PATTERN } : {}),
         borderColor: color,
         borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',
-        transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out',
+        transition: 'top 200ms ease-in-out, bottom 200ms ease-in-out, height 200ms ease-in-out',
         zIndex: 6,
     }
 })

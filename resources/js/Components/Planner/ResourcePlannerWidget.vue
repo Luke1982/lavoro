@@ -419,6 +419,8 @@
                                         :leading-color="leadingColorRole ? 'role' : 'event'"
                                         :render-start-min="clipFor(user.id, day.iso, ev.id)?.startMin ?? null"
                                         :render-end-min="clipFor(user.id, day.iso, ev.id)?.endMin ?? null"
+                                        :stack-slot="stackFor(user.id, day.iso, ev.id)?.slot ?? 0"
+                                        :stack-total="stackFor(user.id, day.iso, ev.id)?.total ?? 1"
                                         @click="handleEventClick(ev)"
                                         @contextmenu="onEventContextMenu($event, ev)"
                                         @pointerdown-on-event="onEventPointerDown($event, ev, user)"
@@ -961,6 +963,10 @@ const { resolveLeadingColor, firstRoleColor } = useEventLeadingColor()
 // never end up narrower than the floor it would be widened back to.
 const MIN_CARD_WIDTH_RATIO = 0.02
 
+// Below this a stacked card cannot fit its title, so the lane stops stacking and
+// the band flags the cards as hidden instead.
+const MIN_STACK_SLOT_H = 30
+
 const laneOverlaps = computed(() => {
     const map = new Map()
     const leading = leadingColorRole.value ? 'role' : 'event'
@@ -983,7 +989,11 @@ const laneOverlaps = computed(() => {
                         }),
                     }
                 })
-            map.set(`${user.id}-${day.iso}`, computeLaneOverlaps(laneEvents, minClipMinutes))
+            const laneHeight = rowHeightFor(user.id) - paddingYFor(user.id) * 2
+            map.set(`${user.id}-${day.iso}`, computeLaneOverlaps(laneEvents, {
+                minClipMinutes,
+                maxStackSlots: Math.max(1, Math.floor(laneHeight / MIN_STACK_SLOT_H)),
+            }))
         }
     }
 
@@ -996,6 +1006,10 @@ function overlapBandsFor(userId, dayIso) {
 
 function clipFor(userId, dayIso, eventId) {
     return laneOverlaps.value.get(`${userId}-${dayIso}`)?.clips.get(eventId) ?? null
+}
+
+function stackFor(userId, dayIso, eventId) {
+    return laneOverlaps.value.get(`${userId}-${dayIso}`)?.stacks.get(eventId) ?? null
 }
 
 function toggleAllDay() {
