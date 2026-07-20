@@ -55,3 +55,14 @@
 @utility sidebar-item {
     animation: sidebarItemIn 0.35s ease-out both;
 }
+
+/*
+ * jspreadsheet-ce ships a global, unscoped `.fullscreen` rule (white, fixed, full-viewport).
+ * @imengyu/vue3-context-menu tags its overlay host `mx-menu-ghost-host fullscreen`, so that
+ * generic rule paints the otherwise-transparent host solid white over the whole page whenever a
+ * planner context menu opens. Re-assert the host's transparency so the menu stays a floating overlay.
+ */
+.mx-menu-ghost-host.fullscreen {
+    display: block;
+    background-color: transparent;
+}
