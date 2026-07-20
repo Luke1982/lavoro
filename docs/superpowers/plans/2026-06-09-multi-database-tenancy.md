@@ -13,7 +13,7 @@
 > - **Task 19 made concrete.** The user routes use `UserStoreRequest` and `UserUpdateRequest` (see `UserController.php:48,61,97`); `UserUpdateRequest` is also used for `me.update` where no route user exists — the ignore logic accounts for that.
 > - **Task 23 seeder updated** for the stage flags added since June (`is_invoiced_state`, 2026-06-17; `is_incomplete_state`, 2026-06-19).
 > - **Service worker excluded from caching `/files/`** (new step in Task 14). `public/service-worker.js` caches same-origin GETs cache-first; `/files/images/{id}` ids are per-tenant auto-increments, so the same URL means different files in different tenants — cached responses could leak across tenants on a shared browser.
-> - **Central migration filenames re-dated** to `2026_07_03_*` (a real tenant migration dated `2026_06_09` now exists), and migration counts refreshed (176 files today: 2 stay central, 174 move to `tenant/`).
+> - **Central migration filenames re-dated** to `2026_07_03_*` (a real tenant migration dated `2026_06_09` now exists), and migration counts refreshed (176 files today: 2 stay central, 174 move to `tenant/`). *(Superseded by the 2026-07-20 revision below — those counts and dates are no longer current.)*
 > - **New code checked and covered:** FCM push notifications (`device_tokens`, `NewServiceOrderAssigned` — queued, so the queue bootstrapper carries tenant context; Firebase credentials are global env, see Known impact), event executions, plan groups, freeform materials, user roles (all ordinary tenant tables), the APK download / assetlinks routes (read `storage_path('app/releases/...')` directly, which the filesystem bootstrapper does not touch — they stay global by design).
 > - **Task 29 added:** a repeatable runbook for migrating customers who run their own dedicated-subdomain install (e.g. `spee.lavorofsm.nl`) into the multi-tenant app at `app.lavorofsm.nl`.
 >
@@ -22,6 +22,19 @@
 > - **Task 30 added.** Tests move off SQLite (incompatible with multi-database tenancy) onto a dedicated, clearly-named MySQL test database, with a hard runtime assertion and a narrow-grant MySQL user as independent layers guaranteeing a test run can never reach a live database. Closes the old Known impact point 1.
 > - **Task 31 added.** Module subscriptions are now actually enforced — a `tenant.module` route middleware on the SnelStart, Google Calendar, Tickets, and Projects routes, plus matching frontend gating. Closes the old Known impact point 5.
 > - **Task 32 added.** Microsoft Graph mail credentials move from a single global env-configured mailbox to per-tenant `general_settings`, with a fallback to the global credentials and a fix for `MailManager`'s mailer caching across tenants on long-running queue workers. Narrows the old Known impact point 4 to just SnelStart and Firebase, which remain global.
+>
+> **Revised again 2026-07-20** after re-verifying every claim against the codebase. Four of these are correctness bugs that would have broken the implementation, not drift:
+>
+> - **Task 12 fixed — middleware ordering was wrong (critical).** `$middleware->web(append: [...])` puts the tenancy middleware *after* `SubstituteBindings`, which is the last entry of Laravel 12's default web group (`vendor/laravel/framework/src/Illuminate/Foundation/Configuration/Middleware.php:485-491`). Route-model binding would then have resolved every `{serviceorder}`, `{customer}`, … against the **central** database and 404'd the entire app. The middleware is now placed with `$middleware->priority([...])`, between `StartSession` and `AuthenticatesRequests`, which is the only way to guarantee ordering across group + route middleware. Task 24 gets the same treatment.
+> - **Task 30 fixed — the test transaction wrapped the wrong connection.** stancl's `DatabaseManager::connectToTenant()` hardcodes the tenant connection name to `tenant` (`setDefaultConnection('tenant')`), so `DB::connection('mysql')->beginTransaction()` began a transaction on a *non-tenant* connection: tenant writes would never have rolled back and tests would have polluted each other. Now `DB::connection('tenant')`. Also: `tenant_connection_name` is not a real v3 config key and has been dropped from Task 3.
+> - **Task 14 widened — six `storage_path('app/public/…')` call sites bypass the disk abstraction.** The old claim "upload code needs no changes" holds only for `Storage::disk()` calls. `ServiceOrderController.php:850`, `ImageController.php:54` and `:258`, `Company.php:52`, and `resources/views/pdf/servicejob.blade.php:232` all build absolute paths by hand and would silently read/write the *central* storage tree under tenancy — PDFs would render without photos and without a logo. `resources/views/emails/event/appointment_confirmation.blade.php:102` uses `asset('storage/…')`, which becomes a dead link once files leave the public symlink; e-mail clients cannot authenticate, so the logo must be embedded. All six are now explicit steps.
+> - **Task 18 fixed — `User` uses `SoftDeletes` since 2026-07-07.** The observer's `deleted` hook fires on *soft* delete, which would have released the email in the central lookup while the row still occupied `users.email` in the tenant — the user could then neither log in nor be recreated. Now: soft delete keeps the lookup, `forceDeleted` removes it, `restored` re-adds it.
+> - **Task 20 — a fourth schedule exists.** `maintenancecontracts:generate-serviceorders` (hourly, added 2026-07-10) runs `MaintenanceContractServiceOrderGenerator::generateAllDue()` inline in the tick. It is now a per-tenant queued job like the others. Also corrected: `google-renew-watches` is a `Schedule::job(...)`, not a `dispatch()` call.
+> - **Counts and locations refreshed.** 211 migrations today (5 stay central, 209 move to `tenant/`); central migrations re-dated `2026_07_21_*` because `2026_07_03` and later dates are now taken, up to `2026_07_20`. 35 test files use `RefreshDatabase`, not 16. `/storage/` appears in **12** Vue/JS files, not 10 (`Components/ServiceOrders/CloseServiceOrderModal.vue` and `Utilities/Utilities.js:273` are new). Sidebar navigation moved out of `MainLayout.vue` into `resources/js/Composables/useSidebarNav.js`. `snelStartEnabled` now exists in exactly one place (`ServiceOrderController.php:326`) and the SnelStart *customer* import route no longer exists — only `imports/snelstart/materials` and `serviceorders/{serviceorder}/send-snelstart`.
+> - **Task 26 fixed for soft deletes.** `User::query()->pluck('email')` silently skipped trashed users, whose emails still occupy `users.email` (Laravel's `unique` rule does not know about soft deletes). Now `withTrashed()`, so a trashed user's email stays reserved centrally and the two checks agree.
+> - **Task 27 hardened.** Added the missing `php artisan down`, queue-worker stop, `optimize:clear`, and `queue:restart` steps — Step 1 drops the database the running app is connected to.
+> - **Package compatibility verified.** `stancl/tenancy` v3.10.0 requires `illuminate/support ^10.0|^11.0|^12.0|^13.0` — Laravel 12 is supported, no version hunting needed.
+> - **Custom bootstrapper renamed** from `FilesystemTenancyBootstrapper` to `TenantStorageBootstrapper`, because the package ships a class with the identical basename and the two behave differently (ours deliberately does not suffix `storage_path()`).
 
 **How it works, in plain terms:**
 
@@ -134,7 +147,14 @@ git commit -m "feat(tenancy): add permanent central database connection"
 
 ## Task 3: Replace `config/tenancy.php`
 
-The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the package filesystem bootstrapper (file isolation is done by disk-root repointing in Task 14).
+The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the package filesystem bootstrapper (file isolation is done by disk-root repointing in Task 14 — our class is named `TenantStorageBootstrapper` precisely so it is never confused with the package's `FilesystemTenancyBootstrapper`, which additionally suffixes `storage_path()` and which we deliberately avoid).
+
+Two things about the tenant connection, verified against the v3.10 source, that the rest of the plan depends on:
+
+- `DatabaseManager::connectToTenant()` calls `setDefaultConnection('tenant')` — the tenant connection name is **hardcoded to `tenant`** in v3 and is not configurable. Anywhere you need the tenant connection by name (notably the test transactions in Task 30), it is `'tenant'`, never `'mysql'`.
+- `RevertToCentralContext` sets the default connection back to `tenancy.database.central_connection`, i.e. `central`. So outside tenancy the default connection is `central`, not `mysql`; both point at the same database (Task 2), so this is invisible in practice.
+
+Note there is **no** `queue.connections.database.central` flag set in Task 9. That is intentional: `QueueTenancyBootstrapper::getPayload()` returns an empty payload for connections marked `central`, which would strip the `tenant_id` from every job and break tenant-aware queued work. Pinning the queue *tables* to the central database (Task 9) is a different thing from marking the queue connection `central`.
 
 **Files:** `config/tenancy.php`
 
@@ -143,8 +163,8 @@ The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper
 ```php
 <?php
 
-use App\Tenancy\FilesystemTenancyBootstrapper;
 use App\Tenancy\PrefixCacheBootstrapper;
+use App\Tenancy\TenantStorageBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 
@@ -157,14 +177,13 @@ return [
         DatabaseTenancyBootstrapper::class,
         QueueTenancyBootstrapper::class,
         PrefixCacheBootstrapper::class,
-        FilesystemTenancyBootstrapper::class,
+        TenantStorageBootstrapper::class,
     ],
 
     'database' => [
         'central_connection' => 'central',
         'template_tenant_connection' => env('DB_CONNECTION', 'mysql'),
-        'tenant_connection_name' => null,
-        'prefix' => 'lavoro_',
+        'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_'),
         'suffix' => '',
         'managers' => [
             'mysql'   => Stancl\Tenancy\Database\Drivers\MySQLDatabaseManager::class,
@@ -284,11 +303,11 @@ git commit -m "feat(tenancy): add UserTenantLookup model"
 
 ## Task 6: Create central database migrations
 
-Both explicitly target the `central` connection. The `email` primary key is what enforces global email uniqueness across tenants. Dated `2026_07_03` so they sort after every existing migration (a tenant migration dated `2026_06_09` already exists).
+Both explicitly target the `central` connection. The `email` primary key is what enforces global email uniqueness across tenants. Dated `2026_07_21` so they sort after every existing migration — the newest tenant migrations today are `2026_07_20_*`. **Re-check `ls database/migrations/ | tail -1` at implementation time and bump the date past it if newer migrations have landed since**; the split in Task 8 excludes these three by exact filename, so a stale date here means the wrong files move.
 
 **Files:**
-- `database/migrations/2026_07_03_000001_create_tenants_table.php`
-- `database/migrations/2026_07_03_000002_create_user_tenant_lookups_table.php`
+- `database/migrations/2026_07_21_000001_create_tenants_table.php`
+- `database/migrations/2026_07_21_000002_create_user_tenant_lookups_table.php`
 
 - [ ] **Step 1: Create the tenants migration**
 
@@ -354,8 +373,8 @@ return new class extends Migration
 - [ ] **Step 3: Commit**
 
 ```bash
-git add database/migrations/2026_07_03_000001_create_tenants_table.php \
-        database/migrations/2026_07_03_000002_create_user_tenant_lookups_table.php
+git add database/migrations/2026_07_21_000001_create_tenants_table.php \
+        database/migrations/2026_07_21_000002_create_user_tenant_lookups_table.php
 git commit -m "feat(tenancy): add central DB migrations"
 ```
 
@@ -369,7 +388,7 @@ The `sessions` table is currently created inside the framework users migration. 
 
 **Files:**
 - `database/migrations/0001_01_01_000000_create_users_table.php` (remove the sessions block)
-- `database/migrations/2026_07_03_000003_create_sessions_table.php` (new, central)
+- `database/migrations/2026_07_21_000003_create_sessions_table.php` (new, central)
 - `.env` / `.env.example`
 
 - [ ] **Step 1: Remove the `sessions` block from the users migration**
@@ -422,7 +441,7 @@ SESSION_CONNECTION=central
 
 ```bash
 git add database/migrations/0001_01_01_000000_create_users_table.php \
-        database/migrations/2026_07_03_000003_create_sessions_table.php \
+        database/migrations/2026_07_21_000003_create_sessions_table.php \
         .env.example
 git commit -m "feat(tenancy): move sessions table to central connection"
 ```
@@ -433,11 +452,11 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 
 After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions. `php artisan migrate` runs these against the central database.
-- `database/migrations/tenant/` holds everything else (174 files at the time of writing). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
+- `database/migrations/tenant/` holds everything else (209 files as of 2026-07-20: the users migration plus 208 dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
 `0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations stay central.
 
-**Files:** move ~174 migration files.
+**Files:** move ~209 migration files (211 total today − 2 framework migrations that stay central).
 
 - [ ] **Step 1: Move the files**
 
@@ -452,9 +471,9 @@ done
 
 for f in database/migrations/2026_*.php; do
   base=$(basename "$f")
-  if [[ "$base" != "2026_07_03_000001_create_tenants_table.php" && \
-        "$base" != "2026_07_03_000002_create_user_tenant_lookups_table.php" && \
-        "$base" != "2026_07_03_000003_create_sessions_table.php" ]]; then
+  if [[ "$base" != "2026_07_21_000001_create_tenants_table.php" && \
+        "$base" != "2026_07_21_000002_create_user_tenant_lookups_table.php" && \
+        "$base" != "2026_07_21_000003_create_sessions_table.php" ]]; then
     git mv "$f" database/migrations/tenant/
   fi
 done
@@ -467,11 +486,11 @@ ls database/migrations/*.php
 # Expected exactly these 5:
 # 0001_01_01_000001_create_cache_table.php
 # 0001_01_01_000002_create_jobs_table.php
-# 2026_07_03_000001_create_tenants_table.php
-# 2026_07_03_000002_create_user_tenant_lookups_table.php
-# 2026_07_03_000003_create_sessions_table.php
+# 2026_07_21_000001_create_tenants_table.php
+# 2026_07_21_000002_create_user_tenant_lookups_table.php
+# 2026_07_21_000003_create_sessions_table.php
 
-ls database/migrations/tenant/ | wc -l   # ~174
+ls database/migrations/tenant/ | wc -l   # ~209
 ```
 
 - [ ] **Step 3: Commit**
@@ -694,18 +713,57 @@ class InitializeTenancyBySession
 }
 ```
 
-- [ ] **Step 2: Add to the web stack in `bootstrap/app.php`, before `HandleInertiaRequests`**
+- [ ] **Step 2: Add to the web stack in `bootstrap/app.php` — with an explicit priority, not `append`**
+
+This is the single most order-sensitive change in the plan. The middleware must run:
+
+- **after** `StartSession` (it reads `session('tenant_id')`) and after `EncryptCookies` (it reads the encrypted `tenant_id` cookie);
+- **before** `SubstituteBindings`, or every route-model binding (`{serviceorder}`, `{customer}`, …) resolves against the **central** database and 404s;
+- **before** the `auth` middleware and `HandleInertiaRequests`, both of which touch `Auth::user()` and therefore query the tenant database.
+
+`$middleware->web(append: [...])` does **not** achieve this. Laravel 12's default web group is `EncryptCookies, AddQueuedCookiesToResponse, StartSession, ShareErrorsFromSession, ValidateCsrfToken, SubstituteBindings` (`vendor/laravel/framework/src/Illuminate/Foundation/Configuration/Middleware.php:485-491`) — appending lands the middleware *after* `SubstituteBindings`, which is exactly the failure above. And relative order between group and route middleware is decided by the framework's priority list anyway, so appending is not even deterministic against `auth`.
+
+Register it in the group **and** pin its position in the priority list:
 
 ```php
 $middleware->web(append: [
     \App\Http\Middleware\InitializeTenancyBySession::class,
     HandleInertiaRequests::class,
 ]);
+
+$middleware->priority([
+    \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
+    \Illuminate\Cookie\Middleware\EncryptCookies::class,
+    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+    \App\Http\Middleware\InitializeTenancyBySession::class,
+    \App\Http\Middleware\InitializeTenancyForApi::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+    \Illuminate\Routing\Middleware\ThrottleRequests::class,
+    \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
+    \Illuminate\Contracts\Session\Middleware\AuthenticatesSessions::class,
+    \Illuminate\Routing\Middleware\SubstituteBindings::class,
+    \App\Http\Middleware\EnsureTenantHasModule::class,
+    \Illuminate\Auth\Middleware\Authorize::class,
+]);
 ```
 
-It must run before `HandleInertiaRequests` because Inertia shares `Auth::user()`, which queries the database. Note the Google webhook route lives in the web group too; it carries no session or cookie, so this middleware is a no-op there (the webhook resolves its tenant itself, Task 25).
+This is Laravel 12's stock priority array (`Illuminate\Foundation\Http\Kernel::$middlewarePriority`, lines 103–115) with three insertions: the two tenancy initializers right after `StartSession`, and `EnsureTenantHasModule` (Task 31) after `SubstituteBindings` so a module check can rely on a resolved tenant. `InitializeTenancyForApi` (Task 24) and `EnsureTenantHasModule` (Task 31) do not exist yet — either add this block once both classes exist, or add the entries incrementally as each task lands.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Verify the resulting order before moving on**
+
+Do not take this on faith — a wrong order here fails as mass 404s that look like a routing problem, not a tenancy problem:
+
+```bash
+php artisan route:list --path=serviceorders -v | head -40
+```
+
+`InitializeTenancyBySession` must appear before `SubstituteBindings` and before `auth` in the listed middleware for the route. Then log in and open a detail page (`/serviceorders/{id}`) — a 404 on a record that exists means the order is still wrong.
+
+Note the Google webhook route lives in the web group too; it carries no session or cookie, so this middleware is a no-op there (the webhook resolves its tenant itself, Task 25).
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add app/Http/Middleware/InitializeTenancyBySession.php bootstrap/app.php
@@ -750,21 +808,24 @@ git commit -m "fix: guard company Inertia share when tenancy not initialized"
 
 ## Task 14: Per-tenant storage isolation + authenticated file serving
 
-Each tenant gets a completely separate storage root: `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`. A custom filesystem bootstrapper repoints the `public` and `local` disk roots into the active tenant's folder whenever tenancy is initialized, so **upload code needs no changes** — `->store('uploaded/...', 'public')` automatically lands inside the tenant's folder, and the stored `path` stays relative (no tenant prefix in the database).
+Each tenant gets a completely separate storage root: `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`. A custom filesystem bootstrapper repoints the `public` and `local` disk roots into the active tenant's folder whenever tenancy is initialized, so **code that goes through `Storage::disk(...)` needs no changes** — `->store('uploaded/...', 'public')` automatically lands inside the tenant's folder, and the stored `path` stays relative (no tenant prefix in the database).
+
+**Code that does *not* go through a disk does need changing, and it is easy to miss.** Six call sites build absolute paths by hand with `storage_path('app/public/…')` or `asset('storage/…')`. These bypass the disk root entirely, so after this task they would keep pointing at the shared central storage tree — silently, with no error: PDFs would render with missing photos and no logo, and imported images would be written where nothing can read them. Step 6 fixes all six. Re-run the grep in Step 6 before implementing, in case more have appeared.
 
 Because files now live outside the web-served `public/storage` symlink, they are no longer reachable by URL. Instead, three small authenticated routes stream them through controllers. Tenant isolation is automatic: a file id from another tenant does not exist in this tenant's database, so route-model binding returns 404. (Documents already download through `DocumentController::download`, which uses `Storage::disk('public')` and therefore works unchanged — no document route is added here. The APK download route reads `storage_path('app/releases/lavoro.apk')` directly, not through a disk, so it intentionally stays global.)
 
 **Files:**
-- `app/Tenancy/FilesystemTenancyBootstrapper.php` (new)
+- `app/Tenancy/TenantStorageBootstrapper.php` (new)
 - `app/Http/Controllers/FileController.php` (new)
 - `routes/web.php`
 - `app/Models/User.php` (avatar accessor, `getAvatarAttribute`)
 - `public/service-worker.js` (exclude `/files/` from caching)
-- The 10 Vue files that hardcode `/storage/${...}` (images and company logos)
+- The 12 Vue/JS files that hardcode `/storage/${...}` (images and company logos)
+- The 6 non-disk path builders: `app/Http/Controllers/ServiceOrderController.php:850`, `app/Http/Controllers/ImageController.php:54` and `:258`, `app/Models/Company.php:52`, `resources/views/pdf/servicejob.blade.php:232`, `resources/views/emails/event/appointment_confirmation.blade.php:102`
 
-- [ ] **Step 1: Create the filesystem bootstrapper**
+- [ ] **Step 1: Create the storage bootstrapper**
 
-This repoints the disk roots only — it deliberately does **not** call `useStoragePath`, so framework storage (logs, compiled views, framework cache, `app/releases`) stays in the normal location; only uploaded-file disks move per tenant.
+This repoints the disk roots only — it deliberately does **not** call `useStoragePath`, so framework storage (logs, compiled views, framework cache, `app/releases`) stays in the normal location; only uploaded-file disks move per tenant. That is also why it is not the package's `FilesystemTenancyBootstrapper`, and why it carries a different name.
 
 ```php
 <?php
@@ -776,7 +837,7 @@ use Illuminate\Support\Facades\Storage;
 use Stancl\Tenancy\Contracts\Tenant;
 use Stancl\Tenancy\Contracts\TenancyBootstrapper;
 
-class FilesystemTenancyBootstrapper implements TenancyBootstrapper
+class TenantStorageBootstrapper implements TenancyBootstrapper
 {
     protected array $original_roots = [];
 
@@ -903,7 +964,28 @@ Find every hardcoded reference:
 grep -rn "/storage/" resources/js/
 ```
 
-Apply these conversions across the matching files (verified list as of 2026-07-03: `Pages/Assets/IndexPage.vue`, `Pages/Assets/ShowPage.vue`, `Pages/Products/IndexPage.vue`, `Pages/Products/ShowPage.vue`, `Pages/ServiceOrders/ShowPage.vue`, `Components/Timeline/TimelineComponent.vue`, `Components/CustomerUpcomingActivity.vue`, `Components/ImageUploadComponent.vue`, `Pages/Companies/IndexPage.vue`, `Pages/Companies/Partials/EditCompanyModal.vue` — re-run the grep in case more were added):
+Apply these conversions across the matching files (verified list as of 2026-07-20 — 12 files, 18 occurrences; re-run the grep in case more were added):
+
+| File | Occurrences |
+| --- | --- |
+| `Pages/Assets/IndexPage.vue` | 1 |
+| `Pages/Assets/ShowPage.vue` | 1 |
+| `Pages/Products/IndexPage.vue` | 1 |
+| `Pages/Products/ShowPage.vue` | 1 |
+| `Pages/ServiceOrders/ShowPage.vue` | 1 |
+| `Pages/Companies/IndexPage.vue` | 2 |
+| `Pages/Companies/Partials/EditCompanyModal.vue` | 2 |
+| `Components/Timeline/TimelineComponent.vue` | 1 |
+| `Components/CustomerUpcomingActivity.vue` | 2 |
+| `Components/ImageUploadComponent.vue` | 3 |
+| `Components/ServiceOrders/CloseServiceOrderModal.vue` (new since last revision) | 2 |
+| `Utilities/Utilities.js:273` (new since last revision) | 1 |
+
+Two of these need more than a mechanical swap:
+
+- `Components/Timeline/TimelineComponent.vue` binds `event.thumbnailPath`, a *path* with no accompanying image id. Check what the timeline payload contains; if it carries no id, the backend that builds it must expose the `Image` id alongside (or instead of) the path.
+- `Utilities/Utilities.js:273` builds `thumbnail_url` from `asset.product.images[0].path` inside a shared mapper — switch it to `.id` and confirm every consumer of `thumbnail_url` still works.
+
 
 - Image displays bound to an `Image` model — replace the path build with the id route:
 
@@ -927,16 +1009,60 @@ Apply these conversions across the matching files (verified list as of 2026-07-0
 <img :src="`/files/companies/${company.id}/logo/negative`" />
 ```
 
-- In `ImageUploadComponent.vue`, a *freshly uploaded* preview may use a local object URL or a path returned from the upload response before an `Image` id exists. Leave object-URL previews as-is; for previews of already-saved images, use `/files/images/${image.id}`. Check each usage in this file specifically.
+- In `ImageUploadComponent.vue`, a *freshly uploaded* preview may use a local object URL or a path returned from the upload response before an `Image` id exists. Leave object-URL previews as-is; for previews of already-saved images, use `/files/images/${image.id}`. Check each usage in this file specifically. Note the line-383 occurrence feeds an image *editor* (`loadImage: { path, name }`), not an `<img>` — verify the editor accepts the route URL.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Fix the six backend path builders that bypass the disk**
+
+Each of these constructs an absolute path or a public URL by hand and therefore ignores the per-tenant disk root set in Step 1. All of them fail *silently* — a missing file is treated as "no image" — so they will not surface in a smoke test unless you look at a rendered PDF and an appointment e-mail specifically.
 
 ```bash
-git add app/Tenancy/FilesystemTenancyBootstrapper.php \
+grep -rn "storage_path('app/\|asset('storage/" app/ resources/views/
+```
+
+1. **`app/Http/Controllers/ServiceOrderController.php:850`** — builds `storage_path('app/public/' . $image->path)` to base64-embed werkbon photos in the PDF. Read through the disk instead, which respects the tenant root:
+
+```php
+if (!Storage::disk('public')->exists($image->path)) {
+    return null;
+}
+$contents = Storage::disk('public')->get($image->path);
+$mime = Storage::disk('public')->mimeType($image->path);
+[$width, $height] = @getimagesizefromstring($contents) ?: [1, 1];
+// ...
+'data' => 'data:' . $mime . ';base64,' . base64_encode($contents),
+```
+
+2. **`app/Models/Company.php:52` (`pdfLogo`)** — same pattern for the company logo on every PDF. Replace `storage_path('app/public/' . $company->logo_path)` with `Storage::disk('public')->exists(...)` / `->get(...)` / `->size(...)`, keeping the existing empty-file and extension checks.
+
+3. **`resources/views/pdf/servicejob.blade.php:232`** — `<img src="{{ storage_path('app/public/' . $img['path']) }}">`. Dompdf reads this straight off disk, so it points at the central tree. Resolve the absolute path in the controller that renders this view (via `Storage::disk('public')->path($img['path'])`, which *is* tenant-aware) and pass it into the view, or pass a data URI like the other PDFs already do.
+
+4. **`app/Http/Controllers/ImageController.php:258`** — `file_put_contents(storage_path('app/public/' . $path) . $filename, ...)` for imported images. Replace the manual `mkdir` + `file_put_contents` with `Storage::disk('public')->put($path . $filename, $image_data)`, which creates directories itself.
+
+5. **`app/Http/Controllers/ImageController.php:54`** — `mkdir(storage_path('app/' . $path))`. **This one is already a latent bug today, independent of tenancy**: it creates `storage/app/uploaded/…` while the very next line stores into the `public` disk at `storage/app/public/uploaded/…`. The `mkdir` has never been doing anything useful — `storePubliclyAs` creates the directory itself. Delete the `$real_path` / `mkdir` block outright rather than porting it.
+
+6. **`resources/views/emails/event/appointment_confirmation.blade.php:102`** — `asset('storage/' . $company->logo_path)`. Once files leave the `public/storage` symlink this URL 404s, and the `/files/` routes are behind `auth`, so an e-mail client can never fetch it. Embed the logo instead, reusing the accessor that already exists for PDFs:
+
+```blade
+@php($logo = \App\Models\Company::pdfLogo($company))
+@if($logo['data'])
+    <img src="{{ $logo['data'] }}" alt="{{ $company->name }}">
+@endif
+```
+
+The `asset('storage/logo.png')` / `public_path('storage/logo.png')` references in the three PDF blades are a different case: that is a single static fallback logo, not tenant data. It resolves through the untouched `public/storage` symlink and stays global by design — leave it, but be aware it is the same image for every tenant.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add app/Tenancy/TenantStorageBootstrapper.php \
         app/Http/Controllers/FileController.php \
+        app/Http/Controllers/ImageController.php \
+        app/Http/Controllers/ServiceOrderController.php \
+        app/Models/Company.php \
         routes/web.php \
         app/Models/User.php \
         public/service-worker.js \
+        resources/views/ \
         resources/js/
 git commit -m "feat(tenancy): per-tenant storage roots with authenticated file serving"
 ```
@@ -1203,11 +1329,14 @@ In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by
 Follow the same pattern as the existing `hasPermission` helper (which reads `usePage().props.auth.permissions`):
 
 ```js
-export function hasModule(name) {
-    const tenant = usePage().props.tenant;
-    return !!tenant && tenant.modules.includes(name);
+export const hasModule = (name) => {
+    const page = usePage();
+    const modules = page?.props?.tenant?.modules;
+    return Array.isArray(modules) && modules.includes(name);
 }
 ```
+
+Two deliberate differences from `hasPermission`: it is **not** bypassed for admins (a module is a subscription boundary, not a permission), and it returns `false` rather than throwing when `tenant` is absent — which is the case on the login page, where no tenancy is initialized.
 
 - [ ] **Step 7: Verify the commands**
 
@@ -1340,6 +1469,13 @@ git commit -m "feat(tenancy): switch to tenant DB in password reset flow"
 
 When a user is created, changes email, or is deleted in a tenant, mirror it into the central lookup. The `created` hook refuses to hijack an email already registered to a *different* tenant (defense in depth behind the validation in Task 19).
 
+**`User` uses `SoftDeletes`** (added 2026-07-07, `2026_07_07_080819_add_softdeletes_to_users_table.php`; see `UserController::restore` and `UserRestoreRequest`). This matters more than it looks:
+
+- Eloquent's `deleted` event fires on a **soft** delete. Dropping the lookup row there would free the email centrally while the row still occupies `users.email` in the tenant — and Laravel's `unique:users,email` rule does **not** exclude trashed rows. The email would then be un-loggable-in, un-recreatable in this tenant, and claimable by another tenant, which is exactly the invariant this table exists to protect.
+- The rule is therefore: the central lookup tracks whether the email is **taken in the tenant's `users` table**, trashed or not. Soft delete keeps the row, `forceDeleted` removes it, `restored` re-asserts it.
+
+A soft-deleted user cannot log in (the `SoftDeletingScope` hides them from the auth guard's query), so keeping the lookup row costs nothing.
+
 **Files:** `app/Observers/UserObserver.php`, `app/Providers/AppServiceProvider.php`
 
 - [ ] **Step 1: Create the observer**
@@ -1391,12 +1527,29 @@ class UserObserver
         );
     }
 
-    public function deleted(User $user): void
+    public function restored(User $user): void
+    {
+        $tenant_id = tenancy()->initialized ? tenancy()->tenant->getTenantKey() : null;
+        if (!$tenant_id) {
+            return;
+        }
+
+        UserTenantLookup::on('central')->updateOrCreate(
+            ['email' => $user->email],
+            ['tenant_id' => $tenant_id]
+        );
+    }
+
+    public function forceDeleted(User $user): void
     {
         UserTenantLookup::on('central')->where('email', $user->email)->delete();
     }
 }
 ```
+
+There is deliberately **no `deleted` hook**. On a soft-deleting model `deleted` fires for soft deletes, and the lookup must survive those — see the explanation above. `forceDeleted` fires only on a true `forceDelete()`, which is when the email genuinely becomes free again.
+
+Also note `updated` fires on the soft-delete write (`deleted_at` changes), but its `isDirty('email')` guard makes that a no-op.
 
 - [ ] **Step 2: Register it in `AppServiceProvider::boot()`** (next to the existing `EventModel::observe` / `Ticket::observe` calls)
 
@@ -1415,7 +1568,11 @@ git commit -m "feat(tenancy): sync central user lookup on user changes"
 
 ## Task 19: Enforce global email uniqueness at user creation/update
 
-The lookup table's email primary key would throw a raw SQL error if an admin created a user whose email already exists in another tenant. Validate it cleanly instead. The routes use `UserStoreRequest` (store) and `UserUpdateRequest` (update **and** `me.update` via `updateSelf`, where there is no `{user}` route parameter — see `UserController.php:48,61,97`). `StoreUserRequest`/`UpdateUserRequest` also exist in `app/Http/Requests/` but are not referenced by the user routes; leave those untouched.
+The lookup table's email primary key would throw a raw SQL error if an admin created a user whose email already exists in another tenant. Validate it cleanly instead. The routes use `UserStoreRequest` (store) and `UserUpdateRequest` (update **and** `me.update` via `updateSelf`, where there is no `{user}` route parameter — verified at `UserController.php:55,68,120`). `StoreUserRequest`/`UpdateUserRequest` also exist in `app/Http/Requests/` but are not referenced by the user routes; leave those untouched.
+
+Both requests already have exactly the shape this task assumes: `UserStoreRequest::rules()` has the flat `'email' => 'required|email|unique:users,email'` string, and `UserUpdateRequest::rules()` already computes `$route_user` / `$route_user_id` / `$current_user_id` / `$ignore_id` in that order, so the `$ignore_email` snippet below drops in directly after them.
+
+Consistency note tying this to Task 18: `unique:users,email` counts soft-deleted users, and the central lookup keeps a row for soft-deleted users. The two checks therefore agree — an email belonging to a trashed user is rejected by both, not one.
 
 The `central.` prefix on the unique rule tells the validator to query the central connection.
 
@@ -1469,14 +1626,26 @@ git commit -m "feat(tenancy): validate email is globally unique across tenants"
 
 ## Task 20: Make scheduled tasks run per tenant, without per-tenant work blocking the scheduler tick
 
-Loop over all tenants, switch into each, and dispatch **one queued job per tenant per schedule** — the scheduler tick itself must never run a data query or delete inline, only cheap config-swap + single-row `INSERT INTO jobs` work. The Google jobs are dispatched from tenant context (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it automatically when the worker picks it up, so the job body needs no manual `tenancy()->initialize()` call of its own. (The current file has exactly three schedules: `google-pull-changes`, `google-renew-watches`, `prune-location-pings` — verified 2026-07-03. If more schedules exist by implementation time, wrap them in the same per-tenant dispatch-only pattern.)
+Loop over all tenants, switch into each, and dispatch **one queued job per tenant per schedule** — the scheduler tick itself must never run a data query or delete inline, only cheap config-swap + single-row `INSERT INTO jobs` work. The jobs are dispatched from tenant context (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it automatically when the worker picks it up, so the job body needs no manual `tenancy()->initialize()` call of its own.
 
-Two of the three schedules currently do real work *inside the scheduler tick*: `google-pull-changes` runs a `whereHas` query per tenant before dispatching, and `prune-location-pings` runs a synchronous `DELETE` per tenant with no queue involved at all. Both are moved into their own tiny queued jobs so the tick becomes pure dispatch — this is what keeps the tick's wall time roughly constant as tenant count grows (see Known impact point 6). `RenewWatchChannelsJob` was already a single `dispatch()` call per tenant and needs no change.
+`routes/console.php` has **four** schedules as of 2026-07-20 (the plan previously said three). If more exist by implementation time, wrap them in the same per-tenant dispatch-only pattern:
+
+| Schedule | Today | Change |
+| --- | --- | --- |
+| `google-pull-changes` | `Schedule::call` running a `whereHas` query inline | → per-tenant dispatch of `DispatchTenantCalendarPullsJob` |
+| `google-renew-watches` | `Schedule::job(new RenewWatchChannelsJob())` | → per-tenant `RenewWatchChannelsJob::dispatch()` inside the loop (a bare `Schedule::job` has no tenant context and would run against the central database) |
+| `prune-location-pings` | `Schedule::call` running a synchronous `DELETE` inline | → per-tenant dispatch of `PruneLocationPingsJob` |
+| `maintenancecontracts-generate-serviceorders` (**new since last revision**, 2026-07-10) | `Schedule::command('maintenancecontracts:generate-serviceorders')` calling `MaintenanceContractServiceOrderGenerator::generateAllDue()` inline | → per-tenant dispatch of `GenerateMaintenanceContractServiceOrdersJob` |
+
+The maintenance-contract one is the most important of the four to convert: `generateAllDue()` scans every asset on every active contract and **creates service orders**. Left as a plain `Schedule::command`, it would run exactly once per tick against whatever the default connection happens to be — the central database, which has no `maintenance_contracts` table — so contract generation would break outright for every tenant. The existing Artisan command stays (it is useful for manual runs against a chosen tenant); the schedule stops invoking it directly.
 
 **Files:**
 - `app/Jobs/Google/DispatchTenantCalendarPullsJob.php` (new)
 - `app/Jobs/PruneLocationPingsJob.php` (new)
+- `app/Jobs/GenerateMaintenanceContractServiceOrdersJob.php` (new)
 - `routes/console.php`
+
+> **Precondition, easy to forget:** none of this runs at all until a server-level cron invokes `php artisan schedule:run` — there is currently no crontab entry wired up, and `app/Console/Kernel.php`'s `schedule()` is dead code under Laravel 12's `routes/console.php` setup. Confirm the cron exists on the target server before treating any scheduled behaviour as working.
 
 - [ ] **Step 1: Create the calendar-pull dispatch job**
 
@@ -1533,13 +1702,41 @@ class PruneLocationPingsJob implements ShouldQueue
 }
 ```
 
-- [ ] **Step 3: Rewrite `routes/console.php` so every tick only dispatches**
+- [ ] **Step 3: Create the maintenance-contract generation job**
+
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Services\MaintenanceContractServiceOrderGenerator;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class GenerateMaintenanceContractServiceOrdersJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function handle(MaintenanceContractServiceOrderGenerator $generator): void
+    {
+        $generator->generateAllDue();
+    }
+}
+```
+
+Leave `App\Console\Commands\GenerateMaintenanceContractServiceOrders` in place for manual runs; only the schedule changes.
+
+- [ ] **Step 4: Rewrite `routes/console.php` so every tick only dispatches**
 
 `cursor()` replaces `get()` so the central tenant list is streamed rather than loaded into memory in one array — cheap either way at today's tenant count, but it's the free half of the "chunking" mitigation Known impact point 6 calls for.
 
 ```php
 <?php
 
+use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
 use App\Jobs\PruneLocationPingsJob;
@@ -1575,14 +1772,23 @@ Schedule::call(function () {
         tenancy()->end();
     });
 })->hourly()->name('prune-location-pings')->withoutOverlapping();
+
+Schedule::call(function () {
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) {
+        tenancy()->initialize($tenant);
+        GenerateMaintenanceContractServiceOrdersJob::dispatch();
+        tenancy()->end();
+    });
+})->hourly()->name('maintenancecontracts-generate-serviceorders')->withoutOverlapping();
 ```
 
 Every tick body is now: swap config, one `INSERT` into the central `jobs` table, revert config — no query, no delete, nothing whose cost scales with a tenant's data volume. The remaining linear cost is strictly "number of tenants × one INSERT", which is the part `withoutOverlapping` can comfortably absorb even at a few hundred tenants.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add app/Jobs/Google/DispatchTenantCalendarPullsJob.php app/Jobs/PruneLocationPingsJob.php routes/console.php
+git add app/Jobs/Google/DispatchTenantCalendarPullsJob.php app/Jobs/PruneLocationPingsJob.php \
+        app/Jobs/GenerateMaintenanceContractServiceOrdersJob.php routes/console.php
 git commit -m "feat(tenancy): keep per-tenant scheduler ticks dispatch-only"
 ```
 
@@ -1854,13 +2060,21 @@ $middleware->alias([
 
 - [ ] **Step 3: Apply it to the authenticated API group in `routes/api.php`**
 
-The whole file is currently one `auth:sanctum` group; add `tenant.api` before it:
+The whole file is currently one `Route::group(['middleware' => 'auth:sanctum'], ...)`; add `tenant.api` before it:
 
 ```php
 Route::group(['middleware' => ['tenant.api', 'auth:sanctum']], function () {
     // all existing routes unchanged
 });
 ```
+
+**Ordering matters here for the same reason as Task 12.** The `api` group also ends in `SubstituteBindings`, and many of these routes bind models (`events/{event}`, `images/{image}`, `projects/{project}`, `plan-groups/{group}`, `users/{user}`, …). Listing `tenant.api` first in the array is not sufficient on its own, because Laravel priority-sorts the combined group + route middleware list. `InitializeTenancyForApi` is already included in the Task 12 priority array — confirm it is there before relying on this, and verify with:
+
+```bash
+php artisan route:list --path=api/events -v | head -20
+```
+
+`InitializeTenancyForApi` must appear before both `SubstituteBindings` and `auth:sanctum`.
 
 - [ ] **Step 4: Commit**
 
@@ -1899,7 +2113,7 @@ Both jobs are always dispatched from tenant context (scheduler loop or a tenant 
 
 - [ ] **Step 3: Initialize tenancy from the token prefix in `GoogleWebhookController::handle()`**
 
-After the existing header reads and the `$channel_id || $resource_id` guard, before the `GoogleSyncedCalendar` lookup, add:
+After the four `$request->header(...)` reads and the `if (!$channel_id || !$resource_id)` guard, and before the `GoogleSyncedCalendar::where('watch_channel_id', $channel_id)->first()` lookup, add:
 
 ```php
 $token_parts = explode('|', (string) $channel_token, 2);
@@ -1931,6 +2145,8 @@ git commit -m "feat(tenancy): route Google webhook to tenant via prefixed channe
 ## Task 26: `tenant:setup-existing` — register a pre-tenancy database
 
 Registers an already-existing, already-migrated database as a tenant and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. License and modules for this tenant are set afterwards with the Task 16 commands.
+
+Note `User::withTrashed()` — `User` soft-deletes, and a trashed user's email still occupies `users.email` and still blocks `unique:users,email`. Copying only live users would leave those emails free centrally while unusable in the tenant, and let a *later* tenant claim them; the collision check below would then pass and the invariant would already be broken. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
 
 This command is used twice: for the main install's database during deployment (Task 27), and again for every dedicated-subdomain install that gets absorbed later (Task 29).
 
@@ -1972,7 +2188,7 @@ class SetupExistingTenant extends Command
         $tenant = Tenant::on('central')->findOrFail($id);
         tenancy()->initialize($tenant);
 
-        $emails = User::query()->pluck('email');
+        $emails = User::withTrashed()->pluck('email');
 
         $conflicts = UserTenantLookup::on('central')
             ->whereIn('email', $emails)
@@ -2021,6 +2237,24 @@ Destructive and irreversible — run on a backup first. Do this in a maintenance
 
 **Prerequisites:** full MySQL dump taken; `.env` has `DB_CONNECTION=mysql`, `SESSION_CONNECTION=central`; `DB_DATABASE` is the name the central database should have (e.g. `lavoro`).
 
+- [ ] **Step 0: Take the app down and stop everything that writes**
+
+Step 1 drops and recreates the database the running application is connected to. Anything still writing during that window loses data silently, and a queue worker holding a booted container will keep serving stale config afterwards.
+
+```bash
+php artisan down
+
+# Stop the queue worker and the scheduler cron (adjust to your process manager)
+sudo systemctl stop lavoro-worker      # or: supervisorctl stop lavoro-worker:*
+sudo crontab -l                        # confirm/comment the schedule:run entry
+```
+
+Confirm nothing is connected before continuing:
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW PROCESSLIST;"
+```
+
 - [ ] **Step 1: Dump the existing database and split it**
 
 MySQL has no rename-database command, so copy via dump/restore. The existing data becomes the tenant database; a fresh empty database takes the original name as central.
@@ -2035,13 +2269,22 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" < /tmp/tenant_backup.sql
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "DROP DATABASE $EXISTING; CREATE DATABASE $EXISTING CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-- [ ] **Step 2: Run the central migrations**
+- [ ] **Step 2: Clear every cached config, then run the central migrations**
+
+`.env` gained `SESSION_CONNECTION=central` and `config/database.php`, `config/queue.php`, `config/tenancy.php` all changed. A cached config bundle from before the deploy would quietly override all of it — including pointing sessions and the queue at the wrong database.
 
 ```bash
+php artisan optimize:clear
 php artisan migrate --force
 ```
 
 Creates `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`, `tenants`, `user_tenant_lookups`, `migrations` in the central database.
+
+Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved them into a subdirectory that plain `migrate` does not descend into) — the central `migrations` table should hold 5 rows, not 200+:
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT COUNT(*) FROM lavoro.migrations;"
+```
 
 - [ ] **Step 3: Drop the now-unused `sessions` table from the tenant copy (optional tidy)**
 
@@ -2098,10 +2341,16 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
-- [ ] **Step 7: Build front-end assets and verify**
+- [ ] **Step 7: Build front-end assets, bring everything back up, and verify**
 
 ```bash
 npm run build
+
+# Restart workers so they pick up the new config, then lift maintenance mode
+php artisan queue:restart
+sudo systemctl start lavoro-worker     # or: supervisorctl start lavoro-worker:*
+sudo crontab -e                        # restore the schedule:run entry
+php artisan up
 
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro;"
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT id, name, license_type, modules FROM lavoro.tenants;"
@@ -2111,7 +2360,33 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro_tenant_acme;"
 
 - [ ] **Step 8: Smoke test**
 
-Log in as an existing user. Confirm: the dashboard loads, an existing customer's documents/images display, and a previously uploaded avatar shows. Close the browser and reopen — remember-me should log you straight back in (session + tenant cookie). Existing sessions are gone (the central `sessions` table is fresh), so everyone re-logs in once — expected.
+Log in as an existing user, then walk this list. The first four are the failure modes most likely to survive to production, because each of them fails *silently* rather than with an error page:
+
+- [ ] The dashboard loads, and a **detail page opens** (`/serviceorders/{id}`, `/customers/{id}`). A 404 on a record you can see in the index means the Task 12 middleware ordering is wrong and route-model binding is hitting the central database.
+- [ ] An existing customer's documents and images display, and a previously uploaded avatar shows.
+- [ ] **Export a werkbon to PDF** and confirm the photos *and* the company logo appear — this is the check for the Task 14 Step 7 path builders. A PDF that renders with everything except images means one of them was missed.
+- [ ] **Send an appointment confirmation e-mail** and confirm the logo renders in the received message (Task 14 Step 7, item 6).
+- [ ] Upload a new image and confirm it lands under `storage/tenant-<id>/public/…`, not `storage/app/public/`.
+- [ ] Open the Planner and confirm its API calls return this tenant's events (`tenant.api` resolving from the session).
+- [ ] Watch the log for a few minutes after the queue worker restarts — confirm no job fails with "table does not exist", which would mean a job ran without tenant context.
+- [ ] Close the browser and reopen — remember-me should log you straight back in (session + tenant cookie).
+
+Existing sessions are gone (the central `sessions` table is fresh), so everyone re-logs in once — expected.
+
+- [ ] **Step 9: Rollback plan**
+
+If the smoke test fails in a way you cannot fix inside the maintenance window, roll back rather than debug in production:
+
+```bash
+php artisan down
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "DROP DATABASE $EXISTING; CREATE DATABASE $EXISTING CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$EXISTING" < /tmp/tenant_backup.sql
+git checkout <pre-tenancy-tag>
+# remove SESSION_CONNECTION from .env
+php artisan optimize:clear && npm run build && php artisan up
+```
+
+Then move the files back out of `storage/tenant-<id>/public/` into `storage/app/public/` (Step 5 in reverse). Keep `/tmp/tenant_backup.sql` until the customer has used the new setup for at least a week.
 
 ---
 
@@ -2198,13 +2473,15 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
 
 - [ ] **Step 4: Check for email collisions, then register the tenant**
 
-Every user email must be globally unique across tenants. Check up front:
+Every user email must be globally unique across tenants. Check up front — and include **soft-deleted** users, because their emails still occupy `users.email` and are still copied into the lookup by `tenant:setup-existing` (see Task 26):
 
 ```bash
 mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e \
-  "SELECT u.email FROM lavoro_tenant_spee.users u
+  "SELECT u.email, u.deleted_at FROM lavoro_tenant_spee.users u
    JOIN lavoro.user_tenant_lookups l ON l.email = u.email;"
 ```
+
+A collision on a *soft-deleted* row on either side is the easy case: force-delete that user in whichever database it is dead in, rather than renaming a live account. A collision between two live accounts (the same person working for two customers, or a shared `info@` address) needs a conversation with the customer — one of the two has to change.
 
 If this returns rows, resolve them with the customer first (change the email in the source database). Then register — the command aborts and rolls back by itself if a collision slipped through:
 
@@ -2226,6 +2503,26 @@ If the central app has gained tenant migrations newer than the legacy release, a
 ```bash
 php artisan tenants:migrate --tenants="$TENANT_ID"
 ```
+
+This works because Task 8 preserved every migration filename when moving files into `database/migrations/tenant/` — the imported `migrations` table matches on basename, not path. Two things to check before trusting the result:
+
+```bash
+# The imported migrations table still lists the three now-central migrations.
+# Harmless (their tables are simply unused in the tenant copy) — do not delete the rows,
+# or a later `tenants:migrate` will try to recreate sessions/cache/jobs in the tenant DB.
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+  -e "SELECT migration FROM migrations ORDER BY id DESC LIMIT 5;"
+```
+
+Then diff against the first tenant to catch a legacy install that was further behind than `migrate:status` suggested:
+
+```bash
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -N -e "SHOW TABLES IN lavoro_tenant_acme;" | sort > /tmp/a.txt
+mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -N -e "SHOW TABLES IN lavoro_tenant_spee;" | sort > /tmp/b.txt
+diff /tmp/a.txt /tmp/b.txt
+```
+
+Expect the only differences to be the central-infrastructure tables dropped in Step 3.
 
 - [ ] **Step 6: Copy the uploaded files into the tenant storage root**
 
@@ -2289,28 +2586,22 @@ Once the customer confirms everything works — suggest two weeks — remove the
 2. **A hard runtime assertion.** The test bootstrap refuses to run — throws before a single query executes — if the resolved central database name doesn't contain `test`. This is the layer that survives someone fat-fingering `.env` or copy-pasting production values into `phpunit.xml` later.
 3. **A distinct MySQL user with narrow grants (operational, done once outside the app).** Create a MySQL user that only has privileges on `lavoro_test_%` — even a fully wrong config in (1) and a bypassed assertion in (2) still cannot reach `lavoro` or any `lavoro_<tenant-id>` database, because the user has no grant on it. Document this as a required local/CI setup step; it is not something the application can enforce in code.
 
-**How the existing 16 `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and default (tenant) connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it.
+**How the existing `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and `tenant` connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it. **35 test files** use it as of 2026-07-20 (the plan previously said 16) — re-run the grep in Step 5.
+
+Two consequences of transaction-rollback isolation that `RefreshDatabase`'s truncate-and-remigrate did not have, and that may surface as test failures during this task:
+
+- `AUTO_INCREMENT` counters are **not** reset between tests, because a rollback does not reclaim them. Any test asserting a literal id (`assertSame(1, $model->id)`) or relying on a predictable id ordering will start failing. Fix those tests to use the actual model's id.
+- Code under test that issues DDL, an explicit `DB::beginTransaction()`, or `DB::unprepared` can implicitly commit and defeat the wrapper. `ProjectFinancialNotesMigrationTest` is worth checking first, since it exercises a data migration.
 
 **Files:**
 - `phpunit.xml`
-- `config/tenancy.php` (make the prefix env-overridable)
 - `tests/Concerns/RefreshesTenantDatabase.php` (new)
 - `tests/TestCase.php`
-- The 16 existing test files using `RefreshDatabase`
+- The 35 existing test files using `RefreshDatabase`
 
-- [ ] **Step 1: Make the tenant database prefix env-overridable**
+- [ ] **Step 1: Confirm the tenant database prefix is env-overridable**
 
-In `config/tenancy.php` (written in Task 3), change:
-
-```php
-'prefix' => 'lavoro_',
-```
-
-to:
-
-```php
-'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_'),
-```
+Already handled — `config/tenancy.php` in Task 3 sets `'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_')`. Nothing to change here; just verify it reads from the env var before continuing, since Step 3's guard depends on it.
 
 - [ ] **Step 2: Point `phpunit.xml` at a dedicated, clearly-named MySQL test database**
 
@@ -2378,17 +2669,19 @@ trait RefreshesTenantDatabase
         tenancy()->initialize(static::$testTenant);
 
         DB::connection('central')->beginTransaction();
-        DB::connection('mysql')->beginTransaction();
+        DB::connection('tenant')->beginTransaction();
     }
 
     protected function tearDownTenancy(): void
     {
-        DB::connection('mysql')->rollBack();
+        DB::connection('tenant')->rollBack();
         DB::connection('central')->rollBack();
         tenancy()->end();
     }
 }
 ```
+
+**The connection name is `tenant`, not `mysql`.** stancl's `DatabaseManager::connectToTenant()` creates a connection literally named `tenant` and calls `setDefaultConnection('tenant')`; the name is hardcoded in v3 and not configurable (see Task 3). An earlier revision of this plan used `DB::connection('mysql')` here, which begins a transaction on a *different, non-tenant* connection — tenant writes would commit for real and leak into every subsequent test, while the rollback silently succeeded against an untouched connection. Getting this wrong produces order-dependent test failures that look like flakiness.
 
 The two `str_contains(..., 'test')` checks are layer (2) from the description above — they run before any migration or query, on every single test, and throw rather than silently proceeding. `Tenant::create()` synchronously runs the full `TenantCreated` pipeline from Task 11 (`CreateDatabase`, `MigrateDatabase`, `SeedDatabase` — `shouldBeQueued(false)`), so the first test that runs creates a real `lavoro_test_test-tenant` MySQL database, migrates it with the tenant migrations from Task 8, and seeds it with `TenantDatabaseSeeder` (Task 23). It is left behind after the run — cheap to keep, and `migrate:fresh` on the next run only refreshes the central schema, so a stale tenant database from a previous run is simply reused (its migrations already match, since `MigrateDatabase` is idempotent per the framework's migration tracking). If the tenant migrations change between runs and you want a fully clean slate, drop `lavoro_test_test-tenant` manually — it is a throwaway.
 
@@ -2427,10 +2720,12 @@ abstract class TestCase extends BaseTestCase
 Tenant-database refresh is now handled centrally by `TestCase`, so the per-file trait is redundant (and would try to migrate/refresh the single default connection using Laravel's normal single-connection logic, which doesn't know about the `central` connection at all).
 
 ```bash
-grep -rl "RefreshDatabase" tests/
+grep -rl "RefreshDatabase" tests/   # 35 files as of 2026-07-20
 ```
 
 In each matching file, remove the `use Illuminate\Foundation\Testing\RefreshDatabase;` import and the `use RefreshDatabase;` trait line inside the test class. Leave everything else in those files untouched.
+
+Expect to run the suite iteratively here rather than in one pass — see the two isolation caveats at the top of this task. Convert the files, run `composer test`, and fix fallout in the tests rather than weakening the isolation in `TestCase`.
 
 - [ ] **Step 6: Set up the local/CI test database and user (operational, run once)**
 
@@ -2454,7 +2749,7 @@ Expected: all previously-passing tests still pass, running against `lavoro_test_
 - [ ] **Step 8: Commit**
 
 ```bash
-git add phpunit.xml config/tenancy.php tests/Concerns/RefreshesTenantDatabase.php tests/TestCase.php tests/
+git add phpunit.xml tests/Concerns/RefreshesTenantDatabase.php tests/TestCase.php tests/
 git commit -m "test(tenancy): run the suite against isolated, clearly-named MySQL test databases"
 ```
 
@@ -2469,11 +2764,13 @@ Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc contr
 **Files:**
 - `app/Http/Middleware/EnsureTenantHasModule.php` (new)
 - `bootstrap/app.php`
-- `routes/web.php`
-- `app/Http/Controllers/CustomerController.php:53`, `app/Http/Controllers/CustomerImportController.php:151`, `app/Http/Controllers/ServiceOrderController.php:285` (existing `snelStartEnabled` flags)
-- `resources/js/Layouts/MainLayout.vue`
+- `routes/web.php`, `routes/api.php`
+- `app/Http/Controllers/ServiceOrderController.php:326` (the only remaining `snelStartEnabled` flag)
+- `resources/js/Composables/useSidebarNav.js`
 - `resources/js/Components/GoogleCalendarSection.vue`
 - `resources/js/Pages/Admin/GeneralSettingsPage.vue`
+
+> **All line numbers below were re-verified 2026-07-20 and this file moves constantly.** Locate each route by its name/controller rather than by line number.
 
 - [ ] **Step 1: Create the middleware**
 
@@ -2516,9 +2813,9 @@ $middleware->alias([
 
 - [ ] **Step 3: Apply it to the module-gated route groups in `routes/web.php`**
 
-Inside the existing `auth` group (started at line 65):
+Inside the existing `auth` group:
 
-Tickets (line ~132-136) — wrap the three ticket routes:
+Tickets (lines ~164-168) — wrap the three ticket routes:
 
 ```php
 Route::middleware('tenant.module:tickets')->group(function () {
@@ -2530,20 +2827,21 @@ Route::middleware('tenant.module:tickets')->group(function () {
 });
 ```
 
-SnelStart (line ~190-212) — wrap the import and send-to-SnelStart routes:
+SnelStart — there are exactly **two** SnelStart routes today (lines ~230 and ~243); the `imports/snelstart/customers` route the previous revision listed no longer exists. They are not adjacent, so either wrap each individually or apply the middleware inline:
 
 ```php
-Route::middleware('tenant.module:snelstart')->group(function () {
-    Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
-        ->name('imports.snelstart.customers');
-    Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
-        ->name('imports.snelstart.materials');
-    Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
-        ->name('serviceorders.sendToSnelStart');
-});
+Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
+    ->middleware('tenant.module:snelstart')
+    ->name('imports.snelstart.materials');
+
+Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
+    ->middleware('tenant.module:snelstart')
+    ->name('serviceorders.sendToSnelStart');
 ```
 
-Projects (line ~276-280):
+Note SnelStart *customer* import now happens through the generic Excel import (`CustomerImportController::looksLikeSnelStartExport`, auto-detecting a SnelStart export format from the file header). That is offline file parsing with no SnelStart API involvement, so it is deliberately **not** module-gated — gating it would block a plain spreadsheet upload.
+
+Projects (lines ~314-316) — keep the existing registration order when wrapping:
 
 ```php
 Route::middleware('tenant.module:projects')->group(function () {
@@ -2554,7 +2852,7 @@ Route::middleware('tenant.module:projects')->group(function () {
 });
 ```
 
-Google Calendar (line ~305-310):
+Google Calendar (lines ~343-348):
 
 ```php
 Route::middleware('tenant.module:google_calendar')->group(function () {
@@ -2567,7 +2865,7 @@ Route::middleware('tenant.module:google_calendar')->group(function () {
 });
 ```
 
-Location tracking — inside the nested `admin` group (line ~316), wrap the settings route at line ~344:
+Location tracking — inside the nested `admin` group (line ~354), wrap the settings route at lines ~381-384:
 
 ```php
 Route::put('admin/settings/location-tracking', [GeneralSettingsController::class, 'updateLocationTracking'])
@@ -2575,19 +2873,19 @@ Route::put('admin/settings/location-tracking', [GeneralSettingsController::class
     ->name('admin.settings.location-tracking');
 ```
 
-(Use the controller/action already on that route — copy it from the current line 344-346 rather than retyping the signature from scratch, since the exact method name should match what's there today.)
+(Use the controller/action already on that route — copy it from the current lines 381-384 rather than retyping the signature from scratch, since the exact method name should match what's there today.)
 
-Also add the same `tenant.module:google_calendar` middleware to `GET api/google/integration/status` in `routes/api.php:46` (inside the `tenant.api` group from Task 24), so the status check itself 403s for tenants without the module rather than reporting "not connected".
+Also add the same `tenant.module:google_calendar` middleware to the `api.google.integration.status` route in `routes/api.php` (`GET google/integration/status`, an invokable `GoogleIntegrationStatusController`, inside the `tenant.api` group from Task 24), so the status check itself 403s for tenants without the module rather than reporting "not connected".
 
-- [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flags**
+- [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag**
 
-`CustomerController.php:53`, `CustomerImportController.php:151`, and `ServiceOrderController.php:285` each compute:
+There is now exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:326` (the previous revision listed three; `CustomerController` and `CustomerImportController` no longer expose it):
 
 ```php
 'snelStartEnabled' => filled(config('services.snelstart.client_key')),
 ```
 
-Change all three to also require the module:
+Change it to also require the module:
 
 ```php
 'snelStartEnabled' => filled(config('services.snelstart.client_key'))
@@ -2595,11 +2893,11 @@ Change all three to also require the module:
     && tenancy()->tenant->hasModule('snelstart'),
 ```
 
-This reuses the exact prop the Vue components (`Customers/IndexPage.vue`, `ServiceOrders/ShowPage.vue`) already gate their SnelStart buttons on — no frontend changes needed for SnelStart.
+This reuses the exact prop `ServiceOrders/ShowPage.vue` already gates its SnelStart button on (`v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"`, line 448) — no frontend changes needed for SnelStart. The materials-import button is gated by the route middleware from Step 3 alone.
 
 - [ ] **Step 5: Gate the Tickets and Projects nav items**
 
-In `resources/js/Layouts/MainLayout.vue`, add `requiresModule` next to the existing `requiresPermission` on these two entries (~line 540 and ~line 596):
+Navigation moved out of `MainLayout.vue` in the 2026-07 sidebar redesign — it now lives in **`resources/js/Composables/useSidebarNav.js`**. Add `requiresModule` next to the existing `requiresPermission` on these two entries (lines ~116 and ~172):
 
 ```js
 { name: 'Storingen', href: '/tickets', icon: ExclamationCircleIcon, current: false, requiresPermission: 'ticket.see_all', requiresModule: 'tickets' },
@@ -2609,19 +2907,21 @@ In `resources/js/Layouts/MainLayout.vue`, add `requiresModule` next to the exist
 { name: 'Projecten', href: '/projects', icon: ClipboardDocumentListIcon, current: false, requiresPermission: 'project.read', requiresModule: 'projects' },
 ```
 
-Extend `canSeeNavItem` (~line 599) to also check it:
+Extend `canSeeNavItem` (line ~179) to also check it. The module check goes **first**, before the `adminOnly` branch: a module is a subscription boundary, not a permission, so an admin of a tenant that doesn't pay for Projecten must not see it either. (Contrast `hasPermission`, which deliberately returns `true` for admins.)
 
 ```js
 import { hasModule, hasPermission, initials as getInitials } from '@/Utilities/Utilities'
 
 const canSeeNavItem = (item) => {
-    if (item?.adminOnly) return isAdmin.value;
-    if (item?.requiresModule && !hasModule(item.requiresModule)) return false;
-    if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission);
-    if (!item?.requiresPermission) return true;
-    return hasPermission(item.requiresPermission);
+    if (item?.requiresModule && !hasModule(item.requiresModule)) return false
+    if (item?.adminOnly) return isAdmin.value
+    if (item?.requiresAnyPermission) return item.requiresAnyPermission.some(hasPermission)
+    if (!item?.requiresPermission) return true
+    return hasPermission(item.requiresPermission)
 }
 ```
+
+`canSeeNavItem` is reused by `filteredNavigation`, `filteredLists` and the children filter (lines ~186-195), so this one change covers nested entries too. The file currently imports `{ hasPermission, initials as getInitials }` on line 3 — extend that import rather than adding a second one.
 
 - [ ] **Step 6: Gate the Google Calendar section and location-tracking settings**
 
@@ -2639,9 +2939,8 @@ In `resources/js/Pages/Admin/GeneralSettingsPage.vue`, do the same around the lo
 
 ```bash
 git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php routes/api.php \
-        app/Http/Controllers/CustomerController.php app/Http/Controllers/CustomerImportController.php \
         app/Http/Controllers/ServiceOrderController.php \
-        resources/js/Layouts/MainLayout.vue resources/js/Components/GoogleCalendarSection.vue \
+        resources/js/Composables/useSidebarNav.js resources/js/Components/GoogleCalendarSection.vue \
         resources/js/Pages/Admin/GeneralSettingsPage.vue
 git commit -m "feat(tenancy): enforce module subscriptions on gated routes and UI"
 ```
@@ -2652,7 +2951,7 @@ git commit -m "feat(tenancy): enforce module subscriptions on gated routes and U
 
 Today `Mail::extend('graph', ...)` (`AppServiceProvider.php:83`) builds the transport entirely from `config('services.graph.*')`, which reads global `GRAPH_TENANT_ID` / `GRAPH_CLIENT_ID` / `GRAPH_CLIENT_SECRET` / `GRAPH_USER_ID` / `GRAPH_ENDPOINT` env vars — every tenant sends mail through the same Azure app registration and mailbox. Move these into each tenant's `general_settings` table (already a tenant-scoped table per the top-of-plan table, using the existing `GeneralSetting::get`/`set` key-value helper — the same mechanism Known impact point 4 recommends), read per-request from the active tenant, and fall back to the global env values when a tenant hasn't configured its own mailbox yet, so nothing regresses for the current single tenant during the Task 27 migration.
 
-**The subtlety this task exists to handle:** `Illuminate\Mail\MailManager` caches a resolved `graph` transport instance for the lifetime of the container. In a classic PHP-FPM request that's harmless (one tenant per request/process). On a queue worker processing jobs for multiple tenants in sequence without restarting, the *first* tenant's credentials would get cached and silently reused for a *later* tenant's queued mail (e.g. `SendStandardEmailJob`) in the same worker process. This is fixed by forgetting the resolved mailer whenever tenancy switches, mirroring the `forgetDriver`/`forgetDisk` pattern already used by `PrefixCacheBootstrapper` (Task 10) and `FilesystemTenancyBootstrapper` (Task 14).
+**The subtlety this task exists to handle:** `Illuminate\Mail\MailManager` caches a resolved `graph` transport instance for the lifetime of the container. In a classic PHP-FPM request that's harmless (one tenant per request/process). On a queue worker processing jobs for multiple tenants in sequence without restarting, the *first* tenant's credentials would get cached and silently reused for a *later* tenant's queued mail (e.g. `SendStandardEmailJob`) in the same worker process. This is fixed by forgetting the resolved mailer whenever tenancy switches, mirroring the `forgetDriver`/`forgetDisk` pattern already used by `PrefixCacheBootstrapper` (Task 10) and `TenantStorageBootstrapper` (Task 14).
 
 **Files:** `app/Providers/AppServiceProvider.php`, `app/Providers/TenancyServiceProvider.php`
 
@@ -2725,8 +3024,14 @@ git commit -m "feat(tenancy): resolve Microsoft Graph mail credentials per tenan
 
 4. **SnelStart and Firebase (FCM) credentials are still global env vars.** ~~Microsoft Graph~~ Microsoft Graph mail is **resolved per tenant as of Task 32** (tenant `general_settings` keys, falling back to the global env credentials for tenants that haven't configured their own mailbox). SnelStart and Firebase remain shared across all tenants — the same `general_settings` pattern used for Graph in Task 32 applies directly if/when per-tenant SnelStart or FCM credentials are needed; until then SnelStart access is already gated per tenant by the `snelstart` module subscription (Task 31).
 
-5. ~~Module subscriptions are stored but not yet enforced.~~ **Resolved by Task 31.** The `tenant.module` route middleware gates tickets, projects, SnelStart imports/send, and Google Calendar OAuth routes; the `snelStartEnabled` Inertia props and the Tickets/Projects nav items in `MainLayout.vue` are gated the same way on the frontend. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing.
+5. ~~Module subscriptions are stored but not yet enforced.~~ **Resolved by Task 31.** The `tenant.module` route middleware gates tickets, projects, SnelStart imports/send, and Google Calendar OAuth routes; the `snelStartEnabled` Inertia props and the Tickets/Projects nav items in `useSidebarNav.js` are gated the same way on the frontend. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing.
 
 6. ~~Scheduler scales linearly with tenant count.~~ **Mitigated by Task 20.** Every scheduled tick now only dispatches one queued job per tenant (a config swap plus a single `INSERT` into the central `jobs` table) instead of running a query or delete inline per tenant, so tick cost no longer scales with each tenant's data volume — only with tenant *count*, which is cheap. If tenant count itself grows into the hundreds and the dispatch loop alone becomes the bottleneck, chunking the central tenant list (already using `cursor()` rather than `get()`) or splitting the loop across multiple scheduled entries are the next levers.
 
-7. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
+7. **Middleware ordering is load-bearing and invisible.** Task 12 pins the tenancy initializers into `$middleware->priority()`. Nothing enforces that a future middleware addition preserves it, and getting it wrong presents as mass 404s that look like a routing bug. If this bites twice, a cheap feature test — hit a bound-model route as a tenant user and assert 200 — is worth more than a comment.
+
+8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
+
+9. **Test isolation changed shape.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn in the 35 converted test files.
+
+10. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
