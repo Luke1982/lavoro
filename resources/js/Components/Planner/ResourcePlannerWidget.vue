@@ -32,13 +32,16 @@
 
             <div class="flex-1 min-w-64">
                 <ComboBox v-model="eventSearchSelection" :options="eventSearchOptions" :searching="eventSearching"
-                    has-external-searching placeholder="Zoek een afspraak..." @change="searchEvents">
+                    has-external-searching disable-internal-filter placeholder="Zoek een afspraak..."
+                    @change="searchEvents">
                     <template #option="{ option, active }">
                         <div class="flex items-start gap-2 py-0.5">
                             <span class="mt-1 size-2.5 rounded-full shrink-0" :style="{ background: option.color }" />
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5 text-sm font-medium">
-                                    <span class="truncate">{{ option.customer_name || 'Onbekende klant' }}</span>
+                                    <ExclamationTriangleIcon v-if="option.is_preliminary"
+                                        class="size-3.5 shrink-0 text-amber-500" v-tooltip="'Voorlopig'" />
+                                    <span class="truncate">{{ option.customer_name || option.event_name || 'Onbekende klant' }}</span>
                                     <span class="text-[10px] font-semibold px-1 py-px rounded shrink-0"
                                         :class="active ? 'bg-white/20' : ''"
                                         :style="!active ? { background: option.color + '26', color: option.color } : {}">
@@ -504,7 +507,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
 import { onClickOutside } from '@vueuse/core'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
@@ -1188,11 +1191,7 @@ async function searchEvents(q) {
         if (requestId !== searchRequestId) return
         eventSearchOptions.value = data.map(opt => ({
             ...opt,
-            name: opt.customer_name || opt.location || `Afspraak #${opt.id}`,
-            search: [
-                opt.customer_name, opt.location, opt.description, opt.project_name,
-                opt.service_order_id, ...opt.executing_users.map(u => u.name),
-            ].filter(Boolean).join(' '),
+            name: opt.customer_name || opt.event_name || opt.location || `Afspraak #${opt.id}`,
         }))
     } catch (e) {
         console.error('Kon afspraken niet doorzoeken', e)

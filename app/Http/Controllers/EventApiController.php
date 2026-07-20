@@ -22,6 +22,7 @@ use App\Notifications\NewServiceOrderAssigned;
 use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,9 @@ use Illuminate\Support\Facades\Mail;
 
 class EventApiController extends Controller
 {
+    /** Punctuation an address may be written with, stripped before matching. */
+    private const ADDRESS_SEPARATORS = [' ', ',', '.', '-', '/', "'"];
+
     public function index(EventReadRequest $request)
     {
         $base = Event::query();
@@ -84,21 +88,26 @@ class EventApiController extends Controller
 
         $is_numeric_q = is_numeric($q);
 
-        $base->where(function ($query) use ($q, $is_numeric_q) {
-            $query->where('location', 'like', "%{$q}%")
-                ->orWhereHas('linkedLocation', fn ($lq) => $lq->where('title', 'like', "%{$q}%")
-                    ->orWhere('address', 'like', "%{$q}%")
-                    ->orWhere('city', 'like', "%{$q}%"))
-                ->orWhereHas('customers', fn ($sq) => $sq->where('name', 'like', "%{$q}%"))
-                ->orWhereHas('serviceOrders', function ($sq) use ($q, $is_numeric_q) {
-                    $sq->where(function ($ssq) use ($q, $is_numeric_q) {
+        $address_like = '%' . $this->normalizeAddressTerm($q) . '%';
+
+        $base->where(function ($query) use ($q, $is_numeric_q, $address_like) {
+            $query->where('name', 'like', "%{$q}%")
+                ->orWhere('description', 'like', "%{$q}%")
+                ->orWhereRaw($this->addressMatchSql('events.location'), [$address_like])
+                ->orWhereHas('linkedLocation', fn ($lq) => $this->matchLocation($lq, $q, $address_like))
+                ->orWhereHas('customers', fn ($sq) => $this->matchCustomer($sq, $q, $address_like))
+                ->orWhereHas('serviceOrders', function ($sq) use ($q, $is_numeric_q, $address_like) {
+                    $sq->where(function ($ssq) use ($q, $is_numeric_q, $address_like) {
                         if ($is_numeric_q) {
                             $ssq->orWhere('service_orders.id', $q);
                         }
                         $ssq->orWhere('external_purchaseorder_no', 'like', "%{$q}%")
-                            ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$q}%"))
-                            ->orWhereHas('project', function ($pq) use ($q, $is_numeric_q) {
-                                $pq->where('title', 'like', "%{$q}%");
+                            ->orWhereRaw($this->addressMatchSql('service_orders.execution_location'), [$address_like])
+                            ->orWhereHas('linkedLocation', fn ($lq) => $this->matchLocation($lq, $q, $address_like))
+                            ->orWhereHas('customer', fn ($cq) => $this->matchCustomer($cq, $q, $address_like))
+                            ->orWhereHas('project', function ($pq) use ($q, $is_numeric_q, $address_like) {
+                                $pq->where('title', 'like', "%{$q}%")
+                                    ->orWhereRaw($this->addressMatchSql('projects.location'), [$address_like]);
                                 if ($is_numeric_q) {
                                     $pq->orWhere('id', $q);
                                 }
@@ -125,13 +134,71 @@ class EventApiController extends Controller
         return ['eventType', ...EventLocationResolver::relations()];
     }
 
+    /**
+     * Every rung of the EventLocationResolver escalation is a place the address
+     * may actually live, so searching an address has to reach all of them.
+     */
+    private function matchLocation(Builder $query, string $q, string $address_like): void
+    {
+        $query->where('locations.title', 'like', "%{$q}%")
+            ->orWhereRaw(
+                $this->addressMatchSql('locations.address', 'locations.postal_code', 'locations.city'),
+                [$address_like]
+            );
+    }
+
+    private function matchCustomer(Builder $query, string $q, string $address_like): void
+    {
+        $query->where('customers.name', 'like', "%{$q}%")
+            ->orWhereRaw(
+                $this->addressMatchSql('customers.address', 'customers.postal_code', 'customers.city'),
+                [$address_like]
+            );
+    }
+
+    /**
+     * An address is stored across separate columns but typed — or pasted — as one
+     * line, so the separators are stripped from both sides before comparing. That
+     * lets "Stationsweg 45, 3011 CE Rotterdam" match a row holding those three
+     * parts separately, and lets "3011CE" match a stored "3011 CE".
+     *
+     * Built from replace() rather than regexp_replace() so it runs on the SQLite
+     * the test suite uses as well as on MySQL.
+     */
+    private function addressMatchSql(string ...$columns): string
+    {
+        $expression = count($columns) === 1
+            ? "lower({$columns[0]})"
+            : 'lower(concat_ws(\' \', ' . implode(', ', $columns) . '))';
+
+        foreach (self::ADDRESS_SEPARATORS as $separator) {
+            $literal = "'" . str_replace("'", "''", $separator) . "'";
+            $expression = "replace({$expression}, {$literal}, '')";
+        }
+
+        return "{$expression} like ?";
+    }
+
+    /**
+     * Strips exactly what addressMatchSql() strips, so the two sides can never
+     * disagree. Degrades to '-' rather than '' for a query holding only
+     * separators: a stripped column can never contain a dash, where '' would
+     * match every row. A dash is not a LIKE wildcard either.
+     */
+    private function normalizeAddressTerm(string $q): string
+    {
+        return mb_strtolower(str_replace(self::ADDRESS_SEPARATORS, '', $q)) ?: '-';
+    }
+
     private function searchResultShape(Event $event): array
     {
         return [
             'id' => $event->id,
             'start' => $event->start,
-            'location' => $event->resolved_location,
+            'location' => $event->display_location,
+            'event_name' => $event->name,
             'description' => $event->description,
+            'is_preliminary' => $event->is_preliminary,
             'event_type_name' => $event->eventType?->name,
             'color' => $event->eventType?->color ?? '#3b82f6',
             'customer_name' => $event->serviceOrders->first()?->customer?->name ?? $event->customers->first()?->name,

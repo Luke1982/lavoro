@@ -94,6 +94,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /**
+     * Hand filtering entirely to the parent. Without this an externally searched
+     * ComboBox filters the fetched options a second time, silently hiding rows the
+     * server matched on a field that never appears in the option's own text.
+     */
+    disableInternalFilter: {
+        type: Boolean,
+        default: false,
+    },
     placeholder: {
         type: String,
         default: 'Type om te zoeken...',
@@ -239,7 +248,7 @@ const effectivePlaceholder = computed(() => {
 
 const query = ref('')
 const filteredOptions = computed(() =>
-    query.value === ''
+    query.value === '' || props.disableInternalFilter
         ? props.options
         : props.options.filter((option) =>
             `${option.name} ${option.search ?? ''}`.toLowerCase().includes(query.value.toLowerCase())
