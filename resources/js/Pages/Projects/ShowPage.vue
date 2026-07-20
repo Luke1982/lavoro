@@ -550,7 +550,7 @@ function toggleMilestoneComplete(ms) {
     patchMilestoneField(ms.id, 'actual_date', ms.actual_date ? null : formatLocalDateAsISO(new Date()))
 }
 
-const financialNotes = ref(props.project.financial_notes ?? [])
+const financialNotes = ref(props.project.financial_notes ?? null)
 const financialNotesSaving = ref(false)
 const financialNotesError = ref(null)
 const financialNotesSavedAt = ref(null)
@@ -574,7 +574,7 @@ async function saveFinancialNotes(grid) {
     financialNotesSaving.value = true
     try {
         if (!financialNotesCsrfReady) {
-            await axios.get('sanctum/csrf-cookie')
+            await axios.get('/sanctum/csrf-cookie')
             financialNotesCsrfReady = true
         }
         const response = await axios.patch(
