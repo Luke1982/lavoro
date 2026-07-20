@@ -119,7 +119,7 @@ const form = useForm({
 
 const addComment = async () => {
     if (apiMode) {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const { data } = await axios.post('/api/remarks', {
             content: form.content,
             user_id: page.props.auth.user.id,

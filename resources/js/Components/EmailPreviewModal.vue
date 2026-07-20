@@ -62,7 +62,7 @@ async function send() {
     if (sending.value) return
     sending.value = true
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post(`/api/events/${props.eventId}/standard-emails/send`, {
             standard_email_id: props.standardEmailId,
             to: localTo.value,

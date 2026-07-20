@@ -6,7 +6,7 @@ let csrf_ready = false;
 
 async function ensure_csrf() {
     if (csrf_ready) return;
-    await axios.get('sanctum/csrf-cookie');
+    await axios.get('/sanctum/csrf-cookie');
     csrf_ready = true;
 }
 

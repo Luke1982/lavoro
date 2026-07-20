@@ -107,7 +107,7 @@ function onServiceOrderUnplanned(id) {
 
 async function onGroupCreated(data) {
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post('/api/plan-groups', data)
         planGroupsRef.value = [...planGroupsRef.value, { ...r.data, user_ids: [] }]
     } catch (e) {
@@ -121,7 +121,7 @@ async function onGroupUpdated(id, patch) {
     const original = { ...planGroupsRef.value[idx] }
     planGroupsRef.value[idx] = { ...planGroupsRef.value[idx], ...patch }
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.put(`/api/plan-groups/${id}`, patch)
     } catch (e) {
         planGroupsRef.value[idx] = original
@@ -141,7 +141,7 @@ async function onGroupDeleted(id) {
         plan_group_ids: u.plan_group_ids.filter(gid => gid !== id),
     }))
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.delete(`/api/plan-groups/${id}`)
     } catch (e) {
         planGroupsRef.value = originalGroups
@@ -154,7 +154,7 @@ async function onGroupReordered(ids) {
     const map = Object.fromEntries(planGroupsRef.value.map(g => [g.id, g]))
     planGroupsRef.value = ids.map(id => map[id]).filter(Boolean)
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.put('/api/plan-groups/reorder', { ids })
     } catch (e) {
         planGroupsRef.value = original
@@ -183,7 +183,7 @@ async function onUserGroupsSynced(userId, groupIds) {
     })
 
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.put(`/api/users/${userId}/plan-groups`, { group_ids: groupIds })
     } catch (e) {
         allPlanUsersRef.value = prevAllPlan
@@ -204,7 +204,7 @@ async function onPlannableToggled(userId, value) {
     }
 
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.patch(`/api/users/${userId}/plannable`, { plannable: value })
     } catch (e) {
         allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plannable: !value } : u)

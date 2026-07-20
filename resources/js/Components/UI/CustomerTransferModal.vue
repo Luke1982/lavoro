@@ -105,7 +105,7 @@ async function load() {
     locationMap.value = {}
 
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const response = await axios.post('/assets/transfer-preview', {
             context: props.context,
             id: props.subjectId,

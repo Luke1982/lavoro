@@ -77,7 +77,7 @@ All cross-model attachment uses morph-pivot tables ending in `-ables`: `eventabl
 -   `resources/js/Components/UI/` — shared primitives: `ComboBox`, `TextInput`, `BadgeComponent`, `EditableTextField`, `EditableGridComponent`, `ModalDialog`, `DrawerComponent`, `StepsProgressBar`, `PaginationComponent`, `SelectMenuComponent`.
 -   `resources/js/Utilities/Utilities.js` — global helpers: `nlDate`, `nlTime`, `formatLocalDateAsISO`, `hasPermission`, `hasAnyPermission`, `initials`, `serviceOrderSentState/PillText/PillColorClasses`, `projectStatusClass`, `mapsLinkFromCustomer`.
 -   `hasPermission` reads `usePage().props.auth.permissions` — auth/permissions are shared globally via Inertia middleware.
--   Forms use `useForm` from `@inertiajs/vue3`. Mutating API calls (non-Inertia) go through `axios`; fetch a CSRF cookie first with `axios.get('sanctum/csrf-cookie')`.
+-   Forms use `useForm` from `@inertiajs/vue3`. Mutating API calls (non-Inertia) go through `axios`; fetch a CSRF cookie first with `axios.get('/sanctum/csrf-cookie')` — the leading slash is required, otherwise the URL resolves relative to the current page and 404s on nested routes like `/projects/12`.
 
 ## Integrations
 

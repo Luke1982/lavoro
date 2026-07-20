@@ -102,7 +102,7 @@ async function postTransition(payload) {
     if (busy.value) return
     busy.value = true
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.post(`/api/events/${props.event.id}/execution/transition`, payload)
         emit('changed')
     } finally {
@@ -120,7 +120,7 @@ async function release() {
     if (!window.confirm('Weet je zeker dat je de geregistreerde tijden wilt vrijgeven zodat deze opnieuw ingevuld kunnen worden?')) return
     busy.value = true
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.post(`/api/events/${props.event.id}/execution/release`)
         emit('changed')
     } finally {
@@ -169,7 +169,7 @@ async function onModalConfirm(signature) {
     busy.value = true
     try {
         const date_iso = formatLocalDateAsISO(props.event.start)
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const url = targetUserId.value
             ? `/api/events/${props.event.id}/users/${targetUserId.value}/execution`
             : `/api/events/${props.event.id}/execution`

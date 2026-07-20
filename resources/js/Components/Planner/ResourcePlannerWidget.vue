@@ -1699,7 +1699,7 @@ async function applyToggleExecutingUser(ev, user) {
         ? ev.executing_users.filter(u => u.id !== user.id)
         : [...ev.executing_users, { id: user.id, name: user.name, avatar: user.avatar }]
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.put(`/api/events/${ev.id}`, { executing_user_ids: next_ids })
         if (r.status !== 200) throw new Error('bad response')
         page.props.flash.success = wasAssigned
@@ -1717,7 +1717,7 @@ async function togglePreliminary(ev) {
     const original = ev.is_preliminary
     ev.is_preliminary = !original
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.put(`/api/events/${ev.id}`, { is_preliminary: ev.is_preliminary })
         if (r.status !== 200) throw new Error('bad response')
         page.props.flash.success = ev.is_preliminary ? 'Afspraak gemarkeerd als voorlopig' : 'Afspraak gemarkeerd als definitief'
@@ -1734,7 +1734,7 @@ async function changeEventType(ev, type) {
     ev.title = type.name
     ev.color = type.color || ev.color
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.put(`/api/events/${ev.id}`, { event_type_id: type.id })
         if (r.status !== 200) throw new Error('bad response')
         page.props.flash.success = `Afspraaktype gewijzigd naar "${type.name}"`
@@ -1749,7 +1749,7 @@ async function changeEventType(ev, type) {
 
 async function sendAppointmentConfirmation(ev) {
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post(`/api/events/${ev.id}/send-confirmation`)
         page.props.flash.success = r.data.message
     } catch (e) {
@@ -1760,7 +1760,7 @@ async function sendAppointmentConfirmation(ev) {
 async function deleteEvent(ev) {
     if (!confirm(`Weet je zeker dat je afspraak #${ev.id} wilt verwijderen?`)) return
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.delete(`/api/events/${ev.id}`)
         if (r.status !== 200) throw new Error('bad response')
         events.value = events.value.filter(x => x.id !== ev.id)
@@ -1808,7 +1808,7 @@ async function copyEvent(ev, offsets) {
         return
     }
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post(`/api/events/${ev.id}/copy`, { offsets })
         if (r.status !== 201) throw new Error('bad response')
         fetchEvents()
@@ -1878,7 +1878,7 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
                 }])
             )
         }
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const response = await axios.put(`/api/events/${ev.id}`, payload)
         if (response.status !== 200) throw new Error('bad response')
         page.props.flash.success = replaceWithUserId
@@ -2091,7 +2091,7 @@ async function createEventFromDrop({ start, end, userId, payload }) {
         executing_user_ids: [userId],
     }
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post('/api/events', body)
         if (r.status !== 201) throw new Error('bad response')
         page.props.flash.success = `Werkbon ingepland (${plannerMinutes.value} min)`
@@ -2105,7 +2105,7 @@ async function createEventFromDrop({ start, end, userId, payload }) {
 
 async function savePlannerMinutes() {
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.put('/api/settings/defaultplannerminutes', { value: plannerMinutes.value })
         lastSavedPlannerMinutes = plannerMinutes.value
         page.props.flash.success = `Standaard planminuten opgeslagen (${plannerMinutes.value} min)`
@@ -2125,7 +2125,7 @@ async function saveLeadingColor() {
     }
     const value = leadingColorRole.value ? 'role' : 'event'
     try {
-        await axios.get('sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie')
         await axios.put('/api/settings/planner_leading_color', { value })
         page.props.flash.success = value === 'role'
             ? 'Leidende kleur ingesteld op monteurrol'

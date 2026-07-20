@@ -46,7 +46,7 @@ export function useStandardEmailPreview() {
     async function sendDirect(eventId, standardEmailId, trigger = null) {
         try {
             const { data } = await axios.get(`/api/events/${eventId}/standard-emails/${standardEmailId}/preview`)
-            await axios.get('sanctum/csrf-cookie')
+            await axios.get('/sanctum/csrf-cookie')
             const r = await axios.post(`/api/events/${eventId}/standard-emails/send`, {
                 standard_email_id: standardEmailId,
                 to: data.to,

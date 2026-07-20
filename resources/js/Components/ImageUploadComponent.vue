@@ -211,7 +211,7 @@ const changeTitle = async (name, id) => {
         uploadImagesForm.newTitle = newTitle;
 
         if (props.apiMode) {
-            await axios.get('sanctum/csrf-cookie');
+            await axios.get('/sanctum/csrf-cookie');
             const data = new FormData();
             data.append('newTitle', newTitle);
             data.append('imageable_id', props.imageableId);
@@ -280,7 +280,7 @@ const uploadPhotos = async () => {
     }
 
     if (props.apiMode) {
-        await axios.get('sanctum/csrf-cookie');
+        await axios.get('/sanctum/csrf-cookie');
         const data = new FormData();
         uploadImagesForm.images.forEach((file) => {
             data.append('images[]', file);
@@ -406,7 +406,7 @@ const saveEditedImage = () => {
     uploadImagesForm.imageToUpdate = file;  // Overwrite the existing image with the annotated image
 
     if (props.apiMode) {
-        axios.get('sanctum/csrf-cookie').then(() => {
+        axios.get('/sanctum/csrf-cookie').then(() => {
             const data = new FormData();
             data.append('imageToUpdate', file);
             data.append('imageable_id', props.imageableId);
