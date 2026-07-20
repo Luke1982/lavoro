@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task.
 
-**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also records each tenant's license type and extra module subscriptions.
+**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also holds the licensing model: each tenant's package, extra seats, module subscriptions and storage allowance, a price catalogue that computes each tenant's monthly total, and a landlord admin sub-app (on `beheer.lavorofsm.nl`) to manage it all. Licensing is designed in `docs/superpowers/specs/2026-07-20-tenant-licensing-design.md`; Tasks 4, 6, 16, 19, 21, 26 and 33–37 implement it.
 
 > **Revised 2026-07-03** against the current codebase. Changes from the original 2026-06-09 version:
 >
@@ -35,6 +35,13 @@
 > - **Task 27 hardened.** Added the missing `php artisan down`, queue-worker stop, `optimize:clear`, and `queue:restart` steps — Step 1 drops the database the running app is connected to.
 > - **Package compatibility verified.** `stancl/tenancy` v3.10.0 requires `illuminate/support ^10.0|^11.0|^12.0|^13.0` — Laravel 12 is supported, no version hunting needed.
 > - **Custom bootstrapper renamed** from `FilesystemTenancyBootstrapper` to `TenantStorageBootstrapper`, because the package ships a class with the identical basename and the two behave differently (ours deliberately does not suffix `storage_path()`).
+>
+> **Revised again 2026-07-20 (later that day)** with two decisions from the project owner, plus one bug they surfaced:
+>
+> - **Central database is `lavoro_tenants`, accessed by a dedicated `lavoro_app` user — never `root`.** Task 2 gains the `CREATE USER` / `GRANT ALL ON `` `lavoro\_%` `` ` setup and the `.env` keys. The wildcard grant is what lets `tenant:create` and `tenant:delete` create and drop tenant databases without any server-wide privilege, while making everything outside the `lavoro_` namespace unreachable to the app.
+> - **Task 27 is materially less destructive as a result.** Because central takes a *new* name rather than reusing `lavoro`, the old "drop and recreate the live database to free its name" step is gone. The production database is copied to the tenant name and then left completely untouched, so rollback becomes a code-and-config revert with no database restore. Tasks 21 and 26 also gain a guard refusing to point a tenant at the central database name (`tenant:create "Tenants"` would otherwise derive `lavoro_tenants` and migrate over the tenant registry).
+> - **Tasks 12 and 24 fixed — the middleware ended tenancy it did not start.** Both ended tenancy unconditionally after the response. In the test suite the `TestCase` establishes tenancy in `setUp()` and holds an open transaction; the first HTTP request in a test would tear that down, sending every later assertion to the central database. 22 of the 35 test files make requests, so this would have read as inexplicable mass failure. Both middlewares now track `$initialized_here` and end only what they began — which also stops them from ending the tenancy `GoogleWebhookController` establishes for itself.
+> - **Task 30 turned into an actual gate for "all tests still pass".** Added Step 0 (record the pre-tenancy baseline — **209 passed, 542 assertions, ~5.9s** on 2026-07-20), a baseline diff in Step 7, a grant-isolation check, a ranked triage list for expected failures (Step 7a), and a regression test for the Task 12 ordering bug that the existing suite structurally cannot catch (Step 7b).
 
 **How it works, in plain terms:**
 
@@ -43,7 +50,8 @@ Today there is one database for everything. After this change there is one small
 **What lives where:**
 
 Central database (small, shared infrastructure):
-- `tenants` — one row per client company, including its `license_type` and subscribed `modules`
+- `tenants` — one row per client company, including its `package_key`, extra seat counts, `storage_limit_gb`, `price_override_cents` and subscribed `modules`
+- `packages`, `modules`, `module_bundles`, `pricing_settings` — the price catalogue (seeded), read to compute each tenant's monthly total
 - `user_tenant_lookups` — maps an email to a tenant, used only when logging in
 - `jobs`, `job_batches`, `failed_jobs` — the queue, so the worker can read jobs without first knowing the tenant
 - `cache`, `cache_locks` — shared store; entries are isolated per tenant by a key prefix
@@ -64,9 +72,25 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 
 **Current environment (verified):** `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database`. This plan keeps all of those drivers — no Redis required.
 
+**Database naming and credentials (decided 2026-07-20):**
+
+| | Name |
+| --- | --- |
+| Central database | `lavoro_tenants` |
+| Tenant databases | `lavoro_<slug-or-ulid>` (prefix `lavoro_`, Task 3) |
+| Runtime MySQL user | `lavoro_app`, granted only on `` `lavoro\_%` `` |
+| Test MySQL user | `lavoro_test`, granted only on `` `lavoro\_test\_%` `` (Task 30) |
+
+The application **never connects as `root`.** `lavoro_app` gets `ALL PRIVILEGES` on the `` `lavoro\_%` `` pattern, which in MySQL also confers the right to *create and drop* databases matching that pattern — so `tenant:create` and `tenant:delete` work without any global `CREATE DATABASE` grant, and the account cannot touch anything outside the `lavoro_` namespace. `root` is used only for the one-time user creation in Task 2 and for the dump/restore steps in Tasks 27 and 29, where you are acting as an operator rather than as the app.
+
+Two consequences of naming the central database `lavoro_tenants` worth knowing up front:
+
+- It sits *inside* the `lavoro_%` grant pattern alongside the tenant databases, which is what lets one grant cover everything. It is not isolated from the app's own credentials — the isolation between central and tenant data is enforced by the connection routing in Task 3, not by MySQL permissions.
+- A tenant whose name slugs to exactly `tenants` would produce the database name `lavoro_tenants` and collide with central. Tasks 21 and 26 add an explicit guard against this.
+
 **Prerequisites:**
 - MySQL (multi-database tenancy does not work on SQLite)
-- The MySQL user must have the `CREATE DATABASE` privilege
+- `root` (or another admin account) available once, to create the `lavoro_app` user in Task 2
 - A full database backup before running the one-time deployment (Task 27)
 
 ---
@@ -110,9 +134,45 @@ git commit -m "chore: install stancl/tenancy package"
 
 The default `mysql` connection gets switched to the tenant's database on every tenant request. We add a second connection, `central`, that is a copy of `mysql` but is never switched. Central-only models and migrations use it explicitly so they always reach the central database.
 
-**Files:** `config/database.php`
+**Files:** `config/database.php`, `.env`, `.env.example`
 
-- [ ] **Step 1: Add the `central` connection after the `mysql` block**
+- [ ] **Step 1: Create the dedicated MySQL user (operational, run once as root, per environment)**
+
+The app connects as `lavoro_app`, never `root`. The wildcard grant is what allows `tenant:create` / `tenant:delete` to create and drop tenant databases without any server-wide privilege:
+
+```sql
+CREATE USER IF NOT EXISTS 'lavoro_app'@'127.0.0.1' IDENTIFIED BY '<strong-password>';
+GRANT ALL PRIVILEGES ON `lavoro\_%`.* TO 'lavoro_app'@'127.0.0.1';
+FLUSH PRIVILEGES;
+```
+
+The escaped underscores in `` `lavoro\_%` `` are load-bearing: an unescaped `_` is a MySQL single-character wildcard, so `lavoro_%` would also match databases like `lavoroX`, widening the grant beyond the namespace. Same reasoning as the test user in Task 30.
+
+Use `'lavoro_app'@'localhost'` instead if the app connects over a unix socket rather than TCP — these are distinct accounts in MySQL, and granting one does not grant the other. Verify:
+
+```sql
+SHOW GRANTS FOR 'lavoro_app'@'127.0.0.1';
+```
+
+Then confirm the account really can create a database in the namespace and really cannot outside it:
+
+```bash
+mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_grantcheck; DROP DATABASE lavoro_grantcheck;"   # succeeds
+mysql -u lavoro_app -p -e "CREATE DATABASE nottheapp;"                                             # must fail
+```
+
+- [ ] **Step 2: Point `.env` at the central database and the new user**
+
+```
+DB_CONNECTION=mysql
+DB_DATABASE=lavoro_tenants
+DB_USERNAME=lavoro_app
+DB_PASSWORD=<strong-password>
+```
+
+Mirror the non-secret keys into `.env.example`. Note `DB_DATABASE` now names the **central** database — the `mysql` connection uses it only until the first `tenancy()->initialize()` swaps the connection, and the `central` connection below uses it permanently.
+
+- [ ] **Step 3: Add the `central` connection after the `mysql` block**
 
 ```php
 'central' => [
@@ -120,8 +180,8 @@ The default `mysql` connection gets switched to the tenant's database on every t
     'url'         => env('DB_URL'),
     'host'        => env('DB_HOST', '127.0.0.1'),
     'port'        => env('DB_PORT', '3306'),
-    'database'    => env('DB_DATABASE', 'lavoro'),
-    'username'    => env('DB_USERNAME', 'root'),
+    'database'    => env('DB_DATABASE', 'lavoro_tenants'),
+    'username'    => env('DB_USERNAME', 'lavoro_app'),
     'password'    => env('DB_PASSWORD', ''),
     'unix_socket' => env('DB_SOCKET', ''),
     'charset'     => env('DB_CHARSET', 'utf8mb4'),
@@ -136,10 +196,10 @@ The default `mysql` connection gets switched to the tenant's database on every t
 ],
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add config/database.php
+git add config/database.php .env.example
 git commit -m "feat(tenancy): add permanent central database connection"
 ```
 
@@ -217,11 +277,48 @@ git commit -m "feat(tenancy): configure bootstrappers and migration path"
 
 ## Task 4: Create the `Tenant` model
 
-Represents one client company; lives in the central database. The MySQL database name is stored in the JSON `data` column under `tenancy_db_name`. `license_type` and `modules` are real columns (declared as custom columns so stancl does not fold them into `data`). Module gating on the backend is `tenancy()->tenant->hasModule('...')`.
+Represents one client company; lives in the central database. The MySQL database name is stored in the JSON `data` column under `tenancy_db_name`. Its subscription — `package_key`, `extra_field_seats`, `extra_office_seats`, `modules`, `price_override_cents`, `storage_limit_gb` — is stored as real columns (declared as custom columns so stancl does not fold them into `data`). Module gating on the backend is `tenancy()->tenant->hasModule('...')`. Price and seat *computation* live in the `TenantSubscription` service (Task 16), not on the model — the model only holds the raw subscription data.
 
-**Files:** `app/Models/Tenant.php`
+**Files:** `app/Models/Tenant.php`, `tests/Feature/TenantModelTest.php`
 
-- [ ] **Step 1: Create the file**
+**Interfaces:**
+- Produces: `Tenant` (central-connection Eloquent model) with integer-cast columns `extra_field_seats`, `extra_office_seats`, `price_override_cents` (nullable), `storage_limit_gb`, array-cast `modules`, and `hasModule(string): bool`.
+
+- [ ] **Step 1: Write the failing test**
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Tenant;
+use Tests\TestCase;
+
+class TenantModelTest extends TestCase
+{
+    public function test_has_module_reads_the_modules_array(): void
+    {
+        $tenant = new Tenant(['modules' => ['quotes', 'snelstart']]);
+
+        $this->assertTrue($tenant->hasModule('quotes'));
+        $this->assertFalse($tenant->hasModule('invoices'));
+    }
+
+    public function test_has_module_is_false_when_modules_is_null(): void
+    {
+        $tenant = new Tenant();
+
+        $this->assertFalse($tenant->hasModule('quotes'));
+    }
+}
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `php artisan test --filter=TenantModelTest`
+Expected: FAIL — `Class "App\Models\Tenant" not found`.
+
+- [ ] **Step 3: Create the model**
 
 ```php
 <?php
@@ -239,13 +336,26 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     protected $connection = 'central';
 
     protected $casts = [
-        'data'    => 'array',
-        'modules' => 'array',
+        'data'                 => 'array',
+        'modules'              => 'array',
+        'extra_field_seats'    => 'integer',
+        'extra_office_seats'   => 'integer',
+        'price_override_cents' => 'integer',
+        'storage_limit_gb'     => 'integer',
     ];
 
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'license_type', 'modules'];
+        return [
+            'id',
+            'name',
+            'package_key',
+            'extra_field_seats',
+            'extra_office_seats',
+            'modules',
+            'price_override_cents',
+            'storage_limit_gb',
+        ];
     }
 
     public function hasModule(string $module): bool
@@ -255,11 +365,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `php artisan test --filter=TenantModelTest`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add app/Models/Tenant.php
-git commit -m "feat(tenancy): add Tenant model with license and modules"
+git add app/Models/Tenant.php tests/Feature/TenantModelTest.php
+git commit -m "feat(tenancy): add Tenant model with package, seats, modules and storage"
 ```
 
 ---
@@ -303,13 +418,19 @@ git commit -m "feat(tenancy): add UserTenantLookup model"
 
 ## Task 6: Create central database migrations
 
-Both explicitly target the `central` connection. The `email` primary key is what enforces global email uniqueness across tenants. Dated `2026_07_21` so they sort after every existing migration — the newest tenant migrations today are `2026_07_20_*`. **Re-check `ls database/migrations/ | tail -1` at implementation time and bump the date past it if newer migrations have landed since**; the split in Task 8 excludes these three by exact filename, so a stale date here means the wrong files move.
+All target the `central` connection. The `user_tenant_lookups.email` primary key is what enforces global email uniqueness across tenants. The catalogue tables (`packages`, `modules`, `module_bundles`, `pricing_settings`) hold the price list and are seeded in the same migration that creates them. Dated `2026_07_21` so they sort after every existing migration — the newest tenant migrations today are `2026_07_20_*`. **Re-check `ls database/migrations/ | tail -1` at implementation time and bump the date past it if newer migrations have landed since**; the split in Task 8 excludes these central migrations by exact filename, so a stale date here means the wrong files move.
 
 **Files:**
 - `database/migrations/2026_07_21_000001_create_tenants_table.php`
 - `database/migrations/2026_07_21_000002_create_user_tenant_lookups_table.php`
+- `database/migrations/2026_07_21_000004_create_licensing_catalogue_tables.php`
+
+**Interfaces:**
+- Produces: central tables `tenants` (columns `id`, `name`, `package_key`, `extra_field_seats`, `extra_office_seats`, `modules`, `price_override_cents`, `storage_limit_gb`, `data`, timestamps), `packages`, `modules`, `module_bundles`, `pricing_settings` — all seeded with the price list below.
 
 - [ ] **Step 1: Create the tenants migration**
+
+`storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
 ```php
 <?php
@@ -327,8 +448,12 @@ return new class extends Migration
         Schema::connection('central')->create('tenants', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->string('name');
-            $table->string('license_type')->default('basic');
+            $table->string('package_key')->nullable();
+            $table->unsignedInteger('extra_field_seats')->default(0);
+            $table->unsignedInteger('extra_office_seats')->default(0);
             $table->json('modules')->nullable();
+            $table->unsignedInteger('price_override_cents')->nullable();
+            $table->unsignedInteger('storage_limit_gb')->default(50);
             $table->json('data')->nullable();
             $table->timestamps();
         });
@@ -370,12 +495,112 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Create the licensing-catalogue migration (create + seed)**
+
+Four tables, seeded inline with the price list. All money is integer cents. The free feature toggles are `modules` rows at `price_cents = 0`, so there is one module list and one `hasModule()` check. `included_storage_gb` and `storage_extra_per_gb_cents` are the two storage scalars.
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    protected $connection = 'central';
+
+    public function up(): void
+    {
+        Schema::connection('central')->create('packages', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->string('name');
+            $table->unsignedInteger('field_seats');
+            $table->unsignedInteger('office_seats');
+            $table->unsignedInteger('price_cents');
+            $table->unsignedInteger('extra_field_cents');
+            $table->unsignedInteger('extra_office_cents');
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::connection('central')->create('modules', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->string('name');
+            $table->unsignedInteger('price_cents')->default(0);
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::connection('central')->create('module_bundles', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->json('module_keys');
+            $table->unsignedInteger('price_cents');
+            $table->timestamps();
+        });
+
+        Schema::connection('central')->create('pricing_settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->unsignedInteger('value');
+            $table->timestamps();
+        });
+
+        $now = now();
+
+        DB::connection('central')->table('packages')->insert([
+            ['key' => 'starter',    'name' => 'Starter',    'field_seats' => 1,  'office_seats' => 1, 'price_cents' => 2750,  'extra_field_cents' => 1200, 'extra_office_cents' => 800, 'sort_order' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'team',       'name' => 'Team',       'field_seats' => 5,  'office_seats' => 2, 'price_cents' => 8750,  'extra_field_cents' => 1100, 'extra_office_cents' => 750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'business',   'name' => 'Business',   'field_seats' => 10, 'office_seats' => 4, 'price_cents' => 16000, 'extra_field_cents' => 1000, 'extra_office_cents' => 700, 'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'enterprise', 'name' => 'Enterprise', 'field_seats' => 15, 'office_seats' => 6, 'price_cents' => 23000, 'extra_field_cents' => 950,  'extra_office_cents' => 650, 'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        DB::connection('central')->table('modules')->insert([
+            ['key' => 'quotes',            'name' => 'Offertes',          'price_cents' => 2750, 'sort_order' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'invoices',          'name' => 'Facturen',          'price_cents' => 2750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'snelstart',         'name' => 'SnelStart',         'price_cents' => 0,    'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'google_calendar',   'name' => 'Google Agenda',     'price_cents' => 0,    'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'projects',          'name' => 'Projecten',         'price_cents' => 0,    'sort_order' => 5, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'tickets',           'name' => 'Storingen',         'price_cents' => 0,    'sort_order' => 6, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'location_tracking', 'name' => 'Locatie volgen',    'price_cents' => 0,    'sort_order' => 7, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        DB::connection('central')->table('module_bundles')->insert([
+            ['name' => 'Offertes + Facturen', 'module_keys' => json_encode(['quotes', 'invoices']), 'price_cents' => 4000, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        DB::connection('central')->table('pricing_settings')->insert([
+            ['key' => 'included_storage_gb',        'value' => 50, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'storage_extra_per_gb_cents', 'value' => 50, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+    }
+
+    public function down(): void
+    {
+        Schema::connection('central')->dropIfExists('pricing_settings');
+        Schema::connection('central')->dropIfExists('module_bundles');
+        Schema::connection('central')->dropIfExists('modules');
+        Schema::connection('central')->dropIfExists('packages');
+    }
+};
+```
+
+- [ ] **Step 4: Run the central migrations and confirm the catalogue seeded**
+
+Run: `php artisan migrate --database=central --path=database/migrations --realpath` (or the full `php artisan migrate` once the split in Task 8 is done).
+Expected: `packages` has 4 rows, `modules` has 7, `module_bundles` has 1, `pricing_settings` has 2.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add database/migrations/2026_07_21_000001_create_tenants_table.php \
-        database/migrations/2026_07_21_000002_create_user_tenant_lookups_table.php
-git commit -m "feat(tenancy): add central DB migrations"
+        database/migrations/2026_07_21_000002_create_user_tenant_lookups_table.php \
+        database/migrations/2026_07_21_000004_create_licensing_catalogue_tables.php
+git commit -m "feat(tenancy): add central DB migrations and licensing catalogue"
 ```
 
 ---
@@ -451,14 +676,16 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 ## Task 8: Split migrations into central and tenant directories
 
 After this:
-- `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions. `php artisan migrate` runs these against the central database.
+- `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions, and the licensing catalogue. `php artisan migrate` runs these against the central database.
 - `database/migrations/tenant/` holds everything else (209 files as of 2026-07-20: the users migration plus 208 dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
-`0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations stay central.
+`0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and the four `2026_07_21_00000{1,2,3,4}` central migrations from Tasks 6–7, stay central.
 
-**Files:** move ~209 migration files (211 total today − 2 framework migrations that stay central).
+**Files:** move ~209 migration files (212 total after Task 6 − 3 framework/catalogue migrations, but the exclusion below keeps 6 central in all).
 
 - [ ] **Step 1: Move the files**
+
+The `000004` catalogue migration (Task 6) is central — it must be in the exclusion list, or `packages`/`modules`/`module_bundles`/`pricing_settings` would be created per-tenant instead of once centrally.
 
 ```bash
 mkdir -p database/migrations/tenant
@@ -473,7 +700,8 @@ for f in database/migrations/2026_*.php; do
   base=$(basename "$f")
   if [[ "$base" != "2026_07_21_000001_create_tenants_table.php" && \
         "$base" != "2026_07_21_000002_create_user_tenant_lookups_table.php" && \
-        "$base" != "2026_07_21_000003_create_sessions_table.php" ]]; then
+        "$base" != "2026_07_21_000003_create_sessions_table.php" && \
+        "$base" != "2026_07_21_000004_create_licensing_catalogue_tables.php" ]]; then
     git mv "$f" database/migrations/tenant/
   fi
 done
@@ -483,12 +711,13 @@ done
 
 ```bash
 ls database/migrations/*.php
-# Expected exactly these 5:
+# Expected exactly these 6:
 # 0001_01_01_000001_create_cache_table.php
 # 0001_01_01_000002_create_jobs_table.php
 # 2026_07_21_000001_create_tenants_table.php
 # 2026_07_21_000002_create_user_tenant_lookups_table.php
 # 2026_07_21_000003_create_sessions_table.php
+# 2026_07_21_000004_create_licensing_catalogue_tables.php
 
 ls database/migrations/tenant/ | wc -l   # ~209
 ```
@@ -687,12 +916,14 @@ class InitializeTenancyBySession
 {
     public function handle(Request $request, Closure $next): mixed
     {
+        $initialized_here = false;
         $tenant_id = session('tenant_id') ?: $request->cookie('tenant_id');
 
-        if ($tenant_id) {
+        if ($tenant_id && !tenancy()->initialized) {
             $tenant = Tenant::on('central')->find($tenant_id);
             if ($tenant) {
                 tenancy()->initialize($tenant);
+                $initialized_here = true;
                 if (!session('tenant_id')) {
                     session(['tenant_id' => $tenant->id]);
                 }
@@ -704,7 +935,7 @@ class InitializeTenancyBySession
 
         $response = $next($request);
 
-        if (tenancy()->initialized) {
+        if ($initialized_here && tenancy()->initialized) {
             tenancy()->end();
         }
 
@@ -712,6 +943,8 @@ class InitializeTenancyBySession
     }
 }
 ```
+
+**`$initialized_here` is not defensive padding — without it the test suite breaks.** The naive version ends tenancy unconditionally after the response, including tenancy that something *else* established. In tests (Task 30) the `TestCase` initializes tenancy once in `setUp()` and holds an open transaction on the `tenant` connection; the first `$this->get(...)` in a test would then tear that down on the way out, and every assertion after it — `assertDatabaseHas`, a second request, the rollback in `tearDown` — would run against the central database instead. 22 of the current test files make HTTP requests, so this would have looked like a mass, baffling failure. The same guard keeps the middleware from ending tenancy that `GoogleWebhookController` established for itself (Task 25), since that route lives in the web group too.
 
 - [ ] **Step 2: Add to the web stack in `bootstrap/app.php` — with an explicit priority, not `append`**
 
@@ -1151,180 +1384,304 @@ git commit -m "feat(tenancy): resolve tenant before authenticating on login"
 
 ---
 
-## Task 16: Landlord license type and module subscriptions
+## Task 16: Licensing catalogue models and the pricing service
 
-The `tenants` table already carries `license_type` and `modules` (Task 6) and the `Tenant` model exposes `hasModule()` (Task 4). This task adds the typed enums, CLI management, and frontend exposure. Management is CLI-only for now — there is no landlord admin UI (YAGNI).
-
-`TenantModule::comboBoxArray()` follows the existing enum convention in `app/Enums/` in case a UI needs it later. The initial module list mirrors the app's optional feature areas; extend the enum as commercial modules are defined.
+The catalogue tables exist and are seeded (Task 6). This task adds the Eloquent models over them, the `TenantSubscription` service that computes a tenant's monthly total, and the frontend exposure of the tenant's package and modules. The CRUD commands that edit the catalogue and the per-tenant subscription commands come later (Tasks 33–34); nothing before those needs them.
 
 **Files:**
-- `app/Enums/TenantLicenseType.php` (new)
-- `app/Enums/TenantModule.php` (new)
-- `app/Console/Commands/SetTenantLicense.php` (new)
-- `app/Console/Commands/SetTenantModules.php` (new)
+- `app/Models/Central/Package.php`, `Module.php`, `ModuleBundle.php`, `PricingSetting.php` (new)
+- `app/Services/TenantSubscription.php` (new)
 - `app/Http/Middleware/HandleInertiaRequests.php`
 - `resources/js/Utilities/Utilities.js`
+- `tests/Feature/TenantSubscriptionTest.php`, `tests/Feature/PricingCatalogueTest.php` (new)
 
-- [ ] **Step 1: Create the license type enum**
+**Interfaces:**
+- Consumes: seeded `packages`, `modules`, `module_bundles`, `pricing_settings` (Task 6); `Tenant` (Task 4).
+- Produces:
+  - `App\Models\Central\Package` — columns `key`, `name`, `field_seats`, `office_seats`, `price_cents`, `extra_field_cents`, `extra_office_cents`, `sort_order`; central connection; fillable.
+  - `App\Models\Central\Module` — `key`, `name`, `price_cents`, `sort_order`; central; fillable.
+  - `App\Models\Central\ModuleBundle` — `name`, `module_keys` (array cast), `price_cents`; central; fillable.
+  - `App\Models\Central\PricingSetting` — `key`, `value`; central; static `value(string $key, int $default = 0): int`.
+  - `App\Services\TenantSubscription` — `__construct(Tenant $tenant)`; `monthlyTotalCents(): int`.
+
+- [ ] **Step 1: Create the four catalogue models**
 
 ```php
 <?php
 
-namespace App\Enums;
+namespace App\Models\Central;
 
-enum TenantLicenseType: string
+use Illuminate\Database\Eloquent\Model;
+
+class Package extends Model
 {
-    case Basic      = 'basic';
-    case Premium    = 'premium';
-    case Enterprise = 'enterprise';
+    protected $connection = 'central';
+    protected $fillable = ['key', 'name', 'field_seats', 'office_seats', 'price_cents', 'extra_field_cents', 'extra_office_cents', 'sort_order'];
+}
+```
 
-    public static function comboBoxArray(): array
+```php
+<?php
+
+namespace App\Models\Central;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Module extends Model
+{
+    protected $connection = 'central';
+    protected $fillable = ['key', 'name', 'price_cents', 'sort_order'];
+}
+```
+
+```php
+<?php
+
+namespace App\Models\Central;
+
+use Illuminate\Database\Eloquent\Model;
+
+class ModuleBundle extends Model
+{
+    protected $connection = 'central';
+    protected $fillable = ['name', 'module_keys', 'price_cents'];
+    protected $casts = ['module_keys' => 'array'];
+}
+```
+
+```php
+<?php
+
+namespace App\Models\Central;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PricingSetting extends Model
+{
+    protected $connection = 'central';
+    protected $fillable = ['key', 'value'];
+
+    public static function value(string $key, int $default = 0): int
     {
-        return array_map(
-            fn (self $case) => ['id' => $case->value, 'name' => ucfirst($case->value)],
-            self::cases()
-        );
+        $row = static::on('central')->where('key', $key)->first();
+        return $row ? (int) $row->value : $default;
     }
 }
 ```
 
-- [ ] **Step 2: Create the module enum**
+- [ ] **Step 2: Write the failing pricing-catalogue invariant tests**
+
+These read the seeded catalogue. They encode the two rules the price list must satisfy — a future price change that breaks either turns the suite red.
 
 ```php
 <?php
 
-namespace App\Enums;
+namespace Tests\Feature;
 
-enum TenantModule: string
+use App\Models\Central\Package;
+use Tests\TestCase;
+
+class PricingCatalogueTest extends TestCase
 {
-    case SnelStart        = 'snelstart';
-    case GoogleCalendar   = 'google_calendar';
-    case Projects         = 'projects';
-    case Tickets          = 'tickets';
-    case LocationTracking = 'location_tracking';
-
-    public static function comboBoxArray(): array
+    public function test_expanding_is_cheaper_than_upgrading_to_equivalent_coverage(): void
     {
-        return array_map(
-            fn (self $case) => ['id' => $case->value, 'name' => $case->name],
-            self::cases()
-        );
+        $packages = Package::on('central')->orderBy('sort_order')->get();
+
+        for ($i = 0; $i < $packages->count() - 1; $i++) {
+            $lower = $packages[$i];
+            $upper = $packages[$i + 1];
+
+            $expand_cost = $lower->price_cents
+                + ($upper->field_seats - $lower->field_seats) * $lower->extra_field_cents
+                + ($upper->office_seats - $lower->office_seats) * $lower->extra_office_cents;
+
+            $this->assertLessThan(
+                $upper->price_cents,
+                $expand_cost,
+                "Expanding {$lower->key} to {$upper->key}'s coverage must cost less than upgrading."
+            );
+        }
+    }
+
+    public function test_add_on_seats_get_cheaper_as_packages_grow(): void
+    {
+        $packages = Package::on('central')->orderBy('sort_order')->get();
+
+        for ($i = 0; $i < $packages->count() - 1; $i++) {
+            $this->assertGreaterThan($packages[$i + 1]->extra_field_cents, $packages[$i]->extra_field_cents);
+            $this->assertGreaterThan($packages[$i + 1]->extra_office_cents, $packages[$i]->extra_office_cents);
+        }
     }
 }
 ```
 
-- [ ] **Step 3: Create the `tenant:license` command**
+- [ ] **Step 3: Run to verify they fail, then pass**
 
-Shows the current license when called without a type; validates against the enum when setting.
+Run: `php artisan test --filter=PricingCatalogueTest`
+Expected first: FAIL — `Class "App\Models\Central\Package" not found`. After Step 1 is in place and the catalogue migration (Task 6) has run against the test central database, both tests PASS with the seeded numbers.
+
+- [ ] **Step 4: Write the failing `TenantSubscription` tests**
 
 ```php
 <?php
 
-namespace App\Console\Commands;
+namespace Tests\Feature;
 
-use App\Enums\TenantLicenseType;
 use App\Models\Tenant;
-use Illuminate\Console\Command;
+use App\Services\TenantSubscription;
+use Tests\TestCase;
 
-class SetTenantLicense extends Command
+class TenantSubscriptionTest extends TestCase
 {
-    protected $signature = 'tenant:license {id} {license_type?}';
-    protected $description = 'Show or set the license type of a tenant';
-
-    public function handle(): int
+    private function subscription(array $attributes): TenantSubscription
     {
-        $tenant = Tenant::on('central')->find($this->argument('id'));
-        if (!$tenant) {
-            $this->error('Tenant not found.');
-            return self::FAILURE;
-        }
+        return new TenantSubscription(new Tenant(array_merge([
+            'package_key'        => 'starter',
+            'extra_field_seats'  => 0,
+            'extra_office_seats' => 0,
+            'modules'            => [],
+            'storage_limit_gb'   => 50,
+        ], $attributes)));
+    }
 
-        $license_type = $this->argument('license_type');
+    public function test_bare_package_is_its_base_price(): void
+    {
+        $this->assertSame(2750, $this->subscription(['package_key' => 'starter'])->monthlyTotalCents());
+        $this->assertSame(16000, $this->subscription(['package_key' => 'business'])->monthlyTotalCents());
+    }
 
-        if (!$license_type) {
-            $this->info("Tenant '{$tenant->name}' has license: {$tenant->license_type}");
-            return self::SUCCESS;
-        }
+    public function test_extra_seats_add_at_the_package_rate(): void
+    {
+        $total = $this->subscription([
+            'package_key' => 'business', 'extra_field_seats' => 5, 'extra_office_seats' => 2,
+        ])->monthlyTotalCents();
 
-        if (!TenantLicenseType::tryFrom($license_type)) {
-            $valid = implode(', ', array_column(TenantLicenseType::cases(), 'value'));
-            $this->error("Invalid license type. Valid types: {$valid}");
-            return self::FAILURE;
-        }
+        $this->assertSame(16000 + 5 * 1000 + 2 * 700, $total); // 22400
+    }
 
-        $tenant->update(['license_type' => $license_type]);
-        $this->info("Tenant '{$tenant->name}' license set to: {$license_type}");
-        return self::SUCCESS;
+    public function test_a_module_bundle_replaces_its_members_individual_prices(): void
+    {
+        $this->assertSame(16000 + 2750, $this->subscription(['package_key' => 'business', 'modules' => ['quotes']])->monthlyTotalCents());
+        $this->assertSame(16000 + 4000, $this->subscription(['package_key' => 'business', 'modules' => ['quotes', 'invoices']])->monthlyTotalCents());
+    }
+
+    public function test_free_modules_add_nothing(): void
+    {
+        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'modules' => ['snelstart', 'projects']])->monthlyTotalCents());
+    }
+
+    public function test_extra_storage_bills_the_allowance_above_the_included_amount(): void
+    {
+        // 120 GB limit, 50 GB included, 50 cents/GB → (120-50)*50 = 3500
+        $this->assertSame(16000 + 3500, $this->subscription(['package_key' => 'business', 'storage_limit_gb' => 120])->monthlyTotalCents());
+        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'storage_limit_gb' => 50])->monthlyTotalCents());
+    }
+
+    public function test_price_override_replaces_only_the_package_price(): void
+    {
+        $total = $this->subscription([
+            'package_key' => 'business', 'price_override_cents' => 14000,
+            'extra_field_seats' => 5, 'modules' => ['quotes', 'invoices'],
+        ])->monthlyTotalCents();
+
+        $this->assertSame(14000 + 5 * 1000 + 4000, $total); // 23000
     }
 }
 ```
 
-- [ ] **Step 4: Create the `tenant:modules` command**
+- [ ] **Step 5: Run to verify they fail**
 
-Shows subscribed modules when called without options; `--add` and `--remove` are repeatable.
+Run: `php artisan test --filter=TenantSubscriptionTest`
+Expected: FAIL — `Class "App\Services\TenantSubscription" not found`.
+
+- [ ] **Step 6: Implement the `TenantSubscription` service**
 
 ```php
 <?php
 
-namespace App\Console\Commands;
+namespace App\Services;
 
-use App\Enums\TenantModule;
+use App\Models\Central\Module;
+use App\Models\Central\ModuleBundle;
+use App\Models\Central\Package;
+use App\Models\Central\PricingSetting;
 use App\Models\Tenant;
-use Illuminate\Console\Command;
 
-class SetTenantModules extends Command
+class TenantSubscription
 {
-    protected $signature = 'tenant:modules {id} {--add=*} {--remove=*}';
-    protected $description = 'Show or change the extra module subscriptions of a tenant';
-
-    public function handle(): int
+    public function __construct(private Tenant $tenant)
     {
-        $tenant = Tenant::on('central')->find($this->argument('id'));
-        if (!$tenant) {
-            $this->error('Tenant not found.');
-            return self::FAILURE;
+    }
+
+    public function monthlyTotalCents(): int
+    {
+        $package = Package::on('central')->where('key', $this->tenant->package_key)->firstOrFail();
+
+        $base = $this->tenant->price_override_cents ?? $package->price_cents;
+
+        $seats = $this->tenant->extra_field_seats * $package->extra_field_cents
+            + $this->tenant->extra_office_seats * $package->extra_office_cents;
+
+        return $base + $seats + $this->storageCents() + $this->modulesCents();
+    }
+
+    private function storageCents(): int
+    {
+        $included = PricingSetting::value('included_storage_gb', 50);
+        $per_gb   = PricingSetting::value('storage_extra_per_gb_cents', 0);
+        $extra_gb = max(0, $this->tenant->storage_limit_gb - $included);
+
+        return $extra_gb * $per_gb;
+    }
+
+    private function modulesCents(): int
+    {
+        $held = $this->tenant->modules ?? [];
+        if (empty($held)) {
+            return 0;
         }
 
-        $add    = $this->option('add');
-        $remove = $this->option('remove');
-        $valid  = array_column(TenantModule::cases(), 'value');
+        $remaining = array_values($held);
+        $total = 0;
 
-        foreach (array_merge($add, $remove) as $module) {
-            if (!in_array($module, $valid, true)) {
-                $this->error("Unknown module '{$module}'. Valid modules: " . implode(', ', $valid));
-                return self::FAILURE;
+        $bundles = ModuleBundle::on('central')->get()
+            ->map(function (ModuleBundle $bundle) {
+                $individual = Module::on('central')->whereIn('key', $bundle->module_keys)->sum('price_cents');
+
+                return ['keys' => $bundle->module_keys, 'price' => $bundle->price_cents, 'saving' => $individual - $bundle->price_cents];
+            })
+            ->sortByDesc('saving');
+
+        foreach ($bundles as $bundle) {
+            $all_held = collect($bundle['keys'])->every(fn ($key) => in_array($key, $remaining, true));
+            if ($all_held) {
+                $total += $bundle['price'];
+                $remaining = array_values(array_diff($remaining, $bundle['keys']));
             }
         }
 
-        if ($add || $remove) {
-            $modules = collect($tenant->modules ?? [])
-                ->merge($add)
-                ->unique()
-                ->reject(fn ($module) => in_array($module, $remove, true))
-                ->values()
-                ->all();
-            $tenant->update(['modules' => $modules]);
-        }
-
-        $current = implode(', ', $tenant->fresh()->modules ?? []) ?: '(none)';
-        $this->info("Tenant '{$tenant->name}' modules: {$current}");
-        return self::SUCCESS;
+        return $total + Module::on('central')->whereIn('key', $remaining)->sum('price_cents');
     }
 }
 ```
 
-- [ ] **Step 5: Share license and modules with the frontend**
+- [ ] **Step 7: Run the subscription tests to verify they pass**
 
-In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by `share()` (next to the existing `auth` key):
+Run: `php artisan test --filter=TenantSubscriptionTest`
+Expected: PASS.
+
+- [ ] **Step 8: Share the tenant's package and modules with the frontend**
+
+In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by `share()` (next to the existing `auth` key). Seat and storage usage are added to this same prop by their own tasks (Tasks 34 and 35) — keep it to package and modules here.
 
 ```php
 'tenant' => tenancy()->initialized ? [
-    'license_type' => tenancy()->tenant->license_type,
-    'modules'      => tenancy()->tenant->modules ?? [],
+    'package' => tenancy()->tenant->package_key,
+    'modules' => tenancy()->tenant->modules ?? [],
 ] : null,
 ```
 
-- [ ] **Step 6: Add a `hasModule` helper to `resources/js/Utilities/Utilities.js`**
+- [ ] **Step 9: Add a `hasModule` helper to `resources/js/Utilities/Utilities.js`**
 
 Follow the same pattern as the existing `hasPermission` helper (which reads `usePage().props.auth.permissions`):
 
@@ -1338,22 +1695,15 @@ export const hasModule = (name) => {
 
 Two deliberate differences from `hasPermission`: it is **not** bypassed for admins (a module is a subscription boundary, not a permission), and it returns `false` rather than throwing when `tenant` is absent — which is the case on the login page, where no tenancy is initialized.
 
-- [ ] **Step 7: Verify the commands**
+- [ ] **Step 10: Commit**
 
 ```bash
-php artisan tenant:license some-id premium        # after a tenant exists (Task 21/26)
-php artisan tenant:modules some-id --add=snelstart --add=projects
-php artisan tenant:modules some-id --remove=projects
-php artisan tenant:modules some-id                # prints: snelstart
-```
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add app/Enums/TenantLicenseType.php app/Enums/TenantModule.php \
-        app/Console/Commands/SetTenantLicense.php app/Console/Commands/SetTenantModules.php \
-        app/Http/Middleware/HandleInertiaRequests.php resources/js/Utilities/Utilities.js
-git commit -m "feat(tenancy): landlord license type and module subscriptions"
+git add app/Models/Central/Package.php app/Models/Central/Module.php \
+        app/Models/Central/ModuleBundle.php app/Models/Central/PricingSetting.php \
+        app/Services/TenantSubscription.php \
+        app/Http/Middleware/HandleInertiaRequests.php resources/js/Utilities/Utilities.js \
+        tests/Feature/TenantSubscriptionTest.php tests/Feature/PricingCatalogueTest.php
+git commit -m "feat(tenancy): licensing catalogue models and pricing service"
 ```
 
 ---
@@ -1796,7 +2146,9 @@ git commit -m "feat(tenancy): keep per-tenant scheduler ticks dispatch-only"
 
 ## Task 21: `tenant:create` command (with initial admin)
 
-Creates the tenant record (which fires the create→migrate→seed pipeline), then creates an initial admin user inside the new tenant so the company can actually log in. Creating the user fires the observer, which writes the central lookup row. License and modules can be set at creation time (validated against the Task 16 enums).
+Creates the tenant record (which fires the create→migrate→seed pipeline), then creates an initial admin user inside the new tenant so the company can actually log in.
+
+The package is validated against the seeded `packages` catalogue (Task 6/16) and defaults to `starter` — the smallest thing that works, so an under-provisioned tenant complains immediately rather than silently costing money. Modules default to none. The guard against `$database` equalling the central database name matters because central is `lavoro_tenants` and the default derived name is `'lavoro_' . Str::slug($name, '_')` — so `tenant:create "Tenants"` would otherwise point a tenant at the central database and run the tenant migrations straight over the tenant registry. Cheap check, unrecoverable failure without it. Creating the user fires the observer, which writes the central lookup row. The admin user is created without an explicit `seat_type`, so it takes the column default `office` (Task 33); the operator can promote it to `field` afterwards.
 
 **Files:** `app/Console/Commands/CreateTenant.php`
 
@@ -1807,8 +2159,8 @@ Creates the tenant record (which fires the create→migrate→seed pipeline), th
 
 namespace App\Console\Commands;
 
-use App\Enums\TenantLicenseType;
-use App\Enums\TenantModule;
+use App\Models\Central\Module;
+use App\Models\Central\Package;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -1817,7 +2169,7 @@ use Illuminate\Support\Str;
 
 class CreateTenant extends Command
 {
-    protected $signature = 'tenant:create {name} {admin_email} {--database=} {--admin-password=} {--license=basic} {--modules=*}';
+    protected $signature = 'tenant:create {name} {admin_email} {--database=} {--admin-password=} {--package=starter} {--modules=*}';
     protected $description = 'Create a tenant, its database, and an initial admin user';
 
     public function handle(): int
@@ -1826,15 +2178,16 @@ class CreateTenant extends Command
         $email    = $this->argument('admin_email');
         $database = $this->option('database') ?: 'lavoro_' . Str::slug($name, '_');
         $password = $this->option('admin-password') ?: Str::password(16);
-        $license  = $this->option('license');
+        $package  = $this->option('package');
         $modules  = $this->option('modules');
 
-        if (!TenantLicenseType::tryFrom($license)) {
-            $this->error('Invalid license type: ' . $license);
+        if (!Package::on('central')->where('key', $package)->exists()) {
+            $valid = Package::on('central')->orderBy('sort_order')->pluck('key')->implode(', ');
+            $this->error("Unknown package '{$package}'. Valid packages: {$valid}");
             return self::FAILURE;
         }
 
-        $valid_modules = array_column(TenantModule::cases(), 'value');
+        $valid_modules = Module::on('central')->pluck('key')->all();
         foreach ($modules as $module) {
             if (!in_array($module, $valid_modules, true)) {
                 $this->error('Unknown module: ' . $module);
@@ -1842,12 +2195,17 @@ class CreateTenant extends Command
             }
         }
 
+        if ($database === config('database.connections.central.database')) {
+            $this->error("Refusing to use '{$database}' — that is the central database.");
+            return self::FAILURE;
+        }
+
         $this->info("Creating tenant '{$name}' (database {$database})...");
 
         $tenant = Tenant::create([
             'id'              => (string) Str::ulid(),
             'name'            => $name,
-            'license_type'    => $license,
+            'package_key'     => $package,
             'modules'         => array_values(array_unique($modules)),
             'tenancy_db_name' => $database,
         ]);
@@ -1866,7 +2224,7 @@ class CreateTenant extends Command
         tenancy()->end();
 
         $this->info("Tenant ID: {$tenant->id}");
-        $this->info("License: {$license}");
+        $this->info("Package: {$package}");
         $this->info("Admin: {$email}");
         $this->info("Password: {$password}");
         return self::SUCCESS;
@@ -2038,16 +2396,24 @@ class InitializeTenancyForApi
             return response()->json(['message' => 'Onbekende tenant.'], 400);
         }
 
-        tenancy()->initialize($tenant);
+        $initialized_here = false;
+        if (!tenancy()->initialized) {
+            tenancy()->initialize($tenant);
+            $initialized_here = true;
+        }
 
         $response = $next($request);
 
-        tenancy()->end();
+        if ($initialized_here) {
+            tenancy()->end();
+        }
 
         return $response;
     }
 }
 ```
+
+Same `$initialized_here` guard as Task 12, for the same reason — several API tests drive these routes with tenancy already established by the `TestCase`.
 
 - [ ] **Step 2: Register the alias in `bootstrap/app.php`**
 
@@ -2144,7 +2510,7 @@ git commit -m "feat(tenancy): route Google webhook to tenant via prefixed channe
 
 ## Task 26: `tenant:setup-existing` — register a pre-tenancy database
 
-Registers an already-existing, already-migrated database as a tenant and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. License and modules for this tenant are set afterwards with the Task 16 commands.
+Registers an already-existing, already-migrated database as a tenant and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. The package and modules for this tenant are set afterwards with `tenant:package` and `tenant:modules` (Task 34).
 
 Note `User::withTrashed()` — `User` soft-deletes, and a trashed user's email still occupies `users.email` and still blocks `unique:users,email`. Copying only live users would leave those emails free centrally while unusable in the tenant, and let a *later* tenant claim them; the collision check below would then pass and the invariant would already be broken. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
 
@@ -2153,6 +2519,8 @@ This command is used twice: for the main install's database during deployment (T
 **Files:** `app/Console/Commands/SetupExistingTenant.php`
 
 - [ ] **Step 1: Create the command**
+
+The tenant is registered on the `starter` package (the safe default; raise it with `tenant:package` once you know the customer's real subscription). `extra_field_seats`, `extra_office_seats` and `storage_limit_gb` fall to their column defaults (0, 0, 50) on the raw insert. Seat-type counts are reported only once the tenant migrations have added `users.seat_type`; on a legacy database that column may not exist yet, so the command detects it and otherwise reminds the operator to migrate first.
 
 ```php
 <?php
@@ -2164,6 +2532,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SetupExistingTenant extends Command
@@ -2173,16 +2542,21 @@ class SetupExistingTenant extends Command
 
     public function handle(): int
     {
+        if ($this->argument('database') === config('database.connections.central.database')) {
+            $this->error('Refusing to register the central database as a tenant.');
+            return self::FAILURE;
+        }
+
         $id = (string) Str::ulid();
 
         DB::connection('central')->table('tenants')->insert([
-            'id'           => $id,
-            'name'         => $this->argument('name'),
-            'license_type' => 'basic',
-            'modules'      => json_encode([]),
-            'data'         => json_encode(['tenancy_db_name' => $this->argument('database')]),
-            'created_at'   => now(),
-            'updated_at'   => now(),
+            'id'          => $id,
+            'name'        => $this->argument('name'),
+            'package_key' => 'starter',
+            'modules'     => json_encode([]),
+            'data'        => json_encode(['tenancy_db_name' => $this->argument('database')]),
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
 
         $tenant = Tenant::on('central')->findOrFail($id);
@@ -2211,11 +2585,20 @@ class SetupExistingTenant extends Command
             );
         });
 
-        tenancy()->end();
-
         $this->info("Registered '{$this->argument('name')}' as tenant: {$id}");
         $this->info("Populated {$emails->count()} email lookups.");
-        $this->warn("Set the license with: php artisan tenant:license {$id} <type>");
+
+        if (Schema::connection('tenant')->hasColumn('users', 'seat_type')) {
+            $field  = User::withTrashed()->where('seat_type', 'field')->count();
+            $office = User::withTrashed()->where('seat_type', 'office')->count();
+            $this->info("Seat usage: {$field} field / {$office} office — review against the package limits.");
+        } else {
+            $this->warn("seat_type not present yet. Run `php artisan tenants:migrate --tenants={$id}` (backfills every user to office), then mark the field staff.");
+        }
+
+        tenancy()->end();
+
+        $this->warn("Set the package with: php artisan tenant:package {$id} <key>");
         $this->warn("Now migrate existing files into storage/tenant-{$id}/ — see Task 27 Step 5 / Task 29 Step 6.");
         return self::SUCCESS;
     }
@@ -2235,7 +2618,9 @@ git commit -m "feat(tenancy): add tenant:setup-existing command"
 
 Destructive and irreversible — run on a backup first. Do this in a maintenance window; all users will be logged out and must log in again.
 
-**Prerequisites:** full MySQL dump taken; `.env` has `DB_CONNECTION=mysql`, `SESSION_CONNECTION=central`; `DB_DATABASE` is the name the central database should have (e.g. `lavoro`).
+**Prerequisites:** full MySQL dump taken; the `lavoro_app` user exists with the `` `lavoro\_%` `` grant (Task 2 Step 1); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_tenants`, `DB_USERNAME=lavoro_app`, `SESSION_CONNECTION=central`.
+
+**This is less destructive than it used to be.** Because the central database is now `lavoro_tenants` — a *new* name rather than the existing `lavoro` — nothing has to be dropped and recreated in place. The live `lavoro` database is copied to the tenant name and then simply **left alone** as a rollback artefact until the smoke test passes. An earlier revision of this plan dropped and recreated `lavoro` to free the name for central; that step is gone.
 
 - [ ] **Step 0: Take the app down and stop everything that writes**
 
@@ -2252,22 +2637,37 @@ sudo crontab -l                        # confirm/comment the schedule:run entry
 Confirm nothing is connected before continuing:
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW PROCESSLIST;"
+mysql -u lavoro_app -p -e "SHOW PROCESSLIST;"
 ```
 
-- [ ] **Step 1: Dump the existing database and split it**
+- [ ] **Step 1: Copy the existing database to the tenant name, and create an empty central**
 
-MySQL has no rename-database command, so copy via dump/restore. The existing data becomes the tenant database; a fresh empty database takes the original name as central.
+MySQL has no rename-database command, so copy via dump/restore. The existing `lavoro` database is **not** modified — it stays exactly as it is, untouched, as the fastest possible rollback.
+
+Run the dump as an admin account; the restore and create can run as `lavoro_app`, since both target names are inside its grant.
 
 ```bash
-EXISTING=lavoro
-TENANT_DB=lavoro_tenant_acme
+EXISTING=lavoro                  # the current production database, left intact
+TENANT_DB=lavoro_acme            # rename to match the customer
+CENTRAL_DB=lavoro_tenants
 
-mysqldump -u "$DB_USERNAME" -p"$DB_PASSWORD" "$EXISTING" > /tmp/tenant_backup.sql
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "CREATE DATABASE $TENANT_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" < /tmp/tenant_backup.sql
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "DROP DATABASE $EXISTING; CREATE DATABASE $EXISTING CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysqldump -u root -p --single-transaction --routines --triggers "$EXISTING" > /tmp/tenant_backup.sql
+
+mysql -u lavoro_app -p -e "CREATE DATABASE $TENANT_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u lavoro_app -p "$TENANT_DB" < /tmp/tenant_backup.sql
+mysql -u lavoro_app -p -e "CREATE DATABASE $CENTRAL_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
+
+`--single-transaction` keeps the dump consistent without locking; `--routines --triggers` are there because a plain `mysqldump` silently omits both, which is an easy way to lose behaviour you did not know the schema had.
+
+Confirm all three databases now exist and the copy is complete before continuing:
+
+```bash
+mysql -u lavoro_app -p -e "SHOW DATABASES LIKE 'lavoro%';"
+mysql -u lavoro_app -p -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('$EXISTING','$TENANT_DB') GROUP BY table_schema;"
+```
+
+The two table counts must match.
 
 - [ ] **Step 2: Clear every cached config, then run the central migrations**
 
@@ -2283,7 +2683,7 @@ Creates `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`
 Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved them into a subdirectory that plain `migrate` does not descend into) — the central `migrations` table should hold 5 rows, not 200+:
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT COUNT(*) FROM lavoro.migrations;"
+mysql -u lavoro_app -p -e "SELECT COUNT(*) FROM lavoro_tenants.migrations;"
 ```
 
 - [ ] **Step 3: Drop the now-unused `sessions` table from the tenant copy (optional tidy)**
@@ -2291,23 +2691,25 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT COUNT(*) FROM lavoro.migrati
 The restored tenant database still contains a `sessions` table from before the split. It is unused (sessions are central now) and harmless; drop it if you want a clean schema:
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
+mysql -u lavoro_app -p "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
 ```
 
 - [ ] **Step 4: Register the existing database as tenant #1 and set its license/modules**
 
 ```bash
-php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_tenant_acme
+php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_acme
 ```
 
 Record the printed tenant ID — call it `TENANT_ID` for the next steps. Then:
 
 ```bash
-php artisan tenant:license "$TENANT_ID" premium
+php artisan tenant:package "$TENANT_ID" business
+php artisan tenant:seats "$TENANT_ID" --field=+2 --office=+1
 php artisan tenant:modules "$TENANT_ID" --add=snelstart --add=google_calendar
+php artisan tenant:storage "$TENANT_ID" --limit=100
 ```
 
-(Pick the license and modules that match the customer's actual subscription.)
+(Pick the package, extra seats, modules and storage limit that match the customer's actual subscription. Seed the seats and storage limit from their real usage so they do not start over limit — `tenant:setup-existing` printed the seat counts, and `du -sh storage/tenant-$TENANT_ID` shows the storage.)
 
 - [ ] **Step 5: Move existing uploaded files into the tenant storage root**
 
@@ -2337,7 +2739,7 @@ After this, e.g. an image whose stored `path` is `uploaded/customer/5/documents/
 Existing watch channels carry tokens without the tenant prefix (Task 25), so the webhook cannot route them. Expire them so the hourly renewal recreates them with prefixed tokens on the next run (the 5-minute polling schedule keeps sync working meanwhile):
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$TENANT_DB" \
+mysql -u lavoro_app -p "$TENANT_DB" \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
@@ -2352,10 +2754,10 @@ sudo systemctl start lavoro-worker     # or: supervisorctl start lavoro-worker:*
 sudo crontab -e                        # restore the schedule:run entry
 php artisan up
 
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT id, name, license_type, modules FROM lavoro.tenants;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT COUNT(*) FROM lavoro.user_tenant_lookups;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SHOW TABLES IN lavoro_tenant_acme;" | head
+mysql -u lavoro_app -p -e "SHOW TABLES IN lavoro_tenants;"
+mysql -u lavoro_app -p -e "SELECT id, name, package_key, storage_limit_gb, modules FROM lavoro_tenants.tenants;"
+mysql -u lavoro_app -p -e "SELECT COUNT(*) FROM lavoro_tenants.user_tenant_lookups;"
+mysql -u lavoro_app -p -e "SHOW TABLES IN lavoro_acme;" | head
 ```
 
 - [ ] **Step 8: Smoke test**
@@ -2375,18 +2777,28 @@ Existing sessions are gone (the central `sessions` table is fresh), so everyone 
 
 - [ ] **Step 9: Rollback plan**
 
-If the smoke test fails in a way you cannot fix inside the maintenance window, roll back rather than debug in production:
+If the smoke test fails in a way you cannot fix inside the maintenance window, roll back rather than debug in production. **No database restore is involved** — `lavoro` was never modified, so rolling back is only a code and config revert plus moving the files back:
 
 ```bash
 php artisan down
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "DROP DATABASE $EXISTING; CREATE DATABASE $EXISTING CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" "$EXISTING" < /tmp/tenant_backup.sql
+
 git checkout <pre-tenancy-tag>
-# remove SESSION_CONNECTION from .env
+
+# .env: DB_DATABASE back to lavoro, remove SESSION_CONNECTION
+# (DB_USERNAME can stay lavoro_app — the grant covers lavoro too)
+
+# Files back out of the tenant root (Step 5 in reverse)
+cd storage
+mv "tenant-$TENANT_ID/public/"* app/public/ 2>/dev/null
+[ -d "tenant-$TENANT_ID/local" ] && mv "tenant-$TENANT_ID/local/"* app/private/ 2>/dev/null
+cd ..
+
 php artisan optimize:clear && npm run build && php artisan up
 ```
 
-Then move the files back out of `storage/tenant-<id>/public/` into `storage/app/public/` (Step 5 in reverse). Keep `/tmp/tenant_backup.sql` until the customer has used the new setup for at least a week.
+Everyone re-logs in again (sessions were in `lavoro_tenants`, which the reverted code no longer reads) — that is the only user-visible cost.
+
+Leave `lavoro_acme`, `lavoro_tenants`, and `/tmp/tenant_backup.sql` in place; they cost nothing and let you retry. Drop the *original* `lavoro` only once the customer has run on the new setup for a week or two — and take a final dump of it before you do.
 
 ---
 
@@ -2395,10 +2807,10 @@ Then move the files back out of `storage/tenant-<id>/public/` into `storage/app/
 - [ ] **Step 1: Create a second tenant with an admin**
 
 ```bash
-php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --license=basic --modules=google_calendar
+php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --package=team --modules=google_calendar
 ```
 
-Confirm it prints a tenant ID, license, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
+Confirm it prints a tenant ID, package, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
 
 - [ ] **Step 2: Confirm web isolation**
 
@@ -2421,14 +2833,14 @@ php artisan queue:work --once --verbose
 
 Trigger a Google sync (or any queued import) from one tenant and confirm the data lands in that tenant's database, not the other's or the central one.
 
-- [ ] **Step 5: Confirm license/module data round-trips**
+- [ ] **Step 5: Confirm package/module data round-trips**
 
 ```bash
-php artisan tenant:license <second-id>                 # prints: basic
+php artisan tenant:overview                            # the row shows Team, 1/5 field, 1/2 office, google_calendar
 php artisan tenant:modules <second-id>                 # prints: google_calendar
 ```
 
-And in the browser as the second tenant's user, check the Inertia page props include `tenant: { license_type: 'basic', modules: ['google_calendar'] }`.
+And in the browser as the second tenant's user, check the Inertia page props include `tenant: { package: 'team', modules: ['google_calendar'] }`.
 
 ---
 
@@ -2458,8 +2870,8 @@ On the central server:
 
 ```bash
 scp legacy-host:/tmp/spee_final.sql /tmp/spee_final.sql
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "CREATE DATABASE lavoro_tenant_spee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee < /tmp/spee_final.sql
+mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_spee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u lavoro_app -p lavoro_spee < /tmp/spee_final.sql
 ```
 
 - [ ] **Step 3: Drop the infrastructure tables from the copy**
@@ -2467,7 +2879,7 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee < /tmp/spee_final.sq
 Sessions are central now; the queue/cache tables in the copy are unused (jobs live centrally). Only `sessions` matters — the rest is optional tidying:
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+mysql -u lavoro_app -p lavoro_spee \
   -e "DROP TABLE IF EXISTS sessions, cache, cache_locks, jobs, job_batches, failed_jobs;"
 ```
 
@@ -2476,9 +2888,9 @@ mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
 Every user email must be globally unique across tenants. Check up front — and include **soft-deleted** users, because their emails still occupy `users.email` and are still copied into the lookup by `tenant:setup-existing` (see Task 26):
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -e \
-  "SELECT u.email, u.deleted_at FROM lavoro_tenant_spee.users u
-   JOIN lavoro.user_tenant_lookups l ON l.email = u.email;"
+mysql -u lavoro_app -p -e \
+  "SELECT u.email, u.deleted_at FROM lavoro_spee.users u
+   JOIN lavoro_tenants.user_tenant_lookups l ON l.email = u.email;"
 ```
 
 A collision on a *soft-deleted* row on either side is the easy case: force-delete that user in whichever database it is dead in, rather than renaming a live account. A collision between two live accounts (the same person working for two customers, or a shared `info@` address) needs a conversation with the customer — one of the two has to change.
@@ -2486,15 +2898,19 @@ A collision on a *soft-deleted* row on either side is the easy case: force-delet
 If this returns rows, resolve them with the customer first (change the email in the source database). Then register — the command aborts and rolls back by itself if a collision slipped through:
 
 ```bash
-php artisan tenant:setup-existing "Spee" lavoro_tenant_spee
+php artisan tenant:setup-existing "Spee" lavoro_spee
 ```
 
 Record the printed tenant ID as `TENANT_ID`, then set the subscription:
 
 ```bash
-php artisan tenant:license "$TENANT_ID" premium
+php artisan tenant:package "$TENANT_ID" business
+php artisan tenant:seats "$TENANT_ID" --field=+7 --office=+1
 php artisan tenant:modules "$TENANT_ID" --add=google_calendar
+php artisan tenant:storage "$TENANT_ID" --limit=100
 ```
+
+Seed the seats and storage from Spee's real usage so they do not import over limit — `tenant:setup-existing` printed the seat counts (after Step 5 migrates `seat_type`), and `du -sh storage/tenant-$TENANT_ID` shows the storage.
 
 - [ ] **Step 5: Bring the imported schema up to date**
 
@@ -2510,15 +2926,15 @@ This works because Task 8 preserved every migration filename when moving files i
 # The imported migrations table still lists the three now-central migrations.
 # Harmless (their tables are simply unused in the tenant copy) — do not delete the rows,
 # or a later `tenants:migrate` will try to recreate sessions/cache/jobs in the tenant DB.
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+mysql -u lavoro_app -p lavoro_spee \
   -e "SELECT migration FROM migrations ORDER BY id DESC LIMIT 5;"
 ```
 
 Then diff against the first tenant to catch a legacy install that was further behind than `migrate:status` suggested:
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -N -e "SHOW TABLES IN lavoro_tenant_acme;" | sort > /tmp/a.txt
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" -N -e "SHOW TABLES IN lavoro_tenant_spee;" | sort > /tmp/b.txt
+mysql -u lavoro_app -p -N -e "SHOW TABLES IN lavoro_acme;" | sort > /tmp/a.txt
+mysql -u lavoro_app -p -N -e "SHOW TABLES IN lavoro_spee;" | sort > /tmp/b.txt
 diff /tmp/a.txt /tmp/b.txt
 ```
 
@@ -2539,7 +2955,7 @@ rsync -av legacy-host:/path/to/lavoro/storage/app/private/ "storage/tenant-$TENA
 The imported `google_synced_calendars` rows hold watch channels registered against `https://spee.lavorofsm.nl/google/webhook` with unprefixed tokens. Expire them so the hourly renewal re-registers them against the central webhook URL with tenant-prefixed tokens (5-minute polling covers the gap):
 
 ```bash
-mysql -u "$DB_USERNAME" -p"$DB_PASSWORD" lavoro_tenant_spee \
+mysql -u lavoro_app -p lavoro_spee \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
@@ -2598,6 +3014,18 @@ Two consequences of transaction-rollback isolation that `RefreshDatabase`'s trun
 - `tests/Concerns/RefreshesTenantDatabase.php` (new)
 - `tests/TestCase.php`
 - The 35 existing test files using `RefreshDatabase`
+
+- [ ] **Step 0: Record the baseline before changing anything**
+
+The success criterion for this task is "the same tests pass as before, on MySQL". That is only checkable against a recorded baseline — do this on the pre-tenancy commit, before Task 1:
+
+```bash
+git stash list                              # ensure a clean tree
+php artisan test 2>&1 | tail -3 > /tmp/test-baseline.txt
+cat /tmp/test-baseline.txt
+```
+
+Baseline as of 2026-07-20 on the pre-tenancy `master`: **209 passed, 542 assertions, ~5.9s** across 35 files. Expect the MySQL run to be noticeably slower than SQLite `:memory:` — that is normal and not a regression. What must not change is the pass count.
 
 - [ ] **Step 1: Confirm the tenant database prefix is env-overridable**
 
@@ -2663,7 +3091,7 @@ trait RefreshesTenantDatabase
 
         if (!static::$testTenant) {
             Artisan::call('migrate:fresh', ['--database' => 'central', '--force' => true]);
-            static::$testTenant = Tenant::create(['id' => 'test-tenant', 'name' => 'Test Tenant']);
+            static::$testTenant = Tenant::create(['id' => 'test-tenant', 'name' => 'Test Tenant', 'package_key' => 'enterprise']);
         }
 
         tenancy()->initialize(static::$testTenant);
@@ -2738,13 +3166,53 @@ FLUSH PRIVILEGES;
 
 The escaped underscores in `lavoro\_test\_%` matter — an unescaped `_` is a MySQL wildcard that would also match e.g. `lavoroXtest_evil`. This user cannot create, read, or drop `lavoro` or any `lavoro_<tenant-id>` database — that is layer (3) from the description above, and it holds even if every application-level check in Step 3 were somehow bypassed.
 
-- [ ] **Step 7: Run the suite and verify**
+- [ ] **Step 7: Run the suite and verify against the baseline**
 
 ```bash
-composer test
+php artisan test 2>&1 | tail -3 | tee /tmp/test-after.txt
+diff <(grep -o '[0-9]* passed' /tmp/test-baseline.txt) <(grep -o '[0-9]* passed' /tmp/test-after.txt)
 ```
 
-Expected: all previously-passing tests still pass, running against `lavoro_test_central` and a `lavoro_test_test-tenant` tenant database. Confirm with `SHOW DATABASES LIKE 'lavoro%';` that no test run ever created or touched `lavoro` itself.
+The pass count must match the Step 0 baseline (209). Duration will be higher on MySQL — ignore it.
+
+Then confirm the isolation layers actually held:
+
+```bash
+# No test run ever created or touched a live database
+mysql -u lavoro_test -p -e "SHOW DATABASES LIKE 'lavoro%';"
+```
+
+You should see only `lavoro_test_central` and `lavoro_test_test-tenant`. `lavoro_tenants` and any `lavoro_<customer>` database must be **absent from this list entirely** — not merely untouched, but invisible, because the `lavoro_test` user has no grant on them. If you can see them here, the grant in Step 6 is too wide; fix it before trusting any of the above.
+
+- [ ] **Step 7a: Work through failures in this order**
+
+Some churn is expected — these are the causes to check first, roughly in likelihood order. Fix the *test*, not the isolation.
+
+1. **Everything after the first HTTP request in a test fails.** The `$initialized_here` guard in the Task 12 / Task 24 middleware is missing, so the request ended the tenancy `TestCase` set up. 22 test files make requests, so this presents as mass failure.
+2. **Hardcoded id assertions.** Transaction rollback does not reset `AUTO_INCREMENT`. Assert against `$model->id`, not `1`.
+3. **Tests asserting on `users` uniqueness or user deletion.** `UserSoftDeleteTest`, `UserSoftDeleteVisibilityTest`, `UserDeletionAuthorizationTest`, and `UserHistoricalReferenceTest` now also exercise the Task 18 observer, which writes to the central `user_tenant_lookups` table on create/restore/force-delete. 24 test files create users via factory. If a factory generates a duplicate email the observer will throw a `RuntimeException` rather than a validation error — make the factory email unique if this shows up.
+4. **`ProjectFinancialNotesMigrationTest`.** Exercises a data migration; DDL implicitly commits in MySQL and escapes the transaction wrapper. May need `RefreshDatabase`-style handling of its own.
+5. **MySQL strict-mode differences from SQLite.** SQLite is permissive about types, string lengths, and invalid dates; MySQL is not. A test that passed on SQLite with an over-long string or a zero date will now fail legitimately — that is a real bug the old suite was hiding, so fix the code, not the test.
+6. **Timezone assertions.** `StandardEmailRenderingTest` already asserts Amsterdam wall-clock times (commit `17840c9`). Confirm the MySQL session timezone does not shift these.
+
+- [ ] **Step 7b: Add one test that would have caught the ordering bug**
+
+The most expensive failure mode in this plan (Task 12) is invisible to the existing suite, because tests initialize tenancy directly rather than through the middleware. One test closes that gap permanently:
+
+```php
+public function test_a_bound_model_route_resolves_against_the_tenant_database(): void
+{
+    $user = User::factory()->create();
+    $order = ServiceOrder::factory()->create();
+
+    $this->actingAs($user)
+        ->withSession(['tenant_id' => static::$testTenant->getTenantKey()])
+        ->get("/serviceorders/{$order->id}")
+        ->assertOk();
+}
+```
+
+If `InitializeTenancyBySession` ever drifts after `SubstituteBindings` in the priority list, this goes red with a 404 instead of the whole app going quietly broken in production.
 
 - [ ] **Step 8: Commit**
 
@@ -2752,6 +3220,8 @@ Expected: all previously-passing tests still pass, running against `lavoro_test_
 git add phpunit.xml tests/Concerns/RefreshesTenantDatabase.php tests/TestCase.php tests/
 git commit -m "test(tenancy): run the suite against isolated, clearly-named MySQL test databases"
 ```
+
+> **Do not close out this plan with a red or skipped suite.** Task 30 is the gate for "tests still work after multi-tenancy" — the pass count must equal the Step 0 baseline, with no tests deleted or marked skipped to get there. If a test cannot be made to pass, that is a finding about the implementation, not about the test.
 
 ---
 
@@ -2779,7 +3249,7 @@ Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc contr
 
 namespace App\Http\Middleware;
 
-use App\Enums\TenantModule;
+use App\Models\Central\Module;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -2788,7 +3258,7 @@ class EnsureTenantHasModule
 {
     public function handle(Request $request, Closure $next, string $module): Response
     {
-        abort_unless(TenantModule::tryFrom($module) !== null, 500, "Onbekende module '{$module}'.");
+        abort_unless(Module::on('central')->where('key', $module)->exists(), 500, "Onbekende module '{$module}'.");
 
         abort_unless(
             tenancy()->initialized && tenancy()->tenant->hasModule($module),
@@ -3010,6 +3480,1087 @@ No new CLI command — `general_settings` is a plain key-value tenant table, so 
 ```bash
 git add app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php
 git commit -m "feat(tenancy): resolve Microsoft Graph mail credentials per tenant"
+```
+
+---
+
+## Task 33: Add `seat_type` to users (migration, backfill, factory, form field)
+
+Every user is a `field` (buitendienst) or `office` (kantoor) seat. This is a tenant-database column. The column carries a DB-level default of `office` — the cheaper seat — as a safety net, but the create form still **requires** an explicit choice so a human never bills the wrong bucket by omission. The backfill sets every existing user to `office` and forces `plannable = false`; field staff are marked by hand afterwards (this empties the planner until that is done — an accepted, one-time cost).
+
+**Files:**
+- `database/migrations/tenant/2026_07_21_130001_add_seat_type_to_users_table.php` (new)
+- `database/factories/UserFactory.php`
+- `app/Http/Requests/UserStoreRequest.php`, `app/Http/Requests/UserUpdateRequest.php`
+- `resources/js/Pages/Users/EditPage.vue`
+
+**Interfaces:**
+- Produces: `users.seat_type` (`field`|`office`, default `office`); `UserFactory` default `seat_type = 'office'` with a `field()` state; `seat_type` required (`in:field,office`) in the user store/update requests.
+
+- [ ] **Step 1: Create the tenant migration**
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('seat_type')->default('office')->after('plannable');
+        });
+
+        // Backfill: everyone office (the column default already did this) and not plannable.
+        // Field staff are promoted by hand afterwards.
+        DB::table('users')->update(['plannable' => false]);
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('seat_type');
+        });
+    }
+};
+```
+
+- [ ] **Step 2: Give the factory a seat type**
+
+In `database/factories/UserFactory.php`, add `'seat_type' => 'office'` to the `definition()` array, and add a state below it:
+
+```php
+public function field(): static
+{
+    return $this->state(fn (array $attributes) => ['seat_type' => 'field']);
+}
+```
+
+- [ ] **Step 3: Require `seat_type` in the store request**
+
+In `UserStoreRequest::rules()`, add:
+
+```php
+'seat_type' => 'required|in:field,office',
+```
+
+- [ ] **Step 4: Require `seat_type` in the update request**
+
+In `UserUpdateRequest::rules()`, add the same line to the `$rules` array:
+
+```php
+'seat_type' => 'required|in:field,office',
+```
+
+- [ ] **Step 5: Add the seat-type field to the user form**
+
+In `resources/js/Pages/Users/EditPage.vue`, add `seat_type` to the `useForm({...})` call:
+
+```js
+seat_type: props.user?.seat_type || 'office',
+```
+
+and render a select next to the `plannable` checkbox (reuse the `SelectMenuComponent` or a plain `<select>` already used elsewhere in this form), with options `Buitendienst` → `field` and `Kantoor` → `office`, plus the standard `form.errors.seat_type` line:
+
+```vue
+<select v-model="form.seat_type" class="...">
+    <option value="field">Buitendienst</option>
+    <option value="office">Kantoor</option>
+</select>
+<div v-if="form.errors.seat_type" class="text-xs text-red-600 mt-1">{{ form.errors.seat_type }}</div>
+```
+
+- [ ] **Step 6: Run the suite — existing user tests must still pass**
+
+Run: `php artisan test --filter=User`
+Expected: PASS. The factory now supplies `seat_type`, so inserts satisfy the column; the store/update requests now require it, so any test that POSTs a user must include `seat_type` (update those tests to pass `'seat_type' => 'office'`).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add database/migrations/tenant/2026_07_21_130001_add_seat_type_to_users_table.php \
+        database/factories/UserFactory.php \
+        app/Http/Requests/UserStoreRequest.php app/Http/Requests/UserUpdateRequest.php \
+        resources/js/Pages/Users/EditPage.vue
+git commit -m "feat(tenancy): add seat_type to users with form field and backfill"
+```
+
+---
+
+## Task 34: Licensing CLI — catalogue CRUD and per-tenant subscription commands
+
+The commands that manage the price catalogue and each tenant's subscription. All run in central context. Money arguments are in cents. `set` commands upsert. Catalogue-delete commands refuse while a tenant still references the row.
+
+**Files (new):**
+- `app/Console/Commands/Licensing/PackageCommand.php`, `ModuleCommand.php`, `BundleCommand.php`, `PricingCommand.php`
+- `app/Console/Commands/Licensing/TenantPackageCommand.php`, `TenantSeatsCommand.php`, `TenantModulesCommand.php`, `TenantStorageCommand.php`, `TenantOverrideCommand.php`, `TenantOverviewCommand.php`
+- `tests/Feature/LicensingCommandsTest.php`
+
+**Interfaces:**
+- Consumes: `Package`, `Module`, `ModuleBundle`, `PricingSetting`, `TenantSubscription` (Task 16); `Tenant` (Task 4).
+
+- [ ] **Step 1: Write the failing referential-integrity test**
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Central\Package;
+use App\Models\Tenant;
+use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
+
+class LicensingCommandsTest extends TestCase
+{
+    public function test_package_delete_refuses_while_a_tenant_uses_it(): void
+    {
+        Tenant::on('central')->where('id', '!=', 'test-tenant')->delete();
+        Tenant::create(['id' => 'acme', 'name' => 'Acme', 'package_key' => 'business']);
+
+        $code = Artisan::call('package:delete', ['key' => 'business']);
+
+        $this->assertSame(1, $code); // FAILURE
+        $this->assertTrue(Package::on('central')->where('key', 'business')->exists());
+    }
+
+    public function test_package_set_updates_an_existing_price(): void
+    {
+        Artisan::call('package:set', ['key' => 'business', '--price' => 17000, '--no-interaction' => true]);
+
+        $this->assertSame(17000, (int) Package::on('central')->where('key', 'business')->value('price_cents'));
+    }
+}
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `php artisan test --filter=LicensingCommandsTest`
+Expected: FAIL — command `package:delete` / `package:set` not defined.
+
+- [ ] **Step 3: Implement `package:list|set|delete`**
+
+```php
+<?php
+
+namespace App\Console\Commands\Licensing;
+
+use App\Models\Central\Package;
+use App\Models\Tenant;
+use Illuminate\Console\Command;
+
+class PackageCommand extends Command
+{
+    protected $signature = 'package:set {key}
+        {--name=} {--field-seats=} {--office-seats=} {--price=} {--extra-field=} {--extra-office=}';
+    protected $description = 'Create or update a package';
+
+    public function handle(): int
+    {
+        $map = array_filter([
+            'name'               => $this->option('name'),
+            'field_seats'        => $this->option('field-seats'),
+            'office_seats'       => $this->option('office-seats'),
+            'price_cents'        => $this->option('price'),
+            'extra_field_cents'  => $this->option('extra-field'),
+            'extra_office_cents' => $this->option('extra-office'),
+        ], fn ($v) => $v !== null);
+
+        $package = Package::on('central')->firstOrNew(['key' => $this->argument('key')]);
+        $affected = Tenant::on('central')->where('package_key', $package->key)->count();
+
+        if ($package->exists && isset($map['price_cents']) && $affected > 0) {
+            $this->warn("This re-prices {$affected} tenant(s) on '{$package->key}'.");
+            if (!$this->confirm('Continue?', false)) {
+                return self::FAILURE;
+            }
+        }
+
+        $package->fill($map);
+        $package->name ??= ucfirst($package->key);
+        $package->save();
+
+        $this->info("Package '{$package->key}' saved.");
+        return self::SUCCESS;
+    }
+}
+```
+
+```php
+<?php
+
+namespace App\Console\Commands\Licensing;
+
+use App\Models\Central\Package;
+use App\Models\Tenant;
+use Illuminate\Console\Command;
+
+class PackageDeleteCommand extends Command
+{
+    protected $signature = 'package:delete {key}';
+    protected $description = 'Delete a package unless a tenant uses it';
+
+    public function handle(): int
+    {
+        $package = Package::on('central')->where('key', $this->argument('key'))->first();
+        if (!$package) {
+            $this->error('Package not found.');
+            return self::FAILURE;
+        }
+
+        $tenants = Tenant::on('central')->where('package_key', $package->key)->pluck('name');
+        if ($tenants->isNotEmpty()) {
+            $this->error("Refusing to delete '{$package->key}' — used by: " . $tenants->implode(', '));
+            return self::FAILURE;
+        }
+
+        $package->delete();
+        $this->info("Package '{$package->key}' deleted.");
+        return self::SUCCESS;
+    }
+}
+```
+
+```php
+<?php
+
+namespace App\Console\Commands\Licensing;
+
+use App\Models\Central\Package;
+use Illuminate\Console\Command;
+
+class PackageListCommand extends Command
+{
+    protected $signature = 'package:list';
+    protected $description = 'List packages';
+
+    public function handle(): int
+    {
+        $rows = Package::on('central')->orderBy('sort_order')->get()
+            ->map(fn ($p) => [
+                $p->key, $p->name, $p->field_seats, $p->office_seats,
+                number_format($p->price_cents / 100, 2, ',', '.'),
+                number_format($p->extra_field_cents / 100, 2, ',', '.'),
+                number_format($p->extra_office_cents / 100, 2, ',', '.'),
+            ])->all();
+
+        $this->table(['key', 'name', 'field', 'office', 'prijs', 'extra field', 'extra office'], $rows);
+        return self::SUCCESS;
+    }
+}
+```
+
+- [ ] **Step 4: Implement `module:list|set|delete` and `bundle:list|set|delete`**
+
+Mirror the package commands. `module:set {key} {--name=} {--price=}` upserts a `Module`; `module:delete {key}` refuses while any tenant's `modules` JSON contains the key:
+
+```php
+$in_use = Tenant::on('central')->whereJsonContains('modules', $key)->pluck('name');
+if ($in_use->isNotEmpty()) {
+    $this->error("Refusing to delete module '{$key}' — used by: " . $in_use->implode(', '));
+    return self::FAILURE;
+}
+```
+
+`bundle:set {name} {--modules=} {--price=}` upserts a `ModuleBundle` (splitting `--modules=quotes,invoices` on commas into the `module_keys` array); `bundle:delete {name}` deletes by name.
+
+- [ ] **Step 5: Implement `pricing:list|set` for the storage scalars**
+
+```php
+<?php
+
+namespace App\Console\Commands\Licensing;
+
+use App\Models\Central\PricingSetting;
+use Illuminate\Console\Command;
+
+class PricingCommand extends Command
+{
+    protected $signature = 'pricing:set {key} {value}';
+    protected $description = 'Set a pricing scalar (included_storage_gb, storage_extra_per_gb_cents)';
+
+    public function handle(): int
+    {
+        $allowed = ['included_storage_gb', 'storage_extra_per_gb_cents'];
+        if (!in_array($this->argument('key'), $allowed, true)) {
+            $this->error('Unknown key. Allowed: ' . implode(', ', $allowed));
+            return self::FAILURE;
+        }
+
+        PricingSetting::on('central')->updateOrCreate(
+            ['key' => $this->argument('key')],
+            ['value' => (int) $this->argument('value')]
+        );
+
+        $this->info("Set {$this->argument('key')} = {$this->argument('value')}.");
+        return self::SUCCESS;
+    }
+}
+```
+
+- [ ] **Step 6: Implement the per-tenant subscription commands**
+
+`tenant:package {id} {key}` validates the key against `packages` and sets `package_key`. `tenant:seats {id} {--field=} {--office=}` accepts signed deltas (`+5`, `-2`) or absolute values and clamps at 0. `tenant:modules {id} {--add=*} {--remove=*}` validates against `modules` and edits the JSON (the same body the old command used). `tenant:storage {id} {--limit=}` sets `storage_limit_gb`. `tenant:override {id} {--price=} {--clear}` sets or nulls `price_override_cents`. Each prints the tenant's new monthly total via `(new TenantSubscription($tenant))->monthlyTotalCents()`.
+
+Example — `tenant:storage`:
+
+```php
+<?php
+
+namespace App\Console\Commands\Licensing;
+
+use App\Models\Tenant;
+use Illuminate\Console\Command;
+
+class TenantStorageCommand extends Command
+{
+    protected $signature = 'tenant:storage {id} {--limit=}';
+    protected $description = 'Show or set a tenant storage limit (GB)';
+
+    public function handle(): int
+    {
+        $tenant = Tenant::on('central')->find($this->argument('id'));
+        if (!$tenant) {
+            $this->error('Tenant not found.');
+            return self::FAILURE;
+        }
+
+        if ($this->option('limit') !== null) {
+            $tenant->update(['storage_limit_gb' => max(0, (int) $this->option('limit'))]);
+        }
+
+        $this->info("Tenant '{$tenant->name}' storage limit: {$tenant->fresh()->storage_limit_gb} GB");
+        return self::SUCCESS;
+    }
+}
+```
+
+- [ ] **Step 7: Implement `tenant:overview`**
+
+For each tenant it switches into tenant context, counts users by `seat_type` and reads `storage_used_bytes` (default 0 until Task 36 populates it), then computes the monthly total in central context. Follows the scheduler's per-tenant pattern (Task 20). Flags a `⚠` when usage exceeds a limit.
+
+```php
+public function handle(): int
+{
+    $rows = [];
+    $total = 0;
+
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) use (&$rows, &$total) {
+        $package = \App\Models\Central\Package::on('central')->where('key', $tenant->package_key)->first();
+
+        tenancy()->initialize($tenant);
+        $field  = \App\Models\User::where('seat_type', 'field')->count();
+        $office = \App\Models\User::where('seat_type', 'office')->count();
+        $used_gb = (int) round(\App\Models\GeneralSetting::get('storage_used_bytes', 0) / (1024 ** 3));
+        tenancy()->end();
+
+        $field_limit  = ($package->field_seats ?? 0) + $tenant->extra_field_seats;
+        $office_limit = ($package->office_seats ?? 0) + $tenant->extra_office_seats;
+        $monthly = (new \App\Services\TenantSubscription($tenant))->monthlyTotalCents();
+        $total += $monthly;
+
+        $rows[] = [
+            $tenant->name,
+            $package->name ?? '—',
+            $field . '/' . $field_limit . ($field > $field_limit ? ' ⚠' : ''),
+            $office . '/' . $office_limit . ($office > $office_limit ? ' ⚠' : ''),
+            $used_gb . '/' . $tenant->storage_limit_gb . ' GB',
+            implode(',', $tenant->modules ?? []) ?: '—',
+            '€' . number_format($monthly / 100, 2, ',', '.'),
+        ];
+    });
+
+    $this->table(['Naam', 'Pakket', 'Field', 'Office', 'Opslag', 'Modules', '/mnd'], $rows);
+    $this->info('Totaal: €' . number_format($total / 100, 2, ',', '.'));
+    return self::SUCCESS;
+}
+```
+
+- [ ] **Step 8: Run the command tests to verify they pass**
+
+Run: `php artisan test --filter=LicensingCommandsTest`
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add app/Console/Commands/Licensing/ tests/Feature/LicensingCommandsTest.php
+git commit -m "feat(tenancy): licensing CLI for catalogue and tenant subscriptions"
+```
+
+---
+
+## Task 35: Enforce seat limits and seat-type capability
+
+Two enforcement layers, both validation. **Seat limits:** a `SeatAvailable` rule blocks creating/promoting a user into a full seat type, while never touching existing users. **Capability:** an office user cannot be made plannable and cannot be assigned as an executing user on an event — this is what makes a seat type mean something and stops the limit being gamed. Seat usage is also shared to the frontend so the user page can show "5 van 10".
+
+**Files:**
+- `app/Rules/SeatAvailable.php` (new)
+- `app/Http/Requests/UserStoreRequest.php`, `UserUpdateRequest.php`, `UserRestoreRequest.php`
+- `app/Http/Requests/UpdateUserPlannableRequest.php`, `EventStoreRequest.php`, `EventUpdateRequest.php`
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `tests/Feature/SeatLimitTest.php`, `tests/Feature/SeatCapabilityTest.php`
+
+**Interfaces:**
+- Consumes: `Package` (Task 16), `users.seat_type` (Task 33), `tenancy()->tenant` (Task 4/12).
+- Produces: `App\Rules\SeatAvailable` — `new SeatAvailable(?int $ignore_user_id = null)`. The seat type it checks is the attribute value the validator passes in, not a constructor argument.
+
+- [ ] **Step 1: Write the failing seat-limit test**
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Tenant;
+use App\Models\User;
+use Tests\TestCase;
+
+class SeatLimitTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Pin the test tenant to Starter (1 field / 1 office) for these tests.
+        Tenant::on('central')->where('id', 'test-tenant')->update([
+            'package_key' => 'starter', 'extra_field_seats' => 0, 'extra_office_seats' => 0,
+        ]);
+    }
+
+    public function test_creating_a_field_user_beyond_the_limit_fails(): void
+    {
+        $admin = User::factory()->field()->create();
+        User::factory()->field()->create(); // fills the single field seat
+
+        $this->actingAs($admin)->post('/users', [
+            'name' => 'Nieuw', 'email' => 'nieuw@x.nl', 'password' => 'secret12',
+            'seat_type' => 'field',
+        ])->assertSessionHasErrors('seat_type');
+
+        $this->assertSame(2, User::where('seat_type', 'field')->count());
+    }
+
+    public function test_a_soft_deleted_user_frees_a_seat(): void
+    {
+        $admin = User::factory()->office()->create();
+        $worker = User::factory()->field()->create();
+        $worker->delete(); // soft delete frees the field seat
+
+        $this->actingAs($admin)->post('/users', [
+            'name' => 'Nieuw', 'email' => 'nieuw@x.nl', 'password' => 'secret12',
+            'seat_type' => 'field',
+        ])->assertSessionHasNoErrors();
+    }
+}
+```
+
+(Add an `office()` factory state alongside `field()` in Task 33's factory edit, or use the default.)
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `php artisan test --filter=SeatLimitTest`
+Expected: FAIL — a third field user is allowed because no rule enforces the limit.
+
+- [ ] **Step 3: Implement the `SeatAvailable` rule**
+
+```php
+<?php
+
+namespace App\Rules;
+
+use App\Models\Central\Package;
+use App\Models\User;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+
+class SeatAvailable implements ValidationRule
+{
+    public function __construct(private ?int $ignore_user_id = null)
+    {
+    }
+
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if ($value !== 'field' && $value !== 'office') {
+            return; // the in: rule reports an invalid value
+        }
+
+        if (!tenancy()->initialized) {
+            return;
+        }
+
+        $package = Package::on('central')->where('key', tenancy()->tenant->package_key)->first();
+        if (!$package) {
+            return;
+        }
+
+        $base  = $value === 'field' ? $package->field_seats : $package->office_seats;
+        $extra = $value === 'field' ? tenancy()->tenant->extra_field_seats : tenancy()->tenant->extra_office_seats;
+        $limit = $base + $extra;
+
+        $query = User::where('seat_type', $value);
+        if ($this->ignore_user_id) {
+            $query->whereKeyNot($this->ignore_user_id);
+        }
+
+        if ($query->count() >= $limit) {
+            $label = $value === 'field' ? 'buitendienst' : 'kantoor';
+            $fail("Uw licentie staat {$limit} {$label}gebruikers toe. Neem contact op om uit te breiden.");
+        }
+    }
+}
+```
+
+- [ ] **Step 4: Apply the rule in the user requests**
+
+In `UserStoreRequest::rules()`, change the `seat_type` line (added in Task 33) to:
+
+```php
+'seat_type' => ['required', 'in:field,office', new \App\Rules\SeatAvailable()],
+```
+
+In `UserUpdateRequest::rules()`, pass the ignored user so an unchanged office→office or field→field edit does not count the user against itself:
+
+```php
+'seat_type' => ['required', 'in:field,office', new \App\Rules\SeatAvailable($ignore_id)],
+```
+
+(`$ignore_id` is already computed in that request for the email rule.) In `UserRestoreRequest`, add an `after` validation hook or a `rules()` entry that runs `SeatAvailable` against the trashed user's `seat_type`, so restoring into a full seat type is refused.
+
+- [ ] **Step 5: Write and pass the capability test**
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Tests\TestCase;
+
+class SeatCapabilityTest extends TestCase
+{
+    public function test_an_office_user_cannot_be_made_plannable(): void
+    {
+        $admin  = User::factory()->office()->create();
+        $office = User::factory()->office()->create();
+
+        $this->actingAs($admin)
+            ->patch("/api/users/{$office->id}/plannable", ['plannable' => true])
+            ->assertStatus(422);
+    }
+}
+```
+
+- [ ] **Step 6: Enforce capability in the requests**
+
+In `UpdateUserPlannableRequest`, reject `plannable = true` when the target user (the route `{user}`) is an office seat:
+
+```php
+public function withValidator($validator): void
+{
+    $validator->after(function ($validator) {
+        $user = $this->route('user');
+        if ($this->boolean('plannable') && $user && $user->seat_type === 'office') {
+            $validator->errors()->add('plannable', 'Een kantoorgebruiker kan niet ingepland worden.');
+        }
+    });
+}
+```
+
+In `EventStoreRequest` and `EventUpdateRequest`, reject any office user in the executing-user list (the field that carries executing user ids — reuse the exact field name already validated there):
+
+```php
+$validator->after(function ($validator) {
+    $office_ids = \App\Models\User::whereIn('id', (array) $this->input('executing_user_ids', []))
+        ->where('seat_type', 'office')->pluck('id');
+    if ($office_ids->isNotEmpty()) {
+        $validator->errors()->add('executing_user_ids', 'Kantoorgebruikers kunnen niet worden ingepland op een afspraak.');
+    }
+});
+```
+
+Confirm the executing-user field name against the current request (Task interfaces note it may be `executing_user_ids` or nested) before wiring.
+
+- [ ] **Step 7: Share seat usage with the frontend**
+
+Extend the `tenant` share added in Task 16 (`HandleInertiaRequests`) with seat usage, so the user page can show "5 van 10":
+
+```php
+'tenant' => tenancy()->initialized ? [
+    'package' => tenancy()->tenant->package_key,
+    'modules' => tenancy()->tenant->modules ?? [],
+    'seats'   => [
+        'field'  => ['used' => \App\Models\User::where('seat_type', 'field')->count(),  'limit' => $field_limit],
+        'office' => ['used' => \App\Models\User::where('seat_type', 'office')->count(), 'limit' => $office_limit],
+    ],
+] : null,
+```
+
+where `$field_limit` / `$office_limit` are `package.field_seats + tenant.extra_field_seats` (look the package up once from `tenancy()->tenant->package_key`). Show these counts on `Users/IndexPage.vue` next to the "add user" button.
+
+- [ ] **Step 8: Run all seat tests to verify they pass**
+
+Run: `php artisan test --filter=Seat`
+Expected: PASS. Fix any pre-existing user/event/planner test broken by the new rules by giving its users the correct seat type (`->field()` for anyone made plannable or assigned to an event).
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add app/Rules/SeatAvailable.php app/Http/Requests/ app/Http/Middleware/HandleInertiaRequests.php \
+        resources/js/Pages/Users/IndexPage.vue tests/Feature/SeatLimitTest.php tests/Feature/SeatCapabilityTest.php
+git commit -m "feat(tenancy): enforce seat limits and seat-type capability"
+```
+
+---
+
+## Task 36: Per-tenant storage quota
+
+Each tenant has a `storage_limit_gb` allowance (default 50, Task 6). A `StorageQuota` service tracks bytes used via a running counter in the tenant's `general_settings`, enforced as a `WithinStorageQuota` validation rule on the upload paths, and corrected nightly from disk. New uploads over the limit are blocked; existing files are never deleted.
+
+**Files:**
+- `app/Services/StorageQuota.php` (new)
+- `app/Rules/WithinStorageQuota.php` (new)
+- `app/Jobs/ReconcileStorageUsageJob.php` (new)
+- `routes/console.php`
+- upload requests: `app/Http/Requests/ImageStoreRequest.php` (or the image controller's inline validation), `DocumentStoreRequest.php`, `UserStoreRequest.php`/`UserUpdateRequest.php` (avatar), company-logo request
+- `app/Http/Controllers/Api/ImageController.php`, `DocumentController.php` and the other upload paths (call `add()`/`subtract()`)
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `tests/Feature/StorageQuotaTest.php`
+
+**Interfaces:**
+- Produces: `App\Services\StorageQuota` — `usedBytes(): int`, `limitBytes(): int`, `remainingBytes(): int`, `hasRoomFor(int $bytes): bool`, `add(int $bytes): void`, `subtract(int $bytes): void`, `reconcile(): int`. Backed by `GeneralSetting` key `storage_used_bytes` and `tenancy()->tenant->storage_limit_gb`.
+
+- [ ] **Step 1: Write the failing service test**
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\GeneralSetting;
+use App\Models\Tenant;
+use App\Services\StorageQuota;
+use Tests\TestCase;
+
+class StorageQuotaTest extends TestCase
+{
+    public function test_limit_bytes_follows_the_tenant_limit(): void
+    {
+        Tenant::on('central')->where('id', 'test-tenant')->update(['storage_limit_gb' => 50]);
+        tenancy()->initialize(Tenant::on('central')->find('test-tenant'));
+
+        $this->assertSame(50 * (1024 ** 3), (new StorageQuota())->limitBytes());
+    }
+
+    public function test_add_and_subtract_move_the_counter(): void
+    {
+        $quota = new StorageQuota();
+        $quota->add(1000);
+        $quota->add(500);
+        $quota->subtract(200);
+
+        $this->assertSame(1300, (int) GeneralSetting::get('storage_used_bytes', 0));
+    }
+
+    public function test_has_room_for_respects_the_limit(): void
+    {
+        Tenant::on('central')->where('id', 'test-tenant')->update(['storage_limit_gb' => 0]);
+        tenancy()->initialize(Tenant::on('central')->find('test-tenant'));
+
+        $this->assertFalse((new StorageQuota())->hasRoomFor(1));
+    }
+}
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `php artisan test --filter=StorageQuotaTest`
+Expected: FAIL — `App\Services\StorageQuota` not found.
+
+- [ ] **Step 3: Implement the `StorageQuota` service**
+
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\GeneralSetting;
+use Illuminate\Support\Facades\Storage;
+
+class StorageQuota
+{
+    public function usedBytes(): int
+    {
+        return (int) GeneralSetting::get('storage_used_bytes', 0);
+    }
+
+    public function limitBytes(): int
+    {
+        return (int) tenancy()->tenant->storage_limit_gb * (1024 ** 3);
+    }
+
+    public function remainingBytes(): int
+    {
+        return max(0, $this->limitBytes() - $this->usedBytes());
+    }
+
+    public function hasRoomFor(int $bytes): bool
+    {
+        return $this->usedBytes() + $bytes <= $this->limitBytes();
+    }
+
+    public function add(int $bytes): void
+    {
+        GeneralSetting::set('storage_used_bytes', $this->usedBytes() + max(0, $bytes));
+    }
+
+    public function subtract(int $bytes): void
+    {
+        GeneralSetting::set('storage_used_bytes', max(0, $this->usedBytes() - max(0, $bytes)));
+    }
+
+    public function reconcile(): int
+    {
+        $total = 0;
+        foreach (['public', 'local'] as $disk) {
+            foreach (Storage::disk($disk)->allFiles() as $file) {
+                $total += Storage::disk($disk)->size($file);
+            }
+        }
+        GeneralSetting::set('storage_used_bytes', $total);
+
+        return $total;
+    }
+}
+```
+
+- [ ] **Step 4: Run the service test to verify it passes**
+
+Run: `php artisan test --filter=StorageQuotaTest`
+Expected: PASS.
+
+- [ ] **Step 5: Implement the `WithinStorageQuota` rule and apply it to the upload requests**
+
+```php
+<?php
+
+namespace App\Rules;
+
+use App\Services\StorageQuota;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Http\UploadedFile;
+
+class WithinStorageQuota implements ValidationRule
+{
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (!tenancy()->initialized) {
+            return;
+        }
+
+        $files = is_array($value) ? $value : [$value];
+        $incoming = collect($files)
+            ->filter(fn ($f) => $f instanceof UploadedFile)
+            ->sum(fn (UploadedFile $f) => $f->getSize());
+
+        if (!(new StorageQuota())->hasRoomFor((int) $incoming)) {
+            $fail('Uw opslaglimiet is bereikt. Neem contact op om uit te breiden.');
+        }
+    }
+}
+```
+
+Apply it to the array field of each upload request — e.g. in the image upload request add `new \App\Rules\WithinStorageQuota()` to the `images` rule, in `DocumentStoreRequest` to the `documents` rule, and to the `avatar` and company-logo rules.
+
+- [ ] **Step 6: Account for stored bytes on upload and delete**
+
+After a successful store in each upload path, add the bytes; on delete, subtract. In `ImageController::store`, after `storePubliclyAs`:
+
+```php
+app(\App\Services\StorageQuota::class)->add($image->getSize());
+```
+
+In `ImageController::destroy` / `DocumentController::destroy`, before deleting the file, capture its size and `subtract()` it. Do the same for avatar replacement and company-logo upload/replace. The nightly reconcile (Step 7) is the backstop for any path missed here.
+
+- [ ] **Step 7: Add the nightly reconcile job and schedule it per tenant**
+
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Services\StorageQuota;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class ReconcileStorageUsageJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function handle(): void
+    {
+        (new StorageQuota())->reconcile();
+    }
+}
+```
+
+In `routes/console.php`, add a per-tenant dispatch alongside the existing scheduled blocks (same pattern as Task 20):
+
+```php
+Schedule::call(function () {
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) {
+        tenancy()->initialize($tenant);
+        \App\Jobs\ReconcileStorageUsageJob::dispatch();
+        tenancy()->end();
+    });
+})->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
+```
+
+- [ ] **Step 8: Share storage usage with the frontend**
+
+Extend the `tenant` share (Task 16/35) with storage, so a usage bar can be shown:
+
+```php
+'storage' => [
+    'used_bytes'  => (int) \App\Models\GeneralSetting::get('storage_used_bytes', 0),
+    'limit_bytes' => (int) tenancy()->tenant->storage_limit_gb * (1024 ** 3),
+],
+```
+
+- [ ] **Step 9: Write the enforcement test and confirm the suite is green**
+
+```php
+public function test_an_upload_over_the_limit_is_rejected(): void
+{
+    \Illuminate\Support\Facades\Storage::fake('public');
+    Tenant::on('central')->where('id', 'test-tenant')->update(['storage_limit_gb' => 0]);
+    tenancy()->initialize(Tenant::on('central')->find('test-tenant'));
+
+    $rule = new \App\Rules\WithinStorageQuota();
+    $failed = false;
+    $rule->validate('images', [\Illuminate\Http\UploadedFile::fake()->image('x.jpg')], function () use (&$failed) {
+        $failed = true;
+    });
+
+    $this->assertTrue($failed);
+}
+```
+
+Run: `php artisan test --filter=StorageQuotaTest`
+Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add app/Services/StorageQuota.php app/Rules/WithinStorageQuota.php \
+        app/Jobs/ReconcileStorageUsageJob.php routes/console.php \
+        app/Http/Requests/ app/Http/Controllers/ app/Http/Middleware/HandleInertiaRequests.php \
+        tests/Feature/StorageQuotaTest.php
+git commit -m "feat(tenancy): per-tenant storage quota with nightly reconcile"
+```
+
+---
+
+## Task 37: Landlord admin sub-app
+
+A small internal admin on its own subdomain (`beheer.lavorofsm.nl`) for managing the catalogue and every tenant's subscription in a browser. It runs **central-only** — its routes never carry the tenancy middleware — with its own `landlord` guard and `landlord_users` table. It is a thin visual layer over the Task 34 logic and the `TenantSubscription` service; controllers hold no pricing logic.
+
+Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 34), seat counting (Task 35) and the storage counter (Task 36).
+
+**Files:**
+- `database/migrations/2026_07_21_000005_create_landlord_users_table.php` (central)
+- `app/Models/Central/LandlordUser.php`
+- `config/auth.php` (landlord guard + provider)
+- `app/Console/Commands/CreateLandlordUser.php`
+- `routes/landlord.php`, `bootstrap/app.php`
+- `app/Http/Controllers/Landlord/` (auth, tenants, packages, modules, bundles, pricing)
+- `resources/js/Pages/Landlord/**`, a `LandlordLayout.vue`
+- `tests/Feature/Landlord/LandlordAccessTest.php`
+
+**Interfaces:**
+- Consumes: everything above.
+- Produces: `App\Models\Central\LandlordUser`; `landlord` auth guard; routes under the `beheer` subdomain.
+
+- [ ] **Step 1: Create the `landlord_users` central migration and model**
+
+```php
+return new class extends Migration
+{
+    protected $connection = 'central';
+
+    public function up(): void
+    {
+        Schema::connection('central')->create('landlord_users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::connection('central')->dropIfExists('landlord_users');
+    }
+};
+```
+
+```php
+<?php
+
+namespace App\Models\Central;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+
+class LandlordUser extends Authenticatable
+{
+    protected $connection = 'central';
+    protected $table = 'landlord_users';
+    protected $fillable = ['name', 'email', 'password'];
+    protected $hidden = ['password', 'remember_token'];
+    protected $casts = ['password' => 'hashed'];
+}
+```
+
+- [ ] **Step 2: Register the `landlord` guard**
+
+In `config/auth.php`, add a guard and provider:
+
+```php
+'guards' => [
+    // ...existing...
+    'landlord' => ['driver' => 'session', 'provider' => 'landlord_users'],
+],
+
+'providers' => [
+    // ...existing...
+    'landlord_users' => ['driver' => 'eloquent', 'model' => App\Models\Central\LandlordUser::class],
+],
+```
+
+- [ ] **Step 3: Add the `landlord:create` command**
+
+```php
+protected $signature = 'landlord:create {name} {email} {--password=}';
+
+public function handle(): int
+{
+    $password = $this->option('password') ?: \Illuminate\Support\Str::password(16);
+    \App\Models\Central\LandlordUser::on('central')->updateOrCreate(
+        ['email' => $this->argument('email')],
+        ['name' => $this->argument('name'), 'password' => $password]
+    );
+    $this->info("Landlord {$this->argument('email')} created. Password: {$password}");
+    return self::SUCCESS;
+}
+```
+
+- [ ] **Step 4: Register the landlord route file on the subdomain, without tenancy middleware**
+
+In `bootstrap/app.php`, load `routes/landlord.php` in `withRouting` via a `then:` closure, wrapping it in the `web` group **minus** `InitializeTenancyBySession`, scoped to the `beheer` domain:
+
+```php
+->withRouting(
+    web: __DIR__ . '/../routes/web.php',
+    api: __DIR__ . '/../routes/api.php',
+    commands: __DIR__ . '/../routes/console.php',
+    health: '/up',
+    then: function () {
+        Route::middleware('web')
+            ->domain(config('app.landlord_domain'))
+            ->group(base_path('routes/landlord.php'));
+    },
+)
+```
+
+Add `'landlord_domain' => env('LANDLORD_DOMAIN', 'beheer.lavorofsm.nl')` to `config/app.php`. Because these routes are registered in the `web` group but **not** appended with `InitializeTenancyBySession` (Task 12 appends that only to the main web group), they never initialize tenancy. Add a feature test asserting the default connection stays `central` through a landlord request.
+
+- [ ] **Step 5: Write the failing access test**
+
+```php
+<?php
+
+namespace Tests\Feature\Landlord;
+
+use App\Models\Central\LandlordUser;
+use App\Models\User;
+use Tests\TestCase;
+
+class LandlordAccessTest extends TestCase
+{
+    public function test_a_tenant_user_cannot_authenticate_as_landlord(): void
+    {
+        $tenant_user = User::factory()->create(['email' => 'worker@acme.nl']);
+
+        $this->assertFalse(
+            auth('landlord')->attempt(['email' => 'worker@acme.nl', 'password' => 'password'])
+        );
+    }
+
+    public function test_a_landlord_can_authenticate(): void
+    {
+        LandlordUser::on('central')->create(['name' => 'Ops', 'email' => 'ops@lavoro.nl', 'password' => 'secret123']);
+
+        $this->assertTrue(
+            auth('landlord')->attempt(['email' => 'ops@lavoro.nl', 'password' => 'secret123'])
+        );
+    }
+}
+```
+
+- [ ] **Step 6: Build the login screen and guard the group**
+
+Landlord `login`/`logout` controllers authenticate against the `landlord` guard; every other landlord route sits behind `auth:landlord`. Reuse the app's Inertia setup with a distinct `LandlordLayout.vue` (no tenant branding, no `company` share). Routes:
+
+```php
+Route::middleware('auth:landlord')->group(function () {
+    Route::get('/', [TenantOverviewController::class, 'index'])->name('landlord.tenants');
+    Route::get('/tenants/{tenant}', [TenantController::class, 'edit'])->name('landlord.tenant.edit');
+    Route::put('/tenants/{tenant}', [TenantController::class, 'update'])->name('landlord.tenant.update');
+    Route::resource('packages', PackageController::class)->except('show');
+    Route::resource('modules', ModuleController::class)->except('show');
+    Route::resource('bundles', BundleController::class)->except('show');
+    Route::get('/pricing', [PricingController::class, 'edit'])->name('landlord.pricing');
+    Route::put('/pricing', [PricingController::class, 'update'])->name('landlord.pricing.update');
+});
+```
+
+- [ ] **Step 7: Build the tenant overview and tenant-edit screens**
+
+The overview reuses the exact computation from `tenant:overview` (Task 34 Step 7) — extract that loop into a shared method (e.g. a `TenantOverviewController` calling a small helper) so the CLI and the UI produce identical figures. The tenant-edit screen posts package, extra seats, storage limit, modules and price override; on a catalogue price edit that re-prices tenants, show the same blast-radius list the CLI shows and require a confirm.
+
+- [ ] **Step 8: Build the catalogue screens**
+
+Package/module/bundle/pricing screens are thin CRUD over the Task 16 models, reusing `ComboBox`/`TextInput`/`ModalDialog`. All money shown and entered in euros, stored in cents.
+
+- [ ] **Step 9: Run the landlord tests and the full suite**
+
+Run: `php artisan test --filter=Landlord` then `composer test`
+Expected: PASS, including the assertion that a landlord request never initializes tenancy.
+
+- [ ] **Step 10: Operational notes**
+
+Add the `beheer.lavorofsm.nl` DNS record and a vhost pointing at the same app; it shares the codebase and central database. Create the first landlord with `php artisan landlord:create "Naam" ops@lavoro.nl`.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add database/migrations/2026_07_21_000005_create_landlord_users_table.php \
+        app/Models/Central/LandlordUser.php config/auth.php config/app.php \
+        app/Console/Commands/CreateLandlordUser.php routes/landlord.php bootstrap/app.php \
+        app/Http/Controllers/Landlord/ resources/js/Pages/Landlord/ resources/js/Layouts/LandlordLayout.vue \
+        tests/Feature/Landlord/
+git commit -m "feat(tenancy): landlord admin sub-app for licensing management"
 ```
 
 ---
