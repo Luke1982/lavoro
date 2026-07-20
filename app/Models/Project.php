@@ -16,18 +16,26 @@ class Project extends Model
         'project_manager_id',
         'status',
         'financial_notes',
+        'financial_notes_updated_at',
+        'financial_notes_updated_by',
     ];
 
     protected function casts(): array
     {
         return [
             'financial_notes' => 'array',
+            'financial_notes_updated_at' => 'datetime',
         ];
     }
 
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function financialNotesUpdatedBy()
+    {
+        return $this->belongsTo(User::class, 'financial_notes_updated_by');
     }
 
     public function projectManager()

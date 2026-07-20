@@ -321,6 +321,22 @@
                             {{ financialNotesStatus }}
                         </span>
                     </div>
+                    <div v-if="financialNotesIsStale"
+                        class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700/60 dark:bg-amber-900/25">
+                        <div class="flex items-center gap-2">
+                            <ExclamationTriangleIcon class="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <p class="text-xs text-amber-900 dark:text-amber-200">
+                                <span class="font-semibold">{{ financialNotesStaleBy || 'Iemand anders' }}</span>
+                                heeft deze administratie inmiddels gewijzigd. Als je nu opslaat overschrijf je die
+                                wijzigingen. Herlaad om de nieuwste versie te zien — niet-opgeslagen wijzigingen gaan
+                                dan verloren.
+                            </p>
+                        </div>
+                        <button type="button" @click="reloadFinancialNotes"
+                            class="shrink-0 rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
+                            Herladen
+                        </button>
+                    </div>
                     <SpreadsheetComponent v-model="financialNotes" :min-dimensions="[6, 20]" />
                 </BoxComponent>
             </template>
@@ -399,7 +415,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
-import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon, CalculatorIcon } from '@heroicons/vue/24/outline'
+import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon, CalculatorIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
@@ -411,6 +427,7 @@ import ProjectTimeline from '@/Components/Projects/ProjectTimeline.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import { formatLocalDateAsISO, nlDate, nlTime, mapsLinkFromCustomer, hasPermission } from '@/Utilities/Utilities'
+import { useFinancialNotesFreshness } from '@/Composables/useFinancialNotesFreshness'
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -558,6 +575,20 @@ const financialNotesSavedAt = ref(null)
 let financialNotesQueued = null
 let financialNotesCsrfReady = false
 
+const {
+    isStale: financialNotesIsStale,
+    staleByName: financialNotesStaleBy,
+    markSaved: markFinancialNotesSaved,
+} = useFinancialNotesFreshness(props.project.id, {
+    initialSavedAt: props.project.financial_notes_updated_at ?? null,
+    isPaused: financialNotesSaving,
+    enabled: canManageFinancials.value,
+})
+
+function reloadFinancialNotes() {
+    window.location.reload()
+}
+
 const financialNotesStatus = computed(() => {
     if (financialNotesError.value) return financialNotesError.value
     if (financialNotesSaving.value) return 'Opslaan…'
@@ -583,6 +614,7 @@ async function saveFinancialNotes(grid) {
         )
         financialNotesError.value = null
         financialNotesSavedAt.value = nlTime(response.data.saved_at)
+        markFinancialNotesSaved(response.data.saved_at)
     } catch (e) {
         const status = e.response?.status
         if (status === 419 || status === 401) {

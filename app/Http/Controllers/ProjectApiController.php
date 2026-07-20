@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProjectFinancialNotesReadRequest;
 use App\Http\Requests\ProjectFinancialNotesUpdateRequest;
 use App\Http\Requests\ProjectReadRequest;
 use App\Models\Project;
@@ -12,11 +13,30 @@ class ProjectApiController extends Controller
 {
     public function updateFinancialNotes(ProjectFinancialNotesUpdateRequest $request, Project $project)
     {
-        $project->update($request->validated());
-
-        return response()->json([
-            'saved_at' => now()->toIso8601String(),
+        $project->update($request->validated() + [
+            'financial_notes_updated_at' => now(),
+            'financial_notes_updated_by' => $request->user()->id,
         ]);
+
+        return response()->json($this->financialNotesStatePayload($project->fresh()));
+    }
+
+    public function financialNotesState(ProjectFinancialNotesReadRequest $request, Project $project)
+    {
+        return response()->json($this->financialNotesStatePayload($project));
+    }
+
+    private function financialNotesStatePayload(Project $project): array
+    {
+        $project->loadMissing('financialNotesUpdatedBy');
+
+        return [
+            'saved_at' => $project->financial_notes_updated_at?->toIso8601String(),
+            'saved_by' => $project->financialNotesUpdatedBy ? [
+                'id' => $project->financialNotesUpdatedBy->id,
+                'name' => $project->financialNotesUpdatedBy->name,
+            ] : null,
+        ];
     }
 
     public function index(ProjectReadRequest $request)

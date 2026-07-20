@@ -52,8 +52,14 @@ class ProjectController extends Controller
             'images',
         ]);
 
-        if (!$request->user()->can('manageFinancials', $project)) {
-            $project->makeHidden('financial_notes');
+        if ($request->user()->can('manageFinancials', $project)) {
+            $project->load('financialNotesUpdatedBy:id,name');
+        } else {
+            $project->makeHidden([
+                'financial_notes',
+                'financial_notes_updated_at',
+                'financial_notes_updated_by',
+            ]);
         }
 
         return inertia('Projects/ShowPage', [

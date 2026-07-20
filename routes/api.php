@@ -53,6 +53,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('images/{image}/set-main', [ImageController::class, 'setMain']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
+    Route::get('projects/{project}/financial-notes/state', [ProjectApiController::class, 'financialNotesState']);
     Route::patch('projects/{project}/financial-notes', [ProjectApiController::class, 'updateFinancialNotes']);
     Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);
 
