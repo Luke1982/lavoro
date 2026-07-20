@@ -836,20 +836,26 @@ class ServiceOrderController extends Controller
             'materialsList' => $materials_list,
             'extraMaterialsList' => $extra_materials_list,
             'taskInstances' => $serviceorder->taskInstances,
-            'images' => $serviceorder->images->map(function ($image) {
-                $path = storage_path('app/public/' . $image->path);
-                if (!file_exists($path)) {
-                    return null;
-                }
-                $mime = mime_content_type($path);
-                [$width, $height] = @getimagesize($path) ?: [1, 1];
+            'imageGroups' => $serviceorder->images
+                ->sortBy('created_at')
+                ->map(function ($image) use ($display_timezone) {
+                    $path = storage_path('app/public/' . $image->path);
+                    if (!file_exists($path)) {
+                        return null;
+                    }
+                    $mime = mime_content_type($path);
+                    [$width, $height] = @getimagesize($path) ?: [1, 1];
 
-                return [
-                    'name' => $image->name,
-                    'data' => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
-                    'landscape' => ($width ?? 1) >= ($height ?? 1),
-                ];
-            })->filter()->values(),
+                    return [
+                        'name' => $image->name,
+                        'date' => $image->created_at->copy()->setTimezone($display_timezone)->format('d-m-Y'),
+                        'data' => 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path)),
+                        'landscape' => ($width ?? 1) >= ($height ?? 1),
+                    ];
+                })
+                ->filter()
+                ->groupBy('date')
+                ->map(fn ($group) => $group->values()),
             'company' => $company,
             'closingText' => trim((string) GeneralSetting::get('serviceorder_closing_text', '')),
             'remarks' => $serviceorder->remarks,

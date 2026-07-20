@@ -57,6 +57,15 @@
             margin-top: 8px;
         }
 
+        .image-date {
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2px;
+            margin: 10px 0 4px;
+        }
+
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -426,28 +435,31 @@
         </table>
     @endif
 
-    @if (($images ?? collect())->isNotEmpty())
+    @if (($imageGroups ?? collect())->isNotEmpty())
         <h2 class="section">Foto's</h2>
-        <div class="section">
-            <table style="width:100%; border-collapse:collapse;">
-                @foreach ($images->chunk(2) as $row)
-                    <tr>
-                        @foreach ($row as $image)
-                            <td style="width:50%; padding:4px; vertical-align:top;">
-                                <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
-                                    style="width:{{ $image['landscape'] ? '100%' : '60%' }}; height:auto; display:block;">
-                                @if ($image['name'])
-                                    <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
-                                @endif
-                            </td>
-                        @endforeach
-                        @if ($row->count() === 1)
-                            <td style="width:50%;"></td>
-                        @endif
-                    </tr>
-                @endforeach
-            </table>
-        </div>
+        @foreach ($imageGroups as $date => $groupImages)
+            <div class="section">
+                <div class="image-date">{{ $date }}</div>
+                <table style="width:100%; border-collapse:collapse;">
+                    @foreach ($groupImages->chunk(2) as $row)
+                        <tr>
+                            @foreach ($row as $image)
+                                <td style="width:50%; padding:4px; vertical-align:top;">
+                                    <img src="{{ $image['data'] }}" alt="{{ $image['name'] }}"
+                                        style="width:{{ $image['landscape'] ? '100%' : '60%' }}; height:auto; display:block;">
+                                    @if ($image['name'])
+                                        <div class="small muted" style="margin-top:2px;">{{ $image['name'] }}</div>
+                                    @endif
+                                </td>
+                            @endforeach
+                            @if ($row->count() === 1)
+                                <td style="width:50%;"></td>
+                            @endif
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+        @endforeach
     @endif
 
     <div class="sign small">
