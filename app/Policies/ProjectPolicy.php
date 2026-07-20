@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Project;
+use App\Models\User;
 
 class ProjectPolicy
 {
@@ -30,5 +30,10 @@ class ProjectPolicy
     public function delete(User $user, Project $project): bool
     {
         return $user->isAdmin() || $user->hasPermission('project.delete');
+    }
+
+    public function manageFinancials(User $user, Project $project): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('project.manage_financials');
     }
 }

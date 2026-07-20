@@ -15,7 +15,15 @@ class Project extends Model
         'customer_id',
         'project_manager_id',
         'status',
+        'financial_notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'financial_notes' => 'array',
+        ];
+    }
 
     public function customer()
     {

@@ -53,6 +53,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('images/{image}/set-main', [ImageController::class, 'setMain']);
 
     Route::get('projects', [ProjectApiController::class, 'index']);
+    Route::patch('projects/{project}/financial-notes', [ProjectApiController::class, 'updateFinancialNotes']);
     Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);
 
     Route::get('google/integration/status', GoogleIntegrationStatusController::class)

@@ -33,28 +33,34 @@ class ProjectController extends Controller
         }
 
         return inertia('Projects/IndexPage', [
-            'projects'   => $query->orderBy('created_at', 'desc')->paginate(20)->appends(['search' => $search]),
-            'customers'  => Customer::orderBy('name')->get(['id', 'name']),
-            'users'      => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
-            'statuses'   => ProjectStatuses::comboBoxArray(),
-            'search'     => $search,
+            'projects' => $query->orderBy('created_at', 'desc')->paginate(20)->appends(['search' => $search]),
+            'customers' => Customer::orderBy('name')->get(['id', 'name']),
+            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
+            'statuses' => ProjectStatuses::comboBoxArray(),
+            'search' => $search,
         ]);
     }
 
     public function show(ProjectReadRequest $request, Project $project)
     {
+        $project->load([
+            'customer',
+            'projectManager',
+            'milestones.assignedUser',
+            'serviceOrders.serviceJobs',
+            'documents',
+            'images',
+        ]);
+
+        if (!$request->user()->can('manageFinancials', $project)) {
+            $project->makeHidden('financial_notes');
+        }
+
         return inertia('Projects/ShowPage', [
-            'project'   => $project->load([
-                'customer',
-                'projectManager',
-                'milestones.assignedUser',
-                'serviceOrders.serviceJobs',
-                'documents',
-                'images',
-            ]),
+            'project' => $project,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
-            'users'     => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
-            'statuses'  => ProjectStatuses::comboBoxArray(),
+            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
+            'statuses' => ProjectStatuses::comboBoxArray(),
         ]);
     }
 

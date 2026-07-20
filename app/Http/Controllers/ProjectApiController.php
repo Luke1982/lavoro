@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProjectFinancialNotesUpdateRequest;
 use App\Http\Requests\ProjectReadRequest;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
@@ -9,6 +10,15 @@ use Carbon\Carbon;
 
 class ProjectApiController extends Controller
 {
+    public function updateFinancialNotes(ProjectFinancialNotesUpdateRequest $request, Project $project)
+    {
+        $project->update($request->validated());
+
+        return response()->json([
+            'saved_at' => now()->toIso8601String(),
+        ]);
+    }
+
     public function index(ProjectReadRequest $request)
     {
         $start = $request->input('start');
