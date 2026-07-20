@@ -81,8 +81,16 @@ class ServiceOrderController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
                     ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
+                    ->orWhere('external_invoice_no', 'like', "%{$search}%")
                     ->orWhereHas('customer', function ($cq) use ($search) {
-                        $cq->where('name', 'like', "%{$search}%");
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('city', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('serviceOrderStage', function ($sq) use ($search) {
+                        $sq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('events.executingUsers', function ($uq) use ($search) {
+                        $uq->where('users.name', 'like', "%{$search}%");
                     });
             });
         }

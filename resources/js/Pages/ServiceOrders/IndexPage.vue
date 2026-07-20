@@ -1,6 +1,7 @@
 <template>
     <IndexHeaderComponent title="Werkbonnen" subtitle="Overzicht van alle werkbonnen" search-url="/serviceorders"
-        search-label="Zoek binnen werkbonnen" search-placeholder="Zoek op klant, beschrijving of inkoopordernr."
+        search-label="Zoek binnen werkbonnen"
+        search-placeholder="Zoek op klant, plaats, beschrijving, fase, factuurnr., inkoopordernr. of uitvoerder"
         :search-other-params="filterParams" :paginator="false" :has-active-filters="activeFilters.length > 0">
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
