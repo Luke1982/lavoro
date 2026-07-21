@@ -38,7 +38,7 @@
 >
 > **Revised again 2026-07-20 (later that day)** with two decisions from the project owner, plus one bug they surfaced:
 >
-> - **Central database is `lavoro_tenants`, accessed by a dedicated `lavoro_app` user — never `root`.** Task 2 gains the `CREATE USER` / `GRANT ALL ON `` `lavoro\_%` `` ` setup and the `.env` keys. The wildcard grant is what lets `tenant:create` and `tenant:delete` create and drop tenant databases without any server-wide privilege, while making everything outside the `lavoro_` namespace unreachable to the app.
+> - **Central database is `lavoro_tenants`, and no single account reaches everything — never `root`.** Task 2 sets up three identities: `lavoro_app` (web/queue, confined to the central database), `lavoro_provisioner` (passwordless `auth_socket` account used only from the CLI to create databases and users), and one MySQL user per tenant confined to its own database. Cross-tenant isolation is enforced by MySQL, not only by the application.
 > - **Task 27 is materially less destructive as a result.** Because central takes a *new* name rather than reusing `lavoro`, the old "drop and recreate the live database to free its name" step is gone. The production database is copied to the tenant name and then left completely untouched, so rollback becomes a code-and-config revert with no database restore. Tasks 21 and 26 also gain a guard refusing to point a tenant at the central database name (`tenant:create "Tenants"` would otherwise derive `lavoro_tenants` and migrate over the tenant registry).
 > - **Tasks 12 and 24 fixed — the middleware ended tenancy it did not start.** Both ended tenancy unconditionally after the response. In the test suite the `TestCase` establishes tenancy in `setUp()` and holds an open transaction; the first HTTP request in a test would tear that down, sending every later assertion to the central database. 22 of the 35 test files make requests, so this would have read as inexplicable mass failure. Both middlewares now track `$initialized_here` and end only what they began — which also stops them from ending the tenancy `GoogleWebhookController` establishes for itself.
 > - **Task 30 turned into an actual gate for "all tests still pass".** Added Step 0 (record the pre-tenancy baseline — **209 passed, 542 assertions, ~5.9s** on 2026-07-20), a baseline diff in Step 7, a grant-isolation check, a ranked triage list for expected failures (Step 7a), and a regression test for the Task 12 ordering bug that the existing suite structurally cannot catch (Step 7b).
@@ -78,19 +78,24 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 | --- | --- |
 | Central database | `lavoro_tenants` |
 | Tenant databases | `lavoro_<slug-or-ulid>` (prefix `lavoro_`, Task 3) |
-| Runtime MySQL user | `lavoro_app`, granted only on `` `lavoro\_%` `` |
+| Web/queue MySQL user | `lavoro_app`, granted only on `lavoro_tenants` |
+| Provisioning MySQL user | `lavoro_provisioner`, no password (`auth_socket`), granted on `` `lavoro\_%` `` + `CREATE USER` |
+| Per-tenant MySQL users | `lavoro_<tenant>`, granted only on that tenant's own database |
 | Test MySQL user | `lavoro_test`, granted only on `` `lavoro\_test\_%` `` (Task 30) |
 
-The application **never connects as `root`.** `lavoro_app` gets `ALL PRIVILEGES` on the `` `lavoro\_%` `` pattern, which in MySQL also confers the right to *create and drop* databases matching that pattern — so `tenant:create` and `tenant:delete` work without any global `CREATE DATABASE` grant, and the account cannot touch anything outside the `lavoro_` namespace. `root` is used only for the one-time user creation in Task 2 and for the dump/restore steps in Tasks 27 and 29, where you are acting as an operator rather than as the app.
+The application **never connects as `root`**, and no single credential reaches every database. `lavoro_app` is confined to the central database — it cannot read customer data at all. Each tenant's queries authenticate as that tenant's own user, so cross-tenant access is blocked by MySQL rather than only by the application switching connections correctly. `root` is used only for the one-time account creation in Task 2 and for the dump/restore steps in Tasks 27 and 29, where you are acting as an operator rather than as the app.
 
 Two consequences of naming the central database `lavoro_tenants` worth knowing up front:
 
-- It sits *inside* the `lavoro_%` grant pattern alongside the tenant databases, which is what lets one grant cover everything. It is not isolated from the app's own credentials — the isolation between central and tenant data is enforced by the connection routing in Task 3, not by MySQL permissions.
+- It sits *inside* the `lavoro_%` pattern that the provisioner is granted on, so the provisioner can manage both central and tenant databases. `lavoro_app` is scoped to the central database by name, so it is unaffected.
 - A tenant whose name slugs to exactly `tenants` would produce the database name `lavoro_tenants` and collide with central. Tasks 21 and 26 add an explicit guard against this.
+
+**Database isolation is enforced by MySQL, not only by the application.** Each tenant gets its own MySQL user that can reach only its own database (Task 2/3). The web app's own credentials reach only the central database. So a bug that fails to switch tenant context produces a permission error rather than another customer's data. The account that can create databases and users authenticates by Unix socket as a dedicated Linux user (`auth_socket`) and has **no password stored anywhere** — provisioning is a deliberate CLI action, impossible from a web request.
 
 **Prerequisites:**
 - MySQL (multi-database tenancy does not work on SQLite)
-- `root` (or another admin account) available once, to create the `lavoro_app` user in Task 2
+- MySQL running on the same host as the app, reachable over its Unix socket — required for the passwordless provisioner account (Task 2)
+- `root` (or another admin account) available once, to create the `lavoro_app` and `lavoro_provisioner` accounts in Task 2
 - A full database backup before running the one-time deployment (Task 27)
 
 ---
@@ -130,49 +135,84 @@ git commit -m "chore: install stancl/tenancy package"
 
 ---
 
-## Task 2: Add a permanent `central` database connection
+## Task 2: Database connections and the three MySQL identities
 
-The default `mysql` connection gets switched to the tenant's database on every tenant request. We add a second connection, `central`, that is a copy of `mysql` but is never switched. Central-only models and migrations use it explicitly so they always reach the central database.
+The default `mysql` connection gets switched to the tenant's database on every tenant request. We add a `central` connection that is never switched, and a `provisioner` connection used only for creating and destroying tenants.
+
+**Three separate MySQL identities, each with the least privilege it can do its job with:**
+
+| Identity | Authenticates by | Can reach | Used by |
+| --- | --- | --- | --- |
+| `lavoro_app@127.0.0.1` | password in `.env` | **only** `lavoro_tenants` (central) | the web app and queue workers |
+| `lavoro_provisioner@localhost` | **no password** — Unix socket | all `lavoro_%` databases, plus `CREATE USER` | `tenant:create` / `tenant:delete`, run from the CLI as a specific Linux user |
+| `lavoro_<tenant-id>@%` | generated password, stored encrypted on the tenant row | **only that tenant's own database** | tenant requests, via the per-tenant connection |
+
+Why this shape:
+
+- **The web app can no longer reach any tenant database with its own credentials.** Tenant queries authenticate as that tenant's user. A bug that fails to switch tenant context now hits a MySQL permission error instead of returning another customer's data — the isolation stops depending on the application being correct.
+- **The privileged account has no password to steal.** MySQL's `auth_socket` plugin authenticates by *operating-system user identity* over the local socket. Only the Linux user named `lavoro_provisioner` can use it. There is no secret in `.env`, no secret on disk. The web server runs as `www-data`, so even a fully compromised app cannot create or drop databases or users.
+- **Per-tenant credentials are low value.** Each opens exactly one customer's database and (per the package's default grant list) cannot create, drop, or grant anything.
+
+**Requires MySQL on the same machine as the app** — `auth_socket` works over the Unix socket only. Verified present at `/var/run/mysqld/mysqld.sock`. If the database ever moves to its own host, this task needs revisiting (client certificates or a root-only credentials file).
 
 **Files:** `config/database.php`, `.env`, `.env.example`
 
-- [ ] **Step 1: Create the dedicated MySQL user (operational, run once as root, per environment)**
-
-The app connects as `lavoro_app`, never `root`. The wildcard grant is what allows `tenant:create` / `tenant:delete` to create and drop tenant databases without any server-wide privilege:
+- [ ] **Step 1: Create the app user, restricted to the central database (run once as root, per environment)**
 
 ```sql
 CREATE USER IF NOT EXISTS 'lavoro_app'@'127.0.0.1' IDENTIFIED BY '<strong-password>';
-GRANT ALL PRIVILEGES ON `lavoro\_%`.* TO 'lavoro_app'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON `lavoro_tenants`.* TO 'lavoro_app'@'127.0.0.1';
 FLUSH PRIVILEGES;
 ```
 
-The escaped underscores in `` `lavoro\_%` `` are load-bearing: an unescaped `_` is a MySQL single-character wildcard, so `lavoro_%` would also match databases like `lavoroX`, widening the grant beyond the namespace. Same reasoning as the test user in Task 30.
+Note this is **not** a wildcard grant. `lavoro_app` gets the central database and nothing else.
 
-Use `'lavoro_app'@'localhost'` instead if the app connects over a unix socket rather than TCP — these are distinct accounts in MySQL, and granting one does not grant the other. Verify:
-
-```sql
-SHOW GRANTS FOR 'lavoro_app'@'127.0.0.1';
-```
-
-Then confirm the account really can create a database in the namespace and really cannot outside it:
+- [ ] **Step 2: Create the provisioner — Linux user first, then a passwordless MySQL user bound to it**
 
 ```bash
-mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_grantcheck; DROP DATABASE lavoro_grantcheck;"   # succeeds
-mysql -u lavoro_app -p -e "CREATE DATABASE nottheapp;"                                             # must fail
+sudo adduser --system --group --no-create-home lavoro_provisioner
 ```
 
-- [ ] **Step 2: Point `.env` at the central database and the new user**
+```sql
+CREATE USER IF NOT EXISTS 'lavoro_provisioner'@'localhost' IDENTIFIED WITH auth_socket;
+GRANT ALL PRIVILEGES ON `lavoro\_%`.* TO 'lavoro_provisioner'@'localhost' WITH GRANT OPTION;
+GRANT CREATE USER ON *.* TO 'lavoro_provisioner'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+The escaped underscores in `` `lavoro\_%` `` are load-bearing: an unescaped `_` is a MySQL single-character wildcard, so `lavoro_%` would also match `lavoroX`, widening the grant beyond the namespace.
+
+`WITH GRANT OPTION` is required because this account grants each new tenant user rights on its own database. `CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
+
+If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
+
+- [ ] **Step 3: Verify the identities behave as intended**
+
+```bash
+# Provisioner works only as its own Linux user, and needs no password:
+sudo -u lavoro_provisioner mysql -e "SELECT current_user();"        # → lavoro_provisioner@localhost
+mysql -u lavoro_provisioner -e "SELECT 1;"                          # → must FAIL (wrong OS user)
+
+# The app user is confined to central:
+mysql -u lavoro_app -p -e "SHOW DATABASES;"                         # → only lavoro_tenants
+mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_nope;"            # → must FAIL
+```
+
+The second command failing is the whole point: it proves the privilege is tied to OS identity, not to a string anyone can copy.
+
+- [ ] **Step 4: Point `.env` at the central database and the app user**
 
 ```
 DB_CONNECTION=mysql
 DB_DATABASE=lavoro_tenants
 DB_USERNAME=lavoro_app
 DB_PASSWORD=<strong-password>
+DB_SOCKET=/var/run/mysqld/mysqld.sock
 ```
 
-Mirror the non-secret keys into `.env.example`. Note `DB_DATABASE` now names the **central** database — the `mysql` connection uses it only until the first `tenancy()->initialize()` swaps the connection, and the `central` connection below uses it permanently.
+Mirror the non-secret keys into `.env.example`. `DB_DATABASE` now names the **central** database. `DB_SOCKET` is needed by the provisioner connection below; the `mysql`/`central` connections keep using TCP via `DB_HOST`.
 
-- [ ] **Step 3: Add the `central` connection after the `mysql` block**
+- [ ] **Step 5: Add the `central` and `provisioner` connections after the `mysql` block**
 
 ```php
 'central' => [
@@ -183,7 +223,7 @@ Mirror the non-secret keys into `.env.example`. Note `DB_DATABASE` now names the
     'database'    => env('DB_DATABASE', 'lavoro_tenants'),
     'username'    => env('DB_USERNAME', 'lavoro_app'),
     'password'    => env('DB_PASSWORD', ''),
-    'unix_socket' => env('DB_SOCKET', ''),
+    'unix_socket' => '',
     'charset'     => env('DB_CHARSET', 'utf8mb4'),
     'collation'   => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
     'prefix'      => '',
@@ -194,13 +234,35 @@ Mirror the non-secret keys into `.env.example`. Note `DB_DATABASE` now names the
         PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
     ]) : [],
 ],
+
+// Used only by tenant:create / tenant:delete / tenant:provision-user, which must be
+// run as: sudo -u lavoro_provisioner php artisan <command>
+// Authenticates by OS user over the Unix socket — deliberately has no password.
+'provisioner' => [
+    'driver'      => 'mysql',
+    'host'        => null,
+    'port'        => null,
+    'database'    => env('DB_DATABASE', 'lavoro_tenants'),
+    'username'    => 'lavoro_provisioner',
+    'password'    => '',
+    'unix_socket' => env('DB_SOCKET', '/var/run/mysqld/mysqld.sock'),
+    'charset'     => env('DB_CHARSET', 'utf8mb4'),
+    'collation'   => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+    'prefix'      => '',
+    'prefix_indexes' => true,
+    'strict'      => true,
+    'engine'      => null,
+    'options'     => [],
+],
 ```
 
-- [ ] **Step 4: Commit**
+`host` and `port` are `null` so PDO uses the socket rather than TCP — a TCP connection would be `lavoro_provisioner@127.0.0.1`, a *different* MySQL account that does not exist, and would fail.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add config/database.php .env.example
-git commit -m "feat(tenancy): add permanent central database connection"
+git commit -m "feat(tenancy): add central and provisioner database connections"
 ```
 
 ---
@@ -208,6 +270,18 @@ git commit -m "feat(tenancy): add permanent central database connection"
 ## Task 3: Replace `config/tenancy.php`
 
 The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the package filesystem bootstrapper (file isolation is done by disk-root repointing in Task 14 — our class is named `TenantStorageBootstrapper` precisely so it is never confused with the package's `FilesystemTenancyBootstrapper`, which additionally suffixes `storage_path()` and which we deliberately avoid).
+
+**The `mysql` manager is `PermissionControlledMySQLDatabaseManager`** (namespace `Stancl\Tenancy\TenantDatabaseManagers\`, verified against the v3.10 source — note it is *not* under `Database\Drivers`, which does not exist). It extends the plain `MySQLDatabaseManager` and additionally implements `ManagesDatabaseUsers`, so creating a tenant also creates a MySQL user scoped to that tenant's database, and deleting a tenant drops it. Its default grant list is data-manipulation only:
+
+```
+ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW,
+DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT,
+SHOW VIEW, TRIGGER, UPDATE
+```
+
+Those apply *within the tenant's own database only* — no `CREATE USER`, no `GRANT OPTION`, no ability to reach another database. `DROP` here means dropping tables inside its own database, which migrations need; it does not permit `DROP DATABASE`. Override `PermissionControlledMySQLDatabaseManager::$grants` in a service provider if you ever want to narrow it further.
+
+The `env('TENANCY_MYSQL_MANAGER', ...)` indirection exists so the test suite can fall back to the plain `MySQLDatabaseManager` (Task 30) — creating a MySQL user per test run would require granting the test account `CREATE USER`, which would widen exactly the privilege that task works to keep narrow.
 
 Two things about the tenant connection, verified against the v3.10 source, that the rest of the plan depends on:
 
@@ -246,9 +320,9 @@ return [
         'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_'),
         'suffix' => '',
         'managers' => [
-            'mysql'   => Stancl\Tenancy\Database\Drivers\MySQLDatabaseManager::class,
-            'mariadb' => Stancl\Tenancy\Database\Drivers\MySQLDatabaseManager::class,
-            'pgsql'   => Stancl\Tenancy\Database\Drivers\PostgreSQLDatabaseManager::class,
+            'mysql'   => env('TENANCY_MYSQL_MANAGER', Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class),
+            'mariadb' => env('TENANCY_MYSQL_MANAGER', Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class),
+            'pgsql'   => Stancl\Tenancy\TenantDatabaseManagers\PostgreSQLDatabaseManager::class,
         ],
     ],
 
@@ -278,6 +352,10 @@ git commit -m "feat(tenancy): configure bootstrappers and migration path"
 ## Task 4: Create the `Tenant` model
 
 Represents one client company; lives in the central database. The MySQL database name is stored in the JSON `data` column under `tenancy_db_name`. Its subscription — `package_key`, `extra_field_seats`, `extra_office_seats`, `modules`, `price_override_cents`, `storage_limit_gb` — is stored as real columns (declared as custom columns so stancl does not fold them into `data`). Module gating on the backend is `tenancy()->tenant->hasModule('...')`. Price and seat *computation* live in the `TenantSubscription` service (Task 16), not on the model — the model only holds the raw subscription data.
+
+**The tenant's own MySQL credentials are also real columns.** `PermissionControlledMySQLDatabaseManager` (Task 3) generates a username and password per tenant and stores them via stancl's internal keys, which map to the attributes `tenancy_db_username` and `tenancy_db_password`. Declaring them in `getCustomColumns()` promotes them from the `data` JSON blob to real columns, which is what makes the `encrypted` cast usable — the password is then written to disk as ciphertext and decrypted transparently by `getPassword()` when the tenant connection is built. Anyone reading the central database directly sees ciphertext, not a working credential.
+
+Note the cast requires `APP_KEY` to be stable: rotating it without re-encrypting makes every tenant's stored password unreadable and every tenant database unreachable. Treat `APP_KEY` as a backup-critical secret from here on.
 
 **Files:** `app/Models/Tenant.php`, `tests/Feature/TenantModelTest.php`
 
@@ -342,6 +420,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'extra_office_seats'   => 'integer',
         'price_override_cents' => 'integer',
         'storage_limit_gb'     => 'integer',
+        'tenancy_db_password'  => 'encrypted',
     ];
 
     public static function getCustomColumns(): array
@@ -355,6 +434,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'modules',
             'price_override_cents',
             'storage_limit_gb',
+            'tenancy_db_username',
+            'tenancy_db_password',
         ];
     }
 
@@ -432,6 +513,8 @@ All target the `central` connection. The `user_tenant_lookups.email` primary key
 
 `storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
+`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database (Task 26) has none until `tenant:provision-user` (Task 38) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
+
 ```php
 <?php
 
@@ -454,6 +537,8 @@ return new class extends Migration
             $table->json('modules')->nullable();
             $table->unsignedInteger('price_override_cents')->nullable();
             $table->unsignedInteger('storage_limit_gb')->default(50);
+            $table->string('tenancy_db_username')->nullable();
+            $table->text('tenancy_db_password')->nullable();
             $table->json('data')->nullable();
             $table->timestamps();
         });
@@ -2150,15 +2235,58 @@ Creates the tenant record (which fires the create→migrate→seed pipeline), th
 
 The package is validated against the seeded `packages` catalogue (Task 6/16) and defaults to `starter` — the smallest thing that works, so an under-provisioned tenant complains immediately rather than silently costing money. Modules default to none. The guard against `$database` equalling the central database name matters because central is `lavoro_tenants` and the default derived name is `'lavoro_' . Str::slug($name, '_')` — so `tenant:create "Tenants"` would otherwise point a tenant at the central database and run the tenant migrations straight over the tenant registry. Cheap check, unrecoverable failure without it. Creating the user fires the observer, which writes the central lookup row. The admin user is created without an explicit `seat_type`, so it takes the column default `office` (Task 33); the operator can promote it to `field` afterwards.
 
-**Files:** `app/Console/Commands/CreateTenant.php`
+**This command must run as the provisioner Linux user** (Task 2), because creating a database and a MySQL user is the one thing the web app's credentials deliberately cannot do:
 
-- [ ] **Step 1: Create the command**
+```bash
+sudo -u lavoro_provisioner php artisan tenant:create "Klant BV" admin@klant.nl
+```
+
+**Files:** `app/Console/Commands/Concerns/RunsAsProvisioner.php` (new), `app/Console/Commands/CreateTenant.php`
+
+- [ ] **Step 1: Create the `RunsAsProvisioner` trait**
+
+Provisioning writes the tenant row *and* issues `CREATE DATABASE` / `CREATE USER`, so both must happen on the `provisioner` connection. This trait repoints `central` at the provisioner connection for the life of the command, and fails with a clear message when the command is run as the wrong Linux user — otherwise the failure surfaces as an opaque MySQL access-denied error.
+
+```php
+<?php
+
+namespace App\Console\Commands\Concerns;
+
+use Illuminate\Support\Facades\DB;
+
+trait RunsAsProvisioner
+{
+    protected function useProvisionerConnection(): bool
+    {
+        config(['database.connections.central' => config('database.connections.provisioner')]);
+        DB::purge('central');
+
+        try {
+            DB::connection('central')->select('select 1');
+        } catch (\Throwable $e) {
+            $user = function_exists('posix_getpwuid') && function_exists('posix_geteuid')
+                ? (posix_getpwuid(posix_geteuid())['name'] ?? 'unknown')
+                : 'unknown';
+
+            $this->error("Could not connect as the provisioner (running as Linux user '{$user}').");
+            $this->error('Run this command as: sudo -u lavoro_provisioner php artisan ' . $this->getName() . ' ...');
+
+            return false;
+        }
+
+        return true;
+    }
+}
+```
+
+- [ ] **Step 2: Create the command**
 
 ```php
 <?php
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\Module;
 use App\Models\Central\Package;
 use App\Models\Role;
@@ -2169,11 +2297,17 @@ use Illuminate\Support\Str;
 
 class CreateTenant extends Command
 {
+    use RunsAsProvisioner;
+
     protected $signature = 'tenant:create {name} {admin_email} {--database=} {--admin-password=} {--package=starter} {--modules=*}';
-    protected $description = 'Create a tenant, its database, and an initial admin user';
+    protected $description = 'Create a tenant, its database, its MySQL user, and an initial admin user';
 
     public function handle(): int
     {
+        if (!$this->useProvisionerConnection()) {
+            return self::FAILURE;
+        }
+
         $name     = $this->argument('name');
         $email    = $this->argument('admin_email');
         $database = $this->option('database') ?: 'lavoro_' . Str::slug($name, '_');
@@ -2225,6 +2359,7 @@ class CreateTenant extends Command
 
         $this->info("Tenant ID: {$tenant->id}");
         $this->info("Package: {$package}");
+        $this->info("Database user: {$tenant->tenancy_db_username}");
         $this->info("Admin: {$email}");
         $this->info("Password: {$password}");
         return self::SUCCESS;
@@ -2232,18 +2367,43 @@ class CreateTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 3: Verify the tenant got its own confined MySQL user**
 
 ```bash
-git add app/Console/Commands/CreateTenant.php
-git commit -m "feat(tenancy): add tenant:create with initial admin user"
+sudo -u lavoro_provisioner php artisan tenant:create "Test BV" test@test.nl --package=starter
+
+# The generated user exists and reaches only its own database:
+mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-username>'@'%';"
+```
+
+Expected: a single `GRANT ... ON \`lavoro_<id>\`.*` line — no `*.*` grant, no `CREATE USER`, no `GRANT OPTION`. Then confirm the stored password is not readable in the clear:
+
+```bash
+mysql -u lavoro_app -p -e "SELECT tenancy_db_username, LEFT(tenancy_db_password, 24) FROM lavoro_tenants.tenants;"
+```
+
+Expected: the password column shows base64-looking ciphertext (`eyJpdiI6...`), not a usable password.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/Console/Commands/Concerns/RunsAsProvisioner.php app/Console/Commands/CreateTenant.php
+git commit -m "feat(tenancy): add tenant:create with per-tenant database user"
 ```
 
 ---
 
 ## Task 22: `tenant:delete` command (cleanup / failed-creation recovery)
 
-If tenant creation fails partway, or a tenant is offboarded, this drops the database, the central lookup rows, and the tenant record. Deleting the `Tenant` fires the package's `DeleteDatabase` job if wired; to be explicit and safe we drop the database directly.
+If tenant creation fails partway, or a tenant is offboarded, this drops the database, **the tenant's MySQL user**, the central lookup rows, and the tenant record. Deleting the `Tenant` fires the package's `DeleteDatabase` job if wired; to be explicit and safe we drop both directly.
+
+Dropping the user matters: leaving it behind accumulates orphaned MySQL accounts that still have grants on a database name that could later be reused, which is exactly the sort of stale privilege that turns into a cross-tenant hole.
+
+Like `tenant:create`, this runs as the provisioner:
+
+```bash
+sudo -u lavoro_provisioner php artisan tenant:delete <id>
+```
 
 **Files:** `app/Console/Commands/DeleteTenant.php`
 
@@ -2254,6 +2414,7 @@ If tenant creation fails partway, or a tenant is offboarded, this drops the data
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use Illuminate\Console\Command;
@@ -2261,11 +2422,17 @@ use Illuminate\Support\Facades\DB;
 
 class DeleteTenant extends Command
 {
+    use RunsAsProvisioner;
+
     protected $signature = 'tenant:delete {id}';
-    protected $description = 'Drop a tenant database and remove its central records';
+    protected $description = 'Drop a tenant database, its MySQL user, and its central records';
 
     public function handle(): int
     {
+        if (!$this->useProvisionerConnection()) {
+            return self::FAILURE;
+        }
+
         $tenant = Tenant::on('central')->find($this->argument('id'));
         if (!$tenant) {
             $this->error('Tenant not found.');
@@ -2273,12 +2440,19 @@ class DeleteTenant extends Command
         }
 
         $database = $tenant->getDatabaseName();
+        $db_user  = $tenant->tenancy_db_username;
 
         if (!$this->confirm("Permanently drop database '{$database}' and all its data?")) {
             return self::FAILURE;
         }
 
         DB::connection('central')->statement("DROP DATABASE IF EXISTS `{$database}`");
+
+        if ($db_user) {
+            DB::connection('central')->statement("DROP USER IF EXISTS `{$db_user}`@`%`");
+            $this->info("Dropped MySQL user {$db_user}.");
+        }
+
         UserTenantLookup::on('central')->where('tenant_id', $tenant->id)->delete();
         $tenant->delete();
 
@@ -2288,7 +2462,15 @@ class DeleteTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Verify no orphaned user remains**
+
+```bash
+mysql -u lavoro_provisioner --protocol=socket -e "SELECT user, host FROM mysql.user WHERE user LIKE 'lavoro%';"
+```
+
+Expected: no row for the deleted tenant.
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add app/Console/Commands/DeleteTenant.php
@@ -2510,7 +2692,15 @@ git commit -m "feat(tenancy): route Google webhook to tenant via prefixed channe
 
 ## Task 26: `tenant:setup-existing` — register a pre-tenancy database
 
-Registers an already-existing, already-migrated database as a tenant and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. The package and modules for this tenant are set afterwards with `tenant:package` and `tenant:modules` (Task 34).
+Registers an already-existing, already-migrated database as a tenant, **gives it its own MySQL user**, and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. The package and modules for this tenant are set afterwards with `tenant:package` and `tenant:modules` (Task 34).
+
+**Provisioning the MySQL user is not optional here.** After Task 2, `lavoro_app` can reach only the central database. A tenant registered without its own credentials is therefore unreachable by the web app — every request for it fails with an access-denied error. So this command runs as the provisioner and creates the user in the same breath:
+
+```bash
+sudo -u lavoro_provisioner php artisan tenant:setup-existing "Naam" lavoro_acme
+```
+
+The standalone `tenant:provision-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose user was lost.
 
 Note `User::withTrashed()` — `User` soft-deletes, and a trashed user's email still occupies `users.email` and still blocks `unique:users,email`. Copying only live users would leave those emails free centrally while unusable in the tenant, and let a *later* tenant claim them; the collision check below would then pass and the invariant would already be broken. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
 
@@ -2527,9 +2717,11 @@ The tenant is registered on the `starter` package (the safe default; raise it wi
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\TenantUserProvisioner;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -2537,11 +2729,17 @@ use Illuminate\Support\Str;
 
 class SetupExistingTenant extends Command
 {
+    use RunsAsProvisioner;
+
     protected $signature = 'tenant:setup-existing {name} {database}';
-    protected $description = 'Register an existing pre-tenancy database as a tenant';
+    protected $description = 'Register an existing pre-tenancy database as a tenant and give it its own MySQL user';
 
     public function handle(): int
     {
+        if (!$this->useProvisionerConnection()) {
+            return self::FAILURE;
+        }
+
         if ($this->argument('database') === config('database.connections.central.database')) {
             $this->error('Refusing to register the central database as a tenant.');
             return self::FAILURE;
@@ -2560,7 +2758,13 @@ class SetupExistingTenant extends Command
         ]);
 
         $tenant = Tenant::on('central')->findOrFail($id);
-        tenancy()->initialize($tenant);
+
+        // Give the tenant its own confined MySQL user before anything tries to
+        // reach its database — lavoro_app cannot, by design.
+        app(TenantUserProvisioner::class)->provision($tenant);
+        $this->info("Created MySQL user {$tenant->fresh()->tenancy_db_username} for {$this->argument('database')}.");
+
+        tenancy()->initialize($tenant->fresh());
 
         $emails = User::withTrashed()->pluck('email');
 
@@ -2605,11 +2809,107 @@ class SetupExistingTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Create the `TenantUserProvisioner` service**
+
+This is the one place that creates a tenant's MySQL user, so `tenant:setup-existing`, the standalone command below, and any future rotation all behave identically. It reuses the package's own generators and grant list rather than duplicating them, so a tenant provisioned here is indistinguishable from one created by `tenant:create`.
+
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\Tenant;
+use Stancl\Tenancy\DatabaseConfig;
+use Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager;
+
+class TenantUserProvisioner
+{
+    public function provision(Tenant $tenant): void
+    {
+        $config = $tenant->database();
+
+        $username = (DatabaseConfig::$usernameGenerator)($tenant);
+        $password = (DatabaseConfig::$passwordGenerator)($tenant);
+
+        $tenant->tenancy_db_username = $username;
+        $tenant->tenancy_db_password = $password;
+        $tenant->save();
+
+        $manager = $config->manager();
+        if (!$manager instanceof PermissionControlledMySQLDatabaseManager) {
+            throw new \RuntimeException('The configured MySQL manager does not manage database users.');
+        }
+
+        if ($manager->userExists($username)) {
+            $manager->deleteUser($tenant->database());
+        }
+
+        $manager->createUser($tenant->database());
+    }
+}
+```
+
+`$tenant->database()` returns a fresh `DatabaseConfig` that reads the credentials just saved, which is what `createUser()` grants against. Saving before creating is deliberate — if the grant fails, the stored credentials and the MySQL state are reconciled by re-running the command rather than left silently diverged.
+
+- [ ] **Step 3: Create the standalone `tenant:provision-user` command**
+
+For the first tenant during deployment (Task 27), for password rotation, and for repairing a tenant whose user was lost.
+
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Console\Commands\Concerns\RunsAsProvisioner;
+use App\Models\Tenant;
+use App\Services\TenantUserProvisioner;
+use Illuminate\Console\Command;
+
+class ProvisionTenantUser extends Command
+{
+    use RunsAsProvisioner;
+
+    protected $signature = 'tenant:provision-user {id}';
+    protected $description = 'Create or rotate the dedicated MySQL user for a tenant';
+
+    public function handle(TenantUserProvisioner $provisioner): int
+    {
+        if (!$this->useProvisionerConnection()) {
+            return self::FAILURE;
+        }
+
+        $tenant = Tenant::on('central')->find($this->argument('id'));
+        if (!$tenant) {
+            $this->error('Tenant not found.');
+            return self::FAILURE;
+        }
+
+        $provisioner->provision($tenant);
+
+        $this->info("Tenant '{$tenant->name}' now uses MySQL user {$tenant->fresh()->tenancy_db_username}.");
+        $this->warn('Restart the queue workers so they pick up the new credentials.');
+        return self::SUCCESS;
+    }
+}
+```
+
+Rotating a live tenant's password briefly breaks in-flight connections; do it in a quiet window and restart workers afterwards.
+
+- [ ] **Step 4: Verify**
 
 ```bash
-git add app/Console/Commands/SetupExistingTenant.php
-git commit -m "feat(tenancy): add tenant:setup-existing command"
+sudo -u lavoro_provisioner php artisan tenant:provision-user <id>
+mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-username>'@'%';"
+```
+
+Expected: grants on that tenant's database only.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/Console/Commands/SetupExistingTenant.php app/Console/Commands/ProvisionTenantUser.php \
+        app/Services/TenantUserProvisioner.php
+git commit -m "feat(tenancy): provision a dedicated MySQL user per tenant"
 ```
 
 ---
@@ -2618,7 +2918,7 @@ git commit -m "feat(tenancy): add tenant:setup-existing command"
 
 Destructive and irreversible — run on a backup first. Do this in a maintenance window; all users will be logged out and must log in again.
 
-**Prerequisites:** full MySQL dump taken; the `lavoro_app` user exists with the `` `lavoro\_%` `` grant (Task 2 Step 1); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_tenants`, `DB_USERNAME=lavoro_app`, `SESSION_CONNECTION=central`.
+**Prerequisites:** full MySQL dump taken; the `lavoro_app` account exists granted on `lavoro_tenants` only, and the `lavoro_provisioner` Linux user and its `auth_socket` MySQL account exist (Task 2, Steps 1–3); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_tenants`, `DB_USERNAME=lavoro_app`, `DB_SOCKET=/var/run/mysqld/mysqld.sock`, `SESSION_CONNECTION=central`.
 
 **This is less destructive than it used to be.** Because the central database is now `lavoro_tenants` — a *new* name rather than the existing `lavoro` — nothing has to be dropped and recreated in place. The live `lavoro` database is copied to the tenant name and then simply **left alone** as a rollback artefact until the smoke test passes. An earlier revision of this plan dropped and recreated `lavoro` to free the name for central; that step is gone.
 
@@ -2637,14 +2937,14 @@ sudo crontab -l                        # confirm/comment the schedule:run entry
 Confirm nothing is connected before continuing:
 
 ```bash
-mysql -u lavoro_app -p -e "SHOW PROCESSLIST;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW PROCESSLIST;"
 ```
 
 - [ ] **Step 1: Copy the existing database to the tenant name, and create an empty central**
 
 MySQL has no rename-database command, so copy via dump/restore. The existing `lavoro` database is **not** modified — it stays exactly as it is, untouched, as the fastest possible rollback.
 
-Run the dump as an admin account; the restore and create can run as `lavoro_app`, since both target names are inside its grant.
+Run the dump as an admin account. The creates and the restore run as **`lavoro_provisioner`** — `lavoro_app` is confined to the central database after Task 2 and cannot create databases or write to a tenant database.
 
 ```bash
 EXISTING=lavoro                  # the current production database, left intact
@@ -2653,18 +2953,18 @@ CENTRAL_DB=lavoro_tenants
 
 mysqldump -u root -p --single-transaction --routines --triggers "$EXISTING" > /tmp/tenant_backup.sql
 
-mysql -u lavoro_app -p -e "CREATE DATABASE $TENANT_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u lavoro_app -p "$TENANT_DB" < /tmp/tenant_backup.sql
-mysql -u lavoro_app -p -e "CREATE DATABASE $CENTRAL_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "CREATE DATABASE $TENANT_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" < /tmp/tenant_backup.sql
+sudo -u lavoro_provisioner mysql --protocol=socket -e "CREATE DATABASE $CENTRAL_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-`--single-transaction` keeps the dump consistent without locking; `--routines --triggers` are there because a plain `mysqldump` silently omits both, which is an easy way to lose behaviour you did not know the schema had.
+`--protocol=socket` is required: over TCP the account would be `lavoro_provisioner@127.0.0.1`, which does not exist. `--single-transaction` keeps the dump consistent without locking; `--routines --triggers` are there because a plain `mysqldump` silently omits both, which is an easy way to lose behaviour you did not know the schema had.
 
 Confirm all three databases now exist and the copy is complete before continuing:
 
 ```bash
-mysql -u lavoro_app -p -e "SHOW DATABASES LIKE 'lavoro%';"
-mysql -u lavoro_app -p -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('$EXISTING','$TENANT_DB') GROUP BY table_schema;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW DATABASES LIKE 'lavoro%';"
+sudo -u lavoro_provisioner mysql --protocol=socket -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('$EXISTING','$TENANT_DB') GROUP BY table_schema;"
 ```
 
 The two table counts must match.
@@ -2683,7 +2983,7 @@ Creates `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`
 Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved them into a subdirectory that plain `migrate` does not descend into) — the central `migrations` table should hold 5 rows, not 200+:
 
 ```bash
-mysql -u lavoro_app -p -e "SELECT COUNT(*) FROM lavoro_tenants.migrations;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavoro_tenants.migrations;"
 ```
 
 - [ ] **Step 3: Drop the now-unused `sessions` table from the tenant copy (optional tidy)**
@@ -2691,13 +2991,22 @@ mysql -u lavoro_app -p -e "SELECT COUNT(*) FROM lavoro_tenants.migrations;"
 The restored tenant database still contains a `sessions` table from before the split. It is unused (sessions are central now) and harmless; drop it if you want a clean schema:
 
 ```bash
-mysql -u lavoro_app -p "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
+sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
 ```
 
-- [ ] **Step 4: Register the existing database as tenant #1 and set its license/modules**
+- [ ] **Step 4: Register the existing database as tenant #1 and set its package/modules**
+
+This both registers the tenant and creates its dedicated MySQL user, so it must run as the provisioner Linux user (Task 2):
 
 ```bash
-php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_acme
+sudo -u lavoro_provisioner php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_acme
+```
+
+Confirm the tenant can actually be reached with its own credentials before going further — `lavoro_app` deliberately cannot reach it, so a missing user shows up as a site-wide access-denied error after `php artisan up`:
+
+```bash
+mysql -u lavoro_provisioner --protocol=socket \
+  -e "SELECT tenancy_db_username FROM lavoro_tenants.tenants;"     # must be non-empty
 ```
 
 Record the printed tenant ID — call it `TENANT_ID` for the next steps. Then:
@@ -2739,7 +3048,7 @@ After this, e.g. an image whose stored `path` is `uploaded/customer/5/documents/
 Existing watch channels carry tokens without the tenant prefix (Task 25), so the webhook cannot route them. Expire them so the hourly renewal recreates them with prefixed tokens on the next run (the 5-minute polling schedule keeps sync working meanwhile):
 
 ```bash
-mysql -u lavoro_app -p "$TENANT_DB" \
+sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
@@ -2754,10 +3063,10 @@ sudo systemctl start lavoro-worker     # or: supervisorctl start lavoro-worker:*
 sudo crontab -e                        # restore the schedule:run entry
 php artisan up
 
-mysql -u lavoro_app -p -e "SHOW TABLES IN lavoro_tenants;"
-mysql -u lavoro_app -p -e "SELECT id, name, package_key, storage_limit_gb, modules FROM lavoro_tenants.tenants;"
-mysql -u lavoro_app -p -e "SELECT COUNT(*) FROM lavoro_tenants.user_tenant_lookups;"
-mysql -u lavoro_app -p -e "SHOW TABLES IN lavoro_acme;" | head
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW TABLES IN lavoro_tenants;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT id, name, package_key, storage_limit_gb, modules FROM lavoro_tenants.tenants;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavoro_tenants.user_tenant_lookups;"
+sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW TABLES IN lavoro_acme;" | head
 ```
 
 - [ ] **Step 8: Smoke test**
@@ -2870,8 +3179,8 @@ On the central server:
 
 ```bash
 scp legacy-host:/tmp/spee_final.sql /tmp/spee_final.sql
-mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_spee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u lavoro_app -p lavoro_spee < /tmp/spee_final.sql
+sudo -u lavoro_provisioner mysql --protocol=socket -e "CREATE DATABASE lavoro_spee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo -u lavoro_provisioner mysql --protocol=socket lavoro_spee < /tmp/spee_final.sql
 ```
 
 - [ ] **Step 3: Drop the infrastructure tables from the copy**
@@ -2879,7 +3188,7 @@ mysql -u lavoro_app -p lavoro_spee < /tmp/spee_final.sql
 Sessions are central now; the queue/cache tables in the copy are unused (jobs live centrally). Only `sessions` matters — the rest is optional tidying:
 
 ```bash
-mysql -u lavoro_app -p lavoro_spee \
+sudo -u lavoro_provisioner mysql --protocol=socket lavoro_spee \
   -e "DROP TABLE IF EXISTS sessions, cache, cache_locks, jobs, job_batches, failed_jobs;"
 ```
 
@@ -2888,7 +3197,7 @@ mysql -u lavoro_app -p lavoro_spee \
 Every user email must be globally unique across tenants. Check up front — and include **soft-deleted** users, because their emails still occupy `users.email` and are still copied into the lookup by `tenant:setup-existing` (see Task 26):
 
 ```bash
-mysql -u lavoro_app -p -e \
+sudo -u lavoro_provisioner mysql --protocol=socket -e \
   "SELECT u.email, u.deleted_at FROM lavoro_spee.users u
    JOIN lavoro_tenants.user_tenant_lookups l ON l.email = u.email;"
 ```
@@ -2898,8 +3207,10 @@ A collision on a *soft-deleted* row on either side is the easy case: force-delet
 If this returns rows, resolve them with the customer first (change the email in the source database). Then register — the command aborts and rolls back by itself if a collision slipped through:
 
 ```bash
-php artisan tenant:setup-existing "Spee" lavoro_spee
+sudo -u lavoro_provisioner php artisan tenant:setup-existing "Spee" lavoro_spee
 ```
+
+(As provisioner — this also creates Spee's own MySQL user, without which the app cannot reach the imported database.)
 
 Record the printed tenant ID as `TENANT_ID`, then set the subscription:
 
@@ -2926,15 +3237,15 @@ This works because Task 8 preserved every migration filename when moving files i
 # The imported migrations table still lists the three now-central migrations.
 # Harmless (their tables are simply unused in the tenant copy) — do not delete the rows,
 # or a later `tenants:migrate` will try to recreate sessions/cache/jobs in the tenant DB.
-mysql -u lavoro_app -p lavoro_spee \
+sudo -u lavoro_provisioner mysql --protocol=socket lavoro_spee \
   -e "SELECT migration FROM migrations ORDER BY id DESC LIMIT 5;"
 ```
 
 Then diff against the first tenant to catch a legacy install that was further behind than `migrate:status` suggested:
 
 ```bash
-mysql -u lavoro_app -p -N -e "SHOW TABLES IN lavoro_acme;" | sort > /tmp/a.txt
-mysql -u lavoro_app -p -N -e "SHOW TABLES IN lavoro_spee;" | sort > /tmp/b.txt
+sudo -u lavoro_provisioner mysql --protocol=socket -N -e "SHOW TABLES IN lavoro_acme;" | sort > /tmp/a.txt
+sudo -u lavoro_provisioner mysql --protocol=socket -N -e "SHOW TABLES IN lavoro_spee;" | sort > /tmp/b.txt
 diff /tmp/a.txt /tmp/b.txt
 ```
 
@@ -2955,7 +3266,7 @@ rsync -av legacy-host:/path/to/lavoro/storage/app/private/ "storage/tenant-$TENA
 The imported `google_synced_calendars` rows hold watch channels registered against `https://spee.lavorofsm.nl/google/webhook` with unprefixed tokens. Expire them so the hourly renewal re-registers them against the central webhook URL with tenant-prefixed tokens (5-minute polling covers the gap):
 
 ```bash
-mysql -u lavoro_app -p lavoro_spee \
+sudo -u lavoro_provisioner mysql --protocol=socket lavoro_spee \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
@@ -3051,7 +3362,12 @@ with:
 <env name="DB_PASSWORD" value="lavoro_test"/>
 <env name="TENANCY_DB_PREFIX" value="lavoro_test_"/>
 <env name="SESSION_CONNECTION" value="central"/>
+<env name="TENANCY_MYSQL_MANAGER" value="Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager"/>
 ```
+
+**Tests deliberately use the plain `MySQLDatabaseManager`, not the permission-controlled one** (Task 3 made this env-overridable for exactly this reason). Creating a MySQL user per test run would require granting `lavoro_test` the `CREATE USER` privilege — server-wide, since MySQL will not scope it to a database pattern — which directly undermines the narrow grant this task exists to establish. The test tenant therefore connects with the `lavoro_test` credentials rather than its own.
+
+The cost, stated plainly: the per-tenant credential path is **not** covered by the suite. If `TenantUserProvisioner` or the encrypted-password cast breaks, tests stay green and you find out on the server. The Task 21 Step 3 and Task 26 Step 4 manual verifications are the compensating control — run them after any change to tenant provisioning.
 
 Also remove `SESSION_DRIVER` value `array` is fine to keep — the session table itself is never touched by tests that don't explicitly exercise auth, and `SESSION_CONNECTION=central` only matters when the `database` driver is used. Leave `SESSION_DRIVER=array` as-is.
 
@@ -4584,5 +4900,13 @@ git commit -m "feat(tenancy): landlord admin sub-app for licensing management"
 8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
 9. **Test isolation changed shape.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn in the 35 converted test files.
+
+10. **Per-tenant database credentials are not exercised by the test suite.** Tests run on the plain `MySQLDatabaseManager` (Task 30) so the narrow test grant stays narrow, which means `TenantUserProvisioner` and the `encrypted` password cast are only verified manually (Task 21 Step 3, Task 26 Step 4). Re-run those after touching provisioning.
+
+11. **`APP_KEY` is now backup-critical.** Tenant database passwords are stored encrypted with it (Task 4). Losing or rotating `APP_KEY` without re-encrypting makes every tenant database unreachable. Rotation means: decrypt with the old key, re-run `tenant:provision-user` per tenant, or keep the old key in `APP_PREVIOUS_KEYS`.
+
+12. **The provisioner is tied to this machine.** `auth_socket` authenticates by Unix socket, so it only works while MySQL runs on the same host as the app. Moving the database to its own server breaks provisioning and requires a different mechanism (client certificates, or a root-readable credentials file). Ordinary tenant traffic is unaffected — those users authenticate by password over TCP.
+
+13. **Tenant MySQL users are created as `user@%`, not `user@localhost`.** That is the package's behaviour (`PermissionControlledMySQLDatabaseManager::createUser`), so a tenant credential leaked off-box could be used from anywhere the MySQL port is reachable. Keep MySQL bound to localhost/private network. Tightening this means overriding the manager's `createUser`.
 
 10. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
