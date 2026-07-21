@@ -4,45 +4,6 @@
 
 **Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also holds the licensing model: each tenant's package, extra seats, module subscriptions and storage allowance, a price catalogue that computes each tenant's monthly total, and a landlord admin sub-app (on `beheer.lavorofsm.nl`) to manage it all. Licensing is designed in `docs/superpowers/specs/2026-07-20-tenant-licensing-design.md`; Tasks 4, 6, 16, 19, 21, 26 and 33–37 implement it.
 
-> **Revised 2026-07-03** against the current codebase. Changes from the original 2026-06-09 version:
->
-> - **Task 24 (API) simplified.** The app uses `$middleware->statefulApi()` and there is no `createToken()` call anywhere — every API client (SPA and the Android app) authenticates with stateful Sanctum session cookies. The tenant therefore comes from the session on API requests too; the `X-Tenant-ID` header is kept only as a fallback for future bearer-token clients. The Inertia-prop + axios-default-header frontend steps are dropped.
-> - **Task 25 (Google webhook) fixed.** `RenewWatchChannelsJob` *and* `BackfillCalendarJob` already generate a random `watch_channel_token` that `GoogleWebhookController` validates with `hash_equals`. The original plan overwrote that token with a bare tenant id, silently removing the security check and missing the second creation site. Now the token is `"<tenant_key>|<random>"` — the webhook parses the prefix to pick the tenant and the full-token validation stays intact.
-> - **Remember-me preserved.** Login currently calls `Auth::attempt(..., true)`. The original plan dropped remember-me; this version stores the tenant id in a long-lived encrypted cookie so the recaller keeps working (Tasks 12 & 15).
-> - **Task 16 repurposed.** `LoginPage.vue` no longer renders company branding (it uses the static `/img/logo-neg.svg`), so the old "null-guard the login page" task is obsolete. The `company` prop passed by `AuthController::create()` is dead code and is removed in Task 15. Task 16 now implements the landlord license type + module subscriptions.
-> - **Task 19 made concrete.** The user routes use `UserStoreRequest` and `UserUpdateRequest` (see `UserController.php:48,61,97`); `UserUpdateRequest` is also used for `me.update` where no route user exists — the ignore logic accounts for that.
-> - **Task 23 seeder updated** for the stage flags added since June (`is_invoiced_state`, 2026-06-17; `is_incomplete_state`, 2026-06-19).
-> - **Service worker excluded from caching `/files/`** (new step in Task 14). `public/service-worker.js` caches same-origin GETs cache-first; `/files/images/{id}` ids are per-tenant auto-increments, so the same URL means different files in different tenants — cached responses could leak across tenants on a shared browser.
-> - **Central migration filenames re-dated** to `2026_07_03_*` (a real tenant migration dated `2026_06_09` now exists), and migration counts refreshed (176 files today: 2 stay central, 174 move to `tenant/`). *(Superseded by the 2026-07-20 revision below — those counts and dates are no longer current.)*
-> - **New code checked and covered:** FCM push notifications (`device_tokens`, `NewServiceOrderAssigned` — queued, so the queue bootstrapper carries tenant context; Firebase credentials are global env, see Known impact), event executions, plan groups, freeform materials, user roles (all ordinary tenant tables), the APK download / assetlinks routes (read `storage_path('app/releases/...')` directly, which the filesystem bootstrapper does not touch — they stay global by design).
-> - **Task 29 added:** a repeatable runbook for migrating customers who run their own dedicated-subdomain install (e.g. `spee.lavorofsm.nl`) into the multi-tenant app at `app.lavorofsm.nl`.
->
-> **Revised again 2026-07-10** to close out four items previously left as "Known impact" follow-up work:
-> - **Task 20 (scheduler) reworked.** Two of the three scheduled ticks used to run a query or delete inline, per tenant, inside the scheduler process. They now only dispatch a queued job per tenant — the tick's cost no longer scales with data volume, addressing the old Known impact point 6.
-> - **Task 30 added.** Tests move off SQLite (incompatible with multi-database tenancy) onto a dedicated, clearly-named MySQL test database, with a hard runtime assertion and a narrow-grant MySQL user as independent layers guaranteeing a test run can never reach a live database. Closes the old Known impact point 1.
-> - **Task 31 added.** Module subscriptions are now actually enforced — a `tenant.module` route middleware on the SnelStart, Google Calendar, Tickets, and Projects routes, plus matching frontend gating. Closes the old Known impact point 5.
-> - **Task 32 added.** Microsoft Graph mail credentials move from a single global env-configured mailbox to per-tenant `general_settings`, with a fallback to the global credentials and a fix for `MailManager`'s mailer caching across tenants on long-running queue workers. Narrows the old Known impact point 4 to just SnelStart and Firebase, which remain global.
->
-> **Revised again 2026-07-20** after re-verifying every claim against the codebase. Four of these are correctness bugs that would have broken the implementation, not drift:
->
-> - **Task 12 fixed — middleware ordering was wrong (critical).** `$middleware->web(append: [...])` puts the tenancy middleware *after* `SubstituteBindings`, which is the last entry of Laravel 12's default web group (`vendor/laravel/framework/src/Illuminate/Foundation/Configuration/Middleware.php:485-491`). Route-model binding would then have resolved every `{serviceorder}`, `{customer}`, … against the **central** database and 404'd the entire app. The middleware is now placed with `$middleware->priority([...])`, between `StartSession` and `AuthenticatesRequests`, which is the only way to guarantee ordering across group + route middleware. Task 24 gets the same treatment.
-> - **Task 30 fixed — the test transaction wrapped the wrong connection.** stancl's `DatabaseManager::connectToTenant()` hardcodes the tenant connection name to `tenant` (`setDefaultConnection('tenant')`), so `DB::connection('mysql')->beginTransaction()` began a transaction on a *non-tenant* connection: tenant writes would never have rolled back and tests would have polluted each other. Now `DB::connection('tenant')`. Also: `tenant_connection_name` is not a real v3 config key and has been dropped from Task 3.
-> - **Task 14 widened — six `storage_path('app/public/…')` call sites bypass the disk abstraction.** The old claim "upload code needs no changes" holds only for `Storage::disk()` calls. `ServiceOrderController.php:850`, `ImageController.php:54` and `:258`, `Company.php:52`, and `resources/views/pdf/servicejob.blade.php:232` all build absolute paths by hand and would silently read/write the *central* storage tree under tenancy — PDFs would render without photos and without a logo. `resources/views/emails/event/appointment_confirmation.blade.php:102` uses `asset('storage/…')`, which becomes a dead link once files leave the public symlink; e-mail clients cannot authenticate, so the logo must be embedded. All six are now explicit steps.
-> - **Task 18 fixed — `User` uses `SoftDeletes` since 2026-07-07.** The observer's `deleted` hook fires on *soft* delete, which would have released the email in the central lookup while the row still occupied `users.email` in the tenant — the user could then neither log in nor be recreated. Now: soft delete keeps the lookup, `forceDeleted` removes it, `restored` re-adds it.
-> - **Task 20 — a fourth schedule exists.** `maintenancecontracts:generate-serviceorders` (hourly, added 2026-07-10) runs `MaintenanceContractServiceOrderGenerator::generateAllDue()` inline in the tick. It is now a per-tenant queued job like the others. Also corrected: `google-renew-watches` is a `Schedule::job(...)`, not a `dispatch()` call.
-> - **Counts and locations refreshed.** 211 migrations today (5 stay central, 209 move to `tenant/`); central migrations re-dated `2026_07_21_*` because `2026_07_03` and later dates are now taken, up to `2026_07_20`. 35 test files use `RefreshDatabase`, not 16. `/storage/` appears in **12** Vue/JS files, not 10 (`Components/ServiceOrders/CloseServiceOrderModal.vue` and `Utilities/Utilities.js:273` are new). Sidebar navigation moved out of `MainLayout.vue` into `resources/js/Composables/useSidebarNav.js`. `snelStartEnabled` now exists in exactly one place (`ServiceOrderController.php:326`) and the SnelStart *customer* import route no longer exists — only `imports/snelstart/materials` and `serviceorders/{serviceorder}/send-snelstart`.
-> - **Task 26 fixed for soft deletes.** `User::query()->pluck('email')` silently skipped trashed users, whose emails still occupy `users.email` (Laravel's `unique` rule does not know about soft deletes). Now `withTrashed()`, so a trashed user's email stays reserved centrally and the two checks agree.
-> - **Task 27 hardened.** Added the missing `php artisan down`, queue-worker stop, `optimize:clear`, and `queue:restart` steps — Step 1 drops the database the running app is connected to.
-> - **Package compatibility verified.** `stancl/tenancy` v3.10.0 requires `illuminate/support ^10.0|^11.0|^12.0|^13.0` — Laravel 12 is supported, no version hunting needed.
-> - **Custom bootstrapper renamed** from `FilesystemTenancyBootstrapper` to `TenantStorageBootstrapper`, because the package ships a class with the identical basename and the two behave differently (ours deliberately does not suffix `storage_path()`).
->
-> **Revised again 2026-07-20 (later that day)** with two decisions from the project owner, plus one bug they surfaced:
->
-> - **Central database is `lavoro_tenants`, and no single account reaches everything — never `root`.** Task 2 sets up three identities: `lavoro_app` (web/queue, confined to the central database), `lavoro_provisioner` (passwordless `auth_socket` account used only from the CLI to create databases and users), and one MySQL user per tenant confined to its own database. Cross-tenant isolation is enforced by MySQL, not only by the application.
-> - **Task 27 is materially less destructive as a result.** Because central takes a *new* name rather than reusing `lavoro`, the old "drop and recreate the live database to free its name" step is gone. The production database is copied to the tenant name and then left completely untouched, so rollback becomes a code-and-config revert with no database restore. Tasks 21 and 26 also gain a guard refusing to point a tenant at the central database name (`tenant:create "Tenants"` would otherwise derive `lavoro_tenants` and migrate over the tenant registry).
-> - **Tasks 12 and 24 fixed — the middleware ended tenancy it did not start.** Both ended tenancy unconditionally after the response. In the test suite the `TestCase` establishes tenancy in `setUp()` and holds an open transaction; the first HTTP request in a test would tear that down, sending every later assertion to the central database. 22 of the 35 test files make requests, so this would have read as inexplicable mass failure. Both middlewares now track `$initialized_here` and end only what they began — which also stops them from ending the tenancy `GoogleWebhookController` establishes for itself.
-> - **Task 30 turned into an actual gate for "all tests still pass".** Added Step 0 (record the pre-tenancy baseline — **209 passed, 542 assertions, ~5.9s** on 2026-07-20), a baseline diff in Step 7, a grant-isolation check, a ranked triage list for expected failures (Step 7a), and a regression test for the Task 12 ordering bug that the existing suite structurally cannot catch (Step 7b).
-
 **How it works, in plain terms:**
 
 Today there is one database for everything. After this change there is one small *central* database plus one full database per client company (a "tenant"). When someone logs in, we look up their email in the central database to find which company they belong to, switch every database query to that company's database for the rest of the request, and remember the company in their session (and a long-lived cookie, for remember-me) for later requests.
@@ -72,7 +33,7 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 
 **Current environment (verified):** `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database`. This plan keeps all of those drivers — no Redis required.
 
-**Database naming and credentials (decided 2026-07-20):**
+**Database naming and credentials:**
 
 | | Name |
 | --- | --- |
@@ -513,7 +474,7 @@ All target the `central` connection. The `user_tenant_lookups.email` primary key
 
 `storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
-`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database (Task 26) has none until `tenant:provision-user` (Task 38) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
+`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database has none until `tenant:setup-existing` / `tenant:provision-user` (Task 26) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
 
 ```php
 <?php
@@ -762,7 +723,7 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 
 After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions, and the licensing catalogue. `php artisan migrate` runs these against the central database.
-- `database/migrations/tenant/` holds everything else (209 files as of 2026-07-20: the users migration plus 208 dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
+- `database/migrations/tenant/` holds everything else (about 209 files: the users migration plus the dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
 `0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and the four `2026_07_21_00000{1,2,3,4}` central migrations from Tasks 6–7, stay central.
 
@@ -1282,7 +1243,7 @@ Find every hardcoded reference:
 grep -rn "/storage/" resources/js/
 ```
 
-Apply these conversions across the matching files (verified list as of 2026-07-20 — 12 files, 18 occurrences; re-run the grep in case more were added):
+Apply these conversions across the matching files (12 files, 18 occurrences at the time of writing; re-run the grep, more may have been added):
 
 | File | Occurrences |
 | --- | --- |
@@ -1296,8 +1257,8 @@ Apply these conversions across the matching files (verified list as of 2026-07-2
 | `Components/Timeline/TimelineComponent.vue` | 1 |
 | `Components/CustomerUpcomingActivity.vue` | 2 |
 | `Components/ImageUploadComponent.vue` | 3 |
-| `Components/ServiceOrders/CloseServiceOrderModal.vue` (new since last revision) | 2 |
-| `Utilities/Utilities.js:273` (new since last revision) | 1 |
+| `Components/ServiceOrders/CloseServiceOrderModal.vue` | 2 |
+| `Utilities/Utilities.js:273` | 1 |
 
 Two of these need more than a mechanical swap:
 
@@ -2063,14 +2024,14 @@ git commit -m "feat(tenancy): validate email is globally unique across tenants"
 
 Loop over all tenants, switch into each, and dispatch **one queued job per tenant per schedule** — the scheduler tick itself must never run a data query or delete inline, only cheap config-swap + single-row `INSERT INTO jobs` work. The jobs are dispatched from tenant context (not `dispatchSync`) — the `QueueTenancyBootstrapper` records the active tenant in the job payload and re-initializes it automatically when the worker picks it up, so the job body needs no manual `tenancy()->initialize()` call of its own.
 
-`routes/console.php` has **four** schedules as of 2026-07-20 (the plan previously said three). If more exist by implementation time, wrap them in the same per-tenant dispatch-only pattern:
+`routes/console.php` has **four** schedules. If more exist by implementation time, wrap them in the same per-tenant dispatch-only pattern:
 
 | Schedule | Today | Change |
 | --- | --- | --- |
 | `google-pull-changes` | `Schedule::call` running a `whereHas` query inline | → per-tenant dispatch of `DispatchTenantCalendarPullsJob` |
 | `google-renew-watches` | `Schedule::job(new RenewWatchChannelsJob())` | → per-tenant `RenewWatchChannelsJob::dispatch()` inside the loop (a bare `Schedule::job` has no tenant context and would run against the central database) |
 | `prune-location-pings` | `Schedule::call` running a synchronous `DELETE` inline | → per-tenant dispatch of `PruneLocationPingsJob` |
-| `maintenancecontracts-generate-serviceorders` (**new since last revision**, 2026-07-10) | `Schedule::command('maintenancecontracts:generate-serviceorders')` calling `MaintenanceContractServiceOrderGenerator::generateAllDue()` inline | → per-tenant dispatch of `GenerateMaintenanceContractServiceOrdersJob` |
+| `maintenancecontracts-generate-serviceorders` | `Schedule::command('maintenancecontracts:generate-serviceorders')` calling `MaintenanceContractServiceOrderGenerator::generateAllDue()` inline | → per-tenant dispatch of `GenerateMaintenanceContractServiceOrdersJob` |
 
 The maintenance-contract one is the most important of the four to convert: `generateAllDue()` scans every asset on every active contract and **creates service orders**. Left as a plain `Schedule::command`, it would run exactly once per tick against whatever the default connection happens to be — the central database, which has no `maintenance_contracts` table — so contract generation would break outright for every tenant. The existing Artisan command stays (it is useful for manual runs against a chosen tenant); the schedule stops invoking it directly.
 
@@ -2483,7 +2444,7 @@ git commit -m "feat(tenancy): add tenant:delete for cleanup"
 
 Runs automatically when a new tenant database is created. It only seeds what the tenant migrations do not: the company record and default service order stages. Roles and permissions are already created by the existing `seed_*_permissions` migrations, so they must not be duplicated here.
 
-The stage rows carry all six semantic flags currently on `service_order_stages` (verified 2026-07-03): `is_plannable_state`, `is_planned_state`, `is_closed_state`, `is_planning_cancelled_state`, `is_invoiced_state`, `is_incomplete_state`.
+The stage rows carry all six semantic flags on `service_order_stages`: `is_plannable_state`, `is_planned_state`, `is_closed_state`, `is_planning_cancelled_state`, `is_invoiced_state`, `is_incomplete_state`.
 
 **Files:** `database/seeders/TenantDatabaseSeeder.php`
 
@@ -2920,7 +2881,9 @@ Destructive and irreversible — run on a backup first. Do this in a maintenance
 
 **Prerequisites:** full MySQL dump taken; the `lavoro_app` account exists granted on `lavoro_tenants` only, and the `lavoro_provisioner` Linux user and its `auth_socket` MySQL account exist (Task 2, Steps 1–3); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_tenants`, `DB_USERNAME=lavoro_app`, `DB_SOCKET=/var/run/mysqld/mysqld.sock`, `SESSION_CONNECTION=central`.
 
-**This is less destructive than it used to be.** Because the central database is now `lavoro_tenants` — a *new* name rather than the existing `lavoro` — nothing has to be dropped and recreated in place. The live `lavoro` database is copied to the tenant name and then simply **left alone** as a rollback artefact until the smoke test passes. An earlier revision of this plan dropped and recreated `lavoro` to free the name for central; that step is gone.
+**This is less destructive than it looks.** Because the central database is `lavoro_tenants` — a *new* name rather than the existing `lavoro` — nothing is dropped or recreated in place. The live `lavoro` database is copied to the tenant name and then simply **left alone** as a rollback artefact until the smoke test passes.
+
+> **Do not run `./deploy.sh` between this cutover and Task 38.** The current script backs up only the database named in `DB_DATABASE` (now the small central registry) and runs only central migrations — both silently. Until Task 38 lands, a routine deploy would rotate your real backups out and skip every tenant migration without printing an error. This cutover is performed by hand; the script is not used here.
 
 - [ ] **Step 0: Take the app down and stop everything that writes**
 
@@ -3313,7 +3276,7 @@ Once the customer confirms everything works — suggest two weeks — remove the
 2. **A hard runtime assertion.** The test bootstrap refuses to run — throws before a single query executes — if the resolved central database name doesn't contain `test`. This is the layer that survives someone fat-fingering `.env` or copy-pasting production values into `phpunit.xml` later.
 3. **A distinct MySQL user with narrow grants (operational, done once outside the app).** Create a MySQL user that only has privileges on `lavoro_test_%` — even a fully wrong config in (1) and a bypassed assertion in (2) still cannot reach `lavoro` or any `lavoro_<tenant-id>` database, because the user has no grant on it. Document this as a required local/CI setup step; it is not something the application can enforce in code.
 
-**How the existing `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and `tenant` connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it. **35 test files** use it as of 2026-07-20 (the plan previously said 16) — re-run the grep in Step 5.
+**How the existing `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and `tenant` connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it. **35 test files** use it — re-run the grep in Step 5 to confirm the current set.
 
 Two consequences of transaction-rollback isolation that `RefreshDatabase`'s truncate-and-remigrate did not have, and that may surface as test failures during this task:
 
@@ -3336,7 +3299,7 @@ php artisan test 2>&1 | tail -3 > /tmp/test-baseline.txt
 cat /tmp/test-baseline.txt
 ```
 
-Baseline as of 2026-07-20 on the pre-tenancy `master`: **209 passed, 542 assertions, ~5.9s** across 35 files. Expect the MySQL run to be noticeably slower than SQLite `:memory:` — that is normal and not a regression. What must not change is the pass count.
+Baseline on the pre-tenancy `master`: **209 passed, 542 assertions, ~5.9s** across 35 files. Expect the MySQL run to be noticeably slower than SQLite `:memory:` — that is normal and not a regression. What must not change is the pass count.
 
 - [ ] **Step 1: Confirm the tenant database prefix is env-overridable**
 
@@ -3425,7 +3388,7 @@ trait RefreshesTenantDatabase
 }
 ```
 
-**The connection name is `tenant`, not `mysql`.** stancl's `DatabaseManager::connectToTenant()` creates a connection literally named `tenant` and calls `setDefaultConnection('tenant')`; the name is hardcoded in v3 and not configurable (see Task 3). An earlier revision of this plan used `DB::connection('mysql')` here, which begins a transaction on a *different, non-tenant* connection — tenant writes would commit for real and leak into every subsequent test, while the rollback silently succeeded against an untouched connection. Getting this wrong produces order-dependent test failures that look like flakiness.
+**The connection name is `tenant`, not `mysql`.** stancl's `DatabaseManager::connectToTenant()` creates a connection literally named `tenant` and calls `setDefaultConnection('tenant')`; the name is hardcoded in v3 and not configurable (see Task 3). Using `DB::connection('mysql')` here would begin a transaction on a *different, non-tenant* connection — tenant writes would commit for real and leak into every subsequent test, while the rollback silently succeeded against an untouched connection. Getting this wrong produces order-dependent test failures that look like flakiness.
 
 The two `str_contains(..., 'test')` checks are layer (2) from the description above — they run before any migration or query, on every single test, and throw rather than silently proceeding. `Tenant::create()` synchronously runs the full `TenantCreated` pipeline from Task 11 (`CreateDatabase`, `MigrateDatabase`, `SeedDatabase` — `shouldBeQueued(false)`), so the first test that runs creates a real `lavoro_test_test-tenant` MySQL database, migrates it with the tenant migrations from Task 8, and seeds it with `TenantDatabaseSeeder` (Task 23). It is left behind after the run — cheap to keep, and `migrate:fresh` on the next run only refreshes the central schema, so a stale tenant database from a previous run is simply reused (its migrations already match, since `MigrateDatabase` is idempotent per the framework's migration tracking). If the tenant migrations change between runs and you want a fully clean slate, drop `lavoro_test_test-tenant` manually — it is a throwaway.
 
@@ -3464,7 +3427,7 @@ abstract class TestCase extends BaseTestCase
 Tenant-database refresh is now handled centrally by `TestCase`, so the per-file trait is redundant (and would try to migrate/refresh the single default connection using Laravel's normal single-connection logic, which doesn't know about the `central` connection at all).
 
 ```bash
-grep -rl "RefreshDatabase" tests/   # 35 files as of 2026-07-20
+grep -rl "RefreshDatabase" tests/   # 35 files
 ```
 
 In each matching file, remove the `use Illuminate\Foundation\Testing\RefreshDatabase;` import and the `use RefreshDatabase;` trait line inside the test class. Leave everything else in those files untouched.
@@ -3556,7 +3519,7 @@ Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc contr
 - `resources/js/Components/GoogleCalendarSection.vue`
 - `resources/js/Pages/Admin/GeneralSettingsPage.vue`
 
-> **All line numbers below were re-verified 2026-07-20 and this file moves constantly.** Locate each route by its name/controller rather than by line number.
+> **Line numbers below are indicative only — this file moves constantly.** Locate each route by its name/controller rather than by line number.
 
 - [ ] **Step 1: Create the middleware**
 
@@ -3613,7 +3576,7 @@ Route::middleware('tenant.module:tickets')->group(function () {
 });
 ```
 
-SnelStart — there are exactly **two** SnelStart routes today (lines ~230 and ~243); the `imports/snelstart/customers` route the previous revision listed no longer exists. They are not adjacent, so either wrap each individually or apply the middleware inline:
+SnelStart — there are exactly **two** SnelStart routes (lines ~230 and ~243). They are not adjacent, so either wrap each individually or apply the middleware inline:
 
 ```php
 Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
@@ -3665,7 +3628,7 @@ Also add the same `tenant.module:google_calendar` middleware to the `api.google.
 
 - [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag**
 
-There is now exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:326` (the previous revision listed three; `CustomerController` and `CustomerImportController` no longer expose it):
+There is exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:326`:
 
 ```php
 'snelStartEnabled' => filled(config('services.snelstart.client_key')),
@@ -4877,6 +4840,142 @@ git add database/migrations/2026_07_21_000005_create_landlord_users_table.php \
         app/Http/Controllers/Landlord/ resources/js/Pages/Landlord/ resources/js/Layouts/LandlordLayout.vue \
         tests/Feature/Landlord/
 git commit -m "feat(tenancy): landlord admin sub-app for licensing management"
+```
+
+---
+
+## Task 38: Update the deploy script for multi-tenancy
+
+`deploy.sh` predates tenancy and breaks in two ways that produce **no error output** — the deploy looks entirely successful while doing half its job:
+
+1. **The backup silently shrinks to almost nothing.** It dumps a single database read from `DB_DATABASE`, which after Task 2 is `lavoro_tenants` — the small central registry. Every customer's actual business data stops being backed up. The script still prints "Backup saved to …" and exits 0.
+2. **Tenant schemas stop being migrated.** `php artisan migrate --force` runs only the central migrations; after the Task 8 split, everything in `database/migrations/tenant/` needs `php artisan tenants:migrate`. Every future feature migration would land in central and never reach a customer database, so the code expects columns the tenant databases do not have.
+
+A third, narrower problem bites exactly once: `migrate` runs **before** `composer install`. On the first deploy that introduces tenancy, `config/tenancy.php` references `Stancl\Tenancy\*` classes that are not installed yet, so booting Artisan fails before any migration runs.
+
+**Files:** `deploy.sh`
+
+- [ ] **Step 1: Rewrite `deploy.sh`**
+
+Changes from the current script: dependencies install before migrations; the backup enumerates every tenant database and dumps each one; backups rotate as timestamped *sets* rather than individual files; tenant migrations run after central ones. Tenant dumps use the provisioner over the socket, so no password is read from `.env` for them.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_ROOT="$(dirname "$0")/storage/backups/db"
+STAMP="$(date +%Y-%m-%d_%H-%M-%S)"
+BACKUP_DIR="$BACKUP_ROOT/$STAMP"
+mkdir -p "$BACKUP_DIR"
+
+DB_DATABASE=$(grep -E '^DB_DATABASE=' .env | cut -d '=' -f2-)
+DB_USERNAME=$(grep -E '^DB_USERNAME=' .env | cut -d '=' -f2-)
+DB_PASSWORD=$(grep -E '^DB_PASSWORD=' .env | cut -d '=' -f2-)
+DB_HOST=$(grep -E '^DB_HOST=' .env | cut -d '=' -f2-)
+DB_PORT=$(grep -E '^DB_PORT=' .env | cut -d '=' -f2-)
+
+DUMP_OPTS="--single-transaction --routines --triggers"
+
+echo "==> Backing up central database ($DB_DATABASE)..."
+MYSQL_PWD="$DB_PASSWORD" mysqldump $DUMP_OPTS \
+    -h "${DB_HOST:-127.0.0.1}" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" \
+    "$DB_DATABASE" | gzip > "$BACKUP_DIR/central.sql.gz"
+
+echo "==> Backing up tenant databases..."
+TENANT_DBS=$(MYSQL_PWD="$DB_PASSWORD" mysql -N -B \
+    -h "${DB_HOST:-127.0.0.1}" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" \
+    -e "SELECT JSON_UNQUOTE(JSON_EXTRACT(data, '\$.tenancy_db_name')) FROM \`$DB_DATABASE\`.tenants;")
+
+if [ -z "$TENANT_DBS" ]; then
+    echo "!!! No tenant databases found. Refusing to continue — this would be a backup of nothing."
+    exit 1
+fi
+
+for db in $TENANT_DBS; do
+    echo "    - $db"
+    sudo -u lavoro_provisioner mysqldump --protocol=socket $DUMP_OPTS "$db" \
+        | gzip > "$BACKUP_DIR/$db.sql.gz"
+done
+echo "    Backup set saved to $BACKUP_DIR"
+
+echo "==> Pruning old backup sets (keeping 5)..."
+ls -1dt "$BACKUP_ROOT"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf --
+echo "    Done pruning."
+
+echo "==> Pulling latest from master..."
+git fetch origin master
+git reset --hard origin/master
+
+echo "==> Updating Composer dependencies..."
+composer install --no-interaction --prefer-dist --optimize-autoloader
+
+echo "==> Updating NPM dependencies..."
+npm ci
+
+echo "==> Running central migrations..."
+php artisan migrate --force
+
+echo "==> Running tenant migrations..."
+php artisan tenants:migrate
+
+echo "==> Building frontend assets..."
+npm run build
+
+echo "==> Clearing caches..."
+php artisan optimize:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan cache:clear
+
+echo "==> Restarting queue workers..."
+php artisan queue:restart
+
+echo "==> Done."
+```
+
+Notes on the specifics:
+
+- `set -euo pipefail` replaces `set -e`. The original would not fail on an unset variable or a broken pipe, so a `mysqldump | gzip` where the dump failed still wrote a valid-looking empty gzip and carried on.
+- The **empty tenant list is a hard failure**, not a warning. A backup run that finds no tenants means the query or credentials are wrong; continuing would rotate a good backup set out and replace it with an empty one.
+- `php artisan tenants:migrate` needs no `--force`: `config/tenancy.php` already supplies `'--force' => true` through `migration_parameters` (Task 3).
+- `cache:clear` truncates the shared cache table, which clears every tenant's entries at once (they share the table, separated by key prefix — Task 10). That is correct and intended on deploy.
+
+- [ ] **Step 2: Grant the deploy user permission to become the provisioner**
+
+The tenant dumps run as `lavoro_provisioner`. Allow exactly that, and nothing else:
+
+```
+# /etc/sudoers.d/lavoro-deploy
+<deploy-user> ALL=(lavoro_provisioner) NOPASSWD: /usr/bin/mysqldump
+```
+
+`NOPASSWD` is scoped to a single binary as one specific user, so an unattended deploy can back up but cannot use this entry to create databases or users — `tenant:create` still requires an interactive `sudo`.
+
+- [ ] **Step 3: Verify against a real run**
+
+```bash
+./deploy.sh
+ls -la storage/backups/db/*/
+```
+
+Expected: a timestamped directory containing `central.sql.gz` **plus one `.sql.gz` per tenant**, each a non-trivial size. Confirm a tenant dump actually contains data:
+
+```bash
+zcat storage/backups/db/*/lavoro_acme.sql.gz | grep -c "INSERT INTO"
+```
+
+Expected: a number in the thousands, not 0. Then confirm tenant migrations ran:
+
+```bash
+php artisan tenants:migrate --dry-run 2>/dev/null || php artisan tenants:list
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add deploy.sh
+git commit -m "chore(deploy): back up and migrate every tenant database"
 ```
 
 ---

@@ -1,7 +1,6 @@
 # Tenant Licensing — Design
 
-**Status:** approved design, not yet planned or built
-**Depends on:** `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md` — none of which is implemented yet
+**Implemented by:** `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md` (Tasks 4, 6, 16, 19, 21, 26 and 33–37).
 
 ## What this is
 
@@ -58,23 +57,14 @@ Storage:
 
 The included amount (50 GB) and the per-GB rate are two global values, editable like package prices. Billing is on the tenant's *allowance* above 50 GB, not on live usage — the same principle as seats (you pay for what you are allotted, not for the bytes currently on disk). This avoids surprise usage-based bills.
 
-### Why Business and Enterprise cost more than first proposed
-
-Two rules constrain these numbers, and the originally supplied figures could not satisfy both:
+### The two rules these numbers must satisfy
 
 1. **Expanding is always cheaper than upgrading to the next package with the same coverage.** "Same coverage" means adding exactly enough seats to match the next package's seat counts — for Team, 5 extra field and 2 extra office to reach Business's 10/4.
 2. **Add-on seats get cheaper as the package grows.** A Business customer should never pay more per extra seat than a Team customer.
 
-The figures first supplied (Business €150,00, Enterprise €225,00) broke rule 1 at Team:
+The two interact more tightly than they look. Rule 1 caps what Team may charge for the seats that close the gap to Business: `5 × field + 2 × office` must come in under the €62,50 price difference. At Business's own rates (€10,00 / €7,00) that is €64,00 — already too high. So any Team rate satisfying rule 1 would have to sit *below* Business's, which breaks rule 2.
 
-```
-Team + 5 field + 2 office = 87,50 + 55,00 + 15,00 = €157,50
-Business (10 field, 4 office)                     = €150,00   ← cheaper
-```
-
-That cannot be fixed by lowering Team's add-on rates. Team's `5 × field + 2 × office` would have to come in under €62,50, and even at Business's own rates (€10,00 / €7,00) it is €64,00 — so any rate that satisfies rule 1 is below Business's and breaks rule 2.
-
-The cause was the package prices, not the rates: Business gave 5 field and 2 office seats more than Team for €62,50, about €8,93 per seat blended, cheaper than any add-on rate in the table. The upgrade was underpriced relative to the seats it bought. Raising Business to €160,00 and Enterprise to €230,00 satisfies both rules with every original rate intact:
+The lever is therefore the package price, not the rate. The gap between Team and Business buys 5 field and 2 office seats; priced at €62,50 that is about €8,93 per seat blended, cheaper than any add-on rate in the table, so the upgrade is underpriced relative to what it delivers. Widening the gap fixes both rules at once and leaves every add-on rate untouched:
 
 ```
 starter + seats   €83,50   vs team         €87,50    margin  €4,00
@@ -82,11 +72,9 @@ team + seats     €157,50   vs business    €160,00    margin  €2,50
 business + seats €224,00   vs enterprise  €230,00    margin  €6,00
 ```
 
-The Team → Business margin is only €2,50. The rule holds, but the two routes are near enough to identical that a customer at that point may as well upgrade — which is the preferable outcome anyway. Business €165,00 / Enterprise €235,00 widens it to €7,50 if a clearer gap is wanted later.
+The Team → Business margin is only €2,50. The rule holds, but the two routes are near enough to identical that a customer at that point may as well upgrade — which is the preferable outcome anyway. Business €165,00 / Enterprise €235,00 widens it to €7,50 if a clearer gap is wanted.
 
-This change also fixes a flat spot in the original list, where Business and Enterprise were both €10,71 per included user. The price per user now falls at every step.
-
-A test asserts both rules for every package, so a future price or rate change that breaks either fails the suite instead of silently mispricing.
+A test asserts both rules for every package, so a price or rate change that breaks either fails the suite instead of silently mispricing.
 
 ## Data model
 
@@ -94,7 +82,7 @@ All naming is English. Dutch appears only in user-facing strings.
 
 ### Catalogue — central database
 
-Three tables, seeded by migration, edited by Artisan command.
+Four tables, seeded by migration, edited by Artisan command.
 
 ```
 packages
@@ -132,8 +120,6 @@ pricing_settings                           key-value, for scalars that are not p
 `pricing_settings` holds the two storage scalars that do not belong to any package or module row. Seeded with `included_storage_gb = 50` and a starting `storage_extra_per_gb_cents`, edited with `pricing:set`.
 
 ### Tenant record — central database
-
-Replaces `license_type` from the tenancy plan's Task 16. Basic/Premium/Enterprise does not survive contact with the real packages and is deleted, not migrated.
 
 ```
 tenants
@@ -438,7 +424,7 @@ Storage enforcement slots in after the per-tenant storage roots exist (tenancy p
 
 ## Testing
 
-- Every package satisfies "expanding is cheaper than upgrading to equivalent coverage". Passes with the rates in this document; it exists to catch a future rate change that breaks it. Load the originally supplied Team rates (€11,00 / €7,50) to confirm the test actually fails.
+- Every package satisfies "expanding is cheaper than upgrading to equivalent coverage". Passes with the rates in this document; it exists to catch a future rate change that breaks it. Temporarily setting Team's rates to €11,00 / €7,50 makes it fail, which is a quick way to confirm the test is actually wired up.
 - Price calculation: each package, with and without extra seats, with and without modules, with and without an override.
 - The bundle rule: quotes alone €27,50; invoices alone €27,50; both €40,00.
 - Seat limits: at the limit creation fails; under it succeeds; a soft-deleted user frees a seat; restoring consumes one.
