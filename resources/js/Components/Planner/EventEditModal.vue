@@ -766,6 +766,32 @@ const endMinute = computed({
     set: (m) => { form.end_time = `${form.end_time?.split(':')[0] ?? '09'}:${m}` },
 })
 
+function toLocalDateTime(date, time) {
+    const [year, month, day] = (date || '').split('-').map(Number)
+    const [hour, minute] = (time || '00:00').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+}
+
+/**
+ * The start drives the end: moving the start shifts the end by the same amount so
+ * the duration stays intact. Editing the end never touches the start.
+ */
+let lastValidStart = toLocalDateTime(form.start_date, form.start_time)
+
+watch(() => [form.start_date, form.start_time], ([date, time]) => {
+    if (!date || !time) return
+
+    const start = toLocalDateTime(date, time)
+    const shift = start - lastValidStart
+    lastValidStart = start
+
+    if (!shift || !form.end_date || !form.end_time) return
+
+    const end = new Date(toLocalDateTime(form.end_date, form.end_time).getTime() + shift)
+    form.end_date = formatLocalDateAsISO(end)
+    form.end_time = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`
+})
+
 const TIME_SELECT_BASE = 'rounded-md border-0 py-1.5 pl-2 pr-6 text-sm text-gray-900 dark:text-white dark:bg-slate-900 ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-indigo-600 cursor-pointer'
 function timeSelectClass(hasError) {
     return hasError
