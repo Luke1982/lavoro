@@ -21,6 +21,7 @@ use App\Models\ProductType;
 use App\Services\AssetTransferService;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
@@ -77,6 +78,8 @@ class AssetController extends Controller
             ->orderBy('next_service_date', 'ASC')
             ->paginate($this->perPage($request))
             ->appends(['search' => $search]);
+
+        $this->attachOwningCustomers($assets->getCollection());
 
         $all_products = Product::with(['brand', 'productType'])
             ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
@@ -430,5 +433,59 @@ class AssetController extends Controller
         return redirect()
             ->route('assets.index')
             ->with('success', 'Machine verwijderd.');
+    }
+
+    /**
+     * A child machine has no customer of its own — it is owned through the machine it
+     * sits in — so every row is told who its owner is instead of the page reading a
+     * null customer off the asset. Ancestors are resolved one depth level at a time so
+     * the walk up costs a query per level rather than a query per row.
+     *
+     * @param  EloquentCollection<int, Asset>  $assets
+     */
+    private function attachOwningCustomers(EloquentCollection $assets): void
+    {
+        foreach ($assets as $asset) {
+            $asset->setAttribute('owning_customer', $asset->customer
+                ? ['id' => $asset->customer->id, 'name' => $asset->customer->name]
+                : null);
+        }
+
+        $pending = $assets->whereNull('customer_id')->keyBy('id');
+
+        $frontier = $pending
+            ->map(fn (Asset $asset) => $asset->parent_asset_id)
+            ->filter();
+
+        while ($frontier->isNotEmpty()) {
+            $ancestors = Asset::query()
+                ->whereIn('id', $frontier->unique()->values())
+                ->with('customer:id,name')
+                ->get(['id', 'customer_id', 'parent_asset_id'])
+                ->keyBy('id');
+
+            $next = collect();
+
+            foreach ($frontier as $asset_id => $ancestor_id) {
+                $ancestor = $ancestors->get($ancestor_id);
+
+                if (!$ancestor) {
+                    continue;
+                }
+
+                if ($ancestor->customer) {
+                    $pending[$asset_id]->setAttribute('owning_customer', [
+                        'id' => $ancestor->customer->id,
+                        'name' => $ancestor->customer->name,
+                    ]);
+
+                    continue;
+                }
+
+                $next[$asset_id] = $ancestor->parent_asset_id;
+            }
+
+            $frontier = $next->filter();
+        }
     }
 }

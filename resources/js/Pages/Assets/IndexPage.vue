@@ -174,9 +174,12 @@
                             {{ asset.product.brand.name }} {{ asset.product.model }}
                         </Link>
                         <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {{ asset.product.product_type.name }} &middot;
-                            <Link :href="`/customers/${asset.customer.id}`" class="relative underline">{{
-                                asset.customer.name }}</Link>
+                            {{ asset.product.product_type.name }}
+                            <template v-if="asset.owning_customer">
+                                &middot;
+                                <Link :href="`/customers/${asset.owning_customer.id}`" class="relative underline">{{
+                                    asset.owning_customer.name }}</Link>
+                            </template>
                         </div>
                     </div>
                 </div>
