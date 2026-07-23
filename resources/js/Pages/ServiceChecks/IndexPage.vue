@@ -139,7 +139,7 @@
                                         :error-message="serviceCheckValueForm.errors.value"
                                         :has-error="serviceCheckValueForm.errors.value" />
                                 </div>
-                                <PlusCircleIcon class="size-7 text-green-600 cursor-pointer ml-2 mb-2"
+                                <AddButton class="ml-2 mb-2"
                                     @click="() => { addnewServiceCheckValue(item.id) }"
                                     v-tooltip="`Voeg waarde '${serviceCheckValueForm.value}' toe`" />
                             </div>
@@ -159,7 +159,6 @@ import {
     PencilSquareIcon,
     TrashIcon,
     XCircleIcon,
-    PlusCircleIcon,
     CheckIcon,
 } from '@heroicons/vue/24/outline'
 import { useForm } from '@inertiajs/vue3'
@@ -170,6 +169,7 @@ import ServiceCheckValueListComponent from '@/Components/ServiceCheckValueListCo
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
+import AddButton from '@/Components/UI/AddButton.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 
 const {
