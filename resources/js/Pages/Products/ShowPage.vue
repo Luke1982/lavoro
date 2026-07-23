@@ -1,9 +1,5 @@
 <template>
-    <div class="flex items-center">
-        <Link href="/products" class="text-slate-400 text-sm font-medium">Producten</Link>
-        <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
-        <span class="text-slate-800 font-bold text-sm">{{ product.brand.name }} {{ product.model }}</span>
-    </div>
+    <BreadcrumbComponent :items="[{ label: 'Producten', href: '/products' }, { label: `${product.brand.name} ${product.model}` }]" />
     <div class="flex flex-col sm:flex-row mt-6 mb-4">
         <BoxComponent class="w-full h-auto sm:w-70 sm:min-h-70 mr-8 flex items-center justify-around"
             v-if="product.main_image?.[0]">
@@ -556,7 +552,7 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
-import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, ChevronRightIcon, FingerPrintIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, FingerPrintIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
@@ -569,6 +565,7 @@ import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon } from '@lucide/vue';
 

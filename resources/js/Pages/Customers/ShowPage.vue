@@ -1,9 +1,5 @@
 <template>
-    <div class="flex items-center mb-6">
-        <Link href="/customers" class="text-slate-400 text-sm font-medium">Klanten</Link>
-        <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
-        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">{{ form.name }}</span>
-    </div>
+    <BreadcrumbComponent :items="[{ label: 'Klanten', href: '/customers' }, { label: form.name }]" wrapper-class="mb-6" />
 
     <div class="flex flex-col sm:flex-row items-start my-4 gap-4">
         <BuildingOffice2Icon
@@ -737,6 +733,7 @@ import { useComboSearch } from '@/Composables/useComboSearch';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import CustomerLocationsWidget from '@/Components/Locations/CustomerLocationsWidget.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
+import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';

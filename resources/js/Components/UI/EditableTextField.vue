@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
+        :class="{ 'group pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />
@@ -38,15 +38,17 @@
             </button>
         </div>
 
+        <component :is="indicatorMeta.icon" v-if="!editing && indicatorMeta && decoration"
+            :class="['size-4 stroke-2 absolute right-2 top-4 -translate-y-1/2 pointer-events-none transition-opacity', indicatorMeta.class, { 'group-hover:opacity-0': !readonly && !disabled }]" />
         <PencilSquareIcon v-if="!editing && !readonly && !disabled && decoration"
-            class="size-4 text-gray-400 dark:text-gray-300 absolute right-2 top-4 transform -translate-y-1/2 cursor-pointer"
+            :class="['size-4 text-gray-400 dark:text-gray-300 absolute right-2 top-4 -translate-y-1/2 cursor-pointer transition-opacity', { 'opacity-0 group-hover:opacity-100': indicatorMeta }]"
             @click="startEdit" />
     </div>
 </template>
 
 <script setup>
 import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
-import { ArrowUturnLeftIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
@@ -70,6 +72,9 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
     hasExternalSearching: { type: Boolean, default: false },
     searching: { type: Boolean, default: false },
+    // Right-aligned closed-state hint about the field's nature. '' auto-derives from
+    // inputType (date/currency); pass 'link' for fields that navigate elsewhere.
+    indicator: { type: String, default: '' },
 });
 
 const editing = ref(false);
@@ -100,6 +105,15 @@ const inErrorState = computed(() =>
 const htmlInputType = computed(() =>
     props.inputType === 'number' ? 'text' : props.inputType
 );
+
+const indicatorMeta = computed(() => {
+    const kind = props.indicator
+        || (props.inputType === 'date' ? 'date' : props.inputType === 'currency' ? 'currency' : '');
+    if (kind === 'date') return { icon: CalendarDaysIcon, class: 'text-slate-400 dark:text-slate-500' };
+    if (kind === 'link') return { icon: ArrowUpRightIcon, class: 'text-lavoro-blue' };
+    if (kind === 'currency') return { icon: BanknotesIcon, class: 'text-slate-400 dark:text-slate-500' };
+    return null;
+});
 
 const currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
 

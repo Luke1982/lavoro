@@ -1,35 +1,62 @@
 <template>
+    <BreadcrumbComponent :items="breadcrumbItems" wrapper-class="mb-6" />
+
+    <div class="flex items-start gap-4 mb-6">
+        <div
+            class="size-20 sm:size-24 flex-none overflow-hidden rounded-lg bg-white p-2.5 ring-1 ring-gray-900/10 dark:bg-slate-800 dark:ring-slate-600">
+            <img v-if="headerImage" :src="headerImage" :alt="assetTitle" class="size-full object-contain" />
+            <div v-else class="flex size-full items-center justify-center">
+                <PuzzlePieceIcon class="size-10 text-gray-400 dark:text-slate-500" />
+            </div>
+        </div>
+        <div class="min-w-0 flex-grow">
+            <h1 class="text-2xl font-bold break-words dark:text-slate-100">{{ assetTitle }}</h1>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+                <BadgeComponent :color="statusBadgeColor" :has-dot="false">{{ asset.status }}</BadgeComponent>
+                <BadgeComponent v-if="asset.date_in_service" color="blue" :has-dot="false">In gebruik</BadgeComponent>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+                <TitleValueIconComponent v-for="fact in headerFacts" :key="fact.title" :icon="fact.icon"
+                    :title="fact.title" :value="fact.value" />
+            </div>
+        </div>
+        <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
+            class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
+            <TrashIcon class="size-5" />
+        </button>
+    </div>
+
     <TwoThirdsOneThird>
         <template #main>
-            <BoxComponent>
-                <div class="flex justify-between items-start">
-                    <div class="flex">
-                        <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2" />
-                        <h1 class="text-l font-bold">Details van de machine</h1>
+            <div class="mb-5 grid grid-cols-2 xl:grid-cols-4 gap-3">
+                <div v-for="card in metricCards" :key="card.label"
+                    class="flex items-center gap-3 rounded-lavoro-sm border-lavoro-box shadow-lavoro-box bg-white dark:bg-slate-900 p-4">
+                    <div :class="['flex-none flex items-center justify-center size-12 rounded-lavoro-sm', card.iconBg]">
+                        <component :is="card.icon" :class="['size-6', card.iconColor]" />
                     </div>
-                    <TrashIcon v-if="canDelete" class="w-6 h-6 text-red-500 cursor-pointer" @click="deleteAsset"
-                        v-tooltip="'Verwijder machine'" />
+                    <div class="min-w-0">
+                        <p class="text-xl font-bold text-gray-900 dark:text-slate-100 truncate">{{ card.value }}</p>
+                        <p class="text-sm text-gray-600 dark:text-slate-300 truncate">{{ card.label }}</p>
+                        <p class="text-xs text-gray-400 dark:text-slate-500 truncate">{{ card.sub }}</p>
+                    </div>
                 </div>
-                <div class="flex flex-wrap mt-4 gap-y-3">
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Merk en model</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.product_id" :options="productOptions"
-                                :has-external-searching="productsUseAjax" :searching="productSearching" @change="searchProducts"
-                                :readonly="!canUpdate" :error="form.errors.product_id"
-                                @revert="form.clearErrors('product_id')">
-                                <template #display>
-                                    {{ asset.product.brand.name }}
-                                    <Link class="underline" :href="`/products/${asset.product.id}`">
-                                        {{ asset.product.model }}
-                                    </Link>
-                                </template>
-                            </EditableTextField>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Serienummer</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
+            </div>
+            <BoxComponent>
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                    <div class="flex flex-col gap-6 md:pr-8">
+                        <EditableTextField type="combobox" v-model="form.product_id" :options="productOptions"
+                            :has-external-searching="productsUseAjax" :searching="productSearching"
+                            @change="searchProducts" :readonly="!canUpdate" label="Merk en model"
+                            :error="form.errors.product_id" @revert="form.clearErrors('product_id')">
+                            <template #display>
+                                {{ asset.product.brand.name }}
+                                <Link class="underline" :href="`/products/${asset.product.id}`">
+                                    {{ asset.product.model }}
+                                </Link>
+                            </template>
+                        </EditableTextField>
+                        <div>
+                            <h3 class="text-xs font-semibold mb-1 text-slate-500">Serienummer</h3>
                             <span v-if="asset.product.bundle" class="text-sm text-gray-500 italic">Bundel</span>
                             <div v-else class="flex items-center gap-2">
                                 <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
@@ -38,96 +65,115 @@
                                 <ScanSerialButton v-if="canUpdate" @picked="form.serial_number = $event" />
                             </div>
                         </div>
+                        <EditableTextField v-model="form.date_in_service" inputType="date" :readonly="!canUpdate"
+                            label="In gebruikname" :error="form.errors.date_in_service"
+                            @revert="form.clearErrors('date_in_service')" />
+                        <EditableTextField type="combobox" v-model="form.status" :options="statusOptions"
+                            :readonly="!canUpdate" label="Status" :error="form.errors.status"
+                            @revert="form.clearErrors('status')">
+                            <template #display>
+                                <BadgeComponent :color="statusBadgeColor" :has-dot="false">{{ asset.status }}
+                                </BadgeComponent>
+                            </template>
+                        </EditableTextField>
+                        <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
+                            :readonly="!canUpdate" label="Locatie" indicator="link" :error="form.errors.location_id"
+                            @revert="form.clearErrors('location_id')">
+                            <template #display>
+                                <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"
+                                    class="text-blue-600 underline">{{ asset.linked_location.title }}</Link>
+                                <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie</span>
+                            </template>
+                        </EditableTextField>
                     </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">In gebruikname</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField v-model="form.date_in_service" inputType="date" :readonly="!canUpdate"
-                                :error="form.errors.date_in_service" @revert="form.clearErrors('date_in_service')" />
-                        </div>
-                    </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Volgende keuring</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField v-model="form.next_service_date" inputType="date" :readonly="!canUpdate"
-                                :error="form.errors.next_service_date"
-                                @revert="form.clearErrors('next_service_date')" />
-                        </div>
-                    </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Status</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.status" :options="statusOptions"
-                                :readonly="!canUpdate" :error="form.errors.status" @revert="form.clearErrors('status')">
-                                <template #display>
-                                    <span v-if="asset.status === 'Actief'"
-                                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
-                                    <span v-else
-                                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
-                                            asset.status }}</span>
-                                </template>
-                            </EditableTextField>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Klant</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.customer_id" :options="customerOptions"
-                                :has-external-searching="customersUseAjax" :searching="customerSearching" @change="searchCustomers"
-                                :readonly="!canUpdate || isChildAsset" :error="form.errors.customer_id"
-                                @revert="form.clearErrors('customer_id')">
-                                <template #display>
-                                    <Link v-if="owningCustomer" :href="`/customers/${owningCustomer.id}`"
-                                        class="text-blue-600 underline">{{ owningCustomer.name }}</Link>
-                                    <span v-else class="text-gray-400">—</span>
-                                    <span v-if="isChildAsset" class="text-xs text-gray-400 ml-2">
-                                        via bovenliggende machine
-                                    </span>
-                                </template>
-                            </EditableTextField>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-1/2 flex">
-                        <div class="w-1/3 text-xs">Locatie</div>
-                        <div class="w-2/3 mr-0 md:mr-3">
-                            <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
-                                :readonly="!canUpdate" :error="form.errors.location_id"
-                                @revert="form.clearErrors('location_id')">
-                                <template #display>
-                                    <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"
-                                        class="text-blue-600 underline">{{ asset.linked_location.title }}</Link>
-                                    <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie</span>
-                                </template>
-                            </EditableTextField>
-                        </div>
+                    <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                        <EditableTextField v-model="form.next_service_date" inputType="date" :readonly="!canUpdate"
+                            label="Volgende keuring" :error="form.errors.next_service_date"
+                            @revert="form.clearErrors('next_service_date')" />
+                        <EditableTextField type="combobox" v-model="form.customer_id" :options="customerOptions"
+                            :has-external-searching="customersUseAjax" :searching="customerSearching"
+                            @change="searchCustomers" :readonly="!canUpdate || isChildAsset" label="Klant"
+                            indicator="link" :error="form.errors.customer_id"
+                            @revert="form.clearErrors('customer_id')">
+                            <template #display>
+                                <Link v-if="owningCustomer" :href="`/customers/${owningCustomer.id}`"
+                                    class="text-blue-600 underline">{{ owningCustomer.name }}</Link>
+                                <span v-else class="text-gray-400">—</span>
+                                <span v-if="isChildAsset" class="text-xs text-gray-400 ml-2">
+                                    via bovenliggende machine
+                                </span>
+                            </template>
+                        </EditableTextField>
+                        <EditableTextField readonly label="Leverancier"
+                            :indicator="preferredSupplier ? 'link' : ''">
+                            <template #display>
+                                <Link v-if="preferredSupplier && canReadSuppliers"
+                                    :href="`/suppliers/${preferredSupplier.id}`" class="text-blue-600 underline">
+                                    {{ preferredSupplier.name }}
+                                </Link>
+                                <span v-else-if="preferredSupplier">{{ preferredSupplier.name }}</span>
+                                <span v-else class="text-gray-400 dark:text-slate-500 font-normal">—</span>
+                            </template>
+                        </EditableTextField>
+                        <EditableTextField readonly label="Garantie">
+                            <template #display>
+                                <span v-if="asset.product.warranty">{{ asset.product.warranty }}</span>
+                                <span v-else class="text-gray-400 dark:text-slate-500 font-normal">—</span>
+                            </template>
+                        </EditableTextField>
+                        <EditableTextField readonly label="Aangemaakt op">
+                            <template #display>{{ nlDate(asset.created_at) }}</template>
+                        </EditableTextField>
                     </div>
                 </div>
                 <CustomFieldsComponent v-if="customFields.length" model-type="asset" :model-id="asset.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <BoxComponent class="mt-5" v-auto-animate>
-                <div class="flex justify-between items-center mb-2">
-                    <div class="flex">
-                        <ExclamationCircleIcon class="w-6 h-6 text-gray-500 mr-2" />
-                        <h1 class="text-l font-bold">Storingen</h1>
-                    </div>
-                    <button v-if="!openNewTicketForm && hasPermission('ticket.create')"
-                        @click="openNewTicketForm = true"
-                        class="bg-emerald-600 rounded-md py-1.5 px-2 text-white hover:bg-emerald-700 cursor-pointer text-sm">
-                        <PlusIcon class="w-5 h-5 inline-block mr-1" />
-                        Nieuwe storing
-                    </button>
+                <SectionHeader :icon="ExclamationCircleIcon" title="Storingen" color="red">
+                    <template #actions>
+                        <button v-if="hasPermission('ticket.create')" @click="showTicketDrawer = true"
+                            class="inline-flex items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white cursor-pointer transition-opacity hover:opacity-90">
+                            <PlusIcon class="w-5 h-5" />
+                            Nieuwe storing
+                        </button>
+                    </template>
+                </SectionHeader>
+                <p v-if="!asset.tickets?.length" class="text-sm text-gray-400 dark:text-slate-500 mt-3">
+                    Geen storingen gevonden.
+                </p>
+                <div v-else class="mt-2 divide-y divide-gray-100 dark:divide-slate-700/60">
+                    <Link v-for="ticket in asset.tickets" :key="ticket.id" :href="`/tickets/${ticket.id}`"
+                        class="flex items-center gap-3 py-3 px-2 -mx-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <span class="size-2.5 rounded-full flex-none" :class="ticketDotColor(ticket.status)" />
+                        <span class="text-sm font-semibold text-gray-800 dark:text-slate-200 flex-none">
+                            #{{ ticket.id }}
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-slate-300 truncate flex-1 min-w-0">
+                            {{ ticket.subject }}
+                        </span>
+                        <span class="hidden sm:block w-24 flex-none text-right text-xs text-gray-400 dark:text-slate-500">
+                            {{ nlDate(ticket.created_at) }}
+                        </span>
+                        <div class="w-36 flex-none flex justify-end">
+                            <BadgeComponent :color="ticketBadgeColor(ticket.status)" :has-dot="false">
+                                {{ ticket.status }}
+                            </BadgeComponent>
+                        </div>
+                        <div class="w-8 flex-none">
+                            <span v-if="ticket.created_by" v-tooltip="ticket.created_by.name"
+                                class="flex items-center justify-center size-8 rounded-full bg-lavoro-blue/10 text-lavoro-blue font-semibold text-xs">
+                                {{ initials(ticket.created_by.name) }}
+                            </span>
+                        </div>
+                        <ChevronRightIcon class="size-4 flex-none text-gray-400 dark:text-slate-500" />
+                    </Link>
                 </div>
-                <TicketCreationForm :asset-id="asset.id" v-if="openNewTicketForm" @close="openNewTicketForm = false" />
-                <TicketCard v-for="ticket in asset.tickets" :key="ticket.id" :ticket="ticket" class="mt-4" />
             </BoxComponent>
             <BoxComponent
                 v-if="asset.child_assets?.length || asset.parent_asset || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
                 class="mt-5">
-                <div class="flex items-center py-3 border-t border-gray-200">
-                    <LinkIcon class="size-5 text-gray-500 mr-2" />
-                    <h3 class="text-sm font-medium">Gerelateerde machines</h3>
-                </div>
+                <SectionHeader :icon="LinkIcon" title="Gerelateerde machines" color="blue" />
 
                 <!-- Per-slot view when product has defined related products -->
                 <div v-if="asset.product.productables?.length">
@@ -293,53 +339,54 @@
                 </div>
             </BoxComponent>
             <BoxComponent class="mt-5">
-                <div class="flex">
-                    <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2" />
-                    <h1 class="text-l font-bold">Keuringen</h1>
-                </div>
+                <SectionHeader :icon="ClipboardDocumentCheckIcon" title="Keuringen" color="green" />
                 <ServiceJobsTable :servicejobs="asset.servicejobs" class="mt-3" />
             </BoxComponent>
         </template>
 
         <template #sidebar>
-            <BoxComponent>
-                <h2 class="text-center border-b border-gray-300 pb-2 mb-2"
-                    v-if="hasPermission('image.upload') || hasPermission('image.see')">
-                    <PuzzlePieceIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
-                    Foto's van de machine:
-                </h2>
+            <BoxComponent v-if="hasPermission('image.upload') || hasPermission('image.see')">
+                <SectionHeader :icon="PhotoIcon" title="Foto's van de machine" color="blue" border />
                 <ImageUploadComponent :existing="asset.images" :imageable-id="asset.id"
                     imageable-type="\App\Models\Asset" />
             </BoxComponent>
             <BoxComponent v-if="asset.product.images.length > 0 && hasPermission('image.see')" class="mt-6">
-                <h2 class="text-center border-b border-gray-300 pb-2 mb-2">
-                    <CubeIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
+                <SectionHeader :icon="CubeIcon" color="gray" border>
                     Foto's van het
-                    <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">
-                        product
-                    </Link>:
-                </h2>
+                    <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">product</Link>
+                </SectionHeader>
                 <div class="grid grid-cols-2 gap-6 items-center mt-4">
                     <img v-for="image in asset.product.images" :key="image.id" :src="`/storage/${image.path}`"
                         alt="{{ image.name }}" class="w-full h-auto rounded-lg mb-4" />
                 </div>
             </BoxComponent>
             <BoxComponent v-if="hasPermission('maintenancecontract.read')" class="mt-6">
-                <h2 class="text-center border-b border-gray-300 pb-2 mb-2">
-                    <ClipboardDocumentCheckIcon class="w-6 h-6 text-gray-500 mr-2 inline-block" />
-                    Onderhoudscontracten
-                </h2>
-                <div v-if="!asset.maintenance_contracts?.length" class="text-sm text-gray-400 dark:text-slate-500 text-center py-2">
+                <SectionHeader :icon="ShieldCheckIcon" title="Onderhoudscontracten" color="indigo" border />
+                <div v-if="!asset.maintenance_contracts?.length"
+                    class="text-sm text-gray-500 dark:text-slate-400">
                     Niet gekoppeld aan een onderhoudscontract
                 </div>
-                <div v-else class="space-y-2 mt-3">
+                <div v-else class="space-y-2" v-auto-animate>
                     <Link v-for="contract in asset.maintenance_contracts" :key="contract.id"
                         :href="`/maintenancecontracts/${contract.id}`"
-                        class="flex items-center justify-between gap-2 rounded-md border border-gray-200 dark:border-slate-700/60 p-3 hover:bg-gray-50 dark:hover:bg-slate-800/40">
-                        <span class="text-sm font-medium text-gray-800 dark:text-slate-200 truncate">{{ contract.display_title }}</span>
-                        <BadgeComponent :color="maintenanceContractStatusBadgeColor(contract.status)" :has-dot="false">
-                            {{ maintenanceContractStatusText(contract.status) }}
-                        </BadgeComponent>
+                        class="flex items-center gap-3 rounded-lavoro-sm border border-gray-200 dark:border-slate-700/60 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-sm font-bold text-gray-800 dark:text-slate-200">{{
+                                    contract.display_title }}</span>
+                                <BadgeComponent :color="maintenanceContractStatusBadgeColor(contract.status)"
+                                    :has-dot="false">
+                                    {{ maintenanceContractStatusText(contract.status) }}
+                                </BadgeComponent>
+                            </div>
+                            <div class="mt-1.5 grid grid-cols-2 gap-4">
+                                <TitleValueIconComponent :icon="CalendarDaysIcon" title="Startdatum"
+                                    :value="nlDate(contract.start_date)" />
+                                <TitleValueIconComponent :icon="CalendarDaysIcon" title="Einddatum"
+                                    :value="contract.end_date ? nlDate(contract.end_date) : 'heden'" />
+                            </div>
+                        </div>
+                        <ChevronRightIcon class="size-5 flex-none text-gray-400 dark:text-slate-500 stroke-2" />
                     </Link>
                 </div>
             </BoxComponent>
@@ -349,30 +396,83 @@
     <CustomerTransferModal v-model:open="showTransferModal" context="asset" :subject-id="asset.id"
         :customer-id="form.customer_id" :new-customer-name="newCustomerName"
         @confirm="onTransferConfirm" @cancel="onTransferCancel" />
+
+    <DrawerComponent v-model="showTicketDrawer" title="Nieuwe storing"
+        :subtitle="`Nieuwe storing voor ${assetTitle}`">
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Onderwerp</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newTicketForm.subject" type="text"
+                        :hasError="Boolean(newTicketForm.errors.subject)"
+                        :errorMessage="newTicketForm.errors.subject" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-start">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Beschrijving</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newTicketForm.description" type="text" placeholder="Optioneel"
+                        :hasError="Boolean(newTicketForm.errors.description)"
+                        :errorMessage="newTicketForm.errors.description" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Status</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="ticketStatusses" v-model="newTicketForm.status"
+                        :hasError="Boolean(newTicketForm.errors.status)" :errorMessage="newTicketForm.errors.status" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prioriteit</label>
+                <div class="sm:col-span-2">
+                    <ComboBox :options="ticketPriorities" v-model="newTicketForm.priority"
+                        :hasError="Boolean(newTicketForm.errors.priority)"
+                        :errorMessage="newTicketForm.errors.priority" />
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="closeTicketDrawer"
+                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    Annuleren
+                </button>
+                <button type="button" @click="submitNewTicket" :disabled="newTicketForm.processing"
+                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Storing aanmaken
+                </button>
+            </div>
+        </template>
+    </DrawerComponent>
 </template>
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
+import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, LinkIcon, PlusIcon, PuzzlePieceIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, CalendarDaysIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HashtagIcon, LinkIcon, MapPinIcon, PhotoIcon, PlusIcon, PuzzlePieceIcon, ShieldCheckIcon, TrashIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
-import TicketCard from '@/Components/TicketCard.vue';
 import { ref, watch, computed, reactive, onMounted, nextTick } from 'vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
-import TicketCreationForm from '@/Components/TicketCreationForm.vue';
+import { ticketStatusses, ticketPriorities } from '@/Components/data/TicketData';
+import dayjs from 'dayjs';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
-import { hasPermission, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
+import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
+import { hasPermission, nlDate, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 
-const openNewTicketForm = ref(false);
+const showTicketDrawer = ref(false);
 
 const props = defineProps({
     asset: {
@@ -441,6 +541,103 @@ watch(() => form.customer_id, (customerId) => {
 
 const canUpdate = computed(() => hasPermission('asset.update'))
 const canDelete = computed(() => hasPermission('asset.delete'))
+const canReadSuppliers = computed(() => hasPermission('supplier.read'))
+
+const assetTitle = computed(() => `${props.asset.product.brand.name} ${props.asset.product.model}`)
+
+const breadcrumbItems = computed(() => [
+    { label: 'Machines', href: '/assets' },
+    { label: assetTitle.value },
+])
+
+const statusBadgeColor = computed(() => (props.asset.status === 'Actief' ? 'green' : 'red'))
+
+const headerImage = computed(() => {
+    const assetMain = props.asset.images?.find(image => image.pivot?.main) ?? props.asset.images?.[0]
+    if (assetMain) return `/storage/${assetMain.path}`
+    const productImage = props.asset.product?.images?.find(image => image.pivot?.main) ?? props.asset.product?.images?.[0]
+    if (productImage) return `/storage/${productImage.path}`
+    return null
+})
+
+const preferredSupplier = computed(() => {
+    const suppliers = props.asset.product?.suppliers ?? []
+    return suppliers.find(supplier => supplier.pivot?.is_preferred) ?? suppliers[0] ?? null
+})
+
+const daysUntilNextService = computed(() => {
+    if (!props.asset.next_service_date) return null
+    return dayjs(props.asset.next_service_date).startOf('day').diff(dayjs().startOf('day'), 'day')
+})
+
+const nextServiceSub = computed(() => {
+    const days = daysUntilNextService.value
+    if (days === null) return 'Niet gepland'
+    if (days < 0) return `${Math.abs(days)} dagen verlopen`
+    if (days === 0) return 'Vandaag'
+    return `Nog ${days} dagen`
+})
+
+const headerFacts = computed(() => [
+    { icon: HashtagIcon, title: 'Serienummer', value: props.asset.product.bundle ? 'Bundel' : (props.asset.serial_number ?? '—') },
+    { icon: CubeIcon, title: 'Producttype', value: props.asset.product.product_type?.name ?? '—' },
+    { icon: BuildingOffice2Icon, title: 'Klant', value: props.owningCustomer?.name ?? '—' },
+    { icon: MapPinIcon, title: 'Locatie', value: props.asset.linked_location?.title ?? '—' },
+    { icon: CalendarDaysIcon, title: 'Volgende keuring', value: props.asset.next_service_date ? nlDate(props.asset.next_service_date) : '—' },
+])
+
+const metricCards = computed(() => {
+    const tickets = props.asset.tickets ?? []
+    const closed = tickets.filter(ticket => (ticket.status ?? '').toLowerCase() === 'gesloten').length
+    const open = tickets.filter(ticket => ['open', 'in behandeling'].includes((ticket.status ?? '').toLowerCase())).length
+    const pending = tickets.filter(ticket => (ticket.status ?? '').toLowerCase() === 'in behandeling').length
+    return [
+        { icon: CalendarDaysIcon, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-600 dark:text-blue-400', value: props.asset.next_service_date ? nlDate(props.asset.next_service_date) : '—', label: 'Volgende keuring', sub: nextServiceSub.value },
+        { icon: WrenchScrewdriverIcon, iconBg: 'bg-green-500/10', iconColor: 'text-green-600 dark:text-green-400', value: String(tickets.length), label: 'Storingen', sub: `${closed} afgerond` },
+        { icon: ExclamationTriangleIcon, iconBg: 'bg-amber-500/10', iconColor: 'text-amber-600 dark:text-amber-400', value: String(open), label: 'Open storingen', sub: `${pending} in behandeling` },
+        { icon: ClipboardDocumentCheckIcon, iconBg: 'bg-indigo-500/10', iconColor: 'text-indigo-600 dark:text-indigo-400', value: String(props.asset.servicejobs?.length ?? 0), label: 'Keuringen', sub: 'totaal' },
+    ]
+})
+
+const newTicketForm = useForm({
+    asset_id: props.asset.id,
+    subject: '',
+    description: '',
+    status: 'Open',
+    priority: 'Hoog',
+})
+
+function submitNewTicket() {
+    newTicketForm.post('/tickets', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showTicketDrawer.value = false
+            newTicketForm.reset()
+        },
+    })
+}
+
+function closeTicketDrawer() {
+    showTicketDrawer.value = false
+    newTicketForm.reset()
+    newTicketForm.clearErrors()
+}
+
+function ticketBadgeColor(status) {
+    const state = (status ?? '').toLowerCase()
+    if (state === 'open') return 'red'
+    if (state === 'in behandeling') return 'orange'
+    if (state === 'gesloten') return 'green'
+    return 'gray'
+}
+
+function ticketDotColor(status) {
+    const state = (status ?? '').toLowerCase()
+    if (state === 'open') return 'bg-red-500'
+    if (state === 'in behandeling') return 'bg-amber-500'
+    if (state === 'gesloten') return 'bg-green-500'
+    return 'bg-gray-400'
+}
 
 const updateAsset = () => {
     if (!canUpdate.value || suppressAutoSave.value) return;
