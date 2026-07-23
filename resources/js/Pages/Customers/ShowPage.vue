@@ -17,24 +17,24 @@
                     </template>
                 </EditableTextField>
             </div>
-            <div class="flex gap-0 sm:gap-12 flex-wrap">
-                <TitleValueIconComponent v-if="form.phone" class="w-1/2 sm:w-auto" :icon="PhoneIcon" title="Telefoon"
-                    :value="form.phone" />
-                <TitleValueIconComponent v-if="form.mobile" class="w-1/2 sm:w-auto" :icon="DevicePhoneMobileIcon"
-                    title="Mobiel" :value="form.mobile" />
-                <TitleValueIconComponent v-if="form.email" class="w-1/2 sm:w-auto" :icon="EnvelopeIcon" title="E-mail"
-                    :value="form.email" />
-                <div v-if="form.address" class="flex flex-col w-1/2 sm:w-auto">
+            <div class="flex gap-x-3 gap-y-3 sm:gap-12 flex-wrap">
+                <TitleValueIconComponent v-if="form.phone" class="w-[calc(50%-0.375rem)] sm:w-auto" :icon="PhoneIcon"
+                    title="Telefoon" :value="form.phone" />
+                <TitleValueIconComponent v-if="form.mobile" class="w-[calc(50%-0.375rem)] sm:w-auto"
+                    :icon="DevicePhoneMobileIcon" title="Mobiel" :value="form.mobile" />
+                <TitleValueIconComponent v-if="form.email" class="w-[calc(50%-0.375rem)] sm:w-auto" :icon="EnvelopeIcon"
+                    title="E-mail" :value="form.email" />
+                <div v-if="form.address" class="flex flex-col min-w-0 w-[calc(50%-0.375rem)] sm:w-auto">
                     <div class="relative pl-7">
                         <MapPinIcon class="size-5 text-slate-400 inline mr-1 absolute left-0 top-1" />
                         <span class="text-xs text-slate-400 font-bold">Adres</span>
                     </div>
                     <a :href="mapsLinkFromCustomer(form)" target="_blank" rel="noopener"
-                        class="text-md text-slate-600 pl-7 font-bold hover:underline">
+                        class="text-md text-slate-600 pl-7 font-bold hover:underline break-words">
                         {{ form.address }}, {{ form.postal_code }} {{ form.city }}
                     </a>
                 </div>
-                <TitleValueIconComponent v-if="form.chamber_of_commerce_number" class="w-1/2 sm:w-auto"
+                <TitleValueIconComponent v-if="form.chamber_of_commerce_number" class="w-[calc(50%-0.375rem)] sm:w-auto"
                     :icon="BuildingLibraryIcon" title="KvK-nummer" :value="form.chamber_of_commerce_number" />
             </div>
         </div>
@@ -223,7 +223,7 @@
                                         @click="showContactDrawer = true"
                                         class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                                         <PlusIcon class="size-4" />
-                                        Contact toevoegen
+                                        <span class="hidden sm:inline">Contact toevoegen</span>
                                     </button>
                                 </div>
                                 <div v-if="!customer.contacts?.length"
@@ -307,7 +307,7 @@
                                         v-tooltip="`Nieuw onderhoudscontract voor ${form.name}`"
                                         class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                                         <PlusIcon class="size-4" />
-                                        Contract toevoegen
+                                        <span class="hidden sm:inline">Contract toevoegen</span>
                                     </button>
                                 </div>
                                 <div v-if="!customer.maintenance_contracts?.length"

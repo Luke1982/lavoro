@@ -10,7 +10,7 @@
             <button v-if="canCreate" type="button" @click="openAddDrawer"
                 class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                 <PlusIcon class="size-4" />
-                Locatie toevoegen
+                <span class="hidden sm:inline">Locatie toevoegen</span>
             </button>
         </div>
 
@@ -55,7 +55,7 @@
             :other-locations="otherLocations" />
 
         <ModalDialog v-model:open="mapModalOpen" :title="mapModalLocation?.title ?? 'Locatie'"
-            max-width-class="sm:max-w-3xl">
+            max-width-class="w-full sm:max-w-3xl">
             <div class="overflow-hidden rounded-lavoro-sm">
                 <OpenStreetMapWidget v-if="mapModalLocation" :key="mapModalLocation.id"
                     :address="locationAddress(mapModalLocation)" height-class="h-[60vh]" />
