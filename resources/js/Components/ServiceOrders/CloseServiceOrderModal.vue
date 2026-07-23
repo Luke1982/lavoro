@@ -20,8 +20,8 @@
             </div>
 
             <div>
-                <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
-                    :freeform-materials="serviceOrder.freeform_materials" :all-materials="[]" :categories="[]"
+                <MaterialsWidget :service-order-id="serviceOrder.id" :materials="materials"
+                    :freeform-materials="freeformMaterials" :all-materials="[]" :categories="[]"
                     :usage-units="[]" :is-closed="true" :sent-to-administration="serviceOrder.sent_to_administration"
                     :type="serviceOrder.type" />
             </div>
@@ -99,6 +99,8 @@ const props = defineProps({
     open: { type: Boolean, required: true },
     serviceOrder: { type: Object, required: true },
     allTaskInstances: { type: Array, default: () => [] },
+    materials: { type: Array, default: () => [] },
+    freeformMaterials: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
 });
 

@@ -34,13 +34,16 @@ use App\Models\Ticket;
 use App\Models\UserRole;
 use App\Services\AssetTransferService;
 use App\Services\EventLocationResolver;
+use App\Services\MateriableService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\SnelStartClient;
 use App\Support\AddressFormatter;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -226,6 +229,9 @@ class ServiceOrderController extends Controller
             'customFields',
             'taskInstances.serviceOrderTask',
             'taskInstances.userRoles',
+            'taskInstances.materials.category',
+            'taskInstances.materials.usageUnit',
+            'taskInstances.freeformMaterials',
             'taskInstances.product.brand',
             'taskInstances.product.productType',
             'taskInstances.product.productables.childProduct.brand',
@@ -258,6 +264,7 @@ class ServiceOrderController extends Controller
         $service_order->taskInstances->each->append('serial_slots');
 
         $all_task_instances = $service_order->taskInstances;
+        $visible_instances = $all_task_instances;
 
         if (!$user->isAdmin() && !$user->hasPermission('serviceorder.see_all_task_instances')) {
             $role_ids = $service_order->events
@@ -266,13 +273,22 @@ class ServiceOrderController extends Controller
                 ->values()
                 ->all();
 
-            $visible_instances = $service_order->taskInstances->filter(
+            $visible_instances = $all_task_instances->filter(
                 fn ($instance) => $instance->userRoles->isEmpty()
                     || $instance->userRoles->pluck('id')->intersect($role_ids)->isNotEmpty()
             )->values();
-
-            $service_order->setRelation('taskInstances', $visible_instances);
         }
+
+        /**
+         * Built before the relation is narrowed, so what the order was billed for reads the
+         * same for everyone. Which task consumed a line is the part that stays hidden when
+         * the user may not see that task.
+         */
+        $visible_instance_ids = $visible_instances->pluck('id');
+        $combined_materials = $this->labelTaskLines($service_order->allMaterials(), $visible_instance_ids);
+        $combined_freeform = $this->labelTaskLines($service_order->allFreeformMaterials(), $visible_instance_ids);
+
+        $service_order->setRelation('taskInstances', $visible_instances);
 
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
@@ -306,6 +322,8 @@ class ServiceOrderController extends Controller
             'mapLocation' => $this->mapLocation($service_order),
             'customerAssets' => $customer_assets,
             'allTaskInstances' => $all_task_instances,
+            'combinedMaterials' => $combined_materials,
+            'combinedFreeformMaterials' => $combined_freeform,
             'usersMissingTimes' => $event_widget->usersMissingTimes($service_order),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
@@ -329,6 +347,27 @@ class ServiceOrderController extends Controller
                 ->get()
                 ->map->toComboOption(),
         ]);
+    }
+
+    /**
+     * Swaps the task instance each line carries for the two scalars the frontend needs: the
+     * id it edits through, and a label that is only filled in when the user may see the task.
+     */
+    private function labelTaskLines(Collection $lines, Collection $visible_instance_ids): Collection
+    {
+        return $lines->each(function (Model $line) use ($visible_instance_ids) {
+            $task_instance = $line->task_instance;
+
+            $line->setAttribute('task_instance_id', $task_instance?->id);
+            $line->setAttribute(
+                'task_label',
+                $task_instance && $visible_instance_ids->contains($task_instance->id)
+                    ? ($task_instance->effective_title ?: 'Taak zonder titel')
+                    : null
+            );
+
+            unset($line['task_instance']);
+        });
     }
 
     /**
@@ -568,18 +607,6 @@ class ServiceOrderController extends Controller
     public function destroy(ServiceOrderDeleteRequest $request, ServiceOrder $serviceorder)
     {
         DB::transaction(function () use ($serviceorder) {
-            $serviceorder->load('materials');
-
-            foreach ($serviceorder->materials as $material) {
-                $quantity = (float) ($material->pivot->quantity ?? 0);
-                if ($quantity > 0) {
-                    $material->increment('stock', $quantity);
-                    $material->logActivity(
-                        "Voorraad hersteld: +{$quantity} door verwijdering werkbon #{$serviceorder->id}"
-                    );
-                }
-            }
-
             $serviceorder->delete();
         });
 
@@ -595,11 +622,20 @@ class ServiceOrderController extends Controller
         if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
-        $serviceorder->load(['customer.billingCustomer', 'materials', 'serviceOrderStage']);
+        $serviceorder->load([
+            'customer.billingCustomer',
+            'materials',
+            'taskInstances.serviceOrderTask',
+            'taskInstances.materials',
+            'serviceOrderStage',
+        ]);
         if (!$serviceorder->is_closed) {
             return redirect()->back()->with('error', 'Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
         }
-        if ($serviceorder->materials->isEmpty()) {
+
+        $all_materials = $serviceorder->allMaterials();
+
+        if ($all_materials->isEmpty()) {
             return redirect()->back()->with('error', 'Geen materialen gekoppeld aan deze werkbon.');
         }
 
@@ -613,7 +649,7 @@ class ServiceOrderController extends Controller
         $total_excl = 0;
         $skipped_null_quantity = [];
         $skipped_no_snelstart = [];
-        foreach ($serviceorder->materials as $idx => $material) {
+        foreach ($all_materials as $material) {
             if (!$material->snelstart_id) {
                 $skipped_no_snelstart[] = $material->name;
 
@@ -633,7 +669,9 @@ class ServiceOrderController extends Controller
                     'id' => $material->snelstart_id,
                     'uri' => '/v2/artikelen/' . $material->snelstart_id,
                 ],
-                'omschrijving' => (string) $material->name,
+                'omschrijving' => (string) $material->name . ($material->task_instance
+                    ? ' (gebruikt voor ' . ($material->task_instance->effective_title ?: 'taak zonder titel') . ')'
+                    : ''),
                 'stuksprijs' => (float) $unit_price,
                 'aantal' => (float) $quantity,
                 'kortingsPercentage' => 0,
@@ -772,6 +810,8 @@ class ServiceOrderController extends Controller
             'materials.usageUnit',
             'freeformMaterials',
             'taskInstances.serviceOrderTask',
+            'taskInstances.materials.usageUnit',
+            'taskInstances.freeformMaterials',
             'taskInstances.assets',
             'images',
             'events',
@@ -810,26 +850,37 @@ class ServiceOrderController extends Controller
             }))
             ->values();
 
+        $used_for = fn ($line) => $line->task_instance
+            ? ' (gebruikt voor ' . ($line->task_instance->effective_title ?: 'taak zonder titel') . ')'
+            : '';
+
         $map_material = fn ($material) => [
             'quantity' => $material->pivot->quantity,
             'unit' => $material->usageUnit?->name,
-            'description' => $material->name,
+            'description' => $material->name . $used_for($material),
             'price' => $material->price,
             'has_price' => true,
         ];
         $map_freeform = fn ($freeform) => [
             'quantity' => $freeform->quantity,
             'unit' => null,
-            'description' => $freeform->description,
+            'description' => $freeform->description . $used_for($freeform),
             'price' => null,
             'has_price' => false,
         ];
 
-        $materials_list = $serviceorder->materials->reject(fn ($material) => $material->pivot->unforseen)->map($map_material)
-            ->concat($serviceorder->freeformMaterials->reject(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
+        $all_materials = $serviceorder->allMaterials();
+        $all_freeform_materials = $serviceorder->allFreeformMaterials();
+
+        $materials_list = $all_materials
+            ->reject(fn ($material) => $material->pivot->unforseen)
+            ->map($map_material)
+            ->concat($all_freeform_materials->reject(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
             ->values();
-        $extra_materials_list = $serviceorder->materials->filter(fn ($material) => $material->pivot->unforseen)->map($map_material)
-            ->concat($serviceorder->freeformMaterials->filter(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
+        $extra_materials_list = $all_materials
+            ->filter(fn ($material) => $material->pivot->unforseen)
+            ->map($map_material)
+            ->concat($all_freeform_materials->filter(fn ($freeform) => $freeform->unforseen)->map($map_freeform))
             ->values();
 
         $pdf = Pdf::loadView('pdf.serviceorder', [
@@ -925,22 +976,10 @@ class ServiceOrderController extends Controller
     public function attachMaterial(
         ServiceOrderAttachMaterialRequest $request,
         ServiceOrder $serviceorder,
-        Material $material
+        Material $material,
+        MateriableService $materiables
     ) {
-        $validated = $request->validated();
-        $serviceorder->materials()->attach($material, [
-            'quantity' => $validated['quantity'],
-            'unforseen' => $validated['unforseen'] ?? false,
-        ]);
-        $material->decrement('stock', $validated['quantity']);
-        $serviceorder->logActivity(
-            sprintf('Materiaal toegevoegd: %s (aantal %s)', $material->name, $validated['quantity']),
-            also_attach_to: [$material],
-            metadata: [
-                'service_order_id' => $serviceorder->id,
-                'service_order_number' => $serviceorder->id,
-            ]
-        );
+        $materiables->attach($serviceorder, $material, $request->validated());
 
         return redirect()->back()->with('success', 'Materiaal succesvol gekoppeld aan de werkbon.');
     }
@@ -948,30 +987,10 @@ class ServiceOrderController extends Controller
     public function detachMaterial(
         ServiceOrderDetachMaterialRequest $request,
         ServiceOrder $serviceorder,
-        string $materiable_id
+        string $materiable_id,
+        MateriableService $materiables
     ) {
-        $pivotQuery = $serviceorder
-            ->materials()
-            ->newPivotQuery()
-            ->where('materiables.id', $materiable_id);
-
-        $record = $pivotQuery->first();
-        $material = $record ? Material::find($record->material_id) : null;
-        $quantity = $record ? (float) $record->quantity : 0;
-
-        $pivotQuery->delete();
-
-        if ($material) {
-            $material->increment('stock', $quantity);
-            $serviceorder->logActivity(
-                sprintf('Materiaal verwijderd: %s', $material->name),
-                also_attach_to: [$material],
-                metadata: [
-                    'service_order_id' => $serviceorder->id,
-                    'service_order_number' => $serviceorder->id,
-                ]
-            );
-        }
+        $materiables->detach($serviceorder, $materiable_id);
 
         return redirect()->back()
             ->with('success', 'Materiaal succesvol losgekoppeld van de werkbon.');
@@ -980,44 +999,10 @@ class ServiceOrderController extends Controller
     public function updateMateriable(
         ServiceOrderUpdateMateriableRequest $request,
         ServiceOrder $serviceorder,
-        string $materiable_id
+        string $materiable_id,
+        MateriableService $materiables
     ) {
-        $pivotQuery = $serviceorder
-            ->materials()
-            ->newPivotQuery()
-            ->where('materiables.id', $materiable_id);
-
-        $record = $pivotQuery->first();
-        $material = $record ? Material::find($record->material_id) : null;
-
-        $validated = $request->validated();
-        $pivotQuery->update($validated);
-
-        if ($material) {
-            if (array_key_exists('quantity', $validated)) {
-                $old_quantity = $record->quantity !== null ? (float) $record->quantity : null;
-                $new_quantity = (float) $validated['quantity'];
-                $delta = $old_quantity !== null ? $new_quantity - $old_quantity : null;
-                if ($delta !== null && $delta !== 0.0) {
-                    $material->decrement('stock', $delta);
-                }
-                $serviceorder->logActivity(
-                    sprintf('Materiaal hoeveelheid aangepast: %s naar %s', $material->name, $validated['quantity']),
-                    also_attach_to: [$material],
-                    metadata: [
-                        'service_order_id' => $serviceorder->id,
-                        'service_order_number' => $serviceorder->id,
-                    ]
-                );
-            }
-            if (array_key_exists('unforseen', $validated)) {
-                $serviceorder->logActivity(sprintf(
-                    'Materiaal gemarkeerd als %s: %s',
-                    $validated['unforseen'] ? 'onvoorzien' : 'voorzien',
-                    $material->name
-                ));
-            }
-        }
+        $materiables->update($serviceorder, $materiable_id, $request->validated());
 
         return redirect()->back()
             ->with('success', 'Materiaal succesvol bijgewerkt.');

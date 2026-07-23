@@ -54,6 +54,7 @@ use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceAssetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
+use App\Http\Controllers\ServiceOrderTaskInstanceMaterialController;
 use App\Http\Controllers\SnelStartImportController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierImportController;
@@ -223,6 +224,30 @@ Route::group(
             'serviceordertaskinstances/{serviceordertaskinstance}/assets/{asset}',
             [ServiceOrderTaskInstanceAssetController::class, 'update']
         )->name('serviceordertaskinstances.assets.update');
+        Route::post(
+            'serviceordertaskinstances/{serviceordertaskinstance}/materials/{material}',
+            [ServiceOrderTaskInstanceMaterialController::class, 'store']
+        )->name('serviceordertaskinstances.materials.store');
+        Route::put(
+            'serviceordertaskinstances/{serviceordertaskinstance}/materials/{materiable_id}',
+            [ServiceOrderTaskInstanceMaterialController::class, 'update']
+        )->name('serviceordertaskinstances.materials.update');
+        Route::delete(
+            'serviceordertaskinstances/{serviceordertaskinstance}/materials/{materiable_id}',
+            [ServiceOrderTaskInstanceMaterialController::class, 'destroy']
+        )->name('serviceordertaskinstances.materials.destroy');
+        Route::post(
+            'serviceordertaskinstances/{serviceordertaskinstance}/freeform-materials',
+            [ServiceOrderTaskInstanceMaterialController::class, 'storeFreeform']
+        )->name('serviceordertaskinstances.freeformMaterials.store');
+        Route::put(
+            'serviceordertaskinstances/{serviceordertaskinstance}/freeform-materials/{freeform_material}',
+            [ServiceOrderTaskInstanceMaterialController::class, 'updateFreeform']
+        )->name('serviceordertaskinstances.freeformMaterials.update');
+        Route::delete(
+            'serviceordertaskinstances/{serviceordertaskinstance}/freeform-materials/{freeform_material}',
+            [ServiceOrderTaskInstanceMaterialController::class, 'destroyFreeform']
+        )->name('serviceordertaskinstances.freeformMaterials.destroy');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);

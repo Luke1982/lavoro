@@ -134,7 +134,10 @@
                         <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
                             :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
                             :available-tasks="availableTasks" :products="products" :user-roles="userRoles"
-                            :is-closed="serviceOrder.is_closed" class="my-4" />
+                            :is-closed="serviceOrder.is_closed" :type="serviceOrder.type"
+                            :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+                            :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
+                            class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
                             <div class="flex items-start sm:items-center gap-x-3 mb-3 justify-between">
                                 <div class="flex gap-x-3">
@@ -284,8 +287,8 @@
                         <BoxComponent
                             v-if="hasAnyPermission(['material.read.serviceorder', 'freeformmaterial.create', 'freeformmaterial.delete', 'freeformmaterial.update', 'freeformmaterial.read'])"
                             class="mb-4 sm:mb-0">
-                            <MaterialsWidget :service-order-id="serviceOrder.id" :materials="serviceOrder.materials"
-                                :freeform-materials="serviceOrder.freeform_materials" :all-materials="allMaterials"
+                            <MaterialsWidget :service-order-id="serviceOrder.id" :materials="combinedMaterials"
+                                :freeform-materials="combinedFreeformMaterials" :all-materials="allMaterials"
                                 :materials-use-ajax="materialsUseAjax" :categories="materialCategories"
                                 :usage-units="materialUsageUnits" :is-closed="serviceOrder.is_closed"
                                 :sent-to-administration="serviceOrder.sent_to_administration"
@@ -434,8 +437,8 @@
                         </div>
                         <BoxComponent>
                             <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Materialen</h3>
-                            <MaterialsFinancialOverview :materials="serviceOrder.materials"
-                                :freeform-materials="serviceOrder.freeform_materials" />
+                            <MaterialsFinancialOverview :materials="combinedMaterials"
+                                :freeform-materials="combinedFreeformMaterials" />
                         </BoxComponent>
                         <BoxComponent class="mt-4">
                             <EditableTextField type="textarea" :disabled="!hasPermission('serviceorder.update')"
@@ -619,7 +622,8 @@
     </DrawerComponent>
 
     <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
-        :all-task-instances="allTaskInstances" :user-roles="userRoles" @confirm="handleSignatureConfirm"
+        :all-task-instances="allTaskInstances" :materials="combinedMaterials"
+        :freeform-materials="combinedFreeformMaterials" :user-roles="userRoles" @confirm="handleSignatureConfirm"
         @update-work-completed="updateWorkCompleted" />
 
     <CustomerTransferModal v-model:open="showTransferModal" context="serviceorder"
@@ -673,6 +677,8 @@ const props = defineProps({
         required: true
     },
     allTaskInstances: { type: Array, default: () => [] },
+    combinedMaterials: { type: Array, default: () => [] },
+    combinedFreeformMaterials: { type: Array, default: () => [] },
     allMaterials: {
         type: Array,
         required: true

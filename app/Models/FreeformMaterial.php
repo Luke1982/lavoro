@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 class FreeformMaterial extends Model
 {
     protected $fillable = [
-        'service_order_id',
         'quantity',
         'description',
         'unforseen',
@@ -23,8 +22,8 @@ class FreeformMaterial extends Model
         'unforseen' => 'boolean',
     ];
 
-    public function serviceOrder()
+    public function freeformmateriable()
     {
-        return $this->belongsTo(ServiceOrder::class);
+        return $this->morphTo();
     }
 }

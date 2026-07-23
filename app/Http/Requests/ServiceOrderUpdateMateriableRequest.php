@@ -2,24 +2,27 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ResolvesMateriableOwner;
 use App\Models\Material;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ServiceOrderUpdateMateriableRequest extends FormRequest
 {
+    use ResolvesMateriableOwner;
+
     public function authorize(): bool
     {
-        return $this->user()->can('updateMateriable', $this->route('serviceorder'));
+        return $this->authorizeMateriable('updateMateriable');
     }
 
     public function rules(): array
     {
-        $serviceorder = $this->route('serviceorder');
+        $owner = $this->materiableOwner();
         $materiable_id = $this->route('materiable_id');
 
         $material = null;
-        if ($serviceorder && $materiable_id) {
-            $record = $serviceorder->materials()
+        if ($owner && $materiable_id) {
+            $record = $owner->materials()
                 ->newPivotQuery()
                 ->where('materiables.id', $materiable_id)
                 ->first();
@@ -33,7 +36,7 @@ class ServiceOrderUpdateMateriableRequest extends FormRequest
             : 'sometimes|numeric|min:0.01';
 
         return [
-            'quantity'  => $quantity_rule,
+            'quantity' => $quantity_rule,
             'unforseen' => 'sometimes|boolean',
         ];
     }
@@ -43,7 +46,7 @@ class ServiceOrderUpdateMateriableRequest extends FormRequest
         return [
             'quantity.integer' => 'Dit materiaal is niet deelbaar. Voer een heel getal in.',
             'quantity.numeric' => 'Voer een geldig aantal in.',
-            'quantity.min'     => 'Het aantal moet minimaal :min zijn.',
+            'quantity.min' => 'Het aantal moet minimaal :min zijn.',
         ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasMaterials;
+use App\Services\MateriableService;
 use App\Services\TaskInstanceSerialSlotService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +11,21 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceOrderTaskInstance extends Model
 {
     use HasFactory;
+    use HasMaterials;
+
+    /**
+     * Covers a task deleted on its own. A task cascaded away with its service order never
+     * gets here, so ServiceOrder::deleting releases those before the database takes them.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (ServiceOrderTaskInstance $task_instance) {
+            app(MateriableService::class)->release(
+                $task_instance,
+                'verwijdering taak ' . ($task_instance->effective_title ?: 'zonder titel')
+            );
+        });
+    }
 
     protected $fillable = [
         'service_order_id',
@@ -68,6 +85,11 @@ class ServiceOrderTaskInstance extends Model
     public function getEffectiveDescriptionAttribute(): string
     {
         return $this->description ?? $this->serviceOrderTask?->description ?? '';
+    }
+
+    public function getEffectiveTitleAttribute(): string
+    {
+        return $this->title ?: ($this->serviceOrderTask?->title ?: '');
     }
 
     /**

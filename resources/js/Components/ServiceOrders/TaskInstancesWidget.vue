@@ -74,6 +74,15 @@
                             @click="openViewModal(instance)" v-tooltip="'Ondertekend'">
                             <BadgeCheckIcon class="w-4 h-4 text-green-500" />
                         </button>
+                        <button v-if="canManageMaterials" type="button"
+                            class="relative flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            @click="openMaterialsModal(instance)" v-tooltip="'Materialen voor deze taak'">
+                            <PackageIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                            <span v-if="materialCount(instance) > 0"
+                                class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-lavoro-green px-1 text-[10px] font-semibold text-gray-800">
+                                {{ materialCount(instance) }}
+                            </span>
+                        </button>
                         <button v-if="canSign && instance.is_complete && !instance.signed_by" type="button"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openSignModal(instance)" v-tooltip="'Laten ondertekenen'">
@@ -282,6 +291,22 @@
             </template>
         </DrawerComponent>
 
+        <!-- Materials modal -->
+        <ModalDialog :open="materialsModalOpen" @update:open="materialsModalOpen = $event"
+            :title="materialsInstance ? `Materialen — ${effectiveTitle(materialsInstance)}` : 'Materialen'"
+            max-width-class="sm:max-w-3xl">
+            <button type="button" @click="materialsModalOpen = false" aria-label="Sluiten"
+                class="absolute top-4 right-4 z-10 flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors">
+                <XIcon class="h-5 w-5" />
+            </button>
+            <MaterialsWidget v-if="materialsInstance" :service-order-id="serviceOrderId"
+                :endpoint-base="`/serviceordertaskinstances/${materialsInstance.id}`"
+                :task-instance-id="materialsInstance.id" :materials="materialsInstance.materials ?? []"
+                :freeform-materials="materialsInstance.freeform_materials ?? []" :all-materials="allMaterials"
+                :materials-use-ajax="materialsUseAjax" :categories="materialCategories"
+                :usage-units="materialUsageUnits" :is-closed="isClosed" :type="type" />
+        </ModalDialog>
+
         <!-- Sign modal -->
         <ModalDialog :open="signModalOpen" @update:open="signModalOpen = $event" title="Taak ondertekenen"
             max-width-class="sm:max-w-lg">
@@ -431,8 +456,8 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon } from '@lucide/vue'
-import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon, Package as PackageIcon, X as XIcon } from '@lucide/vue'
+import { hasPermission, hasAnyPermission, nlDate, nlTime } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -442,6 +467,7 @@ import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
+import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -450,8 +476,47 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
     isClosed: { type: Boolean, default: false },
+    type: { type: String, default: null },
+    allMaterials: { type: Array, default: () => [] },
+    materialsUseAjax: { type: Boolean, default: false },
+    materialCategories: { type: Array, default: () => [] },
+    materialUsageUnits: { type: Array, default: () => [] },
     /** Opt out where the widget is one section among others that sit flush, rather than a card of its own. */
     boxed: { type: Boolean, default: true },
+})
+
+const canManageMaterials = computed(() => hasAnyPermission([
+    'material.read.serviceorder',
+    'materiable.create.serviceorder',
+    'materiable.update.serviceorder',
+    'materiable.delete.serviceorder',
+    'freeformmaterial.read',
+    'freeformmaterial.create',
+    'freeformmaterial.update',
+    'freeformmaterial.delete',
+]))
+
+function materialCount(instance) {
+    return (instance.materials?.length ?? 0) + (instance.freeform_materials?.length ?? 0)
+}
+
+const materialsInstanceId = ref(null)
+const materialsModalOpen = ref(false)
+
+/** Resolved from props so the list refreshes in place after an add or a removal. */
+const materialsInstance = computed(() =>
+    materialsInstanceId.value == null
+        ? null
+        : (props.instances.find(i => i.id === materialsInstanceId.value) ?? null)
+)
+
+function openMaterialsModal(instance) {
+    materialsInstanceId.value = instance.id
+    materialsModalOpen.value = true
+}
+
+watch(materialsModalOpen, (is_open) => {
+    if (!is_open) materialsInstanceId.value = null
 })
 
 const canCreate = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.create'))

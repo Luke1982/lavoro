@@ -148,7 +148,7 @@
 
             <!-- Rows -->
             <div v-auto-animate>
-                <div v-for="material in materials" :key="material.id"
+                <div v-for="material in materials" :key="material.pivot.id"
                     class="relative grid grid-cols-12 pt-8 pb-3 md:py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
 
                     <!-- Icon + name + code -->
@@ -164,13 +164,17 @@
                                 material.name }}</span>
                             <span v-if="material.code" class="text-xs text-gray-400 dark:text-slate-500">Artikelnummer:
                                 {{ material.code }}</span>
+                            <span v-if="isForeign(material) && material.task_label"
+                                class="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
+                                Taak: {{ material.task_label }}
+                            </span>
                         </div>
                     </div>
 
                     <!-- Quantity -->
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-center mt-2 md:mt-0">
-                        <template v-if="canUpdate && !sentToAdministration && !isClosed">
+                        <template v-if="canUpdate && !sentToAdministration && !isClosed && !isForeign(material)">
                             <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full md:w-20"
                                 :error="quantityErrors[material.pivot.id]"
                                 @update="val => { form.quantity = Number(val); updateQuantity(material.pivot.id) }">
@@ -191,7 +195,7 @@
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
                         <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!material.pivot.unforseen"
-                            :disabled="!canUpdate || sentToAdministration || isClosed"
+                            :disabled="!canUpdate || sentToAdministration || isClosed || isForeign(material)"
                             @update:model-value="val => updateUnforseen(material.pivot.id, val)"
                             v-tooltip="material.pivot.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
@@ -217,7 +221,7 @@
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
                         <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
-                            @click="detachMaterial(material.pivot.id)"
+                            @click="detachMaterial(material)"
                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
                     </div>
                 </div>
@@ -226,13 +230,13 @@
                 <div v-for="freeform in freeformMaterials" :key="'freeform-' + freeform.id"
                     class="relative grid grid-cols-12 pt-8 pb-3 md:py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
                     <div :class="(showFinancial && showUnforseen) ? 'md:col-span-4' : 'md:col-span-5'"
-                        class="col-span-12 flex items-center gap-3 sm:pl-3">
+                        class="col-span-12 flex items-start gap-3 sm:pl-3">
                         <div
                             class="w-10 h-10 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex-none">
                             <PencilIcon class="size-5 text-indigo-500 dark:text-indigo-400" />
                         </div>
                         <div class="flex flex-grow flex-col min-w-0">
-                            <template v-if="canUpdateFreeform && !sentToAdministration && !isClosed">
+                            <template v-if="canUpdateFreeform && !sentToAdministration && !isClosed && !isForeign(freeform)">
                                 <EditableTextField v-model="freeform.description"
                                     @update="val => updateFreeformMaterial(freeform.id, { description: val })">
                                     <template #display>
@@ -245,11 +249,16 @@
                             <span v-else class="font-semibold text-sm text-gray-900 dark:text-slate-100 truncate">{{
                                 freeform.description }}</span>
                             <span class="text-xs text-gray-400 dark:text-slate-500">Vrije regel</span>
+                            <span v-if="isForeign(freeform) && freeform.task_label"
+                                class="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
+                                Taak: {{ freeform.task_label }}
+                            </span>
                         </div>
                     </div>
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
-                        class="flex items-center mt-2 md:mt-0">
-                        <template v-if="canUpdateFreeform && !sentToAdministration && !isClosed">
+                        class="flex items-start mt-2 md:mt-0">
+                        <template
+                            v-if="canUpdateFreeform && !sentToAdministration && !isClosed && !isForeign(freeform)">
                             <EditableTextField inputType="number" v-model="freeform.quantity" class="w-full md:w-20"
                                 @update="val => updateFreeformMaterial(freeform.id, { quantity: Number(val) })">
                                 <template #display>
@@ -263,7 +272,7 @@
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
                         <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!freeform.unforseen"
-                            :disabled="!canUpdateFreeform || sentToAdministration || isClosed"
+                            :disabled="!canUpdateFreeform || sentToAdministration || isClosed || isForeign(freeform)"
                             @update:model-value="val => updateFreeformMaterial(freeform.id, { unforseen: val })"
                             v-tooltip="freeform.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
@@ -276,7 +285,7 @@
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
                         <TrashIcon v-if="canDeleteFreeform && !sentToAdministration && !isClosed"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
-                            @click="deleteFreeformMaterial(freeform.id)" v-tooltip="'Verwijder deze vrije regel'" />
+                            @click="deleteFreeformMaterial(freeform)" v-tooltip="'Verwijder deze vrije regel'" />
                     </div>
                 </div>
             </div>
@@ -357,7 +366,39 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    /**
+     * Which owner the add / edit / delete calls target. Defaults to the service order; the
+     * task modal points it at a task instance so the same widget books against the task.
+     */
+    endpointBase: {
+        type: String,
+        default: null,
+    },
+    /**
+     * Set when this widget IS a task instance, so its own lines read as editable while lines
+     * from other tasks stay read-only. Null on the order, where every task line is foreign.
+     */
+    taskInstanceId: {
+        type: Number,
+        default: null,
+    },
 })
+
+const base = computed(() => props.endpointBase ?? `/serviceorders/${props.serviceOrderId}`)
+
+/**
+ * A line booked against a different owner shows up here read-only for edits: its pivot
+ * belongs elsewhere, so quantities are corrected on that task's tile, not in this list.
+ * It can still be deleted from here — the call is routed to its own owner below.
+ */
+function isForeign(row) {
+    return !!row.task_instance_id && row.task_instance_id !== props.taskInstanceId
+}
+
+/** Where a row's own mutations go: its task when it belongs to one, otherwise this widget's owner. */
+function ownerBase(row) {
+    return row.task_instance_id ? `/serviceordertaskinstances/${row.task_instance_id}` : base.value
+}
 
 const showAddForm = ref(false)
 const showFinancial = ref(false)
@@ -442,14 +483,14 @@ function createMaterial() {
 
 function attachMaterial() {
     if (!materialToAdd.value || form.quantity <= 0) return
-    form.post(`/serviceorders/${props.serviceOrderId}/materials/${materialToAdd.value}`, {
+    form.post(`${base.value}/materials/${materialToAdd.value}`, {
         preserveScroll: true,
         onSuccess: () => { showAddForm.value = false },
     })
 }
 
-function detachMaterial(materiableId) {
-    form.delete(`/serviceorders/${props.serviceOrderId}/materials/${materiableId}`, {
+function detachMaterial(material) {
+    form.delete(`${ownerBase(material)}/materials/${material.pivot.id}`, {
         preserveScroll: true,
     })
 }
@@ -459,7 +500,7 @@ const quantityErrors = ref({})
 function updateQuantity(materiableId) {
     quantityErrors.value[materiableId] = ''
     form.transform(data => ({ quantity: data.quantity }))
-        .put(`/serviceorders/${props.serviceOrderId}/materials/${materiableId}`, {
+        .put(`${base.value}/materials/${materiableId}`, {
             preserveScroll: true,
             onSuccess: () => { form.reset(); quantityErrors.value[materiableId] = '' },
             onError: (errors) => { quantityErrors.value[materiableId] = errors.quantity ?? '' },
@@ -468,7 +509,7 @@ function updateQuantity(materiableId) {
 
 function updateUnforseen(materiableId, value) {
     useForm({ unforseen: value }).put(
-        `/serviceorders/${props.serviceOrderId}/materials/${materiableId}`,
+        `${base.value}/materials/${materiableId}`,
         { preserveScroll: true }
     )
 }
@@ -476,7 +517,7 @@ function updateUnforseen(materiableId, value) {
 const freeformForm = useForm({ quantity: 1, description: '', unforseen: true })
 
 function addFreeformMaterial() {
-    freeformForm.post(`/serviceorders/${props.serviceOrderId}/freeform-materials`, {
+    freeformForm.post(`${base.value}/freeform-materials`, {
         preserveScroll: true,
         onSuccess: () => freeformForm.reset(),
     })
@@ -484,14 +525,14 @@ function addFreeformMaterial() {
 
 function updateFreeformMaterial(freeformMaterialId, payload) {
     useForm(payload).put(
-        `/serviceorders/${props.serviceOrderId}/freeform-materials/${freeformMaterialId}`,
+        `${base.value}/freeform-materials/${freeformMaterialId}`,
         { preserveScroll: true }
     )
 }
 
-function deleteFreeformMaterial(freeformMaterialId) {
+function deleteFreeformMaterial(freeform) {
     useForm({}).delete(
-        `/serviceorders/${props.serviceOrderId}/freeform-materials/${freeformMaterialId}`,
+        `${ownerBase(freeform)}/freeform-materials/${freeform.id}`,
         { preserveScroll: true }
     )
 }

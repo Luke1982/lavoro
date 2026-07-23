@@ -7,12 +7,15 @@ use App\Enums\ServiceOrderTypes;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\HasExecutingUsers;
+use App\Models\Traits\HasMaterials;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RemarkableTrait;
+use App\Services\MateriableService;
 use Carbon\Carbon;
 use Database\Factories\ServiceOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ServiceOrder extends Model
@@ -24,6 +27,7 @@ class ServiceOrder extends Model
     /** @use HasFactory<ServiceOrderFactory> */
     use HasFactory;
 
+    use HasMaterials;
     use HasOwner;
     use RemarkableTrait;
 
@@ -80,19 +84,34 @@ class ServiceOrder extends Model
             }
         });
 
+        /**
+         * Task instances are cascaded away by the database, so no model event ever fires
+         * for them: their materials are released here, while the order still knows which
+         * instances it has. Materials are absent from the pivot list below because they
+         * move stock and go through MateriableService instead.
+         */
         static::deleting(function (ServiceOrder $service_order) {
             $id = $service_order->id;
             $morph_class = ServiceOrder::class;
+            $materiables = app(MateriableService::class);
             $pivot_tables = [
                 'eventables' => 'eventable',
                 'remarkables' => 'remarkable',
                 'imageables' => 'imageable',
                 'documentables' => 'documentable',
-                'materiables' => 'materiable',
                 'activityables' => 'activityable',
                 'customfieldables' => 'customfieldable',
                 'userables' => 'userable',
             ];
+
+            foreach ($service_order->taskInstances as $task_instance) {
+                $materiables->release(
+                    $task_instance,
+                    'verwijdering werkbon #' . $id
+                );
+            }
+
+            $materiables->release($service_order, 'verwijdering werkbon #' . $id);
 
             foreach ($pivot_tables as $table => $morph) {
                 DB::table($table)
@@ -261,21 +280,46 @@ class ServiceOrder extends Model
         return $this->hasMany(Ticket::class);
     }
 
-    public function materials()
+    /**
+     * The order's own materials plus everything booked against its task instances, which is
+     * what the customer is billed for. Task-sourced lines carry the task on the pivot so the
+     * widget and the PDF can say what they were used for.
+     *
+     * Not appended: it reaches through every task instance, so only the pages and exports
+     * that need the full picture ask for it, and they eager load taskInstances.materials.
+     *
+     * @return Collection<int, Material>
+     */
+    public function allMaterials(): Collection
     {
-        return $this->morphToMany(
-            Material::class,
-            'materiable',
-        )->withPivot(
-            'quantity',
-            'unforseen',
-            'id'
-        )->withTimestamps();
+        return $this->withTaskLines(
+            $this->materials,
+            fn (ServiceOrderTaskInstance $task_instance) => $task_instance->materials
+        );
     }
 
-    public function freeformMaterials()
+    /**
+     * @return Collection<int, FreeformMaterial>
+     */
+    public function allFreeformMaterials(): Collection
     {
-        return $this->hasMany(FreeformMaterial::class);
+        return $this->withTaskLines(
+            $this->freeformMaterials,
+            fn (ServiceOrderTaskInstance $task_instance) => $task_instance->freeformMaterials
+        );
+    }
+
+    private function withTaskLines(Collection $own_lines, callable $task_lines): Collection
+    {
+        $lines = $own_lines->each(fn (Model $line) => $line->setAttribute('task_instance', null));
+
+        foreach ($this->taskInstances as $task_instance) {
+            $lines = $lines->concat($task_lines($task_instance)->each(
+                fn (Model $line) => $line->setAttribute('task_instance', $task_instance)
+            ));
+        }
+
+        return $lines;
     }
 
     public function events()
