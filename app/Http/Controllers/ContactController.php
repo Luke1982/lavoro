@@ -42,8 +42,14 @@ class ContactController extends Controller
     {
         $contact->load('customers');
 
+        $customer_count = Customer::count();
+
         return inertia('Contacts/ShowPage', [
             'contact' => $contact,
+            'allCustomers' => $customer_count <= 50
+                ? Customer::orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'customersUseAjax' => $customer_count > 50,
         ]);
     }
 
@@ -61,7 +67,14 @@ class ContactController extends Controller
 
     public function update(ContactUpdateRequest $request, Contact $contact)
     {
-        $contact->update($request->validated());
+        $data = $request->validated();
+
+        if (array_key_exists('customer_id', $data)) {
+            $contact->customers()->sync(array_filter([$data['customer_id']]));
+            unset($data['customer_id']);
+        }
+
+        $contact->update($data);
 
         return redirect()->back()->with('success', 'Contact bijgewerkt.');
     }

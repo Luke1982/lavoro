@@ -31,19 +31,22 @@
     <BoxComponent class="mt-4">
         <div class="flex items-center mb-4">
             <UsersIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
-            <span class="text-md font-bold dark:text-slate-100">Gekoppelde klanten</span>
+            <span class="text-md font-bold dark:text-slate-100">Gekoppelde klant</span>
         </div>
-        <div v-if="contact.customers?.length" class="space-y-2">
-            <div v-for="customer in contact.customers" :key="customer.id">
-                <Link :href="`/customers/${customer.id}`"
+        <EditableTextField type="combobox" v-model="form.customer_id"
+            :options="customerOptions" :has-external-searching="customersUseAjax"
+            :searching="customerSearching" @change="searchCustomers" :readonly="!canUpdate"
+            :error="form.errors.customer_id" @revert="form.clearErrors('customer_id')">
+            <template #display>
+                <Link v-if="linkedCustomer" :href="`/customers/${linkedCustomer.id}`"
                     class="text-indigo-600 hover:underline dark:text-indigo-400 text-sm">
-                    {{ customer.name }}
+                    {{ linkedCustomer.name }}
                 </Link>
-            </div>
-        </div>
-        <p v-else class="text-sm text-gray-400 dark:text-slate-500">
-            Niet gekoppeld aan een klant
-        </p>
+                <span v-else class="text-sm text-gray-400 dark:text-slate-500">
+                    Niet gekoppeld aan een klant
+                </span>
+            </template>
+        </EditableTextField>
     </BoxComponent>
 </template>
 
@@ -54,21 +57,34 @@ import { ChevronRightIcon, UserIcon, UsersIcon } from '@heroicons/vue/24/outline
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import { hasPermission } from '@/Utilities/Utilities'
+import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({
-    contact: { type: Object, required: true },
+    contact:          { type: Object, required: true },
+    allCustomers:     { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
 })
 
 const canUpdate = computed(() => hasPermission('contact.update'))
 
+const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
+
 const form = useForm({
-    first_name: props.contact.first_name,
-    last_name:  props.contact.last_name,
-    email:      props.contact.email ?? '',
+    first_name:  props.contact.first_name,
+    last_name:   props.contact.last_name,
+    email:       props.contact.email ?? '',
+    customer_id: props.contact.customers?.[0]?.id ?? null,
 })
 
+const linkedCustomer = computed(() =>
+    props.contact.customers?.find(customer => customer.id === form.customer_id)
+    ?? customerOptions.value.find(customer => customer.id === form.customer_id)
+    ?? null,
+)
+
 watch(
-    [() => form.first_name, () => form.last_name, () => form.email],
+    [() => form.first_name, () => form.last_name, () => form.email, () => form.customer_id],
     () => {
         form.patch(`/contacts/${props.contact.id}`, { preserveScroll: true })
     },
