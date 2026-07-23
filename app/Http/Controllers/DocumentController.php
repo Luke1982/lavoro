@@ -21,10 +21,12 @@ class DocumentController extends Controller
 
         foreach ($request->file('documents') as $document_file) {
             $path = $document_file->store('uploaded/' . $model_name . '/' . $request->documentable_id . '/documents', 'public');
+            $original_name = $document_file->getClientOriginalName();
 
             $document = Document::create([
-                'name' => $document_file->getClientOriginalName(),
+                'name' => $original_name,
                 'path' => $path,
+                'title' => $this->titleFromFilename($original_name),
             ]);
 
             $documentable_record->documents()->attach($document->id, [
@@ -61,6 +63,13 @@ class DocumentController extends Controller
         $document->delete();
 
         return back()->with('success', 'Document verwijderd.');
+    }
+
+    private function titleFromFilename(string $filename): string
+    {
+        $base_name = pathinfo($filename, PATHINFO_FILENAME);
+
+        return trim(preg_replace('/[\s_]+/', ' ', $base_name));
     }
 
     public function download(Document $document)
