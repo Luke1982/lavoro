@@ -23,4 +23,17 @@ trait ResolvesMateriableOwner
 
         return $service_order !== null && $this->user()->can($ability, $service_order);
     }
+
+    /**
+     * Whether a morph type/id pair points back at the owner in the route, so a line can
+     * only be touched through the URL of the owner it actually belongs to.
+     */
+    protected function ownerMatches(?string $morph_type, int|string|null $morph_id): bool
+    {
+        $owner = $this->materiableOwner();
+
+        return $owner !== null
+            && $morph_type === $owner->getMorphClass()
+            && (int) $morph_id === (int) $owner->getKey();
+    }
 }

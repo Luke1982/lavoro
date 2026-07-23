@@ -219,7 +219,7 @@
 
                     <!-- Delete -->
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
-                        <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed"
+                        <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed && canDeleteRow(material)"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
                             @click="detachMaterial(material)"
                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
@@ -283,7 +283,8 @@
                         <span class="text-sm text-gray-400 dark:text-slate-500">—</span>
                     </div>
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
-                        <TrashIcon v-if="canDeleteFreeform && !sentToAdministration && !isClosed"
+                        <TrashIcon
+                            v-if="canDeleteFreeform && !sentToAdministration && !isClosed && canDeleteRow(freeform)"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
                             @click="deleteFreeformMaterial(freeform)" v-tooltip="'Verwijder deze vrije regel'" />
                     </div>
@@ -398,6 +399,14 @@ function isForeign(row) {
 /** Where a row's own mutations go: its task when it belongs to one, otherwise this widget's owner. */
 function ownerBase(row) {
     return row.task_instance_id ? `/serviceordertaskinstances/${row.task_instance_id}` : base.value
+}
+
+/**
+ * A line from a task the viewer may not see arrives without a label. It still counts toward
+ * the total, but deleting something you cannot identify is withheld — the trash is hidden.
+ */
+function canDeleteRow(row) {
+    return !isForeign(row) || !!row.task_label
 }
 
 const showAddForm = ref(false)
