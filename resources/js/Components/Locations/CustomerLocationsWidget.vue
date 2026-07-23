@@ -19,10 +19,14 @@
                 <div v-auto-animate>
                     <div v-for="location in visibleLocations" :key="location.id"
                         class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-800 last:border-b-0">
-                        <div class="w-28 flex-none overflow-hidden rounded-lavoro-sm">
+                        <button type="button" @click="openMapModal(location)"
+                            :disabled="!locationAddress(location)"
+                            class="relative w-28 flex-none overflow-hidden rounded-lavoro-sm ring-1 ring-gray-200/70 dark:ring-slate-700 transition enabled:cursor-pointer enabled:hover:ring-2 enabled:hover:ring-lavoro-blue"
+                            v-tooltip="locationAddress(location) ? 'Vergroot kaart' : ''">
                             <OpenStreetMapWidget :key="locationAddress(location)" :address="locationAddress(location)"
                                 :interactive="false" height-class="h-24" />
-                        </div>
+                            <span class="absolute inset-0" aria-hidden="true" />
+                        </button>
                         <Link :href="`/locations/${location.id}`"
                             class="flex flex-1 items-center justify-between min-w-0 hover:opacity-80">
                             <div class="flex flex-col min-w-0 gap-2">
@@ -49,6 +53,17 @@
 
         <LocationDeleteModal v-model:open="deleteModalOpen" :location="deleteTarget"
             :other-locations="otherLocations" />
+
+        <ModalDialog v-model:open="mapModalOpen" :title="mapModalLocation?.title ?? 'Locatie'"
+            max-width-class="sm:max-w-3xl">
+            <div class="overflow-hidden rounded-lavoro-sm">
+                <OpenStreetMapWidget v-if="mapModalLocation" :key="mapModalLocation.id"
+                    :address="locationAddress(mapModalLocation)" height-class="h-[60vh]" />
+            </div>
+            <p v-if="mapModalLocation" class="mt-3 text-sm text-gray-500 dark:text-slate-400">
+                {{ locationAddress(mapModalLocation) || 'Geen adres bekend' }}
+            </p>
+        </ModalDialog>
 
         <DrawerComponent v-if="canCreate" v-model="addDrawerOpen" title="Nieuwe locatie toevoegen"
             subtitle="Vul de gegevens in van de nieuwe locatie.">
@@ -112,6 +127,7 @@ import { MapPinIcon, PlusIcon, ChevronRightIcon, TrashIcon, ArrowRightIcon } fro
 import TextInput from '@/Components/UI/TextInput.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import LocationDeleteModal from '@/Components/Locations/LocationDeleteModal.vue';
+import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { hasPermission } from '@/Utilities/Utilities';
@@ -135,6 +151,13 @@ const showAllLocations = ref(false);
 const visibleLocations = computed(() =>
     showAllLocations.value ? props.locations : props.locations.slice(0, locationPreviewCount)
 );
+
+const mapModalOpen = ref(false);
+const mapModalLocation = ref(null);
+function openMapModal(location) {
+    mapModalLocation.value = location;
+    mapModalOpen.value = true;
+}
 
 const addDrawerOpen = ref(false);
 const addForm = useForm({

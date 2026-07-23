@@ -101,9 +101,11 @@ onMounted(async () => {
             maxZoom: 19,
         }).addTo(map);
 
-        L.marker([parseFloat(lat), parseFloat(lon)], { icon: markerIcon }).addTo(map);
+        L.marker([parseFloat(lat), parseFloat(lon)], { icon: markerIcon, interactive }).addTo(map);
 
         loading.value = false;
+
+        setTimeout(() => map?.invalidateSize(), 150);
     } catch {
         loading.value = false;
         notFound.value = true;
