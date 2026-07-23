@@ -35,24 +35,24 @@ class ProductController extends Controller
             $products = self::getByTerm($search);
         }
 
-        $onlyType = array_values(array_filter(explode(',', $request->input('onlyType', '')), fn($v) => $v !== ''));
+        $onlyType = array_values(array_filter(explode(',', $request->input('onlyType', '')), fn ($v) => $v !== ''));
         if (count($onlyType)) {
             $products->whereIn('product_type_id', $onlyType);
         }
 
-        $onlyBrand = array_values(array_filter(explode(',', $request->input('onlyBrand', '')), fn($v) => $v !== ''));
+        $onlyBrand = array_values(array_filter(explode(',', $request->input('onlyBrand', '')), fn ($v) => $v !== ''));
         if (count($onlyBrand)) {
             $products->whereIn('brand_id', $onlyBrand);
         }
 
-        $onlyAttributeValues = array_values(array_filter(explode(',', $request->input('onlyAttributeValues', '')), fn($v) => $v !== ''));
+        $onlyAttributeValues = array_values(array_filter(explode(',', $request->input('onlyAttributeValues', '')), fn ($v) => $v !== ''));
         if (count($onlyAttributeValues)) {
             $values_by_attr = [];
             foreach (ProductAttributeValue::whereIn('id', $onlyAttributeValues)->get(['id', 'product_attribute_id']) as $av) {
                 $values_by_attr[$av->product_attribute_id][] = (int) $av->id;
             }
             foreach ($values_by_attr as $val_ids) {
-                $products->whereHas('productAttributeValueables', fn($q) => $q->whereIn('product_attribute_value_id', $val_ids));
+                $products->whereHas('productAttributeValueables', fn ($q) => $q->whereIn('product_attribute_value_id', $val_ids));
             }
         }
 
@@ -79,12 +79,12 @@ class ProductController extends Controller
                 'productTypes' => ProductType::flatListWithPath(),
                 'productAttributes' => ProductAttribute::with(['values', 'productTypes'])
                     ->get()
-                    ->filter(fn($attr) => $attr->values->isNotEmpty())
-                    ->map(fn($attr) => [
+                    ->filter(fn ($attr) => $attr->values->isNotEmpty())
+                    ->map(fn ($attr) => [
                         'id' => $attr->id,
                         'name' => $attr->name,
                         'values' => $attr->values
-                            ->map(fn($v) => ['id' => $v->id, 'value' => $v->value])
+                            ->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])
                             ->values(),
                         'product_type_ids' => $attr->productTypes->pluck('id')->values(),
                     ])
@@ -137,6 +137,7 @@ class ProductController extends Controller
             'mainImage',
             'documents',
             'assets.customer',
+            'assets.linkedLocation',
             'assets.openTickets',
             'assets.pendingTickets',
             'assets.closedTickets',
@@ -158,7 +159,7 @@ class ProductController extends Controller
             ->with(['brand', 'productType'])
             ->orderBy('model')
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->brand->name . ' ' . $p->model
                     . ' (' . ($typePaths[$p->product_type_id] ?? $p->productType->name) . ')',
@@ -218,7 +219,7 @@ class ProductController extends Controller
                 ->with('values')->orderBy('name')->get(),
             'selectedAttributeValues' => $product->productAttributeValueables()
                 ->pluck('product_attribute_value_id', 'product_attribute_id'),
-            'productSuppliers' => $product->suppliers->map(fn($s) => [
+            'productSuppliers' => $product->suppliers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'article_number' => $s->pivot->article_number,
@@ -240,7 +241,7 @@ class ProductController extends Controller
             $allowed_attribute_ids = $product->productType->productAttributes->pluck('id');
 
             foreach ($request->input('attributes', []) as $attr) {
-                if (! $allowed_attribute_ids->contains($attr['product_attribute_id'])) {
+                if (!$allowed_attribute_ids->contains($attr['product_attribute_id'])) {
                     continue;
                 }
 
@@ -295,7 +296,7 @@ class ProductController extends Controller
                     $valueId = $attr['product_attribute_value_id'];
 
                     foreach ($products as $product) {
-                        if (! $product->productType->productAttributes->contains('id', $attributeId)) {
+                        if (!$product->productType->productAttributes->contains('id', $attributeId)) {
                             continue;
                         }
 

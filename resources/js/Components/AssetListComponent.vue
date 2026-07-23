@@ -15,6 +15,16 @@
                         {{
                             asset.product.brand.name }} {{ asset.product.model }}</Link>
                 </div>
+                <div v-if="!customerId && asset.customer"
+                    class="mt-1 flex flex-col gap-0.5 text-xs text-gray-600 dark:text-slate-400">
+                    <span class="font-medium text-gray-700 dark:text-slate-300">{{ asset.customer.name }}</span>
+                    <span v-if="formatAddress(asset.customer)">{{ formatAddress(asset.customer) }}</span>
+                    <span v-if="asset.linked_location"
+                        class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
+                        <LocateFixed class="h-3.5 w-3.5 shrink-0" />
+                        <span>{{ [asset.linked_location.title, formatAddress(asset.linked_location)].filter(Boolean).join(' · ') }}</span>
+                    </span>
+                </div>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-600 dark:text-slate-400">
                     <div class="flex items-center gap-1">
                         <CalendarDaysIcon class="h-4 w-4 text-gray-500 dark:text-slate-500" />
@@ -31,7 +41,7 @@
                             <template v-else>SN {{ asset.serial_number }}</template>
                         </span>
                     </div>
-                    <div v-if="asset.linked_location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
+                    <div v-if="customerId && asset.linked_location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
                         <LocateFixed class="h-3.5 w-3.5" />
                         <span>{{ [asset.linked_location.title, asset.linked_location.city].filter(Boolean).join(' · ') }}</span>
                     </div>
@@ -97,6 +107,7 @@ import { CalendarDaysIcon, HashtagIcon, TrashIcon } from '@heroicons/vue/24/outl
 import { LocateFixed } from '@lucide/vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import { formatAddress } from '@/Utilities/Utilities';
 
 const props = defineProps({
     assets: {
