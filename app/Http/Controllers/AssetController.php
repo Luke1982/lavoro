@@ -195,7 +195,7 @@ class AssetController extends Controller
                     'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
                 ];
             });
-        $asset->load([
+        $relations = [
             'images',
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
@@ -203,7 +203,6 @@ class AssetController extends Controller
             'product.brand',
             'product.images',
             'product.productType',
-            'product.suppliers',
             'product.productables.childProduct.brand',
             'product.productables.childProduct.productType',
             'product.productables.productRelation',
@@ -218,7 +217,13 @@ class AssetController extends Controller
             'parentAsset.product.productType',
             'parentAsset.productRelation',
             'maintenanceContracts.customer',
-        ]);
+        ];
+
+        if ($request->user()->hasPermission('supplier.read')) {
+            $relations[] = 'product.suppliers';
+        }
+
+        $asset->load($relations);
 
         $currentTypeId = $asset->product?->productType?->id;
         $existingChildIds = $asset->childAssets()->pluck('id')->all();

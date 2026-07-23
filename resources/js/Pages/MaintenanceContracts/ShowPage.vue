@@ -200,7 +200,7 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent>
+            <BoxComponent class="mt-6 md:mt-0">
                 <div class="flex items-center mb-4">
                     <ClockIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
                     <span class="text-md font-bold dark:text-slate-100">Activiteiten</span>

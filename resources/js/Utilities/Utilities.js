@@ -91,6 +91,31 @@ export const serviceOrderPillColorClasses = (order) => {
     }
 };
 
+export const ticketStatusColor = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "open") return "red";
+    if (s === "in behandeling") return "orange";
+    if (s === "gesloten") return "green";
+    return "gray";
+};
+
+export const ticketPriorityColor = (priority) => {
+    const p = (priority || "").toLowerCase();
+    if (p === "hoog") return "red";
+    if (p === "normaal") return "yellow";
+    if (p === "laag") return "green";
+    return "gray";
+};
+
+export const ticketStatusDotClasses = (status) => {
+    switch (ticketStatusColor(status)) {
+        case "red": return "bg-red-500";
+        case "orange": return "bg-amber-500";
+        case "green": return "bg-green-500";
+        default: return "bg-gray-400";
+    }
+};
+
 export const ticketStatusClasses = (status) => {
     const s = (status || "").toLowerCase();
     if (s === "open") return "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50";

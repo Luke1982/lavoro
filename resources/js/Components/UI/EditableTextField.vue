@@ -72,8 +72,6 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
     hasExternalSearching: { type: Boolean, default: false },
     searching: { type: Boolean, default: false },
-    // Right-aligned closed-state hint about the field's nature. '' auto-derives from
-    // inputType (date/currency); pass 'link' for fields that navigate elsewhere.
     indicator: { type: String, default: '' },
 });
 

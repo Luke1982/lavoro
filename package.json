@@ -62,6 +62,7 @@
         "@tiptap/vue-3": "^3.27.3",
         "@vueuse/core": "^14.3.0",
         "dayjs": "^1.11.21",
+        "embla-carousel-vue": "^8.6.0",
         "floating-vue": "^5.2.2",
         "glightbox": "^3.3.1",
         "jspreadsheet-ce": "^5.0.4",

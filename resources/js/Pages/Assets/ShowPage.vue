@@ -1,7 +1,13 @@
 <template>
-    <BreadcrumbComponent :items="breadcrumbItems" wrapper-class="mb-6" />
+    <div class="flex items-start justify-between gap-4 mb-6">
+        <BreadcrumbComponent :items="breadcrumbItems" />
+        <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
+            class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
+            <TrashIcon class="size-5" />
+        </button>
+    </div>
 
-    <div class="flex items-start gap-4 mb-6">
+    <div class="flex items-start gap-4">
         <div
             class="size-20 sm:size-24 flex-none overflow-hidden rounded-lg bg-white p-2.5 ring-1 ring-gray-900/10 dark:bg-slate-800 dark:ring-slate-600">
             <img v-if="headerImage" :src="headerImage" :alt="assetTitle" class="size-full object-contain" />
@@ -15,15 +21,11 @@
                 <BadgeComponent :color="statusBadgeColor" :has-dot="false">{{ asset.status }}</BadgeComponent>
                 <BadgeComponent v-if="asset.date_in_service" color="blue" :has-dot="false">In gebruik</BadgeComponent>
             </div>
-            <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-                <TitleValueIconComponent v-for="fact in headerFacts" :key="fact.title" :icon="fact.icon"
-                    :title="fact.title" :value="fact.value" />
-            </div>
         </div>
-        <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
-            class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
-            <TrashIcon class="size-5" />
-        </button>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3 mb-6">
+        <TitleValueIconComponent v-for="fact in headerFacts" :key="fact.title" class="w-[calc(50%-1rem)] sm:w-auto"
+            :icon="fact.icon" :title="fact.title" :value="fact.value" />
     </div>
 
     <TwoThirdsOneThird>
@@ -133,9 +135,9 @@
                 <SectionHeader :icon="ExclamationCircleIcon" title="Storingen" color="red">
                     <template #actions>
                         <button v-if="hasPermission('ticket.create')" @click="showTicketDrawer = true"
-                            class="inline-flex items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white cursor-pointer transition-opacity hover:opacity-90">
+                            class="inline-flex items-center gap-1.5 rounded-md bg-lavoro-blue px-2 py-2 sm:px-3 text-sm font-medium text-white cursor-pointer transition-opacity hover:opacity-90">
                             <PlusIcon class="w-5 h-5" />
-                            Nieuwe storing
+                            <span class="hidden sm:inline">Nieuwe storing</span>
                         </button>
                     </template>
                 </SectionHeader>
@@ -144,29 +146,35 @@
                 </p>
                 <div v-else class="mt-2 divide-y divide-gray-100 dark:divide-slate-700/60">
                     <Link v-for="ticket in asset.tickets" :key="ticket.id" :href="`/tickets/${ticket.id}`"
-                        class="flex items-center gap-3 py-3 px-2 -mx-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/40">
-                        <span class="size-2.5 rounded-full flex-none" :class="ticketDotColor(ticket.status)" />
-                        <span class="text-sm font-semibold text-gray-800 dark:text-slate-200 flex-none">
+                        class="flex items-start sm:items-center gap-3 py-3 px-2 -mx-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <span class="mt-1.5 sm:mt-0 size-2.5 rounded-full flex-none" :class="ticketStatusDotClasses(ticket.status)" />
+                        <span class="mt-0.5 sm:mt-0 text-sm font-semibold text-gray-800 dark:text-slate-200 flex-none">
                             #{{ ticket.id }}
                         </span>
-                        <span class="text-sm text-gray-600 dark:text-slate-300 truncate flex-1 min-w-0">
-                            {{ ticket.subject }}
-                        </span>
+                        <div class="flex min-w-0 flex-1 flex-col gap-1">
+                            <span class="text-sm text-gray-600 dark:text-slate-300 truncate">
+                                {{ ticket.subject }}
+                            </span>
+                            <BadgeComponent class="self-start sm:hidden" :color="ticketPriorityColor(ticket.priority)"
+                                :has-dot="false">
+                                {{ ticket.priority }}
+                            </BadgeComponent>
+                        </div>
                         <span class="hidden sm:block w-24 flex-none text-right text-xs text-gray-400 dark:text-slate-500">
                             {{ nlDate(ticket.created_at) }}
                         </span>
-                        <div class="w-36 flex-none flex justify-end">
-                            <BadgeComponent :color="ticketBadgeColor(ticket.status)" :has-dot="false">
-                                {{ ticket.status }}
+                        <div class="hidden flex-none sm:flex sm:w-36 sm:justify-end">
+                            <BadgeComponent :color="ticketPriorityColor(ticket.priority)" :has-dot="false">
+                                {{ ticket.priority }}
                             </BadgeComponent>
                         </div>
-                        <div class="w-8 flex-none">
+                        <div class="hidden flex-none sm:block sm:w-8">
                             <span v-if="ticket.created_by" v-tooltip="ticket.created_by.name"
                                 class="flex items-center justify-center size-8 rounded-full bg-lavoro-blue/10 text-lavoro-blue font-semibold text-xs">
                                 {{ initials(ticket.created_by.name) }}
                             </span>
                         </div>
-                        <ChevronRightIcon class="size-4 flex-none text-gray-400 dark:text-slate-500" />
+                        <ChevronRightIcon class="mt-1 sm:mt-0 size-4 flex-none text-gray-400 dark:text-slate-500" />
                     </Link>
                 </div>
             </BoxComponent>
@@ -345,7 +353,7 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent v-if="hasPermission('image.upload') || hasPermission('image.see')">
+            <BoxComponent v-if="hasPermission('image.upload') || hasPermission('image.see')" class="mt-6 md:mt-0">
                 <SectionHeader :icon="PhotoIcon" title="Foto's van de machine" color="blue" border />
                 <ImageUploadComponent :existing="asset.images" :imageable-id="asset.id"
                     imageable-type="\App\Models\Asset" />
@@ -469,7 +477,7 @@ import dayjs from 'dayjs';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { hasPermission, nlDate, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
+import { hasPermission, nlDate, initials, ticketStatusDotClasses, ticketPriorityColor, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 
 const showTicketDrawer = ref(false);
@@ -543,7 +551,11 @@ const canUpdate = computed(() => hasPermission('asset.update'))
 const canDelete = computed(() => hasPermission('asset.delete'))
 const canReadSuppliers = computed(() => hasPermission('supplier.read'))
 
-const assetTitle = computed(() => `${props.asset.product.brand.name} ${props.asset.product.model}`)
+const assetTitle = computed(() => {
+    const brandName = props.asset.product?.brand?.name
+    const model = props.asset.product?.model
+    return [brandName, model].filter(Boolean).join(' ') || `Machine #${props.asset.id}`
+})
 
 const breadcrumbItems = computed(() => [
     { label: 'Machines', href: '/assets' },
@@ -621,22 +633,6 @@ function closeTicketDrawer() {
     showTicketDrawer.value = false
     newTicketForm.reset()
     newTicketForm.clearErrors()
-}
-
-function ticketBadgeColor(status) {
-    const state = (status ?? '').toLowerCase()
-    if (state === 'open') return 'red'
-    if (state === 'in behandeling') return 'orange'
-    if (state === 'gesloten') return 'green'
-    return 'gray'
-}
-
-function ticketDotColor(status) {
-    const state = (status ?? '').toLowerCase()
-    if (state === 'open') return 'bg-red-500'
-    if (state === 'in behandeling') return 'bg-amber-500'
-    if (state === 'gesloten') return 'bg-green-500'
-    return 'bg-gray-400'
 }
 
 const updateAsset = () => {
