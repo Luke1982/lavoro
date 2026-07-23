@@ -1,10 +1,16 @@
 <template>
-    <div class="flex items-center">
-        <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
-        <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
-            ticket.asset.serial_number
-            }}</span>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div class="inline sm:flex items-center">
+            <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
+            <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
+            <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
+                ticket.asset.serial_number
+                }}</span>
+        </div>
+        <button v-if="hasPermission('ticket.delete')" type="button" @click="deleteTicket"
+            class="inline-flex items-center justify-center size-9 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 ring-gray-200 dark:ring-slate-600 ring-1 rounded-full cursor-pointer">
+            <TrashIcon class="size-5" />
+        </button>
     </div>
 
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 mb-2">
@@ -44,23 +50,6 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-            <Menu as="div" class="relative" v-if="hasPermission('ticket.delete')">
-                <MenuButton
-                    class="inline-flex items-center justify-center p-2 text-gray-500 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer">
-                    <EllipsisHorizontalIcon class="size-5" />
-                </MenuButton>
-                <MenuItems
-                    class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 shadow-lg rounded-lg border border-gray-200 dark:border-slate-700 focus:outline-none z-20 py-1">
-                    <MenuItem v-if="hasPermission('ticket.delete')" v-slot="{ active }">
-                        <button @click="deleteTicket"
-                            :class="[active ? 'bg-red-50 dark:bg-red-900/20' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-red-600 dark:text-red-400']">
-                            <TrashIcon class="w-4 h-4 flex-shrink-0" />
-                            Storing verwijderen
-                        </button>
-                    </MenuItem>
-                </MenuItems>
-            </Menu>
-
             <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
                 :href="`/serviceorders/${ticket.service_order_id}`"
                 class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
@@ -275,12 +264,11 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { ExclamationCircleIcon, PhotoIcon, TrashIcon, EllipsisHorizontalIcon, ArrowTopRightOnSquareIcon, DocumentTextIcon, ClockIcon, UserIcon, CalendarIcon } from '@heroicons/vue/24/outline';
+import { ExclamationCircleIcon, PhotoIcon, TrashIcon, ArrowTopRightOnSquareIcon, DocumentTextIcon, ClockIcon, UserIcon, CalendarIcon } from '@heroicons/vue/24/outline';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';
-import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 
 const props = defineProps({
