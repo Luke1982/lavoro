@@ -24,40 +24,53 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="maintenanceContracts.data?.length">
             <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                class="hidden md:grid md:grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
                 <div class="col-span-3">Klant</div>
-                <div class="col-span-3">Contract</div>
+                <div class="col-span-2">Contract</div>
                 <div class="col-span-2">Periode</div>
-                <div class="col-span-1">Prijs</div>
+                <div class="col-span-2">Prijs</div>
                 <div class="col-span-2">Status</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <div v-for="contract in maintenanceContracts.data" :key="contract.id"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
-                <Link :href="`/maintenancecontracts/${contract.id}`" class="col-span-3 text-gray-900 dark:text-slate-100 hover:underline">
-                    {{ contract.customer?.name }}
-                </Link>
-                <Link :href="`/maintenancecontracts/${contract.id}`" class="col-span-3 font-medium text-gray-900 dark:text-slate-100 hover:underline">
-                    {{ contract.display_title }}
-                </Link>
-                <div class="col-span-2 text-gray-500 dark:text-slate-400">
-                    {{ nlDate(contract.start_date) }} – {{ contract.end_date ? nlDate(contract.end_date) : 'heden' }}
+                class="relative md:grid md:grid-cols-12 p-4 pr-14 md:pr-4 text-sm border-b-lavoro-gray-150 border-b-2 md:items-center">
+                <div class="flex flex-col py-1 md:py-0 md:col-span-3">
+                    <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Klant</span>
+                    <Link :href="`/maintenancecontracts/${contract.id}`" class="text-gray-900 dark:text-slate-100 hover:underline">
+                        {{ contract.customer?.name }}
+                    </Link>
                 </div>
-                <div class="col-span-1 text-gray-500 dark:text-slate-400">
-                    {{ nlCurrency(contract.price) }} / {{ contract.price_interval }}
+                <div class="flex flex-col py-1 md:py-0 md:col-span-2">
+                    <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Contract</span>
+                    <Link :href="`/maintenancecontracts/${contract.id}`" class="font-medium text-gray-900 dark:text-slate-100 hover:underline">
+                        {{ contract.display_title }}
+                    </Link>
                 </div>
-                <div class="col-span-2">
+                <div class="flex flex-col py-1 md:py-0 md:col-span-2">
+                    <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Periode</span>
+                    <span class="text-gray-500 dark:text-slate-400">
+                        {{ nlDate(contract.start_date) }} – {{ contract.end_date ? nlDate(contract.end_date) : 'heden' }}
+                    </span>
+                </div>
+                <div class="flex flex-col py-1 md:py-0 md:col-span-2">
+                    <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Prijs</span>
+                    <span class="text-gray-500 dark:text-slate-400">
+                        {{ nlCurrency(contract.price) }} / {{ contract.price_interval }}
+                    </span>
+                </div>
+                <div class="flex flex-col py-1 md:py-0 md:col-span-2">
+                    <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Status</span>
                     <EditableTextField type="combobox" v-model="contract.status" :options="statusEditOptions"
                         :readonly="!hasPermission('maintenancecontract.update')" :decoration="false"
                         @update="val => updateContractStatus(contract, val)">
                         <template #display>
-                            <span :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border', maintenanceContractStatusClasses(contract.status)]">
+                            <span :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border whitespace-nowrap', maintenanceContractStatusClasses(contract.status)]">
                                 {{ maintenanceContractStatusText(contract.status) }}
                             </span>
                         </template>
                     </EditableTextField>
                 </div>
-                <div class="col-span-1 flex justify-end">
+                <div class="absolute right-4 top-4 md:static md:col-span-1 md:flex md:justify-end">
                     <div v-if="hasPermission('maintenancecontract.delete')" class="border-1 border-lavoro-darkergray rounded-full p-2">
                         <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteContract(contract.id)" />
                     </div>
