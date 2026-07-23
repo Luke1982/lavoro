@@ -12,19 +12,52 @@
 
     <BoxComponent>
         <div class="flex items-center mb-4">
-            <UserIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
+            <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
+                <UserIcon class="size-6 text-lavoro-blue stroke-2" />
+            </div>
             <span class="text-md font-bold dark:text-slate-100">Contactgegevens</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EditableTextField v-model="form.first_name" type="input" label="Voornaam"
-                :error="form.errors.first_name" :readonly="!canUpdate"
-                @revert="form.clearErrors('first_name')" />
-            <EditableTextField v-model="form.last_name" type="input" label="Achternaam"
-                :error="form.errors.last_name" :readonly="!canUpdate"
-                @revert="form.clearErrors('last_name')" />
-            <EditableTextField v-model="form.email" type="input" label="E-mail"
-                :error="form.errors.email" :readonly="!canUpdate"
-                @revert="form.clearErrors('email')" />
+            <div class="flex items-center gap-3">
+                <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                    <UserIcon class="size-5 text-lavoro-blue stroke-2" />
+                </div>
+                <EditableTextField v-model="form.first_name" type="input" label="Voornaam"
+                    :error="form.errors.first_name" :readonly="!canUpdate"
+                    @revert="form.clearErrors('first_name')" class="flex-grow min-w-0" />
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                    <IdentificationIcon class="size-5 text-lavoro-blue stroke-2" />
+                </div>
+                <EditableTextField v-model="form.last_name" type="input" label="Achternaam"
+                    :error="form.errors.last_name" :readonly="!canUpdate"
+                    @revert="form.clearErrors('last_name')" class="flex-grow min-w-0" />
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                    <EnvelopeIcon class="size-5 text-lavoro-blue stroke-2" />
+                </div>
+                <EditableTextField v-model="form.email" type="input" label="E-mail"
+                    :error="form.errors.email" :readonly="!canUpdate"
+                    @revert="form.clearErrors('email')" class="flex-grow min-w-0" />
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                    <PhoneIcon class="size-5 text-lavoro-blue stroke-2" />
+                </div>
+                <EditableTextField v-model="form.phone" type="input" label="Telefoon"
+                    :error="form.errors.phone" :readonly="!canUpdate"
+                    @revert="form.clearErrors('phone')" class="flex-grow min-w-0" />
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                    <DevicePhoneMobileIcon class="size-5 text-lavoro-blue stroke-2" />
+                </div>
+                <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
+                    :error="form.errors.mobile" :readonly="!canUpdate"
+                    @revert="form.clearErrors('mobile')" class="flex-grow min-w-0" />
+            </div>
         </div>
     </BoxComponent>
 
@@ -53,7 +86,7 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
-import { ChevronRightIcon, UserIcon, UsersIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon, UserIcon, UsersIcon, IdentificationIcon, EnvelopeIcon, PhoneIcon, DevicePhoneMobileIcon } from '@heroicons/vue/24/outline'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import { hasPermission } from '@/Utilities/Utilities'
@@ -74,6 +107,8 @@ const form = useForm({
     first_name:  props.contact.first_name,
     last_name:   props.contact.last_name,
     email:       props.contact.email ?? '',
+    phone:       props.contact.phone ?? '',
+    mobile:      props.contact.mobile ?? '',
     customer_id: props.contact.customers?.[0]?.id ?? null,
 })
 
@@ -84,7 +119,7 @@ const linkedCustomer = computed(() =>
 )
 
 watch(
-    [() => form.first_name, () => form.last_name, () => form.email, () => form.customer_id],
+    [() => form.first_name, () => form.last_name, () => form.email, () => form.phone, () => form.mobile, () => form.customer_id],
     () => {
         form.patch(`/contacts/${props.contact.id}`, { preserveScroll: true })
     },

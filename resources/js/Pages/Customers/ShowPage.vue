@@ -54,38 +54,72 @@
                     <template #main>
                         <BoxComponent>
                             <div class="flex items-center mb-4">
-                                <UserIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
+                                    <UserIcon class="size-6 text-lavoro-blue stroke-2" />
+                                </div>
                                 <span class="text-md font-bold dark:text-slate-100">Contactgegevens</span>
                             </div>
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
                                 <div class="flex flex-col gap-6 md:pr-8">
-                                    <EditableTextField v-model="form.name" type="input" label="Naam"
-                                        :error="form.errors.name" :disabled="!canUpdate"
-                                        @revert="form.clearErrors('name')" />
-                                    <EditableTextField v-model="form.contactname" type="input" label="Contactpersoon"
-                                        placeholder="Nog niet ingesteld" :error="form.errors.contactname"
-                                        :disabled="!canUpdate" @revert="form.clearErrors('contactname')" />
-                                    <EditableTextField v-model="form.phone" type="input" label="Telefoon"
-                                        placeholder="Nog niet ingesteld" :error="form.errors.phone"
-                                        :disabled="!canUpdate" @revert="form.clearErrors('phone')" />
-                                    <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
-                                        placeholder="Nog niet ingesteld" :error="form.errors.mobile"
-                                        :disabled="!canUpdate" @revert="form.clearErrors('mobile')" />
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <UserIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.name" type="input" label="Naam"
+                                            :error="form.errors.name" :disabled="!canUpdate"
+                                            @revert="form.clearErrors('name')" class="flex-grow min-w-0" />
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <IdentificationIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.contactname" type="input" label="Contactpersoon"
+                                            placeholder="Nog niet ingesteld" :error="form.errors.contactname"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('contactname')" class="flex-grow min-w-0" />
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <PhoneIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.phone" type="input" label="Telefoon"
+                                            placeholder="Nog niet ingesteld" :error="form.errors.phone"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('phone')" class="flex-grow min-w-0" />
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <DevicePhoneMobileIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
+                                            placeholder="Nog niet ingesteld" :error="form.errors.mobile"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('mobile')" class="flex-grow min-w-0" />
+                                    </div>
                                 </div>
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
-                                    <EditableTextField v-model="form.email" type="input" label="E-mail"
-                                        placeholder="Nog niet ingesteld" :error="form.errors.email"
-                                        :disabled="!canUpdate" @revert="form.clearErrors('email')" />
-                                    <EditableTextField v-model="form.website" type="input" label="Website"
-                                        placeholder="Nog niet ingesteld" :error="form.errors.website"
-                                        :disabled="!canUpdate" @revert="form.clearErrors('website')" />
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <EnvelopeIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.email" type="input" label="E-mail"
+                                            placeholder="Nog niet ingesteld" :error="form.errors.email"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('email')" class="flex-grow min-w-0" />
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                            <GlobeAltIcon class="size-5 text-lavoro-blue stroke-2" />
+                                        </div>
+                                        <EditableTextField v-model="form.website" type="input" label="Website"
+                                            placeholder="Nog niet ingesteld" :error="form.errors.website"
+                                            :disabled="!canUpdate" @revert="form.clearErrors('website')" class="flex-grow min-w-0" />
+                                    </div>
                                 </div>
                             </div>
                         </BoxComponent>
 
                         <BoxComponent class="mt-4">
                             <div class="flex items-center mb-4">
-                                <MapPinIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-violet-600/10 mr-3">
+                                    <MapPinIcon class="size-6 text-violet-600 stroke-2" />
+                                </div>
                                 <span class="text-md font-bold dark:text-slate-100">Adressen</span>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
@@ -135,7 +169,9 @@
 
                         <BoxComponent class="mt-4">
                             <div class="flex items-center mb-4">
-                                <BanknotesIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                                <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-green-600/10 mr-3">
+                                    <BanknotesIcon class="size-6 text-green-600 stroke-2" />
+                                </div>
                                 <span class="text-md font-bold dark:text-slate-100">Financiële informatie</span>
                             </div>
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
@@ -176,35 +212,83 @@
 
                             <BoxComponent>
                                 <div
-                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
+                                    class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-3 justify-between items-center">
                                     <div class="flex items-center">
-                                        <UserGroupIcon
-                                            class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
+                                            <UsersIcon class="size-6 text-lavoro-blue stroke-2" />
+                                        </div>
                                         <h2 class="font-semibold text-base dark:text-slate-200">Contacten</h2>
                                     </div>
-                                    <PlusCircleIcon v-if="hasPermission('contact.create')"
-                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                    <button v-if="hasPermission('contact.create')" type="button"
                                         @click="showContactDrawer = true"
-                                        v-tooltip="`Contactpersoon toevoegen aan ${form.name}`" />
+                                        class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                                        <PlusIcon class="size-4" />
+                                        Contact toevoegen
+                                    </button>
                                 </div>
                                 <div v-if="!customer.contacts?.length"
                                     class="text-sm text-gray-500 dark:text-slate-400">
                                     Nog geen contacten
                                 </div>
-                                <div v-else class="space-y-2" v-auto-animate>
-                                    <div v-for="contact in customer.contacts" :key="contact.id"
-                                        class="rounded-md border border-gray-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900/40">
-                                        <div class="flex items-start justify-between gap-2">
-                                            <Link :href="`/contacts/${contact.id}`"
-                                                class="text-gray-800 dark:text-slate-200 font-medium hover:underline text-sm">
-                                                {{ contact.full_name }}
-                                            </Link>
-                                        </div>
-                                        <div v-if="contact.email"
-                                            class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                                            {{ contact.email }}
+                                <div v-else>
+                                    <div class="divide-y divide-gray-100 dark:divide-slate-700/60" v-auto-animate>
+                                        <div v-for="contact in visibleContacts" :key="contact.id"
+                                            class="flex items-center gap-3 py-3 first:pt-0">
+                                            <div class="flex-none flex items-center justify-center size-10 rounded-full bg-lavoro-blue/10 text-lavoro-blue font-semibold text-sm">
+                                                {{ initials(contact.full_name) }}
+                                            </div>
+                                            <div class="min-w-0 flex-grow">
+                                                <Link :href="`/contacts/${contact.id}`"
+                                                    class="block truncate font-semibold text-sm text-gray-800 dark:text-slate-200 hover:underline">
+                                                    {{ contact.full_name }}
+                                                </Link>
+                                                <a v-if="contact.email" :href="`mailto:${contact.email}`"
+                                                    class="block truncate text-xs text-gray-500 dark:text-slate-400 hover:underline">
+                                                    {{ contact.email }}
+                                                </a>
+                                            </div>
+                                            <Menu v-if="hasPermission('contact.update') || hasPermission('contact.delete')"
+                                                as="div" class="relative flex-none">
+                                                <MenuButton
+                                                    class="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">
+                                                    <EllipsisVerticalIcon class="size-5 text-gray-400 dark:text-slate-500" />
+                                                </MenuButton>
+                                                <transition enter-active-class="transition ease-out duration-100"
+                                                    enter-from-class="transform opacity-0 scale-95"
+                                                    enter-to-class="transform opacity-100 scale-100"
+                                                    leave-active-class="transition ease-in duration-75"
+                                                    leave-from-class="transform opacity-100 scale-100"
+                                                    leave-to-class="transform opacity-0 scale-95">
+                                                    <MenuItems
+                                                        class="absolute right-0 z-10 mt-1 w-48 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none">
+                                                        <div class="py-1 text-sm">
+                                                            <MenuItem v-if="hasPermission('contact.update')" v-slot="{ active }">
+                                                                <button type="button" @click="detachContact(contact)"
+                                                                    :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2 w-full px-4 py-2 text-gray-700 dark:text-slate-300']">
+                                                                    <LinkSlashIcon class="size-4 shrink-0" />
+                                                                    Loskoppelen
+                                                                </button>
+                                                            </MenuItem>
+                                                            <MenuItem v-if="hasPermission('contact.delete')" v-slot="{ active }">
+                                                                <button type="button" @click="deleteContact(contact)"
+                                                                    :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2 w-full px-4 py-2 text-red-600 dark:text-red-400']">
+                                                                    <TrashIcon class="size-4 shrink-0" />
+                                                                    Verwijderen
+                                                                </button>
+                                                            </MenuItem>
+                                                        </div>
+                                                    </MenuItems>
+                                                </transition>
+                                            </Menu>
                                         </div>
                                     </div>
+                                    <button v-if="customer.contacts.length > contactPreviewCount" type="button"
+                                        @click="showAllContacts = !showAllContacts"
+                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue hover:underline">
+                                        {{ showAllContacts ? 'Minder tonen' : `Alle ${customer.contacts.length} contacten bekijken` }}
+                                        <ArrowRightIcon class="size-4 transition-transform"
+                                            :class="{ 'rotate-90': showAllContacts }" />
+                                    </button>
                                 </div>
                             </BoxComponent>
 
@@ -212,26 +296,73 @@
                                 <div
                                     class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
                                     <div class="flex items-center">
-                                        <ClipboardDocumentCheckIcon
-                                            class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
+                                        <div
+                                            class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-indigo-500/10 mr-3">
+                                            <ShieldCheckIcon class="size-6 text-indigo-600 dark:text-indigo-400 stroke-2" />
+                                        </div>
                                         <h2 class="font-semibold text-base dark:text-slate-200">Onderhoudscontracten</h2>
                                     </div>
-                                    <PlusCircleIcon v-if="canCreateMaintenanceContract"
-                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                    <button v-if="canCreateMaintenanceContract" type="button"
                                         @click="showMaintenanceContractDrawer = true"
-                                        v-tooltip="`Nieuw onderhoudscontract voor ${form.name}`" />
+                                        v-tooltip="`Nieuw onderhoudscontract voor ${form.name}`"
+                                        class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                                        <PlusIcon class="size-4" />
+                                        Contract toevoegen
+                                    </button>
                                 </div>
                                 <div v-if="!customer.maintenance_contracts?.length"
                                     class="text-sm text-gray-500 dark:text-slate-400">
                                     Geen onderhoudscontracten
                                 </div>
-                                <div v-else class="space-y-2" v-auto-animate>
-                                    <Link v-for="contract in customer.maintenance_contracts" :key="contract.id"
-                                        :href="`/maintenancecontracts/${contract.id}`"
-                                        class="block text-sm text-lavoro-blue hover:underline dark:text-lavoro-blue">
-                                        {{ contract.display_title }}
-                                    </Link>
-                                </div>
+                                <template v-else>
+                                    <div class="flex items-center gap-5 mb-5">
+                                        <CircularCounter :segments="contractDonutSegments"
+                                            :total="customer.maintenance_contracts.length" label="Totaal"
+                                            :size="112" :stroke="11" />
+                                        <div class="flex-1 space-y-2">
+                                            <div v-for="row in contractStatusLegend" :key="row.status"
+                                                class="flex items-center justify-between text-sm">
+                                                <span class="flex items-center gap-2">
+                                                    <span class="size-2.5 rounded-full flex-none"
+                                                        :style="{ backgroundColor: row.color }" />
+                                                    <span class="text-gray-700 dark:text-slate-300">{{ row.label }}</span>
+                                                </span>
+                                                <span class="font-semibold text-gray-900 dark:text-slate-100">{{ row.count }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2" v-auto-animate>
+                                        <Link v-for="contract in visibleContracts" :key="contract.id"
+                                            :href="`/maintenancecontracts/${contract.id}`"
+                                            class="flex items-center gap-3 rounded-lavoro-sm border border-gray-200 dark:border-slate-700/60 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-start justify-between gap-2">
+                                                    <span class="text-sm font-bold text-gray-800 dark:text-slate-200">{{ contract.display_title }}</span>
+                                                    <BadgeComponent :color="maintenanceContractStatusBadgeColor(contract.status)"
+                                                        :has-dot="false">
+                                                        {{ maintenanceContractStatusText(contract.status) }}
+                                                    </BadgeComponent>
+                                                </div>
+                                                <div class="mt-1.5 grid grid-cols-2 gap-4">
+                                                    <TitleValueIconComponent :icon="CalendarDaysIcon" title="Startdatum"
+                                                        :value="nlDate(contract.start_date)" />
+                                                    <TitleValueIconComponent :icon="CalendarDaysIcon" title="Einddatum"
+                                                        :value="contract.end_date ? nlDate(contract.end_date) : 'heden'" />
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon class="size-5 flex-none text-gray-400 dark:text-slate-500 stroke-2" />
+                                        </Link>
+                                    </div>
+
+                                    <button v-if="customer.maintenance_contracts.length > contractPreviewCount"
+                                        type="button" @click="showAllContracts = !showAllContracts"
+                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue hover:underline">
+                                        {{ showAllContracts ? 'Minder tonen' : `Alle ${customer.maintenance_contracts.length} contracten bekijken` }}
+                                        <ArrowRightIcon class="size-4 transition-transform"
+                                            :class="{ 'rotate-90': showAllContracts }" />
+                                    </button>
+                                </template>
                             </BoxComponent>
 
                             <BoxComponent>
@@ -339,8 +470,7 @@
                                     <FolderIcon class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
                                     <h2 class="font-semibold text-base dark:text-slate-200">Projecten</h2>
                                 </div>
-                                <PlusCircleIcon v-if="canCreateProject"
-                                    class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                <AddButton v-if="canCreateProject"
                                     @click="projectFormRef?.show()"
                                     v-tooltip="`Maak een nieuw project aan voor ${form.name}`" />
                             </div>
@@ -397,8 +527,7 @@
                                             class="size-5 flex-none text-gray-500 dark:text-slate-400 mr-2" />
                                         <h2 class="font-semibold text-base dark:text-slate-200">Losse werkbonnen</h2>
                                     </div>
-                                    <PlusCircleIcon v-if="canCreateServiceOrder"
-                                        class="size-6 flex-none text-green-500 cursor-pointer hover:text-green-700"
+                                    <AddButton v-if="canCreateServiceOrder"
                                         @click="newServiceOrderForm.post(`/serviceorders`, { preserveScroll: true })"
                                         v-tooltip="`Maak een nieuwe werkbon aan voor ${form.name}`" />
                                 </div>
@@ -454,6 +583,20 @@
                         :hasError="Boolean(newContactForm.errors.email)" :errorMessage="newContactForm.errors.email" />
                 </div>
             </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Telefoon</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.phone" type="text"
+                        :hasError="Boolean(newContactForm.errors.phone)" :errorMessage="newContactForm.errors.phone" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Mobiel</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.mobile" type="text"
+                        :hasError="Boolean(newContactForm.errors.mobile)" :errorMessage="newContactForm.errors.mobile" />
+                </div>
+            </div>
         </div>
         <template #footer>
             <div class="flex justify-end gap-2">
@@ -471,7 +614,7 @@
 
     <DrawerComponent v-model="showMaintenanceContractDrawer" :title="`Nieuw onderhoudscontract voor ${form.name}`"
         subtitle="Vul de gegevens in van het nieuwe contract.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700" v-auto-animate>
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
                 <div class="sm:col-span-2">
@@ -506,34 +649,39 @@
                     <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.price_interval" />
                 </div>
             </div>
-            <div v-if="newMaintenanceContractForm.price_interval === 'Aangepast (dagen)'"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newMaintenanceContractForm.price_interval_days" type="number" />
+            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
+                <div v-if="newMaintenanceContractForm.price_interval === 'Aangepast (dagen)'"
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
+                    <div class="sm:col-span-2">
+                        <TextInput v-model="newMaintenanceContractForm.price_interval_days" type="number" />
+                    </div>
                 </div>
-            </div>
+            </transition>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
                 <div class="sm:col-span-2">
                     <SwitchComponent v-model="newMaintenanceContractForm.manage_frequency_per_asset" />
                 </div>
             </div>
-            <template v-if="!newMaintenanceContractForm.manage_frequency_per_asset">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
+                <div v-if="!newMaintenanceContractForm.manage_frequency_per_asset"
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                     <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Servicefrequentie</label>
                     <div class="sm:col-span-2">
                         <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.frequency" />
                     </div>
                 </div>
-                <div v-if="newMaintenanceContractForm.frequency === 'Aangepast (dagen)'"
+            </transition>
+            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
+                <div v-if="!newMaintenanceContractForm.manage_frequency_per_asset && newMaintenanceContractForm.frequency === 'Aangepast (dagen)'"
                     class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                     <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
                     <div class="sm:col-span-2">
                         <TextInput v-model="newMaintenanceContractForm.frequency_days" type="number" />
                     </div>
                 </div>
-            </template>
+            </transition>
         </div>
         <template #footer>
             <div class="flex justify-end gap-2">
@@ -559,23 +707,28 @@
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import {
-    BuildingOffice2Icon, ClipboardDocumentListIcon, ClipboardDocumentCheckIcon, PlusCircleIcon, PlusIcon, PuzzlePieceIcon,
-    XCircleIcon, FolderIcon, UserIcon, UserGroupIcon, MapPinIcon, EnvelopeIcon,
-    PhoneIcon, DevicePhoneMobileIcon, BanknotesIcon,
+    BuildingOffice2Icon, ClipboardDocumentListIcon, PlusIcon, PuzzlePieceIcon,
+    XCircleIcon, FolderIcon, UserIcon, MapPinIcon, EnvelopeIcon,
+    PhoneIcon, DevicePhoneMobileIcon, BanknotesIcon, IdentificationIcon, GlobeAltIcon,
     ReceiptPercentIcon, BuildingLibraryIcon, ChevronRightIcon, ClockIcon,
+    UsersIcon, EllipsisVerticalIcon, TrashIcon, LinkSlashIcon, ArrowRightIcon, CalendarDaysIcon, ShieldCheckIcon,
 } from '@heroicons/vue/24/outline';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
+import AddButton from '@/Components/UI/AddButton.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { useForm, Link } from '@inertiajs/vue3';
+import CircularCounter from '@/Components/UI/CircularCounter.vue';
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import { useForm, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
-import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer } from '@/Utilities/Utilities';
+import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
 import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
@@ -694,6 +847,8 @@ const newContactForm = useForm({
     first_name: '',
     last_name: '',
     email: '',
+    phone: '',
+    mobile: '',
     customer_id: props.customer.id,
 })
 
@@ -715,7 +870,113 @@ function closeContactDrawer() {
     newContactForm.customer_id = props.customer.id
 }
 
+const contactPreviewCount = 2
+const showAllContacts = ref(false)
+const visibleContacts = computed(() =>
+    showAllContacts.value
+        ? props.customer.contacts
+        : (props.customer.contacts ?? []).slice(0, contactPreviewCount)
+)
+
+function detachContact(contact) {
+    router.patch(`/contacts/${contact.id}`, { customer_id: null }, { preserveScroll: true })
+}
+
+function deleteContact(contact) {
+    if (!confirm(`Weet je zeker dat je ${contact.full_name} volledig wilt verwijderen?`)) return
+    router.delete(`/contacts/${contact.id}`, { preserveScroll: true })
+}
+
 const canCreateMaintenanceContract = computed(() => hasPermission('maintenancecontract.create'))
+
+const contractStatusOrder = ['actief', 'toekomstig', 'verlopen', 'geannuleerd']
+
+const contractCounts = computed(() => {
+    const counts = {}
+    for (const contract of props.customer.maintenance_contracts || []) {
+        counts[contract.status] = (counts[contract.status] || 0) + 1
+    }
+    return counts
+})
+
+const contractDonutSegments = computed(() =>
+    contractStatusOrder
+        .map(status => ({ color: maintenanceContractStatusMeta[status].color, value: contractCounts.value[status] || 0 }))
+        .filter(segment => segment.value > 0)
+)
+
+const contractStatusLegend = computed(() =>
+    contractStatusOrder
+        .filter(status => status !== 'geannuleerd' || (contractCounts.value.geannuleerd || 0) > 0)
+        .map(status => ({
+            status,
+            label: maintenanceContractStatusMeta[status].label,
+            color: maintenanceContractStatusMeta[status].color,
+            count: contractCounts.value[status] || 0,
+        }))
+)
+
+const contractPreviewCount = 2
+const showAllContracts = ref(false)
+const visibleContracts = computed(() => {
+    const contracts = props.customer.maintenance_contracts || []
+    return showAllContracts.value ? contracts : contracts.slice(0, contractPreviewCount)
+})
+
+const collapseDurationMs = 250
+
+function clearCollapse(el) {
+    if (el._collapseTimer) {
+        window.clearTimeout(el._collapseTimer)
+        el._collapseTimer = null
+    }
+}
+
+function resetCollapse(el) {
+    el.style.height = ''
+    el.style.opacity = ''
+    el.style.overflow = ''
+    el.style.transition = ''
+}
+
+function collapseEnter(el, done) {
+    clearCollapse(el)
+    el.style.overflow = 'hidden'
+    el.style.height = '0'
+    el.style.opacity = '0'
+    void el.offsetHeight
+    el.style.transition = `height ${collapseDurationMs}ms ease, opacity ${collapseDurationMs}ms ease`
+    el.style.height = el.scrollHeight + 'px'
+    el.style.opacity = '1'
+    el._collapseTimer = window.setTimeout(() => {
+        el._collapseTimer = null
+        done()
+    }, collapseDurationMs)
+}
+
+function collapseLeave(el, done) {
+    clearCollapse(el)
+    el.style.overflow = 'hidden'
+    el.style.height = el.scrollHeight + 'px'
+    el.style.opacity = '1'
+    void el.offsetHeight
+    el.style.transition = `height ${collapseDurationMs}ms ease, opacity ${collapseDurationMs}ms ease`
+    el.style.height = '0'
+    el.style.opacity = '0'
+    el._collapseTimer = window.setTimeout(() => {
+        el._collapseTimer = null
+        done()
+    }, collapseDurationMs)
+}
+
+function collapseCancelled(el) {
+    clearCollapse(el)
+    resetCollapse(el)
+}
+
+function collapseAfterEnter(el) {
+    resetCollapse(el)
+}
 const showMaintenanceContractDrawer = ref(false)
 
 // comboBoxArray() gives {id: case-name, name: case-value}; the model casts by

@@ -155,20 +155,26 @@ export const projectStatusClass = (status) => {
     return map[status] || "";
 };
 
-export const maintenanceContractStatusText = (status) => {
-    switch (status) {
-        case "actief":
-            return "Actief";
-        case "toekomstig":
-            return "Toekomstig";
-        case "verlopen":
-            return "Verlopen";
-        case "geannuleerd":
-            return "Geannuleerd";
-        default:
-            return status || "";
-    }
+// Single source of truth for maintenance-contract status presentation.
+// `label`, `badge` (BadgeComponent color) and `color` (svg/dot hex) all derive
+// from here. The raw tailwind classes below stay literal because the JIT
+// compiler can't build class names from runtime data.
+export const maintenanceContractStatusMeta = {
+    actief: { label: "Actief", badge: "green", color: "#22c55e" },
+    toekomstig: { label: "Toekomstig", badge: "blue", color: "#3b82f6" },
+    verlopen: { label: "Verlopen", badge: "orange", color: "#f97316" },
+    geannuleerd: { label: "Geannuleerd", badge: "gray", color: "#94a3b8" },
 };
+
+export const maintenanceContractStatusText = (status) =>
+    maintenanceContractStatusMeta[status]?.label ?? status ?? "";
+
+export const maintenanceContractStatusColor = (status) =>
+    maintenanceContractStatusMeta[status]?.color ?? "#94a3b8";
+
+// Maps to BadgeComponent's `color` prop (a fixed palette of named colors).
+export const maintenanceContractStatusBadgeColor = (status) =>
+    maintenanceContractStatusMeta[status]?.badge ?? "gray";
 
 export const maintenanceContractStatusClasses = (status) => {
     switch (status) {
@@ -182,23 +188,6 @@ export const maintenanceContractStatusClasses = (status) => {
             return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600";
         default:
             return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600";
-    }
-};
-
-// Maps to BadgeComponent's `color` prop (a fixed palette of named colors),
-// not a raw class string like maintenanceContractStatusClasses above.
-export const maintenanceContractStatusBadgeColor = (status) => {
-    switch (status) {
-        case "actief":
-            return "green";
-        case "toekomstig":
-            return "blue";
-        case "verlopen":
-            return "orange";
-        case "geannuleerd":
-            return "gray";
-        default:
-            return "gray";
     }
 };
 

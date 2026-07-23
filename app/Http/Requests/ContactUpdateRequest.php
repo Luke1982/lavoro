@@ -17,6 +17,8 @@ class ContactUpdateRequest extends FormRequest
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'mobile' => ['sometimes', 'nullable', 'string', 'max:255'],
             'customer_id' => ['sometimes', 'nullable', 'exists:customers,id'],
         ];
     }

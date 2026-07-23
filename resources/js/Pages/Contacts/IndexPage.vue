@@ -84,6 +84,22 @@
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Telefoon</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.phone" type="text"
+                        :hasError="Boolean(newContactForm.errors.phone)"
+                        :errorMessage="newContactForm.errors.phone" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Mobiel</label>
+                <div class="sm:col-span-2">
+                    <TextInput v-model="newContactForm.mobile" type="text"
+                        :hasError="Boolean(newContactForm.errors.mobile)"
+                        :errorMessage="newContactForm.errors.mobile" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="customerOptions" v-model="newContactForm.customer_id"
@@ -140,6 +156,8 @@ const newContactForm = useForm({
     first_name:  '',
     last_name:   '',
     email:       '',
+    phone:       '',
+    mobile:      '',
     customer_id: null,
 })
 

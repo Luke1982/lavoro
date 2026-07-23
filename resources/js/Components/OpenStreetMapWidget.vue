@@ -1,5 +1,5 @@
 <template>
-    <div class="relative w-full h-52">
+    <div :class="['relative w-full', heightClass]">
         <div ref="mapContainer" class="w-full h-full" />
         <span v-if="sourceLabel && !loading && !notFound"
             class="absolute bottom-0 right-0 z-[650] rounded-tl-md bg-white/85 dark:bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:text-slate-300">
@@ -17,15 +17,39 @@
     </div>
 </template>
 
+<script>
+import axios from 'axios';
+
+// Shared across every instance: dedupes and caches geocode lookups so repeated
+// addresses (and re-mounts on theme/key changes) never re-hit the endpoint.
+const geocodeCache = new Map();
+
+function geocodeAddress(query) {
+    if (!geocodeCache.has(query)) {
+        geocodeCache.set(
+            query,
+            axios.get('/geocode', { params: { address: query } })
+                .then(response => response.data)
+                .catch(error => {
+                    geocodeCache.delete(query);
+                    throw error;
+                })
+        );
+    }
+    return geocodeCache.get(query);
+}
+</script>
+
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const { address, sourceLabel } = defineProps({
+const { address, sourceLabel, heightClass, interactive } = defineProps({
     address: { type: String, required: true },
-    sourceLabel: { type: String, default: '' }
+    sourceLabel: { type: String, default: '' },
+    heightClass: { type: String, default: 'h-52' },
+    interactive: { type: Boolean, default: true }
 });
 
 const mapContainer = ref(null);
@@ -52,7 +76,7 @@ onMounted(async () => {
     }
 
     try {
-        const { data } = await axios.get('/geocode', { params: { address } });
+        const data = await geocodeAddress(address);
 
         if (!data.found) {
             loading.value = false;
@@ -63,9 +87,15 @@ onMounted(async () => {
         const { lat, lon } = data;
 
         map = L.map(mapContainer.value, {
-            zoomControl: true,
+            zoomControl: interactive,
             attributionControl: false,
-        }).setView([parseFloat(lat), parseFloat(lon)], 8);
+            dragging: interactive,
+            scrollWheelZoom: interactive,
+            doubleClickZoom: interactive,
+            boxZoom: interactive,
+            keyboard: interactive,
+            touchZoom: interactive,
+        }).setView([parseFloat(lat), parseFloat(lon)], interactive ? 8 : 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
