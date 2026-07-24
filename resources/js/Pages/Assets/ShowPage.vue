@@ -132,7 +132,8 @@
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <BoxComponent class="mt-5" v-auto-animate>
-                <SectionHeader :icon="ExclamationCircleIcon" title="Storingen" color="red">
+                <SectionHeader :icon="ExclamationCircleIcon" title="Storingen"
+                    subtitle="Openstaande en afgehandelde storingen aan deze machine." chapter="tickets">
                     <template #actions>
                         <button v-if="hasPermission('ticket.create')" @click="showTicketDrawer = true"
                             class="inline-flex items-center gap-1.5 rounded-md bg-lavoro-blue px-2 py-2 sm:px-3 text-sm font-medium text-white cursor-pointer transition-opacity hover:opacity-90">
@@ -181,7 +182,8 @@
             <BoxComponent
                 v-if="asset.child_assets?.length || asset.parent_asset || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
                 class="mt-5">
-                <SectionHeader :icon="LinkIcon" title="Gerelateerde machines" color="blue" />
+                <SectionHeader :icon="LinkIcon" title="Gerelateerde machines"
+                    subtitle="Onderdelen en toebehoren die bij deze machine horen." chapter="assets" />
 
                 <!-- Per-slot view when product has defined related products -->
                 <div v-if="asset.product.productables?.length">
@@ -347,19 +349,19 @@
                 </div>
             </BoxComponent>
             <BoxComponent class="mt-5">
-                <SectionHeader :icon="ClipboardDocumentCheckIcon" title="Keuringen" color="green" />
+                <SectionHeader :icon="ClipboardDocumentCheckIcon" title="Keuringen"
+                    subtitle="Alle keuringen die op deze machine zijn uitgevoerd." chapter="inspections" />
                 <ServiceJobsTable :servicejobs="asset.servicejobs" class="mt-3" />
             </BoxComponent>
         </template>
 
         <template #sidebar>
             <BoxComponent v-if="hasPermission('image.upload') || hasPermission('image.see')" class="mt-6 md:mt-0">
-                <SectionHeader :icon="PhotoIcon" title="Foto's van de machine" color="blue" border />
-                <ImageUploadComponent :existing="asset.images" :imageable-id="asset.id"
+                <ImageUploadComponent title="Foto's van de machine" :existing="asset.images" :imageable-id="asset.id"
                     imageable-type="\App\Models\Asset" />
             </BoxComponent>
             <BoxComponent v-if="asset.product.images.length > 0 && hasPermission('image.see')" class="mt-6">
-                <SectionHeader :icon="CubeIcon" color="gray" border>
+                <SectionHeader :icon="CubeIcon" chapter="products" border>
                     Foto's van het
                     <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">product</Link>
                 </SectionHeader>
@@ -369,7 +371,8 @@
                 </div>
             </BoxComponent>
             <BoxComponent v-if="hasPermission('maintenancecontract.read')" class="mt-6">
-                <SectionHeader :icon="ShieldCheckIcon" title="Onderhoudscontracten" color="indigo" border />
+                <SectionHeader :icon="ShieldCheckIcon" title="Onderhoudscontracten"
+                    subtitle="De contracten waaronder deze machine valt." chapter="contracts" border />
                 <div v-if="!asset.maintenance_contracts?.length"
                     class="text-sm text-gray-500 dark:text-slate-400">
                     Niet gekoppeld aan een onderhoudscontract
@@ -463,7 +466,7 @@ import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, CalendarDaysIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HashtagIcon, LinkIcon, MapPinIcon, PhotoIcon, PlusIcon, PuzzlePieceIcon, ShieldCheckIcon, TrashIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, CalendarDaysIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HashtagIcon, LinkIcon, MapPinIcon, PlusIcon, PuzzlePieceIcon, ShieldCheckIcon, TrashIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import { ref, watch, computed, reactive, onMounted, nextTick } from 'vue';

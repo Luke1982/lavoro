@@ -1,30 +1,21 @@
 <template>
     <div>
-        <!-- Header -->
-        <div class="flex items-start sm:items-center justify-between mb-4">
-            <div class="flex items-start sm:items-center gap-3">
-                <div class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
-                    <Package class="h-5 w-5 text-white" />
-                </div>
-                <div class="flex flex-col">
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100">Materialen</h2>
-                    <p class="text-xs text-slate-400 dark:text-slate-400">Overzicht van gebruikte materialen voor deze
-                        bon.</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
+        <SectionHeader :icon="Package" title="Materialen"
+            subtitle="Overzicht van gebruikte materialen voor deze bon." chapter="materials">
+            <template v-if="canSeeFinancials || (canCreate && !isClosed)" #actions>
                 <button v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1"
                     v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
-                    <EuroIcon class="size-4" />
+                    <EyeSlashIcon v-if="showFinancial" class="size-5" />
+                    <EyeIcon v-else class="size-5" />
                 </button>
                 <button v-if="canCreate && !isClosed" type="button" @click="showAddForm = !showAddForm"
                     class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
                     <PlusIcon class="size-4" />
                     <span class="hidden sm:inline">Materiaal toevoegen</span>
                 </button>
-            </div>
-        </div>
+            </template>
+        </SectionHeader>
 
         <!-- Add form -->
         <div v-auto-animate>
@@ -320,13 +311,15 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
-import { Package, Plus as PlusIcon, Trash2 as TrashIcon, Euro as EuroIcon, WandIcon, XCircleIcon, Pencil as PencilIcon } from '@lucide/vue'
+import { Package, Plus as PlusIcon, Trash2 as TrashIcon, WandIcon, XCircleIcon, Pencil as PencilIcon } from '@lucide/vue'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { getIconByName } from '@/Utilities/lucideIconMap.js'
 import { hasPermission, nlCurrency } from '@/Utilities/Utilities.js'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
 
 const props = defineProps({

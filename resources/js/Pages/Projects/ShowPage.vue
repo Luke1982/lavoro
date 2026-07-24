@@ -11,16 +11,12 @@
             <TwoThirdsOneThird>
                 <template #main>
                     <BoxComponent>
-                        <div class="flex border-b border-gray-200 dark:border-slate-700 pb-2 mb-4 justify-between items-center">
-                            <div class="flex items-center">
-                                <ClipboardDocumentListIcon class="h-6 w-6 text-gray-500 dark:text-slate-400 mr-2" />
-                                <h1 class="text-l font-medium">Details</h1>
-                            </div>
-                            <StepsProgressBar :steps="statuses" v-model="form.status"
-                                class="flex-1 ml-4 md:max-w-250 max-w-60"
-                                :class="{ 'pointer-events-none': !canUpdate }" />
-                        </div>
-                        <div class="grid grid-cols-12 mt-2 gap-0 sm:gap-4">
+                        <SectionHeader :icon="DocumentTextIcon" title="Details"
+                            subtitle="Titel, looptijd en locatie van dit project." chapter="details" />
+                        <StepsProgressBar :steps="statuses" v-model="form.status"
+                            class="mb-4 border-b border-gray-200 dark:border-slate-700 pb-4"
+                            :class="{ 'pointer-events-none': !canUpdate }" />
+                        <div class="grid grid-cols-12 gap-0 sm:gap-4">
                             <div class="col-span-12 md:col-span-2 text-slate-400">
                                 <span class="text-xs font-bold">Titel</span>
                             </div>
@@ -91,25 +87,22 @@
                     </BoxComponent>
 
                     <BoxComponent class="mt-4">
-                        <div class="flex items-center border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                            <CalendarIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Tijdlijn</h3>
-                        </div>
+                        <SectionHeader :icon="CalendarIcon" title="Tijdlijn"
+                            subtitle="De looptijd van dit project met de mijlpalen erop uitgezet." chapter="timeline" border />
                         <ProjectTimeline :project-id="project.id" :project-start-date="project.start_date"
                             :project-end-date="project.end_date" :project-milestones="project.milestones" />
                     </BoxComponent>
 
                     <BoxComponent class="mt-4">
-                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
-                            <div class="flex items-center">
-                                <ClipboardDocumentListIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
-                                <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Werkbonnen</h3>
-                            </div>
-                            <button @click="createServiceOrder"
-                                class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
-                                Werkbon aanmaken
-                            </button>
-                        </div>
+                        <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
+                            subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
+                            <template #actions>
+                                <button @click="createServiceOrder"
+                                    class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
+                                    Werkbon aanmaken
+                                </button>
+                            </template>
+                        </SectionHeader>
                         <div class="space-y-2" v-auto-animate>
                             <div v-if="!project.service_orders?.length" key="empty"
                                 class="text-xs text-gray-500 dark:text-slate-500">
@@ -122,15 +115,15 @@
                     <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
                         documentable-type="\App\Models\Project" class="mt-4" />
 
-                    <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
-                        imageable-type="\App\Models\Project" class="mt-4" />
+                    <BoxComponent class="mt-4">
+                        <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
+                            imageable-type="\App\Models\Project" />
+                    </BoxComponent>
                 </template>
                 <template #sidebar>
                     <BoxComponent v-if="project.customer" class="mt-4 sm:mt-0">
-                        <div class="flex items-center border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                            <BuildingOfficeIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 mr-2" />
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Klant</h3>
-                        </div>
+                        <SectionHeader :icon="BuildingOfficeIcon" title="Klant"
+                            subtitle="De opdrachtgever van dit project." chapter="customer" border />
                         <dl class="space-y-2 text-sm">
                             <div>
                                 <dt class="text-[11px] text-gray-500 dark:text-slate-500">Naam</dt>
@@ -176,10 +169,8 @@
                     </BoxComponent>
 
                     <BoxComponent :class="{ 'mt-4': project.customer }">
-                        <div class="flex items-center border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                            <FlagIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 mr-2" />
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Mijlpalen</h3>
-                        </div>
+                        <SectionHeader :icon="FlagIcon" title="Mijlpalen"
+                            subtitle="De ijkpunten waarlangs dit project vordert." chapter="milestones" border />
 
                         <div v-if="!sortedMilestones.length" class="text-xs text-gray-500 dark:text-slate-500">
                             Nog geen mijlpalen
@@ -311,16 +302,15 @@
             <!-- Chapter 1: Administratie -->
             <template v-if="canManageFinancials" #chapter-1>
                 <BoxComponent>
-                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                        <div class="flex items-center">
-                            <CalculatorIcon class="size-6 text-gray-500 dark:text-slate-400 mr-2" />
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Administratie</h3>
-                        </div>
-                        <span class="text-[11px]"
-                            :class="financialNotesError ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-slate-500'">
-                            {{ financialNotesStatus }}
-                        </span>
-                    </div>
+                    <SectionHeader :icon="CalculatorIcon" title="Administratie"
+                        subtitle="Financiële aantekeningen bij dit project." chapter="financial" border>
+                        <template #actions>
+                            <span class="text-[11px]"
+                                :class="financialNotesError ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-slate-500'">
+                                {{ financialNotesStatus }}
+                            </span>
+                        </template>
+                    </SectionHeader>
                     <div v-if="financialNotesIsStale"
                         class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700/60 dark:bg-amber-900/25">
                         <div class="flex items-center gap-2">
@@ -415,7 +405,8 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
-import { ClipboardDocumentListIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon, CalculatorIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ClipboardDocumentListIcon, DocumentTextIcon, FlagIcon, PencilSquareIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon, CalculatorIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'

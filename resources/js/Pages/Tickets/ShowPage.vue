@@ -62,10 +62,8 @@
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent>
-                <div class="flex border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                    <ExclamationCircleIcon class="h-6 w-6 text-yellow-500 mr-2 flex-none" />
-                    <h1 class="text-base font-medium dark:text-slate-100">Gegevens van de storing</h1>
-                </div>
+                <SectionHeader :icon="ExclamationCircleIcon" title="Gegevens van de storing"
+                    subtitle="Machine, prioriteit en omschrijving van deze storing." chapter="details" />
 
                 <div class="divide-y divide-gray-100 dark:divide-slate-700/60">
                     <div class="grid grid-cols-12 py-3 gap-3 items-start">
@@ -187,10 +185,8 @@
             </BoxComponent>
 
             <BoxComponent v-if="ticket.service_order" class="mt-4">
-                <div class="flex border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                    <DocumentTextIcon class="h-6 w-6 text-lavoro-blue mr-2 flex-none" />
-                    <h1 class="text-base font-medium dark:text-slate-100">Gekoppelde werkbon</h1>
-                </div>
+                <SectionHeader :icon="ClipboardDocumentListIcon" title="Gekoppelde werkbon"
+                    subtitle="De werkbon waarop deze storing wordt opgelost." chapter="serviceorders" />
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3">
                         <span class="font-semibold text-sm dark:text-slate-200">WB-{{
@@ -231,21 +227,13 @@
 
         <template #sidebar>
             <BoxComponent class="mt-6 sm:mt-0">
-                <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
-                    <div class="flex items-center">
-                        <PhotoIcon class="size-6 mr-2 flex-none" />
-                        <h1 class="text-base font-medium dark:text-slate-100">Afbeeldingen van de storing</h1>
-                    </div>
-                </div>
-                <ImageUploadComponent :existing="ticket.images" :imageable-id="ticket.id"
+                <ImageUploadComponent title="Afbeeldingen van de storing" :existing="ticket.images" :imageable-id="ticket.id"
                     imageable-type="\App\Models\Ticket" />
             </BoxComponent>
 
             <BoxComponent class="mt-6">
-                <div class="flex items-center mb-3">
-                    <ClockIcon class="size-5 mr-2 text-slate-500 flex-none" />
-                    <h3 class="font-semibold text-base dark:text-slate-100">Tijdlijn</h3>
-                </div>
+                <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+                    subtitle="Alles wat er op dit ticket gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="ticket.activities ?? []" />
             </BoxComponent>
         </template>
@@ -262,8 +250,10 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { ExclamationCircleIcon, PhotoIcon, TrashIcon, ArrowTopRightOnSquareIcon, DocumentTextIcon, ClockIcon, UserIcon, CalendarIcon } from '@heroicons/vue/24/outline';
+import { ExclamationCircleIcon, TrashIcon, ArrowTopRightOnSquareIcon, ClipboardDocumentListIcon, UserIcon, CalendarIcon } from '@heroicons/vue/24/outline';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
+import { TimelineIcon } from '@lucide/vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';

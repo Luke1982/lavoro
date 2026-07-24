@@ -1,5 +1,7 @@
 <template>
     <div class="w-full mx-auto" v-if="mayUpload() || maySee()">
+        <SectionHeader :icon="PhotoIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
+            chapter="photos" />
         <div v-if="mayUpload()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full rounded-lavoro-sm border-2 border-dashed py-8 px-4 transition-colors',
@@ -184,7 +186,8 @@ import GLightbox from 'glightbox';
 import emblaCarouselVue from 'embla-carousel-vue';
 import ImageThumbnailMenu from '@/Components/UI/ImageThumbnailMenu.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
-import { hasPermission } from '@/Utilities/Utilities.js';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import { hasPermission, subjectSubtitle } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
@@ -252,7 +255,28 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    title: {
+        type: String,
+        default: 'Foto\'s'
+    },
+    /** Overrides the subject phrase derived from imageableType. */
+    subtitle: {
+        type: String,
+        default: ''
+    },
 });
+
+const resolvedSubtitle = computed(() => props.subtitle || (props.internal
+    ? subjectSubtitle(
+        props.imageableType,
+        (subject) => `Foto's bij ${subject}, alleen voor intern gebruik.`,
+        'Foto\'s, alleen voor intern gebruik.',
+    )
+    : subjectSubtitle(
+        props.imageableType,
+        (subject) => `Beeldmateriaal bij ${subject}, direct vanaf de camera of uit de galerij.`,
+        'Beeldmateriaal, direct vanaf de camera of uit de galerij.',
+    )));
 
 const existingSignature = computed(() => props.existing.map((image) => `${image.id}:${image.path}`).join(','));
 

@@ -1,17 +1,12 @@
 <template>
     <div v-if="comments.length > 0 || !disabled">
-        <div class="flex items-center gap-x-3 mb-6">
-            <div class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
-                <ChatBubbleLeftRightIcon class="h-5 w-5 text-white" />
-            </div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-x-2">
-                Opmerkingen
-                <span v-if="comments.length > 0"
-                    class="inline-flex items-center rounded-lavoro-sm bg-lavoro-blue/20 text-lavoro-blue text-xs font-medium px-2 py-1">
-                    {{ comments.length }}
-                </span>
-            </h3>
-        </div>
+        <SectionHeader :icon="ChatBubbleLeftRightIcon" :subtitle="resolvedSubtitle" :internal="internal"
+            chapter="remarks">
+            {{ title }}
+            <span v-if="comments.length > 0"
+                class="ml-2 inline-flex items-center rounded-lavoro-sm bg-violet-600/10 text-violet-600 dark:text-violet-400 text-xs font-medium px-2 py-1">{{
+                    comments.length }}</span>
+        </SectionHeader>
 
         <ul role="list" v-auto-animate>
             <li v-for="(comment, idx) in comments" :key="comment.id" class="relative flex gap-x-3 pb-6">
@@ -82,14 +77,25 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { usePage, useForm } from '@inertiajs/vue3';
 import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/vue/24/outline';
-import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
+import { nlDate, nlTime, initials, subjectSubtitle } from '@/Utilities/Utilities';
 import { Trash2Icon } from '@lucide/vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import axios from 'axios';
 
-const { comments, remarkableType, remarkableId, disabled, internal, apiMode } = defineProps({
+const { comments, remarkableType, remarkableId, disabled, internal, apiMode, title, subtitle } = defineProps({
     comments: Array,
+    title: {
+        type: String,
+        default: 'Opmerkingen'
+    },
+    /** Overrides the subject phrase derived from remarkableType. */
+    subtitle: {
+        type: String,
+        default: ''
+    },
     remarkableType: String,
     remarkableId: Number,
     disabled: {
@@ -107,6 +113,18 @@ const { comments, remarkableType, remarkableId, disabled, internal, apiMode } = 
 })
 
 const emit = defineEmits(['created', 'deleted'])
+
+const resolvedSubtitle = computed(() => subtitle || (internal
+    ? subjectSubtitle(
+        remarkableType,
+        (subject) => `Aantekeningen bij ${subject}, alleen voor intern gebruik.`,
+        'Aantekeningen, alleen voor intern gebruik.',
+    )
+    : subjectSubtitle(
+        remarkableType,
+        (subject) => `Vragen en aantekeningen bij ${subject}, in volgorde van plaatsing.`,
+        'Vragen en aantekeningen, in volgorde van plaatsing.',
+    )));
 
 const page = usePage();
 const form = useForm({

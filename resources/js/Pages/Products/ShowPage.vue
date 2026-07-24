@@ -62,17 +62,9 @@
                 <TwoThirdsOneThird>
                     <template #main>
                         <BoxComponent>
-                            <div class="flex items-center">
-                                <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
-                                    <div class="flex w-full items-center">
-                                        <CubeIcon class="size-6 mr-2 flex-none object-cover" />
-                                        <div class="flex flex-col">
-                                            <span class="text-md font-bold">Productinformatie</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
+                            <SectionHeader :icon="CubeIcon" title="Productinformatie"
+                                subtitle="Type, garantie en prijsstelling van dit product." chapter="details" />
+                            <div class="grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
                                 <div class="flex flex-col gap-6 md:pr-8">
                                     <EditableTextField v-model="form.description" type="textarea" label="Beschrijving"
@@ -145,7 +137,8 @@
                                 :can-edit="hasPermission('customfield.update')" class="mt-6" />
                             <!-- Attribute values -->
                             <div v-if="productAttributes.length" class="mt-6 border-t border-gray-100 pt-4">
-                                <h3 class="text-sm font-semibold mb-1">Kenmerken</h3>
+                                <SectionHeader :icon="TagIcon" title="Kenmerken"
+                                    subtitle="Eigenschappen waarop dit product te onderscheiden is." chapter="attributes" />
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div v-for="attr in productAttributes" :key="attr.id">
                                         <EditableTextField type="combobox"
@@ -163,7 +156,7 @@
                         </BoxComponent>
                     </template>
                     <template #sidebar>
-                        <div class="mt-4 md:mt-0">
+                        <BoxComponent class="mt-4 md:mt-0">
                             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                                 imageable-type="\App\Models\Product" />
                             <button v-if="hasPermission('image.upload')" @click="openGoogleImagesDialog"
@@ -171,7 +164,7 @@
                                 <MagnifyingGlassIcon class="h-4 w-4" />
                                 Zoek op Google Afbeeldingen
                             </button>
-                        </div>
+                        </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
             </template>
@@ -180,17 +173,16 @@
             <template #chapter-1>
                 <div>
                     <BoxComponent v-if="hasPermission('asset.read') || hasPermission('asset.create')">
-                        <div class="flex items-center justify-start pb-3 border-b border-gray-200">
-                            <div class="flex items-center">
-                                <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
-                                <h3 class="text-sm font-medium">Machines</h3>
-                            </div>
-                            <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
-                                class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
-                                v-tooltip="'Nieuwe machine toevoegen'">
-                                <PlusIcon class="size-4" />
-                            </button>
-                        </div>
+                        <SectionHeader :icon="PuzzlePieceIcon" title="Machines"
+                            subtitle="De machines die op dit product gebaseerd zijn." chapter="assets" border>
+                            <template v-if="hasPermission('asset.create')" #actions>
+                                <button @click="addAssetDrawerOpen = true"
+                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    v-tooltip="'Nieuwe machine toevoegen'">
+                                    <PlusIcon class="size-4" />
+                                </button>
+                            </template>
+                        </SectionHeader>
                         <AssetListComponent v-if="product.assets.length" :assets="product.assets" class="mt-2" />
                         <p v-else class="text-sm text-gray-400 italic mt-3">Geen machines gekoppeld.</p>
                     </BoxComponent>
@@ -201,16 +193,17 @@
             <template #chapter-2>
                 <div>
                     <BoxComponent v-if="hasPermission('productable.read')">
-                        <div class="flex items-center pb-3 border-b border-gray-200">
-                            <LinkIcon class="size-5 text-gray-500 mr-2" />
-                            <h3 class="text-sm font-medium">Gerelateerde producten</h3>
-                            <button v-if="hasPermission('productable.create') && eligibleChildProducts.length"
-                                @click="addingRelation = !addingRelation"
-                                class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
-                                v-tooltip="'Gerelateerd product toevoegen'">
-                                <PlusIcon class="size-4" />
-                            </button>
-                        </div>
+                        <SectionHeader :icon="LinkIcon" title="Gerelateerde producten"
+                            subtitle="Onderdelen en toebehoren die bij dit product horen." chapter="products" border>
+                            <template v-if="hasPermission('productable.create') && eligibleChildProducts.length"
+                                #actions>
+                                <button @click="addingRelation = !addingRelation"
+                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    v-tooltip="'Gerelateerd product toevoegen'">
+                                    <PlusIcon class="size-4" />
+                                </button>
+                            </template>
+                        </SectionHeader>
                         <!-- Add form -->
                         <div v-auto-animate>
                             <div v-if="addingRelation"
@@ -368,15 +361,16 @@
             <template #chapter-4>
                 <div>
                     <BoxComponent>
-                        <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700">
-                            <BuildingOfficeIcon class="size-5 text-gray-500 mr-2" />
-                            <h3 class="text-sm font-medium">Leveranciers</h3>
-                            <button v-if="hasPermission('product.update')" @click="addingSupplier = !addingSupplier"
-                                class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
-                                v-tooltip="'Leverancier koppelen'">
-                                <PlusIcon class="size-4" />
-                            </button>
-                        </div>
+                        <SectionHeader :icon="BuildingOfficeIcon" title="Leveranciers"
+                            subtitle="Bij wie dit product ingekocht kan worden." chapter="suppliers" border>
+                            <template v-if="hasPermission('product.update')" #actions>
+                                <button @click="addingSupplier = !addingSupplier"
+                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    v-tooltip="'Leverancier koppelen'">
+                                    <PlusIcon class="size-4" />
+                                </button>
+                            </template>
+                        </SectionHeader>
 
                         <!-- Add form -->
                         <div v-auto-animate>
@@ -552,7 +546,8 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
-import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, FingerPrintIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline';
+import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, FingerPrintIcon, BuildingOfficeIcon, TagIcon } from '@heroicons/vue/24/outline';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ref, reactive, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';

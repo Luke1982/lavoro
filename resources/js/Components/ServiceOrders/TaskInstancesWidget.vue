@@ -1,18 +1,15 @@
 <template>
     <component :is="boxed ? BoxComponent : 'div'">
-        <div class="flex items-center justify-between mb-5">
-            <div class="flex">
-                <ClipboardListIcon class="size-6 mr-2 flex-none object-cover" />
-                <h2 class="text-base font-semibold text-gray-800 dark:text-slate-200">
-                    Werkbontaken
-                </h2>
-            </div>
-            <button v-if="canCreate" type="button" @click="addDrawerOpen = true"
-                class="inline-flex items-center gap-1.5 text-sm font-medium text-lavoro-blue hover:opacity-80 transition-opacity ml-2 sm:ml-0 justify-center py-3 sm:pt-2 px-3 sm:px-0 border-1 border-gray-200 rounded-lavoro-sm sm:border-0 cursor-pointer">
-                <PlusIcon class="w-4 h-4" />
-                <span class="hidden sm:inline">Taak toevoegen</span>
-            </button>
-        </div>
+        <SectionHeader :icon="ClipboardListIcon" title="Werkbontaken"
+            subtitle="De taken die op deze werkbon uitgevoerd moeten worden." chapter="serviceorders">
+            <template v-if="canCreate" #actions>
+                <button type="button" @click="addDrawerOpen = true"
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-lavoro-blue hover:opacity-80 transition-opacity ml-2 sm:ml-0 justify-center py-3 sm:pt-2 px-3 sm:px-0 border-1 border-gray-200 rounded-lavoro-sm sm:border-0 cursor-pointer">
+                    <PlusIcon class="w-4 h-4" />
+                    <span class="hidden sm:inline">Taak toevoegen</span>
+                </button>
+            </template>
+        </SectionHeader>
 
         <div v-auto-animate>
             <div v-if="internalInstances.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-2">
@@ -467,6 +464,7 @@ import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
 
 const props = defineProps({

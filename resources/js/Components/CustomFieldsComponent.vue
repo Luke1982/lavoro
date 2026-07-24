@@ -1,6 +1,6 @@
 <template>
     <div v-if="fields.length">
-        <h2 class="text-base font-semibold dark:text-slate-200 mb-3">Extra velden</h2>
+        <SectionHeader :icon="TagIcon" title="Extra velden" :subtitle="resolvedSubtitle" chapter="attributes" />
         <div class="flex flex-wrap gap-y-3">
             <div v-for="field in fields" :key="field.id" class="w-full md:w-1/2 flex">
                 <div class="w-1/3 text-xs">{{ field.name }}</div>
@@ -42,10 +42,12 @@
 <script setup>
 import { router, usePage } from '@inertiajs/vue3'
 import { computed, ref, reactive, watch } from 'vue'
-import { PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { PencilSquareIcon, TagIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
+import { subjectSubtitle } from '@/Utilities/Utilities'
 
 const props = defineProps({
     modelType: {
@@ -65,6 +67,12 @@ const props = defineProps({
         default: false,
     },
 })
+
+const resolvedSubtitle = computed(() => subjectSubtitle(
+    props.modelType,
+    (subject) => `Aanvullende velden die voor ${subject} zijn ingericht.`,
+    'Aanvullende velden die voor dit record zijn ingericht.',
+));
 
 const fields = computed(() => props.customFields)
 const editingField = ref(null)

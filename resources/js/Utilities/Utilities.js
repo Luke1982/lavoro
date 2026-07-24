@@ -375,3 +375,39 @@ export function mapAssetForSelect(asset) {
         thumbnail_url: asset.product?.images?.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
     };
 }
+
+/**
+ * The subject a widget is hanging off, article included so de/het agreement
+ * survives interpolation. Accepts a bare or fully qualified morph type.
+ */
+const SUBJECT_PHRASES = {
+    Asset: 'deze machine',
+    Customer: 'deze klant',
+    Event: 'deze afspraak',
+    Location: 'deze locatie',
+    MaintenanceContract: 'dit onderhoudscontract',
+    Material: 'dit materiaal',
+    Product: 'dit product',
+    Project: 'dit project',
+    ServiceOrder: 'deze werkbon',
+    Supplier: 'deze leverancier',
+    Ticket: 'dit ticket',
+    User: 'deze gebruiker',
+};
+
+export function subjectPhrase(morph_type) {
+    const key = (morph_type ?? '').split('\\').pop().toLowerCase();
+
+    return Object.entries(SUBJECT_PHRASES)
+        .find(([model]) => model.toLowerCase() === key)?.[1] ?? null;
+}
+
+/**
+ * Build a widget subtitle around the subject a morph type points at, falling
+ * back to a subject-less variant when the type is unknown.
+ */
+export function subjectSubtitle(morph_type, with_subject, without_subject) {
+    const subject = subjectPhrase(morph_type);
+
+    return subject ? with_subject(subject) : without_subject;
+}

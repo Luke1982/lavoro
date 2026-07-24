@@ -4,33 +4,24 @@
     <div v-if="mayShow"
         class="@container bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 border-lavoro-box shadow-lavoro-box rounded-lavoro-md overflow-hidden">
 
-        <div class="flex flex-col gap-4 p-5 @2xl:p-6 @3xl:flex-row @3xl:items-center @3xl:justify-between">
-            <div class="flex items-center min-w-0">
-                <div
-                    class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
-                    <FolderIcon class="size-6 text-lavoro-blue stroke-2" />
-                </div>
-                <div class="min-w-0">
-                    <h2 class="text-md font-bold text-gray-900 dark:text-slate-100 truncate">{{ title }}</h2>
-                    <p class="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{{ resolvedSubtitle }}</p>
-                </div>
-            </div>
-
-            <!-- Compact: the two buttons split the row evenly (flex-1 also gives a
-                 lone button the full width). Wide: back to natural widths. -->
-            <div v-if="mayManageCategories || mayUpload"
-                class="flex items-center gap-3 @3xl:flex-none @3xl:flex-wrap">
-                <button v-if="mayManageCategories" type="button" @click="openCategoryModal"
-                    class="inline-flex flex-1 min-w-0 items-center justify-center gap-2 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer @3xl:flex-none">
-                    <FolderPlusIcon class="size-5 flex-none" />
-                    <span class="truncate">Categorie aanmaken</span>
-                </button>
-                <button v-if="mayUpload" type="button" @click="openFilePicker"
-                    class="inline-flex flex-1 min-w-0 items-center justify-center gap-2 rounded-lavoro-sm bg-lavoro-blue px-4 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity cursor-pointer @3xl:flex-none">
-                    <PlusIcon class="size-5 flex-none" />
-                    <span class="truncate">Document uploaden</span>
-                </button>
-            </div>
+        <div class="p-5 @2xl:p-6">
+            <SectionHeader :icon="FolderIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
+                chapter="documents" flush stack-actions>
+                <!-- Compact: the two buttons split the row evenly (flex-1 also gives a
+                     lone button the full width). Wide: back to natural widths. -->
+                <template v-if="mayManageCategories || mayUpload" #actions>
+                    <button v-if="mayManageCategories" type="button" @click="openCategoryModal"
+                        class="inline-flex flex-1 min-w-0 items-center justify-center gap-2 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer @3xl:flex-none">
+                        <FolderPlusIcon class="size-5 flex-none" />
+                        <span class="truncate">Categorie aanmaken</span>
+                    </button>
+                    <button v-if="mayUpload" type="button" @click="openFilePicker"
+                        class="inline-flex flex-1 min-w-0 items-center justify-center gap-2 rounded-lavoro-sm bg-lavoro-blue px-4 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity cursor-pointer @3xl:flex-none">
+                        <PlusIcon class="size-5 flex-none" />
+                        <span class="truncate">Document uploaden</span>
+                    </button>
+                </template>
+            </SectionHeader>
         </div>
 
         <div v-if="maySee && existing.length > 0"
@@ -496,6 +487,7 @@ import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import PdfViewerOverlay from '@/Components/UI/PdfViewerOverlay.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import SpreadsheetViewerOverlay from '@/Components/UI/SpreadsheetViewerOverlay.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
@@ -508,6 +500,7 @@ import {
     formatFileSize,
     hasPermission,
     nlDate,
+    subjectSubtitle,
 } from '@/Utilities/Utilities';
 
 const props = defineProps({
@@ -520,34 +513,11 @@ const props = defineProps({
     subtitle: { type: String, default: '' },
 });
 
-/**
- * The subject the widget is hanging off, article included so de/het agreement
- * travels with the noun. An unlisted model falls back to a subjectless line
- * rather than a wrong article, so dropping the widget somewhere new still reads.
- */
-const SUBJECT_LABELS = {
-    Asset: 'deze machine',
-    Customer: 'deze klant',
-    Event: 'deze afspraak',
-    Location: 'deze locatie',
-    MaintenanceContract: 'dit contract',
-    Product: 'dit product',
-    Project: 'dit project',
-    ServiceOrder: 'deze werkbon',
-    Supplier: 'deze leverancier',
-    Ticket: 'dit ticket',
-    User: 'deze gebruiker',
-};
-
-const resolvedSubtitle = computed(() => {
-    if (props.subtitle) return props.subtitle;
-
-    const subject = SUBJECT_LABELS[props.documentableType.split('\\').pop()];
-
-    return subject
-        ? `Alle relevante documenten bij ${subject}, overzichtelijk en veilig opgeslagen.`
-        : 'Alle relevante documenten, overzichtelijk en veilig opgeslagen.';
-});
+const resolvedSubtitle = computed(() => props.subtitle || subjectSubtitle(
+    props.documentableType,
+    (subject) => `Alle relevante documenten bij ${subject}, overzichtelijk en veilig opgeslagen.`,
+    'Alle relevante documenten, overzichtelijk en veilig opgeslagen.',
+));
 
 // Mirrors DocumentStoreRequest's mimes/max rule — the dropzone must not promise
 // more than the server accepts.

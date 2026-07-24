@@ -27,10 +27,8 @@
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent>
-                <div class="flex items-center mb-4">
-                    <ClipboardDocumentCheckIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
-                    <span class="text-md font-bold dark:text-slate-100">Contractgegevens</span>
-                </div>
+                <SectionHeader :icon="ClipboardDocumentCheckIcon" title="Contractgegevens"
+                    subtitle="Klant, looptijd en prijsafspraken van dit contract." chapter="details" />
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-auto-animate>
                     <EditableTextField v-model="form.customer_id" type="combobox" label="Klant"
                         :options="internalCustomers"
@@ -70,17 +68,14 @@
             </BoxComponent>
 
             <BoxComponent class="mt-4">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <ClockIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
-                        <span class="text-md font-bold dark:text-slate-100">Servicefrequentie</span>
-                    </div>
-                    <div class="flex items-center gap-2">
+                <SectionHeader :icon="ClockIcon" title="Servicefrequentie"
+                    subtitle="Hoe vaak er onderhoud plaatsvindt onder dit contract." chapter="frequency">
+                    <template #actions>
                         <span class="text-xs text-gray-500 dark:text-slate-400">Per machine beheren</span>
                         <SwitchComponent v-model="form.manage_frequency_per_asset" :disabled="!canUpdate"
                             @update:model-value="() => patch('manage_frequency_per_asset', 'frequency', 'frequency_days')" />
-                    </div>
-                </div>
+                    </template>
+                </SectionHeader>
                 <div v-if="!form.manage_frequency_per_asset" class="grid grid-cols-1 md:grid-cols-2 gap-6" v-auto-animate>
                     <EditableTextField v-model="form.frequency" type="combobox" label="Servicefrequentie"
                         :options="intervalOptions"
@@ -109,12 +104,9 @@
             </BoxComponent>
 
             <BoxComponent class="mt-4">
-                <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-                    <div class="flex items-center">
-                        <DocumentTextIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
-                        <span class="text-md font-bold dark:text-slate-100">Werkbonnen</span>
-                    </div>
-                    <div class="flex items-center gap-4">
+                <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen" :subtitle="autoGenerateSummary"
+                    chapter="serviceorders">
+                    <template v-if="canUpdate || canGenerate" #actions>
                         <div v-if="canUpdate" class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 dark:text-slate-400">Automatisch genereren</span>
                             <SwitchComponent v-model="autoGenerateSwitch" @update="handleAutoGenerateToggle" />
@@ -124,11 +116,8 @@
                             :disabled="generating" @click="generateServiceOrders">
                             Werkbon aanmaken
                         </button>
-                    </div>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">
-                    {{ autoGenerateSummary }}
-                </p>
+                    </template>
+                </SectionHeader>
                 <ul v-if="maintenanceContract.generated_service_orders?.length"
                     class="divide-y divide-gray-100 dark:divide-slate-700 mt-3">
                     <li v-for="so in maintenanceContract.generated_service_orders" :key="so.id"
@@ -201,10 +190,8 @@
 
         <template #sidebar>
             <BoxComponent class="mt-6 md:mt-0">
-                <div class="flex items-center mb-4">
-                    <ClockIcon class="size-6 mr-2 flex-none text-gray-500 dark:text-slate-400" />
-                    <span class="text-md font-bold dark:text-slate-100">Activiteiten</span>
-                </div>
+                <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+                    subtitle="Alles wat er op dit contract gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="maintenanceContract.activities || []" />
             </BoxComponent>
 
@@ -224,7 +211,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
-import { ChevronRightIcon, ClipboardDocumentCheckIcon, ClockIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { TimelineIcon } from '@lucide/vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'

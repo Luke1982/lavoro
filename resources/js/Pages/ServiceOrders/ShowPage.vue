@@ -62,17 +62,9 @@
                                 @update:modelValue="onStageChange" />
                         </div>
                         <BoxComponent>
-                            <div class="flex items-center">
-                                <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
-                                    <div class="flex w-full items-center">
-                                        <DocumentTextIcon class="size-6 mr-2 flex-none object-cover" />
-                                        <div class="flex flex-col">
-                                            <span class="text-md font-bold">Details</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2">
+                            <SectionHeader :icon="DocumentTextIcon" title="Details"
+                                subtitle="Klant, project en referenties van deze werkbon." chapter="details" />
+                            <div class="grid grid-cols-1 md:grid-cols-2">
                                 <!-- Left column -->
                                 <div class="flex flex-col gap-6 md:pr-8" v-auto-animate>
                                     <EditableTextField
@@ -139,27 +131,16 @@
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
                             class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
-                            <div class="flex items-start sm:items-center gap-x-3 mb-3 justify-between">
-                                <div class="flex gap-x-3">
-                                    <div
-                                        class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
-                                        <BadgeCheck class="h-5 w-5 text-white" />
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <h3
-                                            class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-x-2">
-                                            Keuringen
-                                        </h3>
-                                        <div class="text-slate-400 text-xs">Beheer en maak keuringen voor dit apparaat
-                                        </div>
-                                    </div>
-                                </div>
-                                <button v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
-                                    @click="addServiceJobFromSelectedAsset" :disabled="!selectedAsset"
-                                    :class="['px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
-                                    + <span class="hidden sm:inline">Keuring toevoegen</span>
-                                </button>
-                            </div>
+                            <SectionHeader :icon="BadgeCheck" title="Keuringen"
+                                subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
+                                <template v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
+                                    #actions>
+                                    <button @click="addServiceJobFromSelectedAsset" :disabled="!selectedAsset"
+                                        :class="['px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
+                                        + <span class="hidden sm:inline">Keuring toevoegen</span>
+                                    </button>
+                                </template>
+                            </SectionHeader>
                             <div v-if="hasPermission('servicejob.create')"
                                 class="flex flex-col sm:flex-row justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
                                 <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets"
@@ -178,26 +159,16 @@
                         </BoxComponent>
                         <BoxComponent class="my-4"
                             v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
-                            <div class="flex items-start sm:items-center gap-x-3 mb-4 justify-between">
-                                <div class="flex gap-x-3">
-                                    <div
-                                        class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
-                                        <ExclamationTriangleIcon class="h-5 w-5 text-white" />
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Storingen
-                                        </h3>
-                                        <div class="text-slate-400 text-xs">Koppel een bestaande storing aan dit werk of
-                                            voeg een nieuwe toe.
-                                        </div>
-                                    </div>
-                                </div>
-                                <button v-if="hasPermission('ticket.create') && !serviceOrder.is_closed"
-                                    @click="showNewTicketDrawer = true"
-                                    class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white bg-lavoro-blue hover:opacity-90 transition-opacity cursor-pointer">
-                                    + <span class="hidden sm:inline">Nieuwe storing aanmaken</span>
-                                </button>
-                            </div>
+                            <SectionHeader :icon="ExclamationTriangleIcon" title="Storingen"
+                                subtitle="Koppel een bestaande storing aan dit werk of voeg een nieuwe toe."
+                                chapter="tickets">
+                                <template v-if="hasPermission('ticket.create') && !serviceOrder.is_closed" #actions>
+                                    <button @click="showNewTicketDrawer = true"
+                                        class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white bg-lavoro-blue hover:opacity-90 transition-opacity cursor-pointer">
+                                        + <span class="hidden sm:inline">Nieuwe storing aanmaken</span>
+                                    </button>
+                                </template>
+                            </SectionHeader>
 
                             <div v-if="hasPermission('ticket.add_to_serviceorder') && !serviceOrder.is_closed"
                                 class="mb-5">
@@ -301,17 +272,13 @@
                                 :address="mapLocation.address ?? ''" :source-label="mapSourceLabel" />
                         </BoxComponent>
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
-                            <div class="flex">
-                                <TimelineIcon class="size-6 mr-2 flex-none object-cover" />
-                                <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Tijdlijn</h3>
-                            </div>
+                            <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+                                subtitle="Alles wat er op deze werkbon gebeurd is, op volgorde." chapter="timeline" />
                             <TimelineComponent :activities="timelineItems" />
                         </BoxComponent>
                         <BoxComponent v-if="eventWidgetEvents.length" class="mt-6">
-                            <div class="flex">
-                                <CalendarDaysIcon class="size-6 mr-2 flex-none object-cover" />
-                                <h3 class="font-semibold text-base mb-3 dark:text-slate-100">Afspraken</h3>
-                            </div>
+                            <SectionHeader :icon="CalendarDaysIcon" title="Afspraken"
+                                subtitle="Ingeplande momenten voor deze werkbon." chapter="events" />
                             <EventsWidget :service-order-id="serviceOrder.id" :events="eventWidgetEvents"
                                 :user-roles="userRoles" :leading-color="defaultLeadingColor"
                                 @times-updated="missingTimes = $event" />
@@ -324,10 +291,6 @@
                         </BoxComponent>
                         <BoxComponent class="mt-6"
                             v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.internal_remarks.length > 0)">
-                            <div class="flex items-center gap-x-2 mb-4">
-                                <span
-                                    class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
-                            </div>
                             <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.internal_remarks" :internal="true" />
@@ -336,30 +299,16 @@
                             documentable-type="\App\Models\ServiceOrder" class="mt-6" />
                         <BoxComponent class="mt-6">
                             <ImageUploadComponent :existing="serviceOrder.images" :imageable-id="serviceOrder.id"
-                                imageable-type="App\Models\ServiceOrder" />
+                                imageable-type="App\Models\ServiceOrder" title="Foto's van het werk" />
                         </BoxComponent>
                         <BoxComponent class="mt-6">
-                            <div class="flex items-center gap-x-2 mb-4">
-                                <span
-                                    class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">Intern</span>
-                                <span class="text-sm font-semibold text-gray-700 dark:text-slate-200">Interne
-                                    foto's</span>
-                            </div>
                             <ImageUploadComponent :existing="serviceOrder.internal_images"
                                 :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder"
-                                :internal="true" />
+                                title="Foto's van het werk" :internal="true" />
                         </BoxComponent>
                         <BoxComponent class="mt-6">
-                            <div class="flex items-center mb-3">
-                                <div class="flex justify-between w-full flex-wrap md:flex-nowrap">
-                                    <div class="flex w-full items-center">
-                                        <Signature class="size-6 mr-2 flex-none object-cover" />
-                                        <div class="flex flex-col">
-                                            <span class="text-md font-bold">Afronding en handtekening</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <SectionHeader :icon="Signature" title="Afronding en handtekening"
+                                subtitle="Rond de werkbon af en laat de klant tekenen." chapter="signoff" />
                             <div class="py-2">
                                 <EditableTextField type="textarea" v-model="form.description"
                                     :readonly="serviceOrder.is_closed || !hasPermission('serviceorder.close')"
@@ -436,7 +385,8 @@
                             Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                         </div>
                         <BoxComponent>
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 mb-4">Materialen</h3>
+                            <SectionHeader :icon="Package" title="Materialen"
+                                subtitle="Overzicht van gebruikte materialen voor deze bon." chapter="materials" />
                             <MaterialsFinancialOverview :materials="combinedMaterials"
                                 :freeform-materials="combinedFreeformMaterials" />
                         </BoxComponent>
@@ -467,14 +417,17 @@
                             </span>
                         </BoxComponent>
                         <BoxComponent v-if="canSeeFinancials">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Financieel</h3>
-                                <button type="button" @click="showFinancial = !showFinancial"
-                                    class="p-1.5 rounded text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
-                                    v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
-                                    <span class="text-xl leading-none select-none">$</span>
-                                </button>
-                            </div>
+                            <SectionHeader :icon="EuroIcon" title="Financieel"
+                                subtitle="Totalen en marges van deze werkbon." chapter="financial">
+                                <template #actions>
+                                    <button type="button" @click="showFinancial = !showFinancial"
+                                        class="p-1.5 rounded text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                        v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
+                                        <EyeSlashIcon v-if="showFinancial" class="size-5" />
+                                        <EyeIcon v-else class="size-5" />
+                                    </button>
+                                </template>
+                            </SectionHeader>
                             <div v-if="showFinancialUi" class="text-sm">
                                 <div class="flex justify-between py-1">
                                     <span class="text-gray-500 dark:text-slate-400">Subtotaal</span>
@@ -644,7 +597,7 @@ import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
-import { DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
+import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Check, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
@@ -663,7 +616,8 @@ import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { ticketPriorities } from '@/Components/data/TicketData';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { BadgeCheck, ChevronRightIcon, Signature, TimelineIcon } from '@lucide/vue';
+import { BadgeCheck, ChevronRightIcon, Euro as EuroIcon, Package, Signature, TimelineIcon } from '@lucide/vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';

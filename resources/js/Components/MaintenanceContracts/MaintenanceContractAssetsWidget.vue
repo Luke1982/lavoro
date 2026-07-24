@@ -1,21 +1,15 @@
 <template>
     <div>
-        <div class="flex items-start sm:items-center justify-between mb-4">
-            <div class="flex items-start sm:items-center gap-3">
-                <div class="flex items-center justify-center w-11 h-11 rounded-lavoro-sm bg-lavoro-blue flex-none">
-                    <PuzzlePieceIcon class="h-5 w-5 text-white" />
-                </div>
-                <div class="flex flex-col">
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100">Machines</h2>
-                    <p class="text-xs text-slate-400 dark:text-slate-400">Machines die onder dit contract vallen.</p>
-                </div>
-            </div>
-            <button v-if="canCreate" type="button" @click="showAddForm = !showAddForm"
-                class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
-                <PlusIcon class="size-4" />
-                <span class="hidden sm:inline">Machine toevoegen</span>
-            </button>
-        </div>
+        <SectionHeader :icon="PuzzlePieceIcon" title="Machines"
+            subtitle="Machines die onder dit contract vallen." chapter="assets">
+            <template v-if="canCreate" #actions>
+                <button type="button" @click="showAddForm = !showAddForm"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
+                    <PlusIcon class="size-4" />
+                    <span class="hidden sm:inline">Machine toevoegen</span>
+                </button>
+            </template>
+        </SectionHeader>
 
         <div v-auto-animate>
             <div v-if="showAddForm && canCreate"
@@ -94,6 +88,7 @@ import { PuzzlePieceIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import { hasPermission, mapAssetForSelect } from '@/Utilities/Utilities'
 
 const props = defineProps({

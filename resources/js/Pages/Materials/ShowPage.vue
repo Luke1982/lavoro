@@ -20,10 +20,8 @@
         <!-- Left: editable fields -->
         <div class="lg:col-span-2 space-y-6">
             <BoxComponent>
-                <div class="flex items-center mb-4">
-                    <CubeIcon class="size-5 text-gray-500 mr-2" />
-                    <span class="text-md font-bold">Materiaalgegevens</span>
-                </div>
+                <SectionHeader :icon="CubeIcon" title="Materiaalgegevens"
+                    subtitle="Codes, prijzen en voorraad van dit materiaal." chapter="details" />
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Left column -->
                     <div class="flex flex-col gap-6">
@@ -98,16 +96,16 @@
         <!-- Right: Leveranciers -->
         <div class="space-y-6">
             <BoxComponent>
-                <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700">
-                    <BuildingOfficeIcon class="size-5 text-gray-500 mr-2" />
-                    <h3 class="text-sm font-medium">Leveranciers</h3>
-                    <button v-if="hasPermission('material.update')"
-                        @click="addingSupplier = !addingSupplier"
-                        class="ml-2 text-blue-600 hover:text-blue-800 cursor-pointer"
-                        v-tooltip="'Leverancier koppelen'">
-                        <PlusIcon class="size-4" />
-                    </button>
-                </div>
+                <SectionHeader :icon="BuildingOfficeIcon" title="Leveranciers"
+                    subtitle="Bij wie dit materiaal ingekocht kan worden." chapter="suppliers" border>
+                    <template v-if="hasPermission('material.update')" #actions>
+                        <button @click="addingSupplier = !addingSupplier"
+                            class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                            v-tooltip="'Leverancier koppelen'">
+                            <PlusIcon class="size-4" />
+                        </button>
+                    </template>
+                </SectionHeader>
 
                 <!-- Add form -->
                 <div v-auto-animate>
@@ -214,9 +212,8 @@
             </BoxComponent>
 
             <BoxComponent>
-                <div class="flex items-center mb-4">
-                    <span class="text-md font-bold">Tijdlijn</span>
-                </div>
+                <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+                    subtitle="Alles wat er met dit materiaal gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="activities" />
             </BoxComponent>
         </div>
@@ -225,6 +222,8 @@
 
 <script setup>
 import { ChevronRightIcon, BuildingOfficeIcon, CubeIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { TimelineIcon } from '@lucide/vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { ref, reactive, watch } from 'vue';
 import BoxComponent from '@/Components/BoxComponent.vue';

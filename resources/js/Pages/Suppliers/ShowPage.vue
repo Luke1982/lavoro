@@ -18,10 +18,8 @@
         <!-- Left: editable fields -->
         <div class="lg:col-span-2 space-y-6">
             <BoxComponent>
-                <div class="flex items-center mb-4">
-                    <BuildingOfficeIcon class="size-5 text-gray-500 mr-2" />
-                    <span class="text-md font-bold">Leveranciersgegevens</span>
-                </div>
+                <SectionHeader :icon="BuildingOfficeIcon" title="Leveranciersgegevens"
+                    subtitle="Adres, contactgegevens en voorwaarden van deze leverancier." chapter="details" />
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="flex flex-col gap-6">
                         <EditableTextField v-model="form.name" type="input" label="Naam"
@@ -61,10 +59,8 @@
         <div class="space-y-6">
             <!-- Linked products -->
             <BoxComponent>
-                <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
-                    <CubeIcon class="size-5 text-gray-500 mr-2" />
-                    <span class="text-sm font-medium">Gekoppelde producten</span>
-                </div>
+                <SectionHeader :icon="CubeIcon" title="Gekoppelde producten"
+                    subtitle="Producten die bij deze leverancier ingekocht worden." chapter="products" border />
                 <p v-if="!supplier.products?.length" class="text-sm text-gray-400 italic">Geen producten gekoppeld.</p>
                 <table v-else class="w-full text-sm">
                     <thead>
@@ -94,10 +90,8 @@
 
             <!-- Linked materials -->
             <BoxComponent>
-                <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
-                    <SwatchIcon class="size-5 text-gray-500 mr-2" />
-                    <span class="text-sm font-medium">Gekoppeld materiaal</span>
-                </div>
+                <SectionHeader :icon="SwatchIcon" title="Gekoppeld materiaal"
+                    subtitle="Materialen die bij deze leverancier ingekocht worden." chapter="materials" border />
                 <p v-if="!supplier.materials?.length" class="text-sm text-gray-400 italic">Geen materiaal gekoppeld.</p>
                 <table v-else class="w-full text-sm">
                     <thead>
@@ -130,6 +124,7 @@ import { Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 
 const props = defineProps({
     supplier: { type: Object, required: true },
