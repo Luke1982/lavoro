@@ -20,6 +20,7 @@ use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Asset;
 use App\Models\Company;
 use App\Models\Customer;
+use App\Models\DocumentCategory;
 use App\Models\GeneralSetting;
 use App\Models\Material;
 use App\Models\MaterialCategory;
@@ -238,8 +239,10 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productables.childProduct.productType',
             'taskInstances.assets',
             'project:id,title,location',
-            'documents',
-            'internalDocuments',
+            'documents.category',
+            'documents.user:id,name',
+            'internalDocuments.category',
+            'internalDocuments.user:id,name',
             'images',
             'internalImages',
         ])->findOrFail($id);
@@ -319,6 +322,7 @@ class ServiceOrderController extends Controller
 
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
+            'documentCategories' => DocumentCategory::forPicker(),
             'mapLocation' => $this->mapLocation($service_order),
             'customerAssets' => $customer_assets,
             'allTaskInstances' => $all_task_instances,

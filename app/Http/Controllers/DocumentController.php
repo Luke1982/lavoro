@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DocumentBulkCategoryRequest;
+use App\Http\Requests\DocumentBulkDestroyRequest;
 use App\Http\Requests\DocumentDestroyRequest;
 use App\Http\Requests\DocumentStoreRequest;
 use App\Http\Requests\DocumentUpdateRequest;
+use App\Http\Requests\DocumentViewRequest;
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -26,13 +29,24 @@ class DocumentController extends Controller
             $document = Document::create([
                 'name' => $original_name,
                 'path' => $path,
+                'size' => $document_file->getSize(),
                 'title' => $this->titleFromFilename($original_name),
+                'document_category_id' => $request->document_category_id,
+                'user_id' => $request->user()->id,
             ]);
 
             $documentable_record->documents()->attach($document->id, [
                 'internal' => $request->boolean('internal', false),
             ]);
             $created_documents[] = $document;
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(
+                Document::with(['category', 'user:id,name'])
+                    ->whereIn('id', collect($created_documents)->pluck('id'))
+                    ->get()
+            );
         }
 
         return back()->with([
@@ -50,6 +64,33 @@ class DocumentController extends Controller
 
     public function destroy(DocumentDestroyRequest $request, Document $document)
     {
+        $this->purge($document);
+
+        return back()->with('success', 'Document verwijderd.');
+    }
+
+    public function bulkCategory(DocumentBulkCategoryRequest $request)
+    {
+        Document::whereIn('id', $request->ids)
+            ->update(['document_category_id' => $request->document_category_id]);
+
+        return back()->with('success', 'Categorie toegewezen.');
+    }
+
+    public function bulkDestroy(DocumentBulkDestroyRequest $request)
+    {
+        Document::whereIn('id', $request->ids)
+            ->get()
+            ->each(fn (Document $document) => $this->purge($document));
+
+        return back()->with('success', 'Documenten verwijderd.');
+    }
+
+    /**
+     * Log the removal on whatever the document hangs off, drop the file and the row.
+     */
+    private function purge(Document $document): void
+    {
         $link = DB::table('documentables')->where('document_id', $document->id)->first();
 
         if ($link) {
@@ -61,8 +102,6 @@ class DocumentController extends Controller
 
         Storage::disk('public')->delete($document->path);
         $document->delete();
-
-        return back()->with('success', 'Document verwijderd.');
     }
 
     private function titleFromFilename(string $filename): string
@@ -72,10 +111,20 @@ class DocumentController extends Controller
         return trim(preg_replace('/[\s_]+/', ' ', $base_name));
     }
 
-    public function download(Document $document)
+    public function download(DocumentViewRequest $request, Document $document)
     {
-        abort_unless(auth()->user()->hasPermission('document.see'), 403);
-
         return Storage::disk('public')->download($document->path, $document->name);
+    }
+
+    /**
+     * Same bytes as download, served inline so the browser can render them in a
+     * tab. Exists so the UI never has to link at /storage directly: that path is
+     * served by the webserver, outside every middleware and permission check.
+     */
+    public function preview(DocumentViewRequest $request, Document $document)
+    {
+        return Storage::disk('public')->response($document->path, $document->name, [
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

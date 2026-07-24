@@ -6,13 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * @method \App\Models\User user()
- * @method \App\Models\Document route(string $key = null)
+ * @method \App\Models\DocumentCategory route(string $key = null)
  */
-class DocumentDestroyRequest extends FormRequest
+class DocumentCategoryDestroyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('delete', $this->route('document'));
+        return $this->user()->can('delete', $this->route('documentcategory'));
     }
 
     public function rules(): array

@@ -15,6 +15,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerImportController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventTypeController;
@@ -318,10 +319,19 @@ Route::group(
         Route::post('images/import-from-url', [ImageController::class, 'importFromUrl'])->name('images.importFromUrl');
         Route::resource('remarks', RemarkController::class)
             ->only(['store', 'destroy']);
+        // Registered ahead of the resource so "bulk" is not swallowed by {document}.
+        Route::put('documents/bulk-category', [DocumentController::class, 'bulkCategory'])
+            ->name('documents.bulkCategory');
+        Route::delete('documents/bulk', [DocumentController::class, 'bulkDestroy'])
+            ->name('documents.bulkDestroy');
         Route::resource('documents', DocumentController::class)
             ->only(['store', 'update', 'destroy']);
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
             ->name('documents.download');
+        Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
+            ->name('documents.preview');
+        Route::resource('documentcategories', DocumentCategoryController::class)
+            ->only(['store', 'update', 'destroy']);
         Route::get('planner', [PlannerController::class, 'index'])
             ->name('planner.index');
         Route::get('planner/export', EventExportController::class)

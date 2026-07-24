@@ -225,10 +225,8 @@
                     :comments="ticket.remarks" />
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
-                <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
-                    documentable-type="\App\Models\Ticket" class="mt-6" />
-            </BoxComponent>
+            <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
+                documentable-type="\App\Models\Ticket" class="mt-4" />
         </template>
 
         <template #sidebar>

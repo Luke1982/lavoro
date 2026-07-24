@@ -2,17 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * @method \App\Models\User user()
- * @method \App\Models\Document route(string $key = null)
  */
-class DocumentDestroyRequest extends FormRequest
+class DocumentViewRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('delete', $this->route('document'));
+        return $this->user()->can('viewAny', Document::class);
     }
 
     public function rules(): array

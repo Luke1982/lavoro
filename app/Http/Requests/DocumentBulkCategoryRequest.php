@@ -2,26 +2,27 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * @property string $title
+ * @property int[] $ids
  * @property int|null $document_category_id
  *
- * @method array user()
- * @method \App\Models\Document route(string $key = null)
+ * @method \App\Models\User user()
  */
-class DocumentUpdateRequest extends FormRequest
+class DocumentBulkCategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('document'));
+        return $this->user()->can('updateAny', Document::class);
     }
 
     public function rules(): array
     {
         return [
-            'title' => 'nullable|string|max:255',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:documents,id',
             'document_category_id' => 'nullable|integer|exists:document_categories,id',
         ];
     }

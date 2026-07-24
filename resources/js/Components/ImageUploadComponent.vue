@@ -301,7 +301,7 @@ const ensureCsrfCookie = () => {
     return csrf_request;
 };
 
-const uploadChunk = async (batch, onProgress) => {
+const uploadChunk = async (batch, onProgress, signal) => {
     await ensureCsrfCookie();
 
     const data = new FormData();
@@ -318,6 +318,7 @@ const uploadChunk = async (batch, onProgress) => {
     const response = await axios.post(props.apiMode ? '/api/images' : '/images', data, {
         headers: { Accept: 'application/json' },
         onUploadProgress: (event) => event.total && onProgress(event.loaded / event.total),
+        signal,
     });
 
     emit('imagesUploaded', response.data);

@@ -35,6 +35,7 @@ export function useUploadQueue({
     let disposed = false;
     let uploaded_during_run = false;
     let last_id = 0;
+    let controller = null;
 
     const total = computed(() => items.value.length);
     const completed = computed(() => items.value.filter((item) => item.status === 'done').length);
@@ -120,8 +121,10 @@ export function useUploadQueue({
             });
         };
 
+        controller = new AbortController();
+
         try {
-            await uploadChunk(batch, reportProgress);
+            await uploadChunk(batch, reportProgress, controller.signal);
             uploaded_during_run = true;
 
             batch.forEach((item) => {
@@ -142,6 +145,8 @@ export function useUploadQueue({
                 item.loaded = 0;
                 item.prepared = null;
             });
+        } finally {
+            controller = null;
         }
     }
 
@@ -267,6 +272,19 @@ export function useUploadQueue({
         items.value = items.value.filter((item) => item.status !== 'done');
     }
 
+    /**
+     * Abandons the run: aborts the request in flight and empties the queue.
+     *
+     * The pump needs no cancelled flag — it looks for the next pending item on
+     * every turn, and there are none left to find. Files already on the server
+     * stay there; onDrained still fires for them so the list picks them up.
+     */
+    function cancel() {
+        controller?.abort();
+        items.value.forEach(releasePreview);
+        items.value = [];
+    }
+
     function dispose() {
         disposed = true;
         items.value.forEach(releasePreview);
@@ -288,6 +306,7 @@ export function useUploadQueue({
         retryFailed,
         remove,
         clearFinished,
+        cancel,
         dispose,
     };
 }

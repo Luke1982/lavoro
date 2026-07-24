@@ -9,6 +9,7 @@ use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketListRequest;
 use App\Http\Requests\TicketReadRequest;
 use App\Http\Requests\TicketUpdateRequest;
+use App\Models\DocumentCategory;
 use App\Models\Ticket;
 use App\Models\User;
 use Inertia\Response;
@@ -300,13 +301,15 @@ class TicketController extends Controller
             'serviceOrder.serviceOrderStage',
             'serviceOrder.events',
             'serviceOrder.executingUsers',
-            'documents',
+            'documents.category',
+            'documents.user:id,name',
         ]);
 
         $ticket->remarks->load('user');
 
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,
+            'documentCategories' => DocumentCategory::forPicker(),
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
             'customFields' => $ticket->allCustomFieldsWithValues(),

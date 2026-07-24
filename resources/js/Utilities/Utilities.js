@@ -240,6 +240,94 @@ export const formatWbNumber = (serviceOrderId) => `WB-${String(serviceOrderId).p
 const _currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
 export const nlCurrency = (value) => _currencyFormatter.format(Number(value) || 0);
 
+const _oneDecimal = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 });
+
+/**
+ * Byte count as "245 KB" / "1,2 MB". Whole units below a megabyte, because a
+ * tenth of a kilobyte tells nobody anything.
+ */
+export const formatFileSize = (bytes) => {
+    const value = Number(bytes);
+
+    if (!Number.isFinite(value) || value <= 0) return "";
+    if (value < 1024) return `${Math.round(value)} B`;
+    if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
+    if (value < 1024 * 1024 * 1024) return `${_oneDecimal.format(value / (1024 * 1024))} MB`;
+
+    return `${_oneDecimal.format(value / (1024 * 1024 * 1024))} GB`;
+};
+
+// Mirrors App\Models\DocumentCategory::COLORS. The classes below stay literal
+// because the Tailwind JIT compiler can't build class names from runtime data.
+export const documentCategoryColors = ["blue", "green", "amber", "red", "purple", "gray"];
+
+const _documentCategoryThemes = {
+    blue: {
+        pill: "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-500/30",
+        swatch: "bg-blue-500",
+    },
+    green: {
+        pill: "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-500/30",
+        swatch: "bg-green-500",
+    },
+    amber: {
+        pill: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-500/30",
+        swatch: "bg-amber-500",
+    },
+    red: {
+        pill: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-500/30",
+        swatch: "bg-red-500",
+    },
+    purple: {
+        pill: "bg-purple-50 text-purple-700 ring-purple-600/20 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-500/30",
+        swatch: "bg-purple-500",
+    },
+    gray: {
+        pill: "bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-slate-800/60 dark:text-slate-300 dark:ring-slate-500/30",
+        swatch: "bg-gray-400",
+    },
+};
+
+export const documentCategoryPillClasses = (color) =>
+    (_documentCategoryThemes[color] ?? _documentCategoryThemes.gray).pill;
+
+export const documentCategorySwatchClasses = (color) =>
+    (_documentCategoryThemes[color] ?? _documentCategoryThemes.gray).swatch;
+
+const _documentFileThemes = {
+    pdf: "bg-red-50 text-red-600 ring-red-600/20 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-500/30",
+    word: "bg-blue-50 text-blue-600 ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-500/30",
+    sheet: "bg-green-50 text-green-600 ring-green-600/20 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-500/30",
+    slides: "bg-orange-50 text-orange-600 ring-orange-600/20 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-500/30",
+    image: "bg-purple-50 text-purple-600 ring-purple-600/20 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-500/30",
+    other: "bg-gray-50 text-gray-500 ring-gray-600/20 dark:bg-slate-800/60 dark:text-slate-300 dark:ring-slate-500/30",
+};
+
+const _documentFileFamilies = {
+    pdf: "pdf",
+    doc: "word", docx: "word", odt: "word", odf: "word", rtf: "word",
+    xls: "sheet", xlsx: "sheet", csv: "sheet", ods: "sheet",
+    ppt: "slides", pptx: "slides", odp: "slides",
+    jpg: "image", jpeg: "image", png: "image", gif: "image", webp: "image", heic: "image",
+};
+
+export const documentExtension = (filename) => {
+    const match = /\.([a-z0-9]+)$/i.exec(String(filename || ""));
+
+    return match ? match[1].toLowerCase() : "";
+};
+
+/** Badge label + colour for a filename's type, e.g. "invoice.xlsx" -> XLSX in green. */
+export const documentFileBadge = (filename) => {
+    const extension = documentExtension(filename);
+    const family = _documentFileFamilies[extension] ?? "other";
+
+    return {
+        label: (extension || "?").toUpperCase().slice(0, 4),
+        classes: _documentFileThemes[family],
+    };
+};
+
 export const nextServiceIso = (product, fallbackDays = 365) => {
     const days =
         product?.typical_certificate_days ??

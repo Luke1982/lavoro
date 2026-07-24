@@ -9,6 +9,7 @@ use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectTimelineRequest;
 use App\Http\Requests\ProjectUpdateRequest;
 use App\Models\Customer;
+use App\Models\DocumentCategory;
 use App\Models\Project;
 use App\Models\User;
 
@@ -48,7 +49,8 @@ class ProjectController extends Controller
             'projectManager',
             'milestones.assignedUser',
             'serviceOrders.serviceJobs',
-            'documents',
+            'documents.category',
+            'documents.user:id,name',
             'images',
         ]);
 
@@ -64,6 +66,7 @@ class ProjectController extends Controller
 
         return inertia('Projects/ShowPage', [
             'project' => $project,
+            'documentCategories' => DocumentCategory::forPicker(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),

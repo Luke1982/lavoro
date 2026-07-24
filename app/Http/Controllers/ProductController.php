@@ -8,6 +8,7 @@ use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Brand;
 use App\Models\Customer;
+use App\Models\DocumentCategory;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductAttributeValue;
@@ -135,7 +136,8 @@ class ProductController extends Controller
             'productType',
             'images',
             'mainImage',
-            'documents',
+            'documents.category',
+            'documents.user:id,name',
             'assets.customer',
             'assets.linkedLocation',
             'assets.openTickets',
@@ -204,6 +206,7 @@ class ProductController extends Controller
 
         return inertia('Products/ShowPage', [
             'product' => $product,
+            'documentCategories' => DocumentCategory::forPicker(),
             'productTypes' => ProductType::flatListWithPath(),
             'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
