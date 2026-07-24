@@ -521,12 +521,23 @@ git commit -m "feat(tenancy): add UserTenantLookup model"
 
 ## Task 6: Create central database migrations
 
-All target the `central` connection. The `user_tenant_lookups.email` primary key is what enforces global email uniqueness across tenants. The catalogue tables (`packages`, `modules`, `module_bundles`, `pricing_settings`) hold the price list and are seeded in the same migration that creates them. Dated `2026_07_25` so they sort after every existing migration — the newest migration as of 2026-07-24 is `2026_07_24_000003_seed_documentcategory_permissions.php`. **Re-check `ls database/migrations/ | tail -1` at implementation time and bump the date past it if newer migrations have landed since**; the split in Task 8 excludes these central migrations by exact filename, so a stale date here means the wrong files move. (This has already gone stale once: the plan originally dated them `2026_07_21`, which three later migrations overtook.)
+All target the `central` connection. The `user_tenant_lookups.email` primary key is what enforces global email uniqueness across tenants. The catalogue tables (`packages`, `modules`, `module_bundles`, `pricing_settings`) hold the price list and are seeded in the same migration that creates them.
 
-**Files:**
-- `database/migrations/2026_07_25_000001_create_tenants_table.php`
-- `database/migrations/2026_07_25_000002_create_user_tenant_lookups_table.php`
-- `database/migrations/2026_07_25_000004_create_licensing_catalogue_tables.php`
+**Generate every migration in this plan with `make:migration`, never by hand.** Artisan timestamps them at the moment you run it, which is by definition after every migration already in the tree. A filename written into a plan is stale the day someone merges a feature branch — this plan carried `2026_07_21_*` for a month and three later migrations quietly overtook it, which would have run the central schema in the wrong order. Nothing downstream depends on the names: Task 8 sorts central from tenant by reading the file contents, not the filename.
+
+```bash
+php artisan make:migration create_tenants_table
+php artisan make:migration create_user_tenant_lookups_table
+php artisan make:migration create_licensing_catalogue_tables
+```
+
+Run them **in that order and one at a time** — `user_tenant_lookups` carries a foreign key to `tenants`, so it must sort after it. Artisan's timestamp has one-second resolution, so three commands on one line can land in the same second; the filenames then sort alphabetically, which happens to be right here but is not something to rely on. Confirm before migrating:
+
+```bash
+ls database/migrations/*.php | tail -3
+```
+
+**Files:** three new central migrations (names generated above), all with `protected $connection = 'central';`
 
 **Interfaces:**
 - Produces: central tables `tenants` (columns `id`, `name`, `package_key`, `extra_field_seats`, `extra_office_seats`, `modules`, `price_override_cents`, `storage_limit_gb`, `data`, timestamps), `packages`, `modules`, `module_bundles`, `pricing_settings` — all seeded with the price list below.
@@ -704,9 +715,7 @@ Expected: `packages` has 4 rows, `modules` has 7, `module_bundles` has 1, `prici
 - [ ] **Step 5: Commit**
 
 ```bash
-git add database/migrations/2026_07_25_000001_create_tenants_table.php \
-        database/migrations/2026_07_25_000002_create_user_tenant_lookups_table.php \
-        database/migrations/2026_07_25_000004_create_licensing_catalogue_tables.php
+git add database/migrations/
 git commit -m "feat(tenancy): add central DB migrations and licensing catalogue"
 ```
 
@@ -720,7 +729,7 @@ The `sessions` table is currently created inside the framework users migration. 
 
 **Files:**
 - `database/migrations/0001_01_01_000000_create_users_table.php` (remove the sessions block)
-- `database/migrations/2026_07_25_000003_create_sessions_table.php` (new, central)
+- a new central sessions migration (`php artisan make:migration create_sessions_table`)
 - `.env` / `.env.example`
 
 - [ ] **Step 1: Remove the `sessions` block from the users migration**
@@ -773,7 +782,7 @@ SESSION_CONNECTION=central
 
 ```bash
 git add database/migrations/0001_01_01_000000_create_users_table.php \
-        database/migrations/2026_07_25_000003_create_sessions_table.php \
+        database/migrations/ \
         .env.example
 git commit -m "feat(tenancy): move sessions table to central connection"
 ```
@@ -786,48 +795,55 @@ After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions, and the licensing catalogue. `php artisan migrate` runs these against the central database.
 - `database/migrations/tenant/` holds everything else (about 214 files as of 2026-07-24: the users migration plus the dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
-`0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and the four `2026_07_25_00000{1,2,3,4}` central migrations from Tasks 6–7, stay central.
+`0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and every central migration from Tasks 6–7, stay put.
 
-**Files:** move ~214 migration files (220 total after Task 6, of which the exclusion below keeps 6 central). Counts drift with every feature branch — treat them as a sanity check, not a target.
+**Files:** move ~214 migration files (220 total after Task 6, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
 
 - [ ] **Step 1: Move the files**
 
-The `000004` catalogue migration (Task 6) is central — it must be in the exclusion list, or `packages`/`modules`/`module_bundles`/`pricing_settings` would be created per-tenant instead of once centrally.
+**The rule is content, not filename.** Every central migration this plan adds declares `protected $connection = 'central';` — that is what makes it central, so that is what the split reads. The only central migrations *without* that declaration are the two framework ones (`cache`, `jobs`), which run against the default connection and are named identically in every Laravel install, so they are the sole hardcoded exception.
+
+Matching on dates instead would mean maintaining a list of filenames that Artisan generates at implementation time, and a plan cannot know those. It would also silently misfile any migration merged from a feature branch while this work is in flight.
 
 ```bash
 mkdir -p database/migrations/tenant
 
-git mv database/migrations/0001_01_01_000000_create_users_table.php database/migrations/tenant/
-
-for f in database/migrations/2025_*.php; do
-  git mv "$f" database/migrations/tenant/
-done
-
-for f in database/migrations/2026_*.php; do
+for f in database/migrations/*.php; do
   base=$(basename "$f")
-  if [[ "$base" != "2026_07_25_000001_create_tenants_table.php" && \
-        "$base" != "2026_07_25_000002_create_user_tenant_lookups_table.php" && \
-        "$base" != "2026_07_25_000003_create_sessions_table.php" && \
-        "$base" != "2026_07_25_000004_create_licensing_catalogue_tables.php" ]]; then
-    git mv "$f" database/migrations/tenant/
+
+  # Framework migrations for the shared cache and queue tables: central, but
+  # they use the default connection rather than declaring one.
+  if [[ "$base" == "0001_01_01_000001_create_cache_table.php" || \
+        "$base" == "0001_01_01_000002_create_jobs_table.php" ]]; then
+    continue
   fi
+
+  # Anything that explicitly targets the central connection stays.
+  if grep -q "connection = 'central'" "$f"; then
+    continue
+  fi
+
+  git mv "$f" database/migrations/tenant/
 done
 ```
 
 - [ ] **Step 2: Verify**
 
 ```bash
+# Central: the two framework migrations plus the ones Tasks 6-7 created.
 ls database/migrations/*.php
-# Expected exactly these 6:
-# 0001_01_01_000001_create_cache_table.php
-# 0001_01_01_000002_create_jobs_table.php
-# 2026_07_25_000001_create_tenants_table.php
-# 2026_07_25_000002_create_user_tenant_lookups_table.php
-# 2026_07_25_000003_create_sessions_table.php
-# 2026_07_25_000004_create_licensing_catalogue_tables.php
+
+# Every remaining central migration must declare the connection (the two
+# framework ones excepted) — anything else here is misfiled.
+grep -L "connection = 'central'" database/migrations/*.php
 
 ls database/migrations/tenant/ | wc -l   # ~214
+
+# Nothing in tenant/ should claim the central connection.
+grep -l "connection = 'central'" database/migrations/tenant/*.php   # expect no output
 ```
+
+The two `grep` checks are the ones that matter. The file count only tells you something moved; these tell you the *right* things moved, and they keep working no matter what the migrations are called.
 
 - [ ] **Step 3: Commit**
 
@@ -3053,7 +3069,7 @@ php artisan migrate --force
 
 Creates `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`, `tenants`, `user_tenant_lookups`, `migrations` in the central database.
 
-Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved them into a subdirectory that plain `migrate` does not descend into) — the central `migrations` table should hold 5 rows, not 200+:
+Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved them into a subdirectory that plain `migrate` does not descend into) — the central `migrations` table should hold one row per file in `database/migrations/*.php` (6 as this plan stands), not 200+:
 
 ```bash
 sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavoro_landlord.migrations;"
@@ -3857,7 +3873,7 @@ They share storage, encryption, and one settings screen, so they are one task. T
 **Why the fallback differs.** Sending a tenant's mail from Lavoro's own mailbox is a reasonable default — the mail goes out, the customer sees a generic sender. Writing a tenant's invoices into whichever administratie `SNELSTART_CLIENT_KEY` happens to point at puts one customer's financial data into another customer's books. There is no safe default for that, so a SnelStart call without tenant credentials must refuse to run.
 
 **Files:**
-- `database/migrations/tenant/2026_07_25_140001_widen_general_settings_value.php` (new)
+- a new tenant migration widening `general_settings.value` (`php artisan make:migration widen_general_settings_value --path=database/migrations/tenant`)
 - `app/Models/GeneralSetting.php`
 - `app/Services/SnelStartClient.php`
 - `app/Exceptions/SnelStartNotConfigured.php` (new)
@@ -4129,7 +4145,7 @@ The fourth is the regression test for the bug in Step 2, and the fifth greps the
 - [ ] **Step 11: Commit**
 
 ```bash
-git add database/migrations/tenant/2026_07_25_140001_widen_general_settings_value.php \
+git add database/migrations/tenant/ \
         app/Models/GeneralSetting.php app/Services/SnelStartClient.php \
         app/Exceptions/SnelStartNotConfigured.php \
         app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php bootstrap/app.php \
@@ -4146,7 +4162,7 @@ git commit -m "feat(tenancy): resolve Graph and SnelStart credentials per tenant
 Every user is a `field` (buitendienst) or `office` (kantoor) seat. This is a tenant-database column. The column carries a DB-level default of `office` — the cheaper seat — as a safety net, but the create form still **requires** an explicit choice so a human never bills the wrong bucket by omission. The backfill sets every existing user to `office` and forces `plannable = false`; field staff are marked by hand afterwards (this empties the planner until that is done — an accepted, one-time cost).
 
 **Files:**
-- `database/migrations/tenant/2026_07_25_130001_add_seat_type_to_users_table.php` (new)
+- a new tenant migration adding `users.seat_type` (`php artisan make:migration add_seat_type_to_users_table --path=database/migrations/tenant`)
 - `database/factories/UserFactory.php`
 - `app/Http/Requests/UserStoreRequest.php`, `app/Http/Requests/UserUpdateRequest.php`
 - `resources/js/Pages/Users/EditPage.vue`
@@ -4259,7 +4275,7 @@ Expected: PASS. The factory now supplies `seat_type`, so inserts satisfy the col
 - [ ] **Step 7: Commit**
 
 ```bash
-git add database/migrations/tenant/2026_07_25_130001_add_seat_type_to_users_table.php \
+git add database/migrations/tenant/ \
         database/factories/UserFactory.php \
         app/Http/Requests/UserStoreRequest.php app/Http/Requests/UserUpdateRequest.php \
         resources/js/Pages/Users/EditPage.vue
@@ -5074,7 +5090,7 @@ A small internal admin on its own subdomain (`beheer.lavorofsm.nl`) for managing
 Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 34), seat counting (Task 35) and the storage counter (Task 36).
 
 **Files:**
-- `database/migrations/2026_07_25_000005_create_landlord_users_table.php` (central)
+- a new central migration for `landlord_users` (`php artisan make:migration create_landlord_users_table`)
 - `app/Models/Central/LandlordUser.php`
 - `config/auth.php` (landlord guard + provider)
 - `app/Console/Commands/CreateLandlordUser.php`
@@ -5253,7 +5269,7 @@ Add the `beheer.lavorofsm.nl` DNS record and a vhost pointing at the same app; i
 - [ ] **Step 11: Commit**
 
 ```bash
-git add database/migrations/2026_07_25_000005_create_landlord_users_table.php \
+git add database/migrations/ \
         app/Models/Central/LandlordUser.php config/auth.php config/app.php \
         app/Console/Commands/CreateLandlordUser.php routes/landlord.php bootstrap/app.php \
         app/Http/Controllers/Landlord/ resources/js/Pages/Landlord/ resources/js/Layouts/LandlordLayout.vue \
