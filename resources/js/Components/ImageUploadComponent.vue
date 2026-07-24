@@ -23,6 +23,24 @@
             <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFiles" multiple />
             <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden"
                 @change="handleFiles" />
+
+            <div v-if="showProgress" class="mt-4 w-full max-w-sm">
+                <div class="flex items-baseline justify-between text-sm text-gray-600 dark:text-slate-300">
+                    <span>{{ uploading ? 'Bezig met uploaden…' : 'Uploaden afgerond' }}</span>
+                    <span class="tabular-nums">{{ queueCompleted }} / {{ queueTotal }}</span>
+                </div>
+                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-slate-700">
+                    <div class="h-full rounded-full bg-lavoro-blue transition-all duration-300"
+                        :style="{ width: `${progressPercentage}%` }"></div>
+                </div>
+                <div v-if="queueHasFailures" class="mt-2 flex items-center justify-between gap-3 text-sm">
+                    <span class="text-red-600 dark:text-red-400">{{ queueFailed }} mislukt</span>
+                    <button type="button" @click="retryFailed()" :disabled="uploading"
+                        class="font-medium text-lavoro-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                        Opnieuw proberen
+                    </button>
+                </div>
+            </div>
         </div>
         <div v-else-if="maySee() && existing.length === 0"
             class="text-center text-sm text-gray-400 dark:text-slate-500 py-5 rounded-lavoro-sm border border-dashed border-gray-200 dark:border-slate-700">
@@ -87,23 +105,23 @@
             </button>
         </div>
 
-        <div class="mt-4" v-if="previewBeforeUpload && selectedFiles.length > 0">
+        <div class="mt-4" v-if="previewBeforeUpload && stagedItems.length > 0">
             <h3 class="text-lg font-semibold">Deze foto's wil je uploaden</h3>
             <div class="grid grid-cols-4 gap-4 mt-2">
-                <div v-for="(file, index) in selectedFiles" :key="index"
+                <div v-for="item in stagedItems" :key="item.id"
                     class="text-center rounded-md border border-gray-00 p-5 col-span-4 md:col-span-2 relative">
-                    <img v-if="file.type.startsWith('image/')" :src="file.previewUrl" alt="Image preview"
+                    <img v-if="item.previewUrl" :src="item.previewUrl" alt="Image preview"
                         class="w-24 h-24 object-cover rounded-lg border border-gray-300 inline-block" />
-                    <p v-else class="text-gray-700">{{ file.name }}</p>
-                    <p class="text-sm text-gray-500 truncate mt-1">{{ file.name }}</p>
-                    <input type="text" v-model="uploadImagesForm.titles[file.name]"
-                        class="rounded-md border-gray-200 my-2 w-full" placeholder="Titel">
+                    <p v-else class="text-gray-700">{{ item.name }}</p>
+                    <p class="text-sm text-gray-500 truncate mt-1">{{ item.name }}</p>
+                    <input type="text" v-model="item.title" class="rounded-md border-gray-200 my-2 w-full"
+                        placeholder="Titel">
                     <TrashIcon class="h-5 w-5 text-red-500 cursor-pointer absolute top-2 right-2"
-                        @click="selectedFiles.splice(index, 1); uploadImagesForm.images.splice(index, 1); uploadImagesForm.titles[file.name] = ''" />
+                        @click="removeStaged(item.id)" />
                 </div>
             </div>
         </div>
-        <button v-if="previewBeforeUpload && selectedFiles.length > 0" :disabled="uploading"
+        <button v-if="previewBeforeUpload && stagedItems.length > 0" :disabled="uploading"
             :class="[uploading ? 'bg-slate-500' : 'bg-lavoro-blue', 'w-full text-white rounded-md p-3 mt-3 font-bold']"
             @click="uploadPhotos">Verzenden</button>
 
@@ -152,7 +170,7 @@
 
 <script setup>
 import {
-    ref, watch, onUnmounted, onMounted, onUpdated, nextTick
+    ref, computed, watch, onUnmounted, onMounted, nextTick
 
 } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
@@ -168,9 +186,8 @@ import ImageThumbnailMenu from '@/Components/UI/ImageThumbnailMenu.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import { hasPermission } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
+import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
-
-const { compressImage } = useImageCompression();
 
 let lightbox = null;
 const { captureScroll: captureScrollBeforeOpen, lock: lockBodyScroll, unlock: unlockBodyScroll } = useScrollLock();
@@ -210,11 +227,6 @@ onMounted(() => {
     lightbox.on('open', lockBodyScroll);
     lightbox.on('close', unlockBodyScroll);
 });
-onUpdated(() => {
-    nextTick(() => {
-        lightbox && lightbox.reload();
-    });
-});
 
 const page = usePage();
 
@@ -242,6 +254,15 @@ const props = defineProps({
     },
 });
 
+const existingSignature = computed(() => props.existing.map((image) => `${image.id}:${image.path}`).join(','));
+
+watch(existingSignature, () => {
+    nextTick(() => {
+        lightbox && lightbox.reload();
+        emblaApi.value?.reInit();
+    });
+});
+
 const mayUpload = () => props.canManage !== null ? props.canManage : hasPermission('image.upload');
 const maySee = () => props.canManage !== null ? props.canManage : hasPermission('image.see');
 const mayEdit = () => props.canManage !== null ? props.canManage : hasPermission('image.edit');
@@ -259,10 +280,8 @@ function openLightboxFor(image) {
 const currentImage = ref({ id: null, path: null });
 
 const uploadImagesForm = useForm({
-    images: [],
     imageable_id: props.imageableId,
     imageable_type: props.imageableType,
-    titles: {},
     imageToUpdate: null,
     newTitle: '',
     internal: props.internal,
@@ -271,8 +290,70 @@ const uploadImagesForm = useForm({
 const fileInput = ref(null);
 const cameraInput = ref(null);
 const isDragging = ref(false);
-const selectedFiles = ref([]);
-const uploading = ref(false);
+
+let csrf_request = null;
+
+const ensureCsrfCookie = () => {
+    if (!csrf_request) {
+        csrf_request = axios.get('/sanctum/csrf-cookie');
+    }
+
+    return csrf_request;
+};
+
+const uploadChunk = async (batch, onProgress) => {
+    await ensureCsrfCookie();
+
+    const data = new FormData();
+
+    batch.forEach((item) => {
+        data.append('images[]', item.prepared);
+        data.append(`titles[${item.prepared.name}]`, item.title || item.prepared.name);
+    });
+
+    data.append('imageable_id', props.imageableId);
+    data.append('imageable_type', props.imageableType);
+    data.append('internal', props.internal ? '1' : '0');
+
+    const response = await axios.post(props.apiMode ? '/api/images' : '/images', data, {
+        headers: { Accept: 'application/json' },
+        onUploadProgress: (event) => event.total && onProgress(event.loaded / event.total),
+    });
+
+    emit('imagesUploaded', response.data);
+};
+
+const onQueueDrained = () => {
+    if (!props.apiMode) {
+        router.reload({ preserveScroll: true, preserveState: true });
+    }
+};
+
+const { compressImage } = useImageCompression();
+
+const {
+    items: queueItems,
+    isActive: uploading,
+    total: queueTotal,
+    completed: queueCompleted,
+    failed: queueFailed,
+    hasFailures: queueHasFailures,
+    percentage: progressPercentage,
+    enqueue,
+    stage,
+    start,
+    retryFailed,
+    remove: removeStaged,
+    dispose: disposeQueue,
+} = useUploadQueue({
+    uploadChunk,
+    onDrained: onQueueDrained,
+    prepare: compressImage,
+    prepareFailureMessage: 'Comprimeren is mislukt',
+});
+
+const stagedItems = computed(() => queueItems.value.filter((item) => item.status === 'staged'));
+const showProgress = computed(() => queueTotal.value > 0 && stagedItems.value.length === 0);
 
 const openFilePicker = () => {
     fileInput.value.click();
@@ -282,16 +363,29 @@ const openCamera = () => {
     cameraInput.value.click();
 };
 
+const acceptFiles = (files) => {
+    if (files.length === 0) {
+        return;
+    }
+
+    if (props.previewBeforeUpload) {
+        stage(files);
+
+        return;
+    }
+
+    enqueue(files);
+};
+
 // Handle files added through the file picker
 const handleFiles = (event) => {
-    const files = Array.from(event.target.files);
-    addFiles(files);
+    acceptFiles(Array.from(event.target.files));
+    event.target.value = '';
 };
 
 // Handle files added through drag-and-drop
 const handleDrop = (event) => {
-    const files = Array.from(event.dataTransfer.files);
-    addFiles(files);
+    acceptFiles(Array.from(event.dataTransfer.files));
     isDragging.value = false;
 };
 
@@ -322,82 +416,16 @@ const changeTitle = async (name, id) => {
     }
 };
 
-// Add files to the existing list and generate previews for images
-const addFiles = async (files) => {
-    const compressedFiles = [];
+const uploadPhotos = () => {
+    const untitled = stagedItems.value.some((item) => !item.title);
 
-    for (const file of files) {
-        if (file.type.startsWith('image/')) {
-            // Compress image
-            const compressedFile = await compressImage(file);
-            compressedFiles.push({
-                file: compressedFile,
-                name: compressedFile.name,
-                type: compressedFile.type,
-                previewUrl: URL.createObjectURL(compressedFile),
-            });
-        } else {
-            // Add non-image files without compression
-            compressedFiles.push({
-                file,
-                name: file.name,
-                type: file.type,
-                previewUrl: null,
-            });
-        }
-        uploadImagesForm.titles[file.name] = file.name;
-    }
+    if (untitled) {
+        alert('Iedere afbeelding moet een titel hebben');
 
-    // Update selected files and upload form
-    selectedFiles.value = [...selectedFiles.value, ...compressedFiles];
-    uploadImagesForm.images = [...uploadImagesForm.images, ...compressedFiles.map((r) => r.file)];
-
-    if (!props.previewBeforeUpload) {
-        await uploadPhotos();
-    }
-};
-
-
-const uploadPhotos = async () => {
-    uploading.value = true;
-    for (let i = 0; i < uploadImagesForm.images.length; i++) {
-        const fileTitle = uploadImagesForm.titles[uploadImagesForm.images[i].name];
-        if (fileTitle === undefined || fileTitle === '') {
-            alert('Iedere afbeelding moet een titel hebben');
-            uploading.value = false;
-            return;
-        }
-    }
-
-    if (props.apiMode) {
-        await axios.get('/sanctum/csrf-cookie');
-        const data = new FormData();
-        uploadImagesForm.images.forEach((file) => {
-            data.append('images[]', file);
-            data.append(`titles[${file.name}]`, uploadImagesForm.titles[file.name]);
-        });
-        data.append('imageable_id', props.imageableId);
-        data.append('imageable_type', props.imageableType);
-        data.append('internal', props.internal ? '1' : '0');
-        const response = await axios.post('/api/images', data);
-        emit('imagesUploaded', response.data);
-        uploadImagesForm.reset();
-        selectedFiles.value = [];
-        uploading.value = false;
         return;
     }
 
-    uploadImagesForm.post('/images',
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                emit('imagesUploaded', JSON.parse(page.props.flash.extra));
-                uploadImagesForm.reset();
-                selectedFiles.value = [];
-                uploading.value = false;
-            }
-        }
-    );
+    start();
 };
 
 const deleteImage = async (id) => {
@@ -464,13 +492,9 @@ const setMain = async (id, isCurrentlyMain) => {
 
 defineExpose({ deleteImage, uploadPhotos, setMain })
 
-// Clean up object URLs on component unmount
+// Stop the queue and release object URLs on component unmount
 onUnmounted(() => {
-    selectedFiles.value.forEach(file => {
-        if (file.previewUrl) {
-            URL.revokeObjectURL(file.previewUrl);
-        }
-    });
+    disposeQueue();
     if (editorInstance.value) editorInstance.value.destroy(); // TUI Image Editor
 });
 

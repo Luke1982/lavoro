@@ -1,6 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+// jsdom ships none of these; embla calls them while initialising the thumbnail strip
+class ObserverStub {
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+}
+
+window.IntersectionObserver = window.IntersectionObserver || ObserverStub
+window.ResizeObserver = window.ResizeObserver || ObserverStub
+
+window.matchMedia = window.matchMedia || ((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+}))
+
 const formPost = vi.fn()
 const formDelete = vi.fn()
 
