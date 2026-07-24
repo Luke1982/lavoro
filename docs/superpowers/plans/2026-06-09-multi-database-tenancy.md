@@ -54,10 +54,12 @@ Two consequences of this naming scheme worth knowing up front:
 **Database isolation is enforced by MySQL, not only by the application.** Each tenant gets its own MySQL user that can reach only its own database (Task 2/3). The web app's own credentials reach only the central database. So a bug that fails to switch tenant context produces a permission error rather than another customer's data. The account that can create databases and users authenticates by Unix socket as a dedicated Linux user (`auth_socket`) and has **no password stored anywhere** — provisioning is a deliberate CLI action, impossible from a web request.
 
 **Prerequisites:**
-- MySQL (multi-database tenancy does not work on SQLite)
-- MySQL running on the same host as the app, reachable over its Unix socket — required for the passwordless provisioner account (Task 2)
+- MySQL **or MariaDB** (multi-database tenancy does not work on SQLite). The two differ in how socket authentication is named and selected; `scripts/tenancy/setup-mysql.sh` detects which one it is talking to rather than assuming. Development here is MySQL 8.0.46.
+- The database server on the same host as the app, reachable over its Unix socket — required for the passwordless provisioner account (Task 2)
 - `root` (or another admin account) available once, to create the `lavoro_app` and `lavoro_provisioner` accounts in Task 2
 - A full database backup before running the one-time deployment (Task 27)
+
+**The account setup in Task 2 is scripted** (`scripts/tenancy/setup-mysql.sh`, `verify-mysql.sh`, `teardown-mysql.sh`). Read Task 2 before running anything: the scripts are the same statements written out there, and `--dry-run` prints them without touching the server or needing root.
 
 ---
 
@@ -116,9 +118,32 @@ Why this shape:
 
 **Requires MySQL on the same machine as the app** — `auth_socket` works over the Unix socket only. Verified present at `/var/run/mysqld/mysqld.sock`. If the database ever moves to its own host, this task needs revisiting (client certificates or a root-only credentials file).
 
-**Files:** `config/database.php`, `.env`, `.env.example`
+**Files:** `config/database.php`, `.env`, `.env.example`, `scripts/tenancy/{lib,setup-mysql,verify-mysql,teardown-mysql}.sh`
 
-- [ ] **Step 1: Create the app user, restricted to the central database (run once as root, per environment)**
+### The scripts
+
+Steps 1–3 below are automated by three scripts in `scripts/tenancy/`. The SQL is still written out in full underneath each step, because you should be able to read what the scripts do and check it against the server by hand — but do not type it in twice.
+
+```bash
+sudo scripts/tenancy/setup-mysql.sh              # creates everything in Steps 1 and 2
+sudo scripts/tenancy/verify-mysql.sh             # asserts Step 3
+```
+
+Useful flags:
+
+| Flag | Effect |
+| --- | --- |
+| `--dry-run` | Prints the SQL and changes nothing. Needs no root and no running server. |
+| `--flavour=mysql\|mariadb` | Skips detection. Lets you review the *other* server's SQL from this machine. |
+| `--with-test` | Also creates the Task 30 test account and `lavoro_test_landlord`. |
+| `--write-env` | Patches `.env` with the generated credentials, backing it up first. |
+| `--rotate-app-password` | Re-runs are otherwise non-destructive and leave an existing password alone. |
+
+**The scripts detect MySQL versus MariaDB, because the two differ in ways that break a copy-pasted script.** MySQL 8 names the plugin `auth_socket` and selects it with `IDENTIFIED WITH`; MariaDB names it `unix_socket` and selects it with `IDENTIFIED VIA`, and installs it from a different SONAME. MariaDB also ships `mariadb` as the client binary and may not provide `mysql` at all. Detection reads `VERSION()` and `@@version_comment` — MariaDB always identifies itself in one of them. Development here is MySQL 8.0.46; production may not be, which is exactly why this is detected rather than assumed.
+
+`teardown-mysql.sh` drops the landlord database, every `lavoro_tenant_*` database and account, and the two accounts. It refuses to run unless `APP_ENV=local` and requires both `--yes-really` and typing `destroy` at a prompt. It exists so a local install can be rebuilt from scratch while iterating on this plan.
+
+- [ ] **Step 1: Create the app user, restricted to the landlord database (run once as root, per environment)**
 
 ```sql
 CREATE USER IF NOT EXISTS 'lavoro_app'@'127.0.0.1' IDENTIFIED BY '<strong-password>';
@@ -155,16 +180,25 @@ If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SO
 - [ ] **Step 3: Verify the identities behave as intended**
 
 ```bash
-# Provisioner works only as its own Linux user, and needs no password:
-sudo -u lavoro_provisioner mysql -e "SELECT current_user();"        # → lavoro_provisioner@localhost
-mysql -u lavoro_provisioner -e "SELECT 1;"                          # → must FAIL (wrong OS user)
-
-# The app user is confined to the landlord database:
-mysql -u lavoro_app -p -e "SHOW DATABASES;"                          # → only lavoro_landlord
-mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_tenant_nope;"      # → must FAIL
+sudo scripts/tenancy/verify-mysql.sh
 ```
 
-The second command failing is the whole point: it proves the privilege is tied to OS identity, not to a string anyone can copy.
+It exits non-zero on any failure, so it can gate a deploy. The assertions, each of which is a claim the isolation depends on:
+
+| Assertion | Why it matters |
+| --- | --- |
+| The socket plugin is loaded | Without it the provisioner account cannot authenticate at all |
+| `lavoro_provisioner` authenticates as itself over the socket, with no password | Proves the privilege is tied to OS identity |
+| The same account is **unreachable over TCP** | Proves there is no password to steal or copy |
+| It can create a database inside `lavoro_tenant_*` | Tenant creation will work |
+| It **cannot** create one outside that namespace | The blast radius really is the tenant namespace |
+| `lavoro_app` sees only the landlord database | The web app cannot read customer data with its own credentials |
+| `lavoro_app` cannot create databases | A compromised app cannot provision |
+| Every existing tenant account holds no `*.*` grant and no `GRANT OPTION` | Per-tenant credentials stay low-value |
+
+**A skipped check is never reported as a pass.** Each negative assertion ("cannot see X") is satisfied trivially by a connection that failed, so the script confirms the connection first and skips the rest with a visible `SKIP` if it can't. A run against a server where nothing exists yet reports failures and skips — never a clean sheet. That distinction is the whole value of the script over eyeballing the output of four `mysql` commands.
+
+Run it again after the first `tenant:create` (Task 21), when the tenant-account assertions have something to check.
 
 - [ ] **Step 4: Point `.env` at the central database and the app user**
 
@@ -227,7 +261,7 @@ Mirror the non-secret keys into `.env.example`. `DB_DATABASE` now names the **ce
 - [ ] **Step 6: Commit**
 
 ```bash
-git add config/database.php .env.example
+git add config/database.php .env.example scripts/tenancy/
 git commit -m "feat(tenancy): add central and provisioner database connections"
 ```
 
@@ -3732,6 +3766,8 @@ Change it to also require the module:
 
 This reuses the exact prop `ServiceOrders/ShowPage.vue` already gates its SnelStart button on (`v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"`, line 448) — no frontend changes needed for SnelStart. The materials-import button is gated by the route middleware from Step 3 alone.
 
+**Task 32 Step 8 revises this line again**, dropping the `config()` clause once the client key is per-tenant and there is no global one left to check. If you are implementing both tasks in sequence, write the Task 32 version directly and skip the intermediate form.
+
 - [ ] **Step 5: Gate the Tickets and Projects nav items**
 
 Navigation moved out of `MainLayout.vue` in the 2026-07 sidebar redesign — it now lives in **`resources/js/Composables/useSidebarNav.js`**. Add `requiresModule` next to the existing `requiresPermission` on these two entries (lines ~116 and ~172):
@@ -3784,42 +3820,149 @@ git commit -m "feat(tenancy): enforce module subscriptions on gated routes and U
 
 ---
 
-## Task 32: Per-tenant Microsoft Graph mail credentials
+## Task 32: Per-tenant integration credentials (Microsoft Graph mail + SnelStart)
 
-Today `Mail::extend('graph', ...)` (`AppServiceProvider.php:83`) builds the transport entirely from `config('services.graph.*')`, which reads global `GRAPH_TENANT_ID` / `GRAPH_CLIENT_ID` / `GRAPH_CLIENT_SECRET` / `GRAPH_USER_ID` / `GRAPH_ENDPOINT` env vars — every tenant sends mail through the same Azure app registration and mailbox. Move these into each tenant's `general_settings` table (already a tenant-scoped table per the top-of-plan table, using the existing `GeneralSetting::get`/`set` key-value helper — the same mechanism Known impact point 4 recommends), read per-request from the active tenant, and fall back to the global env values when a tenant hasn't configured its own mailbox yet, so nothing regresses for the current single tenant during the Task 27 migration.
+Two integrations authenticate as *somebody*, and after tenancy that somebody has to be the customer, not Lavoro. Microsoft Graph sends mail from an Azure app registration and a mailbox; SnelStart reads and writes a bookkeeping administratie. Both currently take their credentials from global env vars, so every tenant would share one mailbox and one set of books.
 
-**The subtlety this task exists to handle:** `Illuminate\Mail\MailManager` caches a resolved `graph` transport instance for the lifetime of the container. In a classic PHP-FPM request that's harmless (one tenant per request/process). On a queue worker processing jobs for multiple tenants in sequence without restarting, the *first* tenant's credentials would get cached and silently reused for a *later* tenant's queued mail (e.g. `SendStandardEmailJob`) in the same worker process. This is fixed by forgetting the resolved mailer whenever tenancy switches, mirroring the `forgetDriver`/`forgetDisk` pattern already used by `PrefixCacheBootstrapper` (Task 10) and `TenantStorageBootstrapper` (Task 14).
+They share storage, encryption, and one settings screen, so they are one task. They differ in exactly one respect, and it is the important one:
 
-**Files:** `app/Providers/AppServiceProvider.php`, `app/Providers/TenancyServiceProvider.php`
+| | Microsoft Graph | SnelStart |
+| --- | --- | --- |
+| Per-tenant keys | `graph_azure_tenant_id`, `graph_client_id`, `graph_client_secret`, `graph_user_id` | `snelstart_client_key`, `snelstart_subscription_key` |
+| Stays global | `graph_endpoint` | `snelstart_auth_url`, `snelstart_api_base` |
+| Unconfigured tenant | **Falls back to the shared env credentials** | **Fails closed** |
 
-- [ ] **Step 1: Rewrite the `Mail::extend('graph', ...)` closure**
+**Why the fallback differs.** Sending a tenant's mail from Lavoro's own mailbox is a reasonable default — the mail goes out, the customer sees a generic sender. Writing a tenant's invoices into whichever administratie `SNELSTART_CLIENT_KEY` happens to point at puts one customer's financial data into another customer's books. There is no safe default for that, so a SnelStart call without tenant credentials must refuse to run.
 
-In `AppServiceProvider::boot()`, replace the existing closure:
+**Files:**
+- `database/migrations/tenant/2026_07_25_140001_widen_general_settings_value.php` (new)
+- `app/Models/GeneralSetting.php`
+- `app/Services/SnelStartClient.php`
+- `app/Exceptions/SnelStartNotConfigured.php` (new)
+- `app/Providers/AppServiceProvider.php`, `app/Providers/TenancyServiceProvider.php`, `bootstrap/app.php`
+- `app/Console/Commands/FetchSnelStartArtikelen.php`, `FetchSnelStartRelaties.php`
+- `app/Http/Controllers/Admin/IntegrationSettingsController.php` (new), `app/Http/Requests/IntegrationSettingsRequest.php` (new)
+- `resources/js/Pages/Admin/IntegrationSettingsPage.vue` (new), `routes/web.php`
+- `tests/Feature/IntegrationCredentialsTest.php` (new)
+
+**Interfaces:**
+- Produces: `GeneralSetting::get`/`set` transparently encrypting the keys in `GeneralSetting::SECRET_KEYS`; `SnelStartClient` resolving per tenant and throwing `SnelStartNotConfigured` when unconfigured; `admin/settings/integrations` behind `auth` + `admin`.
+
+- [ ] **Step 1: Widen `general_settings.value` and encrypt the secret keys**
+
+The column is `varchar(255)` today. A Laravel-encrypted 40-character key serialises to roughly 220–260 characters of base64 — at the ceiling, and over it for a longer key. Storing ciphertext there would truncate silently on a non-strict server and error on a strict one, so widen it first. No index exists on `value`, so this is a plain `MODIFY`.
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        DB::statement('ALTER TABLE general_settings MODIFY value TEXT NOT NULL');
+    }
+
+    public function down(): void
+    {
+        DB::statement('ALTER TABLE general_settings MODIFY value VARCHAR(255) NOT NULL');
+    }
+};
+```
+
+Then put encryption inside the model, so no caller changes:
+
+```php
+public const SECRET_KEYS = [
+    'graph_client_secret',
+    'snelstart_client_key',
+    'snelstart_subscription_key',
+];
+
+public static function get(string $key, mixed $default = null): mixed
+{
+    $row = static::where('key', $key)->first();
+
+    if (!$row) {
+        return $default;
+    }
+
+    if (!in_array($key, self::SECRET_KEYS, true)) {
+        return $row->value;
+    }
+
+    try {
+        return Crypt::decryptString($row->value);
+    } catch (DecryptException) {
+        return $default;
+    }
+}
+
+public static function set(string $key, mixed $value): void
+{
+    static::updateOrCreate(['key' => $key], [
+        'value' => in_array($key, self::SECRET_KEYS, true)
+            ? Crypt::encryptString((string) $value)
+            : (string) $value,
+    ]);
+}
+```
+
+The `DecryptException` catch is load-bearing. After an `APP_KEY` rotation every stored secret becomes undecryptable; returning the default degrades that to "not configured" — a settings screen asking to re-enter the credentials — instead of a 500 on every page that touches mail or SnelStart. See Known impact 11: `APP_KEY` was already backup-critical for tenant database passwords, and this widens what it protects.
+
+- [ ] **Step 2: Rewrite the `Mail::extend('graph', ...)` closure — fall back as a set, not per key**
+
+The obvious implementation resolves each key independently, falling back to env per key. That produces a state that cannot work. `GraphTransport.php:52` is `$user = $this->userId ?: $this->fromAddress;`, and it posts to `/users/{$user}/sendMail`. So a tenant that configures its own `graph_client_id` and `graph_client_secret` but leaves the mailbox unset authenticates against **its own** Azure app registration and then asks it to send as `MAIL_FROM_ADDRESS` — a mailbox that exists in *Lavoro's* Azure tenant and not in theirs. Every send fails with an unhelpful Graph error.
+
+So the tenant either supplies the whole set or none of it:
 
 ```php
 Mail::extend('graph', function () {
-    $tenant_setting = fn (string $key, string $config_key) => tenancy()->initialized
-        ? GeneralSetting::get($key, config("services.graph.{$config_key}"))
-        : config("services.graph.{$config_key}");
+    $tenant_id     = tenancy()->initialized ? GeneralSetting::get('graph_azure_tenant_id') : null;
+    $client_id     = tenancy()->initialized ? GeneralSetting::get('graph_client_id') : null;
+    $client_secret = tenancy()->initialized ? GeneralSetting::get('graph_client_secret') : null;
+    $user_id       = tenancy()->initialized ? GeneralSetting::get('graph_user_id') : null;
+
+    $tenant_configured = filled($tenant_id) && filled($client_id)
+        && filled($client_secret) && filled($user_id);
+
+    if ($tenant_configured) {
+        return new GraphTransport(
+            tenantId: $tenant_id,
+            clientId: $client_id,
+            clientSecret: $client_secret,
+            fromAddress: GeneralSetting::get('mail_from_address', $user_id),
+            userId: $user_id,
+            graphEndpoint: config('services.graph.endpoint'),
+            dispatcher: app('events'),
+            logger: app('log')->channel()
+        );
+    }
 
     return new GraphTransport(
-        tenantId: $tenant_setting('graph_tenant_id', 'tenant_id'),
-        clientId: $tenant_setting('graph_client_id', 'client_id'),
-        clientSecret: $tenant_setting('graph_client_secret', 'client_secret'),
+        tenantId: config('services.graph.tenant_id'),
+        clientId: config('services.graph.client_id'),
+        clientSecret: config('services.graph.client_secret'),
         fromAddress: config('mail.from.address'),
-        userId: $tenant_setting('graph_user_id', 'user_id'),
-        graphEndpoint: $tenant_setting('graph_endpoint', 'endpoint'),
+        userId: config('services.graph.user_id'),
+        graphEndpoint: config('services.graph.endpoint'),
         dispatcher: app('events'),
         logger: app('log')->channel()
     );
 });
 ```
 
+Note `graph_user_id` is **required** in the tenant branch, where the pre-tenancy design called it optional. Once credentials are per tenant, the mailbox must belong to the same Azure tenant as the credentials that authenticate to it; there is no coherent "own app registration, shared mailbox" configuration. The from-address defaults to the mailbox itself rather than the global `MAIL_FROM_ADDRESS`, for the same reason.
+
+The setting is named `graph_azure_tenant_id`, not `graph_tenant_id`. In a codebase where "tenant" now means a customer, a key called `graph_tenant_id` holding an *Azure* directory id is a bug report waiting to happen.
+
 Add `use App\Models\GeneralSetting;` to the file's imports.
 
-- [ ] **Step 2: Forget the cached mailer whenever tenancy switches**
+- [ ] **Step 3: Forget the cached mailer whenever tenancy switches**
 
-In `TenancyServiceProvider::boot()` (Task 11), add listeners for both tenancy events next to the existing ones:
+`Illuminate\Mail\MailManager` caches a resolved `graph` transport for the lifetime of the container. In PHP-FPM that is harmless — one tenant per request. On a queue worker processing jobs for several tenants without restarting, the *first* tenant's credentials get cached and silently reused for a later tenant's queued mail (`SendStandardEmailJob`). Mirror the `forgetDriver` / `forgetDisk` pattern from Tasks 10 and 14, in `TenancyServiceProvider::boot()`:
 
 ```php
 Event::listen(TenancyInitialized::class, function () {
@@ -3830,23 +3973,148 @@ Event::listen(TenancyEnded::class, function () {
 });
 ```
 
-These run in addition to (not instead of) the existing `BootstrapTenancy` / `RevertToCentralContext` listeners already registered for those events — Laravel dispatches all listeners for an event, order doesn't matter here since both only affect mailer resolution, not tenancy state itself.
+These run in addition to the existing `BootstrapTenancy` / `RevertToCentralContext` listeners — Laravel dispatches all listeners for an event, and order does not matter here since these only affect mailer resolution, not tenancy state.
 
-- [ ] **Step 3: Set a tenant's Graph credentials via `GeneralSetting`**
+**`SnelStartClient` needs no equivalent.** It reads config in its constructor and is not bound as a singleton, so every injection (`handle(SnelStartClient $client)`, `sendToSnelStart(ServiceOrder $order, SnelStartClient $client)`) builds a fresh instance against the current tenant. Verify that stays true if anyone ever adds a `singleton()` binding for it.
 
-No new CLI command — `general_settings` is a plain key-value tenant table, so this is done the same way any other tenant setting is set today (e.g. through `php artisan tinker` while tenancy is initialized for that tenant, or a future admin UI). Document the four keys tenants can override: `graph_tenant_id`, `graph_client_id`, `graph_client_secret`, `graph_user_id` (optional — omit to send as the shared mailbox), `graph_endpoint` (optional — omit to use the default `https://graph.microsoft.com/v1.0`).
+- [ ] **Step 4: Resolve `SnelStartClient` per tenant, failing closed**
 
-- [ ] **Step 4: Verify**
+```php
+public function __construct()
+{
+    $cfg = config('services.snelstart');
+    $this->authUrl = $cfg['auth_url'];
+    $this->apiBase = $cfg['api_base'];
 
-- With no tenant-specific settings: mail still sends via the global `GRAPH_*` env credentials (unchanged behavior).
-- Set `graph_tenant_id`/`graph_client_id`/`graph_client_secret` via `GeneralSetting::set()` for the test tenant from Task 28, send a test mail (`php artisan` equivalent of `TestGraphMail`), confirm it authenticates against the tenant-specific Azure app registration (check the Microsoft Entra sign-in log for that tenant ID, or deliberately misconfigure the secret and confirm the send fails with that tenant's error rather than silently succeeding via the global credentials).
-- Dispatch two queued `SendStandardEmailJob`s for two different tenants with different Graph credentials back-to-back on the same worker process; confirm both use their own tenant's credentials (this is the scenario Step 2 fixes — without it, the second job would silently reuse the first tenant's transport).
+    $this->clientKey       = (string) GeneralSetting::get('snelstart_client_key', '');
+    $this->subscriptionKey = (string) GeneralSetting::get('snelstart_subscription_key', '');
 
-- [ ] **Step 5: Commit**
+    if ($this->clientKey === '' || $this->subscriptionKey === '') {
+        throw new SnelStartNotConfigured();
+    }
+}
+```
+
+`SNELSTART_CLIENT_KEY` and `SNELSTART_SUBSCRIPTION_KEY` come out of `config/services.php`, `.env` and `.env.example` entirely — leaving them there invites exactly the fallback this step exists to prevent. `auth_url` and `api_base` stay.
+
+The constructor throws, which means it throws during container resolution, before the controller body runs. Render it centrally in `bootstrap/app.php`, next to the existing `AuthorizationException` and `QueryException` handlers, which already do this shape:
+
+```php
+$exceptions->render(function (SnelStartNotConfigured $e, Request $request) {
+    $message = 'De SnelStart-koppeling is nog niet ingesteld. Ga naar Beheer → Koppelingen.';
+
+    if ($request->expectsJson()) {
+        return response()->json(['message' => $message], 422);
+    }
+
+    return redirect()->back()->with('error', $message);
+});
+```
+
+- [ ] **Step 5: Fingerprint the SnelStart token cache key**
+
+`getAccessToken()` caches under the flat key `snelstart.token`. Task 10's `PrefixCacheBootstrapper` already namespaces that per tenant, so cross-tenant reuse is handled. The remaining problem is *within* a tenant: rotating the client key leaves a valid cached token for up to 58 minutes, so a wrong key appears to work and the real failure surfaces later, somewhere else.
+
+```php
+$fingerprint = substr(hash('sha256', $this->clientKey), 0, 12);
+
+return Cache::remember('snelstart.token.' . $fingerprint, now()->addSeconds(3500), function () { ... });
+```
+
+The `snelstart.land.*` reference lookups need no change — they are already per-tenant by prefix, and duplicating a country list per tenant costs nothing.
+
+- [ ] **Step 6: Make the SnelStart fetch commands tenant-aware**
+
+`FetchSnelStartArtikelen` and `FetchSnelStartRelaties` are manual commands today and would run against whatever connection happens to be default. Give both a `{--tenant=}` option. Without it, iterate every tenant using the Task 20 pattern, skipping any tenant that lacks the module or the credentials:
+
+```php
+$tenants = $this->option('tenant')
+    ? Tenant::on('central')->where('id', $this->option('tenant'))->cursor()
+    : Tenant::on('central')->cursor();
+
+foreach ($tenants as $tenant) {
+    if (!$tenant->hasModule('snelstart')) {
+        continue;
+    }
+
+    tenancy()->initialize($tenant);
+
+    try {
+        $this->syncFor(app(SnelStartClient::class));
+    } catch (SnelStartNotConfigured) {
+        $this->warn("Skipping {$tenant->name}: SnelStart not configured.");
+    } finally {
+        tenancy()->end();
+    }
+}
+```
+
+- [ ] **Step 7: Build the integration settings screen**
+
+One page with a section per integration, at `admin/settings/integrations`, registered inside the existing `auth` → `admin` group in `routes/web.php`. Do **not** gate the whole page on `tenant.module:snelstart` — the Graph section belongs to every tenant. Gate the SnelStart *section* on `hasModule('snelstart')` in the template, and the SnelStart fields in `IntegrationSettingsRequest::rules()` with `required_if` on the same condition.
+
+`IntegrationSettingsRequest::authorize()` calls the policy, per CLAUDE.md; validation lives in `rules()`; the frontend renders `form.errors` only.
+
+**The page must never receive the stored secrets.** An Inertia prop carrying a client secret ships it to every browser that loads the settings page and into every browser devtools session. Send status, not values:
+
+```php
+return inertia('Admin/IntegrationSettingsPage', [
+    'graph' => [
+        'configured'      => filled(GeneralSetting::get('graph_client_secret')),
+        'azure_tenant_id' => GeneralSetting::get('graph_azure_tenant_id'),
+        'client_id'       => GeneralSetting::get('graph_client_id'),
+        'user_id'         => GeneralSetting::get('graph_user_id'),
+    ],
+    'snelstart' => [
+        'configured'       => filled(GeneralSetting::get('snelstart_client_key')),
+        'client_key_hint'  => $this->hint(GeneralSetting::get('snelstart_client_key')),
+    ],
+]);
+```
+
+where `hint()` returns the last four characters or `null`. Identifiers (`client_id`, `user_id`, the Azure directory id) are not secret and are sent in full so the form can show what is set. Secrets come back only as `configured` plus a hint, and an empty submitted secret means "leave unchanged" rather than "clear it" — otherwise every save of an unrelated field wipes the credential.
+
+- [ ] **Step 8: Update the `snelStartEnabled` prop**
+
+Task 31 Step 4 set it to `filled(config('services.snelstart.client_key')) && tenancy()->initialized && tenancy()->tenant->hasModule('snelstart')`. There is no global client key any more, so drop that clause and check the tenant's own credentials instead:
+
+```php
+'snelStartEnabled' => tenancy()->initialized
+    && tenancy()->tenant->hasModule('snelstart')
+    && filled(\App\Models\GeneralSetting::get('snelstart_client_key')),
+```
+
+A tenant that subscribes to the module but has not entered credentials now correctly sees no SnelStart button, rather than a button that throws.
+
+- [ ] **Step 9: Tests**
+
+```php
+public function test_two_tenants_resolve_different_snelstart_credentials(): void
+public function test_snelstart_without_credentials_throws_rather_than_falling_back(): void
+public function test_graph_falls_back_to_env_only_when_no_tenant_key_is_set(): void
+public function test_a_partially_configured_graph_tenant_does_not_mix_in_env_values(): void
+public function test_the_settings_endpoint_response_contains_no_secret(): void
+```
+
+The fourth is the regression test for the bug in Step 2, and the fifth greps the rendered Inertia props for the stored secret string.
+
+- [ ] **Step 10: Verify by hand**
+
+- Set Graph credentials for the Task 28 second tenant, send a test mail, confirm it authenticates against that tenant's Azure app registration (check the Entra sign-in log, or deliberately break the secret and confirm the failure is that tenant's, not a silent success via the global credentials).
+- Dispatch two queued `SendStandardEmailJob`s for two tenants with different credentials back-to-back on one worker; confirm each uses its own. Without Step 3 the second silently reuses the first's transport.
+- Confirm a `mysqldump` of a tenant database shows ciphertext for `snelstart_client_key`, not the key.
+
+- [ ] **Step 11: Commit**
 
 ```bash
-git add app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php
-git commit -m "feat(tenancy): resolve Microsoft Graph mail credentials per tenant"
+git add database/migrations/tenant/2026_07_25_140001_widen_general_settings_value.php \
+        app/Models/GeneralSetting.php app/Services/SnelStartClient.php \
+        app/Exceptions/SnelStartNotConfigured.php \
+        app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php bootstrap/app.php \
+        app/Console/Commands/ app/Http/Controllers/Admin/ app/Http/Requests/ \
+        resources/js/Pages/Admin/IntegrationSettingsPage.vue routes/web.php \
+        config/services.php .env.example tests/Feature/IntegrationCredentialsTest.php
+git commit -m "feat(tenancy): resolve Graph and SnelStart credentials per tenant"
 ```
 
 ---
@@ -5117,7 +5385,9 @@ git commit -m "chore(deploy): back up and migrate every tenant database"
 
 3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which already closes the old world-readable hole. It does not yet apply per-resource permission checks — every authenticated user in the tenant can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
-4. **SnelStart and Firebase (FCM) credentials are still global env vars.** ~~Microsoft Graph~~ Microsoft Graph mail is **resolved per tenant as of Task 32** (tenant `general_settings` keys, falling back to the global env credentials for tenants that haven't configured their own mailbox). SnelStart and Firebase remain shared across all tenants — the same `general_settings` pattern used for Graph in Task 32 applies directly if/when per-tenant SnelStart or FCM credentials are needed; until then SnelStart access is already gated per tenant by the `snelstart` module subscription (Task 31).
+4. ~~SnelStart and Microsoft Graph credentials are global env vars.~~ **Resolved by Task 32.** Both are per-tenant, stored encrypted in the tenant's `general_settings` and edited from Beheer → Koppelingen. Graph falls back to the shared env credentials for tenants that haven't configured a mailbox; SnelStart fails closed, because there is no safe default administratie to write someone else's invoices into.
+
+   **Firebase (FCM) is still global**, and unlike the other two that is probably correct: the FCM credential identifies the *Lavoro app* to Google, not the customer, and device tokens are app-instance-bound rather than tenant-bound. Revisit only if tenants ever ship their own branded builds — at which point the Task 32 pattern applies directly.
 
 5. ~~Module subscriptions are stored but not yet enforced.~~ **Resolved by Task 31.** The `tenant.module` route middleware gates tickets, projects, SnelStart imports/send, and Google Calendar OAuth routes; the `snelStartEnabled` Inertia props and the Tickets/Projects nav items in `useSidebarNav.js` are gated the same way on the frontend. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing.
 
