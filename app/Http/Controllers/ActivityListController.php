@@ -7,12 +7,16 @@ use App\Http\Requests\ActivityListReadRequest;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\EventType;
+use App\Models\Location;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class ActivityListController extends Controller
 {
+    private const MAX_PARENT_DEPTH = 10;
+
     public function getUpcomingActivities(ActivityListReadRequest $request)
     {
         $days = (int) $request->input('days', 60);
@@ -32,19 +36,43 @@ class ActivityListController extends Controller
             ? $this->getUpcomingAssetsQuery($days)
             : $this->getExpiredAssetsQuery();
 
-        // Outer: one asset per customer, with customer eager-loaded. Drives ordering of customers on the page.
-        $main_assets = $this->applySearchFilter($matching_query, $search)
-            ->with(['customer'])
+        // Outer: one asset per customer. Drives ordering of customers on the page.
+        $candidates = $this->applySearchFilter($matching_query, $search)
             ->orderBy('next_service_date')
-            ->get()
-            ->unique(fn ($a) => $a->customer?->id)
+            ->get();
+
+        $ownership = $this->resolveRootOwnership($candidates);
+
+        $main_assets = $candidates
+            ->filter(fn ($a) => isset($ownership[$a->id]))
+            ->unique(fn ($a) => $ownership[$a->id]['customer_id'])
             ->values();
 
         if ($main_assets->isEmpty()) {
             return collect();
         }
 
-        $customer_ids = $main_assets->pluck('customer.id')->filter()->unique();
+        $customers = Customer::whereIn('id', $main_assets->map(fn ($a) => $ownership[$a->id]['customer_id'])->unique())
+            ->get()
+            ->keyBy('id');
+
+        $main_assets = $main_assets
+            ->filter(fn ($a) => $customers->has($ownership[$a->id]['customer_id']))
+            ->values();
+
+        if ($main_assets->isEmpty()) {
+            return collect();
+        }
+
+        $customer_ids = $main_assets->map(fn ($a) => $ownership[$a->id]['customer_id'])->unique()->values();
+
+        $child_ownership = collect($this->resolveRootOwnership(
+            $this->applyServiceDateWindow(
+                Asset::query()->whereNull('customer_id')->where('status', 'Actief'),
+                $type,
+                $days
+            )->get(['id', 'customer_id', 'parent_asset_id', 'location_id'])
+        ))->filter(fn ($root) => $customer_ids->contains($root['customer_id']));
 
         // Inner: all relevant assets for those customers, with deep relations.
         // IMPORTANT: do NOT eager-load `customer` here. The outer "main asset" and the asset
@@ -52,8 +80,10 @@ class ActivityListController extends Controller
         // otherwise Laravel's toArray() recursion guard drops the relations on the inner copy
         // and the Vue chokes on `asset.product.brand`.
         $inner_query = Asset::query()
-            ->whereIn('customer_id', $customer_ids)
             ->where('status', 'Actief')
+            ->where(fn (Builder $q) => $q
+                ->whereIn('customer_id', $customer_ids)
+                ->orWhereIn('id', $child_ownership->keys()))
             ->with([
                 'product.brand',
                 'product.productType',
@@ -65,43 +95,111 @@ class ActivityListController extends Controller
                 'pendingServiceJobs.serviceOrder.comingEvents',
             ]);
 
-        if ($type === 'upcoming') {
-            $inner_query
-                ->where('next_service_date', '>=', now())
-                ->where('next_service_date', '<=', now()->addDays($days))
-                ->orderBy('next_service_date');
-        } else {
-            $inner_query
-                ->where('next_service_date', '<', now())
-                ->orderBy('next_service_date', 'desc');
-        }
+        $inner_assets = $this->applyServiceDateWindow($inner_query, $type, $days)->get();
 
-        $inner_by_customer = $inner_query->get()->groupBy('customer_id');
+        $root_of = fn (Asset $asset) => $asset->customer_id !== null
+            ? ['customer_id' => $asset->customer_id, 'location_id' => $asset->location_id]
+            : $child_ownership->get($asset->id);
+
+        $inner_by_customer = $inner_assets->groupBy(fn (Asset $a) => $root_of($a)['customer_id']);
+
+        $locations = Location::whereIn(
+            'id',
+            $inner_assets->map(fn (Asset $a) => $root_of($a)['location_id'])->filter()->unique()
+        )->get()->keyBy('id');
 
         foreach ($main_assets as $main) {
-            if (!$main->customer) {
-                continue;
-            }
-            $assets = $inner_by_customer->get($main->customer->id, collect());
+            $customer = $customers->get($ownership[$main->id]['customer_id']);
+            $main->setRelation('customer', $customer);
+
+            $assets = $inner_by_customer->get($customer->id, collect());
             $assets->each(fn ($a) => $this->attachEarlierPlannedEvents($a));
 
-            $main->customer->upcoming_asset_days = $days;
-            $main->customer->setRelation('upcomingAssets', $assets->values());
+            $customer->upcoming_asset_days = $days;
+            $customer->setRelation('upcomingAssets', $assets->values());
 
-            $groups = $assets->groupBy('location_id')->map(function ($group) {
-                $location = $group->first()->linkedLocation;
+            $groups = $assets->groupBy(fn (Asset $a) => $root_of($a)['location_id'] ?? 0)
+                ->map(function ($group, $location_id) use ($locations) {
+                    $location = $locations->get($location_id);
 
-                return [
-                    'location' => $location
-                        ? $location->only(['id', 'title', 'address', 'postal_code', 'city'])
-                        : null,
-                    'asset_ids' => $group->pluck('id')->values(),
-                ];
-            })->sortBy(fn ($group) => $group['location'] ? 0 : 1)->values();
-            $main->customer->setAttribute('location_groups', $groups);
+                    return [
+                        'location' => $location
+                            ? $location->only(['id', 'title', 'address', 'postal_code', 'city'])
+                            : null,
+                        'asset_ids' => $group->pluck('id')->values(),
+                    ];
+                })->sortBy(fn ($group) => $group['location'] ? 0 : 1)->values();
+            $customer->setAttribute('location_groups', $groups);
         }
 
         return $main_assets;
+    }
+
+    private function applyServiceDateWindow(Builder $query, string $type, int $days): Builder
+    {
+        if ($type === 'upcoming') {
+            return $query
+                ->where('next_service_date', '>=', now())
+                ->where('next_service_date', '<=', now()->addDays($days))
+                ->orderBy('next_service_date');
+        }
+
+        return $query
+            ->where('next_service_date', '<', now())
+            ->orderBy('next_service_date', 'desc');
+    }
+
+    /**
+     * Maps each asset onto the customer and location of its root asset. A child asset carries
+     * neither of its own, so ownership resolves up the parent chain — one query per level rather
+     * than one per asset. Assets whose chain leads nowhere are left out entirely.
+     *
+     * @return array<int, array{customer_id: int, location_id: int|null}>
+     */
+    private function resolveRootOwnership(Collection $assets): array
+    {
+        $resolved = [];
+        $pending = [];
+
+        foreach ($assets as $asset) {
+            if ($asset->customer_id !== null) {
+                $resolved[$asset->id] = [
+                    'customer_id' => $asset->customer_id,
+                    'location_id' => $asset->location_id,
+                ];
+            } elseif ($asset->parent_asset_id !== null) {
+                $pending[$asset->id] = $asset->parent_asset_id;
+            }
+        }
+
+        for ($depth = 0; !empty($pending) && $depth < self::MAX_PARENT_DEPTH; $depth++) {
+            $parents = Asset::whereIn('id', array_unique(array_values($pending)))
+                ->get(['id', 'customer_id', 'parent_asset_id', 'location_id'])
+                ->keyBy('id');
+
+            $unresolved = [];
+
+            foreach ($pending as $asset_id => $parent_id) {
+                $parent = $parents->get($parent_id);
+
+                if (!$parent) {
+                    continue;
+                }
+
+                if ($parent->customer_id !== null) {
+                    $resolved[$asset_id] = [
+                        'customer_id' => $parent->customer_id,
+                        'location_id' => $parent->location_id,
+                    ];
+                } elseif ($parent->parent_asset_id !== null) {
+                    $unresolved[$asset_id] = $parent->parent_asset_id;
+                }
+            }
+
+            $pending = $unresolved;
+        }
+
+        return $resolved;
     }
 
     private function attachEarlierPlannedEvents(Asset $asset): void
