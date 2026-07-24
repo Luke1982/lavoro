@@ -1,77 +1,100 @@
 <template>
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        <div class="inline sm:flex items-center">
-            <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
-            <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-            <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
-                ticket.asset.serial_number
-                }}</span>
-        </div>
-        <button v-if="hasPermission('ticket.delete')" type="button" @click="deleteTicket"
-            class="inline-flex items-center justify-center size-9 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 ring-gray-200 dark:ring-slate-600 ring-1 rounded-full cursor-pointer">
-            <TrashIcon class="size-5" />
-        </button>
-    </div>
-
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 mb-2">
-        <div>
-            <div class="flex items-center gap-3 flex-wrap">
-                <h1 class="text-2xl font-bold dark:text-slate-100">{{ ticket.subject }}</h1>
-                <BadgeComponent :color="statusBadgeColor" :hasDot="false">{{ ticket.status }}</BadgeComponent>
-            </div>
-            <div class="flex flex-wrap gap-x-6 gap-y-2 mt-3">
-                <div class="flex items-center gap-1.5">
-                    <ExclamationCircleIcon class="size-4 text-slate-400 flex-none" />
-                    <span class="text-xs text-slate-400">Prioriteit</span>
-                    <BadgeComponent :color="priorityBadgeColor" :hasDot="false" class="!px-2 !py-0.5 text-xs">{{
-                        ticket.priority }}</BadgeComponent>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <CalendarIcon class="size-4 text-slate-400 flex-none" />
-                    <span class="text-xs text-slate-400">Aangemaakt</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.created_at) }}
-                        om {{ nlTime(ticket.created_at) }}</span>
-                </div>
-                <div v-if="ticket.created_by" class="flex items-center gap-1.5">
-                    <UserIcon class="size-4 text-slate-400 flex-none" />
-                    <span class="text-xs text-slate-400">Aangemaakt door</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ ticket.created_by.name
-                        }}</span>
-                    <BadgeComponent v-if="ticket.created_by.deleted_at" color="gray" :hasDot="false"
-                        class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <ClockIcon class="size-4 text-slate-400 flex-none" />
-                    <span class="text-xs text-slate-400">Laatste bijgewerkt</span>
-                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ nlDate(ticket.updated_at) }}
-                        om {{ nlTime(ticket.updated_at) }}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-            <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
-                :href="`/serviceorders/${ticket.service_order_id}`"
-                class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
-                Werkbon openen
-                <ArrowTopRightOnSquareIcon class="size-4" />
-            </Link>
-        </div>
+    <div class="flex items-center mb-6">
+        <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
+        <ChevronRightIcon class="size-4 text-gray-400 mx-2 flex-none" />
+        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
+            ticket.asset.serial_number }}</span>
     </div>
 
     <TwoThirdsOneThird>
         <template #main>
+            <BoxComponent class="mb-4">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <!-- Tile colour tracks the status, so the ticket's state reads from
+                             across the room and agrees with the badge beside the title. -->
+                        <div
+                            :class="['flex-none flex items-center justify-center size-16 rounded-lavoro-sm', statusTileClasses.bg]">
+                            <Siren :class="['size-8 stroke-2', statusTileClasses.text]" />
+                        </div>
+                        <div class="min-w-0 flex items-center gap-3 flex-wrap">
+                            <h1 class="text-2xl font-bold dark:text-slate-100">{{ ticket.subject }}</h1>
+                            <BadgeComponent :color="statusBadgeColor" :hasDot="false">{{ ticket.status }}</BadgeComponent>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-none">
+                        <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
+                            :href="`/serviceorders/${ticket.service_order_id}`"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
+                            Werkbon openen
+                            <ArrowTopRightOnSquareIcon class="size-4" />
+                        </Link>
+                        <DropdownMenu v-if="hasPermission('ticket.delete')" placement="bottom-end" width-class="w-56"
+                            button-class="inline-flex items-center justify-center size-9 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Meer acties">
+                            <template #button>
+                                <EllipsisHorizontalIcon class="size-5" />
+                            </template>
+                            <MenuItem v-slot="{ active }">
+                            <button type="button" @click="deleteTicket"
+                                :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                <TrashIcon class="size-4" />
+                                Storing verwijderen
+                            </button>
+                            </MenuItem>
+                        </DropdownMenu>
+                    </div>
+                </div>
+
+                <!-- Full card width: beside the title these wrapped one item per line. -->
+                <div class="flex flex-wrap gap-x-6 gap-y-2 mt-4">
+                    <div class="flex items-center gap-1.5">
+                        <ClockIcon class="size-4 text-slate-400 flex-none" />
+                        <span class="text-xs text-slate-400">Prioriteit</span>
+                        <component :is="priorityTrend.icon" :class="['size-4 flex-none', priorityTrend.class]" />
+                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">{{ ticket.priority
+                            }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <CalendarIcon class="size-4 text-slate-400 flex-none" />
+                        <span class="text-xs text-slate-400">Aangemaakt</span>
+                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{
+                            nlDate(ticket.created_at) }} om {{ nlTime(ticket.created_at) }}</span>
+                    </div>
+                    <div v-if="ticket.created_by" class="flex items-center gap-1.5">
+                        <UserIcon class="size-4 text-slate-400 flex-none" />
+                        <span class="text-xs text-slate-400">Aangemaakt door</span>
+                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{
+                            ticket.created_by.name }}</span>
+                        <BadgeComponent v-if="ticket.created_by.deleted_at" color="gray" :hasDot="false"
+                            class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <ClockIcon class="size-4 text-slate-400 flex-none" />
+                        <span class="text-xs text-slate-400">Laatst bijgewerkt</span>
+                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{
+                            nlDate(ticket.updated_at) }} om {{ nlTime(ticket.updated_at) }}</span>
+                    </div>
+                </div>
+            </BoxComponent>
             <BoxComponent>
-                <SectionHeader :icon="ExclamationCircleIcon" title="Gegevens van de storing"
+                <SectionHeader :icon="ExclamationCircleIcon" title="Details van de storing"
                     subtitle="Machine, prioriteit en omschrijving van deze storing." chapter="details" />
 
+                <!-- Each row carries the field's own icon tile, matching the treatment on
+                     the customer and contact show pages. -->
                 <div class="divide-y divide-gray-100 dark:divide-slate-700/60">
-                    <div class="grid grid-cols-12 py-3 gap-3 items-start">
-                        <div class="col-span-12 sm:col-span-3">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <PuzzlePieceIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Storing aan</span>
                         </div>
                         <div
-                            class="col-span-12 sm:col-span-9 text-sm text-gray-800 dark:text-slate-200 flex flex-wrap items-center gap-x-1">
+                            class="col-span-12 sm:col-span-8 text-sm text-gray-800 dark:text-slate-200 flex flex-wrap items-center gap-x-1">
                             <span>{{ ticket.asset.product.brand.name }}</span>
                             <component :is="hasPermission('product.read') ? Link : 'span'"
                                 :href="`/products/${ticket.asset.product.id}`"
@@ -98,86 +121,121 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-start">
-                        <div class="col-span-12 sm:col-span-3">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <ChatBubbleBottomCenterTextIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Onderwerp</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-9">
-                            <EditableTextField v-model="form.subject" class="w-full"
+                        <div class="col-span-12 sm:col-span-8">
+                            <EditableTextField v-model="form.subject" class="w-full" :bordered="false"
                                 :readonly="!hasPermission('ticket.update')" />
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-start">
-                        <div class="col-span-12 sm:col-span-3">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <DocumentTextIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Omschrijving</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-9">
+                        <div class="col-span-12 sm:col-span-8">
                             <EditableTextField v-model="form.description" type="textarea" class="w-full"
-                                :readonly="!hasPermission('ticket.update')" />
+                                :bordered="false" :readonly="!hasPermission('ticket.update')" />
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-start">
-                        <div class="col-span-12 sm:col-span-3">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <HashtagIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Storingscode</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-9">
-                            <EditableTextField v-model="form.status_code" class="w-full"
+                        <div class="col-span-12 sm:col-span-8">
+                            <EditableTextField v-model="form.status_code" class="w-full" :bordered="false"
+                                placeholder="Nog niet ingesteld"
                                 :readonly="!hasPermission('ticket.update')" />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-12 py-3 gap-3 items-center">
-                        <div class="col-span-12 sm:col-span-3">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <ArrowPathIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-4">
-                            <ComboBox v-if="hasPermission('ticket.change_status')" :options="statusses"
-                                v-model="form.status" :initial-id="initialStatus.id" class="w-full"
-                                :hasError="Boolean(form.errors.status)" :errorMessage="form.errors.status" />
-                            <span v-else class="text-sm dark:text-slate-300">{{ ticket.status }}</span>
+                        <div class="col-span-12 sm:col-span-8">
+                            <EditableTextField type="combobox" v-model="form.status" :options="statusses"
+                                class="w-full" :bordered="false" indicator="select"
+                                :readonly="!hasPermission('ticket.change_status')" :error="form.errors.status"
+                                @revert="form.clearErrors('status')">
+                                <template #display>
+                                    <BadgeComponent :color="statusBadgeColor" :hasDot="false">{{ ticket.status }}
+                                    </BadgeComponent>
+                                </template>
+                            </EditableTextField>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-12 py-3 gap-3 items-center">
-                        <div class="col-span-12 sm:col-span-3">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <FlagIcon class="size-5 text-lavoro-blue stroke-2" />
+                            </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Prioriteit</span>
                         </div>
-                        <div class="col-span-12 sm:col-span-6">
+                        <div class="col-span-12 sm:col-span-8">
                             <fieldset aria-label="Kies een prioriteit" v-if="hasPermission('ticket.alter_priority')">
-                                <div class="grid grid-cols-3 gap-3">
-                                    <label v-for="prio in priorities" :key="prio.id" :aria-label="prio.name" :class="{
-                                        'cursor-pointer group relative flex items-center justify-center rounded-md border p-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-disabled:opacity-25': true,
-                                        'bg-red-100 text-red-600 hover:bg-red-600 hover:text-white has-checked:bg-red-600 border-red-600 has-checked:border-red-900': prio === priorities[2],
-                                        'bg-yellow-100 text-yellow-600 hover:bg-yellow-600 hover:text-white has-checked:bg-yellow-600 border-yellow-600 has-checked:border-yellow-900': prio === priorities[1],
-                                        'bg-green-100 text-green-600 hover:bg-green-600 hover:text-white has-checked:bg-green-600 border-green-600 has-checked:border-green-900': prio === priorities[0]
-                                    }">
-                                        <input type="radio" name="option" :value="prio.id"
-                                            :checked="prio.id === form.priority" v-model="form.priority"
-                                            class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed" />
-                                        <span class="text-sm font-medium uppercase group-has-checked:text-white">{{
-                                            prio.name }}</span>
+                                <!-- One indicator that slides between segments, rather than a
+                                     background toggling on each label. Segments are equal
+                                     width, so a whole-width translate lands exactly on one. -->
+                                <div
+                                    class="relative flex w-full max-w-md rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
+                                    <span v-if="priorityIndex >= 0" aria-hidden="true"
+                                        class="absolute inset-y-1 left-1 rounded-lavoro-sm bg-slate-900 dark:bg-slate-100 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                                        :style="prioritySliderStyle" />
+                                    <label v-for="prio in priorities" :key="prio.id" :aria-label="prio.name" :class="[
+                                        'relative z-10 flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lavoro-sm px-3 py-2 text-sm font-medium transition-colors duration-300',
+                                        prio.id === form.priority
+                                            ? 'text-white dark:text-slate-900'
+                                            : 'text-gray-600 dark:text-slate-300'
+                                    ]">
+                                        <input type="radio" name="priority" :value="prio.id" v-model="form.priority"
+                                            class="absolute inset-0 appearance-none focus:outline-none" />
+                                        <span :class="['size-2 flex-none rounded-full', priorityDotClass(prio.name)]" />
+                                        <span class="truncate">{{ prio.name }}</span>
                                     </label>
                                 </div>
                             </fieldset>
-                            <span v-else class="text-sm dark:text-slate-300">{{ ticket.priority }}</span>
+                            <BadgeComponent v-else :color="priorityBadgeColor" :hasDot="false">{{ ticket.priority }}
+                            </BadgeComponent>
                         </div>
                     </div>
 
-                    <template v-if="ticket.closed_by">
-                        <div class="grid grid-cols-12 py-3 gap-3 items-center">
-                            <div class="col-span-12 sm:col-span-3">
-                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten
-                                    door</span>
+                    <div v-if="ticket.closed_by" class="grid grid-cols-12 py-3 gap-3 items-center">
+                        <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
+                            <div
+                                class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
+                                <UserIcon class="size-5 text-lavoro-blue stroke-2" />
                             </div>
-                            <div class="col-span-12 sm:col-span-9 text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1.5">
-                                {{ ticket.closed_by.name }}
-                                <BadgeComponent v-if="ticket.closed_by.deleted_at" color="gray" :hasDot="false"
-                                    class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
-                            </div>
+                            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten door</span>
                         </div>
-                    </template>
+                        <div
+                            class="col-span-12 sm:col-span-8 text-sm text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
+                            {{ ticket.closed_by.name }}
+                            <BadgeComponent v-if="ticket.closed_by.deleted_at" color="gray" :hasDot="false"
+                                class="!px-2 !py-0.5 text-xs">Gedeactiveerd</BadgeComponent>
+                        </div>
+                    </div>
                 </div>
 
                 <CustomFieldsComponent v-if="customFields.length" model-type="ticket" :model-id="ticket.id"
@@ -220,9 +278,6 @@
                 <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
                     :comments="ticket.remarks" />
             </BoxComponent>
-
-            <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
-                documentable-type="\App\Models\Ticket" class="mt-4" />
         </template>
 
         <template #sidebar>
@@ -236,6 +291,9 @@
                     subtitle="Alles wat er op dit ticket gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="ticket.activities ?? []" />
             </BoxComponent>
+
+            <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
+                documentable-type="\App\Models\Ticket" class="mt-6" />
         </template>
     </TwoThirdsOneThird>
 </template>
@@ -244,15 +302,34 @@
 import BoxComponent from '@/Components/BoxComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
-import ComboBox from '@/Components/UI/ComboBox.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
-import { ExclamationCircleIcon, TrashIcon, ArrowTopRightOnSquareIcon, ClipboardDocumentListIcon, UserIcon, CalendarIcon } from '@heroicons/vue/24/outline';
+import {
+    ArrowPathIcon,
+    ArrowTopRightOnSquareIcon,
+    CalendarIcon,
+    ChatBubbleBottomCenterTextIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    ClipboardDocumentListIcon,
+    ClockIcon,
+    DocumentTextIcon,
+    EllipsisHorizontalIcon,
+    ExclamationCircleIcon,
+    FlagIcon,
+    HashtagIcon,
+    MinusIcon,
+    PuzzlePieceIcon,
+    TrashIcon,
+    UserIcon,
+} from '@heroicons/vue/24/outline';
+import { MenuItem } from '@headlessui/vue';
+import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
-import { TimelineIcon } from '@lucide/vue';
+import { Siren, TimelineIcon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
@@ -291,6 +368,43 @@ const priorityBadgeColor = computed(() => {
     if (p === 'normaal') return 'yellow';
     return 'green';
 });
+
+/** Header tile, tinted by status so it agrees with the badge beside the title. */
+const STATUS_TILES = {
+    red: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400' },
+    orange: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
+    green: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400' },
+    gray: { bg: 'bg-gray-500/10', text: 'text-gray-600 dark:text-slate-300' },
+};
+
+const statusTileClasses = computed(() => STATUS_TILES[statusBadgeColor.value] ?? STATUS_TILES.gray);
+
+/** Priority as a direction rather than a second badge next to the status one. */
+const priorityTrend = computed(() => {
+    const p = props.ticket.priority.toLowerCase();
+    if (p === 'hoog') return { icon: ChevronUpIcon, class: 'text-red-500 dark:text-red-400' };
+    if (p === 'normaal') return { icon: MinusIcon, class: 'text-amber-500 dark:text-amber-400' };
+    return { icon: ChevronDownIcon, class: 'text-green-500 dark:text-green-400' };
+});
+
+const priorityIndex = computed(() => props.priorities.findIndex(p => p.id === form.priority));
+
+/**
+ * The indicator is exactly one segment wide (the container's padding removed
+ * first), so stepping it by whole multiples of its own width lands it centred
+ * on any segment without measuring the DOM.
+ */
+const prioritySliderStyle = computed(() => ({
+    width: `calc((100% - 0.5rem) / ${props.priorities.length || 1})`,
+    transform: `translateX(${priorityIndex.value * 100}%)`,
+}));
+
+function priorityDotClass(name) {
+    const p = (name ?? '').toLowerCase();
+    if (p === 'hoog') return 'bg-red-500';
+    if (p === 'normaal') return 'bg-amber-500';
+    return 'bg-green-500';
+}
 
 function patchField(field, value) {
     form.transform(() => ({ [field]: value })).patch(`/tickets/${props.ticket.id}`, { preserveScroll: true });

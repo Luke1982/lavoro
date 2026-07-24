@@ -2,7 +2,7 @@
     <!-- Sized against the container, not the viewport: the same widget sits in a
          narrow sidebar and a wide main column on one and the same screen. -->
     <div v-if="mayShow"
-        class="@container bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 border-lavoro-box shadow-lavoro-box rounded-lavoro-md overflow-hidden">
+        class="@container bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 border-lavoro-box shadow-lavoro-box rounded-lavoro-sm overflow-hidden">
 
         <div class="p-5 @2xl:p-6">
             <SectionHeader :icon="FolderIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"

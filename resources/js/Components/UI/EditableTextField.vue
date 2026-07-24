@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'group pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration }"
+        :class="{ 'group pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration && bordered }"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />
@@ -48,7 +48,7 @@
 
 <script setup>
 import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
-import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, ChevronUpDownIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
@@ -68,6 +68,12 @@ const props = defineProps({
     options: { type: Array, default: () => [] },
     multiple: { type: Boolean, default: false },
     decoration: { type: Boolean, default: true },
+    /**
+     * Draws the field's own underline. Turn off where the surrounding row
+     * already supplies a full-width divider — the pencil and the type-hint
+     * icon stay, which `decoration: false` would also remove.
+     */
+    bordered: { type: Boolean, default: true },
     label: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     hasExternalSearching: { type: Boolean, default: false },
@@ -110,6 +116,7 @@ const indicatorMeta = computed(() => {
     if (kind === 'date') return { icon: CalendarDaysIcon, class: 'text-slate-400 dark:text-slate-500' };
     if (kind === 'link') return { icon: ArrowUpRightIcon, class: 'text-lavoro-blue' };
     if (kind === 'currency') return { icon: BanknotesIcon, class: 'text-slate-400 dark:text-slate-500' };
+    if (kind === 'select') return { icon: ChevronUpDownIcon, class: 'text-slate-400 dark:text-slate-500' };
     return null;
 });
 
