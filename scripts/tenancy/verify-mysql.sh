@@ -24,6 +24,25 @@ FAILED=0
 SCRATCH_DB="${TENANT_PREFIX}verify_$$"
 OUTSIDE_DB="lavoro_notatenant_$$"
 
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --admin-user=*)    ADMIN_USER="${1#*=}" ;;
+        --defaults-file=*) DEFAULTS_FILE="${1#*=}" ;;
+        -h|--help)
+            cat <<'USAGE'
+Usage: sudo scripts/tenancy/verify-mysql.sh [--admin-user=NAME] [--defaults-file=PATH]
+
+Set ADMIN_PASSWORD in the environment for an unattended run; otherwise you are
+prompted if the admin account needs a password. Without a privileged connection
+the server-side checks are skipped rather than reported as passing.
+USAGE
+            exit 0
+            ;;
+        *) die "Unknown option: $1" ;;
+    esac
+    shift
+done
+
 pass() { green "  PASS  $*"; PASSED=$((PASSED + 1)); }
 fail() { red   "  FAIL  $*"; FAILED=$((FAILED + 1)); }
 skip() { warn  "  SKIP  $*"; }
@@ -31,9 +50,14 @@ skip() { warn  "  SKIP  $*"; }
 detect_client
 
 # Missing root access must not abort the run: the app-account checks below
-# need no privileges, and silently skipping is safer than a false pass.
+# need no privileges, and silently skipping is safer than a false pass. Prompt
+# for a password only when there is a terminal and some chance of succeeding —
+# this script is meant to be usable as a non-interactive deploy gate.
 HAVE_ROOT_DB=1
 if sql_root_quiet "SELECT 1;"; then
+    detect_flavour
+elif [ "$(id -u)" -eq 0 ] && have_tty; then
+    ensure_admin_connection
     detect_flavour
 else
     HAVE_ROOT_DB=0

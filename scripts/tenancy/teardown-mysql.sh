@@ -22,17 +22,21 @@ usage() {
     cat <<'USAGE'
 Usage: sudo scripts/tenancy/teardown-mysql.sh --yes-really [--with-test]
 
-  --yes-really   Required. Confirms you intend to destroy every tenant database.
-  --with-test    Also drop the test account and test databases.
+  --yes-really         Required. Confirms you intend to destroy every tenant database.
+  --with-test          Also drop the test account and test databases.
+  --admin-user=NAME    Privileged account to connect as (default: root)
+  --defaults-file=PATH my.cnf holding the admin credentials, instead of prompting
 USAGE
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --yes-really) CONFIRMED=1 ;;
-        --with-test)  DROP_TEST=1 ;;
-        -h|--help)    usage; exit 0 ;;
-        *)            die "Unknown option: $1" ;;
+        --yes-really)      CONFIRMED=1 ;;
+        --with-test)       DROP_TEST=1 ;;
+        --admin-user=*)    ADMIN_USER="${1#*=}" ;;
+        --defaults-file=*) DEFAULTS_FILE="${1#*=}" ;;
+        -h|--help)         usage; exit 0 ;;
+        *)                 die "Unknown option: $1" ;;
     esac
     shift
 done
@@ -50,6 +54,7 @@ if [ "$CONFIRMED" -ne 1 ]; then
 fi
 
 detect_client
+ensure_admin_connection
 detect_flavour
 
 TENANT_DBS="$(sql_root "SELECT schema_name FROM information_schema.schemata

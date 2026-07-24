@@ -10,6 +10,10 @@ PROV_HOST="${PROV_HOST:-localhost}"
 TEST_USER="${TEST_USER:-lavoro_test}"
 TEST_DB="${TEST_DB:-lavoro_test_landlord}"
 TEST_PREFIX="${TEST_PREFIX:-lavoro_test_}"
+# Deliberately fixed and deliberately weak: phpunit.xml hardcodes the same
+# value, and the account is granted only on lavoro_test_%. Prompting for it
+# would mean editing phpunit.xml on every machine and in CI.
+TEST_PASSWORD="${TEST_PASSWORD:-lavoro_test}"
 
 COLLATION="utf8mb4_unicode_ci"
 CHARSET="utf8mb4"
@@ -39,15 +43,101 @@ detect_client() {
     fi
 }
 
-# Root connects over the local socket. On both Ubuntu MySQL and MariaDB the
-# root account authenticates by OS identity, so no password is needed; set
-# MYSQL_PWD in the environment if this server's root has one.
+ADMIN_USER="${ADMIN_USER:-root}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+DEFAULTS_FILE="${DEFAULTS_FILE:-}"
+
+# Builds the client arguments for the privileged connection. Order matters:
+# --defaults-file must come first, and it is the only option that keeps the
+# password off both the command line and the process environment.
+admin_args() {
+    if [ -n "$DEFAULTS_FILE" ]; then
+        printf '%s\n' "--defaults-file=$DEFAULTS_FILE" "--protocol=socket" "-u" "$ADMIN_USER"
+    else
+        printf '%s\n' "--protocol=socket" "-u" "$ADMIN_USER"
+    fi
+}
+
+# The privileged connection. On Ubuntu MySQL and on MariaDB, root authenticates
+# by OS identity over the socket and needs no password — but that is a packaging
+# default, not a guarantee, so ensure_admin_connection() below prompts when it
+# is not the case. MYSQL_PWD is used rather than -p because a password on the
+# command line is visible in `ps` to every user on the box.
 sql_root() {
-    "$MYSQL_CLIENT" --protocol=socket -N -B -e "$1"
+    local args
+    mapfile -t args < <(admin_args)
+    MYSQL_PWD="$ADMIN_PASSWORD" "$MYSQL_CLIENT" "${args[@]}" -N -B -e "$1"
 }
 
 sql_root_quiet() {
-    "$MYSQL_CLIENT" --protocol=socket -N -B -e "$1" >/dev/null 2>&1
+    sql_root "$1" >/dev/null 2>&1
+}
+
+sql_root_stdin() {
+    local args
+    mapfile -t args < <(admin_args)
+    MYSQL_PWD="$ADMIN_PASSWORD" "$MYSQL_CLIENT" "${args[@]}"
+}
+
+# Reads a secret without echoing it, twice, and requires the two to match.
+# Prints nothing; assigns to the named variable.
+prompt_password() {
+    local __var="$1" label="$2" first second attempt
+    for attempt in 1 2 3; do
+        printf '%s: ' "$label" >&2
+        read -rs first < /dev/tty; printf '\n' >&2
+        printf 'Confirm %s: ' "$label" >&2
+        read -rs second < /dev/tty; printf '\n' >&2
+
+        if [ "$first" != "$second" ]; then
+            warn "  They do not match. Try again."
+            continue
+        fi
+
+        printf -v "$__var" '%s' "$first"
+        return 0
+    done
+
+    die "Too many failed attempts."
+}
+
+# Whether we can actually prompt. Testing `[ -e /dev/tty ]` is not enough: the
+# device node exists under cron, CI and `nohup`, but opening it fails with
+# ENXIO, so a prompt there dies on an unreadable device instead of falling back
+# to a generated password. The subshell open is the only reliable test.
+have_tty() {
+    [ -e /dev/tty ] && (exec < /dev/tty) 2>/dev/null
+}
+
+# Establishes a working privileged connection, prompting for a password when
+# socket authentication is not enough. Without this, a server whose root has a
+# password fails with a bare "Access denied" and no hint about what to do.
+ensure_admin_connection() {
+    if sql_root_quiet "SELECT 1;"; then
+        return 0
+    fi
+
+    if [ -n "$ADMIN_PASSWORD" ] || [ -n "$DEFAULTS_FILE" ]; then
+        die "Could not connect as '${ADMIN_USER}' with the credentials supplied."
+    fi
+
+    if ! have_tty; then
+        die "Could not connect as '${ADMIN_USER}' over the socket, and there is no terminal to prompt on.
+Set ADMIN_PASSWORD in the environment, or pass --defaults-file=/path/to/my.cnf."
+    fi
+
+    warn "Could not connect as '${ADMIN_USER}' over the socket without a password."
+    info "This server's admin account appears to use password authentication."
+    info ""
+
+    prompt_password ADMIN_PASSWORD "MySQL password for '${ADMIN_USER}'"
+
+    if ! sql_root_quiet "SELECT 1;"; then
+        die "Still could not connect as '${ADMIN_USER}'. Check the account name with --admin-user=, or use --defaults-file=."
+    fi
+
+    green "  Connected as ${ADMIN_USER}."
+    info ""
 }
 
 # The two servers differ in three ways that matter here: the plugin name, the
@@ -145,6 +235,78 @@ env_value() {
 generate_password() {
     # cut rather than head: head closes the pipe early, which trips pipefail.
     openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32
+}
+
+# The password is interpolated into two places that parse quoting: a MySQL
+# string literal (IDENTIFIED BY '...') and a double-quoted .env value. Rather
+# than escape correctly for both — where a mistake is a SQL injection on one
+# side and a silently truncated credential on the other — refuse the five
+# characters that carry meaning in either. Everything else is allowed, which
+# leaves ample entropy.
+validate_password_charset() {
+    case "$1" in
+        *\'*|*\"*|*\\*|*\`*|*\$*)
+            die "The password must not contain any of:  '  \"  \\  \`  \$
+Those characters carry meaning in the MySQL statement and in the .env file.
+Any other punctuation is fine."
+            ;;
+    esac
+}
+
+# Resolves the password to set on an account, in priority order:
+#   1. the named environment variable, for CI and unattended runs
+#   2. an interactive prompt, when there is a terminal
+#   3. a generated one
+# Assigns to the variable named by $1.
+resolve_new_password() {
+    local __var="$1" label="$2" env_var="$3" force_generate="${4:-0}" from_env entered
+
+    from_env="${!env_var:-}"
+
+    if [ -n "$from_env" ]; then
+        validate_password_charset "$from_env"
+        printf -v "$__var" '%s' "$from_env"
+        info "  Using ${env_var} from the environment."
+        return 0
+    fi
+
+    if [ "$force_generate" = "1" ] || ! have_tty; then
+        printf -v "$__var" '%s' "$(generate_password)"
+        return 0
+    fi
+
+    info "  Press Enter to generate a strong password instead of choosing one."
+    printf '%s (or Enter to generate): ' "$label" >&2
+    read -rs entered < /dev/tty; printf '\n' >&2
+
+    if [ -z "$entered" ]; then
+        printf -v "$__var" '%s' "$(generate_password)"
+        green "  Generated."
+        return 0
+    fi
+
+    printf 'Confirm %s: ' "$label" >&2
+    local confirm
+    read -rs confirm < /dev/tty; printf '\n' >&2
+
+    if [ "$entered" != "$confirm" ]; then
+        die "Passwords do not match."
+    fi
+
+    validate_password_charset "$entered"
+
+    if [ "${#entered}" -lt 12 ]; then
+        warn "  That password is ${#entered} characters. This account guards every tenant's data."
+        printf 'Use it anyway? [y/N]: ' >&2
+        local answer
+        read -r answer < /dev/tty
+        case "$answer" in
+            [yY]*) ;;
+            *) die "Aborted. Re-run and choose a longer password." ;;
+        esac
+    fi
+
+    printf -v "$__var" '%s' "$entered"
 }
 
 print_flavour() {

@@ -44,7 +44,19 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 | Per-tenant MySQL users | `lavoro_tenant_<slug>`, granted only on that tenant's own database |
 | Test MySQL user | `lavoro_test`, granted only on `` `lavoro\_test\_%` `` (Task 30) |
 
-The application **never connects as `root`**, and no single credential reaches every database. `lavoro_app` is confined to the central database — it cannot read customer data at all. Each tenant's queries authenticate as that tenant's own user, so cross-tenant access is blocked by MySQL rather than only by the application switching connections correctly. `root` is used only for the one-time account creation in Task 2 and for the dump/restore steps in Tasks 27 and 29, where you are acting as an operator rather than as the app.
+The application **never connects as `root`**. `lavoro_app` is confined to the landlord database — it cannot read customer data at all. Each tenant's queries authenticate as that tenant's own user, so cross-tenant access is blocked by MySQL rather than only by the application switching connections correctly. `root` is used only for the one-time account creation in Task 2 and for the dump/restore steps in Tasks 27 and 29, where you are acting as an operator rather than as the app.
+
+**Be precise about what is isolated from what.** The provisioner *does* hold privileges on every tenant database — ``GRANT ALL ON `lavoro\_tenant\_%` `` is exactly that — and this is unavoidable: MySQL only lets an account grant privileges it holds itself, so whatever creates a tenant's user and grants it `SELECT` must hold `SELECT` across the namespace. There is no "may create a database but not read it" privilege.
+
+The claim this design actually makes is therefore narrower, and worth stating exactly:
+
+> No credential reachable from a web request can read more than one tenant's data.
+
+That holds. `lavoro_app` reaches only the landlord database; a tenant request authenticates as that tenant's own user, which reaches only its own database; and the provisioner has no password to leak, is bound to a Linux user by `auth_socket`, and is unusable by `www-data`.
+
+The provisioner also does not widen the real blast radius, because **root on the application server already implies access to every tenant**: `.env` holds `APP_KEY`, the landlord database holds every tenant's encrypted MySQL password, and `APP_KEY` decrypts them. Anyone who can `sudo -u lavoro_provisioner` can already do that. The grant makes an existing capability explicit rather than adding one.
+
+What this does *not* protect against, stated plainly so nobody assumes otherwise: a compromise of the host, of `APP_KEY`, or of a backup containing both. Those are single points of failure for every tenant at once, and no arrangement of MySQL grants changes that.
 
 Two consequences of this naming scheme worth knowing up front:
 
@@ -136,8 +148,18 @@ Useful flags:
 | `--dry-run` | Prints the SQL and changes nothing. Needs no root and no running server. |
 | `--flavour=mysql\|mariadb` | Skips detection. Lets you review the *other* server's SQL from this machine. |
 | `--with-test` | Also creates the Task 30 test account and `lavoro_test_landlord`. |
-| `--write-env` | Patches `.env` with the generated credentials, backing it up first. |
+| `--write-env` | Patches `.env` with the resulting credentials, backing it up first. |
 | `--rotate-app-password` | Re-runs are otherwise non-destructive and leave an existing password alone. |
+| `--generate-password` | Skip the prompt and generate the `lavoro_app` password. |
+| `--admin-user=`, `--defaults-file=` | Connect as something other than socket-authenticated `root`. |
+
+**Two passwords, both prompted rather than assumed.** You are asked for the `lavoro_app` password, with Enter generating a 32-character one. And if the admin account cannot connect over the socket without a password — true on plenty of servers, just not on stock Ubuntu — you are prompted for that too, instead of failing with a bare `Access denied`.
+
+Neither is ever accepted as a command-line argument, because that puts it in shell history and in `ps` output for every user on the box. For unattended runs, set `LAVORO_APP_PASSWORD` and `ADMIN_PASSWORD` in the environment, or point `--defaults-file` at a `0600` `my.cnf`; with no terminal and no environment variable the app password is generated.
+
+A typed password may not contain `'`, `"`, `\`, `` ` `` or `$`. Those five carry meaning in the MySQL statement and in the `.env` file, and refusing them is more honest than escaping for two grammars and getting one wrong. All other punctuation is accepted.
+
+The test account's password stays the fixed, weak `lavoro_test`: `phpunit.xml` hardcodes the same value (Task 30), the account is granted only on `` `lavoro\_test\_%` ``, and prompting would mean editing `phpunit.xml` on every machine and in CI.
 
 **The scripts detect MySQL versus MariaDB, because the two differ in ways that break a copy-pasted script.** MySQL 8 names the plugin `auth_socket` and selects it with `IDENTIFIED WITH`; MariaDB names it `unix_socket` and selects it with `IDENTIFIED VIA`, and installs it from a different SONAME. MariaDB also ships `mariadb` as the client binary and may not provide `mysql` at all. Detection reads `VERSION()` and `@@version_comment` — MariaDB always identifies itself in one of them. Development here is MySQL 8.0.46; production may not be, which is exactly why this is detected rather than assumed.
 
