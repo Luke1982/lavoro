@@ -21,6 +21,7 @@ Central database (small, shared infrastructure):
 Tenant database (one per client company, fully isolated):
 - `users`, `password_reset_tokens`
 - Every business table (customers, assets, service orders, tickets, events, projects, materials, device tokens, location pings, plan groups, etc.)
+- `activities` and `activity_changes` — the audit trail written by the domain-signal layer (see below)
 - `roles`, `permissions`, `user_roles`, `companies`, `general_settings`, Google integration tables — everything else
 
 Uploaded files are fully separated on disk too: each tenant's files live under their own root, `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`, and are served only through authenticated controllers (never a public URL). See Task 14. The Android APK under `storage/app/releases/` is global and intentionally unaffected.
@@ -32,6 +33,12 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 3. **Cache stays on the database driver but is isolated by a per-tenant key prefix** (Task 10). We do *not* use the package's tag-based cache bootstrapper because the `database` cache store does not support tagging. The prefix approach is **cache-driver-agnostic** — it works identically on `file`, `database`, and `redis`, so adopting Redis later is just a `CACHE_STORE=redis` change with no tenancy code touched.
 
 **Current environment (verified):** `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database`. This plan keeps all of those drivers — no Redis required.
+
+**The app runs on a domain-signal layer (since `df74b13` and `b539da2`, 2026-07-27).** Controllers, services and observers announce facts through `Signals::dispatch(new SomeSignal(...))` (`App\Domain\Signals\*`) and listeners (`App\Listeners\*`) carry out the side effects — the audit trail, Google sync, standard e-mails, notifications, follow-on stage moves. Three consequences for this plan, all of them small:
+
+1. **Every listener is synchronous.** None implements `ShouldQueue`; the three that touch the outside world implement `ShouldHandleEventsAfterCommit`, which defers them to after the *transaction* commits, still inside the same request. So a listener always runs in whatever tenant context the request or job established, and needs no tenancy code of its own. What listeners *dispatch* — `SendStandardEmailJob`, `PushEventJob`, `BulkMoveServiceOrderStageJob` — are ordinary queued jobs, tagged with the tenant by `QueueTenancyBootstrapper` like any other (Task 9).
+2. **The layer keeps per-request state in container singletons**, and that is the one part of it that can leak across tenants: `ActivityBuffer` holds tenant-scoped activity row ids, and `Signals` holds the current chain, the correlation id and the per-request signal budget. Both are reset per queue job by `Queue::before` in `AppServiceProvider`, which covers the worker; Task 11 adds a reset on tenancy switch, which covers a console command that loops tenants in one process.
+3. **The trail now writes two tables**, `activities` (with `event_key`, `subject_*`, `actor_*`, `occurred_at`, `correlation_id`) and `activity_changes`. Both are tenant tables. The design is written up in `docs/superpowers/plans/2026-07-27-domain-signals.md`, which predates the loop guard and correlation id added in `b539da2` — read the docblocks on `App\Domain\Signals\Signals` for those.
 
 **Database naming and credentials:**
 
@@ -793,11 +800,11 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 
 After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions, and the licensing catalogue. `php artisan migrate` runs these against the central database.
-- `database/migrations/tenant/` holds everything else (about 214 files as of 2026-07-24: the users migration plus the dated ones). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
+- `database/migrations/tenant/` holds everything else (about 216 files as of 2026-07-27 / `b539da2`: the users migration plus the dated ones, including the two the signal layer added, `professionalize_activities_table` and `add_correlation_id_to_activities_table`). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
 `0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and every central migration from Tasks 6–7, stay put.
 
-**Files:** move ~214 migration files (220 total after Task 6, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
+**Files:** move ~216 migration files (222 total after Task 6, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
 
 - [ ] **Step 1: Move the files**
 
@@ -837,7 +844,7 @@ ls database/migrations/*.php
 # framework ones excepted) — anything else here is misfiled.
 grep -L "connection = 'central'" database/migrations/*.php
 
-ls database/migrations/tenant/ | wc -l   # ~214
+ls database/migrations/tenant/ | wc -l   # ~216
 
 # Nothing in tenant/ should claim the central connection.
 grep -l "connection = 'central'" database/migrations/tenant/*.php   # expect no output
@@ -856,7 +863,9 @@ git commit -m "feat(tenancy): split migrations into central and tenant directori
 
 ## Task 9: Pin the queue to the central database
 
-Jobs must always be stored centrally so the worker finds them regardless of tenant context. The `QueueTenancyBootstrapper` records the active tenant in each job payload and re-initializes it on the worker, so queued jobs (Google sync, FCM notifications) still run in the right tenant.
+Jobs must always be stored centrally so the worker finds them regardless of tenant context. The `QueueTenancyBootstrapper` records the active tenant in each job payload and re-initializes it on the worker, so queued jobs still run in the right tenant.
+
+The full queued set today: Google sync (`app/Jobs/Google/*`), FCM notifications, the customer/supplier imports, `SendStandardEmailJob`, and `BulkMoveServiceOrderStageJob` (added with the signal layer — a bulk stage move of more than 40 orders goes to the queue, and its Eloquent saves fire signals whose listeners then write to whichever database the job's tenant tag resolved). All are dispatched from tenant context, so all are tagged; none needs a manual `tenancy()->initialize()`.
 
 **Files:** `config/queue.php`
 
@@ -962,6 +971,8 @@ When a `Tenant` is created, the `TenantCreated` event triggers a job pipeline th
 
 namespace App\Providers;
 
+use App\Domain\Signals\ActivityBuffer;
+use App\Domain\Signals\Signals;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Stancl\Tenancy\Events\TenancyEnded;
@@ -985,6 +996,14 @@ class TenancyServiceProvider extends ServiceProvider
         Event::listen(TenancyInitialized::class, BootstrapTenancy::class);
         Event::listen(TenancyEnded::class, RevertToCentralContext::class);
 
+        $reset_signal_state = function () {
+            app(ActivityBuffer::class)->reset();
+            app(Signals::class)->reset();
+        };
+
+        Event::listen(TenancyInitialized::class, $reset_signal_state);
+        Event::listen(TenancyEnded::class, $reset_signal_state);
+
         Event::listen(
             TenantCreated::class,
             JobPipeline::make([CreateDatabase::class, MigrateDatabase::class, SeedDatabase::class])
@@ -995,6 +1014,17 @@ class TenancyServiceProvider extends ServiceProvider
     }
 }
 ```
+
+**Why the signal-state reset.** The signal layer keeps two per-request singletons, and both hold state that means something different in each tenant:
+
+- `ActivityBuffer` folds repeat saves of one record into a single activity entry. It is keyed `subject_type|subject_id|action|actor_type` and holds the activity's **row id**. Those ids are tenant-scoped; the key is not — `App\Models\Customer|1|update|user` names a different row in every tenant.
+- `Signals` holds the chain currently being dispatched, its correlation id, and the count of signals raised so far against a per-request budget (`MAX_PER_REQUEST = 1000`). A chain left half-open across a tenant switch mis-attributes correlation ids and spends one tenant's budget on another's work.
+
+`AppServiceProvider` already resets both per queue job (`Queue::before`), which covers the worker, and PHP-FPM gives each web request a fresh container. What is left uncovered is a **console command that loops tenants in one process** — `tenants:migrate`, `tenant:overview`, any future backfill. Without this reset the second tenant's save merges into the first tenant's remembered id, and `RecordActivity::mergeInto()` rewrites *that tenant's* activity row in its own database. Rare, silent, and it corrupts an audit trail — a few lines is the right price.
+
+**Keep this list in step with `Queue::before` in `AppServiceProvider`.** That block is the app's own answer to "what must be cleared between two units of work", and a tenancy switch is one. When something is added there, add it here; the assistant layer in flight at the time of writing adds a third entry of its own. If a class named here is ever renamed or dropped, the closure throws on the next tenancy switch rather than at boot — loud, but only once tenancy is exercised, so a test that initializes a tenant is what catches it.
+
+The same hazard shape reappears in Task 32 Step 3 for the cached Graph mailer. All of them are container singletons holding tenant state; all are fixed by clearing them on the tenancy switch.
 
 - [ ] **Step 2: Register the provider in `bootstrap/providers.php`**
 
@@ -1067,7 +1097,7 @@ class InitializeTenancyBySession
 }
 ```
 
-**`$initialized_here` is not defensive padding — without it the test suite breaks.** The naive version ends tenancy unconditionally after the response, including tenancy that something *else* established. In tests (Task 30) the `TestCase` initializes tenancy once in `setUp()` and holds an open transaction on the `tenant` connection; the first `$this->get(...)` in a test would then tear that down on the way out, and every assertion after it — `assertDatabaseHas`, a second request, the rollback in `tearDown` — would run against the central database instead. 24 of the current test files make HTTP requests, so this would have looked like a mass, baffling failure. The same guard keeps the middleware from ending tenancy that `GoogleWebhookController` established for itself (Task 25), since that route lives in the web group too.
+**`$initialized_here` is not defensive padding — without it the test suite breaks.** The naive version ends tenancy unconditionally after the response, including tenancy that something *else* established. In tests (Task 30) the `TestCase` initializes tenancy once in `setUp()` and holds an open transaction on the `tenant` connection; the first `$this->get(...)` in a test would then tear that down on the way out, and every assertion after it — `assertDatabaseHas`, a second request, the rollback in `tearDown` — would run against the central database instead. 30 of the current test files make HTTP requests, so this would have looked like a mass, baffling failure. The same guard keeps the middleware from ending tenancy that `GoogleWebhookController` established for itself (Task 25), since that route lives in the web group too.
 
 - [ ] **Step 2: Add to the web stack in `bootstrap/app.php` — with an explicit priority, not `append`**
 
@@ -1177,7 +1207,7 @@ Because files now live outside the web-served `public/storage` symlink, they are
 - `app/Models/User.php` (avatar accessor, `getAvatarAttribute`)
 - `public/service-worker.js` (exclude `/files/` from caching)
 - The 12 Vue/JS files that hardcode `/storage/${...}` (images and company logos)
-- The 6 non-disk path builders: `app/Http/Controllers/ServiceOrderController.php:905`, `app/Http/Controllers/ImageController.php:54` and `:258`, `app/Models/Company.php:52`, `resources/views/pdf/servicejob.blade.php:232`, `resources/views/emails/event/appointment_confirmation.blade.php:102`
+- The 6 non-disk path builders: `app/Http/Controllers/ServiceOrderController.php:850`, `app/Http/Controllers/ImageController.php:57` and `:260`, `app/Models/Company.php:52`, `resources/views/pdf/servicejob.blade.php:232`, `resources/views/emails/event/appointment_confirmation.blade.php:102` (line numbers as of `b539da2`; the two signal commits moved every one of these — grep rather than trusting them)
 
 - [ ] **Step 1: Create the storage bootstrapper**
 
@@ -1361,7 +1391,9 @@ Apply these conversions across the matching files (12 files, 20 occurrences as o
 
 Three of these need more than a mechanical swap:
 
-- **`Components/Timeline/TimelineComponent.vue` needs a backend change and a data backfill.** It binds `event.thumbnailPath`, mapped at line 132 from `a.metadata?.thumbnail_path` — an activity-log metadata blob written by `ImageController::store` (`'thumbnail_path' => $created_images[0]->path`). There is no image id anywhere in that payload, so there is nothing to build a `/files/images/{id}` URL from. Fixing it properly means writing `thumbnail_image_id` into the metadata going forward *and* backfilling existing activity rows by matching the stored path back to `images.path` — otherwise every historical timeline thumbnail breaks the moment `/storage/` stops resolving. Two cheaper alternatives, both worse: add a path-based file route (re-opens the enumeration surface that serving by id closes), or accept that pre-cutover timeline thumbnails render broken (visible on the busiest screen in the app). Budget for the backfill.
+- **`Components/Timeline/TimelineComponent.vue` needs a backend change and a data backfill.** It binds `event.thumbnailPath`, mapped at line 161 from `a.metadata?.thumbnail_path`. Historical rows carry that key because the pre-signal `ImageController::store` wrote it into the activity's metadata blob. There is no image id anywhere in that payload, so there is nothing to build a `/files/images/{id}` URL from. Fixing it properly means writing `thumbnail_image_id` into the metadata going forward *and* backfilling existing activity rows by matching the stored path back to `images.path` — otherwise every historical timeline thumbnail breaks the moment `/storage/` stops resolving. Two cheaper alternatives, both worse: add a path-based file route (re-opens the enumeration surface that serving by id closes), or accept that pre-cutover timeline thumbnails render broken (visible on the busiest screen in the app). Budget for the backfill.
+
+  **Check this against master first — it may already be broken independently of tenancy.** Since `df74b13` the write side is the `ImageAttached` signal, which takes `$thumbnail_path` as a constructor argument (`ImageController.php:80` passes `$created_images[0]->path`) but does **not** override `activityMetadata()`, so `BaseSignal`'s default `null` is what `RecordActivity` stores. New uploads therefore write no `thumbnail_path` at all and their timeline entries already render without a thumbnail. If that is still true when you reach this task, the "going forward" half is not a tenancy change but a bug fix in `App\Domain\Signals\Attachments\ImageAttached` — add the image id, return both keys from `activityMetadata()`, and the tenancy work reduces to reading `thumbnail_image_id` in the Vue mapper. The backfill of historical rows is needed either way.
 - `Utilities/Utilities.js:375` builds `thumbnail_url` from `asset.product.images[0].path` inside a shared mapper — switch it to `.id` and confirm every consumer of `thumbnail_url` still works.
 - `Pages/Assets/ShowPage.vue` grew from 1 occurrence to 3 in the 2026-07 asset-show redesign. Two of them (lines ~569 and ~571) are inside a JS resolver that falls back between an asset's own images and its product's images, not `<img>` bindings — read the function before swapping, since the fallback returns a *path string* that other code may concatenate further.
 
@@ -1398,9 +1430,9 @@ Each of these constructs an absolute path or a public URL by hand and therefore 
 grep -rn "storage_path('app/\|asset('storage/" app/ resources/views/
 ```
 
-That grep returns more than the six below. Two of the extras are handled by other tasks and should **not** be fixed here, or you will do the work twice and diverge: `AppServiceProvider.php:103` (the `company` Inertia share) is rewritten in Task 13, and `AuthController.php:19` (the login page's company logo) is deleted outright in Task 15. The three `asset('storage/logo.png')` hits in the PDF blades are the static fallback logo and stay global — see the note at the end of this step.
+That grep returns more than the six below. Two of the extras are handled by other tasks and should **not** be fixed here, or you will do the work twice and diverge: `AppServiceProvider.php:125` (the `company` Inertia share) is rewritten in Task 13, and `AuthController.php:19` (the login page's company logo) is deleted outright in Task 15. The three `asset('storage/logo.png')` hits in the PDF blades are the static fallback logo and stay global — see the note at the end of this step.
 
-1. **`app/Http/Controllers/ServiceOrderController.php:905`** — builds `storage_path('app/public/' . $image->path)` to base64-embed werkbon photos in the PDF. Read through the disk instead, which respects the tenant root:
+1. **`app/Http/Controllers/ServiceOrderController.php:850`** — builds `storage_path('app/public/' . $image->path)` to base64-embed werkbon photos in the PDF. Read through the disk instead, which respects the tenant root:
 
 ```php
 if (!Storage::disk('public')->exists($image->path)) {
@@ -1417,9 +1449,9 @@ $mime = Storage::disk('public')->mimeType($image->path);
 
 3. **`resources/views/pdf/servicejob.blade.php:232`** — `<img src="{{ storage_path('app/public/' . $img['path']) }}">`. Dompdf reads this straight off disk, so it points at the central tree. Resolve the absolute path in the controller that renders this view (via `Storage::disk('public')->path($img['path'])`, which *is* tenant-aware) and pass it into the view, or pass a data URI like the other PDFs already do.
 
-4. **`app/Http/Controllers/ImageController.php:258`** — `file_put_contents(storage_path('app/public/' . $path) . $filename, ...)` for imported images. Replace the manual `mkdir` + `file_put_contents` with `Storage::disk('public')->put($path . $filename, $image_data)`, which creates directories itself.
+4. **`app/Http/Controllers/ImageController.php:260`** — `file_put_contents(storage_path('app/public/' . $path) . $filename, ...)` for imported images. Replace the manual `mkdir` + `file_put_contents` with `Storage::disk('public')->put($path . $filename, $image_data)`, which creates directories itself.
 
-5. **`app/Http/Controllers/ImageController.php:54`** — `mkdir(storage_path('app/' . $path))`. **This one is already a latent bug today, independent of tenancy**: it creates `storage/app/uploaded/…` while the very next line stores into the `public` disk at `storage/app/public/uploaded/…`. The `mkdir` has never been doing anything useful — `storePubliclyAs` creates the directory itself. Delete the `$real_path` / `mkdir` block outright rather than porting it.
+5. **`app/Http/Controllers/ImageController.php:57`** — `mkdir(storage_path('app/' . $path))`. **This one is already a latent bug today, independent of tenancy**: it creates `storage/app/uploaded/…` while the very next line stores into the `public` disk at `storage/app/public/uploaded/…`. The `mkdir` has never been doing anything useful — `storePubliclyAs` creates the directory itself. Delete the `$real_path` / `mkdir` block outright rather than porting it.
 
 6. **`resources/views/emails/event/appointment_confirmation.blade.php:102`** — `asset('storage/' . $company->logo_path)`. Once files leave the `public/storage` symlink this URL 404s, and the `/files/` routes are behind `auth`, so an e-mail client can never fetch it. Embed the logo instead, reusing the accessor that already exists for PDFs:
 
@@ -3233,6 +3265,17 @@ php artisan queue:work --once --verbose
 
 Trigger a Google sync (or any queued import) from one tenant and confirm the data lands in that tenant's database, not the other's or the central one.
 
+- [ ] **Step 4a: Confirm the audit trail follows the tenant**
+
+The signal layer writes on nearly every action, so a tenancy mistake here shows up as another tenant's history rather than as an error. Two checks, one per path:
+
+```bash
+php artisan queue:work --once --verbose
+```
+
+1. **In-request.** As each tenant, change a service order's stage, then confirm the new `activities` row (and its `activity_changes` rows) exist in that tenant's database and are absent from the other's and from `lavoro_landlord`.
+2. **On the worker.** As one tenant, bulk-move more than 40 orders so `BulkMoveServiceOrderStageJob` queues, run the worker, and confirm the same. This is the path that exercises the `ActivityBuffer` reset from Task 11 together with the queue tenant tag from Task 9.
+
 - [ ] **Step 5: Confirm package/module data round-trips**
 
 ```bash
@@ -3415,7 +3458,7 @@ Once the customer confirms everything works — suggest two weeks — remove the
 2. **A hard runtime assertion.** The test bootstrap refuses to run — throws before a single query executes — if the resolved central database name doesn't contain `test`. This is the layer that survives someone fat-fingering `.env` or copy-pasting production values into `phpunit.xml` later.
 3. **A distinct MySQL user with narrow grants (operational, done once outside the app).** Create a MySQL user that only has privileges on `` `lavoro\_test\_%` `` — which covers both `lavoro_test_landlord` and every `lavoro_test_tenant_*` database, and nothing else. Even a fully wrong config in (1) and a bypassed assertion in (2) still cannot reach `lavoro_landlord` or any `lavoro_tenant_<id>` database, because the user has no grant on them. Document this as a required local/CI setup step; it is not something the application can enforce in code.
 
-**How the existing `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and `tenant` connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it. **36 test files** use it — re-run the grep in Step 5 to confirm the current set.
+**How the existing `RefreshDatabase` test files change:** one shared test tenant is created once per test run (not once per test — creating a MySQL database per test would make the suite very slow), central and tenant migrations run once, and each individual test is wrapped in a transaction on *both* the `central` and `tenant` connections that rolls back after the test — the same isolation guarantee `RefreshDatabase` gave per-test, just spanning two connections instead of one. This logic moves from the per-file `RefreshDatabase` trait into the shared `TestCase`, so `RefreshDatabase` comes out of every file that used it. **47 test files** use it as of `b539da2` — re-run the grep in Step 5 to confirm the current set.
 
 Two consequences of transaction-rollback isolation that `RefreshDatabase`'s truncate-and-remigrate did not have, and that may surface as test failures during this task:
 
@@ -3426,7 +3469,7 @@ Two consequences of transaction-rollback isolation that `RefreshDatabase`'s trun
 - `phpunit.xml`
 - `tests/Concerns/RefreshesTenantDatabase.php` (new)
 - `tests/TestCase.php`
-- The 36 existing test files using `RefreshDatabase`
+- The 47 existing test files using `RefreshDatabase`
 
 - [ ] **Step 0: Record the baseline before changing anything**
 
@@ -3438,9 +3481,9 @@ php artisan test 2>&1 | tail -3 > /tmp/test-baseline.txt
 cat /tmp/test-baseline.txt
 ```
 
-Baseline on pre-tenancy `master` (measured 2026-07-24, commit `14bd93c`): **211 passed, 563 assertions, ~5.9s** across 37 test files. Expect the MySQL run to be noticeably slower than SQLite `:memory:` — that is normal and not a regression. What must not change is the pass count.
+Baseline on pre-tenancy `master` (re-measured 2026-07-27, commit `b539da2`): **264 passed, 815 assertions, ~7.8s** across 50 test files. The previous baseline (211 passed / 563 assertions / 37 files, commit `14bd93c`) predates the domain-signal layer, which added `tests/Feature/Signals/` — twelve files, all `RefreshDatabase`. That is a 25% growth in the suite over three days, so **measure your own number**; the one written here is a record of what was true once, not a target to hit. Expect the MySQL run to be noticeably slower than SQLite `:memory:` — that is normal and not a regression. What must not change is the pass count.
 
-**Settle the existing flake before you start, or you will misread it as tenancy fallout.** Measuring this baseline took four runs: three were clean at 211, one failed a single test at `tests/Feature/Location/LocationDeletionTest.php:50`, which then passed in isolation. Something in that file is order- or random-data-dependent *today*, on SQLite, with nothing from this plan applied. Track it down first. Otherwise the first red run after the MySQL switch sends you hunting through transaction isolation and `AUTO_INCREMENT` behaviour for a bug that was already there — and the "pass count must equal the baseline" gate below stops meaning anything if the baseline itself is a range.
+**Settle the existing flake before you start, or you will misread it as tenancy fallout.** Measuring the 2026-07-24 baseline took four runs: three were clean, one failed a single test at `tests/Feature/Location/LocationDeletionTest.php:50`, which then passed in isolation. Something in that file is order- or random-data-dependent *today*, on SQLite, with nothing from this plan applied. Track it down first. Otherwise the first red run after the MySQL switch sends you hunting through transaction isolation and `AUTO_INCREMENT` behaviour for a bug that was already there — and the "pass count must equal the baseline" gate below stops meaning anything if the baseline itself is a range.
 
 - [ ] **Step 1: Confirm the tenant database prefix is env-overridable**
 
@@ -3568,7 +3611,7 @@ abstract class TestCase extends BaseTestCase
 Tenant-database refresh is now handled centrally by `TestCase`, so the per-file trait is redundant (and would try to migrate/refresh the single default connection using Laravel's normal single-connection logic, which doesn't know about the `central` connection at all).
 
 ```bash
-grep -rl "RefreshDatabase" tests/   # 36 files
+grep -rl "RefreshDatabase" tests/   # 47 files
 ```
 
 In each matching file, remove the `use Illuminate\Foundation\Testing\RefreshDatabase;` import and the `use RefreshDatabase;` trait line inside the test class. Leave everything else in those files untouched.
@@ -3593,7 +3636,7 @@ php artisan test 2>&1 | tail -3 | tee /tmp/test-after.txt
 diff <(grep -o '[0-9]* passed' /tmp/test-baseline.txt) <(grep -o '[0-9]* passed' /tmp/test-after.txt)
 ```
 
-The pass count must match the Step 0 baseline (211 as of 2026-07-24, plus whatever tests land between now and implementation — re-measure rather than trusting this number). Duration will be higher on MySQL — ignore it.
+The pass count must match the Step 0 baseline (264 at `b539da2`, plus whatever tests land between now and implementation — re-measure rather than trusting this number; it moved by 53 tests in the three days before this line was written). Duration will be higher on MySQL — ignore it.
 
 Then confirm the isolation layers actually held:
 
@@ -3608,12 +3651,14 @@ You should see only `lavoro_test_landlord` and `lavoro_test_tenant_test-tenant`.
 
 Some churn is expected — these are the causes to check first, roughly in likelihood order. Fix the *test*, not the isolation.
 
-1. **Everything after the first HTTP request in a test fails.** The `$initialized_here` guard in the Task 12 / Task 24 middleware is missing, so the request ended the tenancy `TestCase` set up. 24 test files make requests, so this presents as mass failure.
+1. **Everything after the first HTTP request in a test fails.** The `$initialized_here` guard in the Task 12 / Task 24 middleware is missing, so the request ended the tenancy `TestCase` set up. 30 test files make requests, so this presents as mass failure.
 2. **Hardcoded id assertions.** Transaction rollback does not reset `AUTO_INCREMENT`. Assert against `$model->id`, not `1`.
-3. **Tests asserting on `users` uniqueness or user deletion.** `UserSoftDeleteTest`, `UserSoftDeleteVisibilityTest`, `UserDeletionAuthorizationTest`, and `UserHistoricalReferenceTest` now also exercise the Task 18 observer, which writes to the central `user_tenant_lookups` table on create/restore/force-delete. 24 test files create users via factory. If a factory generates a duplicate email the observer will throw a `RuntimeException` rather than a validation error — make the factory email unique if this shows up.
+3. **Tests asserting on `users` uniqueness or user deletion.** `UserSoftDeleteTest`, `UserSoftDeleteVisibilityTest`, `UserDeletionAuthorizationTest`, and `UserHistoricalReferenceTest` now also exercise the Task 18 observer, which writes to the central `user_tenant_lookups` table on create/restore/force-delete. 28 test files create users via factory. If a factory generates a duplicate email the observer will throw a `RuntimeException` rather than a validation error — make the factory email unique if this shows up.
 4. **`ProjectFinancialNotesMigrationTest`.** Exercises a data migration; DDL implicitly commits in MySQL and escapes the transaction wrapper. May need `RefreshDatabase`-style handling of its own.
-5. **MySQL strict-mode differences from SQLite.** SQLite is permissive about types, string lengths, and invalid dates; MySQL is not. A test that passed on SQLite with an over-long string or a zero date will now fail legitimately — that is a real bug the old suite was hiding, so fix the code, not the test.
-6. **Timezone assertions.** `StandardEmailRenderingTest` already asserts Amsterdam wall-clock times (commit `17840c9`). Confirm the MySQL session timezone does not shift these.
+5. **`tests/Feature/Signals/ModelHistoryTest::test_work_rolled_back_leaves_no_trace`.** The only test in the suite that deliberately rolls a transaction back, to prove the audit trail rolls back with it. Under this task's wrapper it becomes a *nested* transaction, which Laravel implements as a savepoint — supported on MySQL, so it should pass unchanged, but it is the first thing to check if the signal tests go red, because a rollback that escaped to the wrapper would take the whole test's isolation with it.
+6. **The rest of `tests/Feature/Signals/`.** These assert on rows in `activities` and `activity_changes` — both tenant tables, so they only pass if the `TestCase` really did switch to the tenant connection. A signal test failing with "table not found" means tenancy did not initialize, not that the signal broke. `ControllerDispatchTest` and `EventApiSignalsTest` use `Event::fake()`, which suppresses `RecordActivity` but not the tenancy listeners in Task 11 — faking events does not un-initialize a tenant. `SignalLoopGuardTest` asserts on the `Signals` singleton's chain and per-request counter, which the Task 11 reset clears on every tenancy switch; if it goes red, check that nothing in the test path re-initializes a tenant mid-chain.
+7. **MySQL strict-mode differences from SQLite.** SQLite is permissive about types, string lengths, and invalid dates; MySQL is not. A test that passed on SQLite with an over-long string or a zero date will now fail legitimately — that is a real bug the old suite was hiding, so fix the code, not the test.
+8. **Timezone assertions.** `StandardEmailRenderingTest` already asserts Amsterdam wall-clock times (commit `17840c9`). Confirm the MySQL session timezone does not shift these.
 
 - [ ] **Step 7b: Add one test that would have caught the ordering bug**
 
@@ -3655,7 +3700,7 @@ Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc contr
 - `app/Http/Middleware/EnsureTenantHasModule.php` (new)
 - `bootstrap/app.php`
 - `routes/web.php`, `routes/api.php`
-- `app/Http/Controllers/ServiceOrderController.php:348` (the only remaining `snelStartEnabled` flag)
+- `app/Http/Controllers/ServiceOrderController.php:352` (the only remaining `snelStartEnabled` flag)
 - `resources/js/Composables/useSidebarNav.js`
 - `resources/js/Components/GoogleCalendarSection.vue`
 - `resources/js/Pages/Admin/GeneralSettingsPage.vue`
@@ -3788,7 +3833,7 @@ Check `routes/api.php` for module-owned routes each time a new module is added; 
 
 - [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag**
 
-There is exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:348`:
+There is exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:352`:
 
 ```php
 'snelStartEnabled' => filled(config('services.snelstart.client_key')),
@@ -4011,7 +4056,7 @@ Event::listen(TenancyEnded::class, function () {
 });
 ```
 
-These run in addition to the existing `BootstrapTenancy` / `RevertToCentralContext` listeners — Laravel dispatches all listeners for an event, and order does not matter here since these only affect mailer resolution, not tenancy state.
+These run in addition to the existing `BootstrapTenancy` / `RevertToCentralContext` listeners — Laravel dispatches all listeners for an event, and order does not matter here since these only affect mailer resolution, not tenancy state. They sit next to the `ActivityBuffer` reset added in Task 11, which is the same problem in a different singleton: anything the container caches for the lifetime of a process, and that holds tenant-specific state, has to be cleared on the switch. When adding a singleton to this app, that is the question to ask about it.
 
 **`SnelStartClient` needs no equivalent.** It reads config in its constructor and is not bound as a singleton, so every injection (`handle(SnelStartClient $client)`, `sendToSnelStart(ServiceOrder $order, SnelStartClient $client)`) builds a fresh instance against the current tenant. Verify that stays true if anyone ever adds a `singleton()` binding for it.
 
@@ -5435,7 +5480,7 @@ git commit -m "chore(deploy): back up and migrate every tenant database"
 
 8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
-9. **Test isolation changed shape.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn in the 36 converted test files.
+9. **Test isolation changed shape.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn in the 47 converted test files.
 
 10. **Per-tenant database credentials are not exercised by the test suite.** Tests run on the plain `MySQLDatabaseManager` (Task 30) so the narrow test grant stays narrow, which means `TenantUserProvisioner` and the `encrypted` password cast are only verified manually (Task 21 Step 3, Task 26 Step 4). Re-run those after touching provisioning.
 
