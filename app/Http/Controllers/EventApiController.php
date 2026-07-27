@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\ServiceOrders\AppointmentConfirmationEmailed;
+use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Enums\EventTrigger;
 use App\Enums\StandardEmailTriggerType;
 use App\Http\Requests\EventCopyRequest;
@@ -17,8 +19,6 @@ use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
 use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
-use App\Models\User;
-use App\Notifications\NewServiceOrderAssigned;
 use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
@@ -275,8 +275,7 @@ class EventApiController extends Controller
         );
 
         if ($notify_service_order) {
-            User::whereIn('id', $notify_user_ids)->get()
-                ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($notify_service_order)));
+            event(new ServiceOrderAssigned($notify_service_order, $notify_user_ids));
         }
 
         $event->load([
@@ -418,18 +417,14 @@ class EventApiController extends Controller
                     $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
 
                     if ($model instanceof ServiceOrder) {
-                        $new_ids = array_diff($ids, $previously_executing);
-                        User::whereIn('id', $new_ids)->get()
-                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($model)));
+                        event(new ServiceOrderAssigned($model, array_values(array_diff($ids, $previously_executing))));
                     }
                 } else {
                     $event->serviceOrders->each(function ($order) use ($ids) {
                         $previously_executing = $order->executingUsers()->pluck('users.id')->all();
                         $order->syncExecutingUsers($ids);
                         $order->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
-                        $new_ids = array_diff($ids, $previously_executing);
-                        User::whereIn('id', $new_ids)->get()
-                            ->each(fn ($user) => $user->notify(new NewServiceOrderAssigned($order)));
+                        event(new ServiceOrderAssigned($order, array_values(array_diff($ids, $previously_executing))));
                     });
                 }
             }
@@ -521,9 +516,7 @@ class EventApiController extends Controller
 
         Mail::to($recipients)->send(new AppointmentConfirmationMail($event, $service_order));
 
-        $service_order->logActivity(
-            'Afspraakbevestiging per e-mail verzonden naar: ' . implode(', ', $recipients)
-        );
+        event(new AppointmentConfirmationEmailed($service_order, $event, $recipients));
 
         return response()->json([
             'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),

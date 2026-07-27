@@ -3,8 +3,12 @@
 namespace App\Models\Traits;
 
 use App\Models\CustomField;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
+/**
+ * @mixin Model
+ */
 trait HasCustomFields
 {
     public function customFields(): MorphToMany
@@ -41,6 +45,7 @@ trait HasCustomFields
             $field_array['pivot'] = [
                 'value' => $attached->has($field->id) ? $attached->get($field->id)->pivot->value : null,
             ];
+
             return $field_array;
         })->all();
     }

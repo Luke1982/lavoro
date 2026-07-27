@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Signals\Appointments\StandardEmailSent;
 use App\Mail\StandardEmailMail;
 use App\Models\Event;
 use App\Models\StandardEmail;
@@ -23,14 +24,6 @@ class StandardEmailSender
     ): void {
         Mail::to($to)->send(new StandardEmailMail($subject, $body, $standard_email->standardAttachments));
 
-        $event->logActivity(
-            "Standaard e-mail '" . $standard_email->name . "' verzonden aan " . $to,
-            metadata: [
-                'standard_email_id' => $standard_email->id,
-                'trigger' => $trigger,
-                'to' => $to,
-                'subject' => $subject,
-            ],
-        );
+        event(new StandardEmailSent($event, $standard_email, $to, $subject, $trigger));
     }
 }

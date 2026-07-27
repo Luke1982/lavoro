@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @mixin Model
+ */
 trait HasActivities
 {
     public function activities(): MorphToMany
@@ -19,7 +22,7 @@ trait HasActivities
      * Log an activity attached to this model.
      *
      * @param  array<int, Model>  $also_attach_to  Additional models that use
-     *         HasActivities to attach the same activity to.
+     *                                             HasActivities to attach the same activity to.
      */
     public function logActivity(
         string $description,
@@ -27,7 +30,8 @@ trait HasActivities
         ?string $category = null,
         ?User $user = null,
         array $also_attach_to = [],
-        ?array $metadata = null
+        ?array $metadata = null,
+        ?string $event_key = null
     ): Activity {
         if (!$category) {
             $lower = mb_strtolower($description);
@@ -58,8 +62,14 @@ trait HasActivities
         $activity = Activity::create([
             'description' => $description,
             'category' => $category,
+            'event_key' => $event_key,
+            'subject_type' => $this->getMorphClass(),
+            'subject_id' => $this->getKey(),
             'user_id' => $resolved_user?->id,
+            'actor_type' => $resolved_user ? 'user' : 'system',
+            'actor_name' => $resolved_user?->name,
             'metadata' => $metadata,
+            'occurred_at' => $occurred_at ?? now(),
         ]);
         $this->activities()->attach($activity->id);
 

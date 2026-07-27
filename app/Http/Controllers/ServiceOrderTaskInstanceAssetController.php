@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Tasks\TaskAssetSerialChanged;
+use App\Domain\Signals\Tasks\TaskAssetsRegistered;
 use App\Http\Requests\ServiceOrderTaskInstanceAssetStoreRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceAssetUpdateRequest;
 use App\Models\Asset;
@@ -46,12 +48,13 @@ class ServiceOrderTaskInstanceAssetController extends Controller
         });
 
         $title = $this->titleFor($serviceordertaskinstance);
-        $serials = $created->pluck('serial_number')->implode(', ');
 
-        $serviceordertaskinstance->serviceOrder->logActivity(
-            'Apparatuur geregistreerd bij taak "' . $title . '": ' . $serials,
-            category: 'status',
-        );
+        event(new TaskAssetsRegistered(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+            $created->pluck('serial_number')->filter()->values()->all(),
+        ));
 
         return redirect()->back()->with('success', $created->count() === 1
             ? 'Serienummer opgeslagen'
@@ -69,10 +72,13 @@ class ServiceOrderTaskInstanceAssetController extends Controller
         $serviceordertaskinstance->loadMissing('serviceOrder');
         $title = $this->titleFor($serviceordertaskinstance);
 
-        $serviceordertaskinstance->serviceOrder->logActivity(
-            'Serienummer bij taak "' . $title . '" gewijzigd van ' . $previous . ' naar ' . $asset->serial_number,
-            category: 'status',
-        );
+        event(new TaskAssetSerialChanged(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+            $previous,
+            $asset->serial_number,
+        ));
 
         return redirect()->back()->with('success', 'Serienummer bijgewerkt');
     }

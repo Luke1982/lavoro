@@ -3,9 +3,13 @@
 namespace App\Models\Traits;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @mixin Model
+ */
 trait HasExecutingUsers
 {
     public function executingUsers(): MorphToMany

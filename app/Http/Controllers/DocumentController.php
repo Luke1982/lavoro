@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Attachments\DocumentRemoved;
 use App\Http\Requests\DocumentBulkCategoryRequest;
 use App\Http\Requests\DocumentBulkDestroyRequest;
 use App\Http\Requests\DocumentDestroyRequest;
@@ -95,8 +96,8 @@ class DocumentController extends Controller
 
         if ($link) {
             $documentable_record = (new ($link->documentable_type))->find($link->documentable_id);
-            if ($documentable_record && method_exists($documentable_record, 'logActivity')) {
-                $documentable_record->logActivity(sprintf('Document verwijderd: %s', $document->name));
+            if ($documentable_record) {
+                event(new DocumentRemoved($documentable_record, $document->id, $document->name));
             }
         }
 

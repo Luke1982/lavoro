@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,32 @@ class Ticket extends Model
     /** @use HasFactory<TicketFactory> */
     use HasFactory;
 
+    use RecordsHistory;
     use RemarkableTrait;
+
+    protected array $activity_labels = [
+        'asset_id' => 'Machine',
+        'subject' => 'Onderwerp',
+        'description' => 'Omschrijving',
+        'status' => 'Status',
+        'priority' => 'Prioriteit',
+        'closed_on' => 'Gesloten op',
+        'closed_by_id' => 'Gesloten door',
+        'service_order_id' => 'Werkbon',
+    ];
+
+    /**
+     * Reported by named signals of their own, so the automatic trail must not
+     * repeat them.
+     */
+    protected array $activity_ignore = [
+        'status',
+        'priority',
+    ];
+
+    protected array $activity_relations = [
+        'asset_id' => ['asset', 'serial_number'],
+    ];
 
     protected $fillable = [
         'asset_id',

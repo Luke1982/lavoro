@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Signals\Contracts\ContractAssetDetachedByTransfer;
 use App\Models\Asset;
 use App\Models\Location;
 use App\Models\MaintenanceContract;
@@ -87,10 +88,7 @@ class AssetTransferService
 
                 $contract->assets()->detach($tree->pluck('id')->all());
 
-                $contract->logActivity(sprintf(
-                    'Machine losgekoppeld van contract door overdracht naar andere klant: %s',
-                    $losing->implode(', ')
-                ));
+                event(new ContractAssetDetachedByTransfer($contract, $losing->values()->all()));
             }
         });
     }

@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Tasks\TaskCancelled;
+use App\Domain\Signals\Tasks\TaskCompletionChanged;
+use App\Domain\Signals\Tasks\TaskSignatureRemoved;
+use App\Domain\Signals\Tasks\TaskSigned;
 use App\Http\Requests\ServiceOrderTaskInstanceCancelRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
@@ -92,12 +96,13 @@ class ServiceOrderTaskInstanceController extends Controller
         $title = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
-        $action = $data['is_complete'] ? 'voltooid' : 'heropend';
 
-        $serviceordertaskinstance->serviceOrder->logActivity(
-            "Taak \"{$title}\" {$action}",
-            category: 'status',
-        );
+        event(new TaskCompletionChanged(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+            (bool) $serviceordertaskinstance->is_complete,
+        ));
 
         return redirect()->back()->with('success', 'Taakstatus bijgewerkt');
     }
@@ -131,11 +136,12 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        $message = 'Taak "' . $title . '" ondertekend door ' . $data['signed_by'];
-        $serviceordertaskinstance->serviceOrder->logActivity(
-            $message,
-            category: 'status',
-        );
+        event(new TaskSigned(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+            $serviceordertaskinstance->signed_by,
+        ));
 
         return redirect()->back()->with('success', 'Taak ondertekend');
     }
@@ -154,11 +160,11 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        $message = 'Handtekening van taak "' . $title . '" verwijderd';
-        $serviceordertaskinstance->serviceOrder->logActivity(
-            $message,
-            category: 'status',
-        );
+        event(new TaskSignatureRemoved(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+        ));
 
         return redirect()->back()->with('success', 'Handtekening verwijderd');
     }
@@ -183,9 +189,13 @@ class ServiceOrderTaskInstanceController extends Controller
         $title = $serviceordertaskinstance->title
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
-        $message = 'Taak "' . $title . '" geannuleerd: ' . $data['cancellation_reason'];
 
-        $serviceordertaskinstance->serviceOrder->logActivity($message, category: 'status');
+        event(new TaskCancelled(
+            $serviceordertaskinstance->serviceOrder,
+            $serviceordertaskinstance,
+            $title,
+            $serviceordertaskinstance->cancellation_reason,
+        ));
 
         return redirect()->back()->with('success', 'Taak geannuleerd');
     }

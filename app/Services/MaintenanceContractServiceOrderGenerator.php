@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Signals\Contracts\ContractServiceOrderGenerated;
 use App\Enums\ContractInterval;
 use App\Enums\ServiceJobOutcomes;
 use App\Models\Asset;
@@ -139,12 +140,7 @@ class MaintenanceContractServiceOrderGenerator
             $labels[] = $asset->serial_number ?? ('#' . $asset->id);
         }
 
-        $contract->logActivity(sprintf(
-            'Werkbon #%d %s voor %s',
-            $service_order->id,
-            $activity_verb,
-            implode(', ', $labels)
-        ));
+        event(new ContractServiceOrderGenerated($contract, $service_order, $activity_verb, $labels));
 
         return $service_order;
     }

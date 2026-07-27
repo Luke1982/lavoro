@@ -3,23 +3,42 @@
 namespace App\Models;
 
 use App\Enums\ServiceJobOutcomes;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Traits\HasOwner;
 use App\Models\Traits\HasExecutingUsers;
+use App\Models\Traits\HasOwner;
+use App\Models\Traits\RecordsHistory;
+use Database\Factories\ServiceJobFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ServiceJob extends Model
 {
-    /** @use HasFactory<\Database\Factories\ServiceJobFactory> */
-    use HasFactory;
-    use HasOwner;
     use HasExecutingUsers;
+
+    /** @use HasFactory<ServiceJobFactory> */
+    use HasFactory;
+
+    use HasOwner;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array<string>
      */
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'asset_id' => 'Machine',
+        'outcome' => 'Uitkomst',
+        'description' => 'Omschrijving',
+        'completed_on' => 'Afgerond op',
+        'sent_to_customer' => 'Verzonden naar klant',
+        'days_temporary_approval' => 'Dagen tijdelijke goedkeuring',
+    ];
+
+    protected array $activity_relations = [
+        'asset_id' => ['asset', 'serial_number'],
+    ];
+
     protected $fillable = [
         'asset_id',
         'service_order_id',
@@ -33,7 +52,7 @@ class ServiceJob extends Model
     ];
 
     protected $casts = [
-        'completed_on'     => 'date',
+        'completed_on' => 'date',
         'sent_to_customer' => 'boolean',
     ];
 
@@ -42,7 +61,7 @@ class ServiceJob extends Model
         static::created(function (ServiceJob $job) {
             $checks = $job->asset?->product?->productType?->serviceChecks()->get() ?? collect();
 
-            $checks->each(fn($check) => $job->checkInstances()->create([
+            $checks->each(fn ($check) => $job->checkInstances()->create([
                 'service_check_id' => $check->id,
             ]));
         });
@@ -93,7 +112,7 @@ class ServiceJob extends Model
      * Get the number of days to advance the next service date,
      * based on the outcome of the service job.
      *
-     * @param int|null $tmp_days The number of days for temporary approval, if applicable.
+     * @param  int|null  $tmp_days  The number of days for temporary approval, if applicable.
      */
     public function getDaysToAdvanceNextServiceDate($tmp_days): ?int
     {
@@ -138,6 +157,7 @@ class ServiceJob extends Model
             if ($type === 'checkgroup') {
                 return $ci->values->count() === 0;
             }
+
             return false;
         });
     }

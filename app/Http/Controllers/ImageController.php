@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Attachments\ImageAttached;
+use App\Domain\Signals\Attachments\ImageRemoved;
 use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageImportFromUrlRequest;
 use App\Http\Requests\ImageSetMainRequest;
@@ -37,7 +39,7 @@ class ImageController extends Controller
         /**
          * @disregard
          */
-        if (! $request->hasFile('images')) {
+        if (!$request->hasFile('images')) {
             return redirect()->back()->withErrors(['error' => 'No images were uploaded.']);
         }
 
@@ -54,12 +56,17 @@ class ImageController extends Controller
             $real_path = storage_path('app/' . $path);
 
             // Ensure the directory exists with proper permissions
-            if (! file_exists($real_path)) {
+            if (!file_exists($real_path)) {
                 mkdir($real_path, 0755, true);
             }
             $image->storePubliclyAs($path, $image->getClientOriginalName(), 'public');
+            /**
+             * Titles are optional in the rules, so an upload without them must fall
+             * back to the file's own name rather than reading an offset off null.
+             */
+            $original_name = $image->getClientOriginalName();
             $new_image = Image::create([
-                'name' => $request->titles[$image->getClientOriginalName()],
+                'name' => $request->input('titles.' . $original_name, $original_name),
                 'path' => $path . $image->getClientOriginalName(),
             ]);
             $imageable_record->images()->attach($new_image->id, [
@@ -68,12 +75,8 @@ class ImageController extends Controller
             $created_images[] = $new_image;
         }
 
-        if (method_exists($imageable_record, 'logActivity') && count($created_images) > 0) {
-            $count = count($created_images);
-            $label = $count === 1 ? 'Afbeelding toegevoegd' : "{$count} afbeeldingen toegevoegd";
-            $imageable_record->logActivity($label, category: 'image', metadata: [
-                'thumbnail_path' => $created_images[0]->path,
-            ]);
+        if (count($created_images) > 0) {
+            event(new ImageAttached($imageable_record, count($created_images), $created_images[0]->path));
         }
 
         if ($request->wantsJson()) {
@@ -169,9 +172,7 @@ class ImageController extends Controller
             ->where('image_id', $image->id)
             ->delete();
 
-        if (method_exists($imageable_record, 'logActivity')) {
-            $imageable_record->logActivity('Afbeelding verwijderd', category: 'image');
-        }
+        event(new ImageRemoved($imageable_record, $image->id));
 
         $image->delete();
         Storage::delete($image->path);
@@ -193,7 +194,7 @@ class ImageController extends Controller
             ->where('imageable_id', $imageable_id)
             ->update(['main' => false]);
 
-        if (! $request->boolean('currently_main')) {
+        if (!$request->boolean('currently_main')) {
             DB::table('imageables')
                 ->where('image_id', $image->id)
                 ->where('imageable_type', $imageable_type)
@@ -223,7 +224,7 @@ class ImageController extends Controller
         ];
 
         if (str_starts_with($url, 'data:image/')) {
-            if (! preg_match('/^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+\/=]+)$/', $url, $matches)) {
+            if (!preg_match('/^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+\/=]+)$/', $url, $matches)) {
                 return redirect()->back()->withErrors(['url' => 'Ongeldige base64 afbeelding.']);
             }
             $mime = $matches[1];
@@ -237,14 +238,14 @@ class ImageController extends Controller
 
             $response = Http::timeout(15)->get($url);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 return redirect()->back()->withErrors(['url' => 'De afbeelding kon niet worden gedownload.']);
             }
 
             $content_type = $response->header('Content-Type') ?? '';
             $mime = strtolower(explode(';', $content_type)[0]);
 
-            if (! array_key_exists($mime, $extension_map)) {
+            if (!array_key_exists($mime, $extension_map)) {
                 return redirect()->back()->withErrors(['url' => 'De URL verwijst niet naar een afbeelding.']);
             }
 
@@ -257,7 +258,7 @@ class ImageController extends Controller
         $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
         $real_path = storage_path('app/public/' . $path);
 
-        if (! file_exists($real_path)) {
+        if (!file_exists($real_path)) {
             mkdir($real_path, 0755, true);
         }
 
@@ -292,7 +293,7 @@ class ImageController extends Controller
     {
         $parsed = parse_url($url);
 
-        if (! isset($parsed['scheme']) || ! in_array($parsed['scheme'], ['http', 'https'])) {
+        if (!isset($parsed['scheme']) || !in_array($parsed['scheme'], ['http', 'https'])) {
             abort(422, 'Ongeldige URL.');
         }
 
@@ -318,7 +319,7 @@ class ImageController extends Controller
 
     private function ipInRange(string $ip, string $range): bool
     {
-        if (! str_contains($range, '/')) {
+        if (!str_contains($range, '/')) {
             return $ip === $range;
         }
 

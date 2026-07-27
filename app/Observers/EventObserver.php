@@ -2,28 +2,28 @@
 
 namespace App\Observers;
 
-use App\Enums\EventTrigger;
-use App\Enums\StandardEmailTriggerType;
-use App\Jobs\Google\DeleteEventFromGoogleJob;
-use App\Jobs\Google\PushEventJob;
-use App\Jobs\SendStandardEmailJob;
+use App\Domain\Signals\Appointments\AppointmentCancelled;
+use App\Domain\Signals\Appointments\AppointmentRescheduled;
+use App\Domain\Signals\Appointments\AppointmentRestored;
+use App\Domain\Signals\Appointments\AppointmentScheduled;
 use App\Models\Event;
-use App\Models\GoogleSyncedEvent;
-use App\Models\StandardEmailTrigger;
-use App\Services\StandardEmailTriggerResolver;
 
+/**
+ * Announces what happened to an appointment and nothing else. Google sync,
+ * standard e-mails and werkbon planning are handled by listeners that this class
+ * knows nothing about, so a new reaction is a new listener rather than an edit
+ * here.
+ */
 class EventObserver
 {
     public function created(Event $event): void
     {
-        PushEventJob::dispatch($event->id);
-        $this->dispatchBackgroundStandardEmails($event, EventTrigger::event_created);
+        event(new AppointmentScheduled($event));
     }
 
     public function updated(Event $event): void
     {
-        PushEventJob::dispatch($event->id);
-        $this->dispatchBackgroundStandardEmails($event, EventTrigger::event_updated);
+        event(new AppointmentRescheduled($event));
     }
 
     public function deleting(Event $event): void
@@ -31,14 +31,8 @@ class EventObserver
         if (!$event->isForceDeleting()) {
             return;
         }
-        $mappings = GoogleSyncedEvent::where('event_id', $event->id)->get();
-        foreach ($mappings as $mapping) {
-            DeleteEventFromGoogleJob::dispatch(
-                $mapping->id,
-                $mapping->google_synced_calendar_id,
-                $mapping->google_event_id,
-            );
-        }
+
+        event(new AppointmentCancelled($event, permanent: true));
     }
 
     public function deleted(Event $event): void
@@ -46,30 +40,12 @@ class EventObserver
         if ($event->isForceDeleting()) {
             return;
         }
-        $mappings = GoogleSyncedEvent::where('event_id', $event->id)->get();
-        foreach ($mappings as $mapping) {
-            DeleteEventFromGoogleJob::dispatch(
-                $mapping->id,
-                $mapping->google_synced_calendar_id,
-                $mapping->google_event_id,
-            );
-        }
-        foreach ($event->serviceOrders as $service_order) {
-            $service_order->revertToPlanningCancelledStage();
-        }
-        $this->dispatchBackgroundStandardEmails($event, EventTrigger::event_deleted);
+
+        event(new AppointmentCancelled($event));
     }
 
     public function restored(Event $event): void
     {
-        PushEventJob::dispatch($event->id);
-    }
-
-    private function dispatchBackgroundStandardEmails(Event $event, EventTrigger $trigger): void
-    {
-        StandardEmailTriggerResolver::matching($event, $trigger, [StandardEmailTriggerType::background->name])
-            ->each(function (StandardEmailTrigger $match) use ($event, $trigger) {
-                SendStandardEmailJob::dispatch($event->id, $match->standard_email_id, $trigger->name);
-            });
+        event(new AppointmentRestored($event));
     }
 }

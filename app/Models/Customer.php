@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\RecordsHistory;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,28 @@ class Customer extends Model
 
     /** @use HasFactory<CustomerFactory> */
     use HasFactory;
+
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'email' => 'E-mail',
+        'invoice_email' => 'Factuur e-mail',
+        'phone' => 'Telefoon',
+        'mobile' => 'Mobiel',
+        'address' => 'Adres',
+        'postal_code' => 'Postcode',
+        'city' => 'Plaats',
+        'iban' => 'IBAN',
+        'vat_number' => 'BTW-nummer',
+        'contactname' => 'Contactpersoon',
+    ];
+
+    protected array $activity_ignore = [
+        'lat',
+        'lon',
+        'snelstart_id',
+    ];
 
     protected $fillable = [
         'snelstart_id',

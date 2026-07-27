@@ -6,6 +6,7 @@ use App\Enums\EventStatusses;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
+use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use App\Services\EventLocationResolver;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,8 +21,25 @@ class Event extends Model
     use HasExecutingUsers;
     use HasFactory;
     use HasOwner;
+    use RecordsHistory;
     use RemarkableTrait;
     use SoftDeletes;
+
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'description' => 'Omschrijving',
+        'start' => 'Start',
+        'end' => 'Eind',
+        'status' => 'Status',
+        'event_type_id' => 'Type',
+        'location' => 'Locatie',
+        'location_id' => 'Locatie',
+        'is_preliminary' => 'Voorlopig',
+    ];
+
+    protected array $activity_ignore = [
+        'origin',
+    ];
 
     protected $fillable = [
         'name',

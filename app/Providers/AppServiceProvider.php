@@ -2,27 +2,33 @@
 
 namespace App\Providers;
 
+use App\Domain\Signals\ActivityBuffer;
+use App\Jobs\Google\DeleteEventFromGoogleJob;
+use App\Jobs\Google\PushEventJob;
 use App\Listeners\CopyMailToSentFolder;
-use Illuminate\Mail\Events\MessageSent;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
-use Symfony\Component\Mailer\Transport\Dsn;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\Transports\GraphTransport;
-use Inertia\Inertia;
-use App\Models\Company;
-use Illuminate\Support\Facades\Storage;
 use App\Models\CalendarGrant;
+use App\Models\Company;
 use App\Models\Event as EventModel;
+use App\Models\GoogleSyncedEvent;
 use App\Models\StandardAttachment;
 use App\Models\StandardEmail;
+use App\Models\Ticket;
 use App\Models\UserUnavailability;
+use App\Observers\EventObserver;
+use App\Observers\TicketObserver;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ActivityBuffer::class);
     }
 
     /**
@@ -45,34 +51,36 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(StandardEmail::class, StandardEmailPolicy::class);
         Gate::policy(StandardAttachment::class, StandardAttachmentPolicy::class);
 
-        EventModel::observe(\App\Observers\EventObserver::class);
-        \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);
+        EventModel::observe(EventObserver::class);
+        Ticket::observe(TicketObserver::class);
+
+        Queue::before(fn () => app(ActivityBuffer::class)->reset());
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
             [$model, $relation, $ids] = $payload + [null, null, []];
-            if (!$model instanceof \App\Models\Event) {
+            if (!$model instanceof EventModel) {
                 return;
             }
-            \App\Jobs\Google\PushEventJob::dispatch($model->id);
+            PushEventJob::dispatch($model->id);
         });
 
         Event::listen('eloquent.detached: App\Models\Event', function ($event_class, $payload) {
             [$model, $relation, $ids] = $payload + [null, null, []];
-            if (!$model instanceof \App\Models\Event) {
+            if (!$model instanceof EventModel) {
                 return;
             }
-            \App\Jobs\Google\PushEventJob::dispatch($model->id);
+            PushEventJob::dispatch($model->id);
             $event_id = $model->id;
             $still_relevant_user_ids = array_unique(array_merge(
                 $model->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
                 $model->executingUsers()->pluck('users.id')->all(),
             ));
-            $stale_mappings = \App\Models\GoogleSyncedEvent::whereHas(
+            $stale_mappings = GoogleSyncedEvent::whereHas(
                 'syncedCalendar',
                 fn ($q) => $q->whereNotIn('owner_user_id', $still_relevant_user_ids),
             )->where('event_id', $event_id)->get();
             foreach ($stale_mappings as $mapping) {
-                \App\Jobs\Google\DeleteEventFromGoogleJob::dispatch(
+                DeleteEventFromGoogleJob::dispatch(
                     $mapping->id,
                     $mapping->google_synced_calendar_id,
                     $mapping->google_event_id,
@@ -101,6 +109,7 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
             $logo_url = $company->logo_path ? asset('storage/' . $company->logo_path) : null;
+
             return [
                 'name' => $company->name,
                 'logo_url' => $logo_url,

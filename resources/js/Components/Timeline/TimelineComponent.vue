@@ -19,8 +19,23 @@
                                 <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                                     <span v-html="event.rendered"></span>
                                 </div>
-                                <div v-if="event.user" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
-                                    {{ event.user.name }}
+                                <dl v-if="event.fieldChanges.length"
+                                    class="mt-1 space-y-0.5 border-l-2 border-gray-200 pl-2 dark:border-slate-600">
+                                    <div v-for="change in event.fieldChanges" :key="change.id"
+                                        class="flex flex-wrap items-baseline gap-x-1.5 text-[11px] leading-snug">
+                                        <dt class="text-gray-500 dark:text-slate-400">{{ change.label }}</dt>
+                                        <dd class="text-gray-400 line-through dark:text-slate-500">
+                                            {{ change.old_label ?? '—' }}
+                                        </dd>
+                                        <span class="text-gray-300 dark:text-slate-600">&rarr;</span>
+                                        <dd class="font-medium text-gray-700 dark:text-slate-200">
+                                            {{ change.new_label ?? '—' }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <div v-if="event.actorName || event.actorType !== 'user'"
+                                    class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
+                                    {{ event.actorType === 'user' ? event.actorName : 'Systeem' }}
                                 </div>
                                 <div v-if="event.serviceOrderId" class="mt-0.5 text-[11px]">
                                     <a :href="`/serviceorders/${event.serviceOrderId}`"
@@ -116,6 +131,17 @@ const formatDate = (iso) => {
     return nlDate(d) + ' ' + nlTime(d);
 };
 
+/**
+ * Entries written by the event layer carry their changes as data, so the headline
+ * only has to name the fields. The before and after values are rendered below it
+ * rather than glued into a sentence.
+ */
+const summarise = (a) => {
+    const changes = a.field_changes ?? [];
+    if (!changes.length) return a.description;
+    return changes.map(c => c.label).join(', ') + ' gewijzigd';
+};
+
 const raw = computed(() => props.activities.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
 const expanded = ref(false);
 const showToggle = computed(() => raw.value.length > props.limit);
@@ -126,8 +152,11 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         icon: meta.icon,
         iconBackground: meta.bg,
         iconStyle: a.color ? { backgroundColor: a.color } : undefined,
-        rendered: a.rendered ?? a.description,
+        rendered: a.rendered ?? summarise(a),
+        fieldChanges: a.field_changes ?? [],
         user: a.user ?? null,
+        actorName: a.actor_name ?? a.user?.name ?? null,
+        actorType: a.actor_type ?? 'user',
         executing_users: a.executing_users || [],
         thumbnailPath: a.metadata?.thumbnail_path ?? null,
         is_event: a.category === 'event',

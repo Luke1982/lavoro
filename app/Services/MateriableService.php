@@ -2,6 +2,15 @@
 
 namespace App\Services;
 
+use App\Domain\Signals\Materials\MaterialStockRestored;
+use App\Domain\Signals\ServiceOrders\FreeformMaterialAdded;
+use App\Domain\Signals\ServiceOrders\FreeformMaterialQuantityChanged;
+use App\Domain\Signals\ServiceOrders\FreeformMaterialRemoved;
+use App\Domain\Signals\ServiceOrders\FreeformMaterialUnforeseenFlagChanged;
+use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
+use App\Domain\Signals\ServiceOrders\MaterialDetachedFromOrder;
+use App\Domain\Signals\ServiceOrders\MaterialQuantityChanged;
+use App\Domain\Signals\ServiceOrders\MaterialUnforeseenFlagChanged;
 use App\Models\FreeformMaterial;
 use App\Models\Material;
 use App\Models\ServiceOrder;
@@ -26,11 +35,13 @@ class MateriableService
         ]);
         $material->decrement('stock', $attributes['quantity']);
 
-        $this->logOnServiceOrder(
-            $owner,
-            sprintf('Materiaal toegevoegd: %s (aantal %s)', $material->name, $attributes['quantity']),
-            [$material]
-        );
+        $this->announce($owner, fn ($order, $task) => new MaterialAttachedToOrder(
+            $order,
+            $material->name,
+            (float) $attributes['quantity'],
+            $task,
+            [$material],
+        ));
     }
 
     public function detach(Model $owner, string $materiable_id): void
@@ -50,11 +61,12 @@ class MateriableService
         }
 
         $material->increment('stock', $quantity);
-        $this->logOnServiceOrder(
-            $owner,
-            sprintf('Materiaal verwijderd: %s', $material->name),
-            [$material]
-        );
+        $this->announce($owner, fn ($order, $task) => new MaterialDetachedFromOrder(
+            $order,
+            $material->name,
+            $task,
+            [$material],
+        ));
     }
 
     public function update(Model $owner, string $materiable_id, array $attributes): void
@@ -81,18 +93,22 @@ class MateriableService
                 $material->decrement('stock', $delta);
             }
 
-            $this->logOnServiceOrder(
-                $owner,
-                sprintf('Materiaal hoeveelheid aangepast: %s naar %s', $material->name, $attributes['quantity']),
-                [$material]
-            );
+            $this->announce($owner, fn ($order, $task) => new MaterialQuantityChanged(
+                $order,
+                $material->name,
+                $old_quantity,
+                $new_quantity,
+                $task,
+                [$material],
+            ));
         }
 
         if (array_key_exists('unforseen', $attributes)) {
-            $this->logOnServiceOrder($owner, sprintf(
-                'Materiaal gemarkeerd als %s: %s',
-                $attributes['unforseen'] ? 'onvoorzien' : 'voorzien',
-                $material->name
+            $this->announce($owner, fn ($order, $task) => new MaterialUnforeseenFlagChanged(
+                $order,
+                $material->name,
+                (bool) $attributes['unforseen'],
+                $task,
             ));
         }
     }
@@ -101,10 +117,11 @@ class MateriableService
     {
         $freeform = $owner->freeformMaterials()->create($attributes);
 
-        $this->logOnServiceOrder($owner, sprintf(
-            'Vrije materiaalregel toegevoegd: %s (aantal %s)',
+        $this->announce($owner, fn ($order, $task) => new FreeformMaterialAdded(
+            $order,
             $attributes['description'],
-            $attributes['quantity']
+            (float) $attributes['quantity'],
+            $task,
         ));
 
         return $freeform;
@@ -116,18 +133,21 @@ class MateriableService
             && (float) $attributes['quantity'] !== (float) $freeform->quantity;
 
         if ($quantity_changed) {
-            $this->logOnServiceOrder($owner, sprintf(
-                'Vrije materiaalregel hoeveelheid aangepast: %s naar %s',
+            $this->announce($owner, fn ($order, $task) => new FreeformMaterialQuantityChanged(
+                $order,
                 $freeform->description,
-                $attributes['quantity']
+                (float) $freeform->quantity,
+                (float) $attributes['quantity'],
+                $task,
             ));
         }
 
         if (array_key_exists('unforseen', $attributes) && $attributes['unforseen'] !== $freeform->unforseen) {
-            $this->logOnServiceOrder($owner, sprintf(
-                'Vrije materiaalregel gemarkeerd als %s: %s',
-                $attributes['unforseen'] ? 'onvoorzien' : 'voorzien',
-                $freeform->description
+            $this->announce($owner, fn ($order, $task) => new FreeformMaterialUnforeseenFlagChanged(
+                $order,
+                $freeform->description,
+                (bool) $attributes['unforseen'],
+                $task,
             ));
         }
 
@@ -136,10 +156,11 @@ class MateriableService
 
     public function deleteFreeform(Model $owner, FreeformMaterial $freeform): void
     {
-        $this->logOnServiceOrder($owner, sprintf(
-            'Vrije materiaalregel verwijderd: %s (aantal %s)',
+        $this->announce($owner, fn ($order, $task) => new FreeformMaterialRemoved(
+            $order,
             $freeform->description,
-            $freeform->quantity
+            (float) $freeform->quantity,
+            $task,
         ));
 
         $freeform->delete();
@@ -159,8 +180,16 @@ class MateriableService
             $quantity = (float) ($material->pivot->quantity ?? 0);
 
             if ($quantity > 0) {
+                $stock_before = (float) $material->stock;
                 $material->increment('stock', $quantity);
-                $material->logActivity('Voorraad hersteld: +' . $quantity . ' door ' . $reason);
+
+                event(new MaterialStockRestored(
+                    $material,
+                    (float) $quantity,
+                    $reason,
+                    $stock_before,
+                    (float) $material->stock,
+                ));
             }
         }
 
@@ -188,7 +217,11 @@ class MateriableService
         return null;
     }
 
-    private function logOnServiceOrder(Model $owner, string $message, array $also_attach_to = []): void
+    /**
+     * Materials booked against a task instance still belong to that task's werkbon,
+     * so every fact lands on the order with the task named alongside it.
+     */
+    private function announce(Model $owner, callable $build): void
     {
         $service_order = $this->serviceOrderFor($owner);
 
@@ -196,22 +229,15 @@ class MateriableService
             return;
         }
 
-        $service_order->logActivity(
-            $message . $this->contextSuffix($owner),
-            also_attach_to: $also_attach_to,
-            metadata: [
-                'service_order_id' => $service_order->id,
-                'service_order_number' => $service_order->id,
-            ]
-        );
+        event($build($service_order, $this->taskTitle($owner)));
     }
 
-    private function contextSuffix(Model $owner): string
+    private function taskTitle(Model $owner): ?string
     {
         if (!$owner instanceof ServiceOrderTaskInstance) {
-            return '';
+            return null;
         }
 
-        return ' (taak: ' . ($owner->effective_title ?: 'zonder titel') . ')';
+        return $owner->effective_title ?: 'zonder titel';
     }
 }

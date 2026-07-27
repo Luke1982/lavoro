@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasMaterials;
+use App\Models\Traits\RecordsHistory;
 use App\Services\MateriableService;
 use App\Services\TaskInstanceSerialSlotService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,6 +27,22 @@ class ServiceOrderTaskInstance extends Model
             );
         });
     }
+
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'title' => 'Titel',
+        'quantity' => 'Aantal',
+        'is_complete' => 'Afgerond',
+        'is_cancelled' => 'Geannuleerd',
+        'completed_at' => 'Afgerond op',
+        'description' => 'Omschrijving',
+        'cancellation_reason' => 'Reden annulering',
+    ];
+
+    protected array $activity_ignore = [
+        'signature_base64',
+    ];
 
     protected $fillable = [
         'service_order_id',

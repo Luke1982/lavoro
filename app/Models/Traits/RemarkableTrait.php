@@ -3,7 +3,11 @@
 namespace App\Models\Traits;
 
 use App\Models\Remark;
+use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin Model
+ */
 trait RemarkableTrait
 {
     public function remarks()

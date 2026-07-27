@@ -2,6 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
+use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
+use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
+use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
+use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
+use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
+use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
@@ -15,6 +22,7 @@ use App\Http\Requests\ServiceOrderIndexRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
+use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Mail\ServiceOrderPdfMail;
 use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Asset;
@@ -55,6 +63,9 @@ use Illuminate\Validation\Rule;
 class ServiceOrderController extends Controller
 {
     use ReadsPerPage;
+
+    /** Selections up to this size are moved inline; anything larger goes to the queue. */
+    private const BULK_STAGE_INLINE_LIMIT = 40;
 
     /**
      * Display a listing of the resource.
@@ -167,13 +178,7 @@ class ServiceOrderController extends Controller
                 ]);
                 $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
                 if ($asset) {
-                    $serviceorder->logActivity(sprintf(
-                        'Keuring toegevoegd: %s %s %s (serienummer %s)',
-                        $asset->product->productType->name ?? 'Onbekend type',
-                        $asset->product->brand->name ?? '',
-                        $asset->product->model ?? '',
-                        $asset->serial_number ?? '-'
-                    ));
+                    event(new ServiceJobAdded($serviceorder, $asset));
                 }
             }
             $redirect = 'serviceorders.show';
@@ -219,7 +224,7 @@ class ServiceOrderController extends Controller
             'materials.usageUnit',
             'freeformMaterials',
             'activities' => function ($q) {
-                $q->with('user:id,name')->orderByDesc('activityables.created_at');
+                $q->with(['user:id,name', 'fieldChanges'])->orderByDesc('activityables.created_at');
             },
             'remarks.user',
             'internalRemarks.user',
@@ -421,16 +426,16 @@ class ServiceOrderController extends Controller
                 ->pluck('asset')->filter()->map->rootAsset()->unique('id')->values()
             : collect();
 
-        $previous_stage_id = $serviceorder->service_order_stage_id;
-        $previous_is_closed = $serviceorder->is_closed;
         $previous_customer_id = $serviceorder->customer_id;
-        $previous_project_id = $serviceorder->project_id;
         $previous_external_invoice_no = $serviceorder->external_invoice_no;
 
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
-        $previous_project_title = $serviceorder->project?->title;
         $previous_contract_title = $serviceorder->maintenanceContract?->display_title;
+
+        $stage_requested = array_key_exists('service_order_stage_id', $data);
+        $requested_stage_id = $data['service_order_stage_id'] ?? null;
+        unset($data['service_order_stage_id']);
 
         $serviceorder->update($data);
 
@@ -442,21 +447,14 @@ class ServiceOrderController extends Controller
             );
         }
 
-        /**
-         * A werkbon generated from a contract stops being that contract's work the moment
-         * it belongs to someone else, so the link goes rather than leaving the old
-         * customer's contract reporting an order billed elsewhere. The activity line keeps
-         * the provenance.
-         */
-        if (
-            array_key_exists('customer_id', $data)
-            && $data['customer_id'] != $previous_customer_id
-            && $serviceorder->maintenance_contract_id !== null
-        ) {
-            $serviceorder->update(['maintenance_contract_id' => null]);
-            $serviceorder->logActivity(
-                'Losgekoppeld van contract door klantwijziging: ' . ($previous_contract_title ?? 'onbekend')
-            );
+        if (array_key_exists('customer_id', $data) && $data['customer_id'] != $previous_customer_id) {
+            event(new ServiceOrderCustomerChanged(
+                $serviceorder,
+                $previous_customer_id,
+                $previous_customer_name,
+                $serviceorder->customer()->value('name'),
+                $previous_contract_title,
+            ));
         }
 
         if (
@@ -464,63 +462,13 @@ class ServiceOrderController extends Controller
             && filled($data['external_invoice_no'])
             && blank($previous_external_invoice_no)
         ) {
-            $invoiced_stage = ServiceOrderStage::where('is_invoiced_state', true)->first();
-            if ($invoiced_stage && $serviceorder->service_order_stage_id !== $invoiced_stage->id) {
-                $serviceorder->service_order_stage_id = $invoiced_stage->id;
-                $serviceorder->save();
-                $serviceorder->logActivity(
-                    "Fase gewijzigd naar: {$invoiced_stage->name} (door extern factuurnummer)",
-                    also_attach_to: [$invoiced_stage]
-                );
-            }
+            event(new ServiceOrderInvoiceRecorded($serviceorder, $data['external_invoice_no']));
         }
 
-        $serviceorder->load('serviceOrderStage');
-        $new_is_closed = $serviceorder->is_closed;
-
-        if ($new_is_closed && !$previous_is_closed) {
-            $serviceorder->closed_on = now();
-            $serviceorder->save();
-        } elseif (!$new_is_closed && $previous_is_closed) {
-            $serviceorder->closed_on = null;
-            $serviceorder->save();
-        }
-
-        if (
-            array_key_exists('service_order_stage_id', $data)
-            && $data['service_order_stage_id'] != $previous_stage_id
-        ) {
-            if ($data['service_order_stage_id'] === null) {
-                $serviceorder->logActivity('Fase verwijderd');
-            } else {
-                $new_stage = $serviceorder->serviceOrderStage;
-                if ($new_stage) {
-                    $serviceorder->logActivity(
-                        "Fase gewijzigd naar: {$new_stage->name}",
-                        also_attach_to: [$new_stage]
-                    );
-                }
-            }
-        }
-
-        if (array_key_exists('customer_id', $data) && $data['customer_id'] != $previous_customer_id) {
-            $new_customer_name = $serviceorder->customer()->value('name');
-            $serviceorder->logActivity("Klant gewijzigd van '{$previous_customer_name}' naar '{$new_customer_name}'");
-        }
-
-        if (array_key_exists('project_id', $data) && $data['project_id'] != $previous_project_id) {
-            if ($data['project_id'] === null) {
-                $serviceorder->logActivity("Project losgekoppeld: '{$previous_project_title}'");
-            } else {
-                $new_project_title = $serviceorder->project()->value('title');
-                if ($previous_project_id === null) {
-                    $serviceorder->logActivity("Project gekoppeld: '{$new_project_title}'");
-                } else {
-                    $serviceorder->logActivity(
-                        "Project gewijzigd van '{$previous_project_title}' naar '{$new_project_title}'"
-                    );
-                }
-            }
+        if ($stage_requested) {
+            $serviceorder->moveToStage(
+                $requested_stage_id === null ? null : ServiceOrderStage::find($requested_stage_id)
+            );
         }
 
         return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
@@ -557,7 +505,7 @@ class ServiceOrderController extends Controller
 
         Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
 
-        $serviceorder->logActivity('Werkbon per e-mail verzonden naar: ' . implode(', ', $recipients));
+        event(new ServiceOrderEmailed($serviceorder, $recipients));
         // Mark as sent to customer
         if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
@@ -593,7 +541,7 @@ class ServiceOrderController extends Controller
             }
         }
         Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
-        $serviceorder->logActivity('Werkbon + keuringen per e-mail verzonden naar: ' . implode(', ', $recipients));
+        event(new ServiceOrderEmailed($serviceorder, $recipients, with_jobs: true));
         if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
@@ -750,9 +698,7 @@ class ServiceOrderController extends Controller
             $response = $client->post('/verkooporders', $payload);
             $serviceorder->sent_to_administration = true;
             $serviceorder->save();
-            $adminMessage = 'Werkbon naar administratie verzonden (SnelStart verkooporder ID: ' .
-                ($response['id'] ?? 'onbekend') . ').';
-            $serviceorder->logActivity($adminMessage);
+            event(new SalesOrderCreatedInSnelStart($serviceorder, $response['id'] ?? null));
             $redirect = redirect()->back()->with(
                 'success',
                 'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
@@ -937,14 +883,14 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => $serviceorder->id]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            $serviceorder->logActivity(sprintf(
+            event(new TicketAttachedToOrder($serviceorder, sprintf(
                 'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
                 $ticket->subject ?? ('Ticket #' . $ticket->id),
                 $asset->product->productType->name ?? 'Type',
                 $asset->product->brand->name ?? 'Merk',
                 $asset->product->model ?? '',
                 $asset->serial_number ?? '-'
-            ));
+            )));
         }
 
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
@@ -961,14 +907,14 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => null]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            $serviceorder->logActivity(sprintf(
+            event(new TicketDetachedFromOrder($serviceorder, sprintf(
                 'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
                 $ticket->subject ?? ('Ticket #' . $ticket->id),
                 $asset->product->productType->name ?? 'Type',
                 $asset->product->brand->name ?? 'Merk',
                 $asset->product->model ?? '',
                 $asset->serial_number ?? '-'
-            ));
+            )));
         }
 
         return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');
@@ -1014,8 +960,30 @@ class ServiceOrderController extends Controller
 
     public function bulkUpdate(ServiceOrderBulkUpdateRequest $request)
     {
-        ServiceOrder::whereIn('id', $request->input('service_order_ids'))
-            ->update(['service_order_stage_id' => $request->input('service_order_stage_id')]);
+        $order_ids = $request->input('service_order_ids');
+        $stage_id = $request->input('service_order_stage_id');
+
+        /**
+         * Every order is moved individually so each one announces its stage change
+         * and keeps its history and closing date right. Past a small selection that
+         * is too much work for one request, so it goes to the queue and the user is
+         * told the list will catch up shortly.
+         */
+        if (count($order_ids) > self::BULK_STAGE_INLINE_LIMIT) {
+            BulkMoveServiceOrderStageJob::dispatch($order_ids, $stage_id, Auth::id());
+
+            return redirect()->back()->with(
+                'success',
+                count($order_ids) . ' werkbonnen worden op de achtergrond bijgewerkt. '
+                    . 'Ververs over een moment om het resultaat te zien.'
+            );
+        }
+
+        $stage = ServiceOrderStage::find($stage_id);
+
+        ServiceOrder::whereIn('id', $order_ids)
+            ->get()
+            ->each(fn (ServiceOrder $order) => $order->moveToStage($stage));
 
         return redirect()->back()->with('success', 'Fase bijgewerkt.');
     }

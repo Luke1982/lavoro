@@ -2,25 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Company;
-use App\Models\ServiceJob;
-use Illuminate\Support\Str;
-use App\Models\ServiceOrder;
-use Illuminate\Http\Request;
-use App\Mail\ServiceJobPdfMail;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
+use App\Domain\Signals\ServiceOrders\ServiceJobEmailed;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
+use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
+use App\Http\Requests\ServiceJobCreateRequest;
+use App\Http\Requests\ServiceJobUpdateRequest;
+use App\Mail\ServiceJobPdfMail;
+use App\Models\Asset;
+use App\Models\Company;
+use App\Models\ServiceJob;
+use App\Models\ServiceOrder;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\PDF as DompdfPdf;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Barryvdh\DomPDF\PDF as DompdfPdf;
-use App\Http\Requests\ServiceJobCreateRequest;
-use App\Http\Requests\ServiceJobUpdateRequest;
-use App\Models\Asset;
-use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 
 class ServiceJobController extends Controller
 {
@@ -51,13 +53,7 @@ class ServiceJobController extends Controller
         if ($serviceOrder) {
             $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
             if ($asset) {
-                $serviceOrder->logActivity(sprintf(
-                    'Keuring toegevoegd: %s %s %s (serienummer %s)',
-                    $asset->product->productType->name ?? 'Onbekend type',
-                    $asset->product->brand->name ?? '',
-                    $asset->product->model ?? '',
-                    $asset->serial_number ?? '-'
-                ));
+                event(new ServiceJobAdded($serviceOrder, $asset));
             }
         }
 
@@ -72,11 +68,11 @@ class ServiceJobController extends Controller
         foreach ($parentAsset?->childAssets ?? [] as $childAsset) {
             $childJob = ServiceJob::firstOrCreate(
                 [
-                    'asset_id'         => $childAsset->id,
+                    'asset_id' => $childAsset->id,
                     'service_order_id' => $job->service_order_id,
                 ],
                 [
-                    'outcome'               => ServiceJobOutcomes::nog_geen_uitkomst->value,
+                    'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
                     'parent_service_job_id' => $job->id,
                 ]
             );
@@ -89,13 +85,7 @@ class ServiceJobController extends Controller
             if ($childJob->wasRecentlyCreated) {
                 $newChildCount++;
                 if ($serviceOrder) {
-                    $serviceOrder->logActivity(sprintf(
-                        'Gecombineerde keuring toegevoegd voor onderdeel: %s %s %s (serienummer %s)',
-                        $childAsset->product->productType->name ?? 'Onbekend type',
-                        $childAsset->product->brand->name ?? '',
-                        $childAsset->product->model ?? '',
-                        $childAsset->serial_number ?? '-'
-                    ));
+                    event(new ServiceJobAdded($serviceOrder, $childAsset, combined: true));
                 }
             }
         }
@@ -138,9 +128,9 @@ class ServiceJobController extends Controller
 
         $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
         $existing_ids = $servicejob->checkInstances->pluck('service_check_id')->filter();
-        $missing = $all_checks->filter(fn($c) => !$existing_ids->contains($c->id))
+        $missing = $all_checks->filter(fn ($c) => !$existing_ids->contains($c->id))
             ->values()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
                 'type' => $c->type,
@@ -153,46 +143,46 @@ class ServiceJobController extends Controller
             'missing_checks' => $missing,
             'missing_checks_count' => $missing->count(),
             'parent_job' => $servicejob->parentJob ? [
-                'id'          => $servicejob->parentJob->id,
+                'id' => $servicejob->parentJob->id,
                 'asset_label' => $servicejob->parentJob->asset->product->brand->name
                     . ' ' . $servicejob->parentJob->asset->product->model
                     . ' (' . ($servicejob->parentJob->asset->serial_number ?? '-') . ')',
-                'outcome'     => $servicejob->parentJob->outcome,
+                'outcome' => $servicejob->parentJob->outcome,
             ] : null,
-            'child_jobs' => $servicejob->childJobs->map(fn($j) => [
-                'id'                      => $j->id,
-                'asset_label'             => $j->asset->product->brand->name
+            'child_jobs' => $servicejob->childJobs->map(fn ($j) => [
+                'id' => $j->id,
+                'asset_label' => $j->asset->product->brand->name
                     . ' ' . $j->asset->product->model
                     . ' (' . ($j->asset->serial_number ?? '-') . ')',
-                'asset_id'                => $j->asset->id,
-                'outcome'                 => $j->outcome,
-                'completed_on'            => $j->completed_on,
+                'asset_id' => $j->asset->id,
+                'outcome' => $j->outcome,
+                'completed_on' => $j->completed_on,
                 'days_temporary_approval' => $j->days_temporary_approval,
-                'description'             => $j->description,
-                'check_instances'         => $j->checkInstances->map(fn($ci) => [
-                    'id'               => $ci->id,
-                    'description'      => $ci->description,
-                    'switch_state'     => $ci->switch_state,
+                'description' => $j->description,
+                'check_instances' => $j->checkInstances->map(fn ($ci) => [
+                    'id' => $ci->id,
+                    'description' => $ci->description,
+                    'switch_state' => $ci->switch_state,
                     'service_check_id' => $ci->service_check_id,
-                    'service_check'    => $ci->serviceCheck ? [
-                        'id'    => $ci->serviceCheck->id,
-                        'name'  => $ci->serviceCheck->name,
-                        'type'  => $ci->serviceCheck->type,
+                    'service_check' => $ci->serviceCheck ? [
+                        'id' => $ci->serviceCheck->id,
+                        'name' => $ci->serviceCheck->name,
+                        'type' => $ci->serviceCheck->type,
                         'order' => $ci->serviceCheck->order ?? 0,
                         'group' => $ci->serviceCheck->group ? [
-                            'id'    => $ci->serviceCheck->group->id,
-                            'name'  => $ci->serviceCheck->group->name,
+                            'id' => $ci->serviceCheck->group->id,
+                            'name' => $ci->serviceCheck->group->name,
                             'order' => $ci->serviceCheck->group->order ?? 0,
                         ] : null,
                     ] : null,
-                    'values'  => $ci->values?->pluck('value')->all() ?? [],
-                    'remarks' => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
-                    'images'  => $ci->images ?? [],
+                    'values' => $ci->values?->pluck('value')->all() ?? [],
+                    'remarks' => ($ci->remarks ?? collect())->map(fn ($r) => $r->content)->all(),
+                    'images' => $ci->images ?? [],
                 ])->values()->all(),
                 'product_type' => [
-                    'name'                => $j->asset->product->productType?->name ?? '',
+                    'name' => $j->asset->product->productType?->name ?? '',
                     'service_check_groups' => ($j->asset->product->productType?->serviceCheckGroups ?? collect())
-                        ->map(fn($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? 0])
+                        ->map(fn ($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? 0])
                         ->values()->all(),
                 ],
             ])->values()->all(),
@@ -230,6 +220,7 @@ class ServiceJobController extends Controller
         $job->asset->update([
             'next_service_date' => Carbon::parse($job->asset->next_service_date)->addDays($days),
         ]);
+
         return $days;
     }
 
@@ -244,6 +235,7 @@ class ServiceJobController extends Controller
                 'Kies een uitkomst voor de keuring, dit kan niet "Nog geen uitkomst" zijn.'
             );
         }
+
         return null;
     }
 
@@ -255,7 +247,7 @@ class ServiceJobController extends Controller
             if ($incomplete->isEmpty()) {
                 continue;
             }
-            $names = $incomplete->map(fn($ci) => $ci->serviceCheck?->name)->filter()->unique()->values();
+            $names = $incomplete->map(fn ($ci) => $ci->serviceCheck?->name)->filter()->unique()->values();
             $messages[] = '"' . $job->asset->product->brand->name . ' ' . $job->asset->product->model
                 . '" (' . $incomplete->count() . ' open): ' . $names->implode(', ');
         }
@@ -271,7 +263,7 @@ class ServiceJobController extends Controller
         $servicejob->load('asset.product.productType.serviceChecks', 'checkInstances');
         $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
         $existing_ids = $servicejob->checkInstances->pluck('service_check_id')->filter();
-        $missing = $all_checks->filter(fn($c) => !$existing_ids->contains($c->id));
+        $missing = $all_checks->filter(fn ($c) => !$existing_ids->contains($c->id));
         if ($missing->isEmpty()) {
             return redirect()->back()->with('info', 'Geen ontbrekende keurpunten gevonden.');
         }
@@ -280,6 +272,7 @@ class ServiceJobController extends Controller
                 'service_check_id' => $check->id,
             ]);
         }
+
         return redirect()->back()->with('success', $missing->count() . ' ontbrekende keurpunten toegevoegd.');
     }
 
@@ -337,6 +330,7 @@ class ServiceJobController extends Controller
                 Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
             );
         }
+
         return redirect()
             ->back()
             ->with(
@@ -355,6 +349,7 @@ class ServiceJobController extends Controller
     {
         $servicejob->childJobs()->delete();
         $servicejob->delete();
+
         return redirect()->back()->with('success', 'Keuring succesvol verwijderd.');
     }
 
@@ -364,12 +359,14 @@ class ServiceJobController extends Controller
     public function exportPdf(ServiceJob $servicejob)
     {
         $pdf = $this->generateServiceJobPdf($servicejob);
+
         return $pdf->stream('keuring-' . $servicejob->id . '.pdf');
     }
 
     public function exportPdfForCombine(ServiceJob $servicejob): string
     {
         $pdf = $this->generateServiceJobPdf($servicejob);
+
         return $pdf->output();
     }
 
@@ -394,7 +391,7 @@ class ServiceJobController extends Controller
         $servicejob->update(['sent_to_customer' => true]);
 
         if ($servicejob->serviceOrder) {
-            $servicejob->serviceOrder->logActivity('Keuring per e-mail verzonden naar: ' . implode(', ', $recipients));
+            event(new ServiceJobEmailed($servicejob->serviceOrder, $servicejob, $recipients));
         }
 
         return redirect()->back()->with('success', 'Keuring verzonden naar: ' . implode(', ', $recipients));
@@ -430,10 +427,10 @@ class ServiceJobController extends Controller
             'childJobs.asset.product.productType.serviceCheckGroups',
         ]);
 
-        $asset    = $servicejob->asset;
-        $product  = $asset?->product;
+        $asset = $servicejob->asset;
+        $product = $asset?->product;
         $customer = $asset?->customer;
-        $pt_name       = trim((string) ($product?->productType?->name ?? 'installatie'));
+        $pt_name = trim((string) ($product?->productType?->name ?? 'installatie'));
         $pt_name_lower = Str::lower($pt_name);
 
         $raw_groups = $this->buildRawGroups(
@@ -453,18 +450,18 @@ class ServiceJobController extends Controller
         $main_company = Company::where('is_main', true)->first();
         $logo = Company::pdfLogo($main_company);
 
-        $childJobSections = $servicejob->childJobs->map(fn($childJob) => [
+        $childJobSections = $servicejob->childJobs->map(fn ($childJob) => [
             'asset_label' => $childJob->asset->product->brand->name
                 . ' ' . $childJob->asset->product->model
                 . ' — ' . ($childJob->asset->serial_number ?? '-'),
             'outcome' => $childJob->outcome,
-            'groups'  => $this->buildRawGroups(
+            'groups' => $this->buildRawGroups(
                 $childJob->checkInstances,
                 $childJob->asset?->product?->productType
             ),
         ])->all();
 
-        $isChildJob     = $servicejob->parent_service_job_id !== null;
+        $isChildJob = $servicejob->parent_service_job_id !== null;
         $parentJobLabel = $servicejob->parentJob
             ? $servicejob->parentJob->asset->product->brand->name
                 . ' ' . $servicejob->parentJob->asset->product->model
@@ -488,17 +485,18 @@ class ServiceJobController extends Controller
             'logo' => $logo,
             'company' => $main_company,
             'childJobSections' => $childJobSections,
-            'isChildJob'       => $isChildJob,
-            'parentJobLabel'   => $parentJobLabel,
+            'isChildJob' => $isChildJob,
+            'parentJobLabel' => $parentJobLabel,
         ])->setPaper('a4');
         $pdf->getDomPDF()->getOptions()->set('defaultFont', 'Helvetica');
+
         return $pdf;
     }
 
-    private function buildRawGroups(\Illuminate\Support\Collection $instances, $productType): array
+    private function buildRawGroups(Collection $instances, $productType): array
     {
         $ptGroups = collect($productType?->serviceCheckGroups ?? [])
-            ->map(fn($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? PHP_INT_MAX, 'items' => []])
+            ->map(fn ($g) => ['id' => $g->id, 'name' => $g->name, 'order' => $g->order ?? PHP_INT_MAX, 'items' => []])
             ->keyBy('id');
         $other = ['key' => 'other', 'name' => 'Overige keurpunten', 'order' => PHP_INT_MAX, 'items' => []];
 
@@ -513,21 +511,22 @@ class ServiceJobController extends Controller
             }
         }
 
-        $groups = $ptGroups->filter(fn($g) => count($g['items']) > 0)->sortBy('order')->values()->all();
+        $groups = $ptGroups->filter(fn ($g) => count($g['items']) > 0)->sortBy('order')->values()->all();
         if (count($other['items']) > 0) {
             $groups[] = $other;
         }
 
         return array_map(function ($g) {
-            $g['items'] = array_map(fn($ci) => [
-                'check_name'   => $ci->serviceCheck?->name,
-                'type'         => $ci->serviceCheck?->type,
-                'description'  => $ci->description,
+            $g['items'] = array_map(fn ($ci) => [
+                'check_name' => $ci->serviceCheck?->name,
+                'type' => $ci->serviceCheck?->type,
+                'description' => $ci->description,
                 'switch_state' => $ci->switch_state ?? null,
-                'values'       => $ci->values?->pluck('value')->all() ?? [],
-                'remarks'      => ($ci->remarks ?? collect())->map(fn($r) => $r->content)->all(),
-                'images'       => $ci->images,
+                'values' => $ci->values?->pluck('value')->all() ?? [],
+                'remarks' => ($ci->remarks ?? collect())->map(fn ($r) => $r->content)->all(),
+                'images' => $ci->images,
             ], $g['items']);
+
             return $g;
         }, $groups);
     }

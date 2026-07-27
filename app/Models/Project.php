@@ -2,10 +2,33 @@
 
 namespace App\Models;
 
+use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
 {
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'title' => 'Titel',
+        'description' => 'Omschrijving',
+        'customer_id' => 'Klant',
+        'project_manager_id' => 'Projectleider',
+        'status' => 'Status',
+        'start_date' => 'Startdatum',
+        'end_date' => 'Einddatum',
+        'location' => 'Locatie',
+    ];
+
+    protected array $activity_relations = [
+        'customer_id' => ['customer', 'name'],
+    ];
+
+    protected array $activity_ignore = [
+        'financial_notes_updated_at',
+        'financial_notes_updated_by',
+    ];
+
     protected $fillable = [
         'title',
         'description',

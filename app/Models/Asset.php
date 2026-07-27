@@ -6,6 +6,7 @@ use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\RecordsHistory;
 use Database\Factories\AssetsFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,24 @@ class Asset extends Model
 
     /** @use HasFactory<AssetsFactory> */
     use HasFactory;
+
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'product_id' => 'Product',
+        'customer_id' => 'Klant',
+        'location_id' => 'Locatie',
+        'parent_asset_id' => 'Bovenliggende machine',
+        'serial_number' => 'Serienummer',
+        'next_service_date' => 'Volgende servicedatum',
+        'date_in_service' => 'In dienst sinds',
+        'status' => 'Status',
+    ];
+
+    protected array $activity_relations = [
+        'customer_id' => ['customer', 'name'],
+        'location_id' => ['location', 'name'],
+    ];
 
     protected $fillable = [
         'product_id',

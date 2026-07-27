@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Attachments\RemarkRemoved;
 use App\Http\Requests\RemarkCreateRequest;
 use App\Models\Event;
 use App\Models\Remark;
@@ -40,15 +41,15 @@ class RemarkController extends Controller
 
         if ($link && ltrim((string) $link->remarkable_type, '\\') === 'App\\Models\\Event') {
             $event = Event::find($link->remarkable_id);
-            if (! $event || ! request()->user()->can('provideFeedback', $event)) {
+            if (!$event || !request()->user()->can('provideFeedback', $event)) {
                 abort(403);
             }
         }
 
         if ($link) {
             $remarkable_record = (new ($link->remarkable_type))->find($link->remarkable_id);
-            if ($remarkable_record && method_exists($remarkable_record, 'logActivity')) {
-                $remarkable_record->logActivity(sprintf('Opmerking verwijderd: %s', $remark->content));
+            if ($remarkable_record) {
+                event(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
             }
         }
 

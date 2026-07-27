@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContractInterval;
 use App\Models\Traits\HasActivities;
+use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use Carbon\Carbon;
 use Database\Factories\MaintenanceContractFactory;
@@ -18,7 +19,38 @@ class MaintenanceContract extends Model
     /** @use HasFactory<MaintenanceContractFactory> */
     use HasFactory;
 
+    use RecordsHistory;
     use RemarkableTrait;
+
+    protected array $activity_labels = [
+        'customer_id' => 'Klant',
+        'title' => 'Titel',
+        'start_date' => 'Startdatum',
+        'end_date' => 'Einddatum',
+        'price' => 'Prijs',
+        'price_interval' => 'Prijsinterval',
+        'price_interval_days' => 'Prijsinterval (dagen)',
+        'frequency' => 'Frequentie',
+        'frequency_days' => 'Frequentie (dagen)',
+        'auto_generate' => 'Automatisch genereren',
+        'auto_generate_interval' => 'Genereerinterval',
+        'auto_generate_interval_days' => 'Genereerinterval (dagen)',
+        'manage_frequency_per_asset' => 'Frequentie per machine',
+    ];
+
+    /**
+     * Reported by named signals of their own, so the automatic trail must not
+     * repeat them. Enforced by NoDoubleLoggingTest.
+     */
+    protected array $activity_ignore = [
+        'customer_id',
+        'auto_generate',
+        'manage_frequency_per_asset',
+    ];
+
+    protected array $activity_relations = [
+        'customer_id' => ['customer', 'name'],
+    ];
 
     protected $fillable = [
         'customer_id',

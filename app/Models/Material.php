@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasActivities;
+use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -13,6 +14,22 @@ use Illuminate\Database\Eloquent\Model;
 class Material extends Model
 {
     use HasActivities;
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'price' => 'Prijs',
+        'cost_price' => 'Kostprijs',
+        'stock' => 'Voorraad',
+        'min_stock' => 'Minimale voorraad',
+        'max_stock' => 'Maximale voorraad',
+        'is_active' => 'Actief',
+        'code' => 'Code',
+    ];
+
+    protected array $activity_ignore = [
+        'snelstart_id',
+    ];
 
     protected $fillable = [
         'name',
@@ -33,8 +50,8 @@ class Material extends Model
     ];
 
     protected $casts = [
-        'divisable'  => 'boolean',
-        'is_active'  => 'boolean',
+        'divisable' => 'boolean',
+        'is_active' => 'boolean',
         'is_service' => 'boolean',
     ];
 

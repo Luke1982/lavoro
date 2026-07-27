@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Activity extends Model
@@ -14,13 +16,30 @@ class Activity extends Model
     protected $fillable = [
         'category',
         'description',
+        'event_key',
+        'subject_type',
+        'subject_id',
         'user_id',
+        'actor_type',
+        'actor_name',
         'metadata',
+        'occurred_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'occurred_at' => 'datetime',
     ];
+
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function fieldChanges(): HasMany
+    {
+        return $this->hasMany(ActivityChange::class);
+    }
 
     public function serviceOrders(): MorphToMany
     {

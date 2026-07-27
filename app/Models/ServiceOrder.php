@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
+use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceOrderTypes;
 use App\Models\Traits\HasActivities;
@@ -9,6 +11,7 @@ use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasMaterials;
 use App\Models\Traits\HasOwner;
+use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use App\Services\MateriableService;
 use Carbon\Carbon;
@@ -29,7 +32,42 @@ class ServiceOrder extends Model
 
     use HasMaterials;
     use HasOwner;
+    use RecordsHistory;
     use RemarkableTrait;
+
+    protected array $activity_labels = [
+        'service_order_stage_id' => 'Fase',
+        'customer_id' => 'Klant',
+        'location_id' => 'Locatie',
+        'project_id' => 'Project',
+        'maintenance_contract_id' => 'Contract',
+        'description' => 'Omschrijving',
+        'closed_on' => 'Afgesloten op',
+        'external_invoice_no' => 'Extern factuurnummer',
+        'external_purchaseorder_no' => 'Extern inkoopordernummer',
+        'work_completed' => 'Werk afgerond',
+        'sent_to_customer' => 'Verzonden naar klant',
+        'sent_to_administration' => 'Verzonden naar administratie',
+        'type' => 'Type',
+    ];
+
+    protected array $activity_relations = [
+        'service_order_stage_id' => ['serviceOrderStage', 'name'],
+        'customer_id' => ['customer', 'name'],
+        'project_id' => ['project', 'title'],
+    ];
+
+    /**
+     * Fields whose changes are announced by a named event of their own. Leaving
+     * them here too would log the same fact twice.
+     */
+    protected array $activity_ignore = [
+        'signature_base64',
+        'customer_id',
+        'service_order_stage_id',
+        'closed_on',
+        'sent_to_administration',
+    ];
 
     protected $fillable = [
         'description',
@@ -225,6 +263,39 @@ class ServiceOrder extends Model
         return $this->hasMany(ServiceOrderTaskInstance::class);
     }
 
+    /**
+     * The only supported way to change an order's stage. Everything that follows
+     * from a stage move — the closing timestamp, the log line, whatever a
+     * subscriber decides later — hangs off the signal this emits, so no caller
+     * has to remember any of it.
+     */
+    public function moveToStage(?ServiceOrderStage $stage, ?string $reason = null): bool
+    {
+        if ($this->service_order_stage_id === $stage?->id) {
+            return false;
+        }
+
+        $previous_stage = $this->serviceOrderStage;
+        $was_closed = $this->is_closed;
+
+        $this->service_order_stage_id = $stage?->id;
+        $this->setRelation('serviceOrderStage', $stage);
+
+        $is_closed = $this->is_closed;
+
+        if ($is_closed && !$was_closed) {
+            $this->closed_on = now();
+        } elseif (!$is_closed && $was_closed) {
+            $this->closed_on = null;
+        }
+
+        $this->save();
+
+        event(new ServiceOrderStageChanged($this, $previous_stage, $stage, $reason));
+
+        return true;
+    }
+
     public function advanceToPlannedStage(): void
     {
         $planned = ServiceOrderStage::where('is_planned_state', true)->first();
@@ -235,9 +306,8 @@ class ServiceOrder extends Model
         if ($current && $current->order >= $planned->order) {
             return;
         }
-        $this->service_order_stage_id = $planned->id;
-        $this->save();
-        $this->logActivity("Fase gewijzigd naar: {$planned->name} (door koppeling agenda)");
+
+        $this->moveToStage($planned, 'door koppeling agenda');
     }
 
     /**
@@ -255,8 +325,16 @@ class ServiceOrder extends Model
             'location_id' => null,
         ]);
 
+        $previous_customer_id = $this->getOriginal('customer_id');
         $new = $this->refresh()->customer?->name;
-        $this->logActivity('Klant gewijzigd van ' . $previous . ' naar ' . $new . ' (via agenda)');
+
+        event(new ServiceOrderCustomerChanged(
+            $this,
+            $previous_customer_id,
+            $previous,
+            $new,
+            reason: 'via agenda',
+        ));
     }
 
     public function revertToPlanningCancelledStage(): void
@@ -265,9 +343,8 @@ class ServiceOrder extends Model
         if (!$cancelled) {
             return;
         }
-        $this->service_order_stage_id = $cancelled->id;
-        $this->save();
-        $this->logActivity("Fase gewijzigd naar: {$cancelled->name} (agenda item verwijderd)");
+
+        $this->moveToStage($cancelled, 'agenda item verwijderd');
     }
 
     public function serviceJobs()
