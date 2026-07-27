@@ -26,7 +26,14 @@
 
         <div v-if="maySee && existing.length > 0"
             class="flex flex-col gap-3 px-5 pb-5 @2xl:px-6 @2xl:pb-6 @3xl:flex-row @3xl:items-center @3xl:justify-between">
-            <div class="flex flex-wrap items-center gap-2">
+            <!-- Narrow: six wrapping pills eat four rows before the first document
+                 shows, so the same filter collapses into a select. -->
+            <SelectMenuComponent v-model="activeCategoryId" :options="categoryOptions" :icon="FolderIcon"
+                class="@2xl:hidden">
+                <template #sr-label>Filter op categorie</template>
+            </SelectMenuComponent>
+
+            <div class="hidden flex-wrap items-center gap-2 @2xl:flex">
                 <button type="button" @click="activeCategoryId = null" :class="[
                     'inline-flex items-center gap-2 rounded-lavoro-sm px-3.5 py-2 text-sm font-medium transition-colors cursor-pointer',
                     activeCategoryId === null
@@ -115,12 +122,16 @@
             </div>
         </Transition>
 
-        <div v-if="maySee && existing.length > 0" class="overflow-x-auto">
-            <table class="w-full min-w-[30rem] border-collapse text-left">
+        <!-- table-fixed on purpose: with auto layout a single nowrap cell (a long
+             filename, a category pill) sets the column width and pushes the table
+             past the widget. Every column but Naam declares a width, so Naam
+             absorbs whatever is left and the table can never outgrow its box. -->
+        <div v-if="maySee && existing.length > 0">
+            <table class="w-full table-fixed border-collapse text-left">
                 <thead
                     class="border-y border-gray-200 dark:border-slate-700/60 bg-lavoro-lightgray dark:bg-slate-800/60">
                     <tr class="text-sm font-medium text-gray-600 dark:text-slate-300">
-                        <th class="w-12 px-5 py-3 @2xl:px-6">
+                        <th class="w-16 px-5 py-3 @2xl:w-20 @2xl:px-6">
                             <input type="checkbox" :checked="allVisibleSelected" :indeterminate="someVisibleSelected"
                                 @change="toggleSelectAll" aria-label="Alles selecteren"
                                 class="size-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
@@ -132,17 +143,17 @@
                                 <component :is="sortIcon('name')" class="size-4 text-gray-400" />
                             </button>
                         </th>
-                        <th class="hidden px-3 py-3 @xl:table-cell">Categorie</th>
-                        <th class="hidden px-3 py-3 @5xl:table-cell">Bestandsnaam</th>
-                        <th class="hidden px-3 py-3 @3xl:table-cell">Grootte</th>
-                        <th class="hidden px-3 py-3 @2xl:table-cell">
+                        <th class="hidden w-32 px-3 py-3 @xl:table-cell">Categorie</th>
+                        <th class="hidden w-48 px-3 py-3 @6xl:table-cell">Bestandsnaam</th>
+                        <th class="hidden w-24 px-3 py-3 @4xl:table-cell">Grootte</th>
+                        <th class="hidden w-36 px-3 py-3 @3xl:table-cell">
                             <button type="button" @click="toggleSort('created_at')"
                                 class="inline-flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-slate-100">
                                 Aangemaakt
                                 <component :is="sortIcon('created_at')" class="size-4 text-gray-400" />
                             </button>
                         </th>
-                        <th class="px-5 py-3 text-right @2xl:px-6">Acties</th>
+                        <th class="w-24 px-5 py-3 text-right @2xl:px-6 @4xl:w-44">Acties</th>
                     </tr>
                 </thead>
 
@@ -161,16 +172,22 @@
                                     'flex size-10 flex-none items-center justify-center rounded-lavoro-sm text-[10px] font-bold ring-1 ring-inset',
                                     documentFileBadge(doc.name).classes
                                 ]">{{ documentFileBadge(doc.name).label }}</span>
-                                <div class="min-w-0">
+                                <div class="min-w-0 break-words">
                                     <EditableTextField v-if="mayUpdate" :modelValue="doc.title" placeholder="Geen titel"
                                         @update:modelValue="updateTitle(doc.id, $event)" />
                                     <button v-else type="button" @click="openDocument(doc)"
                                         class="block w-full truncate text-left text-sm font-semibold text-gray-900 dark:text-slate-100 hover:text-lavoro-blue cursor-pointer">
                                         {{ doc.title || doc.name }}
                                     </button>
-                                    <p class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-slate-400 @xl:hidden">
-                                        <span v-if="doc.category">{{ doc.category.name }}</span>
-                                        <span v-if="doc.category && doc.size">·</span>
+                                    <!-- Stands in for the columns that dropped out, each
+                                         from the width where its own column disappears. -->
+                                    <span class="mt-1 block truncate text-xs text-gray-500 dark:text-slate-400 @6xl:hidden"
+                                        :title="doc.name">{{ doc.name }}</span>
+                                    <p v-if="doc.category || doc.size"
+                                        class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-slate-400 @4xl:hidden">
+                                        <span v-if="doc.category" class="truncate @xl:hidden">{{ doc.category.name
+                                            }}</span>
+                                        <span v-if="doc.category && doc.size" class="@xl:hidden">·</span>
                                         <span v-if="doc.size">{{ formatFileSize(doc.size) }}</span>
                                     </p>
                                 </div>
@@ -179,19 +196,19 @@
 
                         <td class="hidden px-3 py-3 @xl:table-cell">
                             <DropdownMenu v-if="mayUpdate" placement="bottom-start" width-class="w-52"
-                                button-class="cursor-pointer">
+                                button-class="max-w-full cursor-pointer">
                                 <template #button>
                                     <span v-if="doc.category" :class="[
-                                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                                        'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
                                         documentCategoryPillClasses(doc.category.color)
                                     ]">
-                                        <FolderIcon class="size-3.5" />
-                                        {{ doc.category.name }}
+                                        <FolderIcon class="size-3.5 flex-none" />
+                                        <span class="truncate">{{ doc.category.name }}</span>
                                     </span>
                                     <span v-else
-                                        class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-slate-600 px-2.5 py-1 text-xs text-gray-400 dark:text-slate-500 hover:border-lavoro-blue hover:text-lavoro-blue">
-                                        <PlusIcon class="size-3.5" />
-                                        Categorie
+                                        class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-slate-600 px-2.5 py-1 text-xs text-gray-400 dark:text-slate-500 hover:border-lavoro-blue hover:text-lavoro-blue">
+                                        <PlusIcon class="size-3.5 flex-none" />
+                                        <span class="truncate">Categorie</span>
                                     </span>
                                 </template>
                                 <MenuItem v-for="category in categories" :key="category.id" v-slot="{ active }">
@@ -210,42 +227,45 @@
                                 </p>
                             </DropdownMenu>
                             <span v-else-if="doc.category" :class="[
-                                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                                'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
                                 documentCategoryPillClasses(doc.category.color)
                             ]">
-                                <FolderIcon class="size-3.5" />
-                                {{ doc.category.name }}
+                                <FolderIcon class="size-3.5 flex-none" />
+                                <span class="truncate">{{ doc.category.name }}</span>
                             </span>
                         </td>
 
-                        <td class="hidden px-3 py-3 @5xl:table-cell">
-                            <span class="block max-w-56 truncate text-sm text-gray-500 dark:text-slate-400"
+                        <td class="hidden px-3 py-3 @6xl:table-cell">
+                            <span class="block truncate text-sm text-gray-500 dark:text-slate-400"
                                 :title="doc.name">{{ doc.name }}</span>
                         </td>
 
-                        <td class="hidden px-3 py-3 @3xl:table-cell">
+                        <td class="hidden px-3 py-3 @4xl:table-cell">
                             <span class="text-sm tabular-nums text-gray-500 dark:text-slate-400">
                                 {{ formatFileSize(doc.size) || '—' }}
                             </span>
                         </td>
 
-                        <td class="hidden px-3 py-3 @2xl:table-cell">
-                            <span class="block text-sm text-gray-600 dark:text-slate-300">{{ nlDate(doc.created_at)
-                                }}</span>
-                            <span v-if="doc.user" class="block text-xs text-gray-400 dark:text-slate-500">
+                        <td class="hidden px-3 py-3 @3xl:table-cell">
+                            <span class="block truncate text-sm text-gray-600 dark:text-slate-300">{{
+                                nlDate(doc.created_at) }}</span>
+                            <span v-if="doc.user" class="block truncate text-xs text-gray-400 dark:text-slate-500"
+                                :title="doc.user.name">
                                 door {{ doc.user.name }}
                             </span>
                         </td>
 
                         <td class="px-5 py-3 @2xl:px-6">
                             <div class="flex items-center justify-end gap-2">
+                                <!-- Narrow: everything folds into the menu below, which
+                                     carries the same two actions at every width. -->
                                 <button type="button" @click="openDocument(doc)" :disabled="!canPreview(doc)"
                                     :title="canPreview(doc) ? 'Bekijken' : 'Geen voorbeeld beschikbaar'"
-                                    class="flex size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer transition-colors">
+                                    class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer transition-colors @4xl:flex">
                                     <EyeIcon class="size-5" />
                                 </button>
                                 <a :href="`/documents/${doc.id}/download`" download title="Downloaden"
-                                    class="flex size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors">
+                                    class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors @4xl:flex">
                                     <ArrowDownTrayIcon class="size-5" />
                                 </a>
                                 <DropdownMenu placement="bottom-end" width-class="w-56" title="Meer acties"
@@ -253,6 +273,20 @@
                                     <template #button>
                                         <EllipsisVerticalIcon class="size-5" />
                                     </template>
+                                    <MenuItem v-if="canPreview(doc)" v-slot="{ active }">
+                                    <button type="button" @click="openDocument(doc)"
+                                        :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                        <EyeIcon class="size-4 text-gray-400" />
+                                        Bekijken
+                                    </button>
+                                    </MenuItem>
+                                    <MenuItem v-slot="{ active }">
+                                    <a :href="`/documents/${doc.id}/download`" download
+                                        :class="['flex items-center gap-2 px-3 py-2 text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                        <ArrowDownTrayIcon class="size-4 text-gray-400" />
+                                        Downloaden
+                                    </a>
+                                    </MenuItem>
                                     <MenuItem v-slot="{ active }">
                                     <a :href="`/documents/${doc.id}/preview`" target="_blank" rel="noopener"
                                         :class="['flex items-center gap-2 px-3 py-2 text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
@@ -320,10 +354,10 @@
                 <!-- Anchored near the bottom-right corner at every size; only the
                      scale changes. Height and width stay explicit because the div
                      is empty — an auto height would collapse it to nothing. Drops
-                     out below @md alongside the copy, where it has no room left. -->
+                     out below @2xl, where it runs into the centred copy. -->
                 <div aria-hidden="true"
                     class="pointer-events-none absolute bottom-4 right-4 hidden h-40 w-56 bg-[url('/img/doc-ill.png')] bg-contain bg-right-bottom bg-no-repeat opacity-75
-                           @md:block @4xl:h-56 @4xl:w-80 @4xl:opacity-100">
+                           @2xl:block @4xl:h-56 @4xl:w-80 @4xl:opacity-100">
                 </div>
 
                 <div class="relative flex flex-col items-center text-center">
@@ -488,6 +522,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import PdfViewerOverlay from '@/Components/UI/PdfViewerOverlay.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import SpreadsheetViewerOverlay from '@/Components/UI/SpreadsheetViewerOverlay.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
@@ -573,6 +608,21 @@ const categoryCounts = computed(() => {
 });
 
 const countFor = (categoryId) => categoryCounts.value.get(categoryId) ?? 0;
+
+/** The pill row's narrow counterpart — same entries, same null-is-everything. */
+const categoryOptions = computed(() => {
+    const options = [{ value: null, title: `Alle documenten (${props.existing.length})` }];
+
+    categories.value.forEach((category) => {
+        options.push({ value: category.id, title: `${category.name} (${countFor(category.id)})` });
+    });
+
+    if (countFor(UNCATEGORIZED) > 0) {
+        options.push({ value: UNCATEGORIZED, title: `Zonder categorie (${countFor(UNCATEGORIZED)})` });
+    }
+
+    return options;
+});
 
 function toggleCategoryFilter(categoryId) {
     // Clicking the active tab clears the filter rather than re-applying it.

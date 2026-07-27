@@ -6,12 +6,12 @@
         <div class="relative w-full" ref="wrapperRef">
             <div class="inline-flex divide-x rounded-md outline-hidden w-full">
                 <div
-                    class="inline-flex flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
+                    class="inline-flex min-w-0 flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
                     <component :is="icon" v-if="icon"
                         :class="['ml-0.5 size-5 mr-1 shrink-0', spin ? 'animate-spin' : '']" aria-hidden="true" />
-                    <div class="relative">
+                    <div class="relative min-w-0 flex-1">
                         <Transition :name="transitionName">
-                            <p :key="currentLabel" class="text-sm font-medium whitespace-nowrap">
+                            <p :key="currentLabel" class="text-sm font-medium truncate">
                                 <span class="sm:hidden">{{ currentShortLabel }}</span>
                                 <span class="hidden sm:inline">{{ currentLabel }}</span>
                             </p>
@@ -156,11 +156,14 @@ const currentShortLabel = computed(() => {
     transition: opacity 0.15s ease, transform 0.35s ease;
 }
 
+/* right:0 as well, so the outgoing label inherits the container's width and
+   truncates like the incoming one instead of sizing to its own text. */
 .select-label-down-leave-active,
 .select-label-up-leave-active {
     position: absolute;
     top: 0;
     left: 0;
+    right: 0;
 }
 
 /* Going down: new comes from below, old exits upward */
