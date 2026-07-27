@@ -6,6 +6,7 @@ use App\Domain\Signals\Appointments\AppointmentCancelled;
 use App\Domain\Signals\Appointments\AppointmentRescheduled;
 use App\Domain\Signals\Appointments\AppointmentRestored;
 use App\Domain\Signals\Appointments\AppointmentScheduled;
+use App\Domain\Signals\Signals;
 use App\Models\Event;
 
 /**
@@ -18,12 +19,12 @@ class EventObserver
 {
     public function created(Event $event): void
     {
-        event(new AppointmentScheduled($event));
+        Signals::dispatch(new AppointmentScheduled($event));
     }
 
     public function updated(Event $event): void
     {
-        event(new AppointmentRescheduled($event));
+        Signals::dispatch(new AppointmentRescheduled($event));
     }
 
     public function deleting(Event $event): void
@@ -32,7 +33,7 @@ class EventObserver
             return;
         }
 
-        event(new AppointmentCancelled($event, permanent: true));
+        Signals::dispatch(new AppointmentCancelled($event, permanent: true));
     }
 
     public function deleted(Event $event): void
@@ -41,11 +42,11 @@ class EventObserver
             return;
         }
 
-        event(new AppointmentCancelled($event));
+        Signals::dispatch(new AppointmentCancelled($event));
     }
 
     public function restored(Event $event): void
     {
-        event(new AppointmentRestored($event));
+        Signals::dispatch(new AppointmentRestored($event));
     }
 }

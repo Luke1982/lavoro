@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Domain\Signals\Appointments\StandardEmailSent;
+use App\Domain\Signals\Signals;
 use App\Mail\StandardEmailMail;
 use App\Models\Event;
 use App\Models\StandardEmail;
@@ -24,6 +25,6 @@ class StandardEmailSender
     ): void {
         Mail::to($to)->send(new StandardEmailMail($subject, $body, $standard_email->standardAttachments));
 
-        event(new StandardEmailSent($event, $standard_email, $to, $subject, $trigger));
+        Signals::dispatch(new StandardEmailSent($event, $standard_email, $to, $subject, $trigger));
     }
 }

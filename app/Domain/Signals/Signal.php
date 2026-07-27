@@ -62,6 +62,11 @@ interface Signal
      */
     public static function coveredFields(): array;
 
+    /** Ties every signal in one cascade back to the action that started it. */
+    public function correlateWith(string $correlation_id): void;
+
+    public function correlationId(): ?string;
+
     public function actorId(): ?int;
 
     public function actorType(): string;

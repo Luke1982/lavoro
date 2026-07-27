@@ -2,8 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Appointments\AppointmentChanges;
+use App\Actions\Appointments\CancelAppointmentAction;
+use App\Actions\Appointments\CreateAppointmentAction;
+use App\Actions\Appointments\NewAppointment;
+use App\Actions\Appointments\UpdateAppointmentAction;
 use App\Domain\Signals\ServiceOrders\AppointmentConfirmationEmailed;
-use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
+use App\Domain\Signals\Signals;
 use App\Enums\EventTrigger;
 use App\Enums\StandardEmailTriggerType;
 use App\Http\Requests\EventCopyRequest;
@@ -13,12 +18,8 @@ use App\Http\Requests\EventReadRequest;
 use App\Http\Requests\EventSearchRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
-use App\Jobs\Google\DeleteEventFromGoogleJob;
-use App\Jobs\Google\PushEventJob;
 use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
-use App\Models\GoogleSyncedEvent;
-use App\Models\ServiceOrder;
 use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
@@ -210,73 +211,15 @@ class EventApiController extends Controller
 
     public function store(EventStoreRequest $request)
     {
-        $data = $request->validated();
-        unset(
-            $data['executing_user_ids'],
-            $data['executing_user_breaktimes'],
-            $data['executing_user_roles'],
-            $data['executing_user_diverging_times'],
+        $validated = $request->validated();
+
+        $event = app(CreateAppointmentAction::class)->execute(
+            NewAppointment::fromPayload($validated, [
+                ...$validated,
+                'create_service_order' => $request->boolean('create_service_order'),
+                'no_service_order' => $request->boolean('no_service_order'),
+            ])
         );
-
-        $eventable_id = $request->eventable_id;
-        $eventable_type = $request->eventable_type;
-
-        $notify_service_order = null;
-        $notify_user_ids = [];
-
-        $event = DB::transaction(
-            function () use ($request, $data, &$eventable_id, &$eventable_type, &$notify_service_order, &$notify_user_ids) {
-                if ($request->boolean('create_service_order')) {
-                    $new_order = ServiceOrder::create(['customer_id' => $data['customer_id']]);
-                    $eventable_type = '\\App\\Models\\ServiceOrder';
-                    $eventable_id = $new_order->id;
-                }
-
-                $no_service_order = $request->boolean('no_service_order');
-                $customer_id = $data['customer_id'] ?? null;
-
-                unset($data['create_service_order'], $data['customer_id']);
-                $data['eventable_type'] = $no_service_order ? null : $eventable_type;
-                $data['eventable_id'] = $no_service_order ? null : $eventable_id;
-
-                $event = Event::create($data);
-
-                $model = null;
-                if (!$no_service_order) {
-                    $model = $eventable_type::findOrFail($eventable_id);
-                    $model->events()->attach($event->id);
-                    if ($model instanceof ServiceOrder) {
-                        $model->advanceToPlannedStage();
-                    }
-                } elseif ($customer_id) {
-                    $event->customers()->attach($customer_id);
-                }
-
-                $executing_user_ids = $request['executing_user_ids'] ?? [];
-                if (is_array($executing_user_ids) && count($executing_user_ids) > 0) {
-                    $ids = array_map('intval', $executing_user_ids);
-                    $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
-                    $breaktimes = array_map('intval', $raw_breaktimes);
-                    $user_roles = (array) ($request->input('executing_user_roles', []));
-                    $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
-                    $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
-                    if ($model) {
-                        $model->syncExecutingUsers($ids);
-                        $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
-                        if ($model instanceof ServiceOrder) {
-                            $notify_service_order = $model;
-                            $notify_user_ids = $ids;
-                        }
-                    }
-                }
-
-                return $event;
-            }
-        );
-
-        if ($notify_service_order) {
-            event(new ServiceOrderAssigned($notify_service_order, $notify_user_ids));
-        }
 
         $event->load([
             'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
@@ -294,141 +237,14 @@ class EventApiController extends Controller
 
     public function update(EventUpdateRequest $request, Event $event)
     {
-        $payload = $request->validated();
-        unset(
-            $payload['executing_user_ids'],
-            $payload['executing_user_breaktimes'],
-            $payload['executing_user_roles'],
-            $payload['executing_user_diverging_times'],
+        app(UpdateAppointmentAction::class)->execute(
+            $event,
+            AppointmentChanges::fromPayload($request->validated(), [
+                ...$request->all(),
+                'create_service_order' => $request->boolean('create_service_order'),
+                'eventable_provided' => $request->has('eventable_id'),
+            ])
         );
-
-        $customer_id = $payload['customer_id'] ?? null;
-        $service_order_customer_action = $payload['service_order_customer_action'] ?? null;
-        unset(
-            $payload['customer_id'],
-            $payload['create_service_order'],
-            $payload['service_order_customer_action'],
-        );
-
-        $event->update($payload);
-
-        $create_new = $request->boolean('create_service_order');
-        $eventable_type = $create_new ? '\\App\\Models\\ServiceOrder' : $request->eventable_type;
-        $eventable_id = $create_new ? null : $request->eventable_id;
-        $linking = $create_new || ($eventable_type && $eventable_id);
-
-        if ($event->no_service_order && !$linking) {
-            $event->customers()->sync($customer_id ? [$customer_id] : []);
-        }
-
-        $model = null;
-        if ($linking) {
-            $model = DB::transaction(function () use (
-                $event,
-                $create_new,
-                $customer_id,
-                $eventable_type,
-                $eventable_id,
-                $service_order_customer_action
-            ) {
-                if ($create_new) {
-                    $eventable_id = ServiceOrder::create(['customer_id' => $customer_id])->id;
-                }
-
-                $model = $eventable_type::findOrFail($eventable_id);
-
-                if (
-                    $service_order_customer_action === 'move'
-                    && $model instanceof ServiceOrder
-                    && $customer_id
-                    && $model->customer_id !== (int) $customer_id
-                ) {
-                    $model->moveToCustomer((int) $customer_id);
-                }
-
-                DB::table('eventables')
-                    ->where('event_id', $event->id)
-                    ->where('eventable_type', substr($eventable_type, 1))
-                    ->delete();
-
-                $model->events()->attach($event->id);
-                if ($model instanceof ServiceOrder) {
-                    $model->advanceToPlannedStage();
-                }
-
-                if ($event->no_service_order) {
-                    $event->customers()->detach();
-                    $event->update(['no_service_order' => false]);
-                }
-
-                return $model;
-            });
-        }
-
-        /**
-         * An `eventable_id` that is present but empty means the werkbon was
-         * cleared on purpose, which is the only way to take one off an existing
-         * appointment. Callers that mean "leave the werkbon alone" — the drag
-         * reschedule, the inline edits — omit the key entirely, so an explicit
-         * null is never ambiguous and must never pass silently.
-         */
-        $unlinking = !$linking && $request->has('eventable_id');
-
-        if ($unlinking && $event->serviceOrders()->exists()) {
-            DB::transaction(function () use ($event, $customer_id) {
-                foreach ($event->serviceOrders as $service_order) {
-                    $service_order->revertToPlanningCancelledStage();
-                }
-                $event->serviceOrders()->detach();
-                $event->update(['no_service_order' => true]);
-                $event->customers()->sync($customer_id ? [$customer_id] : []);
-            });
-        }
-
-        if ($request->has('executing_user_ids')) {
-            $executing_user_ids = $request->input('executing_user_ids');
-            if (is_array($executing_user_ids)) {
-                $ids = array_map('intval', $executing_user_ids);
-                $raw_breaktimes = (array) ($request->input('executing_user_breaktimes', []));
-                $breaktimes = array_map('intval', $raw_breaktimes);
-                $user_roles = (array) ($request->input('executing_user_roles', []));
-                $diverging_times = (array) ($request->input('executing_user_diverging_times', []));
-                $event->syncExecutingUsers($ids, $breaktimes, $user_roles, $diverging_times);
-                PushEventJob::dispatch($event->id);
-                $still_relevant = array_unique(array_merge(
-                    $event->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
-                    $event->executingUsers()->pluck('users.id')->all(),
-                ));
-                GoogleSyncedEvent::whereHas(
-                    'syncedCalendar',
-                    fn ($q) => $q->whereNotIn('owner_user_id', $still_relevant),
-                )->where('event_id', $event->id)->get()
-                    ->each(fn ($m) => DeleteEventFromGoogleJob::dispatch(
-                        $m->id,
-                        $m->google_synced_calendar_id,
-                        $m->google_event_id,
-                    ));
-                if ($model) {
-                    $previously_executing = $model instanceof ServiceOrder
-                        ? $model->executingUsers()->pluck('users.id')->all()
-                        : [];
-
-                    $model->syncExecutingUsers($ids);
-                    $model->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
-
-                    if ($model instanceof ServiceOrder) {
-                        event(new ServiceOrderAssigned($model, array_values(array_diff($ids, $previously_executing))));
-                    }
-                } else {
-                    $event->serviceOrders->each(function ($order) use ($ids) {
-                        $previously_executing = $order->executingUsers()->pluck('users.id')->all();
-                        $order->syncExecutingUsers($ids);
-                        $order->serviceJobs()->each(fn ($job) => $job->syncExecutingUsers($ids));
-                        event(new ServiceOrderAssigned($order, array_values(array_diff($ids, $previously_executing))));
-                    });
-                }
-            }
-        }
 
         $event->load([
             'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
@@ -449,7 +265,7 @@ class EventApiController extends Controller
         $event->load(['serviceOrders.customer', 'customers']);
         $pending = $this->pendingStandardEmails($event, EventTrigger::event_deleted);
 
-        $event->delete();
+        app(CancelAppointmentAction::class)->execute($event);
 
         return response()->json(['pending_standard_emails' => $pending]);
     }
@@ -516,7 +332,7 @@ class EventApiController extends Controller
 
         Mail::to($recipients)->send(new AppointmentConfirmationMail($event, $service_order));
 
-        event(new AppointmentConfirmationEmailed($service_order, $event, $recipients));
+        Signals::dispatch(new AppointmentConfirmationEmailed($service_order, $event, $recipients));
 
         return response()->json([
             'message' => 'Bevestiging verzonden naar: ' . implode(', ', $recipients),

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Signals\Attachments\RemarkRemoved;
+use App\Domain\Signals\Signals;
 use App\Http\Requests\RemarkCreateRequest;
 use App\Models\Event;
 use App\Models\Remark;
@@ -49,7 +50,7 @@ class RemarkController extends Controller
         if ($link) {
             $remarkable_record = (new ($link->remarkable_type))->find($link->remarkable_id);
             if ($remarkable_record) {
-                event(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
+                Signals::dispatch(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
             }
         }
 

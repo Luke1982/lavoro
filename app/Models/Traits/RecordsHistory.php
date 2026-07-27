@@ -3,6 +3,7 @@
 namespace App\Models\Traits;
 
 use App\Domain\Signals\ModelChanged;
+use App\Domain\Signals\Signals;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -55,7 +56,7 @@ trait RecordsHistory
             return;
         }
 
-        event(new ModelChanged($this, $action, $changes));
+        Signals::dispatch(new ModelChanged($this, $action, $changes));
     }
 
     /**

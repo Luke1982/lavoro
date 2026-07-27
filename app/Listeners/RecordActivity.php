@@ -56,7 +56,7 @@ class RecordActivity
 
         $existing = $merge_key === null
             ? null
-            : $this->buffer->existingFor($subject_type, $subject_id, $merge_key);
+            : $this->buffer->existingFor($subject_type, $subject_id, $merge_key, $signal->actorType());
 
         if ($existing) {
             $this->mergeInto($existing, $changes);
@@ -75,6 +75,7 @@ class RecordActivity
             'actor_name' => $signal->actorName(),
             'metadata' => $signal->activityMetadata(),
             'occurred_at' => $signal->occurredAt(),
+            'correlation_id' => $signal->correlationId(),
         ]);
 
         foreach ($changes as $change) {
@@ -82,7 +83,7 @@ class RecordActivity
         }
 
         if ($merge_key !== null) {
-            $this->buffer->remember($subject_type, $subject_id, $merge_key, $activity->id);
+            $this->buffer->remember($subject_type, $subject_id, $merge_key, $activity->id, $signal->actorType());
         }
 
         $this->attachToTimelines($activity, $signal);

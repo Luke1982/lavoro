@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
+use App\Domain\Signals\Signals;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceOrderTypes;
 use App\Models\Traits\HasActivities;
@@ -160,6 +161,27 @@ class ServiceOrder extends Model
         });
     }
 
+    /**
+     * Limits a query to the orders this person is allowed to see: everything if
+     * they may read orders at large, otherwise only the ones they are executing.
+     *
+     * Anything that shows orders to a user goes through here. The rule used to be
+     * written out at each call site, which is how a new reader of the data ends up
+     * seeing more than the old one.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if ($user && ($user->isAdmin() || $user->hasPermission('serviceorder.read'))) {
+            return $query;
+        }
+
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
+    }
+
     public function getIsClosedAttribute(): bool
     {
         return $this->serviceOrderStage?->is_closed_state === true;
@@ -291,7 +313,7 @@ class ServiceOrder extends Model
 
         $this->save();
 
-        event(new ServiceOrderStageChanged($this, $previous_stage, $stage, $reason));
+        Signals::dispatch(new ServiceOrderStageChanged($this, $previous_stage, $stage, $reason));
 
         return true;
     }
@@ -328,7 +350,7 @@ class ServiceOrder extends Model
         $previous_customer_id = $this->getOriginal('customer_id');
         $new = $this->refresh()->customer?->name;
 
-        event(new ServiceOrderCustomerChanged(
+        Signals::dispatch(new ServiceOrderCustomerChanged(
             $this,
             $previous_customer_id,
             $previous,

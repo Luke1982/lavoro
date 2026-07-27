@@ -9,6 +9,7 @@ use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
 use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
+use App\Domain\Signals\Signals;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
@@ -88,9 +89,7 @@ class ServiceOrderController extends Controller
             'events.executingUsers:id,name',
         ]);
 
-        if (!$user->isAdmin() && !$user->hasPermission('serviceorder.read')) {
-            $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
-        }
+        $query->visibleTo($user);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -178,7 +177,7 @@ class ServiceOrderController extends Controller
                 ]);
                 $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
                 if ($asset) {
-                    event(new ServiceJobAdded($serviceorder, $asset));
+                    Signals::dispatch(new ServiceJobAdded($serviceorder, $asset));
                 }
             }
             $redirect = 'serviceorders.show';
@@ -448,7 +447,7 @@ class ServiceOrderController extends Controller
         }
 
         if (array_key_exists('customer_id', $data) && $data['customer_id'] != $previous_customer_id) {
-            event(new ServiceOrderCustomerChanged(
+            Signals::dispatch(new ServiceOrderCustomerChanged(
                 $serviceorder,
                 $previous_customer_id,
                 $previous_customer_name,
@@ -462,7 +461,7 @@ class ServiceOrderController extends Controller
             && filled($data['external_invoice_no'])
             && blank($previous_external_invoice_no)
         ) {
-            event(new ServiceOrderInvoiceRecorded($serviceorder, $data['external_invoice_no']));
+            Signals::dispatch(new ServiceOrderInvoiceRecorded($serviceorder, $data['external_invoice_no']));
         }
 
         if ($stage_requested) {
@@ -505,7 +504,7 @@ class ServiceOrderController extends Controller
 
         Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
 
-        event(new ServiceOrderEmailed($serviceorder, $recipients));
+        Signals::dispatch(new ServiceOrderEmailed($serviceorder, $recipients));
         // Mark as sent to customer
         if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
@@ -541,7 +540,7 @@ class ServiceOrderController extends Controller
             }
         }
         Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
-        event(new ServiceOrderEmailed($serviceorder, $recipients, with_jobs: true));
+        Signals::dispatch(new ServiceOrderEmailed($serviceorder, $recipients, with_jobs: true));
         if (!$serviceorder->sent_to_customer) {
             $serviceorder->sent_to_customer = true;
             $serviceorder->save();
@@ -698,7 +697,7 @@ class ServiceOrderController extends Controller
             $response = $client->post('/verkooporders', $payload);
             $serviceorder->sent_to_administration = true;
             $serviceorder->save();
-            event(new SalesOrderCreatedInSnelStart($serviceorder, $response['id'] ?? null));
+            Signals::dispatch(new SalesOrderCreatedInSnelStart($serviceorder, $response['id'] ?? null));
             $redirect = redirect()->back()->with(
                 'success',
                 'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
@@ -883,7 +882,7 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => $serviceorder->id]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            event(new TicketAttachedToOrder($serviceorder, sprintf(
+            Signals::dispatch(new TicketAttachedToOrder($serviceorder, sprintf(
                 'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
                 $ticket->subject ?? ('Ticket #' . $ticket->id),
                 $asset->product->productType->name ?? 'Type',
@@ -907,7 +906,7 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => null]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            event(new TicketDetachedFromOrder($serviceorder, sprintf(
+            Signals::dispatch(new TicketDetachedFromOrder($serviceorder, sprintf(
                 'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
                 $ticket->subject ?? ('Ticket #' . $ticket->id),
                 $asset->product->productType->name ?? 'Type',

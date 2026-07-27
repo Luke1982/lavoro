@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Domain\Signals\Signals;
 use App\Domain\Signals\Tickets\TicketPriorityChanged;
 use App\Domain\Signals\Tickets\TicketStatusChanged;
 use App\Models\Ticket;
@@ -17,7 +18,7 @@ class TicketObserver
             $old_status = $ticket->getOriginal('status');
             $new_status = $changes['status'];
 
-            event(new TicketStatusChanged($ticket, $old_status, $new_status));
+            Signals::dispatch(new TicketStatusChanged($ticket, $old_status, $new_status));
 
             if ($new_status === 'Gesloten') {
                 $ticket->closed_by_id = Auth::id();
@@ -33,7 +34,7 @@ class TicketObserver
         if (array_key_exists('priority', $changes)) {
             $old_priority = $ticket->getOriginal('priority');
             $new_priority = $changes['priority'];
-            event(new TicketPriorityChanged($ticket, $old_priority, $new_priority));
+            Signals::dispatch(new TicketPriorityChanged($ticket, $old_priority, $new_priority));
         }
     }
 }

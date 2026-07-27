@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
 use App\Domain\Signals\ServiceOrders\ServiceJobEmailed;
+use App\Domain\Signals\Signals;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
@@ -53,7 +54,7 @@ class ServiceJobController extends Controller
         if ($serviceOrder) {
             $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
             if ($asset) {
-                event(new ServiceJobAdded($serviceOrder, $asset));
+                Signals::dispatch(new ServiceJobAdded($serviceOrder, $asset));
             }
         }
 
@@ -85,7 +86,7 @@ class ServiceJobController extends Controller
             if ($childJob->wasRecentlyCreated) {
                 $newChildCount++;
                 if ($serviceOrder) {
-                    event(new ServiceJobAdded($serviceOrder, $childAsset, combined: true));
+                    Signals::dispatch(new ServiceJobAdded($serviceOrder, $childAsset, combined: true));
                 }
             }
         }
@@ -391,7 +392,7 @@ class ServiceJobController extends Controller
         $servicejob->update(['sent_to_customer' => true]);
 
         if ($servicejob->serviceOrder) {
-            event(new ServiceJobEmailed($servicejob->serviceOrder, $servicejob, $recipients));
+            Signals::dispatch(new ServiceJobEmailed($servicejob->serviceOrder, $servicejob, $recipients));
         }
 
         return redirect()->back()->with('success', 'Keuring verzonden naar: ' . implode(', ', $recipients));

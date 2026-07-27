@@ -13,6 +13,7 @@ use App\Domain\Signals\Contracts\ContractCustomerChanged;
 use App\Domain\Signals\Contracts\ContractFieldChanged;
 use App\Domain\Signals\Contracts\ContractFrequencyModeChanged;
 use App\Domain\Signals\Contracts\ContractReactivated;
+use App\Domain\Signals\Signals;
 use App\Enums\ContractInterval;
 use App\Http\Requests\MaintenanceContractAttachAssetRequest;
 use App\Http\Requests\MaintenanceContractDestroyRequest;
@@ -113,7 +114,7 @@ class MaintenanceContractController extends Controller
     public function store(MaintenanceContractStoreRequest $request)
     {
         $maintenancecontract = MaintenanceContract::create($request->validated());
-        event(new ContractCreated($maintenancecontract));
+        Signals::dispatch(new ContractCreated($maintenancecontract));
 
         return redirect()->back()->with('success', 'Onderhoudscontract aangemaakt.');
     }
@@ -136,10 +137,10 @@ class MaintenanceContractController extends Controller
             $is_already_cancelled = $maintenancecontract->cancelled_at !== null;
             if ($validated['cancelled'] && !$is_already_cancelled) {
                 $maintenancecontract->cancelled_at = now();
-                event(new ContractCancelled($maintenancecontract));
+                Signals::dispatch(new ContractCancelled($maintenancecontract));
             } elseif (!$validated['cancelled'] && $is_already_cancelled) {
                 $maintenancecontract->cancelled_at = null;
-                event(new ContractReactivated($maintenancecontract));
+                Signals::dispatch(new ContractReactivated($maintenancecontract));
             }
             $maintenancecontract->save();
         }
@@ -172,9 +173,9 @@ class MaintenanceContractController extends Controller
                     'frequency' => $validated['frequency'] ?? $maintenancecontract->getRawOriginal('frequency'),
                     'frequency_days' => $validated['frequency_days'] ?? $maintenancecontract->frequency_days,
                 ]);
-            event(new ContractFrequencyModeChanged($maintenancecontract, per_asset: true));
+            Signals::dispatch(new ContractFrequencyModeChanged($maintenancecontract, per_asset: true));
         } elseif (array_key_exists('manage_frequency_per_asset', $validated) && !$validated['manage_frequency_per_asset']) {
-            event(new ContractFrequencyModeChanged($maintenancecontract, per_asset: false));
+            Signals::dispatch(new ContractFrequencyModeChanged($maintenancecontract, per_asset: false));
         }
 
         if (array_key_exists('auto_generate', $validated)) {
@@ -186,9 +187,9 @@ class MaintenanceContractController extends Controller
                 $label = $interval
                     ? $this->frequencyLabel($interval, $validated['auto_generate_interval_days'] ?? null)
                     : 'contractfrequentie';
-                event(new ContractAutoGenerationEnabled($maintenancecontract, $label));
+                Signals::dispatch(new ContractAutoGenerationEnabled($maintenancecontract, $label));
             } elseif (!$will_be_auto && $was_auto) {
-                event(new ContractAutoGenerationDisabled($maintenancecontract));
+                Signals::dispatch(new ContractAutoGenerationDisabled($maintenancecontract));
             }
         }
 
@@ -202,7 +203,7 @@ class MaintenanceContractController extends Controller
         if (array_key_exists('customer_id', $validated) && (string) $validated['customer_id'] !== (string) ($original['customer_id'] ?? '')) {
             $old_customer = Customer::find($original['customer_id'] ?? null)?->name ?? 'onbekend';
             $new_customer = Customer::find($validated['customer_id'])?->name ?? 'onbekend';
-            event(new ContractCustomerChanged($maintenancecontract, $old_customer, $new_customer));
+            Signals::dispatch(new ContractCustomerChanged($maintenancecontract, $old_customer, $new_customer));
         }
 
         $labels = [
@@ -228,7 +229,7 @@ class MaintenanceContractController extends Controller
                 continue;
             }
 
-            event(new ContractFieldChanged(
+            Signals::dispatch(new ContractFieldChanged(
                 $maintenancecontract,
                 $field,
                 $label,
@@ -302,7 +303,7 @@ class MaintenanceContractController extends Controller
             'frequency_days' => $frequency_days,
         ]);
 
-        event(new ContractAssetAttached(
+        Signals::dispatch(new ContractAssetAttached(
             $maintenancecontract,
             $this->assetLabel($asset),
             $frequency ? $this->frequencyLabel($frequency, $frequency_days) : null,
@@ -324,7 +325,7 @@ class MaintenanceContractController extends Controller
 
         if ($asset) {
             $updated = $maintenancecontract->assets()->newPivotQuery()->where('assetables.id', $assetable_id)->first();
-            event(new ContractAssetFrequencyChanged(
+            Signals::dispatch(new ContractAssetFrequencyChanged(
                 $maintenancecontract,
                 $this->assetLabel($asset),
                 $this->frequencyLabel($updated->frequency, $updated->frequency_days),
@@ -345,7 +346,7 @@ class MaintenanceContractController extends Controller
 
         $pivot_query->delete();
 
-        event(new ContractAssetDetached(
+        Signals::dispatch(new ContractAssetDetached(
             $maintenancecontract,
             $asset ? $this->assetLabel($asset) : null,
         ));

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Signals;
 use App\Domain\Signals\Tasks\TaskAssetSerialChanged;
 use App\Domain\Signals\Tasks\TaskAssetsRegistered;
 use App\Http\Requests\ServiceOrderTaskInstanceAssetStoreRequest;
@@ -49,7 +50,7 @@ class ServiceOrderTaskInstanceAssetController extends Controller
 
         $title = $this->titleFor($serviceordertaskinstance);
 
-        event(new TaskAssetsRegistered(
+        Signals::dispatch(new TaskAssetsRegistered(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,
@@ -72,7 +73,7 @@ class ServiceOrderTaskInstanceAssetController extends Controller
         $serviceordertaskinstance->loadMissing('serviceOrder');
         $title = $this->titleFor($serviceordertaskinstance);
 
-        event(new TaskAssetSerialChanged(
+        Signals::dispatch(new TaskAssetSerialChanged(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,

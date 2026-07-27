@@ -24,6 +24,7 @@ class Activity extends Model
         'actor_name',
         'metadata',
         'occurred_at',
+        'correlation_id',
     ];
 
     protected $casts = [

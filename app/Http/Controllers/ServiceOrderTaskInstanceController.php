@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Signals;
 use App\Domain\Signals\Tasks\TaskCancelled;
 use App\Domain\Signals\Tasks\TaskCompletionChanged;
 use App\Domain\Signals\Tasks\TaskSignatureRemoved;
@@ -97,7 +98,7 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        event(new TaskCompletionChanged(
+        Signals::dispatch(new TaskCompletionChanged(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,
@@ -136,7 +137,7 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        event(new TaskSigned(
+        Signals::dispatch(new TaskSigned(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,
@@ -160,7 +161,7 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        event(new TaskSignatureRemoved(
+        Signals::dispatch(new TaskSignatureRemoved(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,
@@ -190,7 +191,7 @@ class ServiceOrderTaskInstanceController extends Controller
             ?? $serviceordertaskinstance->serviceOrderTask?->title
             ?? 'Taak';
 
-        event(new TaskCancelled(
+        Signals::dispatch(new TaskCancelled(
             $serviceordertaskinstance->serviceOrder,
             $serviceordertaskinstance,
             $title,

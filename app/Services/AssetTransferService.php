@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Domain\Signals\Contracts\ContractAssetDetachedByTransfer;
+use App\Domain\Signals\Signals;
 use App\Models\Asset;
 use App\Models\Location;
 use App\Models\MaintenanceContract;
@@ -88,7 +89,7 @@ class AssetTransferService
 
                 $contract->assets()->detach($tree->pluck('id')->all());
 
-                event(new ContractAssetDetachedByTransfer($contract, $losing->values()->all()));
+                Signals::dispatch(new ContractAssetDetachedByTransfer($contract, $losing->values()->all()));
             }
         });
     }

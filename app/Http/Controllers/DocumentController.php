@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Signals\Attachments\DocumentRemoved;
+use App\Domain\Signals\Signals;
 use App\Http\Requests\DocumentBulkCategoryRequest;
 use App\Http\Requests\DocumentBulkDestroyRequest;
 use App\Http\Requests\DocumentDestroyRequest;
@@ -97,7 +98,7 @@ class DocumentController extends Controller
         if ($link) {
             $documentable_record = (new ($link->documentable_type))->find($link->documentable_id);
             if ($documentable_record) {
-                event(new DocumentRemoved($documentable_record, $document->id, $document->name));
+                Signals::dispatch(new DocumentRemoved($documentable_record, $document->id, $document->name));
             }
         }
 

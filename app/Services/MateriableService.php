@@ -11,6 +11,7 @@ use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\MaterialDetachedFromOrder;
 use App\Domain\Signals\ServiceOrders\MaterialQuantityChanged;
 use App\Domain\Signals\ServiceOrders\MaterialUnforeseenFlagChanged;
+use App\Domain\Signals\Signals;
 use App\Models\FreeformMaterial;
 use App\Models\Material;
 use App\Models\ServiceOrder;
@@ -183,7 +184,7 @@ class MateriableService
                 $stock_before = (float) $material->stock;
                 $material->increment('stock', $quantity);
 
-                event(new MaterialStockRestored(
+                Signals::dispatch(new MaterialStockRestored(
                     $material,
                     (float) $quantity,
                     $reason,

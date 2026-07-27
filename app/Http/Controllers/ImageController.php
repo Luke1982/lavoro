@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Signals\Attachments\ImageAttached;
 use App\Domain\Signals\Attachments\ImageRemoved;
+use App\Domain\Signals\Signals;
 use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageImportFromUrlRequest;
 use App\Http\Requests\ImageSetMainRequest;
@@ -76,7 +77,7 @@ class ImageController extends Controller
         }
 
         if (count($created_images) > 0) {
-            event(new ImageAttached($imageable_record, count($created_images), $created_images[0]->path));
+            Signals::dispatch(new ImageAttached($imageable_record, count($created_images), $created_images[0]->path));
         }
 
         if ($request->wantsJson()) {
@@ -172,7 +173,7 @@ class ImageController extends Controller
             ->where('image_id', $image->id)
             ->delete();
 
-        event(new ImageRemoved($imageable_record, $image->id));
+        Signals::dispatch(new ImageRemoved($imageable_record, $image->id));
 
         $image->delete();
         Storage::delete($image->path);

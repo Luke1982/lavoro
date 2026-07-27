@@ -2,6 +2,7 @@
 
 namespace App\Domain\Signals;
 
+use App\Domain\Assistant\AssistantContext;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Auth;
  * The actor is resolved once, at the moment the fact occurs, and the actor's name
  * is copied rather than referenced so a deleted user does not erase their own
  * history. A queue job or console command is recorded as such, never as a person.
+ *
+ * Work the assistant did is recorded as 'ai' while still naming the person who
+ * asked for it: they remain accountable and it belongs on their timeline, so only
+ * actor_type separates "Jan changed this" from "the assistant changed this for Jan".
  *
  * Properties are intentionally not readonly: SerializesModels reassigns them by
  * reflection when a queued listener unserialises the signal, which throws on an
@@ -39,13 +44,17 @@ abstract class BaseSignal implements Signal
 
     public ?\DateTimeImmutable $occurred_at = null;
 
+    public ?string $correlation_id = null;
+
     public function __construct()
     {
-        $user = Auth::user();
+        $assistant = app(AssistantContext::class);
+        $user = $assistant->onBehalfOf() ?? Auth::user();
 
         $this->actor_id = $user?->id;
         $this->actor_name = $user?->name;
         $this->actor_type = match (true) {
+            $assistant->isActive() => 'ai',
             $user !== null => 'user',
             app()->runningInConsole() => 'system',
             default => 'system',
@@ -92,6 +101,16 @@ abstract class BaseSignal implements Signal
     public static function coveredFields(): array
     {
         return [];
+    }
+
+    public function correlateWith(string $correlation_id): void
+    {
+        $this->correlation_id = $correlation_id;
+    }
+
+    public function correlationId(): ?string
+    {
+        return $this->correlation_id;
     }
 
     public function actorId(): ?int

@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\AssistantContext;
 use App\Domain\Signals\ActivityBuffer;
+use App\Domain\Signals\Signals;
+use App\Domain\Tools\ToolRegistry;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
 use App\Listeners\CopyMailToSentFolder;
@@ -38,6 +41,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ActivityBuffer::class);
+        $this->app->singleton(Signals::class);
+        $this->app->singleton(AssistantContext::class);
+
+        $this->app->singleton(
+            ToolRegistry::class,
+            fn () => new ToolRegistry(config('assistant.tools', [])),
+        );
     }
 
     /**
@@ -54,7 +64,11 @@ class AppServiceProvider extends ServiceProvider
         EventModel::observe(EventObserver::class);
         Ticket::observe(TicketObserver::class);
 
-        Queue::before(fn () => app(ActivityBuffer::class)->reset());
+        Queue::before(function () {
+            app(ActivityBuffer::class)->reset();
+            app(Signals::class)->reset();
+            app(AssistantContext::class)->reset();
+        });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
             [$model, $relation, $ids] = $payload + [null, null, []];

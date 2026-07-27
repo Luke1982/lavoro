@@ -20,9 +20,13 @@ class ActivityBuffer
     /** @var array<string, int> */
     private array $entries = [];
 
-    public function existingFor(string $subject_type, int|string|null $subject_id, string $action): ?Activity
-    {
-        $key = $this->key($subject_type, $subject_id, $action);
+    public function existingFor(
+        string $subject_type,
+        int|string|null $subject_id,
+        string $action,
+        string $actor_type = 'user',
+    ): ?Activity {
+        $key = $this->key($subject_type, $subject_id, $action, $actor_type);
 
         if (!isset($this->entries[$key])) {
             return null;
@@ -31,9 +35,14 @@ class ActivityBuffer
         return Activity::with('fieldChanges')->find($this->entries[$key]);
     }
 
-    public function remember(string $subject_type, int|string|null $subject_id, string $action, int $activity_id): void
-    {
-        $this->entries[$this->key($subject_type, $subject_id, $action)] = $activity_id;
+    public function remember(
+        string $subject_type,
+        int|string|null $subject_id,
+        string $action,
+        int $activity_id,
+        string $actor_type = 'user',
+    ): void {
+        $this->entries[$this->key($subject_type, $subject_id, $action, $actor_type)] = $activity_id;
     }
 
     public function reset(): void
@@ -41,8 +50,14 @@ class ActivityBuffer
         $this->entries = [];
     }
 
-    private function key(string $subject_type, int|string|null $subject_id, string $action): string
+    /**
+     * The actor is part of the key so that two different actors touching one
+     * record in a single request keep separate entries. Without it, work the
+     * assistant did would fold into the line written for the person who acted
+     * just before it, and the log would credit them with it.
+     */
+    private function key(string $subject_type, int|string|null $subject_id, string $action, string $actor_type): string
     {
-        return $subject_type . '|' . $subject_id . '|' . $action;
+        return $subject_type . '|' . $subject_id . '|' . $action . '|' . $actor_type;
     }
 }
