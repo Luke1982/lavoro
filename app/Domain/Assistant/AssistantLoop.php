@@ -56,6 +56,20 @@ class AssistantLoop
                 throw new RuntimeException('Het model heeft de vraag geweigerd.');
             }
 
+            /**
+             * A turn that ran out of room is not an answer, and it is the one
+             * failure that looks like success: half a list of werkbonnen reads
+             * exactly like a whole one. Better to say nothing than to let someone
+             * act on it. Thinking counts against the same budget, so the fix is
+             * usually more room rather than a shorter question.
+             */
+            if ($response->stopReason === 'max_tokens') {
+                throw new RuntimeException(
+                    'Het antwoord paste niet binnen max_tokens en is afgekapt. '
+                    . 'Verhoog ASSISTANT_MAX_TOKENS (nu ' . config('assistant.max_tokens') . ').'
+                );
+            }
+
             foreach ($this->spokenText($response) as $text) {
                 $spoken[] = $text;
                 $onText && $onText($text);
@@ -129,6 +143,7 @@ class AssistantLoop
                 inputSchema: $definition['input_schema'],
                 name: $definition['name'],
                 description: $definition['description'],
+                strict: $definition['strict'],
             ),
             $this->registry->definitionsFor($user),
         );

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Anthropic\Core\Exceptions\APIConnectionException;
 use Anthropic\Core\Exceptions\APIStatusException;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Tools\ToolProfile;
@@ -61,6 +62,10 @@ class AskAssistantCommand extends Command
             );
         } catch (APIStatusException $e) {
             return $this->reportApiFailure($e);
+        } catch (APIConnectionException $e) {
+            $this->error('Geen verbinding met de Anthropic API: ' . $e->getMessage());
+
+            return self::FAILURE;
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 

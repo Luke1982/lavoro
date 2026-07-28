@@ -59,6 +59,6 @@ return [
 
     'model' => env('ASSISTANT_MODEL', 'claude-opus-5'),
 
-    'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 8000),
+    'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 16000),
 
 ];

@@ -82,7 +82,7 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->admin(), 'Zoek', 'systeem');
 
-        $assistant_turn = $model->sent[1][1];
+        $assistant_turn = $model->messagesOn(1)[1];
 
         $this->assertSame('assistant', $assistant_turn['role']);
         $this->assertInstanceOf(ToolUseBlock::class, $assistant_turn['content'][0]);
@@ -104,7 +104,7 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->admin(), 'Twee dingen', 'systeem');
 
-        $results_turn = $model->sent[1][2];
+        $results_turn = $model->messagesOn(1)[2];
 
         $this->assertSame('user', $results_turn['role']);
         $this->assertCount(2, $results_turn['content']);
@@ -124,7 +124,7 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->userWith('serviceorder.read_own'), 'Zoek', 'systeem');
 
-        $result = $model->sent[1][2]['content'][0];
+        $result = $model->messagesOn(1)[2]['content'][0];
 
         $this->assertTrue($result['isError']);
         $this->assertSame('denied', AssistantToolCall::sole()->outcome);
@@ -156,12 +156,69 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($user, 'Hallo', 'systeem');
 
-        $offered = array_map(fn ($tool) => $tool->name, $model->sent[0][0]);
+        $offered = array_map(fn ($tool) => $tool->name, $model->sent[0]['tools']);
 
         $this->assertSame(
             array_column(app(ToolRegistry::class)->definitionsFor($user), 'name'),
             $offered,
         );
+    }
+
+    /**
+     * Nothing may fall out of the history between rounds. A model that has lost
+     * the original question answers a different one, and does it confidently.
+     */
+    public function test_the_whole_conversation_is_resent_every_round(): void
+    {
+        $model = new FakeModel([
+            FakeModel::callsTool('find_customer', ['query' => 'aa']),
+            FakeModel::callsTool('search_service_orders', ['limit' => 1]),
+            FakeModel::says('Klaar.'),
+        ]);
+
+        $this->loop($model)->ask($this->admin(), 'De oorspronkelijke vraag', 'systeem');
+
+        $this->assertCount(1, $model->messagesOn(0));
+        $this->assertCount(3, $model->messagesOn(1));
+        $this->assertCount(5, $model->messagesOn(2));
+
+        foreach ([0, 1, 2] as $round) {
+            $this->assertSame(
+                'De oorspronkelijke vraag',
+                $model->messagesOn($round)[0]['content'],
+                'the original question was lost by round ' . $round
+            );
+        }
+    }
+
+    /**
+     * Half a list of werkbonnen reads exactly like a whole one, so a turn that
+     * ran out of room must not be handed over as an answer.
+     */
+    public function test_a_truncated_answer_is_refused_rather_than_returned(): void
+    {
+        $model = new FakeModel([FakeModel::ranOutOfRoom('De openstaande werkbonnen zijn: 1, 2,')]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/afgekapt/');
+
+        $this->loop($model)->ask($this->admin(), 'Wat staat er open?', 'systeem');
+    }
+
+    /**
+     * Strict validation is what lets a tool trust the shape of its arguments
+     * without re-checking them. Sending the definitions without it would quietly
+     * move that burden back onto every tool.
+     */
+    public function test_the_tools_are_sent_with_strict_validation_on(): void
+    {
+        $model = new FakeModel([FakeModel::says('Hoi.')]);
+
+        $this->loop($model)->ask($this->admin(), 'Hallo', 'systeem');
+
+        foreach ($model->sent[0]['tools'] as $tool) {
+            $this->assertTrue($tool->strict, $tool->name . ' is sent without strict validation');
+        }
     }
 
     public function test_it_survives_a_werkbon_question_end_to_end(): void
@@ -187,7 +244,12 @@ class AssistantLoopTest extends TestCase
  */
 class FakeModel implements TalksToModel
 {
-    /** @var array<int, array{0: array<int, mixed>, 1: mixed, 2: mixed}> */
+    /**
+     * The whole request is kept, not a slice of it. Keeping only the tail would
+     * mean a loop that quietly forgot the earlier conversation still passed.
+     *
+     * @var array<int, array{tools: array<int, mixed>, messages: array<int, mixed>, system: string}>
+     */
     public array $sent = [];
 
     private int $turn = 0;
@@ -197,22 +259,30 @@ class FakeModel implements TalksToModel
 
     public function send(array $messages, array $tools, string $system): Message
     {
-        $this->sent[] = [$tools, ...array_slice($messages, -2)];
+        $this->sent[] = ['tools' => $tools, 'messages' => $messages, 'system' => $system];
 
         return $this->replies[$this->turn++]
             ?? throw new RuntimeException('de nepmodel-antwoorden zijn op');
     }
 
+    /** @return array<int, mixed> */
+    public function messagesOn(int $request): array
+    {
+        return $this->sent[$request]['messages'];
+    }
+
     public function lastToolResultText(): string
     {
         foreach (array_reverse($this->sent) as $request) {
-            foreach ($request as $entry) {
-                if (is_array($entry) && ($entry['role'] ?? null) === 'user' && is_array($entry['content'])) {
-                    $first = $entry['content'][0];
+            foreach (array_reverse($request['messages']) as $entry) {
+                if (($entry['role'] ?? null) !== 'user' || !is_array($entry['content'])) {
+                    continue;
+                }
 
-                    if (!is_string($first) && isset($first['content'])) {
-                        return (string) $first['content'];
-                    }
+                $first = $entry['content'][0];
+
+                if (!is_string($first) && isset($first['content'])) {
+                    return (string) $first['content'];
                 }
             }
         }
@@ -249,6 +319,11 @@ class FakeModel implements TalksToModel
     public static function refuses(): Message
     {
         return self::message([], 'refusal');
+    }
+
+    public static function ranOutOfRoom(string $partial): Message
+    {
+        return self::message([TextBlock::with(citations: null, text: $partial)], 'max_tokens');
     }
 
     /** @param array<int, mixed> $content */
