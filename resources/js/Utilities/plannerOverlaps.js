@@ -187,6 +187,7 @@ export function computeLaneOverlaps(laneEvents, { minClipMinutes = 0, maxStackSl
 
         return {
             id: region.covering.map(ev => ev.id).join('-'),
+            eventIds: region.covering.map(ev => ev.id),
             startMin: region.startMin,
             endMin: region.endMin,
             color: blendColors(region.covering.map(ev => ev.color)),

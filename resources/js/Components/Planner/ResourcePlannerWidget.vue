@@ -484,6 +484,15 @@
             @confirm="onOverrideConfirm"
             @cancel="onOverrideCancel" />
 
+        <OverlapPickDialog
+            :open="overlapPick.open"
+            :events="overlapPickEvents"
+            :user-id="overlapPick.userId"
+            :user-roles="userRoles"
+            :leading-color="leadingColorRole ? 'role' : 'event'"
+            @select="onOverlapPicked"
+            @cancel="closeOverlapPick" />
+
         <ModalDialog v-model:open="feedback.open.value" :title="feedbackTitle" max-width-class="sm:max-w-2xl">
             <div v-if="feedback.activeEvent.value" class="space-y-6">
                 <RemarksComponent :comments="feedback.remarks.value" :remarkable-type="'App\\Models\\Event'"
@@ -531,6 +540,7 @@ import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
+import OverlapPickDialog from '@/Components/Planner/OverlapPickDialog.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
@@ -694,6 +704,9 @@ const modalInitial = ref(null)
 const drag = ref({ eventId: null, mode: null })
 const dragGhost = ref(null)
 const selectRect = ref(null)
+// Held as ids so a poll landing while the dialog is open cannot hand the modal a
+// stale copy of an event someone else just moved.
+const overlapPick = ref({ open: false, userId: null, eventIds: [] })
 let suppressClickUntil = 0
 
 // Guards a click from rescheduling the event it meant to open. Either axis may
@@ -1377,6 +1390,18 @@ function onCellPointerDown(e, user, day) {
     if (e.button !== 0) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
+
+    // The contested stretch between overlapping cards belongs to those cards, not
+    // to an empty slot: a press there asks which one to open, on release like
+    // every other commit in this grid.
+    const contested = overlapBandsFor(user.id, day.iso)
+        .find(band => info.minutes >= band.startMin && info.minutes <= band.endMin)
+    if (contested) {
+        drag.value = { eventId: null, mode: 'overlap-pick', userId: user.id, eventIds: contested.eventIds }
+        e.preventDefault()
+        return
+    }
+
     if (isBlockedAtTime(user.id, day.iso, snapMinutes(info.minutes), snapMinutes(info.minutes) + slotMinutes.value)) {
         if (!props.allowOverrideUnavailability) return
     }
@@ -1547,6 +1572,12 @@ async function onWindowPointerUp() {
     pendingMove = null
     if (!drag.value.mode) return
     const mode = drag.value.mode
+    if (mode === 'overlap-pick') {
+        const { userId, eventIds } = drag.value
+        drag.value = { eventId: null, mode: null }
+        overlapPick.value = { open: true, userId, eventIds }
+        return
+    }
     if (mode === 'select') {
         const sel = selectRect.value
         selectRect.value = null
@@ -1592,6 +1623,21 @@ async function onWindowPointerUp() {
             await persistEventChange(ev, previewStart, previewEnd, movedUser ? previewUserId : null)
         }
     }
+}
+
+const overlapPickEvents = computed(() =>
+    overlapPick.value.eventIds
+        .map(id => events.value.find(ev => ev.id === id))
+        .filter(Boolean)
+)
+
+function closeOverlapPick() {
+    overlapPick.value = { open: false, userId: null, eventIds: [] }
+}
+
+function onOverlapPicked(ev) {
+    closeOverlapPick()
+    handleEventClick(ev)
 }
 
 function handleEventClick(ev) {
