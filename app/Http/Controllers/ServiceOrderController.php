@@ -46,8 +46,8 @@ use App\Services\AssetTransferService;
 use App\Services\EventLocationResolver;
 use App\Services\MateriableService;
 use App\Services\ServiceOrderEventWidget;
+use App\Services\ServiceOrderLocationResolver;
 use App\Services\SnelStartClient;
-use App\Support\AddressFormatter;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
@@ -327,7 +327,7 @@ class ServiceOrderController extends Controller
         return inertia('ServiceOrders/ShowPage', [
             'serviceOrder' => $service_order,
             'documentCategories' => DocumentCategory::forPicker(),
-            'mapLocation' => $this->mapLocation($service_order),
+            'mapLocation' => ServiceOrderLocationResolver::resolve($service_order),
             'customerAssets' => $customer_assets,
             'allTaskInstances' => $all_task_instances,
             'combinedMaterials' => $combined_materials,
@@ -376,29 +376,6 @@ class ServiceOrderController extends Controller
 
             unset($line['task_instance']);
         });
-    }
-
-    /**
-     * What the sidebar map pins, and which field it came from, so the map can
-     * label itself. The customer is the last resort the order itself won't give.
-     */
-    private function mapLocation(ServiceOrder $service_order): array
-    {
-        $location = $service_order->locationWithSource();
-
-        if ($location['address'] || !$service_order->customer) {
-            return $location;
-        }
-
-        $customer_address = AddressFormatter::format(
-            $service_order->customer->address,
-            $service_order->customer->postal_code,
-            $service_order->customer->city,
-        );
-
-        return $customer_address
-            ? ['address' => $customer_address, 'source' => 'customer']
-            : ['address' => null, 'source' => null];
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Models\UserPlanGroup;
 use App\Models\UserRole;
+use App\Services\ServiceOrderLocationResolver;
 use Illuminate\Support\Facades\Auth;
 
 class PlannerController extends Controller
@@ -52,7 +53,7 @@ class PlannerController extends Controller
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
             'unplannedServiceOrders' => ServiceOrder::with([
-                'customer',
+                ...ServiceOrderLocationResolver::relations(),
                 'serviceOrderStage',
                 'taskInstances' => fn ($q) => $q->where('is_cancelled', false),
                 'taskInstances.serviceOrderTask:id,title',
@@ -67,7 +68,11 @@ class PlannerController extends Controller
                 })
                 ->tap($so_scope)
                 ->orderByDesc('created_at')
-                ->get(),
+                ->get()
+                ->each(fn (ServiceOrder $order) => $order->setAttribute(
+                    'resolved_city',
+                    ServiceOrderLocationResolver::city($order),
+                )),
             'projects' => Project::query()
                 ->whereNotNull('start_date')
                 ->whereNotNull('end_date')

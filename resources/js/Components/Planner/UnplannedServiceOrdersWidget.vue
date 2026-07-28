@@ -6,7 +6,7 @@
             <div v-if="serviceOrders.length" class="px-3">
                 <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                     <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
-                    <input v-model="searchQuery" type="text" placeholder="Zoeken op klant of omschrijving..."
+                    <input v-model="searchQuery" type="text" placeholder="Zoeken op klant, plaats of omschrijving..."
                         class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
                 </label>
             </div>
@@ -26,6 +26,10 @@
                     </div>
                     <div v-if="so.customer" class="text-xs font-medium text-lavoro-blue truncate">
                         {{ so.customer.name }}
+                    </div>
+                    <div v-if="so.resolved_city" class="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                        <MapPinIcon class="size-3 shrink-0" />
+                        <span class="truncate">{{ so.resolved_city }}</span>
                     </div>
                     <p v-if="so.description" class="mt-1 text-xs text-gray-600 dark:text-slate-400 line-clamp-2">
                         {{ so.description }}
@@ -85,7 +89,7 @@
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon,
-    MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon,
+    MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, MapPinIcon,
 } from '@heroicons/vue/24/outline'
 import { nlDate } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
@@ -105,6 +109,7 @@ const {
     visibleItems: visibleServiceOrders,
 } = useExpandableFilter(() => props.serviceOrders, (so, query) =>
     so.customer?.name?.toLowerCase().includes(query) ||
+    so.resolved_city?.toLowerCase().includes(query) ||
     so.description?.toLowerCase().includes(query),
     maxVisible)
 
