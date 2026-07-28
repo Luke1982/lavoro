@@ -151,7 +151,11 @@ class User extends Authenticatable
      */
     public function relevantAssetIds(): array
     {
-        $serviceorders = $this->serviceOrdersExecuting()->where('status', '!=', 'closed')->get();
+        $serviceorders = $this->serviceOrdersExecuting()
+            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true))
+            ->with(['serviceJobs:id,service_order_id,asset_id', 'tickets:id,service_order_id,asset_id'])
+            ->get();
+
         $asset_ids = $serviceorders->flatMap(function ($so) {
             $job_assets = $so->serviceJobs->pluck('asset_id');
             $ticket_assets = $so->tickets->pluck('asset_id');

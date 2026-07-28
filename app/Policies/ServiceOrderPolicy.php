@@ -8,6 +8,17 @@ use App\Models\User;
 
 class ServiceOrderPolicy
 {
+    /**
+     * Whether the user may see werkbonnen at all, including the narrower case of
+     * only their own. Which ones those are is decided by ServiceOrder::scopeVisibleTo,
+     * which follows the same two permissions.
+     */
+    public function list(User $user): bool
+    {
+        return $user->hasPermission('serviceorder.read')
+            || $user->hasPermission('serviceorder.read_own');
+    }
+
     public function update(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('serviceorder.update');
@@ -60,6 +71,6 @@ class ServiceOrderPolicy
     public function delete(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('serviceorder.delete')
-            && ! $serviceOrder->sent_to_administration;
+            && !$serviceOrder->sent_to_administration;
     }
 }

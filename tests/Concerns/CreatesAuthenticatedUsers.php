@@ -16,6 +16,25 @@ trait CreatesAuthenticatedUsers
         return $user;
     }
 
+    /**
+     * A user holding several permissions at once, for the cases where one
+     * permission opens a door and a second decides how far it opens.
+     */
+    protected function userWithPermissions(string ...$permissions): User
+    {
+        $user = User::factory()->create();
+        $role = Role::firstOrCreate(['name' => 'role-' . md5(implode('|', $permissions))]);
+
+        foreach ($permissions as $name) {
+            $permission = Permission::firstOrCreate(['name' => $name], ['label' => $name]);
+            $role->permissions()->syncWithoutDetaching($permission->id);
+        }
+
+        $user->roles()->attach($role->id);
+
+        return $user;
+    }
+
     protected function userWith(string $permission): User
     {
         $user = User::factory()->create();

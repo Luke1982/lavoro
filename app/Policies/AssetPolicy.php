@@ -30,6 +30,17 @@ class AssetPolicy
         return $user->hasPermission('asset.read');
     }
 
+    /**
+     * Whether the user may see machines at all, including the narrower case of
+     * only those on their own werkbonnen. Which machines those are is decided by
+     * Asset::scopeVisibleTo, which follows the same two permissions.
+     */
+    public function listRelevant(User $user): bool
+    {
+        return $user->hasPermission('asset.read')
+            || $user->hasPermission('asset.read.relevant.serviceorder');
+    }
+
     public function update(User $user, Asset $asset): bool
     {
         return $user->isAdmin() || $user->hasPermission('asset.update');

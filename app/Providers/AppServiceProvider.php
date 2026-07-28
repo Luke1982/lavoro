@@ -44,19 +44,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ActivityBuffer::class);
         $this->app->singleton(Signals::class);
 
-        /**
-         * The assistant is still unreleased and its classes are not in the repo,
-         * so a deploy that has this provider but not that code must still boot.
-         * The guard goes when the assistant ships.
-         */
-        if (class_exists(AssistantContext::class) && class_exists(ToolRegistry::class)) {
-            $this->app->singleton(AssistantContext::class);
+        $this->app->singleton(AssistantContext::class);
 
-            $this->app->singleton(
-                ToolRegistry::class,
-                fn () => new ToolRegistry(config('assistant.tools', [])),
-            );
-        }
+        $this->app->singleton(
+            ToolRegistry::class,
+            fn () => new ToolRegistry(config('assistant.tools', [])),
+        );
     }
 
     /**
@@ -84,9 +77,7 @@ class AppServiceProvider extends ServiceProvider
             app(ActivityBuffer::class)->reset();
             app(Signals::class)->reset();
 
-            if (class_exists(AssistantContext::class)) {
-                app(AssistantContext::class)->reset();
-            }
+            app(AssistantContext::class)->reset();
         });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {

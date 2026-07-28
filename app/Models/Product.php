@@ -70,6 +70,21 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
+    /**
+     * How a product is named to a person: the brand followed by the model, which
+     * is what every screen showing a product already spells out by hand. There is
+     * no name column, so anything reading one gets nothing.
+     *
+     * Deliberately not appended: it costs a brand lookup, and most payloads
+     * carrying a product do not show its name.
+     */
+    public function getDisplayNameAttribute(): ?string
+    {
+        $label = trim(($this->brand?->name ?? '') . ' ' . ($this->model ?? ''));
+
+        return $label === '' ? null : $label;
+    }
+
     public function images()
     {
         return $this->morphToMany(Image::class, 'imageable')
@@ -130,13 +145,13 @@ class Product extends Model
 
     public function getSpecificAttributesAttribute(): array
     {
-        if (! $this->relationLoaded('productAttributeValueables')) {
+        if (!$this->relationLoaded('productAttributeValueables')) {
             return [];
         }
 
         return $this->productAttributeValueables
             ->map(fn ($pvable) => [
-                'name'  => $pvable->productAttribute?->name,
+                'name' => $pvable->productAttribute?->name,
                 'value' => $pvable->value?->value,
             ])
             ->filter(fn ($item) => $item['name'] !== null && $item['value'] !== null)

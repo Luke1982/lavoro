@@ -48,18 +48,13 @@ abstract class BaseSignal implements Signal
 
     public function __construct()
     {
-        /**
-         * The assistant is unreleased and its code is not in every checkout, so a
-         * deploy without it still has to record who acted. Absent it, the actor is
-         * simply whoever is signed in. The guard goes when the assistant ships.
-         */
-        $assistant = class_exists(AssistantContext::class) ? app(AssistantContext::class) : null;
-        $user = $assistant?->onBehalfOf() ?? Auth::user();
+        $assistant = app(AssistantContext::class);
+        $user = $assistant->onBehalfOf() ?? Auth::user();
 
         $this->actor_id = $user?->id;
         $this->actor_name = $user?->name;
         $this->actor_type = match (true) {
-            (bool) $assistant?->isActive() => 'ai',
+            $assistant->isActive() => 'ai',
             $user !== null => 'user',
             app()->runningInConsole() => 'system',
             default => 'system',

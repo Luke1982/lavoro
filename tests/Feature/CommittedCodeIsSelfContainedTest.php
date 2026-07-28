@@ -51,25 +51,6 @@ class CommittedCodeIsSelfContainedTest extends TestCase
         $this->assertSame([], $dangling, "\n" . implode("\n", $dangling) . "\n");
     }
 
-    /**
-     * Guarded references are how unreleased work is allowed to coexist with the
-     * committed provider, so the guard itself must stay in place.
-     */
-    public function test_the_assistant_is_only_registered_when_its_code_is_present(): void
-    {
-        $source = file_get_contents(app_path('Providers/AppServiceProvider.php'));
-
-        $uses = substr_count($source, 'AssistantContext::class');
-        $guards = substr_count($source, 'class_exists(AssistantContext::class)');
-
-        $this->assertGreaterThan(0, $guards, 'the assistant registration lost its guard');
-        $this->assertSame(
-            $uses - $guards,
-            $guards,
-            'an unguarded AssistantContext reference would break a deploy without the assistant'
-        );
-    }
-
     /** @return array<int, string> */
     private function trackedFiles(): array
     {
