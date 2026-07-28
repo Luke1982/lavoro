@@ -46,9 +46,10 @@ class AssistantLoop
         int $max_rounds = 6,
         ?Closure $onText = null,
         ?Closure $onTool = null,
+        string $context = '',
     ): AssistantAnswer {
         $tools = $this->definitions($user);
-        $messages = [['role' => 'user', 'content' => $question]];
+        $messages = [['role' => 'user', 'content' => $this->opening($context, $question)]];
         $rounds = 0;
         $spoken = [];
         $spent = 0;
@@ -164,6 +165,28 @@ class AssistantLoop
         }
 
         return $cost->cost_micros;
+    }
+
+    /**
+     * The opening turn: who is asking and when, then what they asked.
+     *
+     * This is deliberately not in the system prompt. Everything ahead of the
+     * cache marker has to be byte-identical to be worth caching, and a name and
+     * a date make it different for every person and every day — which would mean
+     * nobody ever reads a cached prefix and everyone pays to write one.
+     *
+     * @return string|array<int, array<string, string>>
+     */
+    private function opening(string $context, string $question): string|array
+    {
+        if ($context === '') {
+            return $question;
+        }
+
+        return [
+            ['type' => 'text', 'text' => $context],
+            ['type' => 'text', 'text' => $question],
+        ];
     }
 
     /** @return array<int, string> */

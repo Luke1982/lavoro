@@ -52,7 +52,8 @@ class AskAssistantCommand extends Command
             $answer = $loop->ask(
                 user: $user,
                 question: (string) $this->argument('question'),
-                system: $this->systemPrompt($user),
+                system: $this->systemPrompt(),
+                context: $this->userContext($user),
                 max_rounds: (int) $this->option('steps'),
                 onText: fn (string $text) => $this->line($text),
                 onTool: fn (string $name, array $arguments, bool $failed) => $this->line(
@@ -111,24 +112,28 @@ class AskAssistantCommand extends Command
     }
 
     /**
-     * The date has to be in here because "deze week" is unanswerable without it.
-     * In the chat version it belongs after the cached part of the prompt rather
-     * than in front of it, or every new day starts from a cold cache.
+     * Identical for everybody, every day, on purpose. This sits behind the cache
+     * marker together with the tool definitions, and a cached prefix only pays
+     * off while it stays byte-for-byte the same — so the name and the date live
+     * in the message instead, where they cost nothing to vary.
      */
-    private function systemPrompt(User $user): string
+    private function systemPrompt(): string
     {
         return implode("\n", [
             'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
             'Je schrijft altijd Nederlands, ook de zinnetjes tussendoor waarin je zegt wat je gaat opzoeken.',
             'Je antwoordt kort en concreet.',
             '',
-            'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.',
-            '',
             'Gebruik de tools om echte gegevens op te halen. Verzin nooit een werkbonnummer,',
             'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',
             'Een tool geeft alleen terug wat deze gebruiker mag zien, dus een leeg resultaat',
             'betekent "niets gevonden of niets zichtbaar", niet "het bestaat niet".',
         ]);
+    }
+
+    private function userContext(User $user): string
+    {
+        return 'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.';
     }
 
     private function resolveUser(): ?User
