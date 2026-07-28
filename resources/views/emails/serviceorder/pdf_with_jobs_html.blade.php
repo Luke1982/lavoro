@@ -99,7 +99,7 @@
                 bijbehorende keuringen ({{ $serviceOrder->servicejobs->count() }} stuks) als afzonderlijke
                 PDF-bestanden.</p>
             <p class="meta">
-                <span class="label">Datum:</span> {{ optional($serviceOrder->created_at)->format('d-m-Y') }}<br>
+                <span class="label">Datum opdracht:</span> {{ optional($serviceOrder->order_date)->format('d-m-Y') }}<br>
                 <span class="label">Klant:</span> {{ $serviceOrder->customer->name }}
             </p>
             @php($desc = trim((string) ($serviceOrder->description ?? '')))

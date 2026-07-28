@@ -623,7 +623,7 @@ const internalServiceOrders = computed(() => {
     }
     return results.map(so => ({
         id: so.id,
-        name: `Order ${so.id} van ${nlDate(so.created_at)}`,
+        name: so.order_date ? `Order ${so.id} van ${nlDate(so.order_date)}` : `Order ${so.id}`,
     }))
 })
 

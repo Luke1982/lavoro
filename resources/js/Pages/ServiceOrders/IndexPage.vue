@@ -54,8 +54,9 @@
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
-                <div class="flex-1 grid grid-cols-12 p-4">
+                <div class="flex-1 grid grid-cols-13 p-4">
                     <div class="col-span-2">Klant</div>
+                    <div class="col-span-1">Datum opdracht</div>
                     <div class="col-span-2">Beschrijving</div>
                     <div class="col-span-2">Fase</div>
                     <div class="col-span-2">Extern factuurnr.</div>
@@ -71,8 +72,8 @@
                         <AnimatedCheckbox :model-value="selectedIds.includes(so.id)"
                             @update:model-value="toggleSelectServiceOrder(so.id)" />
                     </div>
-                    <div class="flex-1 grid grid-cols-12 p-4">
-                        <div class="col-span-10 sm:col-span-2 flex flex-col">
+                    <div class="flex-1 grid grid-cols-13 p-4">
+                        <div class="col-span-11 sm:col-span-2 flex flex-col">
                             <Link :href="`/serviceorders/${so.id}`" class="font-bold">
                                 {{ so.customer?.name ?? '—' }}
                             </Link>
@@ -96,6 +97,10 @@
                                     {{ serviceOrderPillText(so) }}
                                 </BadgeComponent>
                             </div>
+                        </div>
+                        <div
+                            class="col-span-1 items-center hidden sm:flex pr-2 whitespace-nowrap text-slate-700 dark:text-slate-300">
+                            {{ so.order_date ? nlDate(so.order_date) : '—' }}
                         </div>
                         <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
                             <EditableTextField type="input" :decoration="false" :model-value="so.description"

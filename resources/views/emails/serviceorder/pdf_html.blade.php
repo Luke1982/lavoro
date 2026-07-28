@@ -92,7 +92,7 @@
             <p>Beste {{ $serviceOrder->customer->contact_person ?? $serviceOrder->customer->name }},</p>
             <p>In de bijlage vindt u de PDF van de uitgevoerde werkzaamheden (werkbon).</p>
             <p class="meta">
-                <span class="label">Datum:</span> {{ optional($serviceOrder->created_at)->format('d-m-Y') }}<br>
+                <span class="label">Datum opdracht:</span> {{ optional($serviceOrder->order_date)->format('d-m-Y') }}<br>
                 <span class="label">Klant:</span> {{ $serviceOrder->customer->name }}
             </p>
             @php($desc = trim((string) ($serviceOrder->description ?? '')))

@@ -127,7 +127,8 @@ class ServiceOrderController extends Controller
         }
 
         return inertia('ServiceOrders/IndexPage', [
-            'serviceOrders' => $query->orderByDesc($only_closed_stage ? 'closed_on' : 'created_at')
+            'serviceOrders' => $query->orderByDesc($only_closed_stage ? 'closed_on' : 'order_date')
+                ->orderByDesc('id')
                 ->paginate($per_page)->withQueryString(),
             'stages' => ServiceOrderStage::orderBy('order')->get(),
             'search' => $search,
@@ -755,7 +756,9 @@ class ServiceOrderController extends Controller
         $execution_location = $serviceorder->location_id
             ? $serviceorder->resolved_location
             : ($first_event?->location ?: $serviceorder->resolved_location);
-        $planned_date = ($first_event?->start ?? $serviceorder->created_at)->copy()->setTimezone($display_timezone);
+        $planned_date = $first_event
+            ? $first_event->start->copy()->setTimezone($display_timezone)
+            : $serviceorder->order_date;
 
         $executing_users = $serviceorder->events
             ->sortBy('start')

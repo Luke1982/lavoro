@@ -3,8 +3,8 @@
         <div class="inline sm:flex items-center">
             <Link href="/serviceorders" class="text-slate-400 text-sm font-medium inline">Werkbonnen</Link>
             <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-            <span class="text-slate-800 font-bold text-sm inline">Werkbon #{{ serviceOrder.id }} van {{
-                nlDate(serviceOrder.created_at) }}
+            <span class="text-slate-800 font-bold text-sm inline">Werkbon #{{ serviceOrder.id }}<template
+                    v-if="serviceOrder.order_date"> van {{ nlDate(serviceOrder.order_date) }}</template>
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
         <div class="flex gap-4">
@@ -110,6 +110,10 @@
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70" v-auto-animate>
+                                    <EditableTextField
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        inputType="date" label="Datum opdracht" v-model="form.order_date"
+                                        placeholder="Datum opdracht" />
                                     <EditableTextField
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         label="Externe referentie" v-model="form.external_purchaseorder_no"
@@ -905,6 +909,7 @@ const typeOptions = [
 watch(
     [
         () => form.description,
+        () => form.order_date,
         () => form.external_purchaseorder_no,
         () => form.external_invoice_no,
         () => form.financial_comments,

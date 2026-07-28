@@ -7,7 +7,7 @@
     In de bijlage vindt u de PDF van de uitgevoerde werkzaamheden (werkbon).
 
     @php $desc = trim((string) ($serviceOrder->description ?? '')); @endphp
-    **Datum:** {{ optional($serviceOrder->created_at)->format('d-m-Y') }} **Klant:** {{ $serviceOrder->customer->name }}
+    **Datum opdracht:** {{ optional($serviceOrder->order_date)->format('d-m-Y') }} **Klant:** {{ $serviceOrder->customer->name }}
     **Omschrijving:** @if ($desc !== '')
         {!! nl2br(e($desc)) !!}
     @else

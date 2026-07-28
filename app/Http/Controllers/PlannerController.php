@@ -67,7 +67,8 @@ class PlannerController extends Controller
                         ->where('is_planned_state', false);
                 })
                 ->tap($so_scope)
-                ->orderByDesc('created_at')
+                ->orderByDesc('order_date')
+                ->orderByDesc('id')
                 ->get()
                 ->each(fn (ServiceOrder $order) => $order->setAttribute(
                     'resolved_city',

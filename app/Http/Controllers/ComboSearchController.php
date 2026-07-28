@@ -105,9 +105,10 @@ class ComboSearchController extends Controller
                 'executingUsers',
                 fn ($uq) => $uq->where('users.id', $user->id)
             ))
-            ->orderByDesc('created_at')
+            ->orderByDesc('order_date')
+            ->orderByDesc('id')
             ->limit(50)
-            ->get(['id', 'created_at']);
+            ->get(['id', 'order_date']);
 
         return response()->json($results);
     }

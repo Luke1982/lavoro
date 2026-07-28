@@ -143,7 +143,7 @@ class MaintenanceContract extends Model
 
     public function generatedServiceOrders()
     {
-        return $this->hasMany(ServiceOrder::class)->orderByDesc('created_at');
+        return $this->hasMany(ServiceOrder::class)->orderByDesc('order_date')->orderByDesc('id');
     }
 
     public function getDisplayTitleAttribute(): string

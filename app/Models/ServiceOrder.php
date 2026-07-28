@@ -43,6 +43,7 @@ class ServiceOrder extends Model
         'project_id' => 'Project',
         'maintenance_contract_id' => 'Contract',
         'description' => 'Omschrijving',
+        'order_date' => 'Datum opdracht',
         'closed_on' => 'Afgesloten op',
         'external_invoice_no' => 'Extern factuurnummer',
         'financial_comments' => 'Financiële opmerkingen',
@@ -78,6 +79,7 @@ class ServiceOrder extends Model
 
     protected $fillable = [
         'description',
+        'order_date',
         'customer_id',
         'location_id',
         'project_id',
@@ -99,6 +101,7 @@ class ServiceOrder extends Model
     ];
 
     protected $casts = [
+        'order_date' => 'date:Y-m-d',
         'sent_to_administration' => 'boolean',
         'sent_to_customer' => 'boolean',
         'work_completed' => 'boolean',
@@ -126,6 +129,10 @@ class ServiceOrder extends Model
                 if ($first_stage) {
                     $service_order->service_order_stage_id = $first_stage->id;
                 }
+            }
+
+            if ($service_order->order_date === null) {
+                $service_order->order_date = now(config('app.display_timezone'))->toDateString();
             }
         });
 

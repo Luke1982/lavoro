@@ -62,7 +62,9 @@
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Werkbon</div>
                 <Link :href="`/serviceorders/${servicejob.service_order.id}`"
                     class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
-                    Nummer {{ servicejob.service_order.id }} gemaakt op {{ nlDate(servicejob.service_order.created_at) }}
+                    Nummer {{ servicejob.service_order.id }}<template
+                        v-if="servicejob.service_order.order_date"> van {{
+                            nlDate(servicejob.service_order.order_date) }}</template>
                 </Link>
             </div>
             <div class="sm:pl-6">

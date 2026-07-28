@@ -4,9 +4,10 @@
         <Link :href="`/serviceorders/${serviceorder.id}`"
             class="focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-500 rounded-md">
         <div class="flex py-0.5 flex-wrap">
-            <span class="font-semibold text-xs min-w-25 max-w-25 text-gray-700 dark:text-slate-300">Gemaakt op:</span>
+            <span class="font-semibold text-xs min-w-25 max-w-25 text-gray-700 dark:text-slate-300">Datum
+                opdracht:</span>
             <span class="text-sm text-gray-800 dark:text-slate-200">{{
-                nlDate(serviceorder.created_at)
+                serviceorder.order_date ? nlDate(serviceorder.order_date) : '—'
             }}</span>
         </div>
         <div class="flex py-0.5 flex-wrap items-center">

@@ -129,7 +129,8 @@
                                 Werkbon #{{ so.id }}
                             </Link>
                             <span class="text-xs text-gray-500 dark:text-slate-400">
-                                {{ generatedServiceOrderAssetLabel(so) }} — {{ nlDate(so.created_at) }}
+                                {{ generatedServiceOrderAssetLabel(so) }}<template v-if="so.order_date"> — {{
+                                    nlDate(so.order_date) }}</template>
                             </span>
                         </div>
                         <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">

@@ -22,7 +22,8 @@
                             <ExclamationTriangleIcon v-if="so.events_count > 0" class="size-4 text-amber-500"
                                 v-tooltip="`Let op: deze werkbon heeft al ${so.events_count} eerdere afspra(a)k(en) gekoppeld`" />
                         </span>
-                        <span class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{ nlDate(so.created_at) }}</span>
+                        <span v-if="so.order_date" class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{
+                            nlDate(so.order_date) }}</span>
                     </div>
                     <div v-if="so.customer" class="text-xs font-medium text-lavoro-blue truncate">
                         {{ so.customer.name }}
