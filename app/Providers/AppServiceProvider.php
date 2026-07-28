@@ -26,6 +26,7 @@ use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -42,12 +43,20 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ActivityBuffer::class);
         $this->app->singleton(Signals::class);
-        $this->app->singleton(AssistantContext::class);
 
-        $this->app->singleton(
-            ToolRegistry::class,
-            fn () => new ToolRegistry(config('assistant.tools', [])),
-        );
+        /**
+         * The assistant is still unreleased and its classes are not in the repo,
+         * so a deploy that has this provider but not that code must still boot.
+         * The guard goes when the assistant ships.
+         */
+        if (class_exists(AssistantContext::class)) {
+            $this->app->singleton(AssistantContext::class);
+
+            $this->app->singleton(
+                ToolRegistry::class,
+                fn () => new ToolRegistry(config('assistant.tools', [])),
+            );
+        }
     }
 
     /**
@@ -65,9 +74,19 @@ class AppServiceProvider extends ServiceProvider
         Ticket::observe(TicketObserver::class);
 
         Queue::before(function () {
+            /**
+             * A job that restores its actor leaves that person signed in for the
+             * rest of a long running worker, so the next job would inherit both
+             * their name and their permissions. Every job starts with nobody.
+             */
+            Auth::forgetUser();
+
             app(ActivityBuffer::class)->reset();
             app(Signals::class)->reset();
-            app(AssistantContext::class)->reset();
+
+            if (class_exists(AssistantContext::class)) {
+                app(AssistantContext::class)->reset();
+            }
         });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
