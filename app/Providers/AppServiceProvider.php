@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use Anthropic\Client as AnthropicClient;
+use App\Domain\Assistant\AnthropicModel;
 use App\Domain\Assistant\AssistantContext;
+use App\Domain\Assistant\TalksToModel;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
@@ -50,6 +53,13 @@ class AppServiceProvider extends ServiceProvider
             ToolRegistry::class,
             fn () => new ToolRegistry(config('assistant.tools', [])),
         );
+
+        $this->app->bind(
+            AnthropicClient::class,
+            fn () => new AnthropicClient(apiKey: (string) config('assistant.api_key')),
+        );
+
+        $this->app->bind(TalksToModel::class, AnthropicModel::class);
     }
 
     /**

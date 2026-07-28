@@ -45,4 +45,20 @@ return [
 
     'max_results' => 25,
 
+    /*
+    |---------------------------------------------------------------------------
+    | Model
+    |---------------------------------------------------------------------------
+    |
+    | max_tokens covers thinking and the written answer together, so it needs
+    | room for both. Too tight and a turn stops halfway through its own sentence.
+    |
+    */
+
+    'api_key' => env('ANTHROPIC_API_KEY'),
+
+    'model' => env('ASSISTANT_MODEL', 'claude-opus-5'),
+
+    'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 8000),
+
 ];
