@@ -7,6 +7,13 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         globals: true,
+        /**
+         * Only our own tests. Without this the default glob reaches into
+         * vendor/, where composer packages ship their own suites written against
+         * dependencies we do not install — anthropic-ai/sdk brought one in, and
+         * it failed the run while having nothing to do with this application.
+         */
+        include: ['resources/js/**/*.{test,spec}.{js,ts}'],
     },
     resolve: {
         alias: {

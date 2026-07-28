@@ -57,6 +57,29 @@ export function eventsOnDay(events, userId, dayIso) {
 }
 
 /**
+ * The arithmetic on its own: given a working window and the stretches that are
+ * taken or blocked, what is left.
+ *
+ * Kept apart from the loading above because App\Domain\Planning\DaySegments is
+ * the same rule in PHP — the planner recalculates while you drag and so must run
+ * here, the assistant answers from the server and so must run there. Both read
+ * tests/fixtures/day-segments.json, which is what turns the day they disagree
+ * into a red test rather than a planner being contradicted by the assistant.
+ */
+export function segmentsFromBands({
+    busy,
+    blocked,
+    dayStartHour,
+    dayEndHour,
+    minSegmentMinutes = MIN_SEGMENT_MINUTES,
+}) {
+    const busyBands = mergeBands(busy);
+    const blockedBands = mergeBands(blocked);
+
+    return computeSegments(busyBands, blockedBands, dayStartHour, dayEndHour, minSegmentMinutes);
+}
+
+/**
  * Splits one mechanic's workday into what is bookable and what is not.
  * Use daySegmentsAcrossUsers for the room the team as a whole has.
  */
@@ -69,11 +92,16 @@ export function daySegmentsFor({
     dayEndHour,
     minSegmentMinutes = MIN_SEGMENT_MINUTES,
 }) {
-    const busy = mergeBands(
-        eventsOnDay(events, userId, dayIso).map((ev) => eventMinutesFor(ev, userId, dayIso))
-    );
-    const blocked = mergeBands(unavailabilityBandsFor(plannableUsers, userId, dayIso));
+    return segmentsFromBands({
+        busy: eventsOnDay(events, userId, dayIso).map((ev) => eventMinutesFor(ev, userId, dayIso)),
+        blocked: unavailabilityBandsFor(plannableUsers, userId, dayIso),
+        dayStartHour,
+        dayEndHour,
+        minSegmentMinutes,
+    });
+}
 
+function computeSegments(busy, blocked, dayStartHour, dayEndHour, minSegmentMinutes) {
     const workday = { startMin: dayStartHour * 60, endMin: dayEndHour * 60 };
     const segments = [];
 

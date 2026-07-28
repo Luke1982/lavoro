@@ -5460,6 +5460,147 @@ git commit -m "chore(deploy): back up and migrate every tenant database"
 
 ---
 
+## Task 39: Per-tenant AI allowance
+
+The assistant costs real money per question and the bill lands on us, not on the
+tenant. This bills it as a fixed monthly amount with a spend ceiling behind it,
+rather than metering: the tenant pays a flat fee, the ceiling guarantees what is
+left over, and nobody has to read an itemised token invoice.
+
+The numbers, measured on the read-only tools in July 2026 on Sonnet:
+
+| | cost |
+|---|---|
+| one question, one tool round, cold cache | €0,0237 |
+| the same with prompt caching | €0,0150 |
+| a follow-up inside the five-minute window | €0,0030 |
+
+So a €5 ceiling is roughly 330 questions a month at today's shape. That is not
+generous, and it moves: writes (a later phase) run longer conversations and cost
+several times a read. Set the number from `assistant_usage`, which has been
+collecting since before tenancy, rather than from this table.
+
+The ceiling is a spend limit first and a product feature second. Its job is that
+one tenant with a runaway script cannot quietly hand us a four-figure Anthropic
+bill; the tenant-facing meter is a consequence of having it, not the reason for
+it.
+
+**Prerequisite already in the tree:** `assistant_usage` and `App\Domain\Assistant\UsageCost`
+exist and record every call in millionths of a euro, with all four token counts
+and the rates applied. This task moves that table to central and puts a ceiling
+on it. Read the migration's docblock before changing any of it — the unit and the
+four separate counts are both load-bearing, and the reasons are not obvious.
+
+**Files:**
+- `database/migrations/central/…_add_ai_allowance_to_tenants_table.php` (new)
+- `database/migrations/central/…_create_assistant_usage_table.php` (new — the central copy)
+- `database/migrations/tenant/…_drop_assistant_usage_table.php` (new — after the copy across)
+- `app/Models/Central/AssistantUsage.php` (new; replaces `App\Models\AssistantUsage`)
+- `app/Services/AssistantAllowance.php` (new)
+- `app/Domain/Assistant/AllowanceGate.php`, `TenantAllowanceGate.php` (new)
+- `app/Domain/Assistant/AssistantLoop.php`
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `tests/Feature/AssistantAllowanceTest.php` (new)
+
+**Interfaces:**
+- Consumes: `Tenant` (Task 4), `PricingSetting` (Task 16), `UsageCost` (already in tree).
+- Produces:
+  - `tenants.ai_allowance_micros` — unsigned big integer, default from `pricing_settings.ai_allowance_micros` (5_000_000 = €5).
+  - `App\Services\AssistantAllowance` — `spentMicros(): int`, `allowanceMicros(): int`, `remainingMicros(): int`, `hasRoom(): bool`, `record(UsageCost $cost, int $user_id): void`.
+  - `App\Domain\Assistant\AllowanceGate` — `hasRoom(): bool`, `record(UsageCost $cost, int $user_id): void`. The loop depends on this rather than on the service, so it stays testable without a tenant.
+
+### Why the rows move to central
+
+`assistant_usage` currently lives in the tenant database because that is the only
+one there is. It belongs in central for three reasons, and each of them is a
+separate failure if ignored: a restore of a tenant database would otherwise
+rewrite what that tenant owes; totalling spend across tenants would be a query
+per database instead of one; and a ceiling enforced from data the tenant's own
+database holds is a ceiling the tenant can edit.
+
+Rows carry `tenant_id` and nothing else changes — same columns, same units.
+
+- [ ] **Step 1: Add the allowance column and the central table**
+
+```php
+Schema::connection('central')->table('tenants', function (Blueprint $table) {
+    $table->unsignedBigInteger('ai_allowance_micros')->nullable()->after('storage_limit_gb');
+});
+```
+
+Nullable so a tenant can fall back to the catalogue default rather than being
+pinned to whatever it was worth on the day they signed up. `AssistantAllowance`
+resolves `tenant->ai_allowance_micros ?? PricingSetting::value('ai_allowance_micros', 5_000_000)`.
+
+The central `assistant_usage` is the tenant table plus `tenant_id`, indexed
+`['tenant_id', 'created_at']` — that index is what makes the monthly sum one
+seek rather than a scan, and the sum runs on every call.
+
+- [ ] **Step 2: Copy existing rows across, then drop the tenant table**
+
+In the Task 27 deployment window, per tenant: read `assistant_usage`, insert into
+central with the tenant id, verify counts match, then drop. Do not drop before
+verifying — the rows are the only record of what has been spent, and there is no
+way to recompute them from anything else.
+
+- [ ] **Step 3: The gate the loop asks**
+
+The loop must not reach for `tenancy()`. It takes an `AllowanceGate`, and the
+binding decides what that means — a real ceiling in the app, a permissive one in
+tests that have no tenant.
+
+```php
+interface AllowanceGate
+{
+    public function hasRoom(): bool;
+
+    public function record(UsageCost $cost, int $user_id): void;
+}
+```
+
+- [ ] **Step 4: Check before every call, not once per question**
+
+In `AssistantLoop::ask`, inside the loop and before `$this->model->send(...)`:
+
+```php
+if (!$this->allowance->hasRoom()) {
+    throw new AllowanceExhausted(...);
+}
+```
+
+Before each call rather than once at the start, because a question can take up to
+`max_rounds` calls and checking only at the front lets a single question overrun
+by all of them. Checking every time bounds the overshoot at one call — about a
+cent and a half, against a five euro ceiling.
+
+The overshoot cannot be removed entirely: what a call costs is only known once it
+has returned. Reserving an estimate up front would trade a one-cent overshoot for
+permanently under-using the allowance, which is the worse deal.
+
+- [ ] **Step 5: Show it before they hit it**
+
+Share `used`, `allowance` and `remaining` through `HandleInertiaRequests` so the
+assistant panel can show "€3,20 van €5,00 verbruikt" and warn at 80%. A hard stop
+nobody saw coming reads as a bug; the same stop after two warnings reads as a
+limit.
+
+- [ ] **Step 6: Tests**
+
+Cover the ceiling holding (spend at the limit, next call refused), the month
+boundary (last month's spend does not count), the fallback to the catalogue
+default when the column is null, and one tenant's spend never counting against
+another's. That last one is the whole point of the tenant column and is the
+easiest to get wrong.
+
+- [ ] **Step 7: Price it**
+
+Add `ai_allowance_micros` to `pricing_settings` and fold the subscription line
+into `TenantSubscription::monthlyTotalCents()`. At €10 charged against a €5
+ceiling the margin floor is €5, and it is a floor rather than an estimate: the
+ceiling is what makes the worst case knowable.
+
+---
+
 ## Known impact and follow-up work
 
 1. ~~Existing test suite will break.~~ **Resolved by Task 30.** `phpunit.xml` moves from SQLite `:memory:` to a dedicated MySQL test database (`lavoro_test_landlord` plus a `lavoro_test_tenant_`-prefixed tenant database), with a hard runtime assertion and a narrowly-grants-only MySQL user as two independent layers ensuring a misconfiguration cannot make a test run reach `lavoro` or a real customer database. (Vitest frontend tests are unaffected.)

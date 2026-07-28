@@ -44,7 +44,10 @@ vi.mock('axios', () => ({
     },
 }))
 
-vi.mock('@/Utilities/Utilities.js', () => ({ hasPermission: () => true }))
+vi.mock('@/Utilities/Utilities.js', () => ({
+    hasPermission: () => true,
+    subjectSubtitle: () => '',
+}))
 vi.mock('glightbox', () => ({ default: () => ({ reload: vi.fn(), on: vi.fn() }) }))
 vi.mock('tui-image-editor', () => ({ default: class {} }))
 
