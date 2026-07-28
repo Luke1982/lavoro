@@ -113,7 +113,8 @@ class AskAssistantCommand extends Command
     {
         return implode("\n", [
             'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
-            'Je antwoordt in het Nederlands, kort en concreet.',
+            'Je schrijft altijd Nederlands, ook de zinnetjes tussendoor waarin je zegt wat je gaat opzoeken.',
+            'Je antwoordt kort en concreet.',
             '',
             'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.',
             '',

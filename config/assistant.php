@@ -57,7 +57,7 @@ return [
 
     'api_key' => env('ANTHROPIC_API_KEY'),
 
-    'model' => env('ASSISTANT_MODEL', 'claude-opus-5'),
+    'model' => env('ASSISTANT_MODEL', 'claude-sonnet-5'),
 
     'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 16000),
 
