@@ -31,6 +31,12 @@ class ServiceOrderTaskInstance extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'service_order_id' => 'Werkbon',
+        'service_order_task_id' => 'Taaksjabloon',
+        'product_id' => 'Product',
+        'completed_by' => 'Afgerond door',
+        'signed_by' => 'Ondertekend door',
+        'signed_at' => 'Ondertekend op',
         'title' => 'Titel',
         'quantity' => 'Aantal',
         'is_complete' => 'Afgerond',

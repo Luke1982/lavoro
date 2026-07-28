@@ -146,7 +146,32 @@ trait RecordsHistory
             return $old === $new;
         }
 
-        return (string) $old === (string) $new;
+        $old = (string) $old;
+        $new = (string) $new;
+
+        return $old === $new || $this->sameMoment($old, $new);
+    }
+
+    /**
+     * A time column hands back 07:30:00 where the form submitted 07:30, and a date
+     * column hands back 2026-07-27 00:00:00 where the form submitted 2026-07-27.
+     * Neither is a change, so anything shaped like a date or a time is compared as
+     * a moment rather than as text.
+     */
+    private function sameMoment(string $old, string $new): bool
+    {
+        $shape = '/^(\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?|\d{2}:\d{2}(:\d{2})?)$/';
+
+        if (!preg_match($shape, $old) || !preg_match($shape, $new)) {
+            return false;
+        }
+
+        try {
+            return (new \DateTimeImmutable($old))->format('Y-m-d H:i:s')
+                === (new \DateTimeImmutable($new))->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function scalarValue(mixed $value): ?string

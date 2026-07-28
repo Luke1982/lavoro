@@ -37,6 +37,10 @@ class ServiceOrder extends Model
     use RemarkableTrait;
 
     protected array $activity_labels = [
+        'signed_by' => 'Ondertekend door',
+        'execution_location' => 'Uitvoeringslocatie',
+        'actual_start_time' => 'Werkelijke starttijd',
+        'actual_end_time' => 'Werkelijke eindtijd',
         'service_order_stage_id' => 'Fase',
         'customer_id' => 'Klant',
         'location_id' => 'Locatie',

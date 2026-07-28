@@ -20,6 +20,16 @@ class Customer extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'quotes_email' => 'Offerte e-mail',
+        'website' => 'Website',
+        'country' => 'Land',
+        'postal_address' => 'Postadres',
+        'postal_postal_code' => 'Postcode postadres',
+        'postal_city' => 'Plaats postadres',
+        'postal_country' => 'Land postadres',
+        'chamber_of_commerce_number' => 'KvK-nummer',
+        'location_code' => 'Locatiecode',
+        'billing_customer_id' => 'Factuurklant',
         'name' => 'Naam',
         'email' => 'E-mail',
         'invoice_email' => 'Factuur e-mail',

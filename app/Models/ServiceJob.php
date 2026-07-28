@@ -27,6 +27,9 @@ class ServiceJob extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'service_order_id' => 'Werkbon',
+        'completed_by' => 'Afgerond door',
+        'parent_service_job_id' => 'Bovenliggende keuring',
         'asset_id' => 'Machine',
         'outcome' => 'Uitkomst',
         'description' => 'Omschrijving',

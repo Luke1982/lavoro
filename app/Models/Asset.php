@@ -22,6 +22,9 @@ class Asset extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'product_relation_id' => 'Productrelatie',
+        'productable_id' => 'Gekoppeld product',
+        'service_order_task_instance_id' => 'Taak',
         'product_id' => 'Product',
         'customer_id' => 'Klant',
         'location_id' => 'Locatie',
@@ -65,6 +68,28 @@ class Asset extends Model
                 );
             }
         });
+    }
+
+    /**
+     * Limits a query to the machines this person may see, mirroring AssetPolicy:
+     * everything with asset.read, otherwise only the machines on their own open
+     * werkbonnen, and nothing at all without either.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasPermission('asset.read')) {
+            return $query;
+        }
+
+        if ($user->hasPermission('asset.read.relevant.serviceorder')) {
+            return $query->whereIn('id', $user->relevantAssetIds());
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     public function scopeUpcomingAndUnplanned($query, int $days = 60)

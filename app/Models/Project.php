@@ -10,6 +10,7 @@ class Project extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'financial_notes' => 'Financiële notities',
         'title' => 'Titel',
         'description' => 'Omschrijving',
         'customer_id' => 'Klant',

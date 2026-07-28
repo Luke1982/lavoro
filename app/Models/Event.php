@@ -26,6 +26,7 @@ class Event extends Model
     use SoftDeletes;
 
     protected array $activity_labels = [
+        'no_service_order' => 'Zonder werkbon',
         'name' => 'Naam',
         'description' => 'Omschrijving',
         'start' => 'Start',

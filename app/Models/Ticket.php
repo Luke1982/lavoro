@@ -23,6 +23,8 @@ class Ticket extends Model
     use RemarkableTrait;
 
     protected array $activity_labels = [
+        'status_code' => 'Statuscode',
+        'created_by_id' => 'Aangemaakt door',
         'asset_id' => 'Machine',
         'subject' => 'Onderwerp',
         'description' => 'Omschrijving',

@@ -17,6 +17,12 @@ class Material extends Model
     use RecordsHistory;
 
     protected array $activity_labels = [
+        'description' => 'Omschrijving',
+        'material_category_id' => 'Categorie',
+        'material_usage_unit_id' => 'Eenheid',
+        'vendor_code' => 'Leverancierscode',
+        'divisable' => 'Deelbaar',
+        'is_service' => 'Dienst',
         'name' => 'Naam',
         'price' => 'Prijs',
         'cost_price' => 'Kostprijs',
