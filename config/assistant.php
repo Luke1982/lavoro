@@ -61,4 +61,36 @@ return [
 
     'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 16000),
 
+    /*
+    |---------------------------------------------------------------------------
+    | What a turn costs
+    |---------------------------------------------------------------------------
+    |
+    | Dollars per million tokens, as Anthropic lists them. Cached input is a
+    | separate rate in both directions: writing to the cache costs more than
+    | ordinary input, reading from it costs a fraction. Both are recorded, so the
+    | day caching is switched on the numbers stay honest.
+    |
+    | These are list prices. Sonnet is on introductory pricing until 2026-08-31,
+    | so today's real bill is lower than what gets recorded — which errs towards
+    | over-stating cost, and that is the safe direction for anything that decides
+    | when to cut someone off.
+    |
+    */
+
+    'pricing' => [
+        'claude-sonnet-5' => ['input' => 3.00, 'output' => 15.00, 'cache_write' => 3.75, 'cache_read' => 0.30],
+        'claude-opus-5' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
+        'claude-opus-4-8' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
+        'claude-haiku-4-5' => ['input' => 1.00, 'output' => 5.00, 'cache_write' => 1.25, 'cache_read' => 0.10],
+    ],
+
+    /*
+    | Anthropic bills in dollars and tenants are billed in euros, so the rate used
+    | is written onto every row. Without that, a currency move would silently
+    | rewrite what last month cost.
+    */
+
+    'eur_per_usd' => (float) env('ASSISTANT_EUR_PER_USD', 0.92),
+
 ];

@@ -7,6 +7,7 @@ use Anthropic\Core\Exceptions\APIStatusException;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
+use App\Models\AssistantUsage;
 use App\Models\User;
 use Illuminate\Console\Command;
 use RuntimeException;
@@ -74,7 +75,12 @@ class AskAssistantCommand extends Command
 
         $this->newLine();
         $this->line('<comment>' . $answer->tool_rounds . ' tool-ronde(s), '
-            . $answer->inputTokens() . ' in / ' . $answer->outputTokens() . ' uit</comment>');
+            . $answer->inputTokens() . ' in / ' . $answer->outputTokens() . ' uit, '
+            . '€' . number_format($answer->costEuros(), 4, ',', '') . '</comment>');
+
+        $this->line('<comment>deze maand: €'
+            . number_format(AssistantUsage::spentMicrosInMonth() / 1_000_000, 2, ',', '')
+            . ' over ' . AssistantUsage::inMonth(now())->count() . ' aanroepen</comment>');
 
         return self::SUCCESS;
     }

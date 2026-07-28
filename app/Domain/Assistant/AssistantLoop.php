@@ -10,9 +10,12 @@ use Anthropic\Messages\ToolUseBlock;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
+use App\Models\AssistantUsage;
 use App\Models\User;
 use Closure;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Runs one question to its answer: ask the model, run whatever tools it asks
@@ -48,9 +51,12 @@ class AssistantLoop
         $messages = [['role' => 'user', 'content' => $question]];
         $rounds = 0;
         $spoken = [];
+        $spent = 0;
 
         while (true) {
             $response = $this->model->send($messages, $tools, $system);
+
+            $spent += $this->recordCost($user, $response);
 
             if ($response->stopReason === 'refusal') {
                 throw new RuntimeException('Het model heeft de vraag geweigerd.');
@@ -81,7 +87,7 @@ class AssistantLoop
             ));
 
             if ($calls === []) {
-                return new AssistantAnswer(implode("\n", $spoken), $rounds, $response);
+                return new AssistantAnswer(implode("\n", $spoken), $rounds, $response, $spent);
             }
 
             if (++$rounds > $max_rounds) {
@@ -119,6 +125,45 @@ class AssistantLoop
         }
 
         return $results;
+    }
+
+    /**
+     * Writes down what the call cost and returns it, so the caller can show the
+     * price of one question without adding the rows back up.
+     *
+     * A failed write must not lose the answer someone is waiting for, so it is
+     * reported and swallowed — the same position the activity log takes. It does
+     * mean the meter can undercount when the database is unhappy, which is the
+     * right way round: an unbilled call beats a lost answer.
+     */
+    private function recordCost(User $user, Message $response): int
+    {
+        $cost = UsageCost::forCall((string) $response->model, $response->usage);
+
+        try {
+            AssistantUsage::create([
+                'user_id' => $user->id,
+                'model' => $cost->model,
+                'input_tokens' => $cost->input_tokens,
+                'output_tokens' => $cost->output_tokens,
+                'cache_write_tokens' => $cost->cache_write_tokens,
+                'cache_read_tokens' => $cost->cache_read_tokens,
+                'cost_micros' => $cost->cost_micros,
+                'cost_usd_micros' => $cost->cost_usd_micros,
+                'eur_per_usd' => $cost->eur_per_usd,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Kon assistentverbruik niet vastleggen', [
+                'model' => $cost->model,
+                'exception' => $e,
+            ]);
+        }
+
+        if (!$cost->isPriced()) {
+            Log::warning('Geen prijs bekend voor model, verbruik geteld als nul', ['model' => $cost->model]);
+        }
+
+        return $cost->cost_micros;
     }
 
     /** @return array<int, string> */
