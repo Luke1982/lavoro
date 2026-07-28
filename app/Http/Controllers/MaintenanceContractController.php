@@ -29,6 +29,7 @@ use App\Models\MaintenanceContract;
 use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class MaintenanceContractController extends Controller
 {
@@ -83,7 +84,9 @@ class MaintenanceContractController extends Controller
             'assets.product.images',
             'assets.linkedLocation',
             'activities' => function ($q) {
-                $q->with('user:id,name')->orderByDesc('activityables.created_at');
+                $q->visibleTo(Auth::user())
+                    ->with(['user:id,name', 'fieldChanges'])
+                    ->orderByDesc('activityables.created_at');
             },
             'remarks.user',
             'generatedServiceOrders.serviceJobs.asset.product.brand',

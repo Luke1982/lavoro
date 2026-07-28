@@ -33,6 +33,15 @@ class ContractFieldChanged extends BaseSignal
         return 'other';
     }
 
+    /**
+     * This signal reports whichever contract field changed, including the money
+     * ones, so it asks the contract itself whether that field is gated.
+     */
+    public function requiredPermission(): ?string
+    {
+        return $this->contract->permissionForField($this->field);
+    }
+
     public function subject(): Model
     {
         return $this->contract;

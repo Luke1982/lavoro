@@ -49,8 +49,12 @@ class BulkMoveServiceOrderStageJob implements ShouldQueue
             Auth::setUser($actor);
         }
 
-        ServiceOrder::whereIn('id', $this->service_order_ids)
-            ->get()
-            ->each(fn (ServiceOrder $order) => $order->moveToStage($stage));
+        try {
+            ServiceOrder::whereIn('id', $this->service_order_ids)
+                ->get()
+                ->each(fn (ServiceOrder $order) => $order->moveToStage($stage));
+        } finally {
+            Auth::forgetUser();
+        }
     }
 }

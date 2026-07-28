@@ -45,6 +45,7 @@ class ServiceOrder extends Model
         'description' => 'Omschrijving',
         'closed_on' => 'Afgesloten op',
         'external_invoice_no' => 'Extern factuurnummer',
+        'financial_comments' => 'Financiële opmerkingen',
         'external_purchaseorder_no' => 'Extern inkoopordernummer',
         'work_completed' => 'Werk afgerond',
         'sent_to_customer' => 'Verzonden naar klant',
@@ -68,6 +69,11 @@ class ServiceOrder extends Model
         'service_order_stage_id',
         'closed_on',
         'sent_to_administration',
+    ];
+
+    /** Fields whose entries are gated behind a permission. */
+    protected array $activity_permissions = [
+        'financial_comments' => 'serviceorder.see_financials',
     ];
 
     protected $fillable = [

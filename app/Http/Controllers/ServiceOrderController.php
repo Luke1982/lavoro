@@ -223,7 +223,9 @@ class ServiceOrderController extends Controller
             'materials.usageUnit',
             'freeformMaterials',
             'activities' => function ($q) {
-                $q->with(['user:id,name', 'fieldChanges'])->orderByDesc('activityables.created_at');
+                $q->visibleTo(Auth::user())
+                    ->with(['user:id,name', 'fieldChanges'])
+                    ->orderByDesc('activityables.created_at');
             },
             'remarks.user',
             'internalRemarks.user',
@@ -299,7 +301,8 @@ class ServiceOrderController extends Controller
 
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
-                $q->whereHas('serviceOrders', fn ($qq) => $qq->whereKey($service_order->id))
+                $q->visibleTo(Auth::user())
+                    ->whereHas('serviceOrders', fn ($qq) => $qq->whereKey($service_order->id))
                     ->with('user:id,name')
                     ->orderByDesc('activities.created_at');
             }])

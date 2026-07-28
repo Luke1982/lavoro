@@ -76,6 +76,7 @@ class RecordActivity
             'metadata' => $signal->activityMetadata(),
             'occurred_at' => $signal->occurredAt(),
             'correlation_id' => $signal->correlationId(),
+            'required_permission' => $signal->requiredPermission(),
         ]);
 
         foreach ($changes as $change) {

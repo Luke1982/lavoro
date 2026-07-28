@@ -31,6 +31,11 @@ class Material extends Model
         'snelstart_id',
     ];
 
+    /** Fields whose entries are gated behind a permission. */
+    protected array $activity_permissions = [
+        'cost_price' => 'material.see_financials',
+    ];
+
     protected $fillable = [
         'name',
         'description',

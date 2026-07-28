@@ -39,6 +39,12 @@ class Customer extends Model
         'snelstart_id',
     ];
 
+    /** Fields whose entries are gated behind a permission. */
+    protected array $activity_permissions = [
+        'iban' => 'customer.see_sensitive',
+        'vat_number' => 'customer.see_sensitive',
+    ];
+
     protected $fillable = [
         'snelstart_id',
         'name',

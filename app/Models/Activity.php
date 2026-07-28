@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,12 +26,34 @@ class Activity extends Model
         'metadata',
         'occurred_at',
         'correlation_id',
+        'required_permission',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'occurred_at' => 'datetime',
     ];
+
+    /**
+     * Entries whose subject holds sensitive values are gated. Anything without a
+     * required permission is open, so the scope never hides ordinary history.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user?->isAdmin()) {
+            return $query;
+        }
+
+        $held = $user ? $user->permissionNames() : [];
+
+        return $query->where(function (Builder $q) use ($held) {
+            $q->whereNull('required_permission');
+
+            if ($held !== []) {
+                $q->orWhereIn('required_permission', $held);
+            }
+        });
+    }
 
     public function subject(): MorphTo
     {

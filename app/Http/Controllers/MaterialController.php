@@ -9,6 +9,7 @@ use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
 use App\Models\Supplier;
+use Illuminate\Support\Facades\Auth;
 
 class MaterialController extends Controller
 {
@@ -87,7 +88,7 @@ class MaterialController extends Controller
             'category',
             'usageUnit',
             'suppliers',
-            'activities' => fn($q) => $q->with('user')->latest(),
+            'activities' => fn ($q) => $q->visibleTo(Auth::user())->with('user')->latest(),
         ]);
 
         $supplier_count = Supplier::count();
@@ -99,7 +100,7 @@ class MaterialController extends Controller
             'material' => $material,
             'categories' => MaterialCategory::orderBy('name')->get(['id', 'name']),
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
-            'materialSuppliers' => $material->suppliers->map(fn($s) => [
+            'materialSuppliers' => $material->suppliers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'article_number' => $s->pivot->article_number,

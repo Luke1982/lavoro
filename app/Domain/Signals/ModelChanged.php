@@ -19,8 +19,14 @@ class ModelChanged extends BaseSignal
         public Model $model,
         public string $action,
         public array $changes = [],
+        public ?string $required_permission = null,
     ) {
         parent::__construct();
+    }
+
+    public function requiredPermission(): ?string
+    {
+        return $this->required_permission;
     }
 
     public static function key(): string
@@ -74,7 +80,16 @@ class ModelChanged extends BaseSignal
      */
     public function mergeKey(): ?string
     {
-        return $this->action === 'updated' ? 'updated' : null;
+        if ($this->action !== 'updated') {
+            return null;
+        }
+
+        /**
+         * The permission is part of the key so an open entry and a gated one are
+         * never folded together. Without it the sensitive values would land in
+         * the entry everyone can read.
+         */
+        return 'updated|' . ($this->required_permission ?? '');
     }
 
     private function changeSentence(): ?string

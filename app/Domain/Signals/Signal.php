@@ -62,6 +62,12 @@ interface Signal
      */
     public static function coveredFields(): array;
 
+    /**
+     * Permission a user must hold to read this entry, or null when anyone may.
+     * The trail records sensitive values in full; this decides who sees them.
+     */
+    public function requiredPermission(): ?string;
+
     /** Ties every signal in one cascade back to the action that started it. */
     public function correlateWith(string $correlation_id): void;
 

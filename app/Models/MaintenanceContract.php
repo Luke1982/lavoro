@@ -53,6 +53,13 @@ class MaintenanceContract extends Model
         'customer_id' => ['customer', 'name'],
     ];
 
+    /** Fields whose entries are gated behind a permission. */
+    protected array $activity_permissions = [
+        'price' => 'maintenancecontract.see_financials',
+        'price_interval' => 'maintenancecontract.see_financials',
+        'price_interval_days' => 'maintenancecontract.see_financials',
+    ];
+
     protected $fillable = [
         'customer_id',
         'title',

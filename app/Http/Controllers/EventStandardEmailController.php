@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\StandardEmail;
 use App\Services\StandardEmailRenderer;
 use App\Services\StandardEmailSender;
+use Illuminate\Support\Facades\Auth;
 
 class EventStandardEmailController extends Controller
 {
@@ -48,6 +49,7 @@ class EventStandardEmailController extends Controller
     public function history(EventStandardEmailReadRequest $request, Event $event)
     {
         $activities = $event->activities()
+            ->visibleTo(Auth::user())
             ->where('category', 'email')
             ->orderByDesc('created_at')
             ->get();

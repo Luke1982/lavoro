@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
  *   protected array $activity_labels = ['customer_id' => 'Klant'];
  *   protected array $activity_relations = ['customer_id' => ['customer', 'name']];
  *   protected array $activity_ignore = ['internal_token'];
+ *   protected array $activity_permissions = ['price' => 'material.see_financials'];
  *
  * @mixin Model
  *
@@ -48,15 +49,60 @@ trait RecordsHistory
         static::registerModelEvent('restored', fn (Model $model) => $model->recordHistory('restored'));
     }
 
+    /**
+     * Sensitive fields are split into their own entry rather than redacted, so
+     * each entry's sentence is already right for whoever may read it and nobody
+     * has to reconstruct a partial description at render time.
+     */
     public function recordHistory(string $action): void
     {
-        $changes = $action === 'updated' ? $this->collectChanges() : [];
+        if ($action !== 'updated') {
+            Signals::dispatch(new ModelChanged($this, $action));
 
-        if ($action === 'updated' && $changes === []) {
             return;
         }
 
-        Signals::dispatch(new ModelChanged($this, $action, $changes));
+        $changes = $this->collectChanges();
+
+        if ($changes === []) {
+            return;
+        }
+
+        foreach ($this->groupByPermission($changes) as $permission => $group) {
+            Signals::dispatch(new ModelChanged(
+                $this,
+                $action,
+                $group,
+                $permission === '' ? null : $permission,
+            ));
+        }
+    }
+
+    /**
+     * The permission needed to read an entry reporting this field, or null when
+     * anyone may. Public so a named signal reporting the same field gates itself
+     * from the same declaration rather than repeating it.
+     */
+    public function permissionForField(string $field): ?string
+    {
+        $permissions = property_exists($this, 'activity_permissions') ? $this->activity_permissions : [];
+
+        return $permissions[$field] ?? null;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $changes
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function groupByPermission(array $changes): array
+    {
+        $grouped = [];
+
+        foreach ($changes as $change) {
+            $grouped[$this->permissionForField($change['field']) ?? ''][] = $change;
+        }
+
+        return $grouped;
     }
 
     /**
