@@ -49,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
          * so a deploy that has this provider but not that code must still boot.
          * The guard goes when the assistant ships.
          */
-        if (class_exists(AssistantContext::class)) {
+        if (class_exists(AssistantContext::class) && class_exists(ToolRegistry::class)) {
             $this->app->singleton(AssistantContext::class);
 
             $this->app->singleton(
