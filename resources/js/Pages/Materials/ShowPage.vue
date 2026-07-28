@@ -80,8 +80,10 @@
                         </EditableTextField>
                         <EditableTextField v-model="form.price" type="input" inputType="currency" label="Verkoopprijs"
                             :error="form.errors.price" @revert="form.clearErrors('price')" />
-                        <EditableTextField v-model="form.cost_price" type="input" inputType="currency" label="Inkoopprijs"
+                        <div v-if="hasPermission('material.see_financials')">
+<EditableTextField v-model="form.cost_price" type="input" inputType="currency" label="Inkoopprijs"
                             :error="form.errors.cost_price" @revert="form.clearErrors('cost_price')" />
+                        </div>
                         <EditableTextField v-model="form.stock" type="input" label="Voorraad"
                             :error="form.errors.stock" @revert="form.clearErrors('stock')" />
                         <EditableTextField v-model="form.min_stock" type="input" label="Min. voorraad"

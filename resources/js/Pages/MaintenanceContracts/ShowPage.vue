@@ -52,7 +52,8 @@
                         placeholder="Geen einddatum"
                         :error="form.errors.end_date" :readonly="!canUpdate"
                         @update="() => patch('end_date')" @revert="form.clearErrors('end_date')" />
-                    <EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
+                    <div v-if="hasPermission('maintenancecontract.see_financials')">
+<EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
                         :error="form.errors.price" :readonly="!canUpdate"
                         @update="() => patch('price')" @revert="form.clearErrors('price')" />
                     <EditableTextField v-model="form.price_interval" type="combobox" label="Prijsinterval"
@@ -60,6 +61,7 @@
                         :error="form.errors.price_interval" :readonly="!canUpdate"
                         @update="() => patch('price_interval', 'price_interval_days')"
                         @revert="form.clearErrors('price_interval')" />
+                    </div>
                     <EditableTextField v-if="form.price_interval === 'Aangepast (dagen)'"
                         v-model="form.price_interval_days" type="input" inputType="number" label="Elke ... dagen"
                         :error="form.errors.price_interval_days" :readonly="!canUpdate"

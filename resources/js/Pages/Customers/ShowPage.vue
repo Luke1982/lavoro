@@ -178,14 +178,18 @@
                                     <EditableTextField v-model="form.quotes_email" type="input" label="Offerte e-mail"
                                         placeholder="Nog niet ingesteld" :error="form.errors.quotes_email"
                                         :disabled="!canUpdate" @revert="form.clearErrors('quotes_email')" />
-                                    <EditableTextField v-model="form.iban" type="input" label="IBAN"
+                                    <div v-if="hasPermission('customer.see_sensitive')">
+<EditableTextField v-model="form.iban" type="input" label="IBAN"
                                         placeholder="Nog niet ingesteld" :error="form.errors.iban"
                                         :disabled="!canUpdate" @revert="form.clearErrors('iban')" />
+                                    </div>
                                 </div>
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
-                                    <EditableTextField v-model="form.vat_number" type="input" label="BTW-nummer"
+                                    <div v-if="hasPermission('customer.see_sensitive')">
+<EditableTextField v-model="form.vat_number" type="input" label="BTW-nummer"
                                         placeholder="Nog niet ingesteld" :error="form.errors.vat_number"
                                         :disabled="!canUpdate" @revert="form.clearErrors('vat_number')" />
+                                    </div>
                                     <EditableTextField v-model="form.chamber_of_commerce_number" type="input"
                                         label="KvK-nummer" placeholder="Nog niet ingesteld"
                                         :error="form.errors.chamber_of_commerce_number" :disabled="!canUpdate"

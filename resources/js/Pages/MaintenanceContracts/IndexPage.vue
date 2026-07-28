@@ -55,7 +55,9 @@
                 <div class="flex flex-col py-1 md:py-0 md:col-span-2">
                     <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Prijs</span>
                     <span class="text-gray-500 dark:text-slate-400">
-                        {{ nlCurrency(contract.price) }} / {{ contract.price_interval }}
+                        <div v-if="hasPermission('maintenancecontract.see_financials')">
+{{ nlCurrency(contract.price) }} / {{ contract.price_interval }}
+                        </div>
                     </span>
                 </div>
                 <div class="flex flex-col py-1 md:py-0 md:col-span-2">
