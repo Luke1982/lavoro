@@ -10,6 +10,7 @@ use App\Http\Requests\TicketListRequest;
 use App\Http\Requests\TicketReadRequest;
 use App\Http\Requests\TicketUpdateRequest;
 use App\Models\DocumentCategory;
+use App\Models\MaintenanceContract;
 use App\Models\Ticket;
 use App\Models\User;
 use Inertia\Response;
@@ -41,6 +42,23 @@ class TicketController extends Controller
             ]),
             $data
         );
+
+        if ($request->user()->can('viewAny', MaintenanceContract::class)) {
+            $contract_columns = [
+                'maintenance_contracts.id',
+                'maintenance_contracts.customer_id',
+                'maintenance_contracts.title',
+                'maintenance_contracts.start_date',
+                'maintenance_contracts.end_date',
+                'maintenance_contracts.cancelled_at',
+            ];
+
+            $query->with([
+                'asset.maintenanceContracts' => fn ($contracts) => $contracts->active()
+                    ->select($contract_columns)
+                    ->with('customer:id,name'),
+            ]);
+        }
 
         if (!is_string($search) || trim($search) === '') {
             $search = '';

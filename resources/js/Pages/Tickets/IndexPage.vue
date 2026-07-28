@@ -92,6 +92,12 @@
                     <Link :href="`/tickets/${ticket.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
                         {{ ticket.subject }}
                     </Link>
+                    <div v-if="contractBadges[ticket.id]" class="mt-1">
+                        <BadgeComponent color="purple" :has-dot="false" :url="contractBadges[ticket.id].url"
+                            :tooltip="contractBadges[ticket.id].tooltip">
+                            {{ contractBadges[ticket.id].label }}
+                        </BadgeComponent>
+                    </div>
                     <div class="flex flex-wrap gap-1 lg:hidden mt-1">
                         <span
                             :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', ticketStatusClasses(ticket.status)]">
@@ -371,6 +377,35 @@ function saveBulkEdit() {
         },
     })
 }
+
+/**
+ * At most one contract badge per row. A machine can run under several contracts
+ * at once, and a strip of identical pills adds no information: one contract
+ * links straight to it, several link to the machine that lists them all. Absent
+ * when the user may not read contracts — the backend omits the data entirely.
+ */
+const contractBadges = computed(() => {
+    const badges = {}
+
+    props.tickets.data.forEach(ticket => {
+        const contracts = ticket.asset?.maintenance_contracts ?? []
+        if (!contracts.length) return
+
+        badges[ticket.id] = contracts.length === 1
+            ? {
+                label: 'Onderhoudscontract',
+                url: `/maintenancecontracts/${contracts[0].id}`,
+                tooltip: contracts[0].display_title,
+            }
+            : {
+                label: `${contracts.length} onderhoudscontracten`,
+                url: `/assets/${ticket.asset.id}`,
+                tooltip: contracts.map(contract => contract.display_title).join(' • '),
+            }
+    })
+
+    return badges
+})
 
 // Combobox options for the inline priority editor: id kept equal to the display
 // value so it can bind directly to ticket.priority without an id<->name lookup.

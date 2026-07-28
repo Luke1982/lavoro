@@ -8,6 +8,7 @@ use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use Carbon\Carbon;
 use Database\Factories\MaintenanceContractFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -117,6 +118,20 @@ class MaintenanceContract extends Model
     public function getLocationsAttribute()
     {
         return $this->assets->map->linkedLocation->filter()->unique('id')->values();
+    }
+
+    /**
+     * Running today: not cancelled, already started and not yet ended. Mirrors
+     * the 'actief' branch of the status attribute in query form.
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        $today = now()->toDateString();
+        $end_date = $query->qualifyColumn('end_date');
+
+        return $query->whereNull($query->qualifyColumn('cancelled_at'))
+            ->where($query->qualifyColumn('start_date'), '<=', $today)
+            ->where(fn ($q) => $q->whereNull($end_date)->orWhere($end_date, '>=', $today));
     }
 
     public function generatedServiceOrders()
