@@ -4,7 +4,10 @@ namespace App\Providers;
 
 use Anthropic\Client as AnthropicClient;
 use App\Domain\Assistant\AssistantContext;
+use App\Domain\Assistant\Contracts\ModelFailure;
+use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\Contracts\TalksToModel;
+use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
@@ -55,10 +58,29 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(
             AnthropicClient::class,
-            fn () => new AnthropicClient(apiKey: (string) config('assistant.api_key')),
+            fn () => new AnthropicClient(apiKey: (string) config('assistant.providers.anthropic.api_key')),
         );
 
-        $this->app->bind(TalksToModel::class, fn () => $this->app->make(config('assistant.driver')));
+        /**
+         * One name in config decides who answers. Anthropic has an API of its
+         * own and so an adapter of its own; everything else speaks OpenAI's
+         * chat API and shares one.
+         */
+        $this->app->bind(TalksToModel::class, function () {
+            $provider = config('assistant.provider');
+            $driver = config('assistant.providers.' . $provider . '.driver');
+
+            if ($driver === null) {
+                throw new ModelUnavailable(
+                    ModelFailure::other,
+                    'Onbekende AI-aanbieder: ' . $provider,
+                );
+            }
+
+            return $driver === OpenAiCompatibleModel::class
+                ? OpenAiCompatibleModel::fromConfig($provider)
+                : $this->app->make($driver);
+        });
     }
 
     /**

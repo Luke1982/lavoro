@@ -39,7 +39,7 @@ class AnthropicModel implements TalksToModel
             $response = $this->client->messages->create(
                 maxTokens: (int) config('assistant.max_tokens'),
                 messages: array_map(fn ($turn) => $this->toMessage($turn), $turns),
-                model: config('assistant.model'),
+                model: config('assistant.providers.anthropic.model'),
                 system: [$this->cacheableSystem($system)],
                 tools: array_map(fn (array $tool) => $this->toTool($tool), $tools),
             );

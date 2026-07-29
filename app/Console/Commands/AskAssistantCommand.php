@@ -38,14 +38,17 @@ class AskAssistantCommand extends Command
             return self::FAILURE;
         }
 
-        if (blank(config('assistant.api_key'))) {
-            $this->error('ANTHROPIC_API_KEY ontbreekt in .env.');
+        $provider = config('assistant.provider');
+
+        if (blank(config('assistant.providers.' . $provider . '.api_key'))) {
+            $this->error('Er is geen API-sleutel ingesteld voor aanbieder "' . $provider . '".');
 
             return self::FAILURE;
         }
 
         $this->line('<comment>Als:</comment> ' . $user->name . ' (' . ToolProfile::forUser($user)->value
-            . ', ' . count($registry->definitionsFor($user)) . ' tools)');
+            . ', ' . count($registry->definitionsFor($user)) . ' tools)'
+            . ' <comment>via</comment> ' . $provider . ' / ' . config('assistant.providers.' . $provider . '.model'));
         $this->newLine();
 
         try {
