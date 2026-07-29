@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\GeneralSettingsController;
 use App\Http\Controllers\Admin\StandardAttachmentController;
 use App\Http\Controllers\Admin\StandardEmailController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ComboSearchController;
@@ -70,6 +71,9 @@ Route::group(
     ['middleware' => 'auth'],
     function () {
         Route::get('/', DashboardController::class);
+
+        /** Gated by AssistantPolicy in the form request, not by a middleware. */
+        Route::post('assistant/ask', [AssistantController::class, 'ask'])->name('assistant.ask');
         Route::resource('contacts', ContactController::class)->except(['create', 'edit']);
         Route::resource('maintenancecontracts', MaintenanceContractController::class)->except(['create', 'edit']);
         Route::post(

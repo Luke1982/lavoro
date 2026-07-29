@@ -1,5 +1,8 @@
 <template>
-    <BreadcrumbComponent :items="[{ label: 'Klanten', href: '/customers' }, { label: form.name }]" wrapper-class="mb-6" />
+    <div class="flex items-start justify-between gap-4 mb-6">
+        <BreadcrumbComponent :items="[{ label: 'Klanten', href: '/customers' }, { label: form.name }]" />
+        <AssistantButton />
+    </div>
 
     <div class="flex flex-col sm:flex-row items-start my-4 gap-4">
         <BuildingOffice2Icon
@@ -706,6 +709,7 @@
 
 <script setup>
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import {
     BuildingOffice2Icon, ClipboardDocumentListIcon, PlusIcon, PuzzlePieceIcon,
     XCircleIcon, FolderIcon, UserIcon, MapPinIcon, EnvelopeIcon,

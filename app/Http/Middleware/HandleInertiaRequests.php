@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Assistant;
 use App\Models\GeneralSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -67,6 +68,17 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user_data,
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
+
+                /**
+                 * Verdicts, not the evidence. A rule with an exception in it —
+                 * the assistant is the one thing being an admin does not grant —
+                 * has to be decided in one place, and that place is the policy.
+                 * Anything that asks the front end to reason about permissions
+                 * is a second implementation waiting to disagree with the first.
+                 */
+                'can' => [
+                    'use_assistant' => $request->user()?->can('use', Assistant::class) ?? false,
+                ],
             ],
             'location_tracking' => $request->user() ? (function () {
                 $rows = GeneralSetting::whereIn('key', [

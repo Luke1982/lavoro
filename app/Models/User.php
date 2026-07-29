@@ -125,6 +125,19 @@ class User extends Authenticatable
         return $this->roles()->where('name', 'admin')->exists();
     }
 
+    /**
+     * Whether this permission was actually granted to this person, ignoring the
+     * fact that admins are otherwise assumed to have everything.
+     *
+     * For anything being trialled by a named group, "admin" is the wrong bar:
+     * it is a far wider set than "the people testing this", and it grows on its
+     * own as people are made admins for unrelated reasons.
+     */
+    public function hasExplicitPermission(string $name): bool
+    {
+        return in_array($name, $this->permissionNames(), true);
+    }
+
     public function hasPermission(string $name): bool
     {
         if ($this->isAdmin()) {

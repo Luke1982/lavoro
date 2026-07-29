@@ -1,4 +1,7 @@
 <template>
+    <div class="flex items-center justify-end mb-4">
+        <AssistantButton />
+    </div>
     <ChaptersComponent>
         <ChapterHeaders>
             <ChapterHeader v-for="(chapter, index) in chapters" :key="index" :index="index">
@@ -397,6 +400,7 @@
 
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import BoxComponent from '@/Components/BoxComponent.vue'

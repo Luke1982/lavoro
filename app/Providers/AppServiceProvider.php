@@ -15,6 +15,7 @@ use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
 use App\Listeners\CopyMailToSentFolder;
 use App\Mail\Transports\GraphTransport;
+use App\Models\Assistant;
 use App\Models\CalendarGrant;
 use App\Models\Company;
 use App\Models\Event as EventModel;
@@ -25,6 +26,7 @@ use App\Models\Ticket;
 use App\Models\UserUnavailability;
 use App\Observers\EventObserver;
 use App\Observers\TicketObserver;
+use App\Policies\AssistantPolicy;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
@@ -88,6 +90,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
         Gate::policy(UserUnavailability::class, UserUnavailabilityPolicy::class);

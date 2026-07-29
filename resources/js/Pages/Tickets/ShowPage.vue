@@ -1,9 +1,12 @@
 <template>
-    <div class="flex items-center mb-6">
-        <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
-        <ChevronRightIcon class="size-4 text-gray-400 mx-2 flex-none" />
-        <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
-            ticket.asset.serial_number }}</span>
+    <div class="flex items-center justify-between gap-4 mb-6">
+        <div class="flex items-center min-w-0">
+            <Link href="/tickets" class="text-slate-400 text-sm font-medium">Storingen</Link>
+            <ChevronRightIcon class="size-4 text-gray-400 mx-2 flex-none" />
+            <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
+                ticket.asset.serial_number }}</span>
+        </div>
+        <AssistantButton />
     </div>
 
     <TwoThirdsOneThird>
@@ -300,6 +303,7 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';

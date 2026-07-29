@@ -12,6 +12,7 @@
                 <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
                 <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
             </div>
+            <AssistantButton />
             <button v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                 @click="deleteServiceOrder"
                 class="px-3 py-1.5 text-sm font-medium bg-white text-red-600 ring-gray-200 ring-1 rounded-full cursor-pointer">
@@ -591,6 +592,7 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import OneThirdTwoThirds from '@/Layouts/OneThirdTwoThirds.vue';

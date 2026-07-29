@@ -75,6 +75,8 @@
                     Monteurkaart
                 </button>
 
+                <AssistantButton />
+
                 <button ref="settingsButtonRef" @click="settingsOpen = !settingsOpen"
                     class="flex items-center rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                     :class="settingsOpen ? 'bg-gray-100 dark:bg-slate-800' : ''" aria-label="Planner-instellingen"
@@ -516,6 +518,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'

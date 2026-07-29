@@ -80,6 +80,13 @@
         </main>
     </div>
     <GlobalNotification />
+
+        <!--
+            Mounted once for the whole application: the shortcut has to work on
+            every page, and one listener beats one per page that forgets to clean
+            itself up. It renders nothing until summoned.
+        -->
+        <AssistantSpotlight v-if="canUseAssistant" />
 </template>
 
 <script setup>
@@ -93,6 +100,7 @@ import SidebarContent from '@/Components/Layout/SidebarContent.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
+import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
@@ -105,6 +113,8 @@ import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 // uncatchable native fatal exception and crashes the app. Flip to true
 // only after Firebase is set up.
 const PUSH_ENABLED = false
+
+const canUseAssistant = computed(() => usePage().props?.auth?.can?.use_assistant === true)
 
 const { is_native } = useCapacitor()
 const { init: init_network } = useNetworkStatus()
