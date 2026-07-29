@@ -11,6 +11,7 @@ use Anthropic\Messages\TextBlockParam;
 use Anthropic\Messages\Tool;
 use Anthropic\Messages\ToolResultBlockParam;
 use Anthropic\Messages\ToolUseBlock;
+use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelReply;
@@ -108,6 +109,10 @@ class AnthropicModel implements TalksToModel
 
         if ($turn instanceof AssistantTurn) {
             return ['role' => 'assistant', 'content' => $turn->raw];
+        }
+
+        if ($turn instanceof AssistantSaidTurn) {
+            return ['role' => 'assistant', 'content' => $turn->text];
         }
 
         if ($turn instanceof ToolResultsTurn) {

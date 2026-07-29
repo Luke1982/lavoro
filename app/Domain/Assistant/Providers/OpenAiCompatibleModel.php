@@ -2,6 +2,7 @@
 
 namespace App\Domain\Assistant\Providers;
 
+use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelReply;
@@ -58,6 +59,7 @@ class OpenAiCompatibleModel implements TalksToModel
             api_key: (string) $settings['api_key'],
             model: $settings['model'],
             max_tokens: (int) config('assistant.max_tokens'),
+            timeout_seconds: (int) config('assistant.timeout_seconds', 120),
         );
     }
 
@@ -155,6 +157,10 @@ class OpenAiCompatibleModel implements TalksToModel
 
         if ($turn instanceof AssistantTurn) {
             return [$turn->raw];
+        }
+
+        if ($turn instanceof AssistantSaidTurn) {
+            return [['role' => 'assistant', 'content' => $turn->text]];
         }
 
         if ($turn instanceof ToolResultsTurn) {

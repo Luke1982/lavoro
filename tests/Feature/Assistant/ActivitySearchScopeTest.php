@@ -33,20 +33,27 @@ class ActivitySearchScopeTest extends TestCase
         ]);
     }
 
+    /**
+     * Attached through the pivot, the way the application really records it: the
+     * subject columns on the row itself are filled in for almost nothing and no
+     * screen goes by them.
+     */
     private function entry(string $description, ?ServiceOrder $order, ?string $permission = null): Activity
     {
-        return Activity::create([
+        $activity = Activity::create([
             'description' => $description,
             'category' => 'update',
             'event_key' => 'serviceorder.updated',
             'required_permission' => $permission,
-            'subject_type' => $order ? ServiceOrder::class : null,
-            'subject_id' => $order?->id,
             'user_id' => null,
             'actor_type' => 'user',
             'actor_name' => 'Iemand',
             'occurred_at' => now(),
         ]);
+
+        $order?->activities()->attach($activity->id);
+
+        return $activity;
     }
 
     /** @return array<int, string> */

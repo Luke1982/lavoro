@@ -3,6 +3,7 @@
 namespace Tests\Feature\Assistant;
 
 use App\Domain\Assistant\AssistantLoop;
+use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
 use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
@@ -202,6 +203,60 @@ class AssistantLoopTest extends TestCase
      * Half a list of werkbonnen reads exactly like a whole one, so a turn that
      * ran out of room must not be handed over as an answer.
      */
+    /**
+     * A box that looks like a conversation has to behave like one. Without this
+     * the second question arrives with no idea what the first one was about, and
+     * "en die van vorige week?" is answered as if it were asked cold.
+     */
+    public function test_an_earlier_exchange_is_replayed_before_the_new_question(): void
+    {
+        $model = new FakeModel([FakeModel::says('Dat waren er drie.')]);
+
+        $this->loop($model)->ask(
+            user: $this->admin(),
+            question: 'En vorige week?',
+            system: 'systeem',
+            history: [
+                ['question' => 'Hoeveel werkbonnen staan open?', 'answer' => 'Er staan er zeven open.'],
+            ],
+        );
+
+        $turns = $model->turnsOn(0);
+
+        $this->assertCount(3, $turns);
+        $this->assertInstanceOf(UserTurn::class, $turns[0]);
+        $this->assertSame('Hoeveel werkbonnen staan open?', $turns[0]->texts[0]);
+        $this->assertInstanceOf(AssistantSaidTurn::class, $turns[1]);
+        $this->assertSame('Er staan er zeven open.', $turns[1]->text);
+        $this->assertInstanceOf(UserTurn::class, $turns[2]);
+        $this->assertContains('En vorige week?', $turns[2]->texts);
+    }
+
+    /**
+     * The page someone is looking at is the page they are on now, so it rides
+     * with the newest question. Attached to an old one it would keep insisting
+     * "deze werkbon" meant the screen they were on two questions ago.
+     */
+    public function test_the_page_travels_with_the_newest_question_only(): void
+    {
+        $model = new FakeModel([FakeModel::says('Ja.')]);
+
+        $this->loop($model)->ask(
+            user: $this->admin(),
+            question: 'Wie heeft deze gesloten?',
+            system: 'systeem',
+            context: 'De gebruiker kijkt naar werkbon #117.',
+            history: [
+                ['question' => 'Iets eerders', 'answer' => 'Een eerder antwoord.'],
+            ],
+        );
+
+        $turns = $model->turnsOn(0);
+
+        $this->assertNotContains('De gebruiker kijkt naar werkbon #117.', $turns[0]->texts);
+        $this->assertContains('De gebruiker kijkt naar werkbon #117.', $turns[2]->texts);
+    }
+
     public function test_a_truncated_answer_is_refused_rather_than_returned(): void
     {
         $model = new FakeModel([FakeModel::ranOutOfRoom('De openstaande werkbonnen zijn: 1, 2,')]);

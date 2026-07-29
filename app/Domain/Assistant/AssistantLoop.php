@@ -2,6 +2,7 @@
 
 namespace App\Domain\Assistant;
 
+use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
 use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
@@ -44,6 +45,7 @@ class AssistantLoop
     /**
      * @param  Closure(string):void|null  $onText  Called with each sentence the model writes.
      * @param  Closure(string, array, bool):void|null  $onTool  Called with name, arguments and whether it failed.
+     * @param  array<int, array{question: string, answer: string}>  $history  Earlier exchanges, oldest first.
      */
     public function ask(
         User $user,
@@ -54,6 +56,7 @@ class AssistantLoop
         ?Closure $onTool = null,
         string $context = '',
         ?int $difficulty = null,
+        array $history = [],
     ): AssistantAnswer {
         $tools = $this->registry->definitionsFor($user);
 
@@ -62,7 +65,23 @@ class AssistantLoop
          * for, unless the caller insists on one.
          */
         $model = $this->models->forDifficulty($difficulty ?? $this->registry->requiredDifficultyFor($user));
-        $turns = [new UserTurn($context === '' ? [$question] : [$context, $question])];
+        /**
+         * Earlier exchanges go back as words rather than as the replies they
+         * came from: what was actually said is all a follow-up needs, and the
+         * tool calls behind it would cost far more to carry than they are worth.
+         *
+         * The context rides with the newest question only, because the page
+         * someone is looking at is the page they are on now, not the one they
+         * were on two questions ago.
+         */
+        $turns = [];
+
+        foreach ($history as $exchange) {
+            $turns[] = new UserTurn([$exchange['question']]);
+            $turns[] = new AssistantSaidTurn($exchange['answer']);
+        }
+
+        $turns[] = new UserTurn($context === '' ? [$question] : [$context, $question]);
         $rounds = 0;
         $spoken = [];
         $spent = 0;

@@ -16,6 +16,15 @@ class AssistantAskRequest extends FormRequest
     {
         return [
             'question' => ['required', 'string', 'min:2', 'max:2000'],
+            /**
+             * Generous on purpose. A path this does not recognise is ignored, so
+             * a long one should cost the question nothing — refusing it would
+             * fail the whole ask over a detail that was never needed.
+             */
+            'page' => ['nullable', 'string', 'max:2048'],
+            'history' => ['nullable', 'array', 'max:6'],
+            'history.*.question' => ['required', 'string', 'max:2000'],
+            'history.*.answer' => ['required', 'string', 'max:8000'],
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
+use App\Domain\Assistant\PageContext;
 use App\Domain\Tools\ToolRegistry;
 use App\Http\Requests\AssistantAskRequest;
 use App\Models\User;
@@ -11,14 +12,25 @@ use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
- * One question, one answer. No conversation is kept yet: the box is a way to ask
- * something and read the reply, and pretending otherwise would mean storing
- * transcripts nobody has decided the retention rules for.
+ * A conversation that lives only as long as the box is open.
+ *
+ * The thread on screen is the thread that gets sent, so nothing is stored here
+ * and there is no transcript to decide retention rules for. It is capped at a
+ * handful of exchanges: a follow-up needs what was just said, not everything.
+ *
+ * That the history arrives from the browser costs nothing in safety. Every tool
+ * authorises against the person asking on each call, so a doctored history can
+ * mislead the assistant about what it once said but cannot reach a single record
+ * its user could not already open.
  */
 class AssistantController extends Controller
 {
-    public function ask(AssistantAskRequest $request, AssistantLoop $loop, ToolRegistry $registry): JsonResponse
-    {
+    public function ask(
+        AssistantAskRequest $request,
+        AssistantLoop $loop,
+        ToolRegistry $registry,
+        PageContext $pages,
+    ): JsonResponse {
         $user = $request->user();
         $tools = [];
 
@@ -27,7 +39,8 @@ class AssistantController extends Controller
                 user: $user,
                 question: $request->validated('question'),
                 system: $this->systemPrompt(),
-                context: $this->context($user),
+                context: $this->context($user, $pages->describe($request->validated('page'))),
+                history: $request->validated('history') ?? [],
                 onTool: function (string $name, array $arguments, bool $failed) use (&$tools) {
                     $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
                 },
@@ -71,11 +84,29 @@ class AssistantController extends Controller
             'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',
             'Een tool geeft alleen terug wat deze gebruiker mag zien, dus een leeg resultaat',
             'betekent "niets gevonden of niets zichtbaar", niet "het bestaat niet".',
+            '',
+            'Je kunt alleen bij wat je tools je geven, en je kunt niets wijzigen: je leest mee,',
+            'je voert niets uit. Word je iets gevraagd waar geen tool voor is, zeg dan in één zin',
+            'wat je wél kunt op dat vlak en wat niet, in plaats van te gokken of om meer uitleg',
+            'te vragen. Bijvoorbeeld: "Ik kan de tijdlijn van een werkbon doorzoeken, maar ik kan',
+            'geen offertes opstellen." Noem daarbij geen toolnamen; beschrijf het in gewone woorden.',
+            'Vraag alleen om verduidelijking als de vraag zelf onduidelijk is, niet als hij',
+            'duidelijk maar onmogelijk is.',
         ]);
     }
 
-    private function context(User $user): string
+    /**
+     * Everything that changes per person, per day and per page, kept out of the
+     * system prompt so the cached prefix stays byte-for-byte identical.
+     */
+    private function context(User $user, string $page): string
     {
-        return 'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.';
+        $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.'];
+
+        if ($page !== '') {
+            $lines[] = $page;
+        }
+
+        return implode(' ', $lines);
     }
 }

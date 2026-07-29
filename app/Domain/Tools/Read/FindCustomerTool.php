@@ -32,10 +32,6 @@ class FindCustomerTool implements Tool
                     'type' => 'string',
                     'description' => 'Deel van de naam, plaats, e-mailadres of telefoonnummer.',
                 ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum aantal resultaten.',
-                ],
             ],
             'required' => ['query'],
             'additionalProperties' => false,
@@ -71,7 +67,7 @@ class FindCustomerTool implements Tool
             return ToolResult::failed('Geef minimaal twee tekens om op te zoeken.');
         }
 
-        $limit = min($call->integerArgument('limit') ?? 10, (int) config('assistant.max_results', 25));
+        $limit = (int) config('assistant.max_results', 25);
         $like = '%' . $query . '%';
 
         $customers = Customer::query()

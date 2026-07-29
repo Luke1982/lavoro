@@ -91,6 +91,70 @@ class TechnicianAvailability
     }
 
     /**
+     * Every free stretch, per person, per day, for one window.
+     *
+     * Planning a crew means asking about the same day for several people at once,
+     * so the whole grid is built from one read of the diary. Asking per person per
+     * day instead is the query storm this class exists to avoid.
+     *
+     * @param  Collection<int, User>  $users
+     * @return array<int, array<string, array<int, array{start_min: int, end_min: int}>>>
+     */
+    public function segmentsFor(
+        Collection $users,
+        CarbonImmutable $from,
+        int $days,
+        bool $ignore_time_off = false,
+    ): array {
+        $this->loadDiary($users, $from, $days);
+
+        $grid = [];
+
+        foreach ($users as $user) {
+            for ($offset = 0; $offset < $days; $offset++) {
+                $day = $from->addDays($offset);
+                $grid[$user->id][$day->toDateString()] = $this->segmentsFrom($user, $day, $ignore_time_off);
+            }
+        }
+
+        return $grid;
+    }
+
+    /**
+     * What each person has recorded as time off, per day, by the name they gave it.
+     *
+     * A day off can be overridden after somebody agrees to it, so the planner has
+     * to be able to say whose day it is and what they called it. "Dit kan, maar
+     * dan gaat Marvins papadag eraan" is a question worth asking; quietly booking
+     * over it is not.
+     *
+     * @param  Collection<int, User>  $users
+     * @return array<int, array<string, array<int, string>>>
+     */
+    public function timeOffFor(Collection $users, CarbonImmutable $from, int $days): array
+    {
+        $time_off = [];
+
+        foreach ($users as $user) {
+            for ($offset = 0; $offset < $days; $offset++) {
+                $day = $from->addDays($offset);
+                $bands = $this->blockedBands($user, $day);
+
+                if ($bands === []) {
+                    continue;
+                }
+
+                $time_off[$user->id][$day->toDateString()] = array_values(array_unique(array_map(
+                    fn (array $band) => $band['label'] ?: 'vrije dag',
+                    $bands,
+                )));
+            }
+        }
+
+        return $time_off;
+    }
+
+    /**
      * @return array<int, array{kind: string, start_min: int, end_min: int, label: ?string}>
      */
     public function freeSegments(User $user, CarbonImmutable $day): array
@@ -109,13 +173,17 @@ class TechnicianAvailability
      *
      * @return array<int, array{kind: string, start_min: int, end_min: int, label: ?string}>
      */
-    private function segmentsFrom(User $user, CarbonImmutable $day): array
+    private function segmentsFrom(User $user, CarbonImmutable $day, bool $ignore_time_off = false): array
     {
         $segments = DaySegments::for(
             work_start_hour: $this->workStartHour(),
             work_end_hour: $this->workEndHour(),
             busy: $this->busyBands($user, $day),
-            blocked: $this->blockedBands($user, $day),
+            /**
+             * Appointments stay put even here: a day off is something a person
+             * can be asked to give up, an appointment with a customer is not.
+             */
+            blocked: $ignore_time_off ? [] : $this->blockedBands($user, $day),
         );
 
         return array_values(array_filter($segments, fn (array $segment) => $segment['kind'] === 'free'));

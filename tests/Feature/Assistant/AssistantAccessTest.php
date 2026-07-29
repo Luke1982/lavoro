@@ -73,4 +73,24 @@ class AssistantAccessTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('question');
     }
+
+    /**
+     * Every call here spends real money at a supplier, and the allowance it eats
+     * belongs to the whole company rather than to the person asking. A held key,
+     * a retry loop or an impatient double-click should not turn into a bill.
+     */
+    public function test_asking_over_and_over_is_cut_off(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        $responses = collect(range(1, 21))->map(fn () => $this->actingAs($user)
+            ->postJson('/assistant/ask', ['question' => 'x'])
+            ->getStatusCode());
+
+        $this->assertContains(
+            429,
+            $responses->all(),
+            'the endpoint let twenty-one questions through without throttling',
+        );
+    }
 }

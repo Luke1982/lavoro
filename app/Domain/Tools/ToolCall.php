@@ -42,4 +42,29 @@ final class ToolCall
 
         return $value === null ? null : trim((string) $value);
     }
+
+    /**
+     * A list of ids, whether it arrived as a list or as a single value.
+     *
+     * Models are inconsistent about this even when the schema says array, and a
+     * bare 42 where a list was asked for should narrow the search rather than
+     * being read as a list of digits and matching nothing.
+     *
+     * @return array<int, int>
+     */
+    public function integerListArgument(string $key): array
+    {
+        $value = $this->arguments[$key] ?? null;
+
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        $values = is_array($value) ? $value : [$value];
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $values),
+            fn (int $id) => $id > 0,
+        )));
+    }
 }

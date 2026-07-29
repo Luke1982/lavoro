@@ -5,6 +5,7 @@ use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Tools\Read\FindAssetTool;
 use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
+use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
@@ -31,6 +32,7 @@ return [
         FindCustomerTool::class,
         SearchServiceOrderTool::class,
         FindAssetTool::class,
+        FindTicketTool::class,
         SearchActivityTool::class,
         SummarizeCustomerTool::class,
         FindAvailableTechnicianTool::class,
@@ -137,6 +139,21 @@ return [
     ],
 
     'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 16000),
+
+    /*
+    |--------------------------------------------------------------------------
+    | How long one call to a supplier may take
+    |--------------------------------------------------------------------------
+    |
+    | Both adapters read this, so switching supplier does not quietly change how
+    | long a stuck request holds a worker. It is deliberately not left to the
+    | Anthropic SDK's own default: that one is documented as advisory, enforced
+    | by whichever PSR client happens to be installed, which may be not at all.
+    |
+    | A question that needs six rounds of tools spends this on each of them, so
+    | this is the ceiling per call rather than for the whole answer.
+    */
+    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 120),
 
     /*
     |---------------------------------------------------------------------------

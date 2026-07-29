@@ -37,17 +37,20 @@ class SearchServiceOrderTool implements Tool
                     'type' => 'string',
                     'description' => 'Vrije zoektekst in omschrijving, klantnaam of externe nummers.',
                 ],
-                'customer_id' => [
-                    'type' => 'integer',
-                    'description' => 'Beperk tot één klant.',
+                'ids' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'integer'],
+                    'description' => 'Haal deze werkbonnen op via hun nummer.',
+                ],
+                'customer_ids' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'integer'],
+                    'description' => 'Beperk tot deze klanten. Geef ze in één keer mee, '
+                        . 'niet één zoekopdracht per klant.',
                 ],
                 'only_open' => [
                     'type' => 'boolean',
                     'description' => 'Alleen werkbonnen die nog niet afgesloten zijn.',
-                ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum aantal resultaten.',
                 ],
             ],
             'required' => [],
@@ -78,16 +81,21 @@ class SearchServiceOrderTool implements Tool
 
     public function execute(ToolCall $call): ToolResult
     {
-        $limit = min($call->integerArgument('limit') ?? 10, (int) config('assistant.max_results', 25));
+        $limit = (int) config('assistant.max_results', 25);
         $search = $call->stringArgument('query');
-        $customer_id = $call->integerArgument('customer_id');
+        $customer_ids = $call->integerListArgument('customer_ids');
+        $ids = $call->integerListArgument('ids');
 
         $query = ServiceOrder::query()
             ->visibleTo($call->user)
             ->with(['customer:id,name', 'serviceOrderStage:id,name,is_closed_state']);
 
-        if ($customer_id) {
-            $query->where('customer_id', $customer_id);
+        if ($ids !== []) {
+            $query->whereIn('id', $ids);
+        }
+
+        if ($customer_ids !== []) {
+            $query->whereIn('customer_id', $customer_ids);
         }
 
         if (filled($search)) {

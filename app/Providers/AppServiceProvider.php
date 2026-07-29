@@ -8,6 +8,7 @@ use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
@@ -53,14 +54,34 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(AssistantContext::class);
 
+        /**
+         * Shared for the length of one request, so the tool and the crew planner
+         * read the diary once between them rather than once each.
+         *
+         * Scoped rather than a singleton on purpose: it caches a window of the
+         * diary, and a queue worker that lives for hours would go on answering
+         * from the one it read this morning.
+         */
+        $this->app->scoped(TechnicianAvailability::class);
+
         $this->app->singleton(
             ToolRegistry::class,
             fn () => new ToolRegistry(config('assistant.tools', [])),
         );
 
+        /**
+         * The timeout is set here rather than left to the SDK, whose own default
+         * is documented as advisory: it is enforced by whichever PSR client is
+         * installed, which may not enforce it at all. Without it a supplier that
+         * stops answering holds a worker until PHP itself gives up, and the box
+         * on screen spins the whole time.
+         */
         $this->app->bind(
             AnthropicClient::class,
-            fn () => new AnthropicClient(apiKey: (string) config('assistant.providers.anthropic.api_key')),
+            fn () => new AnthropicClient(
+                apiKey: (string) config('assistant.providers.anthropic.api_key'),
+                requestOptions: ['timeout' => (float) config('assistant.timeout_seconds', 120)],
+            ),
         );
 
         /**

@@ -39,10 +39,6 @@ class FindAssetTool implements Tool
                     'type' => 'integer',
                     'description' => 'Alleen machines waarvan het onderhoud binnen zoveel dagen valt.',
                 ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum aantal resultaten.',
-                ],
             ],
             'required' => [],
             'additionalProperties' => false,
@@ -72,7 +68,7 @@ class FindAssetTool implements Tool
 
     public function execute(ToolCall $call): ToolResult
     {
-        $limit = min($call->integerArgument('limit') ?? 10, (int) config('assistant.max_results', 25));
+        $limit = (int) config('assistant.max_results', 25);
 
         $query = Asset::query()
             ->visibleTo($call->user)

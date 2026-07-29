@@ -60,6 +60,17 @@ class Activity extends Model
         return $this->morphTo();
     }
 
+    /**
+     * Every record this entry hangs off, whatever kind they are.
+     *
+     * The named relations below answer "show me this werkbon's history"; this
+     * one answers the reverse, which is what searching across records needs.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ActivityAttachment::class);
+    }
+
     public function fieldChanges(): HasMany
     {
         return $this->hasMany(ActivityChange::class);

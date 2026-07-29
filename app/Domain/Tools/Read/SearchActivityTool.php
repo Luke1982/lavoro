@@ -11,9 +11,12 @@ use App\Models\ActivityChange;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Event;
+use App\Models\MaintenanceContract;
 use App\Models\ServiceOrder;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Reads the history the signal layer writes.
@@ -41,11 +44,21 @@ class SearchActivityTool implements Tool
      * of these may this user see", and guessing one would leak the very records
      * the guess was meant to protect.
      */
+    /**
+     * The vocabulary the model uses, and the records it maps onto.
+     *
+     * These are the things an entry is *attached* to. History is linked through
+     * the activityables pivot, exactly as the timeline on a page reads it — the
+     * subject_type and subject_id columns on the row itself are filled in for
+     * almost nothing and are not what any screen in this application goes by.
+     */
     private const SUBJECT_TYPES = [
         'werkbon' => ServiceOrder::class,
+        'storing' => Ticket::class,
         'machine' => Asset::class,
         'afspraak' => Event::class,
         'klant' => Customer::class,
+        'onderhoudscontract' => MaintenanceContract::class,
     ];
 
     public static function name(): string
@@ -75,19 +88,6 @@ class SearchActivityTool implements Tool
                     'type' => 'integer',
                     'description' => 'Het id van dat record. Vereist samen met subject_type voor één record.',
                 ],
-                'field' => [
-                    'type' => 'string',
-                    'description' => 'Alleen wijzigingen van dit veld, bijvoorbeeld service_order_stage_id.',
-                ],
-                'actor_type' => [
-                    'type' => 'string',
-                    'enum' => ['user', 'ai', 'system'],
-                    'description' => 'Wie de wijziging deed: een persoon, de assistent of het systeem.',
-                ],
-                'user_id' => [
-                    'type' => 'integer',
-                    'description' => 'Alleen wijzigingen door deze gebruiker.',
-                ],
                 'from' => [
                     'type' => 'string',
                     'description' => 'Begindatum, als JJJJ-MM-DD.',
@@ -95,10 +95,6 @@ class SearchActivityTool implements Tool
                 'to' => [
                     'type' => 'string',
                     'description' => 'Einddatum, als JJJJ-MM-DD.',
-                ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum aantal resultaten.',
                 ],
             ],
             'required' => [],
@@ -134,9 +130,9 @@ class SearchActivityTool implements Tool
 
     public function execute(ToolCall $call): ToolResult
     {
-        $limit = min($call->integerArgument('limit') ?? 15, (int) config('assistant.max_results', 25));
+        $limit = (int) config('assistant.max_results', 25);
 
-        $query = Activity::query()->with('fieldChanges');
+        $query = Activity::query()->with(['fieldChanges', 'attachments', 'user:id,name']);
 
         /**
          * Subject visibility says which records this person may look at; it says
@@ -153,7 +149,7 @@ class SearchActivityTool implements Tool
                 );
             }
 
-            $query->where('subject_type', self::SUBJECT_TYPES[$subject_type]);
+            $this->attachedTo($query, self::SUBJECT_TYPES[$subject_type], $call->integerArgument('subject_id'));
         }
 
         /**
@@ -162,24 +158,8 @@ class SearchActivityTool implements Tool
          * the type back is cheaper than letting the model reason about a list
          * whose rows are about different things.
          */
-        if ($subject_id = $call->integerArgument('subject_id')) {
-            if (blank($subject_type)) {
-                return ToolResult::failed('Geef ook subject_type op wanneer je een subject_id gebruikt.');
-            }
-
-            $query->where('subject_id', $subject_id);
-        }
-
-        if ($actor_type = $call->stringArgument('actor_type')) {
-            $query->where('actor_type', $actor_type);
-        }
-
-        if ($user_id = $call->integerArgument('user_id')) {
-            $query->where('user_id', $user_id);
-        }
-
-        if ($field = $call->stringArgument('field')) {
-            $query->whereHas('fieldChanges', fn (Builder $q) => $q->where('field', $field));
+        if ($call->integerArgument('subject_id') && blank($subject_type)) {
+            return ToolResult::failed('Geef ook subject_type op wanneer je een subject_id gebruikt.');
         }
 
         if ($from = $call->stringArgument('from')) {
@@ -197,9 +177,17 @@ class SearchActivityTool implements Tool
             'occurred_at' => $activity->occurred_at?->toDateTimeString(),
             'event_key' => $activity->event_key,
             'description' => $activity->description,
-            'subject' => $this->subjectLabel($activity),
-            'subject_id' => $activity->subject_id,
-            'actor' => $activity->actor_name,
+            'subject' => $this->subjectLabels($activity),
+            'attached_to' => collect($activity->attachments)
+                ->map(fn ($row) => (array_search($row->activityable_type, self::SUBJECT_TYPES, true)
+                    ?: class_basename($row->activityable_type)) . ' #' . $row->activityable_id)
+                ->all(),
+            /**
+             * Older entries recorded who did it as a link rather than a name, so
+             * the name is read back the same way the timeline on a page does.
+             * Taking actor_name alone leaves every one of them anonymous.
+             */
+            'actor' => $activity->actor_name ?? $activity->user?->name,
             'actor_type' => $activity->actor_type,
             'changes' => $activity->fieldChanges->map(fn (ActivityChange $change) => [
                 'field' => $change->field,
@@ -212,8 +200,9 @@ class SearchActivityTool implements Tool
         $content = ['activities' => $rows];
 
         if ($rows === []) {
-            $content['note'] = 'Geen wijzigingen gevonden. Let op: dit betekent niet per se dat er niets is gebeurd — '
-                . 'oudere regels zijn nog niet aan een record gekoppeld en blijven daarom buiten beeld.';
+            $content['note'] = 'Geen wijzigingen gevonden die aan dit record gekoppeld zijn. Dat betekent niet '
+                . 'per se dat er niets gebeurd is: regels van voor de invoering van de tijdlijn zijn nergens '
+                . 'aan gekoppeld en blijven daarom buiten beeld.';
         }
 
         return ToolResult::ok($content, count($rows) . ' wijziging(en) gevonden.');
@@ -226,30 +215,73 @@ class SearchActivityTool implements Tool
      * scope the rest of the application reads that subject with, so history can
      * never become a way around a restriction that holds everywhere else.
      */
-    private function constrainToVisibleSubjects(Builder $query, User $user): void
+    /**
+     * Narrows to entries hanging off one kind of record, optionally one in
+     * particular, through the same pivot a page's timeline reads.
+     */
+    private function attachedTo(Builder $query, string $class, ?int $id = null): void
     {
-        $query->where(function (Builder $outer) use ($user) {
-            $outer
-                ->where(fn (Builder $q) => $q
-                    ->where('subject_type', ServiceOrder::class)
-                    ->whereIn('subject_id', ServiceOrder::visibleTo($user)->select('service_orders.id')))
-                ->orWhere(fn (Builder $q) => $q
-                    ->where('subject_type', Asset::class)
-                    ->whereIn('subject_id', Asset::visibleTo($user)->select('assets.id')))
-                ->orWhere(fn (Builder $q) => $q
-                    ->where('subject_type', Event::class)
-                    ->whereIn('subject_id', Event::visibleTo($user)->select('events.id')));
+        $query->whereExists(function ($pivot) use ($class, $id) {
+            $pivot->select(DB::raw(1))
+                ->from('activityables')
+                ->whereColumn('activityables.activity_id', 'activities.id')
+                ->where('activityables.activityable_type', $class);
 
-            if ($user->can('list', Customer::class)) {
-                $outer->orWhere('subject_type', Customer::class);
+            if ($id) {
+                $pivot->where('activityables.activityable_id', $id);
             }
         });
     }
 
-    private function subjectLabel(Activity $activity): ?string
+    /**
+     * Narrows the query to entries this user may see.
+     *
+     * An entry qualifies when it is attached to at least one record they may
+     * open, which is the same answer they would get by opening those records one
+     * by one and reading the timeline on each. Types with no visibility rule of
+     * their own — a material line, a stage — grant nothing here; they travel
+     * attached to the werkbon they happened on, and are reached through that.
+     */
+    private function constrainToVisibleSubjects(Builder $query, User $user): void
     {
-        $name = array_search($activity->subject_type, self::SUBJECT_TYPES, true);
+        $query->whereExists(function ($pivot) use ($user) {
+            $pivot->select(DB::raw(1))
+                ->from('activityables')
+                ->whereColumn('activityables.activity_id', 'activities.id')
+                ->where(function ($outer) use ($user) {
+                    $outer
+                        ->where(fn ($q) => $q
+                            ->where('activityables.activityable_type', ServiceOrder::class)
+                            ->whereIn('activityables.activityable_id', ServiceOrder::visibleTo($user)->select('service_orders.id')))
+                        ->orWhere(fn ($q) => $q
+                            ->where('activityables.activityable_type', Asset::class)
+                            ->whereIn('activityables.activityable_id', Asset::visibleTo($user)->select('assets.id')))
+                        ->orWhere(fn ($q) => $q
+                            ->where('activityables.activityable_type', Event::class)
+                            ->whereIn('activityables.activityable_id', Event::visibleTo($user)->select('events.id')))
+                        ->orWhere(fn ($q) => $q
+                            ->where('activityables.activityable_type', Ticket::class)
+                            ->whereIn('activityables.activityable_id', Ticket::visibleTo($user)->select('tickets.id')));
 
-        return $name === false ? $activity->subject_type : $name;
+                    if ($user->can('list', Customer::class)) {
+                        $outer->orWhere('activityables.activityable_type', Customer::class);
+                    }
+                });
+        });
+    }
+
+    /**
+     * What the entry is about, read from what it is attached to.
+     *
+     * @return array<int, string>
+     */
+    private function subjectLabels(Activity $activity): array
+    {
+        return collect($activity->attachments)
+            ->map(fn ($row) => array_search($row->activityable_type, self::SUBJECT_TYPES, true)
+                ?: class_basename($row->activityable_type))
+            ->unique()
+            ->values()
+            ->all();
     }
 }
