@@ -61,6 +61,7 @@ class AssistantController extends Controller
                     if (is_array($result?->content) && ($result->content['status'] ?? null) === 'bevestiging_nodig') {
                         $pending[] = [
                             'tool' => $name,
+                            'preview' => $result->content['preview'] ?? null,
                             'arguments' => $result->content['proposed'] ?? [],
                             'token' => $result->content['confirmation_token'],
                         ];
@@ -253,6 +254,13 @@ class AssistantController extends Controller
             'zelf in tekst om toestemming zonder de tool aan te roepen — dan is er niets om te',
             'bevestigen en gebeurt er ook niets. Vat na het aanroepen kort samen wat er zou',
             'gebeuren, zodat de gebruiker weet waar hij ja op zegt.',
+            '',
+            'Staat er eerder in het gesprek "[al uitgevoerd]", dan is dat gebeurd en bestaat het.',
+            'Bied het niet opnieuw aan en roep de tool er niet nog eens voor aan: dat maakt een',
+            'tweede exemplaar. Verwijs naar het nummer dat je terugkreeg en ga verder met wat',
+            'er nog open staat.',
+            '',
+            'Roep een tool nooit twee keer voor dezelfde handeling in één antwoord.',
         ]);
     }
 

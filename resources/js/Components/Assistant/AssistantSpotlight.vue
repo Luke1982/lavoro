@@ -42,9 +42,23 @@
                         thing that lets it happen.
                     -->
                     <div v-for="(action, actionIndex) in exchange.pendingActions" :key="'p' + actionIndex"
-                        class="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
-                        <p class="text-xs text-amber-900">{{ action.done || 'Nog niet uitgevoerd — bevestig om door te gaan.' }}</p>
-                        <button v-if="!action.done" type="button" :disabled="action.busy"
+                        class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 ring-1" :class="[
+                            action.done ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : '',
+                            action.stale ? 'bg-slate-50 text-slate-500 ring-slate-200' : '',
+                            !action.done && !action.stale ? 'bg-amber-50 text-amber-900 ring-amber-200' : '',
+                        ]">
+                        <div class="min-w-0">
+                            <!--
+                                The proposal describes itself. By the time somebody
+                                has asked two more things, the paragraph explaining
+                                this button is halfway up the box.
+                            -->
+                            <p class="text-xs font-medium">{{ action.done || action.preview }}</p>
+                            <p v-if="action.stale" class="text-[11px]">
+                                Vervallen — er is daarna iets anders gevraagd. Vraag het opnieuw als je dit alsnog wilt.
+                            </p>
+                        </div>
+                        <button v-if="!action.done && !action.stale" type="button" :disabled="action.busy"
                             class="shrink-0 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
                             @click="confirmAction(action)">
                             {{ action.busy ? 'Bezig…' : 'Bevestigen' }}
@@ -139,15 +153,30 @@ async function ask() {
     const asked = question.value.trim()
     if (asked.length < 2 || asking.value) return
 
-    // Only exchanges that got an answer are worth replaying; a failed one would
-    // send the model a question it never actually answered.
+    // Anything already carried out travels back with the answer that proposed it.
+    // Without it the model has no idea the werkbon it offered actually got made,
+    // so it offers again — and a second click is a second werkbon.
     const history = exchanges.value
         .filter((exchange) => exchange.answer)
         .slice(-REMEMBERED_EXCHANGES)
         .map((exchange) => ({
             question: exchange.question,
-            answer: exchange.answer.slice(0, REMEMBERED_ANSWER_CHARS),
+            answer: [
+                exchange.answer,
+                ...exchange.pendingActions
+                    .filter((action) => action.done)
+                    .map((action) => '[al uitgevoerd] ' + action.done),
+            ].join('\n\n').slice(0, REMEMBERED_ANSWER_CHARS),
         }))
+
+    // A proposal nobody acted on before asking something else has been overtaken.
+    // Left clickable it is a button that makes a second copy of something the
+    // conversation has already moved past.
+    exchanges.value.forEach((exchange) => {
+        exchange.pendingActions.forEach((action) => {
+            if (!action.done) action.stale = true
+        })
+    })
 
     const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [] }
     exchanges.value.push(exchange)
@@ -174,7 +203,9 @@ async function ask() {
         exchange.tools = data.tools || []
         exchange.pendingActions = (data.pending || []).map((action) => ({
             ...action,
+            preview: action.preview || 'Nog niet uitgevoerd — bevestig om door te gaan.',
             busy: false,
+            stale: false,
             done: '',
         }))
     } catch (e) {

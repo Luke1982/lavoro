@@ -73,6 +73,9 @@ class ToolExecutor
                     ToolResult::ok(
                         [
                             'status' => 'bevestiging_nodig',
+                            'preview' => $tool instanceof Confirmable
+                                ? $tool->previewOf($call)
+                                : 'Deze actie wacht op bevestiging.',
                             'proposed' => $call->arguments,
                             'confirmation_token' => ConfirmationToken::for($call->name, $call->arguments, $call->user)->encoded(),
                             'note' => 'Er is nog niets gewijzigd. Vertel de gebruiker precies wat je wilt doen '

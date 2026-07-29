@@ -4,6 +4,7 @@ namespace App\Domain\Tools\Write;
 
 use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
+use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -22,7 +23,7 @@ use App\Models\User;
  * else's machine is not a validation error anybody notices — it is a mechanic
  * sent to the wrong address holding a job sheet that reads perfectly.
  */
-class CreateServiceOrderTool implements Tool
+class CreateServiceOrderTool implements Confirmable, Tool
 {
     public static function name(): string
     {
@@ -90,6 +91,23 @@ class CreateServiceOrderTool implements Tool
     public function requiresConfirmation(): bool
     {
         return true;
+    }
+
+    public function previewOf(ToolCall $call): string
+    {
+        $customer = Customer::find($call->integerArgument('customer_id'));
+        $assets = count($call->integerListArgument('asset_ids'));
+        $tickets = count($call->integerListArgument('ticket_ids'));
+
+        $extras = array_filter([
+            $assets ? $assets . ' machine(s)' : null,
+            $tickets ? $tickets . ' storing(en)' : null,
+        ]);
+
+        return 'Werkbon aanmaken'
+            . ($customer ? ' voor ' . $customer->name : '')
+            . (blank($call->stringArgument('description')) ? '' : ' — ' . $call->stringArgument('description'))
+            . ($extras ? ' (met ' . implode(' en ', $extras) . ')' : '');
     }
 
     public static function availableTo(): array

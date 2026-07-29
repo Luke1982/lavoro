@@ -6,6 +6,7 @@ use App\Actions\Appointments\AppointmentAssignment;
 use App\Actions\Appointments\CreateAppointmentAction;
 use App\Actions\Appointments\NewAppointment;
 use App\Domain\Planning\TechnicianAvailability;
+use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -30,7 +31,7 @@ use Illuminate\Support\Collection;
  * but because it is being trusted with somebody's Tuesday: a misread date is
  * indistinguishable from a correct one until a van turns up.
  */
-class CreateEventTool implements Tool
+class CreateEventTool implements Confirmable, Tool
 {
     public static function name(): string
     {
@@ -96,6 +97,21 @@ class CreateEventTool implements Tool
     public function requiresConfirmation(): bool
     {
         return true;
+    }
+
+    public function previewOf(ToolCall $call): string
+    {
+        $names = User::query()
+            ->whereIn('id', $call->integerListArgument('user_ids'))
+            ->orderBy('name')
+            ->pluck('name');
+
+        $when = $this->moment($call->stringArgument('starts_at'));
+
+        return 'Afspraak inplannen'
+            . ($when ? ' op ' . $when->format('d-m-Y H:i') : '')
+            . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
+            . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'));
     }
 
     public static function availableTo(): array

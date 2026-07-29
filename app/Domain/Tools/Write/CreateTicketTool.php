@@ -4,6 +4,7 @@ namespace App\Domain\Tools\Write;
 
 use App\Actions\Tickets\CreateTicketAction;
 use App\Actions\Tickets\NewTicket;
+use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -23,7 +24,7 @@ use App\Models\User;
  * so the machine is the one thing that cannot be guessed at. Given a serial
  * number the assistant is expected to look it up first rather than invent an id.
  */
-class CreateTicketTool implements Tool
+class CreateTicketTool implements Confirmable, Tool
 {
     use ChecksEnums;
 
@@ -92,6 +93,16 @@ class CreateTicketTool implements Tool
     public function requiresConfirmation(): bool
     {
         return true;
+    }
+
+    public function previewOf(ToolCall $call): string
+    {
+        $asset = Asset::find($call->integerArgument('asset_id'));
+
+        return 'Storing vastleggen'
+            . ($asset ? ' op ' . ($asset->serial_number ?? 'machine #' . $asset->id) : '')
+            . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
+            . ' (prioriteit ' . ($call->stringArgument('priority') ?: 'Normaal') . ')';
     }
 
     public static function availableTo(): array
