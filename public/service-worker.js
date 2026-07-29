@@ -1,4 +1,4 @@
-const CACHE_NAME = "lavoro-cache-f7e97aa";
+const CACHE_NAME = "lavoro-cache-92d8bfc";
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
