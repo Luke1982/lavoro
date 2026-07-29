@@ -54,7 +54,26 @@ class ToolRegistry
                 'name' => $tool::name(),
                 'description' => $tool->description(),
                 'input_schema' => $tool->inputSchema(),
-                'strict' => true,
+                /**
+                 * Strict schema enforcement is off, and this is the tradeoff.
+                 *
+                 * It caps the optional parameters across every tool at
+                 * twenty-four between them, and going over does not degrade
+                 * anything: the supplier refuses each request outright and the
+                 * assistant answers nothing at all. Adding one write tool was
+                 * enough to hit it, and the cost of staying under was real
+                 * capability — filtering storingen by customer, history by
+                 * field — traded for a guarantee that was not paying for itself.
+                 *
+                 * It never caught the failures we actually get. A group that
+                 * does not exist is a valid string; a crew of nought is a valid
+                 * integer; the tool-call syntax that once arrived inside
+                 * plan_group was a valid string too. Every one of those is
+                 * caught by the tool itself, which is where the check has to be
+                 * anyway — arguments come from a language model, so no tool here
+                 * may assume its input is sane whatever the schema promised.
+                 */
+                'strict' => false,
             ],
             $this->forProfile($profile),
         ));

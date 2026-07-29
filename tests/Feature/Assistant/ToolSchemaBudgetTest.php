@@ -8,54 +8,62 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * There is a ceiling on how many optional parameters all the tools may have
- * between them, and going over it does not degrade anything — the supplier
- * refuses the whole request with a 400 and every question stops working.
+ * The tool definitions are sent on every single question.
  *
- * It is an easy one to walk into: each tool is reasonable on its own, the budget
- * is shared, and nothing in the code hints that it exists. Adding one ordinary
- * tool with a handful of filters is enough. This is here so that lands as a
- * failing test rather than as an assistant that answers nothing in production.
+ * They sit behind the cache marker so they are usually read rather than
+ * rewritten, but they are still the largest fixed thing in every request, and
+ * nothing about adding a tool makes that visible. This is a tripwire, not a
+ * rule: if it fails, look at whether the newest tool needs everything it asks
+ * for, then move the number.
+ *
+ * The old version of this guarded a hard limit of twenty-four optional
+ * parameters, which the supplier enforces only under strict validation. That is
+ * off now — deliberately, because the limit cost real capability and never
+ * caught a real fault — so what is left to watch is size.
  */
 class ToolSchemaBudgetTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
     use RefreshDatabase;
 
-    /** The supplier's own limit, quoted in the 400 it returns. */
-    private const OPTIONAL_PARAMETER_LIMIT = 24;
+    private const ROOM_FOR = 12000;
 
-    public function test_the_tools_fit_within_what_the_supplier_accepts(): void
+    public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {
-        /**
-         * Counted for an admin on purpose: tools are offered per person, so the
-         * widest set anybody can be given is the one that has to fit.
-         */
+        /** Counted for an admin: the widest set anybody can be offered. */
         $definitions = app(ToolRegistry::class)->definitionsFor($this->admin());
 
-        $spend = [];
+        $sizes = [];
 
         foreach ($definitions as $definition) {
-            $properties = array_keys($definition['input_schema']['properties'] ?? []);
-            $required = $definition['input_schema']['required'] ?? [];
-
-            $spend[$definition['name']] = count(array_diff($properties, $required));
+            $sizes[$definition['name']] = strlen(json_encode($definition));
         }
 
-        $total = array_sum($spend);
+        arsort($sizes);
+        $total = array_sum($sizes);
 
         $breakdown = implode(', ', array_map(
-            fn (string $name, int $count) => $name . ': ' . $count,
-            array_keys($spend),
-            $spend,
+            fn (string $name, int $size) => $name . ': ' . $size,
+            array_keys($sizes),
+            $sizes,
         ));
 
         $this->assertLessThanOrEqual(
-            self::OPTIONAL_PARAMETER_LIMIT,
+            self::ROOM_FOR,
             $total,
-            'The tools ask for ' . $total . ' optional parameters between them and the limit is '
-            . self::OPTIONAL_PARAMETER_LIMIT . '. Every question will fail with a 400 until this fits. '
-            . 'Spend per tool — ' . $breakdown,
+            'The tool definitions come to ' . $total . ' bytes and go out with every question. '
+            . 'Largest first — ' . $breakdown,
         );
+    }
+
+    /**
+     * Strict is what ties the schemas to a hard ceiling, so turning it back on
+     * without reading why it went off would break every question at once.
+     */
+    public function test_strict_validation_stays_off(): void
+    {
+        foreach (app(ToolRegistry::class)->definitionsFor($this->admin()) as $definition) {
+            $this->assertFalse($definition['strict'], $definition['name']);
+        }
     }
 }

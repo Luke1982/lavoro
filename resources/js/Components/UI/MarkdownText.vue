@@ -1,9 +1,10 @@
 <template>
-    <div class="assistant-markdown" v-html="rendered" />
+    <div class="assistant-markdown" @click="onClick" v-html="rendered" />
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { router } from '@inertiajs/vue3'
 import MarkdownIt from 'markdown-it'
 
 /**
@@ -20,25 +21,54 @@ const props = defineProps({
     text: { type: String, default: '' },
 })
 
+/** So whatever is showing this can get out of the way before the page changes. */
+const emit = defineEmits(['navigate'])
+
 const markdown = new MarkdownIt({
     html: false,
     linkify: true,
     breaks: true,
 })
 
+const isInternal = (href) => typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')
+
 /**
- * Anything the model links to opens away from the app. Its links are quoted from
- * records rather than written by us, so none of them should be able to navigate
- * the page out from under someone mid-conversation.
+ * Links to records stay in the app; anything else leaves it.
+ *
+ * A werkbon the assistant just named is somewhere the reader wants to go, and
+ * opening that in a new tab loses the conversation that led them there. An
+ * outside link is the opposite case — it is quoted out of a record rather than
+ * written by us, so it should not be able to navigate the page out from under
+ * somebody mid-answer.
  */
 markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
-    tokens[index].attrSet('target', '_blank')
-    tokens[index].attrSet('rel', 'noopener noreferrer')
+    const href = tokens[index].attrGet('href')
+
+    if (isInternal(href)) {
+        tokens[index].attrSet('data-internal', 'true')
+    } else {
+        tokens[index].attrSet('target', '_blank')
+        tokens[index].attrSet('rel', 'noopener noreferrer')
+    }
 
     return self.renderToken(tokens, index, options)
 }
 
 const rendered = computed(() => markdown.render(props.text ?? ''))
+
+/**
+ * Caught here rather than bound per link, because the markup is handed over as a
+ * string and there are no components in it to attach a handler to.
+ */
+function onClick(event) {
+    const link = event.target.closest('a[data-internal]')
+
+    if (!link) return
+
+    event.preventDefault()
+    emit('navigate')
+    router.visit(link.getAttribute('href'))
+}
 </script>
 
 <style scoped>

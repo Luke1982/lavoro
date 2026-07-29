@@ -48,11 +48,31 @@ describe('SpotlightShell', () => {
         expect(field.element.tagName).toBe('TEXTAREA')
     })
 
-    it('keeps the arrows for the caret unless the caller wants them', async () => {
+    /**
+     * Empty is both the start and the end, so an untouched box hands both arrows
+     * over — which is what makes recalling an earlier question feel like a shell.
+     */
+    it('hands the arrows over when the caret has nowhere to go', async () => {
         const wrapper = shell()
 
+        await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
         await wrapper.find('textarea').trigger('keydown', { key: 'ArrowDown' })
 
+        expect(wrapper.emitted('up')).toHaveLength(1)
+        expect(wrapper.emitted('down')).toHaveLength(1)
+    })
+
+    it('leaves the arrows to the caret in the middle of a question', async () => {
+        const wrapper = shell({ modelValue: 'regel een\nregel twee' })
+        const field = wrapper.find('textarea')
+
+        field.element.selectionStart = 4
+        field.element.selectionEnd = 4
+
+        await field.trigger('keydown', { key: 'ArrowUp' })
+        await field.trigger('keydown', { key: 'ArrowDown' })
+
+        expect(wrapper.emitted('up')).toBeUndefined()
         expect(wrapper.emitted('down')).toBeUndefined()
     })
 

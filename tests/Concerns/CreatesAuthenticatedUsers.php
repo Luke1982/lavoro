@@ -35,14 +35,14 @@ trait CreatesAuthenticatedUsers
         return $user;
     }
 
+    /**
+     * The role is reused between calls, so the permission has to be attached only
+     * if it is not on there already. Attaching outright meant two users holding
+     * the same permission — one asking a question and one who should not see it —
+     * failed on a unique key rather than on the thing being tested.
+     */
     protected function userWith(string $permission): User
     {
-        $user = User::factory()->create();
-        $role = Role::firstOrCreate(['name' => 'role-' . $permission]);
-        $perm = Permission::firstOrCreate(['name' => $permission], ['label' => $permission]);
-        $role->permissions()->attach($perm->id);
-        $user->roles()->attach($role->id);
-
-        return $user;
+        return $this->userWithPermissions($permission);
     }
 }

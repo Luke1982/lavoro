@@ -272,14 +272,22 @@ class AssistantLoopTest extends TestCase
      * without re-checking them. Sending the definitions without it would quietly
      * move that burden back onto every tool.
      */
-    public function test_the_tools_are_sent_with_strict_validation_on(): void
+    /**
+     * Off deliberately. Strict caps the optional parameters across every tool at
+     * twenty-four between them, and going over refuses every request outright
+     * rather than degrading — one write tool was enough to hit it. It never
+     * caught what actually goes wrong either: a group that does not exist is a
+     * valid string. The tools check their own input, which is the only place it
+     * can be checked properly.
+     */
+    public function test_the_tools_are_sent_without_strict_validation(): void
     {
         $model = new FakeModel([FakeModel::says('Hoi.')]);
 
         $this->loop($model)->ask($this->admin(), 'Hallo', 'systeem');
 
         foreach ($model->sent[0]['tools'] as $tool) {
-            $this->assertTrue($tool['strict'], $tool['name'] . ' is sent without strict validation');
+            $this->assertFalse($tool['strict'], $tool['name'] . ' is back on strict, which caps the whole schema budget');
         }
     }
 

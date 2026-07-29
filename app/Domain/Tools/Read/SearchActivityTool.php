@@ -88,6 +88,10 @@ class SearchActivityTool implements Tool
                     'type' => 'integer',
                     'description' => 'Het id van dat record. Vereist samen met subject_type voor één record.',
                 ],
+                'field' => [
+                    'type' => 'string',
+                    'description' => 'Alleen wijzigingen van dit veld, bijvoorbeeld service_order_stage_id.',
+                ],
                 'from' => [
                     'type' => 'string',
                     'description' => 'Begindatum, als JJJJ-MM-DD.',
@@ -160,6 +164,10 @@ class SearchActivityTool implements Tool
          */
         if ($call->integerArgument('subject_id') && blank($subject_type)) {
             return ToolResult::failed('Geef ook subject_type op wanneer je een subject_id gebruikt.');
+        }
+
+        if ($field = $call->stringArgument('field')) {
+            $query->whereHas('fieldChanges', fn (Builder $q) => $q->where('field', $field));
         }
 
         if ($from = $call->stringArgument('from')) {

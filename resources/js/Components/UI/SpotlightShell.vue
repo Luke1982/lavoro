@@ -102,11 +102,30 @@ function onInput(event) {
     resize()
 }
 
+/**
+ * The arrows belong to the caret first.
+ *
+ * A list to walk through takes them outright. Otherwise they only carry once the
+ * caret has nowhere further to go in that direction — up from the very start,
+ * down from the very end — which is how a shell hands its history over without
+ * making a multi-line field impossible to edit.
+ */
 function onArrow(event, direction) {
-    if (!props.interceptArrows) return
+    if (props.interceptArrows) {
+        event.preventDefault()
+        emit(direction)
 
-    event.preventDefault()
-    emit(direction)
+        return
+    }
+
+    const field = event.target
+    const at_start = field.selectionStart === 0 && field.selectionEnd === 0
+    const at_end = field.selectionStart === field.value.length && field.selectionEnd === field.value.length
+
+    if ((direction === 'up' && at_start) || (direction === 'down' && at_end)) {
+        event.preventDefault()
+        emit(direction)
+    }
 }
 
 /** Focus has to wait for the transition to put the input in the document. */

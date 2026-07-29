@@ -2,7 +2,7 @@
     <SpotlightShell ref="shellRef" v-model="question" :open="open" :disabled="asking"
         :divider-above-input="exchanges.length > 0"
         :placeholder="exchanges.length ? 'Stel een vervolgvraag…' : 'Vraag iets over je werkbonnen, klanten of planning…'"
-        @close="close" @enter="ask">
+        @close="close" @enter="ask" @up="recall(-1)" @down="recall(1)">
         <template #icon>
             <SparklesIcon class="size-5 text-indigo-500 shrink-0" />
         </template>
@@ -28,7 +28,8 @@
 
                     <p v-if="exchange.error" class="text-sm text-red-600">{{ exchange.error }}</p>
 
-                    <MarkdownText v-if="exchange.answer" :text="exchange.answer" class="text-sm text-slate-800" />
+                    <MarkdownText v-if="exchange.answer" :text="exchange.answer" class="text-sm text-slate-800"
+                        @navigate="close" />
 
                     <div v-else-if="exchange.pending" class="flex items-center gap-2 text-sm text-slate-400">
                         <ArrowPathIcon class="size-4 shrink-0 animate-spin" />
@@ -84,6 +85,17 @@ const shortcutLabel = assistantShortcutLabel()
 
 const ASK_TIMEOUT_MS = 180000
 
+/**
+ * Questions asked before, newest first, for stepping back through with the
+ * arrows the way a shell does. Loaded once when the box first opens rather than
+ * per question: it is only ever read to fill the input.
+ */
+const asked_before = ref([])
+const recalled = ref(-1)
+
+/** What was being typed before stepping back through earlier questions. */
+const draft = ref('')
+
 // What goes back to the model as history. The request rejects more, and a
 // follow-up needs what was just said rather than everything ever asked.
 const REMEMBERED_EXCHANGES = 6
@@ -136,6 +148,9 @@ async function ask() {
 
     const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [] }
     exchanges.value.push(exchange)
+    asked_before.value.unshift(asked)
+    recalled.value = -1
+    draft.value = ''
     question.value = ''
     asking.value = true
     scrollToLatest()

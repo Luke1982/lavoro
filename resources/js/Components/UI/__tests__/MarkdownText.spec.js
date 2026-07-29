@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import MarkdownText from '../MarkdownText.vue'
+
+const visit = vi.fn()
+
+vi.mock('@inertiajs/vue3', () => ({ router: { visit: (...args) => visit(...args) } }))
 
 const render = (text) => mount(MarkdownText, { props: { text } })
 
@@ -71,11 +75,32 @@ describe('MarkdownText', () => {
         expect(wrapper.text()).toContain('javascript:')
     })
 
-    it('sends real links away from the app', () => {
+    it('sends outside links away from the app', () => {
         const link = render('[handleiding](https://example.test/x)').find('a')
 
         expect(link.attributes('target')).toBe('_blank')
         expect(link.attributes('rel')).toBe('noopener noreferrer')
+    })
+
+    /**
+     * A werkbon the assistant just named is where the reader wants to go, and a
+     * new tab loses the conversation that led them there.
+     */
+    it('keeps a link to a record inside the app', async () => {
+        visit.mockClear()
+        const wrapper = render('Zie [#296](/serviceorders/296)')
+        const link = wrapper.find('a')
+
+        expect(link.attributes('target')).toBeUndefined()
+
+        await link.trigger('click')
+
+        expect(visit).toHaveBeenCalledWith('/serviceorders/296')
+        expect(wrapper.emitted('navigate')).toHaveLength(1)
+    })
+
+    it('does not treat a protocol-relative link as one of ours', () => {
+        expect(render('[x](//evil.test/y)').find('a').attributes('target')).toBe('_blank')
     })
 
     it('copes with nothing to render', () => {

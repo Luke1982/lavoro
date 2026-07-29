@@ -49,6 +49,10 @@ class FindTicketTool implements Tool
                     'type' => 'integer',
                     'description' => 'Beperk tot storingen op deze machine.',
                 ],
+                'customer_id' => [
+                    'type' => 'integer',
+                    'description' => 'Beperk tot storingen bij deze klant.',
+                ],
                 'product_id' => [
                     'type' => 'integer',
                     'description' => 'Beperk tot storingen op machines van dit product. '
@@ -113,6 +117,10 @@ class FindTicketTool implements Tool
 
         if ($asset_id = $call->integerArgument('asset_id')) {
             $query->where('asset_id', $asset_id);
+        }
+
+        if ($customer_id = $call->integerArgument('customer_id')) {
+            $query->whereHas('asset', fn ($q) => $q->where('customer_id', $customer_id));
         }
 
         if ($product_id = $call->integerArgument('product_id')) {

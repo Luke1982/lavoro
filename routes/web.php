@@ -85,6 +85,15 @@ Route::group(
             ->middleware('throttle:20,1')
             ->name('assistant.ask');
 
+        /**
+         * Throttled like the rest. It costs nothing at a supplier, but it hands
+         * back a transcript of somebody's working day and there is no reason for
+         * anyone to want thirty of those a minute.
+         */
+        Route::get('assistant/history', [AssistantController::class, 'history'])
+            ->middleware('throttle:60,1')
+            ->name('assistant.history');
+
         /** Carries out something already agreed to; no model runs here. */
         Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
             ->middleware('throttle:20,1')
