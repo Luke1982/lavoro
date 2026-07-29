@@ -116,6 +116,12 @@ class SearchActivityTool implements Tool
         return true;
     }
 
+    /** Een vraag over het verleden moet worden vertaald naar een record, een veld en een periode, en het antwoord is een reeks wijzigingen waar nog een conclusie uit moet komen. */
+    public static function difficulty(): int
+    {
+        return 5;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

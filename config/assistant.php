@@ -75,12 +75,23 @@ return [
 
     'provider' => env('ASSISTANT_PROVIDER', 'anthropic'),
 
+    /*
+    | capability is how hard a problem this model can be trusted with, on the
+    | same one-to-ten scale the tools use. The cheapest model that clears what a
+    | conversation needs is the one that answers it.
+    |
+    | These are estimates, not measurements. Correct them against
+    | docs/assistant-testvragen.md: a model that keeps choosing the wrong tool is
+    | rated too high, and fixing that is a config change.
+    */
+
     'providers' => [
 
         'anthropic' => [
             'driver' => AnthropicModel::class,
             'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
             'api_key' => env('ANTHROPIC_API_KEY'),
+            'capability' => 9,
         ],
 
         'deepseek' => [
@@ -88,6 +99,7 @@ return [
             'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/v1'),
             'model' => env('DEEPSEEK_MODEL', 'deepseek-chat'),
             'api_key' => env('DEEPSEEK_API_KEY'),
+            'capability' => 7,
         ],
 
         'mistral' => [
@@ -95,6 +107,7 @@ return [
             'base_url' => env('MISTRAL_BASE_URL', 'https://api.mistral.ai/v1'),
             'model' => env('MISTRAL_MODEL', 'mistral-large-latest'),
             'api_key' => env('MISTRAL_API_KEY'),
+            'capability' => 7,
         ],
 
         'qwen' => [
@@ -102,6 +115,7 @@ return [
             'base_url' => env('QWEN_BASE_URL', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),
             'model' => env('QWEN_MODEL', 'qwen-plus'),
             'api_key' => env('QWEN_API_KEY'),
+            'capability' => 6,
         ],
 
         'moonshot' => [
@@ -109,6 +123,7 @@ return [
             'base_url' => env('MOONSHOT_BASE_URL', 'https://api.moonshot.ai/v1'),
             'model' => env('MOONSHOT_MODEL', 'kimi-k2-0711-preview'),
             'api_key' => env('MOONSHOT_API_KEY'),
+            'capability' => 7,
         ],
 
         'openai' => [
@@ -116,6 +131,7 @@ return [
             'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             'model' => env('OPENAI_MODEL', 'gpt-4.1'),
             'api_key' => env('OPENAI_API_KEY'),
+            'capability' => 8,
         ],
 
     ],
@@ -158,6 +174,11 @@ return [
 
         'qwen-plus' => ['input' => 0.40, 'output' => 1.20, 'cache_write' => 0.40, 'cache_read' => 0.16],
         'qwen-turbo' => ['input' => 0.05, 'output' => 0.20, 'cache_write' => 0.05, 'cache_read' => 0.02],
+
+        'kimi-k2-0711-preview' => ['input' => 0.60, 'output' => 2.50, 'cache_write' => 0.60, 'cache_read' => 0.15],
+
+        'gpt-4.1' => ['input' => 2.00, 'output' => 8.00, 'cache_write' => 2.00, 'cache_read' => 0.50],
+        'gpt-4.1-mini' => ['input' => 0.40, 'output' => 1.60, 'cache_write' => 0.40, 'cache_read' => 0.10],
     ],
 
     /*

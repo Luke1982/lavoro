@@ -86,6 +86,12 @@ class FindAvailableTechnicianTool implements Tool
         return $user->can('create', Event::class);
     }
 
+    /** Duur, datum, groep en machine moeten uit een losse zin komen, en het antwoord is een afweging tussen mensen in plaats van een lijst. */
+    public static function difficulty(): int
+    {
+        return 7;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

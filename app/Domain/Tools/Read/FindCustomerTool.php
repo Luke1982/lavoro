@@ -47,6 +47,12 @@ class FindCustomerTool implements Tool
         return $user->can('list', Customer::class);
     }
 
+    /** Eén zoekterm uit de vraag halen. Nauwelijks iets af te wegen. */
+    public static function difficulty(): int
+    {
+        return 2;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

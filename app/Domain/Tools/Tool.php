@@ -58,6 +58,21 @@ interface Tool
     public function execute(ToolCall $call): ToolResult;
 
     /**
+     * How hard this tool is to use well, from 1 to 10.
+     *
+     * It rates the judgement needed to call it — reading a question, choosing
+     * this tool over another, filling its arguments — and not how complicated
+     * the tool is inside. A tool doing heavy work behind a single obvious
+     * argument is easy; one with six optional filters that must be inferred from
+     * a sentence is not.
+     *
+     * A conversation is answered by the cheapest model that clears the hardest
+     * tool the person is offered, so an inflated rating makes every question
+     * that user asks dearer, not only the ones reaching this tool.
+     */
+    public static function difficulty(): int;
+
+    /**
      * Which tool profiles are told this tool exists.
      *
      * This shapes what the model knows about, never what it may do — authorize()

@@ -11,6 +11,7 @@ use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\Contracts\ToolResultsTurn;
 use App\Domain\Assistant\Contracts\UserTurn;
+use App\Domain\Assistant\ModelPicker;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantToolCall;
@@ -37,7 +38,7 @@ class AssistantLoopTest extends TestCase
     private function loop(FakeModel $model): AssistantLoop
     {
         return new AssistantLoop(
-            $model,
+            ModelPicker::fixed($model),
             app(ToolRegistry::class),
             app(ToolExecutor::class),
         );

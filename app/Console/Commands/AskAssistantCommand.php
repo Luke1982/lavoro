@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
+use App\Domain\Assistant\ModelPicker;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
@@ -26,7 +27,8 @@ class AskAssistantCommand extends Command
         {question : The question, in Dutch}
         {--user= : Id of the user to act as}
         {--steps=6 : How many tool rounds to allow before giving up}
-        {--show-results : Print what each tool returned, not just what was asked}';
+        {--show-results : Print what each tool returned, not just what was asked}
+        {--difficulty= : Force a difficulty from 1 to 10 instead of letting the tools decide}';
 
     protected $description = 'Stelt de assistent één vraag vanaf de commandline.';
 
@@ -38,7 +40,8 @@ class AskAssistantCommand extends Command
             return self::FAILURE;
         }
 
-        $provider = config('assistant.provider');
+        $difficulty = (int) ($this->option('difficulty') ?: $registry->requiredDifficultyFor($user));
+        $provider = app(ModelPicker::class)->providerFor($difficulty);
 
         if (blank(config('assistant.providers.' . $provider . '.api_key'))) {
             $this->error('Er is geen API-sleutel ingesteld voor aanbieder "' . $provider . '".');
@@ -48,7 +51,8 @@ class AskAssistantCommand extends Command
 
         $this->line('<comment>Als:</comment> ' . $user->name . ' (' . ToolProfile::forUser($user)->value
             . ', ' . count($registry->definitionsFor($user)) . ' tools)'
-            . ' <comment>via</comment> ' . $provider . ' / ' . config('assistant.providers.' . $provider . '.model'));
+            . ' <comment>moeilijkheid</comment> ' . $difficulty . '/10 -> ' . $provider
+            . ' / ' . config('assistant.providers.' . $provider . '.model'));
         $this->newLine();
 
         try {
@@ -57,6 +61,7 @@ class AskAssistantCommand extends Command
                 question: (string) $this->argument('question'),
                 system: $this->systemPrompt(),
                 context: $this->userContext($user),
+                difficulty: $difficulty,
                 max_rounds: (int) $this->option('steps'),
                 onText: fn (string $text) => $this->line($text),
                 onTool: fn (string $name, array $arguments, bool $failed) => $this->line(

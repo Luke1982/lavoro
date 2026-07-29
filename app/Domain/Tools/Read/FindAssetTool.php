@@ -54,6 +54,12 @@ class FindAssetTool implements Tool
         return $user->can('listRelevant', Asset::class);
     }
 
+    /** Serienummer of klant uit de vraag halen; de rest is filteren. */
+    public static function difficulty(): int
+    {
+        return 2;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

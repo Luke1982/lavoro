@@ -7,7 +7,6 @@ use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
 use App\Domain\Assistant\Contracts\ModelToolResult;
 use App\Domain\Assistant\Contracts\StopReason;
-use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\ToolResultsTurn;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Tools\ToolCall;
@@ -37,7 +36,7 @@ use Throwable;
 class AssistantLoop
 {
     public function __construct(
-        private readonly TalksToModel $model,
+        private readonly ModelPicker $models,
         private readonly ToolRegistry $registry,
         private readonly ToolExecutor $executor,
     ) {}
@@ -54,15 +53,22 @@ class AssistantLoop
         ?Closure $onText = null,
         ?Closure $onTool = null,
         string $context = '',
+        ?int $difficulty = null,
     ): AssistantAnswer {
         $tools = $this->registry->definitionsFor($user);
+
+        /**
+         * The cheapest model equal to the hardest tool this person can reach
+         * for, unless the caller insists on one.
+         */
+        $model = $this->models->forDifficulty($difficulty ?? $this->registry->requiredDifficultyFor($user));
         $turns = [new UserTurn($context === '' ? [$question] : [$context, $question])];
         $rounds = 0;
         $spoken = [];
         $spent = 0;
 
         while (true) {
-            $reply = $this->model->send($turns, $tools, $system);
+            $reply = $model->send($turns, $tools, $system);
 
             $spent += $this->recordCost($user, $reply);
 

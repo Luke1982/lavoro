@@ -53,6 +53,12 @@ class SummarizeCustomerTool implements Tool
         return $user->can('list', Customer::class);
     }
 
+    /** Eén argument, maar het vraagt wel te zien dat een overzicht gevraagd wordt in plaats van een losse zoekopdracht. */
+    public static function difficulty(): int
+    {
+        return 3;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

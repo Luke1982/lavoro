@@ -4,6 +4,7 @@ namespace Tests\Feature\Assistant;
 
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\TokenUsage;
+use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\UsageCost;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
@@ -156,7 +157,7 @@ class UsageCostTest extends TestCase
         ]);
 
         (new AssistantLoop(
-            $model,
+            ModelPicker::fixed($model),
             app(ToolRegistry::class),
             app(ToolExecutor::class),
         ))->ask($this->admin(), 'Ken je Prins?', 'systeem');

@@ -10,10 +10,14 @@ use App\Domain\Assistant\Contracts\StopReason;
 use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\ToolResultsTurn;
 use App\Domain\Assistant\Contracts\UserTurn;
+use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Tools\ToolRegistry;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
@@ -27,6 +31,9 @@ use Tests\TestCase;
  */
 class ProviderSwitchingTest extends TestCase
 {
+    use CreatesAuthenticatedUsers;
+    use RefreshDatabase;
+
     /** @return array<string, array{0: string, 1: class-string}> */
     public static function providers(): array
     {
@@ -67,6 +74,87 @@ class ProviderSwitchingTest extends TestCase
                 $this->assertArrayHasKey('base_url', $settings, $name . ' has no base_url');
             }
         }
+    }
+
+    /**
+     * A conversation is answered by the cheapest model equal to the hardest tool
+     * the person can reach for, so someone who only gets lookups is not paying
+     * for reasoning they can never invoke.
+     */
+    public function test_the_hardest_tool_offered_sets_the_difficulty(): void
+    {
+        $registry = app(ToolRegistry::class);
+
+        $technician = $this->userWith('serviceorder.read_own');
+        $planner = $this->userWithPermissions('serviceorder.read', 'event.see_all', 'event.create');
+
+        $this->assertLessThan(
+            $registry->requiredDifficultyFor($planner),
+            $registry->requiredDifficultyFor($technician),
+            'the planning tool should make a planner cost more than a technician'
+        );
+    }
+
+    public function test_every_tool_rates_itself_somewhere_on_the_scale(): void
+    {
+        foreach (app(ToolRegistry::class)->all() as $tool) {
+            $difficulty = $tool::difficulty();
+
+            $this->assertGreaterThanOrEqual(1, $difficulty, $tool::name() . ' is rated below the scale');
+            $this->assertLessThanOrEqual(10, $difficulty, $tool::name() . ' is rated above the scale');
+        }
+    }
+
+    public function test_the_cheapest_model_that_clears_the_bar_is_chosen(): void
+    {
+        config([
+            'assistant.providers.deepseek.api_key' => 'x',
+            'assistant.providers.anthropic.api_key' => 'x',
+        ]);
+
+        $picker = new ModelPicker;
+
+        $this->assertSame('deepseek', $picker->providerFor(5), 'deepseek clears 5 and is far cheaper');
+        $this->assertSame('anthropic', $picker->providerFor(8), 'deepseek is rated 7, so 8 needs anthropic');
+    }
+
+    /**
+     * A model nobody can call is not a candidate, however well it scores.
+     */
+    public function test_a_provider_without_a_key_is_never_chosen(): void
+    {
+        config([
+            'assistant.providers.deepseek.api_key' => null,
+            'assistant.providers.anthropic.api_key' => 'x',
+        ]);
+
+        $this->assertSame('anthropic', (new ModelPicker)->providerFor(3));
+    }
+
+    /**
+     * An unpriced model sorts last rather than first, so a missing price is
+     * never read as "free" and does not quietly win every comparison.
+     */
+    public function test_a_model_with_no_price_does_not_undercut_everything(): void
+    {
+        config([
+            'assistant.providers.moonshot.api_key' => 'x',
+            'assistant.providers.anthropic.api_key' => 'x',
+            'assistant.pricing.kimi-k2-0711-preview' => null,
+        ]);
+
+        $this->assertSame('anthropic', (new ModelPicker)->providerFor(7));
+    }
+
+    public function test_nothing_clever_enough_still_answers_rather_than_failing(): void
+    {
+        config(['assistant.providers.deepseek.api_key' => 'x']);
+
+        foreach (['anthropic', 'mistral', 'qwen', 'moonshot', 'openai'] as $other) {
+            config(['assistant.providers.' . $other . '.api_key' => null]);
+        }
+
+        $this->assertSame('deepseek', (new ModelPicker)->providerFor(10));
     }
 
     /**

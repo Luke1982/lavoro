@@ -127,6 +127,11 @@ abstract class FakeTool implements Tool
         return true;
     }
 
+    public static function difficulty(): int
+    {
+        return 1;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

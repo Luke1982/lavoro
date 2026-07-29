@@ -60,6 +60,12 @@ class SearchServiceOrderTool implements Tool
         return $user->can('list', ServiceOrder::class);
     }
 
+    /** Vier filters, waarvan hooguit twee tegelijk uit een zin komen. */
+    public static function difficulty(): int
+    {
+        return 3;
+    }
+
     public function requiresConfirmation(): bool
     {
         return false;

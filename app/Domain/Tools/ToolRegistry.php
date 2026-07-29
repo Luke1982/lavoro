@@ -80,6 +80,24 @@ class ToolRegistry
     }
 
     /**
+     * How hard the hardest tool this person is offered is.
+     *
+     * Offered, not used: the model must cope with anything it might reach for,
+     * and nobody knows in advance which that will be. So one demanding tool
+     * lifts the whole conversation — the reason to rate them honestly rather
+     * than generously.
+     */
+    public function requiredDifficultyFor(User $user): int
+    {
+        $difficulties = array_map(
+            fn (Tool $tool) => $tool::difficulty(),
+            $this->forProfile(ToolProfile::forUser($user)),
+        );
+
+        return $difficulties === [] ? 1 : max($difficulties);
+    }
+
+    /**
      * @return array<int, class-string<Tool>>
      */
     public function all(): array
