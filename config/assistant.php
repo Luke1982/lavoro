@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Tools\Read\FindAssetTool;
+use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
@@ -30,6 +31,7 @@ return [
         FindAssetTool::class,
         SearchActivityTool::class,
         SummarizeCustomerTool::class,
+        FindAvailableTechnicianTool::class,
     ],
 
     /*
