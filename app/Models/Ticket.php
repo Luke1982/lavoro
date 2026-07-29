@@ -61,6 +61,29 @@ class Ticket extends Model
         'service_order_id',
     ];
 
+    /**
+     * A storing is visible when the werkbon or the machine it hangs off is.
+     *
+     * Storingen have no readership of their own: someone is put on a werkbon or
+     * given a machine, and the storingen on it come with that. Inventing a
+     * separate rule here would let history and search disagree with what opening
+     * the record actually shows.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin() || $user->hasPermission('ticket.read')) {
+            return $query;
+        }
+
+        return $query->where(fn ($q) => $q
+            ->whereIn('service_order_id', ServiceOrder::visibleTo($user)->select('service_orders.id'))
+            ->orWhereIn('asset_id', Asset::visibleTo($user)->select('assets.id')));
+    }
+
     public function asset(): BelongsTo
     {
         return $this->belongsTo(Asset::class);
