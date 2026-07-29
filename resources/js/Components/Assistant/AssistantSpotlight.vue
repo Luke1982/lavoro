@@ -1,85 +1,87 @@
 <template>
-    <TransitionRoot :show="open" as="template" appear>
-        <Dialog as="div" class="relative z-50" @close="close">
-            <TransitionChild as="template" enter="ease-out duration-150" enter-from="opacity-0" enter-to="opacity-100"
-                leave="ease-in duration-100" leave-from="opacity-100" leave-to="opacity-0">
-                <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
-            </TransitionChild>
+    <SpotlightShell ref="shellRef" v-model="question" :open="open" :disabled="asking"
+        :divider-above-input="exchanges.length > 0"
+        :placeholder="exchanges.length ? 'Stel een vervolgvraag…' : 'Vraag iets over je werkbonnen, klanten of planning…'"
+        @close="close" @enter="ask">
+        <template #icon>
+            <SparklesIcon class="size-5 text-indigo-500 shrink-0" />
+        </template>
 
-            <div class="fixed inset-0 overflow-y-auto p-4 sm:p-6 md:p-20">
-                <TransitionChild as="template" enter="ease-out duration-150" enter-from="opacity-0 scale-95"
-                    enter-to="opacity-100 scale-100" leave="ease-in duration-100" leave-from="opacity-100 scale-100"
-                    leave-to="opacity-0 scale-95">
-                    <DialogPanel
-                        class="mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all">
-                        <div class="flex items-center gap-3 px-4">
-                            <SparklesIcon class="size-5 text-indigo-500 shrink-0" />
-                            <input ref="inputRef" v-model="question" type="text" :disabled="asking"
-                                placeholder="Vraag iets over je werkbonnen, klanten of planning…"
-                                class="h-14 w-full border-0 bg-transparent text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm disabled:opacity-50"
-                                @keydown.enter.prevent="ask" @keydown.esc="close" />
-                            <kbd v-if="!asking"
-                                class="hidden sm:inline-flex items-center rounded border border-slate-200 px-1.5 font-sans text-[10px] text-slate-400">
-                                esc
-                            </kbd>
-                            <ArrowPathIcon v-else class="size-4 shrink-0 animate-spin text-slate-400" />
-                        </div>
+        <template #before>
+            <div v-if="exchanges.length" ref="threadRef" class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
+                <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
+                    <p class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
-                        <div v-if="tools.length || answer || error" class="max-h-[26rem] overflow-y-auto border-t border-slate-100">
-                            <!--
-                                The tool calls are shown as they happen. A question that
-                                takes ten seconds with no sign of life reads as broken, and
-                                seeing which records it opened is also how someone decides
-                                whether to believe the answer.
-                            -->
-                            <ul v-if="tools.length" class="px-4 pt-3 space-y-1">
-                                <li v-for="(tool, index) in tools" :key="index"
-                                    class="flex items-center gap-2 text-xs text-slate-400">
-                                    <span :class="tool.failed ? 'text-red-500' : 'text-emerald-500'">•</span>
-                                    <span>{{ toolLabel(tool.name) }}</span>
-                                </li>
-                            </ul>
+                    <!--
+                        The tool calls are shown as they happen. A question that
+                        takes ten seconds with no sign of life reads as broken, and
+                        seeing which records it opened is also how someone decides
+                        whether to believe the answer.
+                    -->
+                    <ul v-if="exchange.tools.length" class="space-y-1">
+                        <li v-for="(tool, toolIndex) in exchange.tools" :key="toolIndex"
+                            class="flex items-center gap-2 text-xs text-slate-400">
+                            <span :class="tool.failed ? 'text-red-500' : 'text-emerald-500'">•</span>
+                            <span>{{ toolLabel(tool.name) }}</span>
+                        </li>
+                    </ul>
 
-                            <p v-if="error" class="px-4 py-3 text-sm text-red-600">{{ error }}</p>
+                    <p v-if="exchange.error" class="text-sm text-red-600">{{ exchange.error }}</p>
 
-                            <div v-if="answer" class="px-4 py-3 text-sm text-slate-800 whitespace-pre-wrap">{{ answer }}</div>
-                        </div>
+                    <div v-if="exchange.answer" class="text-sm text-slate-800 whitespace-pre-wrap">{{
+                        exchange.answer }}</div>
 
-                        <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
-                            <p class="text-[11px] text-slate-400">
-                                De assistent ziet alleen wat jij mag zien.
-                            </p>
-                            <p class="text-[11px] text-slate-400">
-                                <kbd class="font-sans">{{ shortcutLabel }}</kbd> om te openen
-                            </p>
-                        </div>
-                    </DialogPanel>
-                </TransitionChild>
+                    <div v-else-if="exchange.pending" class="flex items-center gap-2 text-sm text-slate-400">
+                        <ArrowPathIcon class="size-4 shrink-0 animate-spin" />
+                        <span>Aan het opzoeken…</span>
+                    </div>
+                </div>
             </div>
-        </Dialog>
-    </TransitionRoot>
+        </template>
+
+        <template #footer-left>
+            De assistent ziet alleen wat jij mag zien.
+        </template>
+
+        <template #footer-right>
+            <kbd class="font-sans">{{ shortcutLabel }}</kbd> om te openen
+        </template>
+    </SpotlightShell>
 </template>
 
 <script setup>
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { SparklesIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { router } from '@inertiajs/vue3'
 import axios from 'axios'
+import SpotlightShell from '@/Components/UI/SpotlightShell.vue'
 import { assistantShortcutLabel, matchesAssistantShortcut } from '@/Composables/useAssistant.js'
+import { closeNavigator } from '@/Composables/useNavigator.js'
 
 const open = ref(false)
 const question = ref('')
-const answer = ref('')
-const error = ref('')
-const tools = ref([])
+const exchanges = ref([])
 const asking = ref(false)
-const inputRef = ref(null)
+const shellRef = ref(null)
+const threadRef = ref(null)
 const shortcutLabel = assistantShortcutLabel()
+
+const ASK_TIMEOUT_MS = 180000
+
+// What goes back to the model as history. The request rejects more, and a
+// follow-up needs what was just said rather than everything ever asked.
+const REMEMBERED_EXCHANGES = 6
+
+// The request refuses a longer answer than this, and a refusal would wedge the
+// conversation for good: every follow-up would fail on history it cannot change.
+// A long answer is worth less as context than the thread is worth alive.
+const REMEMBERED_ANSWER_CHARS = 8000
 
 const TOOL_LABELS = {
     find_customer: 'Klant opzoeken',
     search_service_orders: 'Werkbonnen zoeken',
     find_asset: 'Machines zoeken',
+    find_tickets: 'Storingen zoeken',
     search_activity: 'Geschiedenis doorzoeken',
     summarize_customer: 'Klantoverzicht ophalen',
     find_available_technician: 'Beschikbaarheid berekenen',
@@ -88,58 +90,106 @@ const TOOL_LABELS = {
 const toolLabel = (name) => TOOL_LABELS[name] || name
 
 async function open_() {
+    closeNavigator()
     open.value = true
-    await nextTick()
-    inputRef.value?.focus()
+    shellRef.value?.focus()
 }
 
 function close() {
     open.value = false
 }
 
-function reset() {
-    answer.value = ''
-    error.value = ''
-    tools.value = []
+async function scrollToLatest() {
+    await nextTick()
+    if (threadRef.value) threadRef.value.scrollTop = threadRef.value.scrollHeight
 }
 
 async function ask() {
     const asked = question.value.trim()
     if (asked.length < 2 || asking.value) return
 
-    reset()
+    // Only exchanges that got an answer are worth replaying; a failed one would
+    // send the model a question it never actually answered.
+    const history = exchanges.value
+        .filter((exchange) => exchange.answer)
+        .slice(-REMEMBERED_EXCHANGES)
+        .map((exchange) => ({
+            question: exchange.question,
+            answer: exchange.answer.slice(0, REMEMBERED_ANSWER_CHARS),
+        }))
+
+    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true }
+    exchanges.value.push(exchange)
+    question.value = ''
     asking.value = true
+    scrollToLatest()
 
     try {
         // The leading slash matters: without it this resolves relative to the
         // current page and 404s on anything nested like /serviceorders/12.
         await axios.get('/sanctum/csrf-cookie')
-        const { data } = await axios.post('/assistant/ask', { question: asked })
-        answer.value = data.answer
-        tools.value = data.tools || []
+        // Which page this is asked from is reported, not interpreted: "wie heeft
+        // deze order gesloten" is unanswerable without it, and the backend decides
+        // what a path means so a made-up one cannot put words into the prompt.
+        const { data } = await axios.post(
+            '/assistant/ask',
+            { question: asked, page: window.location.pathname, history },
+            { timeout: ASK_TIMEOUT_MS },
+        )
+        exchange.answer = data.answer
+        exchange.tools = data.tools || []
     } catch (e) {
-        error.value = e.response?.data?.message
-            || e.response?.data?.errors?.question?.[0]
-            || 'Er ging iets mis bij het stellen van de vraag.'
+        // A broad question can take a few rounds, so the wait is long on purpose.
+        // Spinning for ever is not an option though: without this it never stops,
+        // and someone watching it has no way to tell working from broken.
+        if (e.code === 'ECONNABORTED') {
+            exchange.error = 'Deze vraag duurde te lang. Probeer hem smaller te stellen.'
+        } else if (e.response?.status === 429) {
+            exchange.error = 'Even wachten, er zijn te veel vragen achter elkaar gesteld.'
+        } else {
+            exchange.error = e.response?.data?.message
+                || e.response?.data?.errors?.question?.[0]
+                || 'Er ging iets mis bij het stellen van de vraag.'
+        }
+        // A question that failed is not lost work, so it goes back in the box
+        // ready to be sent again or reworded.
+        question.value = asked
     } finally {
+        exchange.pending = false
         asking.value = false
+        scrollToLatest()
+        shellRef.value?.focus()
     }
 }
 
 function onKeydown(event) {
     if (matchesAssistantShortcut(event)) {
         event.preventDefault()
+        event.stopPropagation()
         open.value ? close() : open_()
     }
 }
 
+/**
+ * The conversation belongs to the page it was held on. Carrying it to the next
+ * one would leave "deze werkbon" pointing at the previous screen while the
+ * assistant is told it is on this one.
+ */
+const stopListening = router.on('navigate', () => {
+    exchanges.value = []
+    question.value = ''
+})
+
 onMounted(() => {
-    window.addEventListener('keydown', onKeydown)
+    window.addEventListener('keydown', onKeydown, { capture: true })
     window.addEventListener('assistant:open', open_)
+    window.addEventListener('assistant:close', close)
 })
 
 onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onKeydown)
+    window.removeEventListener('keydown', onKeydown, { capture: true })
     window.removeEventListener('assistant:open', open_)
+    window.removeEventListener('assistant:close', close)
+    stopListening()
 })
 </script>

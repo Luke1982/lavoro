@@ -53,6 +53,11 @@
                 <Bars3Icon class="size-6" aria-hidden="true" />
             </button>
             <div class="flex-1 text-sm/6 font-semibold text-white">{{ currentTopTitle }}</div>
+            <button type="button" class="-m-2.5 p-2.5 text-sidebar-muted hover:text-lavoro-green"
+                @click="openNavigator">
+                <span class="sr-only">Zoeken</span>
+                <MagnifyingGlassIcon class="size-6" aria-hidden="true" />
+            </button>
             <img src="/img/logo-neg.svg" class="h-6" alt="">
             <Link :href="'/me/edit'">
                 <span class="sr-only">Profiel</span>
@@ -87,12 +92,15 @@
             itself up. It renders nothing until summoned.
         -->
         <AssistantSpotlight v-if="canUseAssistant" />
+
+        <!-- Ungated on purpose: it finds nothing you could not already reach. -->
+        <NavigatorSpotlight />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import { Bars3Icon, ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, ChevronLeftIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
 import { useSidebarNav } from '@/Composables/useSidebarNav.js'
@@ -101,6 +109,8 @@ import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
+import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
+import { openNavigator } from '@/Composables/useNavigator.js'
 import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'

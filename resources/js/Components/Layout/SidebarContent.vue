@@ -3,6 +3,20 @@
         <div class="flex shrink-0 flex-col items-start px-2 pt-4 pb-2">
             <img src="/img/logo-neg.svg" alt="Lavoro" class="h-12">
         </div>
+
+        <!--
+            The shortcut is the fast way in, but only if you know it exists. This
+            row is how you find that out, so it advertises the combination rather
+            than hiding behind an icon.
+        -->
+        <button type="button" @click="startSearching"
+            class="mb-4 flex w-full items-center gap-x-2.5 rounded-lg border border-sidebar-border bg-sidebar-card px-3 py-2 text-sm text-sidebar-muted transition-colors hover:border-lavoro-green hover:text-sidebar-text">
+            <MagnifyingGlassIcon class="size-4 shrink-0 text-lavoro-green" />
+            <span class="flex-1 text-left">Zoeken</span>
+            <!-- No point promising a key combination to somebody holding a phone. -->
+            <kbd class="hidden rounded border border-sidebar-border px-1.5 py-0.5 font-sans text-[10px] lg:inline">{{
+                shortcutLabel }}</kbd>
+        </button>
         <nav class="flex flex-1 flex-col">
             <ul role="list" class="flex flex-1 flex-col gap-y-6">
                 <li>
@@ -184,11 +198,25 @@ import {
     ChevronUpDownIcon,
     ArrowRightIcon,
     ArrowRightOnRectangleIcon,
+    MagnifyingGlassIcon,
     QuestionMarkCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { useSidebarNav } from '@/Composables/useSidebarNav.js'
+import { navigatorShortcutLabel, openNavigator } from '@/Composables/useNavigator.js'
 
 const emit = defineEmits(['navigate', 'logout'])
+
+const shortcutLabel = navigatorShortcutLabel()
+
+/**
+ * On mobile this row sits inside the open drawer, which is a dialog of its own.
+ * Leaving it up would put two focus traps on screen at once, so it closes first
+ * — the same signal a navigation link sends.
+ */
+function startSearching() {
+    emit('navigate')
+    openNavigator()
+}
 
 const {
     authUser,

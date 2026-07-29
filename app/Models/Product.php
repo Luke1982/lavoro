@@ -25,6 +25,28 @@ class Product extends Model
     }
 
     /**
+     * Limits a query to the products this person may see, mirroring ProductPolicy:
+     * everything with product.read, otherwise only the products on their own open
+     * werkbonnen, and nothing at all without either.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin() || $user->hasPermission('product.read')) {
+            return $query;
+        }
+
+        if ($user->hasPermission('product.read.relevant.serviceorder')) {
+            return $query->whereIn('id', $user->relevantProductIds());
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<string>

@@ -22,6 +22,7 @@ use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\FreeformMaterialController;
 use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
@@ -72,8 +73,25 @@ Route::group(
     function () {
         Route::get('/', DashboardController::class);
 
-        /** Gated by AssistantPolicy in the form request, not by a middleware. */
-        Route::post('assistant/ask', [AssistantController::class, 'ask'])->name('assistant.ask');
+        /**
+         * Gated by AssistantPolicy in the form request rather than by middleware.
+         *
+         * Throttled because every call spends real money at a supplier: without
+         * it a held key, a retry loop or an impatient double-click turns into a
+         * bill, and the allowance it eats belongs to the whole company rather
+         * than to the person doing it.
+         */
+        Route::post('assistant/ask', [AssistantController::class, 'ask'])
+            ->middleware('throttle:20,1')
+            ->name('assistant.ask');
+        /**
+         * Feeds the navigation spotlight. Every signed-in user may search; the
+         * searchers behind it each apply their own scope, so what comes back is
+         * the same set that person would reach by navigating there by hand.
+         */
+        Route::get('search/global', GlobalSearchController::class)
+            ->middleware('throttle:120,1')
+            ->name('search.global');
         Route::resource('contacts', ContactController::class)->except(['create', 'edit']);
         Route::resource('maintenancecontracts', MaintenanceContractController::class)->except(['create', 'edit']);
         Route::post(
