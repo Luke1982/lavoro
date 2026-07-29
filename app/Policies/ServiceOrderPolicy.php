@@ -19,6 +19,11 @@ class ServiceOrderPolicy
             || $user->hasPermission('serviceorder.read_own');
     }
 
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('serviceorder.create');
+    }
+
     public function update(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('serviceorder.update');

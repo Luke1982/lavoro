@@ -246,6 +246,13 @@ class AssistantController extends Controller
             '- project: [#12](/projects/12)',
             'Alleen voor records waarvan je het nummer echt uit een tool hebt. Verzin nooit',
             'een link, en gebruik geen andere paden dan deze.',
+            '',
+            'Wil je iets vastleggen of wijzigen, roep dan de bijbehorende tool aan zodra je de',
+            'gegevens hebt. Die tools wijzigen uit zichzelf nog niets: ze geven terug dat er',
+            'bevestiging nodig is, en het systeem legt de gebruiker een knop voor. Vraag nooit',
+            'zelf in tekst om toestemming zonder de tool aan te roepen — dan is er niets om te',
+            'bevestigen en gebeurt er ook niets. Vat na het aanroepen kort samen wat er zou',
+            'gebeuren, zodat de gebruiker weet waar hij ja op zegt.',
         ]);
     }
 

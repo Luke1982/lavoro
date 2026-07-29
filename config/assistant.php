@@ -10,6 +10,8 @@ use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
 use App\Domain\Tools\Write\CreateEventTool;
+use App\Domain\Tools\Write\CreateServiceOrderTool;
+use App\Domain\Tools\Write\CreateTicketTool;
 
 return [
 
@@ -38,6 +40,8 @@ return [
         SummarizeCustomerTool::class,
         FindAvailableTechnicianTool::class,
         CreateEventTool::class,
+        CreateTicketTool::class,
+        CreateServiceOrderTool::class,
     ],
 
     /*

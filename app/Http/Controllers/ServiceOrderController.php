@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ServiceOrders\CreateServiceOrderAction;
+use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
-use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
@@ -11,7 +12,6 @@ use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Domain\Signals\Signals;
 use App\Enums\EventStatusses;
-use App\Enums\ServiceJobOutcomes;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
 use App\Http\Requests\ServiceOrderBulkUpdateRequest;
 use App\Http\Requests\ServiceOrderDeleteRequest;
@@ -26,7 +26,6 @@ use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Mail\ServiceOrderPdfMail;
 use App\Mail\ServiceOrderWithJobsPdfMail;
-use App\Models\Asset;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
@@ -36,7 +35,6 @@ use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
 use App\Models\Product;
 use App\Models\Project;
-use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
@@ -151,7 +149,7 @@ class ServiceOrderController extends Controller
      */
     public function store(Request $request)
     {
-        $serviceorder = ServiceOrder::create($request->validate([
+        $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'project_id' => 'nullable|exists:projects,id',
             'location_id' => [
@@ -159,39 +157,19 @@ class ServiceOrderController extends Controller
                 Rule::exists('locations', 'id')
                     ->where(fn ($q) => $q->where('customer_id', $request->input('customer_id'))),
             ],
-        ]));
-        $redirect = 'back';
+        ]);
 
-        if ($request->has('tickets')) {
-            Ticket::whereIn('id', $request->input('tickets'))
-                ->whereNull('service_order_id')
-                ->get()
-                ->map(fn ($ticket) => $this->attachTicket($request, $serviceorder, $ticket));
-            $redirect = 'serviceorders.show';
-        }
-        if ($request->has('assets')) {
-            foreach ($request->input('assets') as $asset_id) {
-                $job = ServiceJob::create([
-                    'asset_id' => $asset_id,
-                    'service_order_id' => $serviceorder->id,
-                    'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
-                ]);
-                $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
-                if ($asset) {
-                    Signals::dispatch(new ServiceJobAdded($serviceorder, $asset));
-                }
-            }
-            $redirect = 'serviceorders.show';
-        }
+        $serviceorder = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
+            customer_id: (int) $validated['customer_id'],
+            project_id: isset($validated['project_id']) ? (int) $validated['project_id'] : null,
+            location_id: isset($validated['location_id']) ? (int) $validated['location_id'] : null,
+            asset_ids: array_map('intval', $request->input('assets', [])),
+            ticket_ids: array_map('intval', $request->input('tickets', [])),
+        ));
 
-        if (!$serviceorder->location_id && $request->has('assets')) {
-            $location_ids = Asset::whereIn('id', $request->input('assets'))
-                ->pluck('location_id')->filter()->unique();
-            if ($location_ids->count() === 1) {
-                $serviceorder->location_id = $location_ids->first();
-                $serviceorder->save();
-            }
-        }
+        $redirect = $request->has('tickets') || $request->has('assets')
+            ? 'serviceorders.show'
+            : 'back';
 
         if ($request->input('json')) {
             return response()->json($serviceorder);
@@ -865,14 +843,7 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => $serviceorder->id]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            Signals::dispatch(new TicketAttachedToOrder($serviceorder, sprintf(
-                'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
-                $ticket->subject ?? ('Ticket #' . $ticket->id),
-                $asset->product->productType->name ?? 'Type',
-                $asset->product->brand->name ?? 'Merk',
-                $asset->product->model ?? '',
-                $asset->serial_number ?? '-'
-            )));
+            Signals::dispatch(new TicketAttachedToOrder($serviceorder, $ticket, $asset));
         }
 
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
@@ -889,14 +860,7 @@ class ServiceOrderController extends Controller
         $ticket->update(['service_order_id' => null]);
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
         if ($asset) {
-            Signals::dispatch(new TicketDetachedFromOrder($serviceorder, sprintf(
-                'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
-                $ticket->subject ?? ('Ticket #' . $ticket->id),
-                $asset->product->productType->name ?? 'Type',
-                $asset->product->brand->name ?? 'Merk',
-                $asset->product->model ?? '',
-                $asset->serial_number ?? '-'
-            )));
+            Signals::dispatch(new TicketDetachedFromOrder($serviceorder, $ticket, $asset));
         }
 
         return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');

@@ -113,6 +113,9 @@ const TOOL_LABELS = {
     search_activity: 'Geschiedenis doorzoeken',
     summarize_customer: 'Klantoverzicht ophalen',
     find_available_technician: 'Beschikbaarheid berekenen',
+    create_event: 'Afspraak inplannen',
+    create_ticket: 'Storing vastleggen',
+    create_service_order: 'Werkbon aanmaken',
 }
 
 const toolLabel = (name) => TOOL_LABELS[name] || name

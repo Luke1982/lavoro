@@ -2,20 +2,30 @@
 
 namespace App\Policies;
 
-use App\Models\User;
-use App\Models\Ticket;
 use App\Http\Requests\TicketUpdateRequest;
+use App\Models\Ticket;
+use App\Models\User;
 
 class TicketPolicy
 {
     /**
      * Determine if the user can update the ticket with given changes.
      *
-     * @param User $user
-     * @param Ticket $ticket
-     * @param array $changes
-     * @return bool
+     * @param  Ticket  $ticket
+     * @param  array  $changes
      */
+    /**
+     * Whether this person may log a storing.
+     *
+     * The permission has always existed; the create form never asked. Anything
+     * new goes through here, so at least the assistant cannot be the loosest door
+     * in the building.
+     */
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('ticket.create');
+    }
+
     public function update(User $user, Ticket $ticket, TicketUpdateRequest $request): bool
     {
         if ($request->has('status')) {
@@ -28,6 +38,7 @@ class TicketPolicy
                 return true;
             }
         }
+
         return $user->hasPermission('ticket.update');
     }
 

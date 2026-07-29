@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Tickets\CreateTicketAction;
+use App\Actions\Tickets\NewTicket;
 use App\Enums\TicketPriorities;
 use App\Enums\TicketStatusses;
 use App\Http\Requests\TicketBulkUpdateRequest;
@@ -287,9 +289,14 @@ class TicketController extends Controller
      */
     public function store(TicketCreateRequest $request)
     {
-        $ticket = Ticket::create(array_merge($request->validated(), [
-            'created_by_id' => $request->user()->id,
-        ]));
+        $ticket = app(CreateTicketAction::class)->execute(new NewTicket(
+            asset_id: (int) $request->validated('asset_id'),
+            subject: $request->validated('subject'),
+            description: $request->validated('description'),
+            status: $request->validated('status'),
+            priority: $request->validated('priority'),
+            created_by_id: $request->user()->id,
+        ));
 
         return redirect()->back()->with([
             'success' => 'Storing is aangemaakt.',

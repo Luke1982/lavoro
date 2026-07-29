@@ -40,8 +40,10 @@ class CreateEventTool implements Tool
     public function description(): string
     {
         return 'Plant een afspraak in de agenda voor een of meer monteurs. '
-            . 'Gebruik dit pas als datum, tijd, duur en monteurs allemaal bekend zijn — '
-            . 'vraag er anders eerst naar. Er wordt niets gewijzigd voordat de gebruiker bevestigt.';
+            . 'Gebruik dit pas als datum, tijd, duur en monteurs allemaal bekend zijn — vraag er anders '
+            . 'eerst naar. Zijn ze bekend, roep de tool dan meteen aan: er wordt nog niets gewijzigd, je '
+            . 'krijgt terug dat er bevestiging nodig is en het systeem legt de knop aan de gebruiker voor. '
+            . 'Vraag dus niet zelf eerst in tekst om toestemming; dan gebeurt er namelijk helemaal niets.';
     }
 
     public function inputSchema(): array
