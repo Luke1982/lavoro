@@ -3,6 +3,14 @@
 namespace Tests\Feature\Planning;
 
 use App\Domain\Planning\DaySegments;
+use App\Domain\Planning\TechnicianAvailability;
+use App\Models\Customer;
+use App\Models\Event;
+use App\Models\EventType;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -15,6 +23,8 @@ use Tests\TestCase;
  */
 class DaySegmentsTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** @return array<string, array{0: array<string, mixed>, 1: int}> */
     public static function sharedCases(): array
     {
@@ -59,6 +69,48 @@ class DaySegmentsTest extends TestCase
         ], fn ($value) => $value !== null), $segments);
 
         $this->assertSame($case['expect'], $actual, $case['name']);
+    }
+
+    /**
+     * Answering "who is free in the next fortnight" once meant a query per person
+     * per day — nearly five hundred for one question. It hid well, because an
+     * empty diary is answered on the first day and stops; it only appeared when
+     * people were actually busy, which is exactly when the question gets asked.
+     */
+    public function test_a_fortnight_of_availability_is_one_read_of_the_diary(): void
+    {
+        $customer = Customer::factory()->create();
+        $type = EventType::factory()->create();
+
+        $users = User::factory()->count(5)->create(['plannable' => true]);
+
+        foreach (range(0, 9) as $day) {
+            $event = Event::create([
+                'event_type_id' => $type->id,
+                'status' => 'Gepland',
+                'no_service_order' => true,
+                'start' => now()->addDays($day)->setTime(6, 0),
+                'end' => now()->addDays($day)->setTime(20, 0),
+            ]);
+            $event->syncExecutingUsers($users->pluck('id')->all());
+        }
+
+        $availability = app(TechnicianAvailability::class);
+        $loaded = $availability->plannableUsers();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $availability->firstSlots($loaded, CarbonImmutable::today(), 120, 14);
+
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            10,
+            $queries,
+            'availability went back to the database per person per day (' . $queries . ' queries)'
+        );
     }
 
     public function test_the_fixture_is_actually_being_read(): void

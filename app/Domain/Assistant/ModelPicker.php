@@ -83,7 +83,14 @@ class ModelPicker
         $capable = array_filter($usable, fn (array $it) => $it['capability'] >= $difficulty);
 
         if ($capable === []) {
-            $best = array_keys($usable, max($usable))[0] ?? array_key_first($usable);
+            /**
+             * Ordered explicitly rather than with max(), which on arrays compares
+             * element by element in key order — so it happened to sort by
+             * capability only because that key comes first, and reordering the
+             * array would have silently changed which model gets chosen.
+             */
+            uasort($usable, fn (array $a, array $b) => $b['capability'] <=> $a['capability']);
+            $best = array_key_first($usable);
 
             Log::warning('Geen model slim genoeg voor deze vraag, duurste gekozen', [
                 'difficulty' => $difficulty,

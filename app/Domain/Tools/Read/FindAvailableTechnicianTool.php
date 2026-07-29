@@ -121,9 +121,11 @@ class FindAvailableTechnicianTool implements Tool
         $closed_by_brand = $brand_id ? $this->ticketsClosedPerUser($brand_id) : [];
 
         $candidates = [];
+        $users = $availability->plannableUsers();
+        $slots = $availability->firstSlots($users, $from, $duration, $days);
 
-        foreach ($availability->plannableUsers() as $user) {
-            $slot = $availability->firstSlot($user, $from, $duration, $days);
+        foreach ($users as $user) {
+            $slot = $slots[$user->id] ?? null;
 
             if ($slot === null) {
                 continue;

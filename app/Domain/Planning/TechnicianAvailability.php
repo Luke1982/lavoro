@@ -14,37 +14,69 @@ use Illuminate\Support\Collection;
  * This turns appointments and unavailability into the bands DaySegments works
  * on, and does nothing clever with them afterwards — the arithmetic lives there,
  * shared with the planner's own copy, so the two cannot drift apart.
+ *
+ * Answering "who is free in the next fortnight" means asking about ten or so
+ * people across fourteen days, so the diary is read once for the whole window
+ * rather than once per person per day. Done naively that is several hundred
+ * queries for one question, and the shape of it hides well: it only shows up
+ * when people are actually busy, because an empty diary is answered on the
+ * first day and stops.
  */
 class TechnicianAvailability
 {
     private const MINUTES_PER_DAY = 1440;
 
+    private ?int $work_start_hour = null;
+
+    private ?int $work_end_hour = null;
+
+    /** @var array<string, Collection<int, Event>> Events per user, for one loaded window. */
+    private array $diary = [];
+
+    private ?string $diary_key = null;
+
     public function workStartHour(): int
     {
-        return (int) GeneralSetting::get('planner_day_start_hour', 7);
+        return $this->work_start_hour ??= (int) GeneralSetting::get('planner_day_start_hour', 7);
     }
 
     public function workEndHour(): int
     {
-        return (int) GeneralSetting::get('planner_day_end_hour', 18);
+        return $this->work_end_hour ??= (int) GeneralSetting::get('planner_day_end_hour', 18);
     }
 
     /**
-     * The first stretch from $from onwards that is long enough for the job, or
-     * null if there is none inside $days.
+     * The first stretch long enough for the job, per person, over one window.
      *
-     * Searching forward a day at a time rather than loading a fortnight at once:
-     * the answer is usually in the first day or two, and a planner asking about
-     * next week wants the first thing that fits, not a calendar.
-     *
-     * @return array{date: string, start_min: int, end_min: int}|null
+     * @param  Collection<int, User>  $users
+     * @return array<int, array{date: string, start_min: int, end_min: int}|null>
      */
+    public function firstSlots(Collection $users, CarbonImmutable $from, int $duration_minutes, int $days = 14): array
+    {
+        $this->loadDiary($users, $from, $days);
+
+        $slots = [];
+
+        foreach ($users as $user) {
+            $slots[$user->id] = $this->firstSlotFromDiary($user, $from, $duration_minutes, $days);
+        }
+
+        return $slots;
+    }
+
+    /** @return array{date: string, start_min: int, end_min: int}|null */
     public function firstSlot(User $user, CarbonImmutable $from, int $duration_minutes, int $days = 14): ?array
+    {
+        return $this->firstSlots(collect([$user]), $from, $duration_minutes, $days)[$user->id];
+    }
+
+    /** @return array{date: string, start_min: int, end_min: int}|null */
+    private function firstSlotFromDiary(User $user, CarbonImmutable $from, int $duration_minutes, int $days): ?array
     {
         for ($offset = 0; $offset < $days; $offset++) {
             $day = $from->addDays($offset);
 
-            foreach ($this->freeSegments($user, $day) as $segment) {
+            foreach ($this->segmentsFrom($user, $day) as $segment) {
                 if ($duration_minutes <= $segment['end_min'] - $segment['start_min']) {
                     return [
                         'date' => $day->toDateString(),
@@ -63,6 +95,22 @@ class TechnicianAvailability
      */
     public function freeSegments(User $user, CarbonImmutable $day): array
     {
+        $this->loadDiary(collect([$user]), $day, 1);
+
+        return $this->segmentsFrom($user, $day);
+    }
+
+    /**
+     * The same thing for a diary already in hand.
+     *
+     * Kept separate because the public method loads one user for one day, and
+     * calling it from the loop would throw away the window just read and put the
+     * per-day query storm straight back.
+     *
+     * @return array<int, array{kind: string, start_min: int, end_min: int, label: ?string}>
+     */
+    private function segmentsFrom(User $user, CarbonImmutable $day): array
+    {
         $segments = DaySegments::for(
             work_start_hour: $this->workStartHour(),
             work_end_hour: $this->workEndHour(),
@@ -71,6 +119,41 @@ class TechnicianAvailability
         );
 
         return array_values(array_filter($segments, fn (array $segment) => $segment['kind'] === 'free'));
+    }
+
+    /**
+     * Reads every appointment in the window for everybody at once, then keeps it
+     * for the length of this request. Re-reading it per person per day is what
+     * turns one question into hundreds of queries.
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function loadDiary(Collection $users, CarbonImmutable $from, int $days): void
+    {
+        $ids = $users->pluck('id')->sort()->values();
+        $key = $from->toDateString() . '|' . $days . '|' . $ids->implode(',');
+
+        if ($this->diary_key === $key) {
+            return;
+        }
+
+        $events = Event::query()
+            ->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $ids))
+            ->where('start', '<', $from->addDays($days)->startOfDay())
+            ->where('end', '>', $from->startOfDay())
+            ->with(['executingUsers' => fn ($q) => $q->whereIn('users.id', $ids)])
+            ->get();
+
+        $this->diary = [];
+
+        foreach ($events as $event) {
+            foreach ($event->executingUsers as $executor) {
+                $this->diary[$executor->id] ??= collect();
+                $this->diary[$executor->id]->push($event);
+            }
+        }
+
+        $this->diary_key = $key;
     }
 
     /**
@@ -85,43 +168,43 @@ class TechnicianAvailability
         $start = $day->startOfDay();
         $end = $day->addDay()->startOfDay();
 
-        $events = Event::query()
-            ->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id))
-            ->where('start', '<', $end)
-            ->where('end', '>', $start)
-            ->with(['executingUsers' => fn ($q) => $q->where('users.id', $user->id)])
-            ->get();
+        return ($this->diary[$user->id] ?? collect())
+            ->filter(function (Event $event) use ($start, $end) {
+                return CarbonImmutable::parse($event->start) < $end
+                    && CarbonImmutable::parse($event->end) > $start;
+            })
+            ->map(function (Event $event) use ($user, $start) {
+                $event_start = CarbonImmutable::parse($event->start);
+                $event_end = CarbonImmutable::parse($event->end);
 
-        return $events->map(function (Event $event) use ($user, $start) {
-            $event_start = CarbonImmutable::parse($event->start);
-            $event_end = CarbonImmutable::parse($event->end);
+                /**
+                 * Diverging times are clock times on one day, so they cannot
+                 * describe a span. An appointment crossing midnight is clamped to
+                 * the day instead, which is what the planner does with it too.
+                 */
+                if (!$event_start->isSameDay($event_end)) {
+                    return [
+                        'start_min' => max(0, (int) $start->diffInMinutes($event_start, false)),
+                        'end_min' => min(self::MINUTES_PER_DAY, (int) $start->diffInMinutes($event_end, false)),
+                    ];
+                }
 
-            /**
-             * Diverging times are clock times on one day, so they cannot describe
-             * a span. An appointment crossing midnight is clamped to the day
-             * instead, which is what the planner does with it too.
-             */
-            if (!$event_start->isSameDay($event_end)) {
+                $pivot = $event->executingUsers->firstWhere('id', $user->id)?->pivot;
+
+                if ($pivot && $pivot->has_diverging_times && $pivot->diverging_start && $pivot->diverging_end) {
+                    return [
+                        'start_min' => $this->minutesFromTime($pivot->diverging_start),
+                        'end_min' => $this->minutesFromTime($pivot->diverging_end),
+                    ];
+                }
+
                 return [
-                    'start_min' => max(0, (int) $start->diffInMinutes($event_start, false)),
-                    'end_min' => min(self::MINUTES_PER_DAY, (int) $start->diffInMinutes($event_end, false)),
+                    'start_min' => $event_start->hour * 60 + $event_start->minute,
+                    'end_min' => $event_end->hour * 60 + $event_end->minute,
                 ];
-            }
-
-            $pivot = $event->executingUsers->firstWhere('id', $user->id)?->pivot;
-
-            if ($pivot && $pivot->has_diverging_times && $pivot->diverging_start && $pivot->diverging_end) {
-                return [
-                    'start_min' => $this->minutesFromTime($pivot->diverging_start),
-                    'end_min' => $this->minutesFromTime($pivot->diverging_end),
-                ];
-            }
-
-            return [
-                'start_min' => $event_start->hour * 60 + $event_start->minute,
-                'end_min' => $event_end->hour * 60 + $event_end->minute,
-            ];
-        })->all();
+            })
+            ->values()
+            ->all();
     }
 
     /**
