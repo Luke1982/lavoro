@@ -9,6 +9,7 @@ use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
+use App\Domain\Tools\Write\CreateEventTool;
 
 return [
 
@@ -36,6 +37,7 @@ return [
         SearchActivityTool::class,
         SummarizeCustomerTool::class,
         FindAvailableTechnicianTool::class,
+        CreateEventTool::class,
     ],
 
     /*

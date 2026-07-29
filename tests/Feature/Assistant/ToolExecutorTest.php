@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
@@ -24,6 +25,21 @@ class ToolExecutorTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
     use RefreshDatabase;
+
+    /**
+     * The fakes record what happened on themselves, and PHP keeps statics for the
+     * whole run. Left alone, whether "it did not execute" holds depends on which
+     * test went first.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        FakeTool::$executed = false;
+        FakeTool::$ran_with = [];
+        ConfirmingTool::$executed = false;
+        ConfirmingTool::$ran_with = [];
+    }
 
     private function register(Tool ...$tools): ToolExecutor
     {
@@ -82,13 +98,97 @@ class ToolExecutorTest extends TestCase
      * Confirmation is declared by a tool but enforced here. Until the flow that
      * issues tokens exists, a tool wanting one must not run at all.
      */
-    public function test_a_tool_requiring_confirmation_refuses_without_one(): void
+    /**
+     * Not an error: nothing went wrong, it is waiting to be allowed. Reported as
+     * a failure the model would try to work around it, which is the opposite of
+     * what a confirmation is for.
+     */
+    public function test_a_tool_requiring_confirmation_asks_instead_of_running(): void
     {
         $result = $this->register(new ConfirmingTool)->run($this->toolCall(ConfirmingTool::name(), $this->admin()));
 
-        $this->assertTrue($result->is_error);
+        $this->assertFalse($result->is_error);
+        $this->assertSame('bevestiging_nodig', $result->content['status']);
+        $this->assertNotEmpty($result->content['confirmation_token']);
         $this->assertFalse(ConfirmingTool::$executed, 'a tool ran before it was confirmed');
         $this->assertSame('confirmation_required', AssistantToolCall::sole()->outcome);
+    }
+
+    public function test_a_confirmed_tool_runs(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+
+        $token = ConfirmationToken::for(ConfirmingTool::name(), ['x' => 1], $user)->encoded();
+
+        $executor->run(new ToolCall(ConfirmingTool::name(), ['x' => 1], $user, confirmation_token: $token));
+
+        $this->assertTrue(ConfirmingTool::$executed);
+    }
+
+    /**
+     * The approval is the thing that decides what happens. Somebody agreed to one
+     * set of arguments; a second attempt carrying different ones must not be able
+     * to ride in on that agreement.
+     */
+    public function test_what_runs_is_what_was_agreed_to_not_what_was_sent(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+
+        $token = ConfirmationToken::for(ConfirmingTool::name(), ['bedrag' => 10], $user)->encoded();
+
+        $executor->run(new ToolCall(ConfirmingTool::name(), ['bedrag' => 99999], $user, confirmation_token: $token));
+
+        $this->assertSame(['bedrag' => 10], ConfirmingTool::$ran_with);
+    }
+
+    public function test_an_approval_belonging_to_someone_else_is_worthless(): void
+    {
+        $executor = $this->register(new ConfirmingTool);
+
+        $token = ConfirmationToken::for(ConfirmingTool::name(), [], $this->admin())->encoded();
+        $result = $executor->run(new ToolCall(
+            ConfirmingTool::name(), [], $this->userWith('event.create'), confirmation_token: $token
+        ));
+
+        $this->assertFalse(ConfirmingTool::$executed, 'one person confirmed and another one got the action');
+        $this->assertSame('bevestiging_nodig', $result->content['status']);
+    }
+
+    public function test_an_approval_for_a_different_tool_is_worthless(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+
+        $token = ConfirmationToken::for('iets_anders', [], $user)->encoded();
+        $executor->run(new ToolCall(ConfirmingTool::name(), [], $user, confirmation_token: $token));
+
+        $this->assertFalse(ConfirmingTool::$executed, 'an approval for one action authorised another');
+    }
+
+    public function test_a_made_up_approval_is_worthless(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+
+        $executor->run(new ToolCall(ConfirmingTool::name(), [], $user, confirmation_token: 'ja hoor'));
+
+        $this->assertFalse(ConfirmingTool::$executed, 'any old string got past the gate');
+    }
+
+    public function test_an_approval_goes_stale(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+
+        $token = ConfirmationToken::for(ConfirmingTool::name(), [], $user)->encoded();
+
+        $this->travel(16)->minutes();
+
+        $executor->run(new ToolCall(ConfirmingTool::name(), [], $user, confirmation_token: $token));
+
+        $this->assertFalse(ConfirmingTool::$executed, 'a confirmation left in a tab was still good the next day');
     }
 
     public function test_a_successful_call_records_its_arguments_and_outcome(): void
@@ -111,6 +211,9 @@ class ToolExecutorTest extends TestCase
 abstract class FakeTool implements Tool
 {
     public static bool $executed = false;
+
+    /** @var array<string, mixed> What it was actually called with. */
+    public static array $ran_with = [];
 
     public function description(): string
     {
@@ -140,6 +243,7 @@ abstract class FakeTool implements Tool
     public function execute(ToolCall $call): ToolResult
     {
         static::$executed = true;
+        static::$ran_with = $call->arguments;
 
         return ToolResult::ok(['ok' => true]);
     }

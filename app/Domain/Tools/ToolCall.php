@@ -24,6 +24,19 @@ final class ToolCall
         public readonly ?string $confirmation_token = null,
     ) {}
 
+    /**
+     * The same call with the arguments replaced.
+     *
+     * Used when an approval is redeemed: what runs comes out of the token, not
+     * off the call, so the two cannot disagree.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    public function withArguments(array $arguments): self
+    {
+        return new self($this->name, $arguments, $this->user, $this->external_id, $this->confirmation_token);
+    }
+
     public function argument(string $key, mixed $default = null): mixed
     {
         return $this->arguments[$key] ?? $default;

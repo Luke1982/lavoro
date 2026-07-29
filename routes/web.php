@@ -84,6 +84,11 @@ Route::group(
         Route::post('assistant/ask', [AssistantController::class, 'ask'])
             ->middleware('throttle:20,1')
             ->name('assistant.ask');
+
+        /** Carries out something already agreed to; no model runs here. */
+        Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
+            ->middleware('throttle:20,1')
+            ->name('assistant.confirm');
         /**
          * Feeds the navigation spotlight. Every signed-in user may search; the
          * searchers behind it each apply their own scope, so what comes back is

@@ -34,6 +34,22 @@
                         <ArrowPathIcon class="size-4 shrink-0 animate-spin" />
                         <span>Aan het opzoeken…</span>
                     </div>
+
+                    <!--
+                        Nothing has been changed at this point. The assistant has
+                        said what it would do and is waiting; this is the only
+                        thing that lets it happen.
+                    -->
+                    <div v-for="(action, actionIndex) in exchange.pendingActions" :key="'p' + actionIndex"
+                        class="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
+                        <p class="text-xs text-amber-900">{{ action.done || 'Nog niet uitgevoerd — bevestig om door te gaan.' }}</p>
+                        <button v-if="!action.done" type="button" :disabled="action.busy"
+                            class="shrink-0 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                            @click="confirmAction(action)">
+                            {{ action.busy ? 'Bezig…' : 'Bevestigen' }}
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </template>
@@ -118,7 +134,7 @@ async function ask() {
             answer: exchange.answer.slice(0, REMEMBERED_ANSWER_CHARS),
         }))
 
-    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true }
+    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [] }
     exchanges.value.push(exchange)
     question.value = ''
     asking.value = true
@@ -138,6 +154,11 @@ async function ask() {
         )
         exchange.answer = data.answer
         exchange.tools = data.tools || []
+        exchange.pendingActions = (data.pending || []).map((action) => ({
+            ...action,
+            busy: false,
+            done: '',
+        }))
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.
         // Spinning for ever is not an option though: without this it never stops,
@@ -159,6 +180,28 @@ async function ask() {
         asking.value = false
         scrollToLatest()
         shellRef.value?.focus()
+    }
+}
+
+/**
+ * Carries out something the assistant proposed. The token holds what was
+ * proposed, so nothing here describes the action — sending our own idea of it
+ * would let the button and the words above it drift apart.
+ */
+async function confirmAction(action) {
+    if (action.busy || action.done) return
+
+    action.busy = true
+
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const { data } = await axios.post('/assistant/confirm', { token: action.token })
+        action.done = data.message
+    } catch (e) {
+        action.done = e.response?.data?.message || 'Het is niet gelukt.'
+    } finally {
+        action.busy = false
+        scrollToLatest()
     }
 }
 

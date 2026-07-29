@@ -13,6 +13,7 @@ use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
+use App\Domain\Tools\ToolResult;
 use App\Models\AssistantUsage;
 use App\Models\User;
 use Closure;
@@ -44,7 +45,7 @@ class AssistantLoop
 
     /**
      * @param  Closure(string):void|null  $onText  Called with each sentence the model writes.
-     * @param  Closure(string, array, bool):void|null  $onTool  Called with name, arguments and whether it failed.
+     * @param  Closure(string, array, bool, ToolResult):void|null  $onTool  Name, arguments, whether it failed, and the result itself.
      * @param  array<int, array{question: string, answer: string}>  $history  Earlier exchanges, oldest first.
      */
     public function ask(
@@ -147,7 +148,7 @@ class AssistantLoop
                 external_id: $call->id,
             ));
 
-            $onTool && $onTool($call->name, $call->arguments, $result->is_error);
+            $onTool && $onTool($call->name, $call->arguments, $result->is_error, $result);
 
             $results[] = new ModelToolResult(
                 call_id: $call->id,

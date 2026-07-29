@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\PageContext;
+use App\Domain\Tools\ConfirmationToken;
+use App\Domain\Tools\ToolCall;
+use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
+use App\Domain\Tools\ToolResult;
 use App\Http\Requests\AssistantAskRequest;
+use App\Http\Requests\AssistantConfirmRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
@@ -33,6 +38,7 @@ class AssistantController extends Controller
     ): JsonResponse {
         $user = $request->user();
         $tools = [];
+        $pending = [];
 
         try {
             $answer = $loop->ask(
@@ -41,8 +47,16 @@ class AssistantController extends Controller
                 system: $this->systemPrompt(),
                 context: $this->context($user, $pages->describe($request->validated('page'))),
                 history: $request->validated('history') ?? [],
-                onTool: function (string $name, array $arguments, bool $failed) use (&$tools) {
+                onTool: function (string $name, array $arguments, bool $failed, ?ToolResult $result = null) use (&$tools, &$pending) {
                     $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
+
+                    if (is_array($result?->content) && ($result->content['status'] ?? null) === 'bevestiging_nodig') {
+                        $pending[] = [
+                            'tool' => $name,
+                            'arguments' => $result->content['proposed'] ?? [],
+                            'token' => $result->content['confirmation_token'],
+                        ];
+                    }
                 },
             );
         } catch (ModelUnavailable $e) {
@@ -54,8 +68,40 @@ class AssistantController extends Controller
         return response()->json([
             'answer' => $answer->text,
             'tools' => $tools,
+            'pending' => $pending,
             'difficulty' => $registry->requiredDifficultyFor($user),
         ]);
+    }
+
+    /**
+     * Carries out something already agreed to.
+     *
+     * No model runs here. The token holds the tool and its arguments, so what the
+     * person read is what happens — sending it back through the assistant would
+     * put a language model between the words on screen and the act they approved.
+     */
+    public function confirm(AssistantConfirmRequest $request, ToolExecutor $executor): JsonResponse
+    {
+        $user = $request->user();
+        $approval = ConfirmationToken::decode($request->validated('token'), $user);
+
+        if ($approval === null) {
+            return response()->json([
+                'message' => 'Deze bevestiging is verlopen of hoort niet bij jou. Stel de vraag opnieuw.',
+            ], 422);
+        }
+
+        $result = $executor->run(new ToolCall(
+            name: $approval->tool,
+            arguments: $approval->arguments,
+            user: $user,
+            confirmation_token: $request->validated('token'),
+        ));
+
+        return response()->json([
+            'ok' => !$result->is_error,
+            'message' => $result->summary ?? ($result->is_error ? 'Het is niet gelukt.' : 'Gelukt.'),
+        ], $result->is_error ? 422 : 200);
     }
 
     private function explain(ModelUnavailable $e): string

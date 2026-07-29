@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\Appointments\AppointmentCancelled;
 use App\Domain\Signals\Appointments\AppointmentRescheduled;
 use App\Domain\Signals\Appointments\AppointmentRestored;
@@ -19,11 +20,15 @@ class EventObserver
 {
     public function created(Event $event): void
     {
+        app(TechnicianAvailability::class)->forget();
+
         Signals::dispatch(new AppointmentScheduled($event));
     }
 
     public function updated(Event $event): void
     {
+        app(TechnicianAvailability::class)->forget();
+
         Signals::dispatch(new AppointmentRescheduled($event));
     }
 
@@ -38,6 +43,8 @@ class EventObserver
 
     public function deleted(Event $event): void
     {
+        app(TechnicianAvailability::class)->forget();
+
         if ($event->isForceDeleting()) {
             return;
         }
@@ -47,6 +54,8 @@ class EventObserver
 
     public function restored(Event $event): void
     {
+        app(TechnicianAvailability::class)->forget();
+
         Signals::dispatch(new AppointmentRestored($event));
     }
 }

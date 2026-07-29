@@ -35,6 +35,21 @@ class TechnicianAvailability
 
     private ?string $diary_key = null;
 
+    /**
+     * Drops the window it is holding.
+     *
+     * This instance lives for the whole request, which is what keeps a planning
+     * question down to ten queries — and it is exactly what makes the diary go
+     * stale the moment something is written to it. Booking an appointment and
+     * then asking whether that mechanic is free would otherwise be answered out
+     * of the copy read before the booking, and cheerfully double-book them.
+     */
+    public function forget(): void
+    {
+        $this->diary = [];
+        $this->diary_key = null;
+    }
+
     public function workStartHour(): int
     {
         return $this->work_start_hour ??= (int) GeneralSetting::get('planner_day_start_hour', 7);

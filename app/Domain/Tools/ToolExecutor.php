@@ -56,17 +56,36 @@ class ToolExecutor
 
         /**
          * Confirmation is declared by the tool but enforced here, never by asking
-         * the model to be polite. Until the confirmation flow exists, a tool that
-         * wants one cannot run at all — failing closed is the only safe direction
-         * for a gate that is not built yet.
+         * the model to be polite.
+         *
+         * Without an approval this stops and asks for one, handing back a token
+         * with the arguments sealed inside it. What the person then agrees to is
+         * exactly what runs: the arguments are read back out of the token rather
+         * than taken from the call, so a second attempt cannot quietly differ
+         * from the one that was read and approved.
          */
-        if ($tool->requiresConfirmation() && $call->confirmation_token === null) {
-            return $this->record(
-                $call,
-                ToolResult::failed('Deze actie vereist bevestiging en kan nog niet worden uitgevoerd.'),
-                'confirmation_required',
-                $started_at,
-            );
+        if ($tool->requiresConfirmation()) {
+            $approval = ConfirmationToken::decode($call->confirmation_token, $call->user);
+
+            if ($approval === null || $approval->tool !== $call->name) {
+                return $this->record(
+                    $call,
+                    ToolResult::ok(
+                        [
+                            'status' => 'bevestiging_nodig',
+                            'proposed' => $call->arguments,
+                            'confirmation_token' => ConfirmationToken::for($call->name, $call->arguments, $call->user)->encoded(),
+                            'note' => 'Er is nog niets gewijzigd. Vertel de gebruiker precies wat je wilt doen '
+                                . 'en vraag om bevestiging; het systeem laat de knop zien.',
+                        ],
+                        'Wacht op bevestiging.',
+                    ),
+                    'confirmation_required',
+                    $started_at,
+                );
+            }
+
+            $call = $call->withArguments($approval->arguments);
         }
 
         try {
