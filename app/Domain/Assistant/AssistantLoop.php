@@ -2,11 +2,14 @@
 
 namespace App\Domain\Assistant;
 
-use Anthropic\Messages\Message;
-use Anthropic\Messages\TextBlock;
-use Anthropic\Messages\Tool;
-use Anthropic\Messages\ToolResultBlockParam;
-use Anthropic\Messages\ToolUseBlock;
+use App\Domain\Assistant\Contracts\AssistantTurn;
+use App\Domain\Assistant\Contracts\ModelReply;
+use App\Domain\Assistant\Contracts\ModelToolCall;
+use App\Domain\Assistant\Contracts\ModelToolResult;
+use App\Domain\Assistant\Contracts\StopReason;
+use App\Domain\Assistant\Contracts\TalksToModel;
+use App\Domain\Assistant\Contracts\ToolResultsTurn;
+use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
@@ -21,9 +24,13 @@ use Throwable;
  * Runs one question to its answer: ask the model, run whatever tools it asks
  * for, hand the results back, repeat until it stops asking.
  *
- * The loop owns the two things that are easy to get wrong. The assistant's own
- * turn must go back into the history exactly as it arrived, thinking blocks
- * included, or the next request is rejected. And every tool call must be
+ * Nothing here knows which supplier is answering. Turns and tool definitions go
+ * out through TalksToModel and a ModelReply comes back, so changing supplier is
+ * writing one adapter — see Providers/AnthropicModel.
+ *
+ * The loop owns the two things that are easy to get wrong. The model's own turn
+ * must go back exactly as it arrived, which is why it travels as an opaque blob
+ * rather than something rebuilt from the text. And every tool call must be
  * answered, in one message, even the ones that failed — a missing result leaves
  * the conversation permanently unanswerable.
  */
@@ -48,18 +55,18 @@ class AssistantLoop
         ?Closure $onTool = null,
         string $context = '',
     ): AssistantAnswer {
-        $tools = $this->definitions($user);
-        $messages = [['role' => 'user', 'content' => $this->opening($context, $question)]];
+        $tools = $this->registry->definitionsFor($user);
+        $turns = [new UserTurn($context === '' ? [$question] : [$context, $question])];
         $rounds = 0;
         $spoken = [];
         $spent = 0;
 
         while (true) {
-            $response = $this->model->send($messages, $tools, $system);
+            $reply = $this->model->send($turns, $tools, $system);
 
-            $spent += $this->recordCost($user, $response);
+            $spent += $this->recordCost($user, $reply);
 
-            if ($response->stopReason === 'refusal') {
+            if ($reply->stop_reason === StopReason::refused) {
                 throw new RuntimeException('Het model heeft de vraag geweigerd.');
             }
 
@@ -67,61 +74,55 @@ class AssistantLoop
              * A turn that ran out of room is not an answer, and it is the one
              * failure that looks like success: half a list of werkbonnen reads
              * exactly like a whole one. Better to say nothing than to let someone
-             * act on it. Thinking counts against the same budget, so the fix is
-             * usually more room rather than a shorter question.
+             * act on it.
              */
-            if ($response->stopReason === 'max_tokens') {
+            if ($reply->stop_reason === StopReason::out_of_room) {
                 throw new RuntimeException(
                     'Het antwoord paste niet binnen max_tokens en is afgekapt. '
                     . 'Verhoog ASSISTANT_MAX_TOKENS (nu ' . config('assistant.max_tokens') . ').'
                 );
             }
 
-            foreach ($this->spokenText($response) as $text) {
+            foreach ($reply->texts as $text) {
                 $spoken[] = $text;
                 $onText && $onText($text);
             }
 
-            $calls = array_values(array_filter(
-                $response->content,
-                fn ($block) => $block instanceof ToolUseBlock,
-            ));
-
-            if ($calls === []) {
-                return new AssistantAnswer(implode("\n", $spoken), $rounds, $response, $spent);
+            if ($reply->tool_calls === []) {
+                return new AssistantAnswer(implode("\n", $spoken), $rounds, $reply, $spent);
             }
 
             if (++$rounds > $max_rounds) {
                 throw new RuntimeException('Gestopt na ' . $max_rounds . ' tool-rondes zonder antwoord.');
             }
 
-            $messages[] = ['role' => 'assistant', 'content' => $response->content];
-            $messages[] = ['role' => 'user', 'content' => $this->run($calls, $user, $onTool)];
+            $turns[] = new AssistantTurn($reply->raw);
+            $turns[] = new ToolResultsTurn($this->run($reply->tool_calls, $user, $onTool));
         }
     }
 
     /**
-     * @param  array<int, ToolUseBlock>  $calls
-     * @return array<int, ToolResultBlockParam>
+     * @param  array<int, ModelToolCall>  $calls
+     * @return array<int, ModelToolResult>
      */
     private function run(array $calls, User $user, ?Closure $onTool): array
     {
         $results = [];
 
-        foreach ($calls as $block) {
+        foreach ($calls as $call) {
             $result = $this->executor->run(new ToolCall(
-                name: $block->name,
-                arguments: $block->input,
+                name: $call->name,
+                arguments: $call->arguments,
                 user: $user,
-                external_id: $block->id,
+                external_id: $call->id,
             ));
 
-            $onTool && $onTool($block->name, $block->input, $result->is_error);
+            $onTool && $onTool($call->name, $call->arguments, $result->is_error);
 
-            $results[] = ToolResultBlockParam::with(
-                toolUseID: $block->id,
+            $results[] = new ModelToolResult(
+                call_id: $call->id,
                 content: $result->toModelContent(),
-                isError: $result->is_error,
+                is_error: $result->is_error,
             );
         }
 
@@ -133,13 +134,13 @@ class AssistantLoop
      * price of one question without adding the rows back up.
      *
      * A failed write must not lose the answer someone is waiting for, so it is
-     * reported and swallowed — the same position the activity log takes. It does
-     * mean the meter can undercount when the database is unhappy, which is the
-     * right way round: an unbilled call beats a lost answer.
+     * reported and swallowed — the same position the activity log takes. The
+     * meter can undercount when the database is unhappy, which is the right way
+     * round: an unbilled call beats a lost answer.
      */
-    private function recordCost(User $user, Message $response): int
+    private function recordCost(User $user, ModelReply $reply): int
     {
-        $cost = UsageCost::forCall((string) $response->model, $response->usage);
+        $cost = UsageCost::forCall($reply->model, $reply->usage);
 
         try {
             AssistantUsage::create([
@@ -154,10 +155,7 @@ class AssistantLoop
                 'eur_per_usd' => $cost->eur_per_usd,
             ]);
         } catch (Throwable $e) {
-            Log::error('Kon assistentverbruik niet vastleggen', [
-                'model' => $cost->model,
-                'exception' => $e,
-            ]);
+            Log::error('Kon assistentverbruik niet vastleggen', ['model' => $cost->model, 'exception' => $e]);
         }
 
         if (!$cost->isPriced()) {
@@ -165,55 +163,5 @@ class AssistantLoop
         }
 
         return $cost->cost_micros;
-    }
-
-    /**
-     * The opening turn: who is asking and when, then what they asked.
-     *
-     * This is deliberately not in the system prompt. Everything ahead of the
-     * cache marker has to be byte-identical to be worth caching, and a name and
-     * a date make it different for every person and every day — which would mean
-     * nobody ever reads a cached prefix and everyone pays to write one.
-     *
-     * @return string|array<int, array<string, string>>
-     */
-    private function opening(string $context, string $question): string|array
-    {
-        if ($context === '') {
-            return $question;
-        }
-
-        return [
-            ['type' => 'text', 'text' => $context],
-            ['type' => 'text', 'text' => $question],
-        ];
-    }
-
-    /** @return array<int, string> */
-    private function spokenText(Message $response): array
-    {
-        $said = [];
-
-        foreach ($response->content as $block) {
-            if ($block instanceof TextBlock && filled(trim($block->text))) {
-                $said[] = $block->text;
-            }
-        }
-
-        return $said;
-    }
-
-    /** @return array<int, Tool> */
-    private function definitions(User $user): array
-    {
-        return array_map(
-            fn (array $definition) => Tool::with(
-                inputSchema: $definition['input_schema'],
-                name: $definition['name'],
-                description: $definition['description'],
-                strict: $definition['strict'],
-            ),
-            $this->registry->definitionsFor($user),
-        );
     }
 }

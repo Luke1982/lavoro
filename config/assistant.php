@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Tools\Read\FindAssetTool;
 use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
@@ -56,6 +57,14 @@ return [
     | room for both. Too tight and a turn stops halfway through its own sentence.
     |
     */
+
+    /*
+    | Which supplier answers. Swapping means pointing this at another adapter —
+    | one class implementing TalksToModel. Nothing outside that class, and
+    | nothing in the tools at all, knows who is on the other end.
+    */
+
+    'driver' => env('ASSISTANT_DRIVER', AnthropicModel::class),
 
     'api_key' => env('ANTHROPIC_API_KEY'),
 

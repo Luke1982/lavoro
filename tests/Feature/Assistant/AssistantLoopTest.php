@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Assistant;
 
-use Anthropic\Messages\Message;
-use Anthropic\Messages\TextBlock;
-use Anthropic\Messages\ToolUseBlock;
-use Anthropic\Messages\Usage;
 use App\Domain\Assistant\AssistantLoop;
-use App\Domain\Assistant\TalksToModel;
+use App\Domain\Assistant\Contracts\AssistantTurn;
+use App\Domain\Assistant\Contracts\ModelReply;
+use App\Domain\Assistant\Contracts\ModelToolCall;
+use App\Domain\Assistant\Contracts\StopReason;
+use App\Domain\Assistant\Contracts\TalksToModel;
+use App\Domain\Assistant\Contracts\TokenUsage;
+use App\Domain\Assistant\Contracts\ToolResultsTurn;
+use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantToolCall;
@@ -82,10 +85,10 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->admin(), 'Zoek', 'systeem');
 
-        $assistant_turn = $model->messagesOn(1)[1];
+        $assistant_turn = $model->turnsOn(1)[1];
 
-        $this->assertSame('assistant', $assistant_turn['role']);
-        $this->assertInstanceOf(ToolUseBlock::class, $assistant_turn['content'][0]);
+        $this->assertInstanceOf(AssistantTurn::class, $assistant_turn);
+        $this->assertSame($model->sent[0] ? 'fake-assistant-turn' : null, $assistant_turn->raw[0]);
     }
 
     /**
@@ -104,10 +107,10 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->admin(), 'Twee dingen', 'systeem');
 
-        $results_turn = $model->messagesOn(1)[2];
+        $results_turn = $model->turnsOn(1)[2];
 
-        $this->assertSame('user', $results_turn['role']);
-        $this->assertCount(2, $results_turn['content']);
+        $this->assertInstanceOf(ToolResultsTurn::class, $results_turn);
+        $this->assertCount(2, $results_turn->results);
         $this->assertSame(2, AssistantToolCall::count());
     }
 
@@ -124,9 +127,9 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->userWith('serviceorder.read_own'), 'Zoek', 'systeem');
 
-        $result = $model->messagesOn(1)[2]['content'][0];
+        $result = $model->turnsOn(1)[2]->results[0];
 
-        $this->assertTrue($result['isError']);
+        $this->assertTrue($result->is_error);
         $this->assertSame('denied', AssistantToolCall::sole()->outcome);
     }
 
@@ -156,7 +159,7 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($user, 'Hallo', 'systeem');
 
-        $offered = array_map(fn ($tool) => $tool->name, $model->sent[0]['tools']);
+        $offered = array_column($model->sent[0]['tools'], 'name');
 
         $this->assertSame(
             array_column(app(ToolRegistry::class)->definitionsFor($user), 'name'),
@@ -178,14 +181,17 @@ class AssistantLoopTest extends TestCase
 
         $this->loop($model)->ask($this->admin(), 'De oorspronkelijke vraag', 'systeem');
 
-        $this->assertCount(1, $model->messagesOn(0));
-        $this->assertCount(3, $model->messagesOn(1));
-        $this->assertCount(5, $model->messagesOn(2));
+        $this->assertCount(1, $model->turnsOn(0));
+        $this->assertCount(3, $model->turnsOn(1));
+        $this->assertCount(5, $model->turnsOn(2));
 
         foreach ([0, 1, 2] as $round) {
+            $opening = $model->turnsOn($round)[0];
+
+            $this->assertInstanceOf(UserTurn::class, $opening);
             $this->assertSame(
                 'De oorspronkelijke vraag',
-                $model->messagesOn($round)[0]['content'],
+                $opening->texts[0],
                 'the original question was lost by round ' . $round
             );
         }
@@ -217,7 +223,7 @@ class AssistantLoopTest extends TestCase
         $this->loop($model)->ask($this->admin(), 'Hallo', 'systeem');
 
         foreach ($model->sent[0]['tools'] as $tool) {
-            $this->assertTrue($tool->strict, $tool->name . ' is sent without strict validation');
+            $this->assertTrue($tool['strict'], $tool['name'] . ' is sent without strict validation');
         }
     }
 
@@ -241,6 +247,10 @@ class AssistantLoopTest extends TestCase
 /**
  * Replies the model would have given, handed out in order. Records every request
  * so a test can look at what the loop actually sent.
+ *
+ * Note how little there is to it now: no Message, no Usage, no content blocks.
+ * A fake that has to construct a supplier's own types is a fake that stops
+ * compiling when that supplier changes theirs.
  */
 class FakeModel implements TalksToModel
 {
@@ -248,41 +258,35 @@ class FakeModel implements TalksToModel
      * The whole request is kept, not a slice of it. Keeping only the tail would
      * mean a loop that quietly forgot the earlier conversation still passed.
      *
-     * @var array<int, array{tools: array<int, mixed>, messages: array<int, mixed>, system: string}>
+     * @var array<int, array{tools: array<int, mixed>, turns: array<int, mixed>, system: string}>
      */
     public array $sent = [];
 
     private int $turn = 0;
 
-    /** @param array<int, Message> $replies */
+    /** @param array<int, ModelReply> $replies */
     public function __construct(private readonly array $replies) {}
 
-    public function send(array $messages, array $tools, string $system): Message
+    public function send(array $turns, array $tools, string $system): ModelReply
     {
-        $this->sent[] = ['tools' => $tools, 'messages' => $messages, 'system' => $system];
+        $this->sent[] = ['tools' => $tools, 'turns' => $turns, 'system' => $system];
 
         return $this->replies[$this->turn++]
             ?? throw new RuntimeException('de nepmodel-antwoorden zijn op');
     }
 
     /** @return array<int, mixed> */
-    public function messagesOn(int $request): array
+    public function turnsOn(int $request): array
     {
-        return $this->sent[$request]['messages'];
+        return $this->sent[$request]['turns'];
     }
 
     public function lastToolResultText(): string
     {
         foreach (array_reverse($this->sent) as $request) {
-            foreach (array_reverse($request['messages']) as $entry) {
-                if (($entry['role'] ?? null) !== 'user' || !is_array($entry['content'])) {
-                    continue;
-                }
-
-                $first = $entry['content'][0];
-
-                if (!is_string($first) && isset($first['content'])) {
-                    return (string) $first['content'];
+            foreach (array_reverse($request['turns']) as $turn) {
+                if ($turn instanceof ToolResultsTurn) {
+                    return $turn->results[0]->content;
                 }
             }
         }
@@ -290,64 +294,56 @@ class FakeModel implements TalksToModel
         return '';
     }
 
-    public static function says(string $text): Message
+    public static function says(string $text): ModelReply
     {
-        return self::message([TextBlock::with(citations: null, text: $text)], 'end_turn');
+        return self::reply([$text], [], StopReason::finished);
     }
 
-    public static function callsTool(string $name, array $input): Message
+    /** @param array<string, mixed> $input */
+    public static function callsTool(string $name, array $input): ModelReply
     {
         return self::callsTools([[$name, $input]]);
     }
 
     /** @param array<int, array{0: string, 1: array<string, mixed>}> $calls */
-    public static function callsTools(array $calls): Message
+    public static function callsTools(array $calls): ModelReply
     {
         $blocks = [];
 
         foreach ($calls as $index => [$name, $input]) {
-            $blocks[] = ToolUseBlock::with(
+            $blocks[] = new ModelToolCall(
                 id: 'toolu_fake_' . $index . '_' . $name,
-                input: $input,
                 name: $name,
+                arguments: $input,
             );
         }
 
-        return self::message($blocks, 'tool_use');
+        return self::reply([], $blocks, StopReason::wants_tools);
     }
 
-    public static function refuses(): Message
+    public static function refuses(): ModelReply
     {
-        return self::message([], 'refusal');
+        return self::reply([], [], StopReason::refused);
     }
 
-    public static function ranOutOfRoom(string $partial): Message
+    public static function ranOutOfRoom(string $partial): ModelReply
     {
-        return self::message([TextBlock::with(citations: null, text: $partial)], 'max_tokens');
+        return self::reply([$partial], [], StopReason::out_of_room);
     }
 
-    /** @param array<int, mixed> $content */
-    private static function message(array $content, string $stop_reason): Message
+    /**
+     * @param  array<int, string>  $texts
+     * @param  array<int, ModelToolCall>  $calls
+     */
+    private static function reply(array $texts, array $calls, StopReason $stop_reason): ModelReply
     {
-        return Message::with(
-            id: 'msg_fake',
-            container: null,
-            content: $content,
-            model: 'claude-opus-5',
-            stopDetails: null,
-            stopReason: $stop_reason,
-            stopSequence: null,
-            usage: Usage::with(
-                cacheCreation: null,
-                cacheCreationInputTokens: null,
-                cacheReadInputTokens: null,
-                inferenceGeo: null,
-                inputTokens: 10,
-                outputTokens: 5,
-                outputTokensDetails: null,
-                serverToolUse: null,
-                serviceTier: null,
-            ),
+        return new ModelReply(
+            texts: $texts,
+            tool_calls: $calls,
+            usage: new TokenUsage(input: 10, output: 5),
+            stop_reason: $stop_reason,
+            model: 'test-model',
+            raw: ['fake-assistant-turn', ...array_map(fn ($c) => $c->id, $calls)],
         );
     }
 }

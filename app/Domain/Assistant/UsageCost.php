@@ -2,7 +2,7 @@
 
 namespace App\Domain\Assistant;
 
-use Anthropic\Messages\Usage;
+use App\Domain\Assistant\Contracts\TokenUsage;
 
 /**
  * Turns the token counts from one call into what it cost.
@@ -32,15 +32,15 @@ final class UsageCost
         public readonly float $eur_per_usd,
     ) {}
 
-    public static function forCall(string $model, Usage $usage): self
+    public static function forCall(string $model, TokenUsage $usage): self
     {
         $rates = config('assistant.pricing.' . $model);
         $eur_per_usd = (float) config('assistant.eur_per_usd');
 
-        $input = $usage->inputTokens;
-        $output = $usage->outputTokens;
-        $cache_write = $usage->cacheCreationInputTokens ?? 0;
-        $cache_read = $usage->cacheReadInputTokens ?? 0;
+        $input = $usage->input;
+        $output = $usage->output;
+        $cache_write = $usage->cache_write;
+        $cache_read = $usage->cache_read;
 
         /**
          * An unpriced model is recorded at zero rather than guessed at. A wrong

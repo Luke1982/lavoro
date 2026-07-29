@@ -2,7 +2,7 @@
 
 namespace App\Domain\Assistant;
 
-use Anthropic\Messages\Message;
+use App\Domain\Assistant\Contracts\ModelReply;
 
 final class AssistantAnswer
 {
@@ -13,7 +13,7 @@ final class AssistantAnswer
     public function __construct(
         public readonly string $text,
         public readonly int $tool_rounds,
-        public readonly Message $final,
+        public readonly ModelReply $final,
         public readonly int $cost_micros = 0,
     ) {}
 
@@ -24,11 +24,11 @@ final class AssistantAnswer
 
     public function inputTokens(): int
     {
-        return $this->final->usage->inputTokens;
+        return $this->final->usage->input;
     }
 
     public function outputTokens(): int
     {
-        return $this->final->usage->outputTokens;
+        return $this->final->usage->output;
     }
 }

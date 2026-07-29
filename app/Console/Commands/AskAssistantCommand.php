@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Anthropic\Core\Exceptions\APIConnectionException;
-use Anthropic\Core\Exceptions\APIStatusException;
 use App\Domain\Assistant\AssistantLoop;
+use App\Domain\Assistant\Contracts\ModelFailure;
+use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
@@ -62,12 +62,8 @@ class AskAssistantCommand extends Command
                     . ($failed ? ' <fg=red>mislukt</>' : '')
                 ),
             );
-        } catch (APIStatusException $e) {
-            return $this->reportApiFailure($e);
-        } catch (APIConnectionException $e) {
-            $this->error('Geen verbinding met de Anthropic API: ' . $e->getMessage());
-
-            return self::FAILURE;
+        } catch (ModelUnavailable $e) {
+            return $this->reportModelFailure($e);
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
@@ -87,26 +83,17 @@ class AskAssistantCommand extends Command
     }
 
     /**
-     * The two failures worth naming are the ones a person can act on. Everything
-     * else is shown as it came back, because guessing at it would hide it.
+     * Named in terms of what a person can do about it, not in terms of whose API
+     * it was. Swapping supplier should not rewrite the error messages.
      */
-    private function reportApiFailure(APIStatusException $e): int
+    private function reportModelFailure(ModelUnavailable $e): int
     {
-        $message = $e->getMessage();
-
-        if (str_contains($message, 'credit balance')) {
-            $this->error('Het Anthropic-account heeft geen tegoed. Vul het aan onder Plans & Billing.');
-
-            return self::FAILURE;
-        }
-
-        if ($e->status === 401) {
-            $this->error('ANTHROPIC_API_KEY wordt niet geaccepteerd.');
-
-            return self::FAILURE;
-        }
-
-        $this->error($message);
+        $this->error(match ($e->reason) {
+            ModelFailure::no_credit => 'Het AI-account heeft geen tegoed meer.',
+            ModelFailure::bad_credentials => 'De API-sleutel wordt niet geaccepteerd.',
+            ModelFailure::unreachable => 'Geen verbinding met de AI-dienst: ' . $e->getMessage(),
+            ModelFailure::other => $e->getMessage(),
+        });
 
         return self::FAILURE;
     }

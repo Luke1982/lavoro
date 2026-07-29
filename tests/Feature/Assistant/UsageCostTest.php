@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Assistant;
 
-use Anthropic\Messages\Usage;
 use App\Domain\Assistant\AssistantLoop;
+use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\UsageCost;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
@@ -34,18 +34,13 @@ class UsageCostTest extends TestCase
         ]);
     }
 
-    private function usage(int $input, int $output, ?int $cache_write = null, ?int $cache_read = null): Usage
+    private function usage(int $input, int $output, ?int $cache_write = null, ?int $cache_read = null): TokenUsage
     {
-        return Usage::with(
-            cacheCreation: null,
-            cacheCreationInputTokens: $cache_write,
-            cacheReadInputTokens: $cache_read,
-            inferenceGeo: null,
-            inputTokens: $input,
-            outputTokens: $output,
-            outputTokensDetails: null,
-            serverToolUse: null,
-            serviceTier: null,
+        return new TokenUsage(
+            input: $input,
+            output: $output,
+            cache_write: $cache_write ?? 0,
+            cache_read: $cache_read ?? 0,
         );
     }
 
