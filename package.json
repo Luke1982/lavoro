@@ -67,6 +67,7 @@
         "glightbox": "^3.3.1",
         "jspreadsheet-ce": "^5.0.4",
         "leaflet": "^1.9.4",
+        "markdown-it": "^14.3.0",
         "material-icons": "^1.13.14",
         "pdfjs-dist": "^5.6.205",
         "tippy.js": "^6.3.7",

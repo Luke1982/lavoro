@@ -28,8 +28,7 @@
 
                     <p v-if="exchange.error" class="text-sm text-red-600">{{ exchange.error }}</p>
 
-                    <div v-if="exchange.answer" class="text-sm text-slate-800 whitespace-pre-wrap">{{
-                        exchange.answer }}</div>
+                    <MarkdownText v-if="exchange.answer" :text="exchange.answer" class="text-sm text-slate-800" />
 
                     <div v-else-if="exchange.pending" class="flex items-center gap-2 text-sm text-slate-400">
                         <ArrowPathIcon class="size-4 shrink-0 animate-spin" />
@@ -54,6 +53,7 @@ import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { SparklesIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
+import MarkdownText from '@/Components/UI/MarkdownText.vue'
 import SpotlightShell from '@/Components/UI/SpotlightShell.vue'
 import { assistantShortcutLabel, matchesAssistantShortcut } from '@/Composables/useAssistant.js'
 import { closeNavigator } from '@/Composables/useNavigator.js'

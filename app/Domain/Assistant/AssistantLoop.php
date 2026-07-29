@@ -114,7 +114,12 @@ class AssistantLoop
             }
 
             if ($reply->tool_calls === []) {
-                return new AssistantAnswer(implode("\n", $spoken), $rounds, $reply, $spent);
+                /**
+                 * Blank line between blocks: they are separate thoughts, and a
+                 * single newline is markdown for "the same paragraph continues",
+                 * which runs "Ik zoek het even op" into the answer itself.
+                 */
+                return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent);
             }
 
             if (++$rounds > $max_rounds) {
