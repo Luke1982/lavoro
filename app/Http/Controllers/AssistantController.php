@@ -261,6 +261,10 @@ class AssistantController extends Controller
             'er nog open staat.',
             '',
             'Roep een tool nooit twee keer voor dezelfde handeling in één antwoord.',
+            '',
+            'Hoort een afspraak bij een werkbon die nog niet bestaat, plan hem dan in één keer in',
+            'met create_service_order_for_customer_id. Twee losse acties worden namelijk twee losse',
+            'records: een werkbon zonder afspraak en een afspraak die bij niets hoort.',
         ]);
     }
 

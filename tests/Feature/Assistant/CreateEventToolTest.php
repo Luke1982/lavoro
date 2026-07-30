@@ -7,8 +7,10 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
 use App\Domain\Tools\Write\CreateEventTool;
+use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
@@ -218,6 +220,74 @@ class CreateEventToolTest extends TestCase
         ], $this->userWith('serviceorder.read_own'));
 
         $this->assertTrue($result->is_error);
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * Asked for "plan het in en maak er een bon voor", the two used to be made by
+     * separate tools and separate confirmations — so they arrived unconnected: a
+     * werkbon with no appointment on it, and an appointment belonging to nothing.
+     */
+    public function test_an_appointment_and_its_new_werkbon_arrive_attached(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(13),
+            'ends_at' => $this->tomorrowAt(17),
+            'user_ids' => [$mechanic->id],
+            'subject' => 'Airco installatie',
+            'create_service_order_for_customer_id' => $customer->id,
+        ], $this->userWithPermissions('event.create', 'serviceorder.create'));
+
+        $this->assertFalse($result->is_error, json_encode($result->content));
+
+        $order = ServiceOrder::sole();
+        $event = Event::sole();
+
+        $this->assertSame($customer->id, $order->customer_id);
+        $this->assertSame('Airco installatie', $order->description);
+        $this->assertSame([$event->id], $order->events->pluck('id')->all());
+        $this->assertSame($order->id, $result->content['service_order_id']);
+    }
+
+    public function test_it_will_not_both_attach_and_create_a_werkbon(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+        $existing = ServiceOrder::factory()->create(['customer_id' => $customer->id]);
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(13),
+            'ends_at' => $this->tomorrowAt(17),
+            'user_ids' => [$mechanic->id],
+            'service_order_id' => $existing->id,
+            'create_service_order_for_customer_id' => $customer->id,
+        ], $this->userWithPermissions('event.create', 'serviceorder.create'));
+
+        $this->assertTrue($result->is_error);
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * Filling in a diary and opening a werkbon are separate rights, and this does
+     * both, so holding one of them is not enough.
+     */
+    public function test_making_the_werkbon_needs_the_werkbon_permission_too(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(13),
+            'ends_at' => $this->tomorrowAt(17),
+            'user_ids' => [$mechanic->id],
+            'create_service_order_for_customer_id' => $customer->id,
+        ], $this->userWith('event.create'));
+
+        $this->assertTrue($result->is_error);
+        $this->assertSame(0, ServiceOrder::count());
         $this->assertSame(0, Event::count());
     }
 

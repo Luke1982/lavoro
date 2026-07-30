@@ -23,6 +23,7 @@ final class NewAppointment
         public readonly bool $no_service_order = false,
         public readonly ?int $customer_id = null,
         public readonly ?AppointmentAssignment $assignment = null,
+        public readonly ?string $service_order_description = null,
     ) {}
 
     /**
@@ -50,6 +51,7 @@ final class NewAppointment
             no_service_order: (bool) ($context['no_service_order'] ?? false),
             customer_id: $customer_id === null ? null : (int) $customer_id,
             assignment: AppointmentAssignment::fromPayload($context),
+            service_order_description: $context['service_order_description'] ?? null,
         );
     }
 }

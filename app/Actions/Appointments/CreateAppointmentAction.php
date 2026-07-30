@@ -2,6 +2,8 @@
 
 namespace App\Actions\Appointments;
 
+use App\Actions\ServiceOrders\CreateServiceOrderAction;
+use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\Signals;
 use App\Models\Event;
@@ -27,8 +29,17 @@ class CreateAppointmentAction
             $eventable_id = $appointment->eventable_id;
 
             if ($appointment->create_service_order) {
+                /**
+                 * Through the same action the werkbon screen uses. Created as a
+                 * bare row here it would miss its description, its machines and
+                 * the location that can be worked out from them — a werkbon that
+                 * exists but says nothing about the job it is for.
+                 */
                 $eventable_type = '\\' . ServiceOrder::class;
-                $eventable_id = ServiceOrder::create(['customer_id' => $appointment->customer_id])->id;
+                $eventable_id = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
+                    customer_id: (int) $appointment->customer_id,
+                    description: $appointment->service_order_description,
+                ))->id;
             }
 
             $attributes = $appointment->attributes;

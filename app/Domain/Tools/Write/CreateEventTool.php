@@ -11,6 +11,7 @@ use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
+use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Models\ServiceOrder;
@@ -44,7 +45,9 @@ class CreateEventTool implements Confirmable, Tool
             . 'Gebruik dit pas als datum, tijd, duur en monteurs allemaal bekend zijn — vraag er anders '
             . 'eerst naar. Zijn ze bekend, roep de tool dan meteen aan: er wordt nog niets gewijzigd, je '
             . 'krijgt terug dat er bevestiging nodig is en het systeem legt de knop aan de gebruiker voor. '
-            . 'Vraag dus niet zelf eerst in tekst om toestemming; dan gebeurt er namelijk helemaal niets.';
+            . 'Vraag dus niet zelf eerst in tekst om toestemming; dan gebeurt er namelijk helemaal niets. '
+            . 'Moet er ook een werkbon bij, gebruik dan create_service_order_for_customer_id in deze tool '
+            . 'in plaats van create_service_order apart: apart aangemaakt komen ze los van elkaar te staan.';
     }
 
     public function inputSchema(): array
@@ -71,7 +74,18 @@ class CreateEventTool implements Confirmable, Tool
                 ],
                 'service_order_id' => [
                     'type' => 'integer',
-                    'description' => 'De werkbon waar de afspraak bij hoort. Laat weg voor een losse afspraak.',
+                    'description' => 'Een bestaande werkbon waar de afspraak bij hoort.',
+                ],
+                'create_service_order_for_customer_id' => [
+                    'type' => 'integer',
+                    'description' => 'Moet er nog een werkbon bij gemaakt worden, geef dan hier de klant op. '
+                        . 'De werkbon en de afspraak worden dan in één keer aangemaakt en aan elkaar gekoppeld. '
+                        . 'Gebruik dit in plaats van create_service_order apart aanroepen: los aangemaakt '
+                        . 'staan ze na bevestiging niet aan elkaar vast.',
+                ],
+                'service_order_description' => [
+                    'type' => 'string',
+                    'description' => 'Waar de nieuwe werkbon over gaat.',
                 ],
             ],
             'required' => ['starts_at', 'ends_at', 'user_ids'],
@@ -108,10 +122,15 @@ class CreateEventTool implements Confirmable, Tool
 
         $when = $this->moment($call->stringArgument('starts_at'));
 
+        $for_customer = $call->integerArgument('create_service_order_for_customer_id');
+        $customer = $for_customer === null ? null : Customer::find($for_customer);
+
         return 'Afspraak inplannen'
             . ($when ? ' op ' . $when->format('d-m-Y H:i') : '')
             . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
-            . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'));
+            . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
+            . ($customer ? ', met een nieuwe werkbon voor ' . $customer->name : '')
+            . ($call->integerArgument('service_order_id') ? ', op werkbon #' . $call->integerArgument('service_order_id') : '');
     }
 
     public static function availableTo(): array
@@ -151,12 +170,37 @@ class CreateEventTool implements Confirmable, Tool
         }
 
         $service_order_id = $call->integerArgument('service_order_id');
+        $for_customer_id = $call->integerArgument('create_service_order_for_customer_id');
+
+        if ($service_order_id !== null && $for_customer_id !== null) {
+            return ToolResult::failed(
+                'Kies één van beide: koppelen aan een bestaande werkbon, of er een nieuwe bij maken.'
+            );
+        }
 
         if ($service_order_id !== null) {
             $visible = ServiceOrder::visibleTo($call->user)->whereKey($service_order_id)->exists();
 
             if (!$visible) {
                 return ToolResult::notFound('Werkbon #' . $service_order_id);
+            }
+        }
+
+        $customer = null;
+
+        if ($for_customer_id !== null) {
+            /**
+             * Making a werkbon is a separate right from filling in a diary, and
+             * this does both, so it has to hold both.
+             */
+            if (!$call->user->can('create', ServiceOrder::class)) {
+                return ToolResult::denied();
+            }
+
+            $customer = Customer::find($for_customer_id);
+
+            if ($customer === null) {
+                return ToolResult::notFound('Klant #' . $for_customer_id);
             }
         }
 
@@ -186,9 +230,15 @@ class CreateEventTool implements Confirmable, Tool
             ],
             eventable_type: $service_order_id ? ServiceOrder::class : null,
             eventable_id: $service_order_id,
-            no_service_order: $service_order_id === null,
+            create_service_order: $customer !== null,
+            no_service_order: $service_order_id === null && $customer === null,
+            customer_id: $customer?->id,
             assignment: new AppointmentAssignment(user_ids: $mechanics->pluck('id')->all()),
+            service_order_description: $call->stringArgument('service_order_description')
+                ?: $call->stringArgument('subject'),
         ));
+
+        $order_id = $event->serviceOrders()->value('service_orders.id') ?? $service_order_id;
 
         return ToolResult::ok(
             [
@@ -196,9 +246,11 @@ class CreateEventTool implements Confirmable, Tool
                 'starts_at' => $starts_at->format('Y-m-d H:i'),
                 'ends_at' => $ends_at->format('Y-m-d H:i'),
                 'mechanics' => $mechanics->pluck('name')->all(),
-                'service_order_id' => $service_order_id,
+                'service_order_id' => $order_id,
+                'link' => '/serviceorders/' . $order_id,
             ],
-            'Afspraak ingepland op ' . $starts_at->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ') . '.',
+            'Afspraak ingepland op ' . $starts_at->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ')
+            . ($customer !== null && $order_id ? ', op nieuwe werkbon #' . $order_id : '') . '.',
         );
     }
 
