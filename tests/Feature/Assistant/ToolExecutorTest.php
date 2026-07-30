@@ -177,6 +177,43 @@ class ToolExecutorTest extends TestCase
         $this->assertFalse(ConfirmingTool::$executed, 'any old string got past the gate');
     }
 
+    /**
+     * An approval used to be good for its whole quarter of an hour, so one click
+     * arriving twice wrote twice — a double tap before the first answer lands, a
+     * retried request, a replay. Three attempts made three records, which is the
+     * same fault that once turned one job into two werkbonnen.
+     */
+    public function test_an_approval_can_only_be_spent_once(): void
+    {
+        $user = $this->admin();
+        $executor = $this->register(new ConfirmingTool);
+        $token = ConfirmationToken::for(ConfirmingTool::name(), ['x' => 1], $user)->encoded();
+
+        $first = $executor->run(new ToolCall(ConfirmingTool::name(), ['x' => 1], $user, confirmation_token: $token));
+        ConfirmingTool::$executed = false;
+        $second = $executor->run(new ToolCall(ConfirmingTool::name(), ['x' => 1], $user, confirmation_token: $token));
+
+        $this->assertFalse($first->is_error);
+        $this->assertTrue($second->is_error, 'one approval was spent twice');
+        $this->assertFalse(ConfirmingTool::$executed, 'the action ran a second time');
+        $this->assertSame('already_confirmed', AssistantToolCall::latest('id')->first()->outcome);
+    }
+
+    /**
+     * Two clicks landing at the same instant must not both believe they were
+     * first, which is why the claim is one atomic write rather than a read
+     * followed by a write.
+     */
+    public function test_two_approvals_racing_do_not_both_win(): void
+    {
+        $user = $this->admin();
+        $token = ConfirmationToken::for('anything', [], $user)->encoded();
+
+        $won = collect(range(1, 5))->filter(fn () => ConfirmationToken::claim($token))->count();
+
+        $this->assertSame(1, $won, 'the same approval was claimed ' . $won . ' times');
+    }
+
     public function test_an_approval_goes_stale(): void
     {
         $user = $this->admin();

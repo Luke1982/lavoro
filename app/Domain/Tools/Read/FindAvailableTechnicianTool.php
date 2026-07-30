@@ -154,12 +154,16 @@ class FindAvailableTechnicianTool implements Tool
          * position in it, which is no use to anything and reads to the model as
          * though the diary were broken rather than its own date.
          */
-        if (filled($given_date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $given_date)) {
-            return ToolResult::failed('Geef from_date als JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.');
+        $parsed = $call->dateArgument('from_date');
+
+        if (filled($given_date) && $parsed === null) {
+            return ToolResult::failed(
+                'Geef from_date als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.'
+            );
         }
 
         $today = CarbonImmutable::now()->startOfDay();
-        $asked_from = filled($given_date) ? CarbonImmutable::parse($given_date)->startOfDay() : $today;
+        $asked_from = $parsed?->startOfDay() ?? $today;
 
         /**
          * Nobody can be booked last Tuesday. Left alone this answers a question

@@ -98,15 +98,15 @@ class FindAppointmentTool implements Tool
 
     public function execute(ToolCall $call): ToolResult
     {
-        $from = $this->date($call->stringArgument('from'));
-        $until = $this->date($call->stringArgument('until'));
+        $from = $call->dateArgument('from');
+        $until = $call->dateArgument('until');
 
-        if ($call->stringArgument('from') !== null && $from === null) {
-            return ToolResult::failed('Geef from als JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.');
-        }
-
-        if ($call->stringArgument('until') !== null && $until === null) {
-            return ToolResult::failed('Geef until als JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.');
+        foreach (['from' => $from, 'until' => $until] as $key => $date) {
+            if ($call->wasGiven($key) && $date === null) {
+                return ToolResult::failed(
+                    'Geef ' . $key . ' als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.'
+                );
+            }
         }
 
         $query = Event::query()
@@ -128,7 +128,18 @@ class FindAppointmentTool implements Tool
                 ->orWhereHas('serviceOrders', fn ($q) => $q->where('service_orders.customer_id', $customer_id)));
         }
 
-        if ($user_ids = $call->integerListArgument('user_ids')) {
+        $user_ids = $call->integerListArgument('user_ids');
+
+        /**
+         * Given names instead of numbers, this used to filter on nothing and hand
+         * back the whole diary — an answer about everybody to a question about two
+         * people, and no sign anything had gone wrong.
+         */
+        if ($call->wasGiven('user_ids') && $user_ids === []) {
+            return ToolResult::failed('Geef user_ids als nummers. Zoek de monteurs eerst op als je alleen namen hebt.');
+        }
+
+        if ($user_ids !== []) {
             $query->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $user_ids));
         }
 
@@ -178,14 +189,5 @@ class FindAppointmentTool implements Tool
             ['appointments' => $rows],
             count($rows) . ' afspraak/afspraken gevonden.',
         );
-    }
-
-    private function date(?string $value): ?CarbonImmutable
-    {
-        if ($value === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return null;
-        }
-
-        return CarbonImmutable::parse($value);
     }
 }

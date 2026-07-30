@@ -3,6 +3,7 @@
 namespace App\Domain\Tools;
 
 use App\Models\User;
+use Carbon\CarbonImmutable;
 
 /**
  * One invocation of a tool: what was asked for, by whom, and on whose behalf.
@@ -54,6 +55,46 @@ final class ToolCall
         $value = $this->arguments[$key] ?? null;
 
         return $value === null ? null : trim((string) $value);
+    }
+
+    /**
+     * A date, or nothing if it is not one.
+     *
+     * Checking the shape is not checking the date: "2026-13-45" is four digits, a
+     * dash and two pairs, and it is also not a day in any month. Left to the parser
+     * that came back as a PHP error message with a character position in it, which
+     * tells a model the diary is broken rather than its own date.
+     */
+    public function dateArgument(string $key): ?CarbonImmutable
+    {
+        $value = $this->stringArgument($key);
+
+        if ($value === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        try {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        /** Rolled over rather than rejected: month thirteen becomes next January. */
+        return $date !== false && $date->format('Y-m-d') === $value ? $date : null;
+    }
+
+    /**
+     * Whether something was given for this key at all, whatever came of reading it.
+     *
+     * Asked to narrow to a list and handed nothing usable, a tool must refuse
+     * rather than answer about everything: silently widening a search is how "only
+     * these two mechanics" comes back as the whole company.
+     */
+    public function wasGiven(string $key): bool
+    {
+        $value = $this->arguments[$key] ?? null;
+
+        return $value !== null && $value !== '' && $value !== [];
     }
 
     /**

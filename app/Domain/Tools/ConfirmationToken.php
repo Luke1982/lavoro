@@ -4,6 +4,7 @@ namespace App\Domain\Tools;
 
 use App\Models\User;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 
 /**
@@ -48,6 +49,29 @@ final class ConfirmationToken
             arguments: $arguments,
             user_id: $user->id,
             expires_at: now()->addMinutes(self::LIFETIME_MINUTES)->timestamp,
+        );
+    }
+
+    /**
+     * Claims this approval, once and once only.
+     *
+     * An approval used to be good for its whole quarter of an hour, so one click
+     * that arrived twice — a double tap before the first answer lands, a retried
+     * request, a replay — wrote twice. Three attempts made three storingen, which
+     * is the same fault that once made two werkbonnen out of one job.
+     *
+     * Cache::add is what makes it safe rather than nearly safe: it writes only if
+     * the key is absent, in one operation, so two requests racing cannot both
+     * believe they were first. Never released, not even when the tool fails —
+     * asking again is right in that case anyway, because whatever went wrong may
+     * have changed the situation.
+     */
+    public static function claim(string $encoded): bool
+    {
+        return Cache::add(
+            'assistant:confirmation:' . hash('sha256', $encoded),
+            true,
+            now()->addMinutes(self::LIFETIME_MINUTES + 1),
         );
     }
 

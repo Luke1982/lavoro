@@ -5,6 +5,8 @@ namespace App\Domain\Assistant;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Models\AssistantUsage;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -35,7 +37,7 @@ class QuestionSorter
      * behaviour. Sorting is an economy, never a gate: a question must not fail
      * because the thing that prices it did.
      */
-    public function difficultyOf(string $question): ?int
+    public function difficultyOf(string $question, ?User $user = null): ?int
     {
         $provider = config('assistant.question_sorter');
 
@@ -57,7 +59,42 @@ class QuestionSorter
             return null;
         }
 
+        $this->record($reply, $user);
+
         return $this->numberIn(implode(' ', $reply->texts));
+    }
+
+    /**
+     * Writes down what the sorting itself cost.
+     *
+     * It is a fraction of a cent, and it happens on every single question, and it
+     * was going into the accounts nowhere at all. An allowance that under-reports
+     * is wrong in exactly the way one that over-reports is: the number stops
+     * meaning what it says.
+     */
+    private function record(Contracts\ModelReply $reply, ?User $user): void
+    {
+        if ($user === null) {
+            return;
+        }
+
+        $cost = UsageCost::forCall($reply->billableModel(), $reply->usage);
+
+        try {
+            AssistantUsage::create([
+                'user_id' => $user->id,
+                'model' => $cost->model,
+                'input_tokens' => $cost->input_tokens,
+                'output_tokens' => $cost->output_tokens,
+                'cache_write_tokens' => $cost->cache_write_tokens,
+                'cache_read_tokens' => $cost->cache_read_tokens,
+                'cost_micros' => $cost->cost_micros,
+                'cost_usd_micros' => $cost->cost_usd_micros,
+                'eur_per_usd' => $cost->eur_per_usd,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Kon de kosten van het inschalen niet vastleggen', ['exception' => $e]);
+        }
     }
 
     private function modelFor(string $provider): Contracts\TalksToModel

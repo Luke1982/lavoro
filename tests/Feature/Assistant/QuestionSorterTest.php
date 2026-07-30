@@ -8,6 +8,7 @@ use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolRegistry;
+use App\Models\AssistantUsage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -105,6 +106,26 @@ class QuestionSorterTest extends TestCase
      * The saving. A lookup must come out cheaper than a diagnosis, or none of this
      * was worth doing.
      */
+    /**
+     * It costs a fraction of a cent and it happens on every question, and it was
+     * reaching the accounts nowhere at all. An allowance that under-reports is
+     * wrong in exactly the way one that over-reports is.
+     */
+    public function test_the_sorting_itself_is_billed(): void
+    {
+        config(['assistant.pricing.fake' => [
+            'input' => 1.0, 'output' => 1.0, 'cache_write' => 1.0, 'cache_read' => 1.0,
+        ]]);
+
+        $user = $this->userWith('assistant.use');
+        $before = AssistantUsage::count();
+
+        $this->sorterSaying('3')->difficultyOf('Welke werkbonnen staan open?', $user);
+
+        $this->assertSame($before + 1, AssistantUsage::count(), 'the sorting call billed nobody');
+        $this->assertSame($user->id, AssistantUsage::latest('id')->first()->user_id);
+    }
+
     public function test_a_lookup_sorts_below_a_diagnosis(): void
     {
         $lookup = $this->sorterSaying('2')->difficultyOf('Welke werkbonnen staan open?');

@@ -97,7 +97,7 @@ class AssistantController extends Controller
     private function difficultyFor(string $question, User $user, ToolRegistry $registry, QuestionSorter $sorter): int
     {
         $ceiling = $registry->requiredDifficultyFor($user);
-        $asked = $sorter->difficultyOf($question);
+        $asked = $sorter->difficultyOf($question, $user);
 
         return $asked === null ? $ceiling : min($asked, $ceiling);
     }

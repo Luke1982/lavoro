@@ -254,6 +254,14 @@ return [
     'max_documents_per_question' => (int) env('ASSISTANT_MAX_DOCUMENTS', 3),
 
     /*
+    | What all the files together may come to, once base64 has added its third.
+    | Suppliers refuse a request over a size of their own — Anthropic at 32 MB —
+    | and refusing takes the question with it, so this leaves room for the prompt,
+    | the tools and the conversation as well.
+    */
+    'max_payload_kilobytes' => (int) env('ASSISTANT_MAX_PAYLOAD_KB', 16384),
+
+    /*
     |---------------------------------------------------------------------------
     | What a turn costs
     |---------------------------------------------------------------------------

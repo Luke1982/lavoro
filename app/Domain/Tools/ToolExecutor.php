@@ -88,6 +88,17 @@ class ToolExecutor
                 );
             }
 
+            if (!ConfirmationToken::claim($call->confirmation_token)) {
+                return $this->record(
+                    $call,
+                    ToolResult::failed(
+                        'Deze bevestiging is al uitgevoerd. Kijk of het gelukt is voordat je het opnieuw doet.'
+                    ),
+                    'already_confirmed',
+                    $started_at,
+                );
+            }
+
             $call = $call->withArguments($approval->arguments);
         }
 

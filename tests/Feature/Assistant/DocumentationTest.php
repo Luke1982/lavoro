@@ -169,6 +169,31 @@ class DocumentationTest extends TestCase
         $this->assertCount(1, $this->reader()->forAsset($asset->load('product'), $this->reader_user()));
     }
 
+    /**
+     * Three files each inside the per-file limit came to exactly the supplier's
+     * ceiling once base64 had added its third — and a request over that is
+     * refused whole, taking the question with it.
+     */
+    public function test_the_files_together_stay_inside_what_a_request_can_carry(): void
+    {
+        config([
+            'assistant.max_document_kilobytes' => 1000,
+            'assistant.max_documents_per_question' => 5,
+            'assistant.max_payload_kilobytes' => 2000,
+        ]);
+
+        $product = Product::factory()->create();
+        foreach (range(1, 5) as $ignored) {
+            $this->documentOn($product, 'Handleidingen', 'pdf', 900);
+        }
+
+        $files = $this->reader()->for($product, $this->reader_user());
+        $total = $files->sum(fn ($file) => strlen($file->base64));
+
+        $this->assertLessThanOrEqual(2000 * 1024, $total, 'the request would have been refused whole');
+        $this->assertGreaterThan(0, $files->count(), 'nothing at all was sent');
+    }
+
     public function test_the_tool_says_so_when_there_is_nothing(): void
     {
         $product = Product::factory()->create();

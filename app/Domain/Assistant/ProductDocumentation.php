@@ -109,12 +109,44 @@ class ProductDocumentation
     {
         $max_bytes = (int) config('assistant.max_document_kilobytes', 8192) * 1024;
 
-        return $documents
+        /**
+         * A budget across all of them, not merely a limit on each. Three files
+         * each inside the per-file limit came to exactly the supplier's ceiling
+         * once base64 had added its third — before the prompt, the tools and the
+         * conversation were counted. The whole request would have been refused,
+         * and the question with it.
+         */
+        $budget = (int) config('assistant.max_payload_kilobytes', 16384) * 1024;
+        $spent = 0;
+        $attachments = collect();
+
+        $candidates = $documents
             ->filter(fn (Document $document) => $this->isPdf($document) && (int) $document->size <= $max_bytes)
-            ->take((int) config('assistant.max_documents_per_question', 3))
-            ->map(fn (Document $document) => $this->read($document))
-            ->filter()
-            ->values();
+            ->take((int) config('assistant.max_documents_per_question', 3));
+
+        foreach ($candidates as $document) {
+            $attachment = $this->read($document);
+
+            if ($attachment === null) {
+                continue;
+            }
+
+            $size = strlen($attachment->base64);
+
+            if ($spent + $size > $budget) {
+                Log::info('Document overgeslagen: het verzoek zou te groot worden', [
+                    'document' => $document->id,
+                    'spent_bytes' => $spent,
+                ]);
+
+                continue;
+            }
+
+            $spent += $size;
+            $attachments->push($attachment);
+        }
+
+        return $attachments->values();
     }
 
     private function isPdf(Document $document): bool
