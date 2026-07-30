@@ -91,7 +91,16 @@ class InventedRecordTest extends TestCase
         $this->assertSame([], $result->content['products']);
         $this->assertContains('Mitsubishi', $result->content['brands_that_do_exist']);
         $this->assertContains('Airco binnendeel', $result->content['types_that_do_exist']);
-        $this->assertStringContainsString('Verzin geen productnamen', $result->content['note']);
+        $this->assertStringContainsString('Verzin nooit een modelnummer', $result->content['note']);
+
+        /**
+         * The candidates themselves, not merely the names of brands. "Een
+         * Mitsubishi 2,5 kW" matches no text, because the capacity is inside the
+         * model number — SRK 25 is the 2,5 kW one — and nobody can work that out
+         * from a list of brand names.
+         */
+        $this->assertSame('SRK 25 ZS-W', $result->content['candidates'][0]['model']);
+        $this->assertArrayHasKey('attributes', $result->content['candidates'][0]);
     }
 
     public function test_a_search_that_finds_something_says_nothing_about_what_it_did_not(): void

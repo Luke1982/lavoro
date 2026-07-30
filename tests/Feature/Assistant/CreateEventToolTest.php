@@ -10,6 +10,7 @@ use App\Domain\Tools\Write\CreateEventTool;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\Location;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Models\UserUnavailability;
@@ -288,6 +289,67 @@ class CreateEventToolTest extends TestCase
 
         $this->assertTrue($result->is_error);
         $this->assertSame(0, ServiceOrder::count());
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * A customer can have several sites, and the address on the customer is not
+     * necessarily where the work happens. A real address at the wrong building is
+     * the sort of mistake that surfaces when a van is already parked outside it.
+     */
+    public function test_an_appointment_can_be_put_at_one_of_the_customers_sites(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+        $site = Location::factory()->create(['customer_id' => $customer->id]);
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'create_service_order_for_customer_id' => $customer->id,
+            'location_id' => $site->id,
+        ], $this->userWithPermissions('event.create', 'serviceorder.create'));
+
+        $this->assertFalse($result->is_error, json_encode($result->content));
+        $this->assertSame($site->id, Event::sole()->location_id);
+    }
+
+    public function test_a_site_belonging_to_another_customer_is_refused(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+        $elsewhere = Location::factory()->create(['customer_id' => Customer::factory()->create()->id]);
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'create_service_order_for_customer_id' => $customer->id,
+            'location_id' => $elsewhere->id,
+        ], $this->userWithPermissions('event.create', 'serviceorder.create'));
+
+        $this->assertTrue($result->is_error, "another customer's site was used");
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * A site with no customer to check it against cannot be checked, so it is not
+     * accepted either.
+     */
+    public function test_a_site_without_a_customer_or_werkbon_is_refused(): void
+    {
+        $mechanic = $this->mechanic();
+        $site = Location::factory()->create(['customer_id' => Customer::factory()->create()->id]);
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'location_id' => $site->id,
+        ]);
+
+        $this->assertTrue($result->is_error);
         $this->assertSame(0, Event::count());
     }
 

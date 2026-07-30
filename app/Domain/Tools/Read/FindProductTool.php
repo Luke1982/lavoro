@@ -83,6 +83,7 @@ class FindProductTool implements Tool
 
         $query = Product::query()
             ->visibleTo($call->user)
+            ->withAttributeData()
             ->with(['brand:id,name', 'productType:id,name']);
 
         if ($search = $call->stringArgument('query')) {
@@ -103,13 +104,7 @@ class FindProductTool implements Tool
             return $this->nothingFound($call);
         }
 
-        $rows = $products->map(fn (Product $product) => [
-            'id' => $product->id,
-            'name' => $product->display_name,
-            'brand' => $product->brand?->name,
-            'model' => $product->model,
-            'type' => $product->productType?->name,
-        ])->all();
+        $rows = $products->map(fn (Product $product) => $this->rowFor($product))->all();
 
         $content = ['products' => $rows];
 
@@ -136,6 +131,29 @@ class FindProductTool implements Tool
             $content,
             count($rows) . ' product(en) gevonden.',
         );
+    }
+
+    /**
+     * One product, with whatever this installation records about it.
+     *
+     * The description and the recorded attributes come too. A capacity is often not
+     * an attribute at all — SRK 25 ZS-W is the 2,5 kW one — so whoever reads this
+     * needs the text to work from rather than a tidy field that does not exist.
+     *
+     * @return array<string, mixed>
+     */
+    private function rowFor(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'name' => $product->display_name,
+            'brand' => $product->brand?->name,
+            'model' => $product->model,
+            'type' => $product->productType?->name,
+            'description' => $product->description,
+            'part_no' => $product->part_no,
+            'attributes' => $product->specific_attributes ?? [],
+        ];
     }
 
     /**
@@ -176,16 +194,43 @@ class FindProductTool implements Tool
             ->limit(12)
             ->pluck('name');
 
+        /**
+         * The candidates themselves, not merely the names of brands and types.
+         *
+         * "Een Mitsubishi 2,5 kW" matches no text in the catalogue, because the
+         * capacity is not an attribute here — it is inside the model name, where
+         * SRK 25 ZS-W is the 2,5 kW one. Nobody can answer that from a list of
+         * brands. Given the rows, it is not a hard question; given only "niets
+         * gevonden", the last assistant invented six model numbers.
+         */
+        $candidates = Product::query()
+            ->visibleTo($call->user)
+            ->withAttributeData()
+            ->with(['brand:id,name', 'productType:id,name'])
+            ->when($brands->isNotEmpty(), fn ($q) => $q->whereHas('brand', fn ($b) => $b->whereIn('name', $brands)))
+            ->when(
+                filled($call->stringArgument('product_type')),
+                fn ($q) => $q->whereHas('productType', fn ($t) => $t->where('name', 'like', '%' . $call->stringArgument('product_type') . '%'))
+            )
+            ->orderBy('id')
+            ->limit((int) config('assistant.max_results', 25))
+            ->get();
+
         return ToolResult::ok(
             [
                 'products' => [],
                 'brands_that_do_exist' => $brands->all(),
                 'types_that_do_exist' => $types->all(),
-                'note' => 'Niets gevonden op deze zoektekst. Verzin geen productnamen: zoek opnieuw op '
-                    . 'een merk of een producttype uit de lijsten hierboven, of zeg dat het er niet in '
-                    . 'staat. Een modelnummer dat je niet uit een tool hebt bestaat hier niet.',
+                'candidates' => $candidates->map(fn (Product $product) => $this->rowFor($product))->all(),
+                'note' => 'Niets gevonden op precies deze tekst, maar hierboven staan de producten die '
+                    . 'wel bij dit merk of type horen. Zoek daar de juiste uit — een vermogen zit hier '
+                    . 'vaak in het modelnummer, bijvoorbeeld SRK 25 voor 2,5 kW. Weet je het niet zeker, '
+                    . 'leg de kandidaten met ask_which_one voor. Verzin nooit een modelnummer dat hier '
+                    . 'niet tussen staat.',
             ],
-            'Geen producten gevonden; wel merken en types om op te zoeken.',
+            $candidates->isEmpty()
+                ? 'Geen producten gevonden.'
+                : 'Niets op die tekst; ' . $candidates->count() . ' product(en) van dat merk of type.',
         );
     }
 }

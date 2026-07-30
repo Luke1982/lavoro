@@ -111,7 +111,13 @@ class FindAppointmentTool implements Tool
 
         $query = Event::query()
             ->visibleTo($call->user)
-            ->with(['eventType:id,name', 'executingUsers:id,name', 'serviceOrders:id,description', 'customers:id,name']);
+            ->with([
+                'eventType:id,name',
+                'executingUsers:id,name',
+                'serviceOrders:id,description',
+                'customers:id,name',
+                'linkedLocation:id,title,address,postal_code,city',
+            ]);
 
         $order_id = $call->integerArgument('service_order_id');
 
@@ -175,6 +181,8 @@ class FindAppointmentTool implements Tool
             'mechanics' => $event->executingUsers->pluck('name')->all(),
             'service_order_id' => $event->serviceOrders->first()?->id,
             'customer' => $event->serviceOrders->first()?->customer?->name ?? $event->customers->first()?->name,
+            /** Where somebody has to be, which is not always the customer's own address. */
+            'where' => $event->linkedLocation?->addressLine() ?: $event->location,
         ])->all();
 
         if ($rows === []) {

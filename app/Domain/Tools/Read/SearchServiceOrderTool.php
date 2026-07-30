@@ -88,7 +88,11 @@ class SearchServiceOrderTool implements Tool
 
         $query = ServiceOrder::query()
             ->visibleTo($call->user)
-            ->with(['customer:id,name', 'serviceOrderStage:id,name,is_closed_state']);
+            ->with([
+                'customer:id,name',
+                'serviceOrderStage:id,name,is_closed_state',
+                'linkedLocation:id,title,address,postal_code,city',
+            ]);
 
         if ($ids !== []) {
             $query->whereIn('id', $ids);
@@ -122,6 +126,7 @@ class SearchServiceOrderTool implements Tool
             'id' => $order->id,
             'description' => $order->description,
             'customer' => $order->customer?->name,
+            'where' => $order->linkedLocation?->addressLine(),
             'customer_id' => $order->customer_id,
             'stage' => $order->serviceOrderStage?->name,
             'is_closed' => $order->is_closed,

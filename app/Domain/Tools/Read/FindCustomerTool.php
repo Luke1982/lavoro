@@ -8,7 +8,9 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Customer;
+use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class FindCustomerTool implements Tool
 {
@@ -31,6 +33,11 @@ class FindCustomerTool implements Tool
         return [
             'type' => 'object',
             'properties' => [
+                'id' => [
+                    'type' => 'integer',
+                    'description' => 'Het klantnummer, als je dat al hebt — bijvoorbeeld omdat de gebruiker '
+                        . 'een klant heeft aangewezen. Dan hoef je niet op naam te zoeken.',
+                ],
                 'city' => [
                     'type' => 'string',
                     'description' => 'Beperk tot klanten in deze plaats. Gebruik dit als er een plaats '
@@ -42,7 +49,8 @@ class FindCustomerTool implements Tool
                     'description' => 'Deel van de naam, plaats, e-mailadres of telefoonnummer.',
                 ],
             ],
-            'required' => ['query'],
+            /** Either will do, and the tool says so itself when neither is given. */
+            'required' => [],
             'additionalProperties' => false,
         ];
     }
@@ -70,13 +78,31 @@ class FindCustomerTool implements Tool
 
     public function execute(ToolCall $call): ToolResult
     {
+        /**
+         * A number is the surest way in, and by this point in a conversation there
+         * usually is one — somebody picked a customer and it came back as #1037.
+         * Answered first, because searching for "1037" as text finds nothing and
+         * reads as though the customer does not exist.
+         */
+        if ($id = $call->integerArgument('id')) {
+            $found = Customer::query()
+                ->whereKey($id)
+                ->with('locations:id,customer_id,title,location_code,address,postal_code,city')
+                ->get(['id', 'name', 'address', 'postal_code', 'city', 'email', 'phone']);
+
+            return $found->isEmpty()
+                ? ToolResult::notFound('Klant #' . $id)
+                : $this->answerFor($found, 'klant #' . $id);
+        }
+
         $query = $call->stringArgument('query');
 
         if ($query === null || mb_strlen($query) < 2) {
-            return ToolResult::failed('Geef minimaal twee tekens om op te zoeken.');
+            return ToolResult::failed('Geef een klantnummer, of minimaal twee tekens om op te zoeken.');
         }
 
         $limit = (int) config('assistant.max_results', 25);
+
         $like = '%' . $query . '%';
 
         $customers = Customer::query()
@@ -92,6 +118,12 @@ class FindCustomerTool implements Tool
             )
             ->orderBy('name')
             ->limit($limit)
+            /**
+             * The locations come too. A customer can have several sites, and a job
+             * planned against the wrong one sends somebody to a real address that
+             * happens to be the wrong building.
+             */
+            ->with('locations:id,customer_id,title,location_code,address,postal_code,city')
             ->get(['id', 'name', 'address', 'postal_code', 'city', 'email', 'phone']);
 
         if ($customers->isEmpty()) {
@@ -101,7 +133,58 @@ class FindCustomerTool implements Tool
             );
         }
 
-        $content = ['customers' => $customers->toArray()];
+        return $this->answerFor($customers, '"' . $query . '"');
+    }
+
+    /**
+     * One shape for the answer, whether the customers were found by number or by
+     * name. Built here because the locations and the choice that hangs off them
+     * belong to the answer rather than to the way it was asked for.
+     *
+     * @param  Collection<int, Customer>  $customers
+     */
+    private function answerFor(Collection $customers, string $described): ToolResult
+    {
+        $content = ['customers' => $customers->map(fn (Customer $customer) => [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'address' => $customer->address,
+            'postal_code' => $customer->postal_code,
+            'city' => $customer->city,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+            'locations' => $customer->locations->map(fn (Location $location) => [
+                'id' => $location->id,
+                'title' => $location->title,
+                'code' => $location->location_code,
+                'address' => $location->addressLine(),
+            ])->all(),
+        ])->all()];
+
+        /**
+         * One customer with more than one site is the next question, and it is
+         * worth asking before anything gets planned: the address on the customer is
+         * not necessarily where the work happens.
+         */
+        if ($customers->count() === 1 && $customers->first()->locations->count() > 1) {
+            $sites = $this->choiceOf(
+                $customers->first()->locations,
+                'Op welke locatie van ' . $customers->first()->name . '?',
+                'locatie',
+                'customers/' . $customers->first()->id,
+                fn (Location $location) => trim(
+                    ($location->title ?: $location->location_code ?: 'Locatie') . ' — ' . $location->addressLine(),
+                    ' —'
+                ),
+            );
+
+            if ($sites !== null) {
+                $content['choice'] = $sites;
+                $content['note'] = 'Deze klant heeft meerdere locaties en de gebruiker krijgt daar knoppen '
+                    . 'voor te zien. Plan niets in en maak geen werkbon voordat duidelijk is welke locatie '
+                    . 'het is; het adres van de klant is niet per se waar het werk gebeurt.';
+            }
+        }
 
         /**
          * Too many to choose between, and handing over the whole list is what lets
@@ -165,7 +248,7 @@ class FindCustomerTool implements Tool
 
         return ToolResult::ok(
             $content,
-            $customers->count() . ' klant(en) gevonden voor "' . $query . '".',
+            $customers->count() . ' klant(en) gevonden voor ' . $described . '.',
         );
     }
 }

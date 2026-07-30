@@ -14,6 +14,7 @@ use App\Domain\Tools\ToolResult;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\Location;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -82,6 +83,12 @@ class CreateEventTool implements Confirmable, Tool
                         . 'De werkbon en de afspraak worden dan in één keer aangemaakt en aan elkaar gekoppeld. '
                         . 'Gebruik dit in plaats van create_service_order apart aanroepen: los aangemaakt '
                         . 'staan ze na bevestiging niet aan elkaar vast.',
+                ],
+                'location_id' => [
+                    'type' => 'integer',
+                    'description' => 'De locatie van de klant waar het werk gebeurt. Heeft de klant meer '
+                        . 'dan één locatie, vraag dan welke: het adres van de klant is niet per se waar '
+                        . 'de monteur moet zijn.',
                 ],
                 'service_order_description' => [
                     'type' => 'string',
@@ -186,6 +193,7 @@ class CreateEventTool implements Confirmable, Tool
             }
         }
 
+        $location_id = $call->integerArgument('location_id');
         $customer = null;
 
         if ($for_customer_id !== null) {
@@ -210,6 +218,23 @@ class CreateEventTool implements Confirmable, Tool
             return ToolResult::failed('Er is geen afspraaksoort ingesteld.');
         }
 
+        /**
+         * The site has to belong to whoever the work is for. A real address at the
+         * wrong customer is the sort of mistake that only surfaces when a van is
+         * already parked outside it.
+         */
+        if ($location_id !== null) {
+            $owner = $customer?->id ?? ServiceOrder::whereKey($service_order_id)->value('customer_id');
+
+            if ($owner === null) {
+                return ToolResult::failed('Een locatie hoort bij een klant, dus geef ook de werkbon of de klant mee.');
+            }
+
+            if (!Location::where('id', $location_id)->where('customer_id', $owner)->exists()) {
+                return ToolResult::failed('Die locatie hoort niet bij deze klant.');
+            }
+        }
+
         $clashes = $this->clashes($mechanics, $starts_at, $ends_at);
 
         if ($clashes !== []) {
@@ -226,6 +251,7 @@ class CreateEventTool implements Confirmable, Tool
                 'end' => $ends_at->format('Y-m-d H:i:s'),
                 /** The column is called name; "subject" is only what it is to a reader. */
                 'name' => $call->stringArgument('subject'),
+                'location_id' => $location_id,
                 'status' => 'Gepland',
             ],
             eventable_type: $service_order_id ? ServiceOrder::class : null,
