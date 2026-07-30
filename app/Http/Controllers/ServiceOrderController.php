@@ -516,11 +516,18 @@ class ServiceOrderController extends Controller
      */
     public function destroy(ServiceOrderDeleteRequest $request, ServiceOrder $serviceorder)
     {
+        $previous_path = (string) parse_url(url()->previous(), PHP_URL_PATH);
+        $show_path = (string) parse_url(route('serviceorders.show', $serviceorder), PHP_URL_PATH);
+        $returns_to_deleted_order = $previous_path === $show_path
+            || str_starts_with($previous_path, $show_path . '/');
+
         DB::transaction(function () use ($serviceorder) {
             $serviceorder->delete();
         });
 
-        return redirect()->back()
+        return ($returns_to_deleted_order
+            ? redirect()->route('serviceorders.index')
+            : redirect()->back())
             ->with('success', 'Werkbon succesvol verwijderd.');
     }
 
