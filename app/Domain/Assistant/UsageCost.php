@@ -34,7 +34,7 @@ final class UsageCost
 
     public static function forCall(string $model, TokenUsage $usage): self
     {
-        $rates = config('assistant.pricing.' . $model);
+        $rates = Pricing::forModel($model);
         $eur_per_usd = (float) config('assistant.eur_per_usd');
 
         $input = $usage->input;
@@ -74,6 +74,6 @@ final class UsageCost
 
     public function isPriced(): bool
     {
-        return config('assistant.pricing.' . $this->model) !== null;
+        return Pricing::forModel($this->model) !== null;
     }
 }

@@ -11,6 +11,7 @@ use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\ToolResultsTurn;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Assistant\Pricing;
 use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Tools\ToolRegistry;
@@ -119,6 +120,54 @@ class ProviderSwitchingTest extends TestCase
         );
     }
 
+    /**
+     * Every model that can be sent has to have a price against exactly the id that
+     * gets sent.
+     *
+     * A mismatch fails twice and silently. The picker sorts an unpriced model last,
+     * so it is never chosen however cheap it really is — and if it ever were, its
+     * usage would be recorded at nought and never show up against anybody's
+     * allowance. Found the hard way: a haiku entry priced under a family name
+     * while the id carried a date.
+     */
+    public function test_every_configured_model_has_a_price_under_its_own_id(): void
+    {
+        $unpriced = [];
+
+        foreach (config('assistant.providers') as $name => $settings) {
+            $model = $settings['model'] ?? null;
+
+            if ($model !== null && Pricing::forModel($model) === null) {
+                $unpriced[] = $name . ' (' . $model . ')';
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $unpriced,
+            'these would never be chosen and would cost nothing on paper: ' . implode(', ', $unpriced),
+        );
+    }
+
+    /**
+     * Sorting questions buys nothing unless somewhere cheaper exists to send the
+     * easy ones, which is the whole reason the sorting was built.
+     */
+    public function test_an_easy_question_lands_somewhere_cheaper_than_a_hard_one(): void
+    {
+        $picker = app(ModelPicker::class);
+
+        $cheap = config('assistant.providers.' . $picker->providerFor(2) . '.model');
+        $dear = config('assistant.providers.' . $picker->providerFor(9) . '.model');
+
+        $this->assertNotSame($dear, $cheap, 'every question still goes to the same model');
+        $this->assertLessThan(
+            Pricing::forModel($dear)['output'],
+            Pricing::forModel($cheap)['output'],
+            'the model chosen for a lookup is not actually cheaper'
+        );
+    }
+
     public function test_every_tool_rates_itself_somewhere_on_the_scale(): void
     {
         foreach (app(ToolRegistry::class)->all() as $tool) {
@@ -152,7 +201,7 @@ class ProviderSwitchingTest extends TestCase
             'assistant.providers.anthropic.api_key' => 'x',
         ]);
 
-        $this->assertSame('anthropic', (new ModelPicker)->providerFor(3));
+        $this->assertStringStartsWith('anthropic', (new ModelPicker)->providerFor(3));
     }
 
     /**

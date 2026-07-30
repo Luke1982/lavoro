@@ -142,6 +142,38 @@ return [
             'capability' => 7,
         ],
 
+        /*
+        | The same supplier and the same key, on its cheap model. Sorting questions
+        | is worth nothing without somewhere cheaper to send the easy ones, and
+        | until a second supplier has a key this is the only cheaper place there
+        | is — a third of the price for looking something up.
+        |
+        | The capability is deliberately modest. It answers lookups; anything that
+        | needs weighing goes past it to the model above.
+        */
+        'anthropic_light' => [
+            'driver' => AnthropicModel::class,
+            'model' => env('ANTHROPIC_LIGHT_MODEL', 'claude-haiku-4-5-20251001'),
+            'api_key' => env('ANTHROPIC_API_KEY'),
+            'capability' => 4,
+        ],
+
+        /*
+        | Not for answering anything — this one only reads a question and says how
+        | hard it looks, so the answer itself can go to something that fits. It is
+        | marked reserved so it is never chosen as an answering model, however
+        | cheap it is, and capped to a handful of tokens because the reply is a
+        | number.
+        */
+        'sorter' => [
+            'driver' => AnthropicModel::class,
+            'model' => env('ASSISTANT_SORTER_MODEL', 'claude-haiku-4-5-20251001'),
+            'api_key' => env('ANTHROPIC_API_KEY'),
+            'capability' => 1,
+            'max_tokens' => 16,
+            'reserved' => true,
+        ],
+
         'openai' => [
             'driver' => OpenAiCompatibleModel::class,
             'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
@@ -168,6 +200,17 @@ return [
     | this is the ceiling per call rather than for the whole answer.
     */
     'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 120),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Which entry reads the question before it is answered
+    |--------------------------------------------------------------------------
+    |
+    | Set to null to switch the sorting off, in which case the model is chosen by
+    | the hardest tool somebody could reach — which is what it did before, and puts
+    | everybody on the dearest model as soon as one hard tool is shared by all.
+    */
+    'question_sorter' => env('ASSISTANT_QUESTION_SORTER', 'sorter'),
 
     /*
     |--------------------------------------------------------------------------
@@ -234,7 +277,13 @@ return [
         'claude-sonnet-5' => ['input' => 3.00, 'output' => 15.00, 'cache_write' => 3.75, 'cache_read' => 0.30],
         'claude-opus-5' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
         'claude-opus-4-8' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
-        'claude-haiku-4-5' => ['input' => 1.00, 'output' => 5.00, 'cache_write' => 1.25, 'cache_read' => 0.10],
+        /*
+        | Keyed by the exact model id that is sent, not by a family name. A price
+        | that does not match is not a small mistake: an unpriced model sorts last
+        | so it is never chosen, and its usage is recorded at nought — invisible
+        | twice over.
+        */
+        'claude-haiku-4-5-20251001' => ['input' => 1.00, 'output' => 5.00, 'cache_write' => 1.25, 'cache_read' => 0.10],
 
         'deepseek-chat' => ['input' => 0.27, 'output' => 1.10, 'cache_write' => 0.27, 'cache_read' => 0.07],
         'deepseek-reasoner' => ['input' => 0.55, 'output' => 2.19, 'cache_write' => 0.55, 'cache_read' => 0.14],

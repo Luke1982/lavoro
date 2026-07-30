@@ -70,6 +70,11 @@ class ModelPicker
                 continue;
             }
 
+            /** Entries kept for a particular job are never picked by capability. */
+            if ($settings['reserved'] ?? false) {
+                continue;
+            }
+
             $usable[$name] = [
                 'capability' => (int) ($settings['capability'] ?? 0),
                 'cost' => $this->typicalCost($settings['model'] ?? ''),
@@ -112,7 +117,7 @@ class ModelPicker
      */
     private function typicalCost(string $model): float
     {
-        $rates = config('assistant.pricing.' . $model);
+        $rates = Pricing::forModel($model);
 
         if ($rates === null) {
             return PHP_FLOAT_MAX;
@@ -130,8 +135,10 @@ class ModelPicker
             throw new ModelUnavailable(ModelFailure::other, 'Onbekende AI-aanbieder: ' . $provider);
         }
 
-        return $driver === OpenAiCompatibleModel::class
-            ? OpenAiCompatibleModel::fromConfig($provider)
-            : app($driver);
+        if ($driver === OpenAiCompatibleModel::class) {
+            return OpenAiCompatibleModel::fromConfig($provider);
+        }
+
+        return app($driver, ['provider' => $provider]);
     }
 }

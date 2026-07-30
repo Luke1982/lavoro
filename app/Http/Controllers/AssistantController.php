@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\PageContext;
+use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
@@ -45,6 +46,7 @@ class AssistantController extends Controller
         AssistantLoop $loop,
         ToolRegistry $registry,
         PageContext $pages,
+        QuestionSorter $sorter,
     ): JsonResponse {
         $user = $request->user();
         $tools = [];
@@ -75,8 +77,26 @@ class AssistantController extends Controller
             'answer' => $answer->text,
             'tools' => $tools,
             'pending' => $pending,
-            'difficulty' => $registry->requiredDifficultyFor($user),
         ]);
+    }
+
+    /**
+     * How hard to treat this question as being.
+     *
+     * The question decides, capped by what this person's tools could support:
+     * asking something that sounds like diagnosis is no reason to buy a clever
+     * model for somebody who can only reach a customer lookup.
+     *
+     * If the question cannot be read, the old behaviour stands — the hardest tool
+     * available. That errs expensive, which is the right direction for a fallback:
+     * a dear answer beats a poor one.
+     */
+    private function difficultyFor(string $question, User $user, ToolRegistry $registry, QuestionSorter $sorter): int
+    {
+        $ceiling = $registry->requiredDifficultyFor($user);
+        $asked = $sorter->difficultyOf($question);
+
+        return $asked === null ? $ceiling : min($asked, $ceiling);
     }
 
     /**
@@ -97,6 +117,11 @@ class AssistantController extends Controller
         ToolRegistry $registry,
         PageContext $pages,
     ): JsonResponse {
+        /**
+         * Carrying on is not a fresh question, and what comes next is usually the
+         * step the assistant already named, so this keeps the capable model rather
+         * than pricing a sentence nobody wrote.
+         */
         $user = $request->user();
         $tools = [];
         $pending = [];

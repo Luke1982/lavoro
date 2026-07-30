@@ -32,15 +32,28 @@ use App\Domain\Assistant\Contracts\UserTurn;
  */
 class AnthropicModel implements TalksToModel
 {
-    public function __construct(private readonly Client $client) {}
+    /**
+     * The config entry this instance speaks for, so the same driver can serve more
+     * than one — the assistant on a capable model, the question sorter on a cheap
+     * one — without either knowing about the other.
+     */
+    public function __construct(
+        private readonly Client $client,
+        private readonly string $provider = 'anthropic',
+    ) {}
+
+    private function setting(string $key, mixed $default = null): mixed
+    {
+        return config('assistant.providers.' . $this->provider . '.' . $key, $default);
+    }
 
     public function send(array $turns, array $tools, string $system): ModelReply
     {
         try {
             $response = $this->client->messages->create(
-                maxTokens: (int) config('assistant.max_tokens'),
+                maxTokens: (int) ($this->setting('max_tokens') ?? config('assistant.max_tokens')),
                 messages: array_map(fn ($turn) => $this->toMessage($turn), $turns),
-                model: config('assistant.providers.anthropic.model'),
+                model: $this->setting('model'),
                 system: [$this->cacheableSystem($system)],
                 tools: array_map(fn (array $tool) => $this->toTool($tool), $tools),
             );
