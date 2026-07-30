@@ -12,9 +12,11 @@ use App\Domain\Tools\ToolRegistry;
 use App\Domain\Tools\ToolResult;
 use App\Http\Requests\AssistantAskRequest;
 use App\Http\Requests\AssistantConfirmRequest;
+use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
 use App\Models\AssistantQuestion;
 use App\Models\User;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -55,18 +57,7 @@ class AssistantController extends Controller
                 system: $this->systemPrompt(),
                 context: $this->context($user, $pages->describe($request->validated('page'))),
                 history: $request->validated('history') ?? [],
-                onTool: function (string $name, array $arguments, bool $failed, ?ToolResult $result = null) use (&$tools, &$pending) {
-                    $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
-
-                    if (is_array($result?->content) && ($result->content['status'] ?? null) === 'bevestiging_nodig') {
-                        $pending[] = [
-                            'tool' => $name,
-                            'preview' => $result->content['preview'] ?? null,
-                            'arguments' => $result->content['proposed'] ?? [],
-                            'token' => $result->content['confirmation_token'],
-                        ];
-                    }
-                },
+                onTool: $this->toolWatcher($tools, $pending),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -86,6 +77,76 @@ class AssistantController extends Controller
             'pending' => $pending,
             'difficulty' => $registry->requiredDifficultyFor($user),
         ]);
+    }
+
+    /**
+     * Picks the conversation back up after something was confirmed.
+     *
+     * Clicking the button is an answer, and until now nothing said so: the model
+     * only found out on the next thing somebody typed, so a conversation that had
+     * just promised to add the task and plan a mechanic simply stopped. It knew
+     * what came next and had no way to be asked.
+     *
+     * The prompt is written here rather than sent by the browser. What was carried
+     * out is already in the history the box keeps, marked as done; this only says
+     * "carry on", so a client cannot use it to put words in the model's mouth.
+     */
+    public function proceed(
+        AssistantContinueRequest $request,
+        AssistantLoop $loop,
+        ToolRegistry $registry,
+        PageContext $pages,
+    ): JsonResponse {
+        $user = $request->user();
+        $tools = [];
+        $pending = [];
+
+        try {
+            $answer = $loop->ask(
+                user: $user,
+                question: 'De actie hierboven is nu daadwerkelijk uitgevoerd. Ga verder met wat er nog '
+                    . 'open staat uit dit gesprek: is dat een volgende stap, zet die dan klaar. Is alles '
+                    . 'gedaan, zeg dan kort wat er nu staat en vraag of er nog iets moet gebeuren. '
+                    . 'Doe niets opnieuw wat al is uitgevoerd.',
+                system: $this->systemPrompt(),
+                context: $this->context($user, $pages->describe($request->validated('page'))),
+                onTool: $this->toolWatcher($tools, $pending),
+                history: $request->validated('history'),
+            );
+        } catch (ModelUnavailable $e) {
+            return response()->json(['message' => $this->explain($e)], 503);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'answer' => $answer->text,
+            'tools' => $tools,
+            'pending' => $pending,
+        ]);
+    }
+
+    /**
+     * Watches the tool calls of one turn, and picks out anything waiting to be
+     * agreed to so the box can offer a button for it.
+     *
+     * @param  array<int, array<string, mixed>>  $tools
+     * @param  array<int, array<string, mixed>>  $pending
+     */
+    private function toolWatcher(array &$tools, array &$pending): Closure
+    {
+        return function (string $name, array $arguments, bool $failed, ?ToolResult $result = null) use (&$tools, &$pending) {
+            $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
+
+            if (is_array($result?->content) && ($result->content['status'] ?? null) === 'bevestiging_nodig') {
+                $pending[] = [
+                    'tool' => $name,
+                    'preview' => $result->content['preview'] ?? null,
+                    'arguments' => $result->content['proposed'] ?? [],
+                    'token' => $result->content['confirmation_token'],
+                ];
+            }
+        };
     }
 
     /**

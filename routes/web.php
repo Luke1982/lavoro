@@ -94,6 +94,11 @@ Route::group(
             ->middleware('throttle:60,1')
             ->name('assistant.history');
 
+        /** Picks the conversation up again after a button was clicked. */
+        Route::post('assistant/continue', [AssistantController::class, 'proceed'])
+            ->middleware('throttle:20,1')
+            ->name('assistant.continue');
+
         /** Carries out something already agreed to; no model runs here. */
         Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
             ->middleware('throttle:20,1')

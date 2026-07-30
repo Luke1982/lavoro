@@ -10,7 +10,7 @@
         <template #before>
             <div v-if="exchanges.length" ref="threadRef" class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
                 <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
-                    <p class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
+                    <p v-if="exchange.question" class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
                     <!--
                         The tool calls are shown as they happen. A question that
@@ -136,6 +136,14 @@ const TOOL_LABELS = {
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
 
+const asActions = (pending) => (pending || []).map((action) => ({
+    ...action,
+    preview: action.preview || 'Nog niet uitgevoerd — bevestig om door te gaan.',
+    busy: false,
+    stale: false,
+    done: '',
+}))
+
 async function open_() {
     closeNavigator()
     open.value = true
@@ -155,21 +163,7 @@ async function ask() {
     const asked = question.value.trim()
     if (asked.length < 2 || asking.value) return
 
-    // Anything already carried out travels back with the answer that proposed it.
-    // Without it the model has no idea the werkbon it offered actually got made,
-    // so it offers again — and a second click is a second werkbon.
-    const history = exchanges.value
-        .filter((exchange) => exchange.answer)
-        .slice(-REMEMBERED_EXCHANGES)
-        .map((exchange) => ({
-            question: exchange.question,
-            answer: [
-                exchange.answer,
-                ...exchange.pendingActions
-                    .filter((action) => action.done)
-                    .map((action) => '[al uitgevoerd] ' + action.done),
-            ].join('\n\n').slice(0, REMEMBERED_ANSWER_CHARS),
-        }))
+    const history = historyForModel()
 
     // A proposal nobody acted on before asking something else has been overtaken.
     // Left clickable it is a button that makes a second copy of something the
@@ -203,13 +197,7 @@ async function ask() {
         )
         exchange.answer = data.answer
         exchange.tools = data.tools || []
-        exchange.pendingActions = (data.pending || []).map((action) => ({
-            ...action,
-            preview: action.preview || 'Nog niet uitgevoerd — bevestig om door te gaan.',
-            busy: false,
-            stale: false,
-            done: '',
-        }))
+        exchange.pendingActions = asActions(data.pending)
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.
         // Spinning for ever is not an option though: without this it never stops,
@@ -234,6 +222,22 @@ async function ask() {
     }
 }
 
+/** What the model is sent as the story so far, including what has been done. */
+function historyForModel() {
+    return exchanges.value
+        .filter((exchange) => exchange.answer && exchange.question)
+        .slice(-REMEMBERED_EXCHANGES)
+        .map((exchange) => ({
+            question: exchange.question,
+            answer: [
+                exchange.answer,
+                ...exchange.pendingActions
+                    .filter((action) => action.done)
+                    .map((action) => '[al uitgevoerd] ' + action.done),
+            ].join('\n\n').slice(0, REMEMBERED_ANSWER_CHARS),
+        }))
+}
+
 /**
  * Carries out something the assistant proposed. The token holds what was
  * proposed, so nothing here describes the action — sending our own idea of it
@@ -248,10 +252,50 @@ async function confirmAction(action) {
         await axios.get('/sanctum/csrf-cookie')
         const { data } = await axios.post('/assistant/confirm', { token: action.token })
         action.done = data.message
+        proceed()
     } catch (e) {
         action.done = e.response?.data?.message || 'Het is niet gelukt.'
     } finally {
         action.busy = false
+        scrollToLatest()
+    }
+}
+
+/**
+ * Picks the conversation up on its own after a confirmation.
+ *
+ * Clicking the button is an answer, so it should not also need typing out. A
+ * conversation that had just said it would add the task and plan a mechanic used
+ * to stop dead here, knowing exactly what came next and waiting to be asked.
+ */
+async function proceed() {
+    if (asking.value) return
+
+    const history = historyForModel()
+
+    if (!history.length) return
+
+    const exchange = { question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [] }
+    exchanges.value.push(exchange)
+    asking.value = true
+    scrollToLatest()
+
+    try {
+        const { data } = await axios.post(
+            '/assistant/continue',
+            { page: window.location.pathname, history },
+            { timeout: ASK_TIMEOUT_MS },
+        )
+        exchange.answer = data.answer
+        exchange.tools = data.tools || []
+        exchange.pendingActions = asActions(data.pending)
+    } catch (e) {
+        // Nothing was lost if this fails: the action itself already happened, and
+        // the next thing typed picks the thread up anyway.
+        exchange.error = e.response?.data?.message || 'Kon niet verder; stel je volgende vraag gewoon.'
+    } finally {
+        exchange.pending = false
+        asking.value = false
         scrollToLatest()
     }
 }
