@@ -63,6 +63,7 @@ class AssistantController extends Controller
                 context: $this->context($user, $pages->describe($request->validated('page'))),
                 history: $request->validated('history') ?? [],
                 onTool: $this->toolWatcher($tools, $pending),
+                difficulty: $this->difficultyFor($request->validated('question'), $user, $registry, $sorter),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
