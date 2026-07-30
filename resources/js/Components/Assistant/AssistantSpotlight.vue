@@ -124,12 +124,14 @@ const TOOL_LABELS = {
     search_service_orders: 'Werkbonnen zoeken',
     find_asset: 'Machines zoeken',
     find_tickets: 'Storingen zoeken',
+    find_products: 'Producten zoeken',
     search_activity: 'Geschiedenis doorzoeken',
     summarize_customer: 'Klantoverzicht ophalen',
     find_available_technician: 'Beschikbaarheid berekenen',
     create_event: 'Afspraak inplannen',
     create_ticket: 'Storing vastleggen',
     create_service_order: 'Werkbon aanmaken',
+    add_service_order_task: 'Taak op werkbon zetten',
 }
 
 const toolLabel = (name) => TOOL_LABELS[name] || name

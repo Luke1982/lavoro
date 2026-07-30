@@ -26,7 +26,14 @@ class ToolSchemaBudgetTest extends TestCase
     use CreatesAuthenticatedUsers;
     use RefreshDatabase;
 
-    private const ROOM_FOR = 12000;
+    /**
+     * Twelve tools, and the two dearest are the two that decide somebody's day —
+     * availability and planning an appointment. Raised from 12000 when the
+     * product catalogue and werkbon tasks arrived, both of which the assistant
+     * genuinely could not work without: it had no way to name the airco it was
+     * being asked to install.
+     */
+    private const ROOM_FOR = 14000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

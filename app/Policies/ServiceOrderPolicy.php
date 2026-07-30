@@ -24,6 +24,21 @@ class ServiceOrderPolicy
         return $user->hasPermission('serviceorder.create');
     }
 
+    /**
+     * Whether this person may put a task on a werkbon.
+     *
+     * Its own permission, separate from opening the werkbon: what is actually to
+     * be done — which product, how many — is the part somebody works from.
+     */
+    /**
+     * Asked before the werkbon is in hand, so it takes no werkbon. Which werkbon
+     * this person may reach is a separate question, answered by the scope.
+     */
+    public function addTask(User $user): bool
+    {
+        return $user->hasPermission('serviceordertaskinstance.create');
+    }
+
     public function update(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('serviceorder.update');

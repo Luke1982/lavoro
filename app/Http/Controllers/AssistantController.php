@@ -265,6 +265,12 @@ class AssistantController extends Controller
             'Hoort een afspraak bij een werkbon die nog niet bestaat, plan hem dan in één keer in',
             'met create_service_order_for_customer_id. Twee losse acties worden namelijk twee losse',
             'records: een werkbon zonder afspraak en een afspraak die bij niets hoort.',
+            '',
+            'Een werkbon zonder taken zegt niet wat er gedaan moet worden. Gaat het om plaatsen,',
+            'vervangen of leveren van apparatuur, vraag dan welk product het is en hoeveel, zoek',
+            'het product op zodat je het echte nummer hebt, en zet het als taak op de werkbon.',
+            'Vraag dat vóórdat je iets voorstelt: "installatie airco" is geen opdracht waar een',
+            'monteur mee op pad kan.',
         ]);
     }
 

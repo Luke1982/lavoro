@@ -5,10 +5,12 @@ use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Tools\Read\FindAssetTool;
 use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
+use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
+use App\Domain\Tools\Write\AddServiceOrderTaskTool;
 use App\Domain\Tools\Write\CreateEventTool;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
@@ -36,12 +38,14 @@ return [
         SearchServiceOrderTool::class,
         FindAssetTool::class,
         FindTicketTool::class,
+        FindProductTool::class,
         SearchActivityTool::class,
         SummarizeCustomerTool::class,
         FindAvailableTechnicianTool::class,
         CreateEventTool::class,
         CreateTicketTool::class,
         CreateServiceOrderTool::class,
+        AddServiceOrderTaskTool::class,
     ],
 
     /*
