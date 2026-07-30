@@ -140,6 +140,17 @@ class CreateEventTool implements Confirmable, Tool
             ->pluck('name');
 
         $when = $this->moment($call->stringArgument('starts_at'));
+        $until = $this->moment($call->stringArgument('ends_at'));
+
+        /**
+         * Where somebody actually has to be. A customer can have several sites and
+         * the address on the customer is not necessarily one of them, so approving
+         * a morning without seeing the address approves the wrong building just as
+         * easily as the right one.
+         */
+        $location = $call->integerArgument('location_id') === null
+            ? null
+            : Location::find($call->integerArgument('location_id'));
 
         $for_customer = $call->integerArgument('create_service_order_for_customer_id');
         $customer = $for_customer === null ? null : Customer::find($for_customer);
@@ -148,9 +159,19 @@ class CreateEventTool implements Confirmable, Tool
             ? null
             : ServiceOrder::with('customer:id,name')->find($call->integerArgument('service_order_id'));
 
+        /**
+         * Both ends of it. Shown only as a start, an afternoon and a whole day
+         * read exactly alike, and the length is the half most easily got wrong.
+         */
+        $window = $when === null
+            ? ''
+            : ' op ' . Clock::toLocal($when)->format('d-m-Y H:i')
+                . ($until === null ? '' : '–' . Clock::toLocal($until)->format('H:i'));
+
         return 'Afspraak inplannen'
-            . ($when ? ' op ' . Clock::toLocal($when)->format('d-m-Y H:i') : '')
+            . $window
             . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
+            . ($location ? ' op ' . $location->addressLine() : '')
             . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
             . ($customer ? ', met een nieuwe werkbon voor ' . $customer->name : '')
             /** The customer, so a werkbon belonging to other work is visible as such. */

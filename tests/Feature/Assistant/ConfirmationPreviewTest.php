@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\Location;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -89,5 +91,39 @@ class ConfirmationPreviewTest extends TestCase
 
         $this->assertStringContainsString('Bakker Klimaattechniek', $content['preview']);
         $this->assertSame(['customer_id' => $customer->id], $content['proposed']);
+    }
+
+    /**
+     * What somebody is agreeing to, in full. Shown only a start time, an afternoon
+     * and a whole day read alike; shown no address, a morning gets approved for
+     * the wrong building of the right customer. Both are things the person
+     * approving can catch in a second and nobody else can catch at all.
+     */
+    public function test_planning_an_appointment_shows_both_ends_of_it_and_where(): void
+    {
+        $user = $this->userWith('event.create');
+        $customer = Customer::factory()->create(['name' => 'Jansen Elektrotechniek']);
+        $site = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'address' => 'Fabrieksweg 8',
+            'postal_code' => '7000AA',
+            'city' => 'Doetinchem',
+        ]);
+
+        $day = Clock::todayAsDate()->addDay()->toDateString();
+
+        $preview = app(ToolExecutor::class)->run(new ToolCall('create_event', [
+            'starts_at' => $day . ' 08:00',
+            'ends_at' => $day . ' 12:30',
+            'user_ids' => [$user->id],
+            'event_type' => 'Onderhoud',
+            'location_id' => $site->id,
+            'create_service_order_for_customer_id' => $customer->id,
+        ], $user))->content['preview'];
+
+        $this->assertStringContainsString('08:00', $preview);
+        $this->assertStringContainsString('12:30', $preview, 'no end time, so a morning and a whole day look the same');
+        $this->assertStringContainsString('Fabrieksweg 8', $preview, 'nothing said where anybody has to be');
+        $this->assertStringContainsString('Jansen Elektrotechniek', $preview);
     }
 }
