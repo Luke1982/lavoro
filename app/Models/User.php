@@ -231,6 +231,26 @@ class User extends Authenticatable
         return $this->hasMany(DeviceToken::class);
     }
 
+    /**
+     * Not notifications(): that name belongs to the Notifiable trait, which reads
+     * Laravel's own database channel and knows nothing about these.
+     *
+     * One action can raise several notifications within the same second, which
+     * leaves created_at unable to order them; the id breaks the tie so newest
+     * first means it.
+     */
+    public function userNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
+    public function notificationSubscriptions(): HasMany
+    {
+        return $this->hasMany(NotificationSubscription::class);
+    }
+
     public function routeNotificationForFcm(): array
     {
         return $this->deviceTokens()->pluck('token')->toArray();

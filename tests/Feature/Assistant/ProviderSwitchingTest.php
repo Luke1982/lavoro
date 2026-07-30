@@ -194,14 +194,34 @@ class ProviderSwitchingTest extends TestCase
     /**
      * A model nobody can call is not a candidate, however well it scores.
      */
+    /**
+     * Which suppliers exist is decided by the test, not by whoever's .env this runs
+     * on. Left to the environment these assertions pass or fail depending on which
+     * keys a developer happens to have — and they quietly started failing the day a
+     * real deepseek key was added, which is not the behaviour of a test.
+     *
+     * @param  array<string, int|null>  $providers  Name to capability; a key is given to each.
+     */
+    private function onlyProviders(array $providers): void
+    {
+        foreach (array_keys(config('assistant.providers')) as $name) {
+            config(['assistant.providers.' . $name . '.api_key' => null]);
+        }
+
+        foreach ($providers as $name => $capability) {
+            config(['assistant.providers.' . $name . '.api_key' => 'aanwezig']);
+
+            if ($capability !== null) {
+                config(['assistant.providers.' . $name . '.capability' => $capability]);
+            }
+        }
+    }
+
     public function test_a_provider_without_a_key_is_never_chosen(): void
     {
-        config([
-            'assistant.providers.deepseek.api_key' => null,
-            'assistant.providers.anthropic.api_key' => 'x',
-        ]);
+        $this->onlyProviders(['anthropic' => null]);
 
-        $this->assertStringStartsWith('anthropic', (new ModelPicker)->providerFor(3));
+        $this->assertSame('anthropic', (new ModelPicker)->providerFor(3));
     }
 
     /**
@@ -210,22 +230,17 @@ class ProviderSwitchingTest extends TestCase
      */
     public function test_a_model_with_no_price_does_not_undercut_everything(): void
     {
-        config([
-            'assistant.providers.moonshot.api_key' => 'x',
-            'assistant.providers.anthropic.api_key' => 'x',
-            'assistant.pricing.kimi-k2-0711-preview' => null,
-        ]);
+        $this->onlyProviders(['moonshot' => null, 'anthropic' => null]);
+        config(['assistant.pricing' => collect(config('assistant.pricing'))
+            ->reject(fn ($rates, $model) => $model === 'kimi-k2-0711-preview')
+            ->all()]);
 
         $this->assertSame('anthropic', (new ModelPicker)->providerFor(7));
     }
 
     public function test_nothing_clever_enough_still_answers_rather_than_failing(): void
     {
-        config(['assistant.providers.deepseek.api_key' => 'x']);
-
-        foreach (['anthropic', 'mistral', 'qwen', 'moonshot', 'openai'] as $other) {
-            config(['assistant.providers.' . $other . '.api_key' => null]);
-        }
+        $this->onlyProviders(['deepseek' => null]);
 
         $this->assertSame('deepseek', (new ModelPicker)->providerFor(10));
     }

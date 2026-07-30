@@ -200,6 +200,7 @@ class AnthropicModel implements TalksToModel
             model: (string) $response->model,
 
             /** Kept whole: thinking blocks are signed and must go back untouched. */
+            requested_model: (string) $this->setting('model'),
             raw: $response->content,
         );
     }

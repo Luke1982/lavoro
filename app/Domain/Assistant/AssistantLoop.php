@@ -190,7 +190,7 @@ class AssistantLoop
      */
     private function recordCost(User $user, ModelReply $reply): int
     {
-        $cost = UsageCost::forCall($reply->model, $reply->usage);
+        $cost = UsageCost::forCall($reply->billableModel(), $reply->usage);
 
         try {
             AssistantUsage::create([

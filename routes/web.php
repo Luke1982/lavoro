@@ -32,6 +32,7 @@ use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\MaterialSupplierController;
 use App\Http\Controllers\MaterialUsageUnitController;
+use App\Http\Controllers\NotificationSubscriptionController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlannerController;
 use App\Http\Controllers\ProductableController;
@@ -64,6 +65,7 @@ use App\Http\Controllers\SupplierImportController;
 use App\Http\Controllers\TechnicalManagementController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\UserRoleController;
 use App\Http\Controllers\UserUnavailabilityController;
 use Illuminate\Support\Facades\Route;
@@ -396,6 +398,14 @@ Route::group(
             ->name('upcomingactivities'); // requires activitylist.read
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
             ->name('upcomingactivities.map'); // requires activitylist.read
+        Route::get('usernotifications', [UserNotificationController::class, 'index'])
+            ->name('usernotifications.index');
+        Route::patch('usernotifications/{usernotification}/read', [UserNotificationController::class, 'acknowledge'])
+            ->name('usernotifications.acknowledge');
+        Route::delete('usernotifications/{usernotification}/read', [UserNotificationController::class, 'unacknowledge'])
+            ->name('usernotifications.unacknowledge');
+        Route::resource('notificationsubscriptions', NotificationSubscriptionController::class)
+            ->only(['store', 'destroy']);
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
 

@@ -210,6 +210,7 @@ class OpenAiCompatibleModel implements TalksToModel
             model: $payload['model'] ?? $this->model,
 
             /** Replayed as-is, so whatever the supplier put on it survives. */
+            requested_model: $this->model,
             raw: $message,
         );
     }

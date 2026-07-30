@@ -27,13 +27,17 @@ class ToolSchemaBudgetTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Twelve tools, and the two dearest are the two that decide somebody's day —
-     * availability and planning an appointment. Raised from 12000 when the
-     * product catalogue and werkbon tasks arrived, both of which the assistant
-     * genuinely could not work without: it had no way to name the airco it was
-     * being asked to install.
+     * Fifteen tools, and the dearest are the ones that decide somebody's day.
+     * Raised twice now — 12000, 14000, 16000 — each time for something the
+     * assistant genuinely could not work without, most recently being able to read
+     * the diary it was already able to write to.
+     *
+     * The bytes themselves cost little, since these sit behind the cache marker
+     * and are read rather than rewritten. What is worth watching at fifteen is not
+     * the size but the choosing: every tool added is one more thing to pick wrongly
+     * from, and that shows up as a bad answer rather than a bill.
      */
-    private const ROOM_FOR = 14000;
+    private const ROOM_FOR = 16000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

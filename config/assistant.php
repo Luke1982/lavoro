@@ -2,6 +2,7 @@
 
 use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Tools\Read\FindAppointmentTool;
 use App\Domain\Tools\Read\FindAssetTool;
 use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
@@ -41,6 +42,7 @@ return [
         FindAssetTool::class,
         FindTicketTool::class,
         FindProductTool::class,
+        FindAppointmentTool::class,
         ReadDocumentationTool::class,
         ResearchTicketTool::class,
         SearchActivityTool::class,

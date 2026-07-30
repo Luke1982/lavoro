@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Enums;
+
+use App\Domain\Signals\Signal;
+use App\Models\Ticket;
+use Illuminate\Support\Str;
+
+/**
+ * The facts somebody can ask to be told about.
+ *
+ * The case value is the signal's event key, because that is what is matched
+ * against Signal::eventKey() and what is stored on the notification itself. That
+ * makes this the one enum here whose value is not the Dutch label: a key that is
+ * persisted and compared cannot also be a sentence somebody might reword. The
+ * label is a method instead.
+ *
+ * Adding a type is adding a case, a label, the permission its readers must hold,
+ * and the two sentences. Nothing else changes: the listener already receives
+ * every signal the application raises.
+ */
+enum UserNotificationType: string
+{
+    case ticket_created = 'ticket.created';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::ticket_created => 'Nieuwe storing',
+        };
+    }
+
+    /**
+     * The permission a reader must hold for this type. Checked when a
+     * subscription is set and again when the notification is written, so it is
+     * the permission and not the subscription that decides.
+     */
+    public function requiredPermission(): ?string
+    {
+        return match ($this) {
+            self::ticket_created => 'ticket.read',
+        };
+    }
+
+    public function titleFor(Signal $signal): string
+    {
+        return match ($this) {
+            self::ticket_created => 'Nieuwe storing: ' . Str::limit($this->ticket($signal)->subject, 180),
+        };
+    }
+
+    public function bodyFor(Signal $signal): string
+    {
+        return match ($this) {
+            self::ticket_created => $this->ticketCreatedBody($signal),
+        };
+    }
+
+    /**
+     * Read off the occurrence rather than fixed per type, so an urgent storing
+     * arrives as an urgent notification instead of being levelled out to whatever
+     * storingen are worth on average.
+     */
+    public function priorityFor(Signal $signal): UserNotificationPriority
+    {
+        return match ($this) {
+            self::ticket_created => UserNotificationPriority::fromTicketPriority(
+                $this->ticket($signal)->priority
+            ),
+        };
+    }
+
+    /** @return array<int, array<string, string>> */
+    public static function comboBoxArray(): array
+    {
+        return array_map(
+            fn (self $case) => ['id' => $case->value, 'name' => $case->label()],
+            self::cases()
+        );
+    }
+
+    private function ticketCreatedBody(Signal $signal): string
+    {
+        $ticket = $this->ticket($signal);
+        $machine = $ticket->asset?->serial_number;
+
+        return 'Storing #' . $ticket->id
+            . ($machine ? ' op machine ' . $machine : '')
+            . ', prioriteit ' . mb_strtolower((string) $ticket->priority)
+            . ', gemeld door ' . ($signal->actorName() ?? 'het systeem');
+    }
+
+    private function ticket(Signal $signal): Ticket
+    {
+        return $signal->subject();
+    }
+}

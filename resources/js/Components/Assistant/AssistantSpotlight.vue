@@ -125,6 +125,7 @@ const TOOL_LABELS = {
     find_asset: 'Machines zoeken',
     find_tickets: 'Storingen zoeken',
     find_products: 'Producten zoeken',
+    find_appointments: 'Agenda nakijken',
     read_documentation: 'Documentatie inlezen',
     research_ticket: 'Storing uitzoeken',
     search_activity: 'Geschiedenis doorzoeken',
