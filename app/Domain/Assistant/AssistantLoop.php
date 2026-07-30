@@ -125,6 +125,24 @@ class AssistantLoop
             }
 
             if (++$rounds > $max_rounds) {
+                /**
+                 * What it already said is kept. Six rounds in, the model has often
+                 * named the customer and found the werkbon and is off looking up a
+                 * third thing; throwing all of that away to report "zonder
+                 * antwoord" loses work that was done and states something untrue.
+                 *
+                 * Said plainly, though, so half an answer cannot pass for a whole
+                 * one — the sentence saying it stopped is part of the answer, not a
+                 * flag somebody downstream has to remember to render.
+                 */
+                if ($spoken !== []) {
+                    $spoken[] = 'Ik ben hier gestopt: dit kostte te veel stappen. '
+                        . 'Wat hierboven staat klopt, maar het is nog geen antwoord op de hele vraag. '
+                        . 'Stel hem eventueel smaller.';
+
+                    return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent);
+                }
+
                 throw new RuntimeException('Gestopt na ' . $max_rounds . ' tool-rondes zonder antwoord.');
             }
 

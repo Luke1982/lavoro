@@ -150,4 +150,41 @@ class ToolContractTest extends TestCase
             'duplicate names: ' . implode(', ', array_diff_assoc($names, array_unique($names)))
         );
     }
+
+    /**
+     * What a tool reads and what it declares have to be the same list.
+     *
+     * This became load-bearing when arguments started being checked against the
+     * schema at the door: read something the schema does not declare and every
+     * real call carrying it is refused, while nothing here goes red, because the
+     * tests pass exactly the arguments the tool was written to expect. The other
+     * direction is only untidy — a declared argument nothing reads is an option
+     * offered to the model that quietly does nothing.
+     */
+    public function test_every_tool_reads_exactly_what_it_declares(): void
+    {
+        $reader = '/(?:string|integer|integerList|date|like|boolean)?[Aa]rgument\(\s*[\'"]([a-z_]+)[\'"]|wasGiven\(\s*[\'"]([a-z_]+)[\'"]/';
+
+        foreach ($this->tools() as $class) {
+            $tool = app($class);
+            $source = file_get_contents((new \ReflectionClass($tool))->getFileName());
+
+            preg_match_all($reader, $source, $found);
+
+            $read = array_values(array_unique(array_filter(array_merge($found[1], $found[2]))));
+            $declared = array_keys($tool->inputSchema()['properties'] ?? []);
+
+            $this->assertSame(
+                [],
+                array_values(array_diff($read, $declared)),
+                $tool::name() . ' reads an argument it never declares, so every call carrying it is refused',
+            );
+
+            $this->assertSame(
+                [],
+                array_values(array_diff($declared, $read)),
+                $tool::name() . ' offers the model an argument it never reads',
+            );
+        }
+    }
 }

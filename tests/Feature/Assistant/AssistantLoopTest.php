@@ -145,6 +145,29 @@ class AssistantLoopTest extends TestCase
         $this->loop($model)->ask($this->admin(), 'Blijf zoeken', 'systeem', max_rounds: 3);
     }
 
+    /**
+     * Six rounds in, a model is often three quarters of the way there: it has
+     * named the customer, found the werkbon and is looking up a third thing.
+     * Throwing that away to report "zonder antwoord" loses work that was done and
+     * says something untrue about it.
+     *
+     * It has to be unmistakably unfinished, though. Half an answer that reads like
+     * a whole one is worse than the error was.
+     */
+    public function test_what_was_already_said_survives_being_cut_off(): void
+    {
+        $model = new FakeModel(array_fill(0, 10, FakeModel::saysAndCallsTool(
+            'Ik heb de klant gevonden: Jansen Elektrotechniek.',
+            'find_customer',
+            ['query' => 'aa'],
+        )));
+
+        $answer = $this->loop($model)->ask($this->admin(), 'Zoek uit', 'systeem', max_rounds: 3);
+
+        $this->assertStringContainsString('Jansen Elektrotechniek', $answer->text, 'the work done was thrown away');
+        $this->assertStringContainsString('gestopt', $answer->text, 'a half answer read like a whole one');
+    }
+
     public function test_a_refusal_is_reported_rather_than_returned_as_an_answer(): void
     {
         $model = new FakeModel([FakeModel::refuses()]);
@@ -390,6 +413,16 @@ class FakeModel implements TalksToModel
         }
 
         return self::reply([], $blocks, StopReason::wants_tools);
+    }
+
+    /** Says something and carries on working, which is what a model doing research does. */
+    public static function saysAndCallsTool(string $text, string $name, array $input): ModelReply
+    {
+        return self::reply([$text], [new ModelToolCall(
+            id: 'toolu_fake_' . $name,
+            name: $name,
+            arguments: $input,
+        )], StopReason::wants_tools);
     }
 
     public static function refuses(): ModelReply
