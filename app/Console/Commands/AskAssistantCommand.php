@@ -6,6 +6,7 @@ use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
@@ -40,7 +41,14 @@ class AskAssistantCommand extends Command
             return self::FAILURE;
         }
 
-        $difficulty = (int) ($this->option('difficulty') ?: $registry->requiredDifficultyFor($user));
+        /**
+         * Routed the way a question asked in the box is routed. Sorting used to be
+         * skipped here, so the one tool anybody would reach for to find out why
+         * everything lands on the dear model reported a route production does not
+         * take — and reported it confidently.
+         */
+        $difficulty = (int) ($this->option('difficulty')
+            ?: app(QuestionSorter::class)->difficultyFor($this->argument('question'), $user, $registry));
         $provider = app(ModelPicker::class)->providerFor($difficulty);
 
         if (blank(config('assistant.providers.' . $provider . '.api_key'))) {

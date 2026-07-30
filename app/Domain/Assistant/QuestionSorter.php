@@ -5,6 +5,7 @@ namespace App\Domain\Assistant;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +30,27 @@ class QuestionSorter
     private const CHEAPEST = 1;
 
     private const DEAREST = 10;
+
+    /**
+     * Which difficulty a question is actually answered at.
+     *
+     * The rating, held down to what this person's tools can reach. Both halves
+     * matter and neither is much use alone: the ceiling alone puts every question
+     * on the dearest model the moment one hard tool is shared, and the rating
+     * alone would hand somebody a model that cannot drive the tools they have.
+     *
+     * Lives here rather than in the controller because the command line asks
+     * questions too, and it used to route by the ceiling alone — so the one tool
+     * anybody would reach for to find out why everything goes to the dear model
+     * was answering about a route production does not take.
+     */
+    public function difficultyFor(string $question, User $user, ToolRegistry $registry): int
+    {
+        $ceiling = $registry->requiredDifficultyFor($user);
+        $asked = $this->difficultyOf($question, $user);
+
+        return $asked === null ? $ceiling : min($asked, $ceiling);
+    }
 
     /**
      * How hard this question looks, on the same one-to-ten scale the tools use.

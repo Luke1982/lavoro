@@ -68,7 +68,7 @@ class AssistantController extends Controller
                 context: $this->context($user, $pages->describe($request->validated('page'))),
                 history: $request->validated('history') ?? [],
                 onTool: $this->toolWatcher($tools, $pending, $choices, $seen),
-                difficulty: $this->difficultyFor($request->validated('question'), $user, $registry, $sorter),
+                difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -107,13 +107,6 @@ class AssistantController extends Controller
      * available. That errs expensive, which is the right direction for a fallback:
      * a dear answer beats a poor one.
      */
-    private function difficultyFor(string $question, User $user, ToolRegistry $registry, QuestionSorter $sorter): int
-    {
-        $ceiling = $registry->requiredDifficultyFor($user);
-        $asked = $sorter->difficultyOf($question, $user);
-
-        return $asked === null ? $ceiling : min($asked, $ceiling);
-    }
 
     /**
      * Picks the conversation back up after something was confirmed.

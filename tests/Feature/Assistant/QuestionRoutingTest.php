@@ -125,6 +125,33 @@ class QuestionRoutingTest extends TestCase
 
         $this->assertSame([1], $asked_for);
     }
+
+    /**
+     * The command line asks the same questions and must answer them on the same
+     * model. It routed by the tool ceiling alone, which made it the one tool
+     * anybody would reach for to find out why everything lands on the dear model —
+     * confidently reporting a route the application does not take.
+     */
+    public function test_the_command_line_routes_a_question_the_way_the_box_does(): void
+    {
+        $user = $this->admin();
+        $registry = app(ToolRegistry::class);
+
+        $routed = (new FixedSorter(3))->difficultyFor('Wie is klant 12?', $user, $registry);
+
+        $this->assertSame(3, $routed, 'an easy question was not held down to what it needs');
+        $this->assertLessThan(
+            $registry->requiredDifficultyFor($user),
+            $routed,
+            'the ceiling won, so sorting changed nothing',
+        );
+
+        /** And a hard one still cannot buy tools the person does not have. */
+        $this->assertSame(
+            $registry->requiredDifficultyFor($user),
+            (new FixedSorter(10))->difficultyFor('Waarom lekt deze airco?', $user, $registry),
+        );
+    }
 }
 
 class FixedSorter extends QuestionSorter
