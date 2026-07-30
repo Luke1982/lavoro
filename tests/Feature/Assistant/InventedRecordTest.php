@@ -92,8 +92,9 @@ class InventedRecordTest extends TestCase
 
         $this->assertSame([], $result->content['products']);
         $this->assertContains('Mitsubishi', $result->content['brands_that_do_exist']);
-        $this->assertContains('Airco binnendeel', $result->content['types_that_do_exist']);
-        $this->assertStringContainsString('Verzin nooit een modelnummer', $result->content['note']);
+        /** Keyed by name with a count, so the assistant can say how much of each there is. */
+        $this->assertArrayHasKey('Airco binnendeel', $result->content['types_that_do_exist']);
+        $this->assertStringContainsString('Verzin nooit een product', $result->content['note']);
 
         /**
          * The candidates themselves, not merely the names of brands. "Een
@@ -149,6 +150,100 @@ class InventedRecordTest extends TestCase
             $byCapacity['products'][0]['id'],
             'a capacity that is recorded could not be searched for',
         );
+    }
+
+    /**
+     * The links were checked and bare model numbers were not, so "probeer een
+     * Mitsubishi SZX 25 ZS-W" went out unchallenged — invented on the spot, no link
+     * to give it away, offered as a suggestion. On a werkbon that is a part nobody
+     * can order.
+     */
+    public function test_a_model_number_no_tool_returned_is_reported(): void
+    {
+        $brands = collect(['Mitsubishi']);
+        $results = ['{"products":[{"id":55,"model":"SRK 25 ZS-WF"}]}'];
+
+        $this->assertSame(
+            ['SZX 25 ZS-W'],
+            $this->check()->inventedModelsIn('Probeer een Mitsubishi SZX 25 ZS-W.', $results, $brands),
+        );
+
+        $this->assertSame(
+            [],
+            $this->check()->inventedModelsIn('Het is de Mitsubishi SRK 25 ZS-WF.', $results, $brands),
+            'a model that was actually returned was called invented',
+        );
+    }
+
+    /**
+     * A check that fires on ordinary prose gets switched off inside a week.
+     */
+    /**
+     * Reported through report(), which is the path production takes.
+     *
+     * A cheap guard decides whether the brands are worth fetching, and a tighter
+     * version of it skipped model numbers spread over words — the very thing this
+     * is for — while still saving the query and looking like an optimisation.
+     */
+    public function test_the_check_still_fires_through_the_reporting_path(): void
+    {
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Mitsubishi'])->id,
+            'product_type_id' => ProductType::factory()->create(['name' => 'Airco'])->id,
+            'model' => 'SRK 25 ZS-WF',
+        ]);
+
+        $this->assertSame(
+            ['model SZX 25 ZS-W'],
+            $this->check()->report('Probeer een Mitsubishi SZX 25 ZS-W.', ['{"products":[]}'], 1),
+        );
+
+        $this->assertSame(
+            [],
+            $this->check()->report(
+                'Het is de Mitsubishi SRK 25 ZS-WF.',
+                ['{"products":[{"model":"SRK 25 ZS-WF"}]}'],
+                1,
+            ),
+        );
+    }
+
+    public function test_words_after_a_brand_name_are_not_model_numbers(): void
+    {
+        $brands = collect(['Mitsubishi']);
+
+        foreach ([
+            'Er zijn geen Mitsubishi buitendelen in het assortiment.',
+            'Mitsubishi levert GEEN losse buitendelen.',
+            'De Mitsubishi documentatie ontbreekt.',
+        ] as $prose) {
+            $this->assertSame([], $this->check()->inventedModelsIn($prose, ['{}'], $brands), $prose);
+        }
+    }
+
+    /**
+     * A type that exists and holds nothing is a fact worth being able to state.
+     * Without it the assistant could not tell "none in stock" from "wrong search",
+     * waffled, and then produced a list it had never been given.
+     */
+    public function test_a_product_type_that_exists_but_is_empty_says_so(): void
+    {
+        ProductType::factory()->create(['name' => 'Airco buitendeel']);
+        $full = ProductType::factory()->create(['name' => 'Airco set']);
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Mitsubishi'])->id,
+            'product_type_id' => $full->id,
+        ]);
+
+        $content = app(ToolExecutor::class)->run(new ToolCall(
+            'find_products',
+            ['query' => 'buitendeel', 'product_type' => 'Airco buitendeel'],
+            $this->userWith('product.read'),
+        ))->content;
+
+        $this->assertSame(['Airco buitendeel'], $content['types_that_are_empty']);
+        $this->assertSame(['Airco set' => 1], $content['types_that_do_exist']);
+        $this->assertStringContainsString('geen producten in', $content['note']);
     }
 
     public function test_a_search_that_finds_something_says_nothing_about_what_it_did_not(): void

@@ -93,12 +93,23 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
         return [ToolProfile::planner, ToolProfile::administrator];
     }
 
+    /**
+     * Names the customer, not only the number.
+     *
+     * A task went onto werkbon #296 while the conversation above the button was
+     * about #316 — a stale number the model reached for, and the button said only
+     * "Taak op werkbon #296". Nothing about that reads as wrong at the moment of
+     * clicking. With the customer on it, a task for MajorLabel landing on a werkbon
+     * for somebody else is obvious without anybody checking a number.
+     */
     public function previewOf(ToolCall $call): string
     {
+        $order = ServiceOrder::with('customer:id,name')->find($call->integerArgument('service_order_id'));
         $product = Product::find($call->integerArgument('product_id'));
         $quantity = $call->integerArgument('quantity') ?? 1;
 
         return 'Taak op werkbon #' . $call->integerArgument('service_order_id')
+            . ($order?->customer ? ' (' . $order->customer->name . ')' : '')
             . ': ' . ($call->stringArgument('title') ?: $call->stringArgument('description') ?: 'taak')
             . ($product ? ' — ' . $quantity . 'x ' . $product->display_name : '');
     }
@@ -106,7 +117,9 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
     public function execute(ToolCall $call): ToolResult
     {
         $order_id = $call->integerArgument('service_order_id');
-        $order = $order_id === null ? null : ServiceOrder::visibleTo($call->user)->whereKey($order_id)->first();
+        $order = $order_id === null
+            ? null
+            : ServiceOrder::visibleTo($call->user)->with('customer:id,name')->whereKey($order_id)->first();
 
         if ($order === null) {
             return ToolResult::notFound('Werkbon #' . ($order_id ?? '?'));
@@ -154,12 +167,19 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
             [
                 'task_instance_id' => $instance->id,
                 'service_order_id' => $order->id,
+                'customer' => $order->customer?->name,
                 'description' => $instance->description,
                 'product' => $product?->display_name,
                 'quantity' => $instance->quantity,
                 'link' => '/serviceorders/' . $order->id,
             ],
+            /**
+             * Names the customer as well as the number. A task landed on werkbon
+             * #296 while the conversation was about #316, and "toegevoegd aan
+             * werkbon #296" reads as success either way.
+             */
             'Taak toegevoegd aan werkbon #' . $order->id
+            . ($order->customer ? ' van ' . $order->customer->name : '')
             . ($product ? ' (' . $quantity . 'x ' . $product->display_name . ')' : '') . '.',
         );
     }

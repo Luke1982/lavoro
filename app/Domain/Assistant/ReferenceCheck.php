@@ -2,6 +2,8 @@
 
 namespace App\Domain\Assistant;
 
+use App\Models\Brand;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -75,12 +77,89 @@ class ReferenceCheck
     }
 
     /**
+     * Model numbers an answer names that came from no tool.
+     *
+     * The links were checked and this was not, so "probeer een Mitsubishi SZX 25
+     * ZS-W" went out unchallenged — a model number invented on the spot, no link to
+     * give it away, offered as a suggestion. Put on a werkbon it is a part nobody
+     * can order.
+     *
+     * Shaped rather than exhaustive: a run of capitals or digits following a brand
+     * name is what a model number looks like, and ordinary words are not. Catching
+     * some of these beats catching none, and a check that fires on "Mitsubishi
+     * buitendelen" would be turned off within a week.
+     *
+     * @param  array<int, string>  $results
+     * @return array<int, string>
+     */
+    public function inventedModelsIn(string $answer, array $results, Collection $brands): array
+    {
+        if ($brands->isEmpty()) {
+            return [];
+        }
+
+        $names = $brands->map(fn (string $brand) => preg_quote($brand, '#'))->implode('|');
+        $haystack = mb_strtolower(implode(' ', $results));
+
+        /**
+         * The run of model-shaped tokens after a brand name, not one token: a model
+         * number here reads "SRK 25 ZS-WF", three words that mean one thing. Taking
+         * only the first missed exactly the invention it was meant to catch.
+         */
+        if (!preg_match_all('#(?:' . $names . ')\s+((?:[A-Z0-9][A-Z0-9/-]*\s*){1,4})#u', $answer, $found)) {
+            return [];
+        }
+
+        $invented = [];
+
+        foreach ($found[1] as $run) {
+            $model = trim($run);
+
+            /**
+             * Something with a number in it. A capitalised Dutch word after a brand
+             * is prose, and a check that fires on "Mitsubishi GEEN" gets switched
+             * off inside a week.
+             */
+            if ($model === '' || !preg_match('/\d/', $model)) {
+                continue;
+            }
+
+            if (!str_contains($haystack, mb_strtolower($model))) {
+                $invented[$model] = $model;
+            }
+        }
+
+        return array_values($invented);
+    }
+
+    /**
      * @param  array<int, string>  $results
      * @return array<int, string>
      */
     public function report(string $answer, array $results, int $user_id): array
     {
         $unverified = $this->unverifiedIn($answer, $results);
+
+        /**
+         * The brands are only worth fetching if the answer could name a model at
+         * all. Loaded unconditionally this was a query on every question, including
+         * the ones that are a sentence about somebody's diary.
+         */
+        /**
+         * Loose on purpose: a run of capitals somewhere and a digit somewhere. A
+         * model number here is "SZX 25 ZS-W", spread over words, so anything
+         * demanding the digit next to the letters skips the very thing it is for —
+         * which is what a tighter version of this line did, quietly, while still
+         * saving the query.
+         */
+        $models = preg_match('/[A-Z]{2,}/u', $answer) === 1 && preg_match('/\d/', $answer) === 1
+            ? $this->inventedModelsIn($answer, $results, Brand::query()->whereHas('products')->pluck('name'))
+            : [];
+
+        $unverified = array_merge($unverified, array_map(
+            fn (string $model) => 'model ' . $model,
+            $models,
+        ));
 
         if ($unverified !== []) {
             Log::warning('De assistent noemde records die geen tool heeft opgeleverd', [

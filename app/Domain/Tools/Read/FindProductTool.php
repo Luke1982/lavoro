@@ -192,15 +192,32 @@ class FindProductTool implements Tool
             ->limit(10)
             ->pluck('name');
 
+        $wanted_type = $call->stringArgument('product_type');
+
+        /**
+         * Counted, and only the ones that hold anything.
+         *
+         * Asked which outdoor units would fit, the assistant found none and had no
+         * way to tell whether that meant "none in stock" or "wrong search". It
+         * waffled and then produced a list it had never been given. A type that
+         * exists and is empty is a fact worth being able to state: there are no
+         * loose buitendelen here, there are twenty-six airco sets.
+         */
         $types = ProductType::query()
-            ->when(
-                filled($call->stringArgument('product_type')),
-                fn ($q) => $q->where('name', 'like', $call->likeArgument('product_type'))
-            )
             ->whereHas('products')
-            ->orderBy('name')
-            ->limit(12)
-            ->pluck('name');
+            ->withCount('products')
+            ->orderByDesc('products_count')
+            ->limit(15)
+            ->get()
+            ->mapWithKeys(fn (ProductType $type) => [$type->name => $type->products_count]);
+
+        $empty_type = filled($wanted_type)
+            ? ProductType::query()
+                ->where('name', 'like', $call->likeArgument('product_type'))
+                ->whereDoesntHave('products')
+                ->orderBy('name')
+                ->pluck('name')
+            : collect();
 
         /**
          * The candidates themselves, not merely the names of brands and types.
@@ -229,12 +246,17 @@ class FindProductTool implements Tool
                 'products' => [],
                 'brands_that_do_exist' => $brands->all(),
                 'types_that_do_exist' => $types->all(),
+                'types_that_are_empty' => $empty_type->all(),
                 'candidates' => $candidates->map(fn (Product $product) => $this->rowFor($product))->all(),
-                'note' => 'Niets gevonden op precies deze tekst, maar hierboven staan de producten die '
-                    . 'wel bij dit merk of type horen. Zoek daar de juiste uit — een vermogen zit hier '
-                    . 'vaak in het modelnummer, bijvoorbeeld SRK 25 voor 2,5 kW. Weet je het niet zeker, '
-                    . 'leg de kandidaten met ask_which_one voor. Verzin nooit een modelnummer dat hier '
-                    . 'niet tussen staat.',
+                'note' => ($empty_type->isNotEmpty()
+                    ? 'Het soort dat je zoekt (' . $empty_type->implode(', ') . ') bestaat wel, maar er '
+                        . 'staan geen producten in. Zeg dat gewoon: dat is het antwoord. '
+                    : 'Niets gevonden op precies deze tekst. ')
+                    . 'Hierboven staat welke soorten er wel zijn en hoeveel producten erin zitten, en '
+                    . 'welke producten bij dit merk of type horen. Een vermogen zit vaak in het '
+                    . 'modelnummer, bijvoorbeeld SRK 25 voor 2,5 kW. Weet je het niet zeker, leg de '
+                    . 'kandidaten met ask_which_one voor. Verzin nooit een product dat hier niet '
+                    . 'tussen staat, en beweer nooit dat je een lijst hebt gegeven als je dat niet hebt.',
             ],
             $candidates->isEmpty()
                 ? 'Geen producten gevonden.'

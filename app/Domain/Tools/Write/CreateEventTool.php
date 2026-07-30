@@ -144,12 +144,17 @@ class CreateEventTool implements Confirmable, Tool
         $for_customer = $call->integerArgument('create_service_order_for_customer_id');
         $customer = $for_customer === null ? null : Customer::find($for_customer);
 
+        $existing = $call->integerArgument('service_order_id') === null
+            ? null
+            : ServiceOrder::with('customer:id,name')->find($call->integerArgument('service_order_id'));
+
         return 'Afspraak inplannen'
             . ($when ? ' op ' . Clock::toLocal($when)->format('d-m-Y H:i') : '')
             . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
             . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
             . ($customer ? ', met een nieuwe werkbon voor ' . $customer->name : '')
-            . ($call->integerArgument('service_order_id') ? ', op werkbon #' . $call->integerArgument('service_order_id') : '');
+            /** The customer, so a werkbon belonging to other work is visible as such. */
+            . ($existing ? ', op werkbon #' . $existing->id . ' (' . ($existing->customer?->name ?? 'onbekende klant') . ')' : '');
     }
 
     public static function availableTo(): array
