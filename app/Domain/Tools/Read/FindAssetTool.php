@@ -78,7 +78,7 @@ class FindAssetTool implements Tool
             ->with(['product:id,brand_id,model', 'product.brand:id,name', 'customer:id,name']);
 
         if ($serial = $call->stringArgument('serial_number')) {
-            $query->where('serial_number', 'like', '%' . $serial . '%');
+            $query->where('serial_number', 'like', $call->likeArgument('serial_number'));
         }
 
         if ($customer_id = $call->integerArgument('customer_id')) {

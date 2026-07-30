@@ -18,17 +18,18 @@ namespace App\Domain\Assistant;
  */
 class PageContext
 {
-    private const RECORDS = [
+    /** @var array<string, string> */
+    public const RECORDS = [
         'serviceorders' => 'werkbon',
         'tickets' => 'storing',
         'assets' => 'machine',
         'customers' => 'klant',
         'projects' => 'project',
-        'events' => 'afspraak',
         'products' => 'product',
     ];
 
-    private const SCREENS = [
+    /** @var array<string, string> */
+    public const SCREENS = [
         'planner' => 'de planning',
         'serviceorders' => 'het overzicht van werkbonnen',
         'tickets' => 'het overzicht van storingen',

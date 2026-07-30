@@ -87,15 +87,23 @@ class FindProductTool implements Tool
             ->with(['brand:id,name', 'productType:id,name']);
 
         if ($search = $call->stringArgument('query')) {
-            $like = '%' . $search . '%';
+            $like = $call->likeArgument('query');
             $query->where(fn ($q) => $q
                 ->where('model', 'like', $like)
                 ->orWhere('description', 'like', $like)
-                ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $like)));
+                ->orWhere('part_no', 'like', $like)
+                ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $like))
+                /**
+                 * The recorded attributes count as searchable text. A capacity, a
+                 * colour, a connection size — where an installation fills those in,
+                 * "200 m3/h" is the most direct thing somebody can say, and it
+                 * appears nowhere in a model number.
+                 */
+                ->orWhereHas('productAttributeValueables.value', fn ($v) => $v->where('value', 'like', $like)));
         }
 
         if ($type = $call->stringArgument('product_type')) {
-            $query->whereHas('productType', fn ($t) => $t->where('name', 'like', '%' . $type . '%'));
+            $query->whereHas('productType', fn ($t) => $t->where('name', 'like', $call->likeArgument('product_type')));
         }
 
         $products = $query->orderBy('id')->limit($limit)->get();
@@ -176,7 +184,7 @@ class FindProductTool implements Tool
         $brands = Brand::query()
             ->when($words !== [], fn ($q) => $q->where(function ($inner) use ($words) {
                 foreach ($words as $word) {
-                    $inner->orWhere('name', 'like', '%' . $word . '%');
+                    $inner->orWhere('name', 'like', '%' . addcslashes($word, '%_\\') . '%');
                 }
             }))
             ->whereHas('products')
@@ -187,7 +195,7 @@ class FindProductTool implements Tool
         $types = ProductType::query()
             ->when(
                 filled($call->stringArgument('product_type')),
-                fn ($q) => $q->where('name', 'like', '%' . $call->stringArgument('product_type') . '%')
+                fn ($q) => $q->where('name', 'like', $call->likeArgument('product_type'))
             )
             ->whereHas('products')
             ->orderBy('name')
@@ -210,7 +218,7 @@ class FindProductTool implements Tool
             ->when($brands->isNotEmpty(), fn ($q) => $q->whereHas('brand', fn ($b) => $b->whereIn('name', $brands)))
             ->when(
                 filled($call->stringArgument('product_type')),
-                fn ($q) => $q->whereHas('productType', fn ($t) => $t->where('name', 'like', '%' . $call->stringArgument('product_type') . '%'))
+                fn ($q) => $q->whereHas('productType', fn ($t) => $t->where('name', 'like', $call->likeArgument('product_type')))
             )
             ->orderBy('id')
             ->limit((int) config('assistant.max_results', 25))

@@ -315,6 +315,29 @@ class CreateEventToolTest extends TestCase
         $this->assertSame($site->id, Event::sole()->location_id);
     }
 
+    /**
+     * The werkbon and its appointment are for the same site. Left off the werkbon,
+     * it read as having no location while the appointment on it named one, and
+     * whoever opened the werkbon saw the blank.
+     */
+    public function test_the_werkbon_gets_the_same_site_as_its_appointment(): void
+    {
+        $mechanic = $this->mechanic();
+        $customer = Customer::factory()->create();
+        $site = Location::factory()->create(['customer_id' => $customer->id]);
+
+        $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'create_service_order_for_customer_id' => $customer->id,
+            'location_id' => $site->id,
+        ], $this->userWithPermissions('event.create', 'serviceorder.create'));
+
+        $this->assertSame($site->id, Event::sole()->location_id);
+        $this->assertSame($site->id, ServiceOrder::sole()->location_id, 'the werkbon was left without a site');
+    }
+
     public function test_a_site_belonging_to_another_customer_is_refused(): void
     {
         $mechanic = $this->mechanic();

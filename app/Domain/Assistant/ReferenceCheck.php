@@ -23,8 +23,24 @@ use Illuminate\Support\Facades\Log;
  */
 class ReferenceCheck
 {
-    /** Paths the assistant is allowed to link to at all. */
-    private const RESOURCES = 'serviceorders|tickets|assets|customers|projects|products|events';
+    /**
+     * Paths the assistant is allowed to link to at all.
+     *
+     * Every one has to be a real page. "events" was on this list and there is no
+     * such page — appointments live in the planner — so a link to one would have
+     * been checked for honesty and then led nowhere.
+     *
+     * @var array<int, string>
+     */
+    public const RESOURCES = [
+        'serviceorders',
+        'tickets',
+        'assets',
+        'customers',
+        'projects',
+        'products',
+        'locations',
+    ];
 
     /**
      * The records an answer names that no tool ever returned.
@@ -34,7 +50,9 @@ class ReferenceCheck
      */
     public function unverifiedIn(string $answer, array $results): array
     {
-        if (!preg_match_all('#/(' . self::RESOURCES . ')/(\d+)#', $answer, $found, PREG_SET_ORDER)) {
+        $resources = implode('|', self::RESOURCES);
+
+        if (!preg_match_all('#/(' . $resources . ')/(\d+)#', $answer, $found, PREG_SET_ORDER)) {
             return [];
         }
 

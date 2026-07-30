@@ -103,7 +103,7 @@ class FindCustomerTool implements Tool
 
         $limit = (int) config('assistant.max_results', 25);
 
-        $like = '%' . $query . '%';
+        $like = $call->likeArgument('query');
 
         $customers = Customer::query()
             ->where(fn ($q) => $q
@@ -114,7 +114,7 @@ class FindCustomerTool implements Tool
                 ->orWhere('mobile', 'like', $like))
             ->when(
                 filled($call->stringArgument('city')),
-                fn ($q) => $q->where('city', 'like', '%' . $call->stringArgument('city') . '%')
+                fn ($q) => $q->where('city', 'like', $call->likeArgument('city'))
             )
             ->orderBy('name')
             ->limit($limit)
@@ -171,7 +171,8 @@ class FindCustomerTool implements Tool
                 $customers->first()->locations,
                 'Op welke locatie van ' . $customers->first()->name . '?',
                 'locatie',
-                'customers/' . $customers->first()->id,
+                /** A location has its own page; hanging it off the customer's produced /customers/1911/7. */
+                'locations',
                 fn (Location $location) => trim(
                     ($location->title ?: $location->location_code ?: 'Locatie') . ' — ' . $location->addressLine(),
                     ' —'

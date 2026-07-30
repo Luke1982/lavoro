@@ -39,6 +39,14 @@ class CreateAppointmentAction
                 $eventable_id = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
                     customer_id: (int) $appointment->customer_id,
                     description: $appointment->service_order_description,
+                    /**
+                     * The same site as the appointment. Left off, the werkbon read
+                     * as having no location while the appointment on it named one,
+                     * and whoever opened the werkbon saw the blank.
+                     */
+                    location_id: isset($appointment->attributes['location_id'])
+                        ? (int) $appointment->attributes['location_id']
+                        : null,
                 ))->id;
             }
 

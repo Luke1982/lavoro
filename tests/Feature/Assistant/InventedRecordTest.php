@@ -7,6 +7,8 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\ProductAttribute;
+use App\Models\ProductAttributeValue;
 use App\Models\ProductType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -101,6 +103,52 @@ class InventedRecordTest extends TestCase
          */
         $this->assertSame('SRK 25 ZS-W', $result->content['candidates'][0]['model']);
         $this->assertArrayHasKey('attributes', $result->content['candidates'][0]);
+    }
+
+    /**
+     * The attributes an installation records travel with the product, and are
+     * searchable text in their own right.
+     *
+     * Barely exercised here — the aircos in this database have none — and the main
+     * way in on a real one, where a capacity or a connection size is filled in
+     * properly. Which is exactly the combination that goes untested and then does
+     * not work: the code path only runs where nobody is looking at it.
+     */
+    public function test_a_product_carries_its_recorded_attributes_and_can_be_found_by_them(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Zehnder'])->id,
+            'product_type_id' => ProductType::factory()->create(['name' => 'Afzuigunit'])->id,
+            'model' => 'ComfoAir Q350',
+        ]);
+
+        $attribute = ProductAttribute::create(['name' => 'Afzuigcapaciteit', 'searchable' => true]);
+        $value = ProductAttributeValue::create(['product_attribute_id' => $attribute->id, 'value' => '200 m3/h']);
+
+        $product->productAttributeValueables()->create([
+            'product_attribute_id' => $attribute->id,
+            'product_attribute_value_id' => $value->id,
+        ]);
+
+        $byName = app(ToolExecutor::class)->run(new ToolCall(
+            'find_products', ['query' => 'ComfoAir'], $this->userWith('product.read')
+        ))->content;
+
+        $this->assertSame(
+            [['name' => 'Afzuigcapaciteit', 'value' => '200 m3/h']],
+            $byName['products'][0]['attributes'],
+            'the attributes never reached the answer',
+        );
+
+        $byCapacity = app(ToolExecutor::class)->run(new ToolCall(
+            'find_products', ['query' => '200 m3/h'], $this->userWith('product.read')
+        ))->content;
+
+        $this->assertSame(
+            $product->id,
+            $byCapacity['products'][0]['id'],
+            'a capacity that is recorded could not be searched for',
+        );
     }
 
     public function test_a_search_that_finds_something_says_nothing_about_what_it_did_not(): void

@@ -109,7 +109,7 @@ class FindTicketTool implements Tool
         }
 
         if ($search = $call->stringArgument('query')) {
-            $like = '%' . $search . '%';
+            $like = $call->likeArgument('query');
             $query->where(fn ($q) => $q
                 ->where('subject', 'like', $like)
                 ->orWhere('description', 'like', $like));

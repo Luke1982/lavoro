@@ -103,7 +103,7 @@ class SearchServiceOrderTool implements Tool
         }
 
         if (filled($search)) {
-            $like = '%' . $search . '%';
+            $like = $call->likeArgument('query');
             $query->where(fn ($q) => $q
                 ->where('description', 'like', $like)
                 ->orWhere('external_purchaseorder_no', 'like', $like)
