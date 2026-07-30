@@ -126,6 +126,49 @@ class AssistantHistoryTest extends TestCase
         $this->assertSame(255, mb_strlen(AssistantQuestion::sole()->page));
     }
 
+    /**
+     * The turn that follows a confirmation is where writes get proposed, so it is
+     * the half most worth having a record of — and it was not being written down at
+     * all.
+     */
+    public function test_a_continuation_is_recorded(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        AssistantQuestion::create([
+            'user_id' => $user->id,
+            'question' => '(verder na bevestiging)',
+            'is_continuation' => true,
+            'answer' => 'Taak klaargezet.',
+        ]);
+
+        $this->assertSame(1, AssistantQuestion::count());
+        $this->assertTrue(AssistantQuestion::sole()->is_continuation);
+    }
+
+    /**
+     * Kept out of the panel, because that answers "what did I ask" and nobody
+     * asked these.
+     */
+    public function test_a_continuation_is_not_offered_as_something_you_asked(): void
+    {
+        $user = $this->userWith('assistant.use');
+        $this->ask('Maak een werkbon', $user->id);
+
+        AssistantQuestion::create([
+            'user_id' => $user->id,
+            'question' => '(verder na bevestiging)',
+            'is_continuation' => true,
+            'answer' => 'Taak klaargezet.',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/assistant/history')
+            ->assertOk()
+            ->assertJsonCount(1, 'questions')
+            ->assertJsonPath('questions.0.question', 'Maak een werkbon');
+    }
+
     public function test_a_dry_run_removes_nothing(): void
     {
         $user = $this->userWith('assistant.use');

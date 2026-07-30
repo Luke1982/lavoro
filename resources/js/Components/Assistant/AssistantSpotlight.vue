@@ -8,7 +8,40 @@
         </template>
 
         <template #before>
-            <div v-if="exchanges.length" ref="threadRef" class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
+            <!--
+                Earlier questions, which until now existed only in the database and
+                in the arrow keys. Shown here rather than on a page of its own
+                because this is where somebody realises they asked it before.
+            -->
+            <div v-if="showing_history" class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
+                <div class="flex items-center justify-between px-4 py-2.5">
+                    <p class="text-xs font-medium text-slate-500">Eerder gevraagd</p>
+                    <button type="button" class="text-xs text-slate-400 hover:text-slate-600" @click="hideHistory">
+                        Terug
+                    </button>
+                </div>
+
+                <p v-if="history_error" class="px-4 py-3 text-sm text-red-600">{{ history_error }}</p>
+
+                <p v-else-if="loading_history" class="px-4 py-3 text-sm text-slate-400">Bezig met ophalen…</p>
+
+                <p v-else-if="!earlier.length" class="px-4 py-3 text-sm text-slate-400">
+                    Je hebt nog niets gevraagd.
+                </p>
+
+                <button v-for="entry in earlier" :key="entry.id" type="button"
+                    class="block w-full px-4 py-3 text-left hover:bg-slate-50" @click="askAgain(entry)">
+                    <p class="text-sm font-medium text-slate-900">{{ entry.question }}</p>
+                    <p v-if="entry.answer" class="mt-0.5 line-clamp-2 text-xs text-slate-500">
+                        {{ entry.answer }}<template v-if="entry.answer_truncated">…</template>
+                    </p>
+                    <p v-else-if="entry.failure" class="mt-0.5 text-xs text-red-500">{{ entry.failure }}</p>
+                    <p class="mt-1 text-[11px] text-slate-400">{{ askedAt(entry.asked_at) }}</p>
+                </button>
+            </div>
+
+            <div v-else-if="exchanges.length" ref="threadRef"
+                class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
                 <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
                     <p v-if="exchange.question" class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
@@ -70,7 +103,10 @@
         </template>
 
         <template #footer-left>
-            De assistent ziet alleen wat jij mag zien.
+            <button v-if="!showing_history" type="button" class="hover:text-slate-600" @click="showHistory">
+                Eerder gevraagd
+            </button>
+            <span v-else>De assistent ziet alleen wat jij mag zien.</span>
         </template>
 
         <template #footer-right>
@@ -106,6 +142,11 @@ const ASK_TIMEOUT_MS = 180000
  */
 const asked_before = ref([])
 const recalled = ref(-1)
+
+const showing_history = ref(false)
+const loading_history = ref(false)
+const history_error = ref('')
+const earlier = ref([])
 
 /** What was being typed before stepping back through earlier questions. */
 const draft = ref('')
@@ -147,14 +188,103 @@ const asActions = (pending) => (pending || []).map((action) => ({
     done: '',
 }))
 
+/**
+ * Earlier questions, fetched once and used for two things: stepping back with the
+ * arrows, and the panel that lists them.
+ */
+async function loadHistory({ force = false } = {}) {
+    if (loading_history.value) return
+    if (earlier.value.length && !force) return
+
+    loading_history.value = true
+    history_error.value = ''
+
+    try {
+        const { data } = await axios.get('/assistant/history')
+        earlier.value = data.questions || []
+        asked_before.value = earlier.value.map((row) => row.question)
+    } catch (e) {
+        // Not being able to look back is no reason to stop somebody asking
+        // something new, so this only ever reports itself in the panel.
+        history_error.value = e.response?.data?.message || 'Kon eerdere vragen niet ophalen.'
+    } finally {
+        loading_history.value = false
+    }
+}
+
+async function showHistory() {
+    showing_history.value = true
+    await loadHistory({ force: true })
+}
+
+function hideHistory() {
+    showing_history.value = false
+    shellRef.value?.focus()
+}
+
+/**
+ * Puts an old question back in the box rather than replaying its answer. What it
+ * said then was about the state of things then, and presenting that as current is
+ * how somebody acts on a werkbon that has since moved on.
+ */
+function askAgain(entry) {
+    question.value = entry.question
+    showing_history.value = false
+    recalled.value = -1
+    draft.value = ''
+    shellRef.value?.focus()
+}
+
+function askedAt(iso) {
+    if (!iso) return ''
+
+    const asked = new Date(iso)
+    const clock = asked.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+
+    return asked.toDateString() === new Date().toDateString()
+        ? 'vandaag ' + clock
+        : asked.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' }) + ' ' + clock
+}
+
+/**
+ * Steps back through earlier questions, the way a shell does.
+ *
+ * Half a question already typed is kept and handed back on the way out, rather
+ * than being thrown away by an arrow key.
+ */
+function recall(direction) {
+    if (!asked_before.value.length) return
+
+    const next = recalled.value + (direction < 0 ? 1 : -1)
+
+    if (recalled.value === -1 && next >= 0) {
+        draft.value = question.value
+    }
+
+    if (next < 0) {
+        recalled.value = -1
+        question.value = draft.value
+        draft.value = ''
+
+        return
+    }
+
+    if (next >= asked_before.value.length) return
+
+    recalled.value = next
+    question.value = asked_before.value[next]
+}
+
 async function open_() {
     closeNavigator()
     open.value = true
+    loadHistory()
     shellRef.value?.focus()
 }
 
 function close() {
     open.value = false
+    showing_history.value = false
 }
 
 async function scrollToLatest() {
@@ -182,6 +312,8 @@ async function ask() {
     asked_before.value.unshift(asked)
     recalled.value = -1
     draft.value = ''
+    // The stored list is now a question behind; fetch it fresh next time.
+    earlier.value = []
     question.value = ''
     asking.value = true
     scrollToLatest()

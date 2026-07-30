@@ -16,6 +16,7 @@ class AssistantQuestion extends Model
     protected $fillable = [
         'user_id',
         'question',
+        'is_continuation',
         'answer',
         'failure',
         'page',
@@ -26,7 +27,14 @@ class AssistantQuestion extends Model
 
     protected $casts = [
         'tools' => 'array',
+        'is_continuation' => 'boolean',
     ];
+
+    /** Turns somebody actually typed, which is what "what did I ask" means. */
+    public function scopeAsked($query)
+    {
+        return $query->where('is_continuation', false);
+    }
 
     /**
      * The path is only kept so an old answer can be read back in context, and the

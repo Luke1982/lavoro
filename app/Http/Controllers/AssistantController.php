@@ -37,6 +37,9 @@ use Throwable;
  */
 class AssistantController extends Controller
 {
+    /** Stands in for a question on the turns that follow a confirmation. */
+    private const CARRIED_ON = '(verder na bevestiging)';
+
     private const HISTORY_LENGTH = 30;
 
     private const PREVIEW_CHARS = 400;
@@ -139,10 +142,25 @@ class AssistantController extends Controller
                 history: $request->validated('history'),
             );
         } catch (ModelUnavailable $e) {
+            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, failure: $this->explain($e), continuation: true);
+
             return response()->json(['message' => $this->explain($e)], 503);
         } catch (RuntimeException $e) {
+            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, failure: $e->getMessage(), continuation: true);
+
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        $this->write(
+            $user,
+            self::CARRIED_ON,
+            $request->validated('page'),
+            $tools,
+            answer: $answer->text,
+            rounds: $answer->tool_rounds,
+            cost: $answer->cost_micros,
+            continuation: true,
+        );
 
         return response()->json([
             'answer' => $answer->text,
@@ -188,6 +206,7 @@ class AssistantController extends Controller
          * questions somebody has behind them.
          */
         $questions = AssistantQuestion::query()
+            ->asked()
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -267,10 +286,37 @@ class AssistantController extends Controller
         int $rounds = 0,
         int $cost = 0,
     ): void {
+        $this->write(
+            $user,
+            $request->validated('question'),
+            $request->validated('page'),
+            $tools,
+            $answer,
+            $failure,
+            $rounds,
+            $cost,
+        );
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $tools
+     */
+    private function write(
+        User $user,
+        string $question,
+        ?string $page,
+        array $tools,
+        ?string $answer = null,
+        ?string $failure = null,
+        int $rounds = 0,
+        int $cost = 0,
+        bool $continuation = false,
+    ): void {
         try {
             AssistantQuestion::create([
                 'user_id' => $user->id,
-                'question' => $request->validated('question'),
+                'question' => $question,
+                'is_continuation' => $continuation,
                 'answer' => $answer,
                 'failure' => $failure === null ? null : mb_substr($failure, 0, 255),
                 /**
@@ -279,7 +325,7 @@ class AssistantController extends Controller
                  * swallows it and the question is not written down at all — lost
                  * over a detail that is only there for context.
                  */
-                'page' => mb_substr((string) $request->validated('page'), 0, 255) ?: null,
+                'page' => mb_substr((string) $page, 0, 255) ?: null,
                 'tools' => array_column($tools, 'name'),
                 'rounds' => $rounds,
                 'cost_micros' => $cost,
