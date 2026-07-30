@@ -85,12 +85,19 @@ class ToolExecutorTest extends TestCase
         $this->assertSame('denied', AssistantToolCall::sole()->outcome);
     }
 
+    /**
+     * A tool that breaks becomes an error the model can act on, and what actually
+     * broke stays in the log. A driver speaks in table and column names, and that
+     * message travels to the model, which relays it to whoever asked when a boiler
+     * was last serviced.
+     */
     public function test_a_tool_that_throws_becomes_a_failed_result(): void
     {
         $result = $this->register(new ExplodingTool)->run($this->toolCall(ExplodingTool::name(), $this->admin()));
 
         $this->assertTrue($result->is_error);
-        $this->assertStringContainsString('kapot', $result->toModelContent());
+        $this->assertStringNotContainsString('kapot', $result->toModelContent(), 'the innards came out with it');
+        $this->assertStringContainsString('vast', $result->toModelContent());
         $this->assertSame('error', AssistantToolCall::sole()->outcome);
     }
 
@@ -259,7 +266,15 @@ abstract class FakeTool implements Tool
 
     public function inputSchema(): array
     {
-        return ['type' => 'object', 'properties' => [], 'additionalProperties' => false];
+        return [
+            'type' => 'object',
+            'properties' => [
+                'x' => ['type' => 'integer'],
+                'q' => ['type' => 'string'],
+                'bedrag' => ['type' => 'integer'],
+            ],
+            'additionalProperties' => false,
+        ];
     }
 
     public function authorize(User $user, array $arguments): bool

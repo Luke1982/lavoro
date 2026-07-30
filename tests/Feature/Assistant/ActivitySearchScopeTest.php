@@ -60,7 +60,7 @@ class ActivitySearchScopeTest extends TestCase
     private function search(User $user, array $arguments = []): array
     {
         $result = app(ToolExecutor::class)->run(
-            new ToolCall('search_activity', $arguments + ['limit' => 50], $user)
+            new ToolCall('search_activity', $arguments, $user)
         );
 
         if ($result->is_error) {

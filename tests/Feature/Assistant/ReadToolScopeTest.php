@@ -82,6 +82,12 @@ class ReadToolScopeTest extends TestCase
         $this->assertNotContains($closed->id, $ids, 'a closed werkbon was reported as open');
     }
 
+    /**
+     * How much comes back is ours to decide, and there is no argument for it. A
+     * model that asks for a thousand anyway is told the argument does not exist
+     * rather than quietly handed the ceiling, because an argument silently
+     * ignored is indistinguishable from one that was honoured.
+     */
     public function test_the_result_limit_cannot_be_argued_past_the_configured_ceiling(): void
     {
         config(['assistant.max_results' => 3]);
@@ -91,9 +97,12 @@ class ReadToolScopeTest extends TestCase
             'customer_id' => Customer::factory()->create()->id,
         ]);
 
-        $result = $this->invoke('search_service_orders', $user, ['limit' => 1000]);
+        $this->assertCount(3, $this->invoke('search_service_orders', $user)->content['service_orders']);
 
-        $this->assertCount(3, $result->content['service_orders']);
+        $argued = $this->invoke('search_service_orders', $user, ['limit' => 1000]);
+
+        $this->assertTrue($argued->is_error, 'an argument this tool does not have was accepted anyway');
+        $this->assertStringContainsString('limit', (string) $argued->summary);
     }
 
     public function test_finding_customers_is_refused_without_the_customer_permission(): void
@@ -172,5 +181,78 @@ class ReadToolScopeTest extends TestCase
 
         $this->assertContains($today->id, $found->all(), 'the one due today fell out of the week');
         $this->assertNotContains($later->id, $found->all(), 'something a month out came back as this week');
+    }
+
+    /**
+     * The one that made this worth building. A model that has a customer's name but
+     * not their number sends the name, every filter falls away, and twenty-five
+     * machines belonging to six other customers come back under that customer's
+     * name. Nothing about the answer looks wrong, which is what makes it bad.
+     */
+    public function test_a_filter_that_cannot_be_read_refuses_rather_than_falling_away(): void
+    {
+        $user = $this->userWith('asset.read');
+        $product = Product::factory()->create();
+        $mine = Customer::factory()->create();
+        $theirs = Customer::factory()->create();
+
+        Asset::factory()->create(['customer_id' => $mine->id, 'product_id' => $product->id]);
+        Asset::factory()->create(['customer_id' => $theirs->id, 'product_id' => $product->id]);
+
+        $named = $this->invoke('find_asset', $user, ['customer_id' => $mine->name]);
+
+        $this->assertTrue($named->is_error, 'a name where a number belongs returned everybody\'s machines');
+        $this->assertStringContainsString('customer_id', (string) $named->summary);
+
+        /** And the number itself still works, so the guard has not closed the door. */
+        $numbered = $this->invoke('find_asset', $user, ['customer_id' => $mine->id]);
+
+        $this->assertFalse($numbered->is_error);
+        $this->assertCount(1, $numbered->content['assets']);
+    }
+
+    /**
+     * A near miss on the name of an argument fails the same way: nothing declares
+     * "customer", so nothing filters on it, and the whole table comes back.
+     */
+    public function test_an_argument_that_does_not_exist_is_refused_not_ignored(): void
+    {
+        $user = $this->userWith('asset.read');
+
+        $result = $this->invoke('find_asset', $user, ['customer' => 12]);
+
+        $this->assertTrue($result->is_error, 'an undeclared argument was quietly dropped');
+        $this->assertStringContainsString('customer_id', (string) $result->summary, 'it never says what to use instead');
+    }
+
+    /** Numbers written as text are how half the providers send them, and they are fine. */
+    public function test_a_number_written_as_text_is_still_a_number(): void
+    {
+        $user = $this->userWith('asset.read');
+        $product = Product::factory()->create();
+        $customer = Customer::factory()->create();
+        Asset::factory()->create(['customer_id' => $customer->id, 'product_id' => $product->id]);
+
+        $result = $this->invoke('find_asset', $user, ['customer_id' => (string) $customer->id]);
+
+        $this->assertFalse($result->is_error, 'a perfectly good id was refused for being quoted');
+        $this->assertCount(1, $result->content['assets']);
+    }
+
+    /**
+     * A lookup that never happened must not be reported as one that came back
+     * empty. Asked to research a storing without being given one, the tool used to
+     * answer "Storing #? niet gevonden", and a model reading that tells somebody
+     * their storing does not exist.
+     */
+    public function test_a_missing_required_argument_is_said_out_loud(): void
+    {
+        $user = $this->userWith('ticket.read');
+
+        $result = $this->invoke('research_ticket', $user, []);
+
+        $this->assertTrue($result->is_error);
+        $this->assertStringContainsString('ticket_id', (string) $result->summary);
+        $this->assertStringNotContainsString('niet gevonden', (string) $result->summary, 'it claimed to have looked');
     }
 }

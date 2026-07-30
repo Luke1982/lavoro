@@ -55,6 +55,17 @@ class ToolExecutor
         }
 
         /**
+         * Checked after authorisation, so a tool somebody may not use gives away
+         * nothing about its arguments, and before confirmation, so nobody is ever
+         * shown a proposal built out of values the tool could not read.
+         */
+        $complaint = ArgumentCheck::against($tool->inputSchema(), $call->arguments);
+
+        if ($complaint !== null) {
+            return $this->record($call, ToolResult::failed($complaint), 'invalid_arguments', $started_at);
+        }
+
+        /**
          * Confirmation is declared by the tool but enforced here, never by asking
          * the model to be polite.
          *
@@ -107,7 +118,17 @@ class ToolExecutor
         } catch (Throwable $e) {
             Log::error('Tool mislukt', ['tool' => $call->name, 'exception' => $e]);
 
-            return $this->record($call, ToolResult::failed($e->getMessage()), 'error', $started_at);
+            /**
+             * What went wrong stays in the log. A driver's own words carry table
+             * and column names, and they reach the model, which relays them to
+             * somebody who asked when a boiler was last serviced.
+             */
+            return $this->record(
+                $call,
+                ToolResult::failed('Deze tool liep vast. Probeer het anders te vragen of gebruik een andere tool.'),
+                'error',
+                $started_at,
+            );
         }
 
         return $this->record($call, $result, $result->is_error ? 'error' : 'ok', $started_at);

@@ -102,7 +102,7 @@ class AssistantLoopTest extends TestCase
         $model = new FakeModel([
             FakeModel::callsTools([
                 ['find_customer', ['query' => 'aa']],
-                ['search_service_orders', ['limit' => 2]],
+                ['search_service_orders', ['only_open' => true]],
             ]),
             FakeModel::says('Klaar.'),
         ]);
@@ -177,7 +177,7 @@ class AssistantLoopTest extends TestCase
     {
         $model = new FakeModel([
             FakeModel::callsTool('find_customer', ['query' => 'aa']),
-            FakeModel::callsTool('search_service_orders', ['limit' => 1]),
+            FakeModel::callsTool('search_service_orders', ['only_open' => true]),
             FakeModel::says('Klaar.'),
         ]);
 
@@ -297,7 +297,7 @@ class AssistantLoopTest extends TestCase
         ServiceOrder::factory()->create(['customer_id' => Customer::factory()->create()->id]);
 
         $model = new FakeModel([
-            FakeModel::callsTool('search_service_orders', ['only_open' => true, 'limit' => 5]),
+            FakeModel::callsTool('search_service_orders', ['only_open' => true]),
             FakeModel::says('Er staat er nog één open.'),
         ]);
 
