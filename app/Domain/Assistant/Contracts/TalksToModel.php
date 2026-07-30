@@ -16,6 +16,16 @@ namespace App\Domain\Assistant\Contracts;
 interface TalksToModel
 {
     /**
+     * Whether this supplier will read a file that travels with a question.
+     *
+     * Asked rather than assumed, because the answer differs per supplier and the
+     * whole point of this layer is that one can be swapped for another. A tool
+     * that wants to show the model a datasheet checks first and says plainly that
+     * it cannot, instead of sending something that gets quietly dropped.
+     */
+    public function readsDocuments(): bool;
+
+    /**
      * @param  array<int, Turn>  $turns
      * @param  array<int, array{name: string, description: string, input_schema: array<string, mixed>, strict: bool}>  $tools
      */

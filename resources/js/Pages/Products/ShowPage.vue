@@ -1,5 +1,9 @@
 <template>
-    <BreadcrumbComponent :items="[{ label: 'Producten', href: '/products' }, { label: `${product.brand.name} ${product.model}` }]" />
+    <div class="flex items-start justify-between gap-4">
+        <BreadcrumbComponent
+            :items="[{ label: 'Producten', href: '/products' }, { label: `${product.brand.name} ${product.model}` }]" />
+        <AssistantButton />
+    </div>
     <div class="flex flex-col sm:flex-row mt-6 mb-4">
         <BoxComponent class="w-full h-auto sm:w-70 sm:min-h-70 mr-8 flex items-center justify-around"
             v-if="product.main_image?.[0]">
@@ -560,6 +564,7 @@ import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon } from '@lucide/vue';

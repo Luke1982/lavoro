@@ -7,6 +7,8 @@ use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
+use App\Domain\Tools\Read\ReadDocumentationTool;
+use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
@@ -39,6 +41,8 @@ return [
         FindAssetTool::class,
         FindTicketTool::class,
         FindProductTool::class,
+        ReadDocumentationTool::class,
+        ResearchTicketTool::class,
         SearchActivityTool::class,
         SummarizeCustomerTool::class,
         FindAvailableTechnicianTool::class,
@@ -164,6 +168,45 @@ return [
     | this is the ceiling per call rather than for the whole answer.
     */
     'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 120),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Which documents count as documentation
+    |--------------------------------------------------------------------------
+    |
+    | Categories are named by whoever set the system up, so there is no column
+    | saying "this is a manual". These words are matched against the category
+    | name, case-insensitively, anywhere in it — "Technische documentatie" and
+    | "Handleidingen" both land on the list, "Facturen" and "Contracten" do not.
+    |
+    | Deliberately a list rather than a guess. A contract or an invoice attached
+    | to a product is somebody's commercial paperwork, and sending that to a
+    | supplier to answer "what is the refrigerant" would be nobody's intention.
+    */
+    'documentation_categories' => [
+        'documentatie',
+        'handleiding',
+        'handleidingen',
+        'manual',
+        'datasheet',
+        'specificatie',
+        'specificaties',
+        'technisch',
+        'technische',
+        'instructie',
+        'instructies',
+    ],
+
+    /*
+    | Files bigger than this are left out. A supplier has its own ceiling, and one
+    | oversized scan should not be the reason a question fails.
+    */
+    'max_document_kilobytes' => (int) env('ASSISTANT_MAX_DOCUMENT_KB', 8192),
+
+    /*
+    | How many go with one question, in case a product has a shelf of them.
+    */
+    'max_documents_per_question' => (int) env('ASSISTANT_MAX_DOCUMENTS', 3),
 
     /*
     |---------------------------------------------------------------------------

@@ -95,16 +95,43 @@ class AnthropicModel implements TalksToModel
         );
     }
 
+    public function readsDocuments(): bool
+    {
+        return true;
+    }
+
     /** @return array<string, mixed> */
     private function toMessage(mixed $turn): array
     {
         if ($turn instanceof UserTurn) {
-            return [
-                'role' => 'user',
-                'content' => count($turn->texts) === 1
-                    ? $turn->texts[0]
-                    : array_map(fn (string $text) => ['type' => 'text', 'text' => $text], $turn->texts),
-            ];
+            /**
+             * A plain string when there is nothing but one line of text, because
+             * that is the cheapest shape and by far the common one. Anything else
+             * becomes blocks — including files, which this supplier reads itself
+             * rather than needing them turned into text first.
+             */
+            if ($turn->attachments === [] && count($turn->texts) === 1) {
+                return ['role' => 'user', 'content' => $turn->texts[0]];
+            }
+
+            $content = array_map(
+                fn (string $text) => ['type' => 'text', 'text' => $text],
+                $turn->texts,
+            );
+
+            foreach ($turn->attachments as $attachment) {
+                $content[] = [
+                    'type' => 'document',
+                    'source' => [
+                        'type' => 'base64',
+                        'media_type' => $attachment->media_type,
+                        'data' => $attachment->base64,
+                    ],
+                    'title' => $attachment->name,
+                ];
+            }
+
+            return ['role' => 'user', 'content' => $content];
         }
 
         if ($turn instanceof AssistantTurn) {

@@ -14,6 +14,7 @@ use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Tools\ToolRegistry;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -81,17 +82,40 @@ class ProviderSwitchingTest extends TestCase
      * the person can reach for, so someone who only gets lookups is not paying
      * for reasoning they can never invoke.
      */
+    /**
+     * The dearest model somebody can be given is decided by the hardest tool they
+     * can reach, not by the question they happen to ask.
+     *
+     * A technician used to sit below a planner here. Diagnosing a fault against
+     * the history of a product and its documentation changed that, and rightly:
+     * it is the hardest reasoning in this application and it is monteurs who do
+     * it.
+     *
+     * What is left is only an ordering — more tools never means a cheaper model.
+     * The rungs themselves have gone flat, because a tool rated 8 that everybody
+     * can reach puts everybody on the model for it, whatever they asked. Tiering
+     * by what somebody *could* do stops sorting anyone once one hard thing is
+     * universal; sorting by what was actually asked is a different mechanism,
+     * and not one that can be bolted on here.
+     */
     public function test_the_hardest_tool_offered_sets_the_difficulty(): void
     {
         $registry = app(ToolRegistry::class);
 
         $technician = $this->userWith('serviceorder.read_own');
         $planner = $this->userWithPermissions('serviceorder.read', 'event.see_all', 'event.create');
+        $nobody = User::factory()->create();
 
-        $this->assertLessThan(
-            $registry->requiredDifficultyFor($planner),
+        $this->assertGreaterThanOrEqual(
+            $registry->requiredDifficultyFor($nobody),
             $registry->requiredDifficultyFor($technician),
-            'the planning tool should make a planner cost more than a technician'
+            'more tools can never mean a cheaper model'
+        );
+
+        $this->assertGreaterThanOrEqual(
+            $registry->requiredDifficultyFor($technician),
+            $registry->requiredDifficultyFor($planner),
+            'a planner reaches everything a technician does, and the planning tools besides'
         );
     }
 

@@ -63,6 +63,16 @@ class OpenAiCompatibleModel implements TalksToModel
         );
     }
 
+    /**
+     * This API takes images in a chat message, not arbitrary documents, so a
+     * datasheet would be dropped on the way out without a word. Saying no lets
+     * the tool tell somebody why rather than answer from nothing.
+     */
+    public function readsDocuments(): bool
+    {
+        return false;
+    }
+
     public function send(array $turns, array $tools, string $system): ModelReply
     {
         $messages = [['role' => 'system', 'content' => $system]];

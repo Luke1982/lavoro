@@ -2,6 +2,8 @@
 
 namespace App\Domain\Tools;
 
+use App\Domain\Assistant\Contracts\Attachment;
+
 /**
  * What a tool gives back.
  *
@@ -17,10 +19,14 @@ final class ToolResult
     /**
      * @param  array<string, mixed>|string  $content
      */
+    /**
+     * @param  array<int, Attachment>  $attachments  Files the model should be shown, not told about.
+     */
     private function __construct(
         public readonly bool $is_error,
         public readonly array|string $content,
         public readonly ?string $summary = null,
+        public readonly array $attachments = [],
     ) {}
 
     /**
@@ -29,6 +35,20 @@ final class ToolResult
     public static function ok(array|string $content, ?string $summary = null): self
     {
         return new self(false, $content, $summary);
+    }
+
+    /**
+     * The same result, with files for the model to read itself.
+     *
+     * A datasheet is a table of figures and a diagram. Describing one back in
+     * prose would be precisely the confident summary this application spent so
+     * long teaching the assistant not to produce, so the file goes over whole.
+     *
+     * @param  array<int, Attachment>  $attachments
+     */
+    public function showing(array $attachments): self
+    {
+        return new self($this->is_error, $this->content, $this->summary, $attachments);
     }
 
     public static function failed(string $reason): self

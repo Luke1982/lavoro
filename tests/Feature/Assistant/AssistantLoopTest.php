@@ -331,6 +331,13 @@ class FakeModel implements TalksToModel
     /** @param array<int, ModelReply> $replies */
     public function __construct(private readonly array $replies) {}
 
+    public bool $reads_documents = true;
+
+    public function readsDocuments(): bool
+    {
+        return $this->reads_documents;
+    }
+
     public function send(array $turns, array $tools, string $system): ModelReply
     {
         $this->sent[] = ['tools' => $tools, 'turns' => $turns, 'system' => $system];

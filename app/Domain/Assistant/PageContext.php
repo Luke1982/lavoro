@@ -25,6 +25,7 @@ class PageContext
         'customers' => 'klant',
         'projects' => 'project',
         'events' => 'afspraak',
+        'products' => 'product',
     ];
 
     private const SCREENS = [
@@ -34,6 +35,7 @@ class PageContext
         'assets' => 'het overzicht van machines',
         'customers' => 'het klantenoverzicht',
         'projects' => 'het projectenoverzicht',
+        'products' => 'het productenoverzicht',
     ];
 
     public function describe(?string $path): string

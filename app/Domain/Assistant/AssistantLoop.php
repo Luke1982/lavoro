@@ -4,6 +4,7 @@ namespace App\Domain\Assistant;
 
 use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
+use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
 use App\Domain\Assistant\Contracts\ModelToolResult;
@@ -128,7 +129,18 @@ class AssistantLoop
             }
 
             $turns[] = new AssistantTurn($reply->raw);
-            $turns[] = new ToolResultsTurn($this->run($reply->tool_calls, $user, $onTool));
+
+            $attachments = [];
+            $turns[] = new ToolResultsTurn($this->run($reply->tool_calls, $user, $onTool, $attachments));
+
+            /**
+             * Files a tool handed back go in as their own turn, after the results
+             * that announced them. A tool result is text by the time a supplier
+             * sees it, so a datasheet cannot travel inside one.
+             */
+            if ($attachments !== []) {
+                $turns[] = new UserTurn(['De opgevraagde documenten:'], $attachments);
+            }
         }
     }
 
@@ -136,7 +148,10 @@ class AssistantLoop
      * @param  array<int, ModelToolCall>  $calls
      * @return array<int, ModelToolResult>
      */
-    private function run(array $calls, User $user, ?Closure $onTool): array
+    /**
+     * @param  array<int, Attachment>  $attachments  Filled with anything the tools want shown.
+     */
+    private function run(array $calls, User $user, ?Closure $onTool, array &$attachments = []): array
     {
         $results = [];
 
@@ -149,6 +164,10 @@ class AssistantLoop
             ));
 
             $onTool && $onTool($call->name, $call->arguments, $result->is_error, $result);
+
+            foreach ($result->attachments as $attachment) {
+                $attachments[] = $attachment;
+            }
 
             $results[] = new ModelToolResult(
                 call_id: $call->id,
