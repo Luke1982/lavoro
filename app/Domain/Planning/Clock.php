@@ -59,6 +59,24 @@ final class Clock
         return CarbonImmutable::parse($day)->setTimezone(self::zone())->startOfDay()->utc();
     }
 
+    /**
+     * The date it is where the work happens.
+     *
+     * Not the same as the date in UTC: between midnight and two in the morning the
+     * two disagree, and everything downstream is counted off this one. Told the
+     * wrong day, the assistant plans "morgen" for what is actually today.
+     */
+    public static function today(): string
+    {
+        return self::toLocal(CarbonImmutable::now())->toDateString();
+    }
+
+    /** The same day as a date argument carries it: midnight UTC on the calendar date. */
+    public static function todayAsDate(): CarbonImmutable
+    {
+        return CarbonImmutable::createFromFormat('!Y-m-d', self::today());
+    }
+
     /** Minutes since local midnight, which is the unit DaySegments works in. */
     public static function minutesIntoLocalDay(mixed $stored): int
     {

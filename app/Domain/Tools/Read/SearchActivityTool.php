@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -170,19 +171,38 @@ class SearchActivityTool implements Tool
             $query->whereHas('fieldChanges', fn (Builder $q) => $q->where('field', $field));
         }
 
-        if ($from = $call->stringArgument('from')) {
-            $query->whereDate('occurred_at', '>=', $from);
+        /**
+         * Compared as moments rather than by date, because "since the first" means
+         * since midnight here, not since midnight UTC — two hours of the previous
+         * evening otherwise fall on the wrong side of the boundary.
+         */
+        if ($from = $call->dateArgument('from')) {
+            $query->where('occurred_at', '>=', Clock::startOfLocalDay($from));
         }
 
-        if ($to = $call->stringArgument('to')) {
-            $query->whereDate('occurred_at', '<=', $to);
+        if ($to = $call->dateArgument('to')) {
+            $query->where('occurred_at', '<', Clock::startOfLocalDay($to->addDay()));
+        }
+
+        foreach (['from', 'to'] as $key) {
+            if ($call->wasGiven($key) && $call->dateArgument($key) === null) {
+                return ToolResult::failed('Geef ' . $key . ' als een echte datum in de vorm JJJJ-MM-DD.');
+            }
         }
 
         $activities = $query->orderByDesc('occurred_at')->orderByDesc('id')->limit($limit)->get();
 
         $rows = $activities->map(fn (Activity $activity) => [
             'id' => $activity->id,
-            'occurred_at' => $activity->occurred_at?->toDateTimeString(),
+            /**
+             * On the clock the timeline shows it on. Reported raw, the assistant
+             * said a werkbon was closed at 18:39 when every screen in the
+             * application says 20:39 — and somebody reading a history back has no
+             * way to tell which of the two is the one they remember.
+             */
+            'occurred_at' => $activity->occurred_at === null
+                ? null
+                : Clock::toLocal($activity->occurred_at)->toDateTimeString(),
             'event_key' => $activity->event_key,
             'description' => $activity->description,
             'subject' => $this->subjectLabels($activity),

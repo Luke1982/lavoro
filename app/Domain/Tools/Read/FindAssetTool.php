@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\Read\Concerns\OffersAChoice;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
@@ -86,7 +87,15 @@ class FindAssetTool implements Tool
         }
 
         if ($days = $call->integerArgument('due_within_days')) {
-            $query->whereBetween('next_service_date', [now(), now()->addDays($days)]);
+            /**
+             * Dates against dates. Compared against the moment it is now, a service
+             * due today sits at midnight, falls before it, and drops out of the
+             * answer to "wat staat er deze week open" without a trace.
+             */
+            $query->whereBetween('next_service_date', [
+                Clock::today(),
+                Clock::todayAsDate()->addDays($days)->toDateString(),
+            ]);
         }
 
         $assets = $query->orderBy('next_service_date')->limit($limit)->get();

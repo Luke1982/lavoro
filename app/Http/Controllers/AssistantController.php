@@ -7,6 +7,7 @@ use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
@@ -18,6 +19,7 @@ use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
 use App\Models\AssistantQuestion;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -288,7 +290,15 @@ class AssistantController extends Controller
                         ? $opener?->failure
                         : mb_substr((string) $opener->answer, 0, self::PREVIEW_CHARS),
                     'turns' => (int) $thread->turns,
-                    'last_at' => $thread->last_at,
+                    /**
+                     * With an offset on it. The aggregate comes back as a bare
+                     * "2026-07-30 14:18:40", which a browser reads as its own local
+                     * time — so every thread in the list was stamped two hours early
+                     * and one asked just after midnight was filed under yesterday.
+                     */
+                    'last_at' => $thread->last_at === null
+                        ? null
+                        : CarbonImmutable::parse($thread->last_at)->toIso8601String(),
                 ];
             })->all(),
         ]);
@@ -520,7 +530,7 @@ class AssistantController extends Controller
      */
     private function context(User $user, string $page): string
     {
-        $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.'];
+        $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . Clock::today() . '.'];
 
         if ($page !== '') {
             $lines[] = $page;

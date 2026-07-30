@@ -7,9 +7,12 @@ use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
+use App\Http\Controllers\AssistantController;
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\ServiceOrder;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -86,6 +89,124 @@ class ClockTest extends TestCase
         $this->assertSame(7 * 60, $free[0]['start_min']);
         $this->assertSame(9 * 60, $free[0]['end_min'], 'free until nine, when the appointment starts');
         $this->assertSame(17 * 60, $free[1]['start_min'], 'free again from five, when it ends');
+    }
+
+    /**
+     * The history is read on the same clock as everything else. Reported raw, the
+     * assistant said a werkbon was closed at 18:39 when every screen says 20:39,
+     * and somebody reading it back cannot tell which is the one they remember.
+     */
+    public function test_the_history_is_reported_on_the_clock_people_read(): void
+    {
+        $user = $this->userWith('serviceorder.read');
+        $order = ServiceOrder::factory()->create([
+            'customer_id' => Customer::factory()->create()->id,
+        ]);
+
+        $activity = Activity::create([
+            'description' => 'Fase gewijzigd',
+            'category' => 'stage',
+            'actor_type' => 'user',
+            'actor_name' => 'Iemand',
+            /** Stored UTC, which is 20:39 on every screen in the application. */
+            'occurred_at' => '2026-07-16 18:39:06',
+        ]);
+        $order->activities()->attach($activity->id);
+
+        $rows = app(ToolExecutor::class)->run(new ToolCall(
+            'search_activity',
+            ['subject_type' => 'werkbon', 'subject_id' => $order->id],
+            $user,
+        ))->content['activities'];
+
+        /** Creating the werkbon writes its own entry, so pick the one under test. */
+        $reported = collect($rows)->firstWhere('description', 'Fase gewijzigd');
+
+        $this->assertNotNull($reported, 'the entry never came back');
+        $this->assertSame('2026-07-16 20:39:06', $reported['occurred_at']);
+    }
+
+    /**
+     * Just after midnight is stored on the day before, so a history filtered on the
+     * stored clock loses the late shift: somebody asking what happened on the 17th
+     * would never see the entry they made at half past twelve that night.
+     */
+    public function test_the_history_window_runs_from_midnight_as_people_keep_it(): void
+    {
+        $user = $this->userWith('serviceorder.read');
+        $order = ServiceOrder::factory()->create([
+            'customer_id' => Customer::factory()->create()->id,
+        ]);
+
+        $activity = Activity::create([
+            'description' => 'Late afgerond',
+            'category' => 'stage',
+            'actor_type' => 'user',
+            'actor_name' => 'Iemand',
+            /** Half past twelve on the seventeenth, which is the sixteenth in UTC. */
+            'occurred_at' => Clock::fromLocal('2026-07-17 00:30'),
+        ]);
+        $order->activities()->attach($activity->id);
+
+        $found = fn (array $window) => collect(app(ToolExecutor::class)->run(new ToolCall(
+            'search_activity',
+            ['subject_type' => 'werkbon', 'subject_id' => $order->id] + $window,
+            $user,
+        ))->content['activities'])->contains(fn ($row) => $row['description'] === 'Late afgerond');
+
+        $this->assertTrue($found(['from' => '2026-07-17']), 'the late entry fell out of its own day');
+        $this->assertFalse($found(['to' => '2026-07-16']), 'the late entry leaked into the day before');
+
+        /** And the far edge: asking up to a day has to include that whole day. */
+        $this->assertTrue(
+            $this->sameDayEntry($order, $user),
+            'a day asked for as the last one came back empty',
+        );
+    }
+
+    /**
+     * An ordinary daytime entry on the sixteenth, asked for with the sixteenth as
+     * the last day. Split out because it needs its own entry to look for.
+     */
+    private function sameDayEntry(ServiceOrder $order, User $user): bool
+    {
+        $activity = Activity::create([
+            'description' => 'Overdag afgerond',
+            'category' => 'stage',
+            'actor_type' => 'user',
+            'actor_name' => 'Iemand',
+            'occurred_at' => Clock::fromLocal('2026-07-16 10:00'),
+        ]);
+        $order->activities()->attach($activity->id);
+
+        return collect(app(ToolExecutor::class)->run(new ToolCall(
+            'search_activity',
+            ['subject_type' => 'werkbon', 'subject_id' => $order->id, 'to' => '2026-07-16'],
+            $user,
+        ))->content['activities'])->contains(fn ($row) => $row['description'] === 'Overdag afgerond');
+    }
+
+    /**
+     * Half past midnight is already tomorrow here and still today in UTC. Told the
+     * wrong one, the assistant reads every "morgen" a day short and cheerfully
+     * plans it for a day that has already started.
+     */
+    public function test_today_is_the_day_it_is_here_not_the_day_it_is_in_utc(): void
+    {
+        /** Half past twelve at night in Amsterdam, still the thirtieth in UTC. */
+        $this->travelTo(CarbonImmutable::parse('2026-07-30 22:30:00', 'UTC'));
+
+        $this->assertSame('2026-07-31', Clock::today());
+        $this->assertSame('2026-07-30', now()->toDateString(), 'the premise of this test has gone');
+
+        $user = $this->userWith('event.read');
+
+        $context = (new \ReflectionMethod(AssistantController::class, 'context'))
+            ->invoke(app(AssistantController::class), $user, '');
+
+        $this->assertStringContainsString('Vandaag is 2026-07-31', $context);
+
+        $this->travelBack();
     }
 
     /**

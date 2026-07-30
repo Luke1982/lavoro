@@ -105,7 +105,7 @@ class FindAppointmentTool implements Tool
         foreach (['from' => $from, 'until' => $until] as $key => $date) {
             if ($call->wasGiven($key) && $date === null) {
                 return ToolResult::failed(
-                    'Geef ' . $key . ' als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.'
+                    'Geef ' . $key . ' als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . Clock::today() . '.'
                 );
             }
         }

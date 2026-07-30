@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Planning\CrewPlanner;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Tools\Tool;
@@ -158,11 +159,11 @@ class FindAvailableTechnicianTool implements Tool
 
         if (filled($given_date) && $parsed === null) {
             return ToolResult::failed(
-                'Geef from_date als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . now()->toDateString() . '.'
+                'Geef from_date als een echte datum in de vorm JJJJ-MM-DD, bijvoorbeeld ' . Clock::today() . '.'
             );
         }
 
-        $today = CarbonImmutable::now()->startOfDay();
+        $today = Clock::todayAsDate();
         $asked_from = $parsed?->startOfDay() ?? $today;
 
         /**

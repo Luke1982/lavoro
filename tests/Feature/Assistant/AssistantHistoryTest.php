@@ -3,6 +3,7 @@
 namespace Tests\Feature\Assistant;
 
 use App\Models\AssistantQuestion;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -249,5 +250,40 @@ class AssistantHistoryTest extends TestCase
         $this->artisan('assistant:prune', ['--months' => 6, '--dry-run' => true])->assertSuccessful();
 
         $this->assertSame(1, AssistantQuestion::count());
+    }
+
+    /**
+     * The list is read by a browser, which is not told what clock the server keeps.
+     * Handed a bare "2026-07-30 14:18:40" it assumes its own, and a conversation had
+     * at four in the afternoon is filed at two — or, just after midnight, yesterday.
+     */
+    public function test_a_thread_is_stamped_with_a_moment_not_a_bare_datetime(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        $this->travelTo(CarbonImmutable::parse('2026-07-30 14:18:40', 'UTC'));
+
+        AssistantQuestion::create([
+            'user_id' => $user->id,
+            'conversation_id' => 'abc',
+            'question' => 'Wie kan er dinsdag?',
+            'answer' => 'Jeremy.',
+        ]);
+
+        $stamped = $this->actingAs($user)->getJson('/assistant/history')
+            ->json('conversations.0.last_at');
+
+        $this->assertNotNull($stamped, 'the thread came back without a moment');
+        $this->assertMatchesRegularExpression(
+            '/(Z|[+-]\\d{2}:\\d{2})$/',
+            $stamped,
+            'no offset on it, so a browser will read it as its own local time',
+        );
+        $this->assertTrue(
+            CarbonImmutable::parse($stamped)->equalTo(CarbonImmutable::parse('2026-07-30 14:18:40', 'UTC')),
+            'the moment moved on the way out',
+        );
+
+        $this->travelBack();
     }
 }

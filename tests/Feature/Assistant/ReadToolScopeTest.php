@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
@@ -140,5 +141,36 @@ class ReadToolScopeTest extends TestCase
 
         $this->assertStringContainsString('WHR 930', (string) $label);
         $this->assertStringContainsString((string) $product->brand->name, (string) $label);
+    }
+
+    /**
+     * A service due today is due. Compared against the moment it is now rather than
+     * the day, it sits at midnight, falls just before, and quietly leaves the list
+     * that exists to catch it.
+     */
+    public function test_a_service_due_today_is_in_the_coming_week(): void
+    {
+        $user = $this->userWith('asset.read');
+        $customer = Customer::factory()->create();
+        $product = Product::factory()->create();
+
+        $today = Asset::factory()->create([
+            'customer_id' => $customer->id,
+            'product_id' => $product->id,
+            'next_service_date' => Clock::today(),
+        ]);
+
+        $later = Asset::factory()->create([
+            'customer_id' => $customer->id,
+            'product_id' => $product->id,
+            'next_service_date' => Clock::todayAsDate()->addDays(30)->toDateString(),
+        ]);
+
+        $found = collect(
+            $this->invoke('find_asset', $user, ['due_within_days' => 7])->content['assets']
+        )->pluck('id');
+
+        $this->assertContains($today->id, $found->all(), 'the one due today fell out of the week');
+        $this->assertNotContains($later->id, $found->all(), 'something a month out came back as this week');
     }
 }

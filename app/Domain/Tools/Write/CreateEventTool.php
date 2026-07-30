@@ -168,14 +168,14 @@ class CreateEventTool implements Confirmable, Tool
         $ends_at = $this->moment($call->stringArgument('ends_at'));
 
         if ($starts_at === null || $ends_at === null) {
-            return ToolResult::failed('Geef begin en eind als JJJJ-MM-DD UU:MM, bijvoorbeeld ' . now()->format('Y-m-d H:i') . '.');
+            return ToolResult::failed('Geef begin en eind als JJJJ-MM-DD UU:MM, bijvoorbeeld ' . Clock::toLocal(now())->format('Y-m-d H:i') . '.');
         }
 
         if ($ends_at->lessThanOrEqualTo($starts_at)) {
             return ToolResult::failed('De afspraak eindigt niet na het begin.');
         }
 
-        if ($starts_at->lessThan(now()->startOfDay())) {
+        if ($starts_at->lessThan(Clock::startOfLocalDay(now()))) {
             return ToolResult::failed('Een afspraak in het verleden inplannen kan niet.');
         }
 
