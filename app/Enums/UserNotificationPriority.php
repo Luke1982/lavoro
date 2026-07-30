@@ -39,13 +39,4 @@ enum UserNotificationPriority: int
             default => self::normaal,
         };
     }
-
-    /** @return array<int, array<string, mixed>> */
-    public static function comboBoxArray(): array
-    {
-        return array_map(
-            fn (self $case) => ['id' => $case->value, 'name' => $case->label()],
-            self::cases()
-        );
-    }
 }

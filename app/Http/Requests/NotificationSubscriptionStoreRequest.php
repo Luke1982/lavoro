@@ -10,6 +10,9 @@ use Illuminate\Validation\Rule;
 
 class NotificationSubscriptionStoreRequest extends FormRequest
 {
+    /** False until looked up, which is not the same as looked up and not found. */
+    private User|false|null $resolved_subscriber = false;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', [NotificationSubscription::class, $this->subscriber()]);
@@ -18,7 +21,16 @@ class NotificationSubscriptionStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            /**
+             * Trashed users are excluded on purpose: a plain exists rule counts
+             * them, and the row would then pass validation only to be looked up as
+             * nothing at all.
+             */
+            'user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->whereNull('deleted_at'),
+            ],
             'type' => [
                 'required',
                 Rule::in(array_column(UserNotificationType::cases(), 'value')),
@@ -59,20 +71,29 @@ class NotificationSubscriptionStoreRequest extends FormRequest
             return;
         }
 
+        $about = 'de rechten niet om meldingen van het type ' . $type->label() . ' te ontvangen.';
+
         $fail($subscriber->id === $this->user()->id
-            ? 'Je hebt de rechten niet om meldingen van het type ' . $type->label() . ' te ontvangen.'
-            : $subscriber->name . ' heeft de rechten niet om meldingen van het type ' . $type->label() . ' te ontvangen.');
+            ? 'Je hebt ' . $about
+            : $subscriber->name . ' heeft ' . $about);
     }
 
     /**
      * The subscription is for whoever is named, and for the person asking when
-     * nobody is.
+     * nobody is. Resolved once: authorisation, two rules and the controller all
+     * ask, and none of them needs its own query to find out.
      */
     public function subscriber(): ?User
     {
+        if ($this->resolved_subscriber !== false) {
+            return $this->resolved_subscriber;
+        }
+
         $user_id = $this->input('user_id');
 
-        return $user_id === null ? $this->user() : User::find($user_id);
+        return $this->resolved_subscriber = $user_id === null
+            ? $this->user()
+            : User::find($user_id);
     }
 
     private function subscriberId(): ?int

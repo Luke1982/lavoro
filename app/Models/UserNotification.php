@@ -60,9 +60,17 @@ class UserNotification extends Model
         return $this->morphTo();
     }
 
-    public function isRead(): bool
+    /**
+     * Where clicking this should land. Resolved here rather than in the front end
+     * because the service worker needs it too: a notification acted on while the
+     * app is closed has no Vue around to work it out.
+     */
+    public function linkPath(): ?string
     {
-        return $this->read_at !== null;
+        return match ($this->notificationable_type) {
+            Ticket::class => '/tickets/' . $this->notificationable_id,
+            default => null,
+        };
     }
 
     /**

@@ -80,6 +80,15 @@ class HandleInertiaRequests extends Middleware
                     'use_assistant' => $request->user()?->can('use', Assistant::class) ?? false,
                 ],
             ],
+            /**
+             * The public half of the VAPID keypair, which the browser needs in
+             * hand to subscribe at all. Null when the installation has no keys,
+             * which is the front end's cue not to ask for permission it could
+             * never act on.
+             */
+            'push' => [
+                'vapid_public_key' => $request->user() ? config('webpush.public_key') : null,
+            ],
             'location_tracking' => $request->user() ? (function () {
                 $rows = GeneralSetting::whereIn('key', [
                     'location_tracking_start',

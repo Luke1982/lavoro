@@ -15,9 +15,11 @@ use Illuminate\Support\Str;
  * persisted and compared cannot also be a sentence somebody might reword. The
  * label is a method instead.
  *
- * Adding a type is adding a case, a label, the permission its readers must hold,
- * and the two sentences. Nothing else changes: the listener already receives
- * every signal the application raises.
+ * Adding a type is adding a case and then answering, for that case, every method
+ * below: its label, the permission its readers must hold, its two sentences and
+ * how urgent it is. Nothing else changes — the listener already receives every
+ * signal the application raises — and a case that forgets one of them fails
+ * loudly, because an unhandled match has nowhere to go.
  */
 enum UserNotificationType: string
 {

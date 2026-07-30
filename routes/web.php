@@ -46,6 +46,7 @@ use App\Http\Controllers\ProductSupplierController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMilestoneController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceCheckController;
@@ -92,6 +93,10 @@ Route::group(
          * back a transcript of somebody's working day and there is no reason for
          * anyone to want thirty of those a minute.
          */
+        Route::get('assistant/history/{conversation}', [AssistantController::class, 'conversation'])
+            ->middleware('throttle:60,1')
+            ->name('assistant.conversation');
+
         Route::get('assistant/history', [AssistantController::class, 'history'])
             ->middleware('throttle:60,1')
             ->name('assistant.history');
@@ -406,6 +411,10 @@ Route::group(
             ->name('usernotifications.unacknowledge');
         Route::resource('notificationsubscriptions', NotificationSubscriptionController::class)
             ->only(['store', 'destroy']);
+        Route::post('pushsubscriptions', [PushSubscriptionController::class, 'store'])
+            ->name('pushsubscriptions.store');
+        Route::delete('pushsubscriptions', [PushSubscriptionController::class, 'destroy'])
+            ->name('pushsubscriptions.destroy');
         Route::get('me/edit', [UserController::class, 'editSelf'])->name('me.edit');
         Route::post('me', [UserController::class, 'updateSelf'])->name('me.update');
 

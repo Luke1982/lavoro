@@ -1,4 +1,4 @@
-const CACHE_NAME = "lavoro-cache-27a287f";
+const CACHE_NAME = "lavoro-cache-e79b32b";
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
@@ -106,11 +106,21 @@ self.addEventListener('push', (event) => {
     }
 
     const title   = payload.notification?.title ?? 'Lavoro';
+    const data    = payload.data ?? {};
     const options = {
         body:  payload.notification?.body ?? '',
         icon:  '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
-        data:  payload.data ?? {},
+        data,
+
+        // One banner per record: a second message about the same storing
+        // replaces the first instead of stacking up behind it. The server names
+        // the tag; the Firebase shape falls back to its own type and id.
+        tag: data.tag ?? (data.type && data.id ? `${data.type}-${data.id}` : undefined),
+
+        // Priority 3 is "hoog". Those stay on screen until they are dealt with;
+        // the rest fade on their own like any other notification.
+        requireInteraction: Number(data.priority) === 3,
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -120,9 +130,38 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const data = event.notification.data;
 
-    const url = (data?.type === 'service_order_assigned' && data?.id)
-        ? `/serviceorders/${data.id}`
-        : '/';
+    // A user notification brings its own destination, worked out by the server
+    // that wrote it. The Firebase shape stays supported for the native app.
+    const url = data?.url
+        ? data.url
+        : (data?.type === 'service_order_assigned' && data?.id)
+            ? `/serviceorders/${data.id}`
+            : '/';
 
-    event.waitUntil(clients.openWindow(url));
+    // Reuse the window that is already open rather than stacking up another one.
+    event.waitUntil((async () => {
+        const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+        for (const client of windows) {
+            if (new URL(client.url).origin !== self.location.origin) continue;
+
+            await client.focus();
+
+            // navigate() rejects for a window this worker does not control, in
+            // which case a new one is still better than a focused window sitting
+            // on the wrong page.
+            try {
+                if ('navigate' in client) {
+                    await client.navigate(url);
+                }
+
+                return;
+            } catch (error) {
+                console.error('notification navigate failed:', error);
+                break;
+            }
+        }
+
+        await clients.openWindow(url);
+    })());
 });

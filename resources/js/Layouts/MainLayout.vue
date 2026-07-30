@@ -1,6 +1,7 @@
 <template>
     <OfflineBanner />
     <UpdateBanner />
+    <PushPermissionBanner v-if="page.props.auth?.user" />
     <div class="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
@@ -108,6 +109,7 @@ import SidebarContent from '@/Components/Layout/SidebarContent.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
+import PushPermissionBanner from '@/Components/UI/PushPermissionBanner.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
 import { openNavigator } from '@/Composables/useNavigator.js'
@@ -115,6 +117,7 @@ import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
+import { useWebPush } from '@/Composables/useWebPush.js'
 import { useAppUpdate } from '@/Composables/useAppUpdate.js'
 import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 
@@ -130,6 +133,7 @@ const { is_native } = useCapacitor()
 const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
+const { sync: sync_web_push, disable: disable_web_push } = useWebPush()
 const { check: check_update } = useAppUpdate()
 const { init: init_deep_links } = useDeepLinks()
 
@@ -148,6 +152,9 @@ onMounted(async () => {
                 console.error('Push registration failed:', e)
             }
         }
+    }
+    if (!is_native && page.props.auth?.user) {
+        try { await sync_web_push() } catch (e) { console.error('Web push sync failed:', e) }
     }
     if (page.props.auth?.user && hasPermission('location.track')) {
         try {
@@ -186,6 +193,12 @@ const toggleDesktopSidebar = () => {
 
 const logout = async () => {
     await stop_tracking()
+
+    // Voor het afmelden, want daarna is de service worker weg en kan het
+    // abonnement niet meer opgezegd worden — de server zou dan een regel houden
+    // die nooit meer iets kan bezorgen.
+    try { await disable_web_push() } catch (e) { console.error('Push unsubscribe failed:', e) }
+
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()
         for (const registration of registrations) {

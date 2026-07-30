@@ -6,6 +6,7 @@ use App\Http\Requests\UserNotificationAcknowledgeRequest;
 use App\Http\Requests\UserNotificationListRequest;
 use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * The bell reads over JSON rather than through Inertia props: it is opened and
@@ -20,6 +21,7 @@ class UserNotificationController extends Controller
             ->userNotifications()
             ->when($request->boolean('unread'), fn ($query) => $query->unread())
             ->paginate($request->integer('per_page') ?: 20)
+            ->withQueryString()
             ->through(fn (UserNotification $notification) => $this->present($notification));
 
         return response()->json([
@@ -60,7 +62,7 @@ class UserNotificationController extends Controller
         ]);
     }
 
-    private function unreadCount(UserNotificationListRequest|UserNotificationAcknowledgeRequest $request): int
+    private function unreadCount(Request $request): int
     {
         return $request->user()->userNotifications()->unread()->count();
     }
@@ -77,6 +79,9 @@ class UserNotificationController extends Controller
             'body' => $notification->body,
             'notificationable_type' => $notification->notificationable_type,
             'notificationable_id' => $notification->notificationable_id,
+
+            /** Worked out here, as it is for the service worker, so the two agree. */
+            'url' => $notification->linkPath(),
             'read_at' => $notification->read_at,
             'created_at' => $notification->created_at,
         ];
