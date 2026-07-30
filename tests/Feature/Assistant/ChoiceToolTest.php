@@ -6,6 +6,7 @@ use App\Domain\Tools\Read\AskWhichOneTool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
+use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -112,6 +113,50 @@ class ChoiceToolTest extends TestCase
         }
 
         $this->assertLessThanOrEqual(8, count($this->offer(['question' => 'Welke?', 'options' => $options])->content['options']));
+    }
+
+    /**
+     * A handful of matches offers the choice itself, because the tool for asking is
+     * used about half the time and half is not a mechanism.
+     */
+    public function test_a_handful_of_customers_offers_its_own_choice(): void
+    {
+        foreach (['J. van Reemst van Dijk', 'P. Dijkema', 'S. van Dijk'] as $name) {
+            Customer::factory()->create(['name' => $name, 'city' => 'Ede']);
+        }
+
+        $content = app(ToolExecutor::class)->run(new ToolCall(
+            'find_customer',
+            ['query' => 'dijk', 'city' => 'Ede'],
+            $this->userWith('customer.read'),
+        ))->content;
+
+        $this->assertCount(3, $content['choice']['options']);
+        $this->assertStringContainsString('J. van Reemst van Dijk', $content['choice']['options'][0]['label']);
+        $this->assertSame('/customers/' . Customer::where('name', 'J. van Reemst van Dijk')->value('id'), $content['choice']['options'][0]['link']);
+    }
+
+    /**
+     * Handed the whole list, the narrowing happened out of sight: twenty-five rows
+     * went over, three in Ede were picked out in prose, and nothing could turn
+     * those into buttons. The rows are withheld so the narrowing has to come back
+     * through the tool.
+     */
+    public function test_too_many_customers_withholds_the_rows_and_says_where_they_are(): void
+    {
+        foreach (range(1, 12) as $n) {
+            Customer::factory()->create(['name' => 'Van Dijk ' . $n, 'city' => $n <= 3 ? 'Ede' : 'Plaats ' . $n]);
+        }
+
+        $content = app(ToolExecutor::class)->run(new ToolCall(
+            'find_customer',
+            ['query' => 'dijk'],
+            $this->userWith('customer.read'),
+        ))->content;
+
+        $this->assertSame([], $content['customers'], 'the rows went over and could be filtered out of sight');
+        $this->assertSame(12, $content['matches']);
+        $this->assertSame(3, $content['per_place']['Ede']);
     }
 
     public function test_a_choice_changes_nothing_so_it_needs_no_confirmation(): void

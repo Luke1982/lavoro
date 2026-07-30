@@ -23,6 +23,31 @@ trait OffersAChoice
     private const MOST = 8;
 
     /**
+     * A choice between values rather than records — a place, a brand — for when
+     * there are too many matches to put in front of anybody.
+     *
+     * @param  Collection<int, string>  $values
+     * @return array{question: string, options: array<int, array{label: string, reference: string, link: null}>}|null
+     */
+    private function choiceOfValues(Collection $values, string $question, string $prefix): ?array
+    {
+        $values = $values->filter()->unique()->values();
+
+        if ($values->count() < self::FEWEST || $values->count() > self::MOST) {
+            return null;
+        }
+
+        return [
+            'question' => $question,
+            'options' => $values->map(fn (string $value) => [
+                'label' => mb_substr($value, 0, 120),
+                'reference' => $prefix . ' ' . $value,
+                'link' => null,
+            ])->all(),
+        ];
+    }
+
+    /**
      * @param  Collection<int, mixed>  $records
      * @param  callable(mixed): string  $label
      * @return array{question: string, options: array<int, array{label: string, reference: string, link: ?string}>}|null

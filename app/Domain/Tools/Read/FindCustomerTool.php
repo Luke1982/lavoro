@@ -104,6 +104,47 @@ class FindCustomerTool implements Tool
         $content = ['customers' => $customers->toArray()];
 
         /**
+         * Too many to choose between, and handing over the whole list is what lets
+         * the narrowing happen out of sight: asked for a customer "iets met dijk"
+         * it took twenty-five rows, picked out the three in Ede itself, and listed
+         * them in prose where nothing could turn them into buttons.
+         *
+         * So a broad match comes back as a way to narrow instead. The next call
+         * carries the place, returns a handful, and the choice offers itself.
+         */
+        $places = $this->choiceOfValues(
+            $customers->pluck('city'),
+            'In welke plaats?',
+            'plaats',
+        );
+
+        if ($customers->count() > 8) {
+            $per_place = $customers->groupBy('city')->map->count()->sortDesc();
+
+            $content = [
+                'customers' => [],
+                'matches' => $customers->count(),
+                'per_place' => $per_place->take(15)->all(),
+                'note' => 'Te veel klanten om iemand uit te laten kiezen, dus de regels zijn niet '
+                    . 'meegestuurd — filter zelf niet op wat je niet hebt. Noemde de gebruiker een '
+                    . 'plaats, zoek dan opnieuw met city erbij. Deed hij dat niet, vraag dan in welke '
+                    . 'plaats, en gebruik daarvoor ask_which_one met de plaatsen hierboven.',
+            ];
+
+            /** Buttons only when there are few enough places for them to help. */
+            if ($places !== null) {
+                $content['choice'] = $places;
+                $content['note'] .= ' De gebruiker krijgt hier al knoppen per plaats te zien; '
+                    . 'som ze dan niet nog eens op.';
+            }
+
+            return ToolResult::ok(
+                $content,
+                $customers->count() . ' klanten gevonden; eerst de plaats kiezen.',
+            );
+        }
+
+        /**
          * A few matches and no way to tell which was meant is a choice, and it is
          * offered from here rather than left to the model to think of. Asked the
          * same thing twice it offered buttons once and a bulleted list the next.
