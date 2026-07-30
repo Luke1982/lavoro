@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -154,15 +155,15 @@ class FindAppointmentTool implements Tool
          * what is coming; a diary answered from the beginning of time buries it.
          */
         if (!$call->argument('include_past') && $from === null) {
-            $query->where('end', '>=', CarbonImmutable::now()->startOfDay());
+            $query->where('end', '>=', Clock::startOfLocalDay(CarbonImmutable::now()));
         }
 
         if ($from !== null) {
-            $query->where('end', '>=', $from->startOfDay());
+            $query->where('end', '>=', Clock::startOfLocalDay($from));
         }
 
         if ($until !== null) {
-            $query->where('start', '<=', $until->endOfDay());
+            $query->where('start', '<', Clock::startOfLocalDay($until->addDay()));
         }
 
         $events = $query
@@ -172,9 +173,10 @@ class FindAppointmentTool implements Tool
 
         $rows = $events->map(fn (Event $event) => [
             'id' => $event->id,
-            'date' => CarbonImmutable::parse($event->start)->toDateString(),
-            'from' => CarbonImmutable::parse($event->start)->format('H:i'),
-            'until' => CarbonImmutable::parse($event->end)->format('H:i'),
+            /** On the clock somebody reads it on, not the one it is stored in. */
+            'date' => Clock::toLocal($event->start)->toDateString(),
+            'from' => Clock::toLocal($event->start)->format('H:i'),
+            'until' => Clock::toLocal($event->end)->format('H:i'),
             'what' => $event->name,
             'type' => $event->eventType?->name,
             'status' => $event->status,

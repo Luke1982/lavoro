@@ -222,8 +222,8 @@ class TechnicianAvailability
 
         $events = Event::query()
             ->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $ids))
-            ->where('start', '<', $from->addDays($days)->startOfDay())
-            ->where('end', '>', $from->startOfDay())
+            ->where('start', '<', Clock::startOfLocalDay($from->addDays($days)))
+            ->where('end', '>', Clock::startOfLocalDay($from))
             ->with(['executingUsers' => fn ($q) => $q->whereIn('users.id', $ids)])
             ->get();
 
@@ -248,17 +248,23 @@ class TechnicianAvailability
      */
     private function busyBands(User $user, CarbonImmutable $day): array
     {
-        $start = $day->startOfDay();
-        $end = $day->addDay()->startOfDay();
+        $start = $day->setTimezone(Clock::zone())->startOfDay();
+        $end = $start->addDay();
 
         return ($this->diary[$user->id] ?? collect())
             ->filter(function (Event $event) use ($start, $end) {
-                return CarbonImmutable::parse($event->start) < $end
-                    && CarbonImmutable::parse($event->end) > $start;
+                return Clock::toLocal($event->start) < $end
+                    && Clock::toLocal($event->end) > $start;
             })
             ->map(function (Event $event) use ($user, $start) {
-                $event_start = CarbonImmutable::parse($event->start);
-                $event_end = CarbonImmutable::parse($event->end);
+                /**
+                 * Read on the clock somebody plans by. Stored moments are UTC and
+                 * the hours around them — the working day, a papadag — are wall
+                 * clock, so comparing the two directly puts every gap two hours out
+                 * while looking entirely reasonable.
+                 */
+                $event_start = Clock::toLocal($event->start);
+                $event_end = Clock::toLocal($event->end);
 
                 /**
                  * Diverging times are clock times on one day, so they cannot

@@ -13,9 +13,11 @@ use App\Models\EventType;
 use App\Models\Location;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use App\Models\UserRole;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -44,7 +46,7 @@ class CreateEventToolTest extends TestCase
 
     private function propose(array $arguments, ?User $user = null): ToolResult
     {
-        EventType::factory()->create();
+        EventType::firstOrCreate(['name' => 'Bezoek']);
 
         return app(ToolExecutor::class)->run(
             new ToolCall(CreateEventTool::name(), $arguments, $user ?? $this->admin())
@@ -53,7 +55,7 @@ class CreateEventToolTest extends TestCase
 
     private function carryOut(array $arguments, ?User $user = null): ToolResult
     {
-        EventType::factory()->create();
+        EventType::firstOrCreate(['name' => 'Bezoek']);
         $user ??= $this->admin();
 
         return app(ToolExecutor::class)->run(new ToolCall(
@@ -64,6 +66,98 @@ class CreateEventToolTest extends TestCase
         ));
     }
 
+    /**
+     * Falling back to whichever type came first filed an airco installation as
+     * "Bezoek" — right time, right mechanic, wrong kind of work, and nothing in the
+     * appointment says so.
+     */
+    public function test_the_kind_of_appointment_is_asked_for_rather_than_guessed(): void
+    {
+        EventType::firstOrCreate(['name' => 'Bezoek']);
+        EventType::firstOrCreate(['name' => 'Oplossen storing']);
+        $mechanic = $this->mechanic();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+        ]);
+
+        $this->assertTrue($result->is_error, 'a kind of appointment was chosen for somebody');
+        $this->assertStringContainsString('Oplossen storing', $result->content, 'it did not say what the choices are');
+        $this->assertSame(0, Event::count());
+    }
+
+    public function test_a_kind_of_appointment_that_does_not_exist_is_refused(): void
+    {
+        EventType::firstOrCreate(['name' => 'Bezoek']);
+        $mechanic = $this->mechanic();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'event_type' => 'Verzonnen soort',
+        ]);
+
+        $this->assertTrue($result->is_error);
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * Which role somebody goes in is recorded on the assignment, and was never set
+     * — so every appointment the assistant made had mechanics on it in no role at
+     * all.
+     */
+    public function test_the_role_the_mechanics_go_in_is_recorded(): void
+    {
+        EventType::firstOrCreate(['name' => 'Bezoek']);
+        $role = UserRole::create(['name' => 'Airco']);
+        $mechanic = $this->mechanic();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
+            'user_role' => 'Airco',
+        ]);
+
+        $this->assertFalse($result->is_error, json_encode($result->content));
+        $this->assertSame('Airco', $result->content['user_role']);
+        /** The role hangs off the userables row rather than off the pivot columns. */
+        $userable = DB::table('userables')
+            ->where('userable_type', Event::class)
+            ->where('userable_id', Event::sole()->id)
+            ->where('type', 'executing')
+            ->value('id');
+
+        $this->assertTrue(
+            DB::table('user_role_userable')
+                ->where('userable_id', $userable)
+                ->where('user_role_id', $role->id)
+                ->exists(),
+            'the mechanic went in no role at all'
+        );
+    }
+
+    public function test_a_role_that_does_not_exist_is_refused(): void
+    {
+        EventType::firstOrCreate(['name' => 'Bezoek']);
+        $mechanic = $this->mechanic();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
+            'user_role' => 'Tovenaar',
+        ]);
+
+        $this->assertTrue($result->is_error);
+        $this->assertSame(0, Event::count());
+    }
+
     public function test_it_asks_before_it_writes(): void
     {
         $mechanic = $this->mechanic();
@@ -72,6 +166,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertSame('bevestiging_nodig', $result->content['status']);
@@ -86,6 +181,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'subject' => 'Airco plaatsen',
         ]);
 
@@ -111,6 +207,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertGreaterThan(0, Event::sole()->activities()->count(), 'nothing was written to the timeline');
@@ -124,12 +221,14 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(12),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $result = $this->carryOut([
             'starts_at' => $this->tomorrowAt(10),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertTrue($result->is_error, 'somebody was double-booked');
@@ -159,6 +258,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $thursday->setTime(9, 0)->format('Y-m-d H:i'),
             'ends_at' => $thursday->setTime(11, 0)->format('Y-m-d H:i'),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertTrue($result->is_error, 'an appointment was booked straight over a day off');
@@ -172,6 +272,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => CarbonImmutable::yesterday()->setTime(9, 0)->format('Y-m-d H:i'),
             'ends_at' => CarbonImmutable::yesterday()->setTime(11, 0)->format('Y-m-d H:i'),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertTrue($result->is_error);
@@ -185,6 +286,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(14),
             'ends_at' => $this->tomorrowAt(9),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertTrue($result->is_error);
@@ -199,6 +301,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$desk->id],
+            'event_type' => 'Bezoek',
         ]);
 
         $this->assertTrue($result->is_error);
@@ -218,6 +321,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ], $this->userWith('serviceorder.read_own'));
 
         $this->assertTrue($result->is_error);
@@ -238,6 +342,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(13),
             'ends_at' => $this->tomorrowAt(17),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'subject' => 'Airco installatie',
             'create_service_order_for_customer_id' => $customer->id,
         ], $this->userWithPermissions('event.create', 'serviceorder.create'));
@@ -263,6 +368,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(13),
             'ends_at' => $this->tomorrowAt(17),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'service_order_id' => $existing->id,
             'create_service_order_for_customer_id' => $customer->id,
         ], $this->userWithPermissions('event.create', 'serviceorder.create'));
@@ -284,6 +390,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(13),
             'ends_at' => $this->tomorrowAt(17),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'create_service_order_for_customer_id' => $customer->id,
         ], $this->userWith('event.create'));
 
@@ -307,6 +414,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'create_service_order_for_customer_id' => $customer->id,
             'location_id' => $site->id,
         ], $this->userWithPermissions('event.create', 'serviceorder.create'));
@@ -330,6 +438,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'create_service_order_for_customer_id' => $customer->id,
             'location_id' => $site->id,
         ], $this->userWithPermissions('event.create', 'serviceorder.create'));
@@ -348,6 +457,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'create_service_order_for_customer_id' => $customer->id,
             'location_id' => $elsewhere->id,
         ], $this->userWithPermissions('event.create', 'serviceorder.create'));
@@ -369,6 +479,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
             'location_id' => $site->id,
         ]);
 
@@ -383,7 +494,7 @@ class CreateEventToolTest extends TestCase
      */
     public function test_the_confirm_endpoint_carries_out_what_was_agreed(): void
     {
-        EventType::factory()->create();
+        EventType::firstOrCreate(['name' => 'Bezoek']);
         $mechanic = $this->mechanic();
         $user = $this->userWithPermissions('assistant.use', 'event.create');
 
@@ -391,6 +502,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ];
 
         $this->actingAs($user)
@@ -405,7 +517,7 @@ class CreateEventToolTest extends TestCase
 
     public function test_the_confirm_endpoint_refuses_a_token_from_somebody_else(): void
     {
-        EventType::factory()->create();
+        EventType::firstOrCreate(['name' => 'Bezoek']);
         $mechanic = $this->mechanic();
         $owner = $this->userWithPermissions('assistant.use', 'event.create');
 
@@ -413,6 +525,7 @@ class CreateEventToolTest extends TestCase
             'starts_at' => $this->tomorrowAt(9),
             'ends_at' => $this->tomorrowAt(11),
             'user_ids' => [$mechanic->id],
+            'event_type' => 'Bezoek',
         ], $owner)->encoded();
 
         $this->actingAs($this->userWithPermissions('assistant.use', 'event.create'))

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Planning;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Planning\CrewPlanner;
 use App\Models\Event;
 use App\Models\EventType;
@@ -53,8 +54,9 @@ class CrewPlannerTest extends TestCase
             'event_type_id' => $this->eventType()->id,
             'status' => 'Gepland',
             'no_service_order' => true,
-            'start' => $day->setTime($from_hour, 0),
-            'end' => $day->setTime($until_hour, 0),
+            /** Wall-clock hours, stored the way the application stores them. */
+            'start' => Clock::fromLocal($day->format('Y-m-d') . ' ' . sprintf('%02d:00', $from_hour)),
+            'end' => Clock::fromLocal($day->format('Y-m-d') . ' ' . sprintf('%02d:00', $until_hour)),
         ]);
 
         $event->syncExecutingUsers([$user->id]);

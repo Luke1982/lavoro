@@ -5,6 +5,7 @@ namespace App\Domain\Tools\Write;
 use App\Actions\Appointments\AppointmentAssignment;
 use App\Actions\Appointments\CreateAppointmentAction;
 use App\Actions\Appointments\NewAppointment;
+use App\Domain\Planning\Clock;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
@@ -17,6 +18,7 @@ use App\Models\EventType;
 use App\Models\Location;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use App\Models\UserRole;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -84,6 +86,16 @@ class CreateEventTool implements Confirmable, Tool
                         . 'Gebruik dit in plaats van create_service_order apart aanroepen: los aangemaakt '
                         . 'staan ze na bevestiging niet aan elkaar vast.',
                 ],
+                'event_type' => [
+                    'type' => 'string',
+                    'description' => 'Wat voor soort afspraak het is, met de naam zoals die in het '
+                        . 'systeem staat. Vraag ernaar als het niet duidelijk is; kies er niet zelf een.',
+                ],
+                'user_role' => [
+                    'type' => 'string',
+                    'description' => 'In welke rol de monteurs meegaan, bijvoorbeeld Airco of Loodgieter. '
+                        . 'Vraag ernaar als er meerdere in aanmerking komen.',
+                ],
                 'location_id' => [
                     'type' => 'integer',
                     'description' => 'De locatie van de klant waar het werk gebeurt. Heeft de klant meer '
@@ -133,7 +145,7 @@ class CreateEventTool implements Confirmable, Tool
         $customer = $for_customer === null ? null : Customer::find($for_customer);
 
         return 'Afspraak inplannen'
-            . ($when ? ' op ' . $when->format('d-m-Y H:i') : '')
+            . ($when ? ' op ' . Clock::toLocal($when)->format('d-m-Y H:i') : '')
             . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
             . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
             . ($customer ? ', met een nieuwe werkbon voor ' . $customer->name : '')
@@ -212,10 +224,46 @@ class CreateEventTool implements Confirmable, Tool
             }
         }
 
-        $event_type_id = EventType::query()->orderBy('id')->value('id');
+        /**
+         * Named rather than guessed at. Falling back to whichever type happened to
+         * be first put an airco installation in the diary as "Bezoek", which is
+         * wrong in a way nobody reads back — the appointment is there, at the right
+         * time, filed as the wrong kind of work.
+         */
+        $types = EventType::query()->orderBy('id')->pluck('name', 'id');
 
-        if ($event_type_id === null) {
+        if ($types->isEmpty()) {
             return ToolResult::failed('Er is geen afspraaksoort ingesteld.');
+        }
+
+        $wanted_type = $call->stringArgument('event_type');
+
+        if (blank($wanted_type)) {
+            return ToolResult::failed(
+                'Wat voor soort afspraak is dit? Kies uit: ' . $types->implode(', ') . '.'
+            );
+        }
+
+        $event_type_id = $types->search(fn (string $name) => strcasecmp($name, $wanted_type) === 0);
+
+        if ($event_type_id === false) {
+            return ToolResult::failed(
+                'Onbekende afspraaksoort "' . $wanted_type . '". Kies uit: ' . $types->implode(', ') . '.'
+            );
+        }
+
+        $roles = UserRole::query()->orderBy('name')->pluck('name', 'id');
+        $wanted_role = $call->stringArgument('user_role');
+        $role_id = null;
+
+        if (filled($wanted_role)) {
+            $role_id = $roles->search(fn (string $name) => strcasecmp($name, $wanted_role) === 0);
+
+            if ($role_id === false) {
+                return ToolResult::failed(
+                    'Onbekende rol "' . $wanted_role . '". Kies uit: ' . $roles->implode(', ') . '.'
+                );
+            }
         }
 
         /**
@@ -259,7 +307,13 @@ class CreateEventTool implements Confirmable, Tool
             create_service_order: $customer !== null,
             no_service_order: $service_order_id === null && $customer === null,
             customer_id: $customer?->id,
-            assignment: new AppointmentAssignment(user_ids: $mechanics->pluck('id')->all()),
+            assignment: new AppointmentAssignment(
+                user_ids: $mechanics->pluck('id')->all(),
+                /** The same role for everyone on it, keyed the way the pivot expects. */
+                user_roles: $role_id === null
+                    ? []
+                    : $mechanics->mapWithKeys(fn ($mechanic) => [$mechanic->id => [$role_id]])->all(),
+            ),
             service_order_description: $call->stringArgument('service_order_description')
                 ?: $call->stringArgument('subject'),
         ));
@@ -269,13 +323,15 @@ class CreateEventTool implements Confirmable, Tool
         return ToolResult::ok(
             [
                 'event_id' => $event->id,
-                'starts_at' => $starts_at->format('Y-m-d H:i'),
-                'ends_at' => $ends_at->format('Y-m-d H:i'),
+                'starts_at' => Clock::toLocal($starts_at)->format('Y-m-d H:i'),
+                'ends_at' => Clock::toLocal($ends_at)->format('Y-m-d H:i'),
                 'mechanics' => $mechanics->pluck('name')->all(),
+                'event_type' => $types[$event_type_id],
+                'user_role' => $role_id === null ? null : $roles[$role_id],
                 'service_order_id' => $order_id,
                 'link' => '/serviceorders/' . $order_id,
             ],
-            'Afspraak ingepland op ' . $starts_at->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ')
+            'Afspraak ingepland op ' . Clock::toLocal($starts_at)->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ')
             . ($customer !== null && $order_id ? ', op nieuwe werkbon #' . $order_id : '') . '.',
         );
     }
@@ -292,8 +348,16 @@ class CreateEventTool implements Confirmable, Tool
     private function clashes($mechanics, CarbonImmutable $starts_at, CarbonImmutable $ends_at): array
     {
         $availability = app(TechnicianAvailability::class);
-        $day = $starts_at->startOfDay();
-        $wanted_start = $starts_at->hour * 60 + $starts_at->minute;
+
+        /**
+         * Compared on the clock the diary is read on. The moment is stored in UTC
+         * and the free stretches are minutes into a local day, so measuring the one
+         * against the other reported a mechanic busy at eight in the morning when
+         * his diary was empty until six in the evening.
+         */
+        $local_start = Clock::toLocal($starts_at);
+        $day = $local_start->startOfDay();
+        $wanted_start = $local_start->hour * 60 + $local_start->minute;
         $wanted_end = $wanted_start + (int) $starts_at->diffInMinutes($ends_at);
 
         $clashes = [];
@@ -317,16 +381,15 @@ class CreateEventTool implements Confirmable, Tool
         return $clashes;
     }
 
+    /**
+     * A time somebody said, as the moment to store.
+     *
+     * Written straight through, "morgen om 08:00" became 08:00 UTC and turned up in
+     * the planner at ten. Everything else in this application sends local time and
+     * stores UTC; this now does the same.
+     */
     private function moment(?string $value): ?CarbonImmutable
     {
-        if ($value === null || !preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/', $value)) {
-            return null;
-        }
-
-        try {
-            return CarbonImmutable::parse($value);
-        } catch (\Throwable) {
-            return null;
-        }
+        return Clock::fromLocal($value);
     }
 }

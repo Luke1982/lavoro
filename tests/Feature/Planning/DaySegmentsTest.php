@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Planning;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Planning\DaySegments;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Models\Customer;
@@ -89,8 +90,8 @@ class DaySegmentsTest extends TestCase
                 'event_type_id' => $type->id,
                 'status' => 'Gepland',
                 'no_service_order' => true,
-                'start' => now()->addDays($day)->setTime(6, 0),
-                'end' => now()->addDays($day)->setTime(20, 0),
+                'start' => Clock::fromLocal(now()->addDays($day)->format('Y-m-d') . ' 06:00'),
+                'end' => Clock::fromLocal(now()->addDays($day)->format('Y-m-d') . ' 20:00'),
             ]);
             $event->syncExecutingUsers($users->pluck('id')->all());
         }

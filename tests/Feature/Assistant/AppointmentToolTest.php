@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
@@ -38,8 +39,14 @@ class AppointmentToolTest extends TestCase
             'name' => 'Airco installeren',
             'status' => 'Gepland',
             'no_service_order' => $order === null,
-            'start' => $day->setTime(9, 0),
-            'end' => $day->setTime(17, 0),
+            /**
+             * Built the way the application stores them: the wall-clock time
+             * somebody plans by, converted to the UTC it is kept in. Written as a
+             * plain nine o'clock the row would mean eleven on the planner, and the
+             * test would be asserting a time nobody would ever see.
+             */
+            'start' => Clock::fromLocal($day->format('Y-m-d') . ' 09:00'),
+            'end' => Clock::fromLocal($day->format('Y-m-d') . ' 17:00'),
         ]);
 
         if ($order) {
