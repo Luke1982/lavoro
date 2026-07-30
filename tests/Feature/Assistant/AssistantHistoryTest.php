@@ -4,6 +4,7 @@ namespace Tests\Feature\Assistant;
 
 use App\Models\AssistantQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -19,10 +20,11 @@ class AssistantHistoryTest extends TestCase
     use CreatesAuthenticatedUsers;
     use RefreshDatabase;
 
-    private function ask(string $question, ?int $user_id = null): AssistantQuestion
+    private function ask(string $question, ?int $user_id = null, ?string $conversation = null): AssistantQuestion
     {
         return AssistantQuestion::create([
             'user_id' => $user_id ?? $this->userWith('assistant.use')->id,
+            'conversation_id' => $conversation ?? (string) Str::uuid(),
             'question' => $question,
             'answer' => 'Een antwoord.',
         ]);
@@ -36,7 +38,7 @@ class AssistantHistoryTest extends TestCase
         $this->actingAs($user)
             ->getJson('/assistant/history')
             ->assertOk()
-            ->assertJsonPath('questions.0.question', 'Wie kan er dinsdag?');
+            ->assertJsonPath('conversations.0.title', 'Wie kan er dinsdag?');
     }
 
     /**
@@ -50,7 +52,7 @@ class AssistantHistoryTest extends TestCase
         $this->actingAs($this->userWith('assistant.use'))
             ->getJson('/assistant/history')
             ->assertOk()
-            ->assertJsonCount(0, 'questions');
+            ->assertJsonCount(0, 'conversations');
     }
 
     public function test_history_is_behind_the_same_permission(): void
@@ -58,7 +60,11 @@ class AssistantHistoryTest extends TestCase
         $this->actingAs($this->admin())->getJson('/assistant/history')->assertForbidden();
     }
 
-    public function test_the_newest_question_comes_first(): void
+    /**
+     * Two conversations touched in the same second used to sort arbitrarily, so
+     * "most recent first" was only true to the second.
+     */
+    public function test_the_newest_conversation_comes_first(): void
     {
         $user = $this->userWith('assistant.use');
         $this->ask('eerste', $user->id);
@@ -66,7 +72,9 @@ class AssistantHistoryTest extends TestCase
 
         $this->actingAs($user)
             ->getJson('/assistant/history')
-            ->assertJsonPath('questions.0.question', 'laatste');
+            ->assertJsonCount(2, 'conversations')
+            ->assertJsonPath('conversations.0.title', 'laatste')
+            ->assertJsonPath('conversations.1.title', 'eerste');
     }
 
     /**
@@ -98,15 +106,16 @@ class AssistantHistoryTest extends TestCase
 
         AssistantQuestion::create([
             'user_id' => $user->id,
+            'conversation_id' => (string) Str::uuid(),
             'question' => 'lange vraag',
             'answer' => str_repeat('Een heel lang antwoord. ', 500),
         ]);
 
         $response = $this->actingAs($user)->getJson('/assistant/history');
 
-        $response->assertOk()->assertJsonPath('questions.0.answer_truncated', true);
+        $response->assertOk();
 
-        $this->assertLessThan(1000, mb_strlen($response->json('questions.0.answer')));
+        $this->assertLessThan(1000, mb_strlen($response->json('conversations.0.preview')));
     }
 
     /**
@@ -137,6 +146,7 @@ class AssistantHistoryTest extends TestCase
 
         AssistantQuestion::create([
             'user_id' => $user->id,
+            'conversation_id' => (string) Str::uuid(),
             'question' => '(verder na bevestiging)',
             'is_continuation' => true,
             'answer' => 'Taak klaargezet.',
@@ -153,10 +163,12 @@ class AssistantHistoryTest extends TestCase
     public function test_a_continuation_is_not_offered_as_something_you_asked(): void
     {
         $user = $this->userWith('assistant.use');
-        $this->ask('Maak een werkbon', $user->id);
+        $thread = (string) Str::uuid();
+        $this->ask('Maak een werkbon', $user->id, $thread);
 
         AssistantQuestion::create([
             'user_id' => $user->id,
+            'conversation_id' => $thread,
             'question' => '(verder na bevestiging)',
             'is_continuation' => true,
             'answer' => 'Taak klaargezet.',
@@ -165,8 +177,67 @@ class AssistantHistoryTest extends TestCase
         $this->actingAs($user)
             ->getJson('/assistant/history')
             ->assertOk()
-            ->assertJsonCount(1, 'questions')
-            ->assertJsonPath('questions.0.question', 'Maak een werkbon');
+            ->assertJsonCount(1, 'conversations')
+            ->assertJsonPath('conversations.0.title', 'Maak een werkbon');
+    }
+
+    /**
+     * Listed one turn per row, "eerste" and "Nee het is de eerste klant" sat there
+     * as separate things, and neither means anything away from its thread.
+     */
+    public function test_the_turns_of_one_conversation_are_one_entry(): void
+    {
+        $user = $this->userWith('assistant.use');
+        $thread = (string) Str::uuid();
+
+        $this->ask('Ik moet een airco plaatsen in Ede', $user->id, $thread);
+        $this->ask('eerste', $user->id, $thread);
+        $this->ask('4 uur met 1 man', $user->id, $thread);
+
+        $this->actingAs($user)
+            ->getJson('/assistant/history')
+            ->assertOk()
+            ->assertJsonCount(1, 'conversations')
+            ->assertJsonPath('conversations.0.title', 'Ik moet een airco plaatsen in Ede')
+            ->assertJsonPath('conversations.0.turns', 3);
+    }
+
+    /**
+     * Clicking used to fill the box with the opening question, which threw the
+     * thread away and left somebody to type their way back to where they were.
+     */
+    public function test_a_conversation_comes_back_in_full_and_in_order(): void
+    {
+        $user = $this->userWith('assistant.use');
+        $thread = (string) Str::uuid();
+
+        $this->ask('Eerste vraag', $user->id, $thread);
+        AssistantQuestion::create([
+            'user_id' => $user->id,
+            'conversation_id' => $thread,
+            'question' => '(verder na bevestiging)',
+            'is_continuation' => true,
+            'answer' => 'Taak klaargezet.',
+        ]);
+        $this->ask('Tweede vraag', $user->id, $thread);
+
+        $response = $this->actingAs($user)->getJson('/assistant/history/' . $thread)->assertOk();
+
+        $this->assertCount(3, $response->json('turns'));
+        $this->assertSame('Eerste vraag', $response->json('turns.0.question'));
+        $this->assertSame('', $response->json('turns.1.question'), 'a continuation is nobody\'s question');
+        $this->assertSame('Taak klaargezet.', $response->json('turns.1.answer'));
+        $this->assertSame('Tweede vraag', $response->json('turns.2.question'));
+    }
+
+    public function test_nobody_opens_a_conversation_that_is_not_theirs(): void
+    {
+        $thread = (string) Str::uuid();
+        $this->ask('Wat verdient Jeremy?', $this->userWith('assistant.use')->id, $thread);
+
+        $this->actingAs($this->userWith('assistant.use'))
+            ->getJson('/assistant/history/' . $thread)
+            ->assertNotFound();
     }
 
     public function test_a_dry_run_removes_nothing(): void

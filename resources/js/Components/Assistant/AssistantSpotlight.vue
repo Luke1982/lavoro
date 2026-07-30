@@ -13,9 +13,9 @@
                 in the arrow keys. Shown here rather than on a page of its own
                 because this is where somebody realises they asked it before.
             -->
-            <div v-if="showing_history" class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
+            <div v-if="showing_history" class="max-h-[65vh] overflow-y-auto divide-y divide-slate-100">
                 <div class="flex items-center justify-between px-4 py-2.5">
-                    <p class="text-xs font-medium text-slate-500">Eerder gevraagd</p>
+                    <p class="text-xs font-medium text-slate-500">Eerdere gesprekken</p>
                     <button type="button" class="text-xs text-slate-400 hover:text-slate-600" @click="hideHistory">
                         Terug
                     </button>
@@ -26,22 +26,21 @@
                 <p v-else-if="loading_history" class="px-4 py-3 text-sm text-slate-400">Bezig met ophalen…</p>
 
                 <p v-else-if="!earlier.length" class="px-4 py-3 text-sm text-slate-400">
-                    Je hebt nog niets gevraagd.
+                    Je hebt nog geen gesprekken gehad.
                 </p>
 
-                <button v-for="entry in earlier" :key="entry.id" type="button"
-                    class="block w-full px-4 py-3 text-left hover:bg-slate-50" @click="askAgain(entry)">
-                    <p class="text-sm font-medium text-slate-900">{{ entry.question }}</p>
-                    <p v-if="entry.answer" class="mt-0.5 line-clamp-2 text-xs text-slate-500">
-                        {{ entry.answer }}<template v-if="entry.answer_truncated">…</template>
+                <button v-for="thread in earlier" :key="thread.id" type="button"
+                    class="block w-full px-4 py-3 text-left hover:bg-slate-50" @click="reopen(thread)">
+                    <p class="text-sm font-medium text-slate-900">{{ thread.title }}</p>
+                    <p v-if="thread.preview" class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ thread.preview }}</p>
+                    <p class="mt-1 text-[11px] text-slate-400">
+                        {{ askedAt(thread.last_at) }} · {{ thread.turns }} {{ thread.turns === 1 ? 'bericht' : 'berichten' }}
                     </p>
-                    <p v-else-if="entry.failure" class="mt-0.5 text-xs text-red-500">{{ entry.failure }}</p>
-                    <p class="mt-1 text-[11px] text-slate-400">{{ askedAt(entry.asked_at) }}</p>
                 </button>
             </div>
 
             <div v-else-if="exchanges.length" ref="threadRef"
-                class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100">
+                class="max-h-[65vh] overflow-y-auto divide-y divide-slate-100">
                 <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
                     <p v-if="exchange.question" class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
@@ -61,12 +60,59 @@
 
                     <p v-if="exchange.error" class="text-sm text-red-600">{{ exchange.error }}</p>
 
+                    <!--
+                        Records the answer named that no lookup returned. It has
+                        happened: six Mitsubishi model numbers invented whole
+                        against the ids of a fan, a thermostat and a light switch,
+                        with working links. Better to say so than to let it read
+                        like everything else.
+                    -->
+                    <p v-if="exchange.unverified.length" class="rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 ring-1 ring-amber-200">
+                        Let op: {{ exchange.unverified.join(', ') }}
+                        {{ exchange.unverified.length === 1 ? 'is' : 'zijn' }} niet uit een zoekopdracht
+                        gekomen. Controleer dat zelf voordat je erop afgaat.
+                    </p>
+
                     <MarkdownText v-if="exchange.answer" :text="exchange.answer" class="text-sm text-slate-800"
                         @navigate="close" />
 
                     <div v-else-if="exchange.pending" class="flex items-center gap-2 text-sm text-slate-400">
                         <ArrowPathIcon class="size-4 shrink-0 animate-spin" />
                         <span>Aan het opzoeken…</span>
+                    </div>
+
+                    <!--
+                        Several records matching one description is the ordinary
+                        case. A link goes to the record and takes the reader out of
+                        the conversation that needed the answer, and "de eerste" is
+                        not reliably understood — so the options are options.
+                    -->
+                    <div v-for="(choice, choiceIndex) in exchange.choices" :key="'c' + choiceIndex"
+                        class="rounded-lg bg-indigo-50 px-3 py-2.5 ring-1 ring-indigo-200">
+                        <p class="text-xs font-medium text-indigo-900">
+                            {{ choice.chosen ? 'Gekozen: ' + choice.chosen : choice.question }}
+                        </p>
+                    <!--
+                        Two things per option on purpose. The button is the answer
+                        to the question being asked; the link is for checking the
+                        record first. Offering only the link was what made people
+                        read "open this" as "choose this".
+                    -->
+                    <ul v-if="!choice.chosen" class="mt-2 space-y-1">
+                        <li v-for="(option, optionIndex) in choice.options" :key="optionIndex"
+                            class="flex items-center gap-2">
+                            <button type="button" :disabled="asking"
+                                class="min-w-0 flex-1 truncate rounded-md bg-white px-2.5 py-1 text-left text-xs font-medium text-indigo-900 ring-1 ring-indigo-300 hover:bg-indigo-100 disabled:opacity-50"
+                                @click="choose(choice, option)">
+                                {{ option.label }}
+                            </button>
+                            <a v-if="option.link" :href="option.link"
+                                class="shrink-0 text-[11px] text-indigo-700 underline hover:text-indigo-900"
+                                @click.prevent="openRecord(option.link)">
+                                bekijken
+                            </a>
+                        </li>
+                    </ul>
                     </div>
 
                     <!--
@@ -104,7 +150,7 @@
 
         <template #footer-left>
             <button v-if="!showing_history" type="button" class="hover:text-slate-600" @click="showHistory">
-                Eerder gevraagd
+                Eerdere gesprekken
             </button>
             <span v-else>De assistent ziet alleen wat jij mag zien.</span>
         </template>
@@ -135,6 +181,17 @@ const shortcutLabel = assistantShortcutLabel()
 
 const ASK_TIMEOUT_MS = 180000
 
+/** crypto.randomUUID is not there over plain http on a phone; this is the fallback. */
+function newConversationId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
+}
+
 /**
  * Questions asked before, newest first, for stepping back through with the
  * arrows the way a shell does. Loaded once when the box first opens rather than
@@ -142,6 +199,12 @@ const ASK_TIMEOUT_MS = 180000
  */
 const asked_before = ref([])
 const recalled = ref(-1)
+
+/**
+ * The thread these turns belong to. One id for as long as the conversation lasts,
+ * so the stored turns can be read back together instead of as loose questions.
+ */
+const conversation = ref(newConversationId())
 
 const showing_history = ref(false)
 const loading_history = ref(false)
@@ -180,6 +243,8 @@ const TOOL_LABELS = {
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
 
+const asChoices = (choices) => (choices || []).map((choice) => ({ ...choice, chosen: '' }))
+
 const asActions = (pending) => (pending || []).map((action) => ({
     ...action,
     preview: action.preview || 'Nog niet uitgevoerd — bevestig om door te gaan.',
@@ -201,8 +266,8 @@ async function loadHistory({ force = false } = {}) {
 
     try {
         const { data } = await axios.get('/assistant/history')
-        earlier.value = data.questions || []
-        asked_before.value = earlier.value.map((row) => row.question)
+        earlier.value = data.conversations || []
+        asked_before.value = earlier.value.map((thread) => thread.title)
     } catch (e) {
         // Not being able to look back is no reason to stop somebody asking
         // something new, so this only ever reports itself in the panel.
@@ -223,16 +288,45 @@ function hideHistory() {
 }
 
 /**
- * Puts an old question back in the box rather than replaying its answer. What it
- * said then was about the state of things then, and presenting that as current is
- * how somebody acts on a werkbon that has since moved on.
+ * Opens an old conversation and puts you back inside it.
+ *
+ * Filling the box with the first question was the wrong shape: it threw the thread
+ * away and left somebody to type their way back to where they had been. The turns
+ * come back so the next question is a follow-up, on the same conversation.
+ *
+ * Buttons from before are deliberately not restored. Their approvals expired with
+ * them, and offering one that cannot work is worse than offering none.
  */
-function askAgain(entry) {
-    question.value = entry.question
-    showing_history.value = false
-    recalled.value = -1
-    draft.value = ''
-    shellRef.value?.focus()
+async function reopen(thread) {
+    loading_history.value = true
+    history_error.value = ''
+
+    try {
+        const { data } = await axios.get('/assistant/history/' + thread.id)
+
+        exchanges.value = (data.turns || []).map((turn) => ({
+            question: turn.question,
+            answer: turn.answer || '',
+            error: turn.failure || '',
+            tools: (turn.tools || []).map((name) => ({ name, failed: false })),
+            pending: false,
+            pendingActions: [],
+            choices: [],
+            unverified: [],
+        }))
+
+        conversation.value = data.id
+        showing_history.value = false
+        question.value = ''
+        draft.value = ''
+        recalled.value = -1
+        scrollToLatest()
+        shellRef.value?.focus()
+    } catch (e) {
+        history_error.value = e.response?.data?.message || 'Kon dat gesprek niet openen.'
+    } finally {
+        loading_history.value = false
+    }
 }
 
 function askedAt(iso) {
@@ -307,7 +401,7 @@ async function ask() {
         })
     })
 
-    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [] }
+    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -327,12 +421,14 @@ async function ask() {
         // what a path means so a made-up one cannot put words into the prompt.
         const { data } = await axios.post(
             '/assistant/ask',
-            { question: asked, page: window.location.pathname, history },
+            { question: asked, page: window.location.pathname, history, conversation: conversation.value },
             { timeout: ASK_TIMEOUT_MS },
         )
         exchange.answer = data.answer
         exchange.tools = data.tools || []
         exchange.pendingActions = asActions(data.pending)
+        exchange.choices = asChoices(data.choices)
+        exchange.unverified = data.unverified || []
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.
         // Spinning for ever is not an option though: without this it never stops,
@@ -355,6 +451,27 @@ async function ask() {
         scrollToLatest()
         shellRef.value?.focus()
     }
+}
+
+/**
+ * Answers a choice on the person's behalf.
+ *
+ * Sent as a question, because that is what it is: clicking is the answer, and the
+ * reference travels with it so there is nothing left to guess about which record
+ * was meant.
+ */
+function choose(choice, option) {
+    if (asking.value || choice.chosen) return
+
+    choice.chosen = option.label
+    question.value = 'Ik bedoel: ' + option.label + ' (' + option.reference + ')'
+    ask()
+}
+
+/** Opens the record without answering the question that is still standing. */
+function openRecord(path) {
+    close()
+    router.visit(path)
 }
 
 /** What the model is sent as the story so far, including what has been done. */
@@ -410,7 +527,7 @@ async function proceed() {
 
     if (!history.length) return
 
-    const exchange = { question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [] }
+    const exchange = { question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
     exchanges.value.push(exchange)
     asking.value = true
     scrollToLatest()
@@ -418,12 +535,14 @@ async function proceed() {
     try {
         const { data } = await axios.post(
             '/assistant/continue',
-            { page: window.location.pathname, history },
+            { page: window.location.pathname, history, conversation: conversation.value },
             { timeout: ASK_TIMEOUT_MS },
         )
         exchange.answer = data.answer
         exchange.tools = data.tools || []
         exchange.pendingActions = asActions(data.pending)
+        exchange.choices = asChoices(data.choices)
+        exchange.unverified = data.unverified || []
     } catch (e) {
         // Nothing was lost if this fails: the action itself already happened, and
         // the next thing typed picks the thread up anyway.
@@ -451,6 +570,8 @@ function onKeydown(event) {
 const stopListening = router.on('navigate', () => {
     exchanges.value = []
     question.value = ''
+    /** A new page is a new conversation; the old one is readable in the panel. */
+    conversation.value = newConversationId()
 })
 
 onMounted(() => {

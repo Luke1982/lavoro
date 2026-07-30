@@ -6,7 +6,12 @@
                 <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
             </TransitionChild>
 
-            <div class="fixed inset-0 overflow-y-auto p-4 sm:p-6 md:p-20">
+            <!--
+                Padded rather than centred, and not by much: twenty rems of it on a
+                desktop was the box being small so the space around it could be
+                large. A conversation of any length wants the height.
+            -->
+            <div class="fixed inset-0 overflow-y-auto p-4 sm:p-6 md:py-10 md:px-20">
                 <TransitionChild as="template" enter="ease-out duration-150" enter-from="opacity-0 scale-95"
                     enter-to="opacity-100 scale-100" leave="ease-in duration-100" leave-from="opacity-100 scale-100"
                     leave-to="opacity-0 scale-95">

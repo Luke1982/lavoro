@@ -6,6 +6,7 @@ use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
+use App\Domain\Assistant\ReferenceCheck;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
@@ -54,6 +55,8 @@ class AssistantController extends Controller
         $user = $request->user();
         $tools = [];
         $pending = [];
+        $choices = [];
+        $seen = [];
 
         try {
             $answer = $loop->ask(
@@ -62,7 +65,7 @@ class AssistantController extends Controller
                 system: $this->systemPrompt(),
                 context: $this->context($user, $pages->describe($request->validated('page'))),
                 history: $request->validated('history') ?? [],
-                onTool: $this->toolWatcher($tools, $pending),
+                onTool: $this->toolWatcher($tools, $pending, $choices, $seen),
                 difficulty: $this->difficultyFor($request->validated('question'), $user, $registry, $sorter),
             );
         } catch (ModelUnavailable $e) {
@@ -81,6 +84,13 @@ class AssistantController extends Controller
             'answer' => $answer->text,
             'tools' => $tools,
             'pending' => $pending,
+            'choices' => $choices,
+            /**
+             * Records the answer named that no tool returned. A prompt forbids
+             * inventing them and a prompt is not a guarantee, so this is checked
+             * and shown rather than trusted.
+             */
+            'unverified' => app(ReferenceCheck::class)->report($answer->text, $seen, $user->id),
         ]);
     }
 
@@ -129,6 +139,7 @@ class AssistantController extends Controller
         $user = $request->user();
         $tools = [];
         $pending = [];
+        $choices = [];
 
         try {
             $answer = $loop->ask(
@@ -139,15 +150,15 @@ class AssistantController extends Controller
                     . 'Doe niets opnieuw wat al is uitgevoerd.',
                 system: $this->systemPrompt(),
                 context: $this->context($user, $pages->describe($request->validated('page'))),
-                onTool: $this->toolWatcher($tools, $pending),
+                onTool: $this->toolWatcher($tools, $pending, $choices),
                 history: $request->validated('history'),
             );
         } catch (ModelUnavailable $e) {
-            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, failure: $this->explain($e), continuation: true);
+            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $this->explain($e), continuation: true);
 
             return response()->json(['message' => $this->explain($e)], 503);
         } catch (RuntimeException $e) {
-            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, failure: $e->getMessage(), continuation: true);
+            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $e->getMessage(), continuation: true);
 
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -157,6 +168,7 @@ class AssistantController extends Controller
             self::CARRIED_ON,
             $request->validated('page'),
             $tools,
+            $request->validated('conversation'),
             answer: $answer->text,
             rounds: $answer->tool_rounds,
             cost: $answer->cost_micros,
@@ -167,22 +179,37 @@ class AssistantController extends Controller
             'answer' => $answer->text,
             'tools' => $tools,
             'pending' => $pending,
+            'choices' => $choices,
         ]);
     }
 
     /**
-     * Watches the tool calls of one turn, and picks out anything waiting to be
-     * agreed to so the box can offer a button for it.
+     * Watches the tool calls of one turn, and picks out anything the box has to
+     * put in front of somebody: an action waiting to be agreed to, or a choice
+     * waiting to be made.
      *
      * @param  array<int, array<string, mixed>>  $tools
      * @param  array<int, array<string, mixed>>  $pending
+     * @param  array<int, array<string, mixed>>  $choices
      */
-    private function toolWatcher(array &$tools, array &$pending): Closure
+    private function toolWatcher(array &$tools, array &$pending, array &$choices, array &$seen = []): Closure
     {
-        return function (string $name, array $arguments, bool $failed, ?ToolResult $result = null) use (&$tools, &$pending) {
+        return function (
+            string $name,
+            array $arguments,
+            bool $failed,
+            ?ToolResult $result = null,
+        ) use (
+            &$tools,
+            &$pending,
+            &$choices,
+            &$seen,
+        ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
+            $seen[] = $result?->toModelContent() ?? '';
+            $status = is_array($result?->content) ? ($result->content['status'] ?? null) : null;
 
-            if (is_array($result?->content) && ($result->content['status'] ?? null) === 'bevestiging_nodig') {
+            if ($status === 'bevestiging_nodig') {
                 $pending[] = [
                     'tool' => $name,
                     'preview' => $result->content['preview'] ?? null,
@@ -190,11 +217,33 @@ class AssistantController extends Controller
                     'token' => $result->content['confirmation_token'],
                 ];
             }
+
+            if ($status === 'keuze_nodig') {
+                $choices[] = [
+                    'question' => $result->content['question'],
+                    'options' => $result->content['options'],
+                ];
+            }
+
+            /**
+             * A lookup can offer a choice of its own, without the model deciding to
+             * ask. Taken from the result rather than from what it says about it.
+             */
+            if (is_array($result?->content) && isset($result->content['choice']['options'])) {
+                $choices[] = [
+                    'question' => $result->content['choice']['question'] ?? 'Welke bedoel je?',
+                    'options' => $result->content['choice']['options'],
+                ];
+            }
         };
     }
 
     /**
-     * The questions this person asked, newest first.
+     * The conversations this person has had, most recent first.
+     *
+     * Conversations, not questions. Listed one turn per row, "eerste" and "Nee het
+     * is de eerste klant" sat there as separate things, and neither means anything
+     * away from the thread it belonged to.
      *
      * Only their own: a transcript is a record of somebody's working day, and
      * being able to read the assistant is not the same as being able to read
@@ -202,35 +251,78 @@ class AssistantController extends Controller
      */
     public function history(AssistantHistoryRequest $request): JsonResponse
     {
-        /**
-         * Ordered the way the index is built, so this stays one seek however many
-         * questions somebody has behind them.
-         */
-        $questions = AssistantQuestion::query()
+        $threads = AssistantQuestion::query()
             ->asked()
             ->where('user_id', $request->user()->id)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->whereNotNull('conversation_id')
+            ->selectRaw(
+                'conversation_id, count(*) as turns, min(id) as opened_with, '
+                . 'max(created_at) as last_at, max(id) as last_id'
+            )
+            ->groupBy('conversation_id')
+            /**
+             * The id breaks the tie. Two conversations touched in the same second
+             * sort arbitrarily on the timestamp alone, so "most recent first" was
+             * only true to the second — and in a busy minute, not true at all.
+             */
+            ->orderByDesc('last_at')
+            ->orderByDesc('last_id')
             ->limit(self::HISTORY_LENGTH)
             ->get();
 
+        /** One extra query for the opening lines rather than one per thread. */
+        $openers = AssistantQuestion::query()
+            ->whereIn('id', $threads->pluck('opened_with'))
+            ->get()
+            ->keyBy('id');
+
         return response()->json([
-            'questions' => $questions->map(fn (AssistantQuestion $question) => [
-                'id' => $question->id,
-                'question' => $question->question,
-                /**
-                 * A taste of the answer rather than all of it. Thirty full ones
-                 * is most of half a megabyte, and this list exists to find the
-                 * question again — the answer is read by asking it once more.
-                 */
-                'answer' => $question->answer === null
-                    ? null
-                    : mb_substr($question->answer, 0, self::PREVIEW_CHARS),
-                'answer_truncated' => mb_strlen((string) $question->answer) > self::PREVIEW_CHARS,
-                'failure' => $question->failure,
-                'page' => $question->page,
-                'tools' => $question->tools ?? [],
-                'asked_at' => $question->created_at?->toIso8601String(),
+            'conversations' => $threads->map(function ($thread) use ($openers) {
+                $opener = $openers->get($thread->opened_with);
+
+                return [
+                    'id' => $thread->conversation_id,
+                    /** What was asked first, which is what a thread is about. */
+                    'title' => $opener?->question,
+                    'preview' => $opener?->answer === null
+                        ? $opener?->failure
+                        : mb_substr((string) $opener->answer, 0, self::PREVIEW_CHARS),
+                    'turns' => (int) $thread->turns,
+                    'last_at' => $thread->last_at,
+                ];
+            })->all(),
+        ]);
+    }
+
+    /**
+     * One conversation in full, so it can be picked up where it stopped.
+     *
+     * Continuations come too. Without them the thread reads oddly — an answer with
+     * no question above it — and they are half of what was said.
+     *
+     * Proposals and choices are deliberately not restored. Their approvals have
+     * expired and their moment has passed; offering a button that cannot work is
+     * worse than not offering one.
+     */
+    public function conversation(AssistantHistoryRequest $request, string $conversation): JsonResponse
+    {
+        $turns = AssistantQuestion::query()
+            ->where('user_id', $request->user()->id)
+            ->where('conversation_id', $conversation)
+            ->orderBy('id')
+            ->get();
+
+        if ($turns->isEmpty()) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
+
+        return response()->json([
+            'id' => $conversation,
+            'turns' => $turns->map(fn (AssistantQuestion $turn) => [
+                'question' => $turn->is_continuation ? '' : $turn->question,
+                'answer' => $turn->answer,
+                'failure' => $turn->failure,
+                'tools' => $turn->tools ?? [],
             ])->all(),
         ]);
     }
@@ -292,6 +384,7 @@ class AssistantController extends Controller
             $request->validated('question'),
             $request->validated('page'),
             $tools,
+            $request->validated('conversation'),
             $answer,
             $failure,
             $rounds,
@@ -307,6 +400,7 @@ class AssistantController extends Controller
         string $question,
         ?string $page,
         array $tools,
+        ?string $conversation = null,
         ?string $answer = null,
         ?string $failure = null,
         int $rounds = 0,
@@ -316,6 +410,7 @@ class AssistantController extends Controller
         try {
             AssistantQuestion::create([
                 'user_id' => $user->id,
+                'conversation_id' => $conversation,
                 'question' => $question,
                 'is_continuation' => $continuation,
                 'answer' => $answer,
@@ -380,6 +475,12 @@ class AssistantController extends Controller
             '- project: [#12](/projects/12)',
             'Alleen voor records waarvan je het nummer echt uit een tool hebt. Verzin nooit',
             'een link, en gebruik geen andere paden dan deze.',
+            '',
+            'Passen er meerdere records op wat iemand zoekt, som ze dan niet op maar leg de keuze',
+            'voor met ask_which_one. Een link alleen is niet genoeg: die gaat naar het record en',
+            'haalt de gebruiker daarmee uit het gesprek, en een antwoord als "de eerste" is niet',
+            'betrouwbaar te plaatsen. Geef bij elke keuze wel het pad mee in link, zodat iemand het',
+            'record kan bekijken voordat hij kiest.',
             '',
             'Wil je iets vastleggen of wijzigen, roep dan de bijbehorende tool aan zodra je de',
             'gegevens hebt. Die tools wijzigen uit zichzelf nog niets: ze geven terug dat er',

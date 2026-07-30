@@ -24,6 +24,8 @@ class AssistantContinueRequest extends FormRequest
     {
         return [
             'page' => ['nullable', 'string', 'max:2048'],
+            /** Which thread this belongs to, so the turns can be read back together. */
+            'conversation' => ['nullable', 'uuid'],
             'history' => ['required', 'array', 'min:1', 'max:6'],
             'history.*.question' => ['required', 'string', 'max:2000'],
             'history.*.answer' => ['required', 'string', 'max:8000'],

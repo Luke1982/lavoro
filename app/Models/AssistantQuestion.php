@@ -15,6 +15,7 @@ class AssistantQuestion extends Model
 {
     protected $fillable = [
         'user_id',
+        'conversation_id',
         'question',
         'is_continuation',
         'answer',

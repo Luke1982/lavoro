@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Tools\Read\Concerns\OffersAChoice;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -11,6 +12,8 @@ use App\Models\User;
 
 class FindAssetTool implements Tool
 {
+    use OffersAChoice;
+
     public static function name(): string
     {
         return 'find_asset';
@@ -98,8 +101,29 @@ class FindAssetTool implements Tool
             'next_service_date' => $asset->next_service_date,
         ])->all();
 
+        $content = ['assets' => $rows];
+
+        /**
+         * A handful of matches with no way to tell which was meant is a choice, and
+         * it comes from here rather than from the model remembering to ask. Asked
+         * the same thing twice it offered buttons once and a bulleted list the next.
+         */
+        $choice = $this->choiceOf(
+            $assets,
+            'Welke machine bedoel je?',
+            'machine',
+            'assets',
+            fn ($asset) => trim(($asset->serial_number ?? 'machine #' . $asset->id) . ' — ' . ($asset->product?->display_name ?? '') . ' — ' . ($asset->customer?->name ?? ''), ' —'),
+        );
+
+        if ($choice !== null) {
+            $content['choice'] = $choice;
+            $content['note'] = 'De gebruiker krijgt hier knoppen voor te zien. Som ze niet nog eens op; '
+                . 'zeg kort wat je vond en laat hem kiezen.';
+        }
+
         return ToolResult::ok(
-            ['assets' => $rows],
+            $content,
             count($rows) . ' machine(s) gevonden.',
         );
     }

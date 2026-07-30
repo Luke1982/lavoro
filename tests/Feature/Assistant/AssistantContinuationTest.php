@@ -74,9 +74,18 @@ class AssistantContinuationTest extends TestCase
 
         $this->assertArrayNotHasKey('question', $request->validated());
         $this->assertArrayNotHasKey('system', $request->validated());
-        $this->assertSame(['history', 'page'], collect(array_keys($request->rules()))
+
+        /**
+         * Asserted as an absence rather than an exact list, so adding an honest
+         * field does not fail this while adding a prompt still would.
+         */
+        $accepted = collect(array_keys($request->rules()))
             ->map(fn (string $rule) => explode('.', $rule)[0])
-            ->unique()->sort()->values()->all());
+            ->unique();
+
+        foreach (['question', 'system', 'prompt', 'instructions'] as $forbidden) {
+            $this->assertFalse($accepted->contains($forbidden), $forbidden . ' can be set by the client');
+        }
     }
 
     public function test_it_is_throttled_like_the_rest(): void
