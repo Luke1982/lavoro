@@ -164,4 +164,27 @@ class UsageCostTest extends TestCase
 
         $this->assertSame(2, AssistantUsage::count(), 'two calls to the model, two rows');
     }
+
+    /**
+     * An unpriced model costing nothing is a deliberate mechanism, tested above.
+     * This is the other half: not shipping one. Prices are keyed by the exact id
+     * that goes over the wire, so a model set in the environment that nothing
+     * prices records every call at nought — the spend does not look wrong, it
+     * looks absent, and nobody goes looking for a number that is there.
+     */
+    public function test_every_model_this_application_is_set_up_to_use_has_a_price(): void
+    {
+        $priced = config('assistant.pricing', []);
+        $unpriced = [];
+
+        foreach (config('assistant.providers', []) as $name => $provider) {
+            $model = $provider['model'] ?? null;
+
+            if ($model !== null && !array_key_exists($model, $priced)) {
+                $unpriced[] = $name . ' draait op ' . $model;
+            }
+        }
+
+        $this->assertSame([], $unpriced, 'these record every call at nought: ' . implode('; ', $unpriced));
+    }
 }

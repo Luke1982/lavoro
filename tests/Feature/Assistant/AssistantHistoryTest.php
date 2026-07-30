@@ -4,6 +4,7 @@ namespace Tests\Feature\Assistant;
 
 use App\Models\AssistantQuestion;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -285,5 +286,22 @@ class AssistantHistoryTest extends TestCase
         );
 
         $this->travelBack();
+    }
+
+    /**
+     * The command trimming these is only a promise if something runs it.
+     *
+     * It existed for as long as the assistant did and was scheduled nowhere, so
+     * every transcript of everybody's working day was kept for ever while the
+     * thing meant to trim them was never once invoked. Its own default says six
+     * months, which made that an intention rather than a fact.
+     */
+    public function test_something_actually_runs_the_pruning(): void
+    {
+        $scheduled = collect(app(Schedule::class)->events())
+            ->map(fn ($event) => $event->command ?? $event->description ?? '')
+            ->filter(fn (string $command) => str_contains($command, 'assistant:prune'));
+
+        $this->assertNotEmpty($scheduled, 'nothing invokes assistant:prune, so nothing is ever pruned');
     }
 }

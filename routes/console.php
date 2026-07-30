@@ -31,3 +31,14 @@ Schedule::command('maintenancecontracts:generate-serviceorders')
     ->hourly()
     ->name('maintenancecontracts-generate-serviceorders')
     ->withoutOverlapping();
+
+/**
+ * The command has existed since the assistant did and was scheduled nowhere, so
+ * a transcript of everybody's working day was kept for ever while the thing that
+ * trims them was never once invoked. Its own default says six months, which was
+ * an intention rather than a fact.
+ */
+Schedule::command('assistant:prune')
+    ->dailyAt('03:20')
+    ->name('assistant-prune-questions')
+    ->withoutOverlapping();
