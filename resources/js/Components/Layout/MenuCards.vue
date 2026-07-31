@@ -27,7 +27,13 @@
                 <p class="truncate text-sm font-semibold text-sidebar-text">{{ card.label }}</p>
                 <p class="truncate text-[12px] text-sidebar-muted">{{ card.description }}</p>
             </div>
-            <ExternalLink class="size-4 shrink-0 text-sidebar-muted transition-colors group-hover:text-sidebar-text" />
+            <!--
+                Het pictogram rechts zegt wat er gebeurt als je erop tikt, en dat
+                leest de kaart af aan zijn eigen adres: een telefoonnummer belt,
+                de rest opent ergens anders.
+            -->
+            <component :is="card.href?.startsWith('tel:') ? Phone : ExternalLink"
+                class="size-4 shrink-0 text-sidebar-muted transition-colors group-hover:text-sidebar-text" />
         </a>
 
         <Link v-else-if="card.type === 'user'" :href="card.href" @click="$emit('navigate')"
@@ -55,7 +61,7 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import { ChevronRight, ExternalLink } from '@lucide/vue'
+import { ChevronRight, ExternalLink, Phone } from '@lucide/vue'
 import { navIcon } from '@/Navigation/icons.js'
 import { useMenu } from '@/Composables/useMenu.js'
 

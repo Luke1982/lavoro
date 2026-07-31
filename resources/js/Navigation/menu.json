@@ -185,10 +185,9 @@
             "id": "support",
             "type": "support",
             "label": "Support",
-            "description": "We helpen je graag",
+            "description": "0345 246 023",
             "icon": "CircleHelp",
-            "href": "mailto:info@majorlabel.nl",
-            "external": true
+            "href": "tel:+31345246023"
         },
         { "id": "profiel", "type": "user", "href": "/me/edit" },
         { "id": "uitloggen", "type": "logout", "label": "Uitloggen", "icon": "LogOut", "action": "logout" }
