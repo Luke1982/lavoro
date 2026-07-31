@@ -199,6 +199,16 @@ class ServiceOrder extends Model
         return $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
     }
 
+    /**
+     * Het nummer zoals iedereen het kent: WB gevolgd door vier cijfers. De vorm
+     * stond op drie plaatsen los uitgeschreven en hoort bij de werkbon zelf, niet
+     * bij wie hem toevallig afdrukt.
+     */
+    public function getNumberAttribute(): string
+    {
+        return 'WB-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+    }
+
     public function getIsClosedAttribute(): bool
     {
         return $this->serviceOrderStage?->is_closed_state === true;

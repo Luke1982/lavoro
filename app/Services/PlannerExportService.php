@@ -94,7 +94,7 @@ class PlannerExportService
         $breaktime_minutes = (int) ($member->pivot->breaktime ?? 0);
 
         $sheet->setCellValue('A' . $row, $event->name ?: $event->eventType?->name);
-        $sheet->setCellValue('B' . $row, $service_order ? 'WB-' . str_pad((string) $service_order->id, 4, '0', STR_PAD_LEFT) : null);
+        $sheet->setCellValue('B' . $row, $service_order?->number);
         $sheet->setCellValue('C' . $row, $customer?->name);
         $sheet->setCellValue('D' . $row, $this->location_resolver->resolve($event));
         $sheet->setCellValue('E' . $row, $project?->title);
