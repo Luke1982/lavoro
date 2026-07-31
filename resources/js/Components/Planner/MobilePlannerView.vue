@@ -175,6 +175,7 @@
                                 <!-- Right: event card -->
                                 <div v-else class="flex-1 pl-3 pr-4 pb-5">
                                     <MobileEventCard :event="item.event" :selected-user-id="selectedUserId"
+                                        :is-highlighted="highlightedEventId === item.event.id"
                                         :relevant-user-id="relevantUserId" :can-see-all="canSeeAll"
                                         :can-edit="canEdit(item.event)" :plannable-users="plannableUsers"
                                         :user-roles="userRoles" @tap="handleEventTap"
@@ -228,7 +229,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import {
     ChevronLeftIcon,
@@ -267,6 +268,7 @@ import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
+import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
 import { MapIcon, TriangleAlert, Columns3, List } from '@lucide/vue'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -359,7 +361,12 @@ const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFing
     () => modalOpen.value || !rootEl.value?.offsetParent,
 )
 
-onMounted(() => { fetchEvents(); startPolling() })
+onMounted(() => {
+    fetchEvents()
+    startPolling()
+    jumpToTarget()
+})
+
 onUnmounted(stopPolling)
 watch(weekStart, () => { resetFingerprint(); fetchEvents() })
 
@@ -394,6 +401,45 @@ const displayUser = computed(() => {
     }
     return null // "Alle monteurs" — no card
 })
+
+// ── Springen naar één afspraak ────────────────────────────────────────────────
+
+const highlightedEventId = ref(null)
+let highlightTimer = null
+
+/**
+ * Dezelfde sprong als op een breed scherm, met de middelen die deze weergave
+ * heeft: geen rijen om open te klappen, wel een filter op monteur dat de afspraak
+ * kan wegfilteren. Staat de aangewezen monteur er niet bij, dan gaat het filter
+ * open voor wie de hele planning mag zien, en anders blijft het staan: iemand een
+ * afspraak laten zien die niet van hem is, is geen hulp.
+ */
+async function jumpToTarget() {
+    const target = takeJumpTarget()
+
+    if (!target) return
+
+    weekStart.value = startOfWeek(new Date(target.start))
+
+    const crew = target.executing_users.map(u => u.id)
+
+    if (canSeeAll.value && selectedUserId.value !== null && crew.length && !crew.includes(selectedUserId.value)) {
+        selectedUserId.value = null
+    }
+
+    await nextTick()
+
+    const el = await waitForEventElement(listScrollEl, target.id)
+
+    if (!el) return
+
+    highlightedEventId.value = target.id
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    clearTimeout(highlightTimer)
+    highlightTimer = setTimeout(() => { highlightedEventId.value = null }, 3000)
+}
+
+onUnmounted(() => clearTimeout(highlightTimer))
 
 const totalMinutes = computed(() =>
     filteredEvents.value.reduce((sum, ev) => {

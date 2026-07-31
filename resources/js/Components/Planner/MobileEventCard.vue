@@ -1,5 +1,8 @@
 <template>
-    <div class="rounded-xl overflow-hidden border" :class="canEdit ? 'cursor-pointer' : ''" :style="{
+    <div class="rounded-xl overflow-hidden border" :data-event-id="event.id" :class="[
+        canEdit ? 'cursor-pointer' : '',
+        isHighlighted ? 'ring-2 ring-offset-2 ring-lavoro-blue animate-pulse' : '',
+    ]" :style="{
         backgroundColor: `color-mix(in srgb, ${cardColor} 6%, white)`,
         borderColor: `color-mix(in srgb, ${cardColor} 9%, #e5e7eb)`,
         ...(isClosed ? { backgroundImage: COMPLETED_PATTERN } : {}),
@@ -140,6 +143,9 @@ const props = defineProps({
     relevantUserId: { type: Number, default: null },
     canSeeAll: { type: Boolean, default: false },
     canEdit: { type: Boolean, default: false },
+
+    /** Aangewezen door een melding of een zoekresultaat, kort na aankomst. */
+    isHighlighted: { type: Boolean, default: false },
     plannableUsers: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
 })

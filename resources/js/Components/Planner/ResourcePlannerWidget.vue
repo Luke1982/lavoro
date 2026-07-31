@@ -549,6 +549,7 @@ import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
+import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -1249,7 +1250,7 @@ async function jumpToEvent(opt) {
 
     await fetchEvents()
     await nextTick()
-    const el = gridScrollRef.value?.querySelector(`[data-event-id="${opt.id}"]`)
+    const el = await waitForEventElement(gridScrollRef, opt.id)
     if (!el) {
         page.props.flash.error = `Afspraak op ${nlDate(date)} gevonden, maar de monteur is niet zichtbaar in dit overzicht.`
         return
@@ -1269,23 +1270,9 @@ watch(eventSearchSelection, async (id) => {
 })
 
 onMounted(() => {
-    const params = new URLSearchParams(window.location.search)
-    const highlightevent = params.get('highlightevent')
-    if (!highlightevent) return
+    const target = takeJumpTarget()
 
-    const gotodate = params.get('gotodate')
-    const executingUserIds = (params.get('executing_user_ids') || '')
-        .split(',')
-        .filter(Boolean)
-        .map(id => ({ id: Number(id) }))
-
-    jumpToEvent({
-        id: Number(highlightevent),
-        start: gotodate || new Date().toISOString(),
-        executing_users: executingUserIds,
-    })
-
-    window.history.replaceState(null, '', window.location.pathname)
+    if (target) jumpToEvent(target)
 })
 
 function scrollToWorkdayStart() {

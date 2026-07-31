@@ -6,6 +6,7 @@ use App\Enums\UserNotificationPriority;
 use App\Enums\UserNotificationType;
 use App\Http\Requests\UserNotificationAcknowledgeRequest;
 use App\Http\Requests\UserNotificationListRequest;
+use App\Models\Event;
 use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,6 +80,15 @@ class UserNotificationController extends Controller
     {
         return $request->user()
             ->userNotifications()
+
+            /**
+             * De afspraak wordt meegeladen omdat de link ernaartoe hem nodig heeft,
+             * en met morphWith omdat alleen afspraken hun monteurs erbij vragen: de
+             * andere soorten hebben aan hun eigen rij genoeg.
+             */
+            ->with(['notificationable' => fn ($morph) => $morph->morphWith([
+                Event::class => ['executingUsers'],
+            ])])
             ->when($request->boolean('unread'), fn ($query) => $query->unread())
             ->when(
                 $request->boolean('important'),
