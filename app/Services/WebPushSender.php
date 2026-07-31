@@ -7,6 +7,7 @@ use App\Models\PushSubscription;
 use App\Models\UserNotification;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
+use Illuminate\Support\Collection;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 use Psr\Log\LoggerInterface;
@@ -25,6 +26,12 @@ use Psr\Log\LoggerInterface;
  */
 class WebPushSender
 {
+    /**
+     * Tot en met dit aantal krijgt elke melding zijn eigen banner. Vijf is wat er
+     * op een telefoonscherm past zonder dat je gaat vegen om ze weg te krijgen.
+     */
+    private const SUMMARY_FROM = 5;
+
     public function __construct(private LoggerInterface $logger) {}
 
     public function isConfigured(): bool
@@ -59,13 +66,21 @@ class WebPushSender
         /** Built only once there is something to send: making it parses the keypair. */
         $push = $this->client();
 
-        foreach ($notifications as $notification) {
-            foreach ($by_user->get($notification->user_id, collect()) as $subscription) {
-                $push->queueNotification(
-                    $this->subscriptionFor($subscription),
-                    json_encode($this->payloadFor($notification), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                    ['urgency' => $this->urgencyFor($notification)],
-                );
+        foreach ($notifications->groupBy('user_id') as $user_id => $for_user) {
+            $subscriptions = $by_user->get($user_id, collect());
+
+            if ($subscriptions->isEmpty()) {
+                continue;
+            }
+
+            foreach ($this->messagesFor($for_user) as $message) {
+                foreach ($subscriptions as $subscription) {
+                    $push->queueNotification(
+                        $this->subscriptionFor($subscription),
+                        json_encode($message['payload'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                        ['urgency' => $message['urgency']],
+                    );
+                }
             }
         }
 
@@ -85,6 +100,73 @@ class WebPushSender
                 'reason' => $report->getReason(),
             ]);
         }
+    }
+
+    /**
+     * Wat er van deze stapel bij één persoon op het scherm komt.
+     *
+     * Tot en met vijf zijn het losse berichten: dan is elk bericht nog te lezen en
+     * gaat elke tik naar de juiste plek. Daarboven wordt het een rij banners die
+     * niemand meer wegwerkt, en is één regel die zegt hoeveel het er zijn meer
+     * waard dan vijftien die elk iets anders zeggen.
+     *
+     * @param  Collection<int, UserNotification>  $notifications
+     * @return array<int, array<string, mixed>>
+     */
+    private function messagesFor(Collection $notifications): array
+    {
+        if ($notifications->count() > self::SUMMARY_FROM) {
+            return [$this->summaryMessage($notifications)];
+        }
+
+        return $notifications->map(fn (UserNotification $notification) => [
+            'payload' => $this->payloadFor($notification),
+            'urgency' => $this->urgencyFor($notification),
+        ])->all();
+    }
+
+    /**
+     * Eén regel voor de hele stapel. Noemt waar het meeste over ging en hoeveel er
+     * nog meer is, en brengt je naar de lijst in plaats van naar één record: welke
+     * van de vijftien je bedoelde, weet alleen jij.
+     *
+     * @param  Collection<int, UserNotification>  $notifications
+     * @return array<string, mixed>
+     */
+    private function summaryMessage(Collection $notifications): array
+    {
+        $count = $notifications->count();
+        $titles = $notifications->pluck('title')->unique();
+        $urgent = $notifications->contains(
+            fn (UserNotification $notification) => $notification->priority === UserNotificationPriority::hoog
+        );
+
+        return [
+            'payload' => [
+                'notification' => [
+                    'title' => $count . ' nieuwe meldingen',
+                    'body' => $titles->count() === 1
+                        ? $titles->first() . ', ' . $count . ' keer.'
+                        : 'Je hebt ' . lcfirst((string) $notifications->first()->title)
+                            . ' en ' . ($count - 1) . ' andere meldingen.',
+                ],
+                'data' => [
+                    'type' => 'user_notification_summary',
+                    'priority' => (string) ($urgent
+                        ? UserNotificationPriority::hoog->value
+                        : UserNotificationPriority::normaal->value),
+                    'url' => '/usernotifications',
+
+                    /**
+                     * Altijd dezelfde tag: een tweede samenvatting hoort de eerste
+                     * te vervangen. Twee tellingen naast elkaar zijn geen twee
+                     * berichten maar één bericht dat zichzelf tegenspreekt.
+                     */
+                    'tag' => 'meldingen-samenvatting',
+                ],
+            ],
+            'urgency' => $urgent ? 'high' : 'normal',
+        ];
     }
 
     /**
