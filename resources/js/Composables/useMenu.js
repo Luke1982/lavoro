@@ -138,6 +138,13 @@ export function useMenu() {
     const mobileTabs = computed(() =>
         menu.mobileTabs
             .filter(maySee)
+
+            /**
+             * De plusknop verdwijnt als er niets is dat deze persoon mag aanmaken.
+             * Hij heeft geen eigen recht, want wat hij opent zijn de rechten van de
+             * vier knoppen eronder; blijven die alle vier weg, dan opent hij niets.
+             */
+            .filter((tab) => tab.action !== 'create' || createActions.value.length > 0)
             .map((tab) => ({ ...tab, badgeValue: tab.badge ? badges.value[tab.badge] : null, active: isActive(tab) }))
     )
 
