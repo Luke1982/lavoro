@@ -148,7 +148,7 @@ class InventedRecordTest extends TestCase
 
         $this->assertSame(
             $product->id,
-            $byCapacity['products'][0]['id'],
+            $byCapacity['products'][0]['product_id'],
             'a capacity that is recorded could not be searched for',
         );
     }

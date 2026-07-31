@@ -7,6 +7,7 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
+use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ServiceOrder;
@@ -46,7 +47,7 @@ class ReadToolScopeTest extends TestCase
         $this->order();
 
         $result = $this->invoke('search_service_orders', $user);
-        $ids = array_column($result->content['service_orders'], 'id');
+        $ids = array_column($result->content['service_orders'], 'service_order_id');
 
         $this->assertSame([$mine->id], $ids);
     }
@@ -76,7 +77,7 @@ class ReadToolScopeTest extends TestCase
         $closed->update(['service_order_stage_id' => $closed_stage->id]);
 
         $result = $this->invoke('search_service_orders', $user, ['only_open' => true]);
-        $ids = array_column($result->content['service_orders'], 'id');
+        $ids = array_column($result->content['service_orders'], 'service_order_id');
 
         $this->assertContains($stageless->id, $ids, 'a stageless werkbon is open but was hidden');
         $this->assertNotContains($closed->id, $ids, 'a closed werkbon was reported as open');
@@ -126,7 +127,7 @@ class ReadToolScopeTest extends TestCase
         Ticket::factory()->create(['asset_id' => $mine->id, 'service_order_id' => $order->id]);
 
         $result = $this->invoke('find_asset', $user);
-        $ids = array_column($result->content['assets'], 'id');
+        $ids = array_column($result->content['assets'], 'asset_id');
 
         $this->assertContains($mine->id, $ids);
         $this->assertNotContains($theirs->id, $ids, 'a machine from someone else\'s werkbon leaked');
@@ -177,7 +178,7 @@ class ReadToolScopeTest extends TestCase
 
         $found = collect(
             $this->invoke('find_asset', $user, ['due_within_days' => 7])->content['assets']
-        )->pluck('id');
+        )->pluck('asset_id');
 
         $this->assertContains($today->id, $found->all(), 'the one due today fell out of the week');
         $this->assertNotContains($later->id, $found->all(), 'something a month out came back as this week');
@@ -327,6 +328,34 @@ class ReadToolScopeTest extends TestCase
         $this->assertStringContainsString('niet alles', $found->content['note']);
     }
 
+    /**
+     * A tool with something of its own to say must not lose the sentence saying
+     * the list is partial. Array union keeps the left-hand key, so the three tools
+     * that set their own note were silently dropping it.
+     */
+    public function test_a_tool_with_its_own_note_still_says_the_list_is_partial(): void
+    {
+        config(['assistant.max_results' => 2]);
+
+        $user = $this->userWith('asset.read');
+        $customer = Customer::factory()->create();
+        $product = Product::factory()->create();
+
+        Asset::factory()->count(5)->create([
+            'customer_id' => $customer->id,
+            'product_id' => $product->id,
+            'next_service_date' => Clock::today(),
+        ]);
+
+        $found = $this->invoke('find_asset', $user, ['due_within_days' => 30]);
+
+        $this->assertSame(5, $found->content['total']);
+
+        /** Both halves, or one of them is being written over the other. */
+        $this->assertStringContainsString('niet alles', $found->content['note'], 'the partial warning was clobbered');
+        $this->assertStringContainsString('knoppen', $found->content['note'], "the tool's own note was clobbered");
+    }
+
     /** And a search that fits says so plainly, with no query spent counting. */
     public function test_a_search_that_fits_is_reported_as_the_whole_answer(): void
     {
@@ -341,6 +370,49 @@ class ReadToolScopeTest extends TestCase
 
         $this->assertSame(2, $found->content['total']);
         $this->assertArrayNotHasKey('shown', $found->content, 'a complete answer was described as a slice');
-        $this->assertStringContainsString('2 werkbon(nen) gevonden', (string) $found->summary);
+        $this->assertStringContainsString('2 werkbonnen gevonden', (string) $found->summary);
+    }
+
+    /**
+     * The two filters people actually ask by, which did not exist.
+     *
+     * "Welke storingen staan open" and "welke Mitsubishi's hebben we" are the
+     * ordinary questions, and both had to go through free text — which searches
+     * model names and descriptions too, so a brand came back mixed with whatever
+     * else happened to mention it. The model reached for status and brand by name
+     * and got told they were not arguments.
+     */
+    public function test_storingen_can_be_narrowed_to_the_ones_still_open(): void
+    {
+        $user = $this->userWith('ticket.read');
+        $asset = Asset::factory()->create([
+            'customer_id' => Customer::factory()->create()->id,
+            'product_id' => Product::factory()->create()->id,
+        ]);
+
+        Ticket::factory()->create(['asset_id' => $asset->id, 'status' => 'Open']);
+        Ticket::factory()->create(['asset_id' => $asset->id, 'status' => 'Gesloten']);
+
+        $open = $this->invoke('find_tickets', $user, ['status' => 'Open']);
+
+        $this->assertCount(1, $open->content['tickets']);
+        $this->assertSame('Open', $open->content['tickets'][0]['status']);
+    }
+
+    public function test_producten_can_be_narrowed_to_one_brand(): void
+    {
+        $user = $this->userWith('product.read');
+        $wanted = Brand::factory()->create(['name' => 'Mitsubishi']);
+
+        Product::factory()->create(['brand_id' => $wanted->id, 'model' => 'SRK 25 ZS-W']);
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Daikin'])->id,
+            'model' => 'Iets anders',
+        ]);
+
+        $found = $this->invoke('find_products', $user, ['brand' => 'Mitsubishi']);
+
+        $this->assertCount(1, $found->content['products']);
+        $this->assertSame('Mitsubishi', $found->content['products'][0]['brand']);
     }
 }

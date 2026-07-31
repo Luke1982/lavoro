@@ -178,7 +178,7 @@ class FindAppointmentTool implements Tool
             ->get();
 
         $rows = $events->map(fn (Event $event) => [
-            'id' => $event->id,
+            'event_id' => $event->id,
             /** On the clock somebody reads it on, not the one it is stored in. */
             'date' => Clock::toLocal($event->start)->toDateString(),
             'from' => Clock::toLocal($event->start)->format('H:i'),
@@ -201,11 +201,6 @@ class FindAppointmentTool implements Tool
             );
         }
 
-        $total = $this->howManyInAll($matching, count($rows), $limit);
-
-        return ToolResult::ok(
-            ['appointments' => $rows] + $this->countNote(count($rows), $total, 'afspraken'),
-            $this->foundLine(count($rows), $total, 'afspraak/afspraken'),
-        );
+        return $this->answerWithCount(['appointments' => $rows], count($rows), $matching, $limit, 'afspraken');
     }
 }

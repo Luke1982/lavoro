@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AssistantConversationFact;
 use App\Models\AssistantQuestion;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 
 /**
@@ -20,25 +22,43 @@ class PruneAssistantQuestionsCommand extends Command
 {
     protected $signature = 'assistant:prune {--months=6 : Keep this many months} {--dry-run}';
 
-    protected $description = 'Verwijdert opgeslagen assistentvragen ouder dan het bewaartermijn';
+    protected $description = 'Verwijdert opgeslagen assistentvragen en gespreksnotities ouder dan het bewaartermijn';
 
     public function handle(): int
     {
         $months = max(1, (int) $this->option('months'));
         $cutoff = now()->subMonths($months);
 
-        $query = AssistantQuestion::query()->where('created_at', '<', $cutoff);
-        $count = $query->count();
+        $questions = AssistantQuestion::query()->where('created_at', '<', $cutoff);
+
+        /**
+         * The notes a conversation kept go with the conversation. They hold a
+         * customer's name and number, so leaving them behind would keep the part
+         * worth keeping least for ever, under a retention rule that only ever
+         * looked at the transcript beside them.
+         */
+        $facts = AssistantConversationFact::query()->where('updated_at', '<', $cutoff);
+
+        $counts = [$questions->count(), $facts->count()];
 
         if ($this->option('dry-run')) {
-            $this->info($count . ' vragen zouden verdwijnen (ouder dan ' . $cutoff->toDateString() . ').');
+            $this->info($this->lineFor($counts, $cutoff, 'zouden verdwijnen'));
 
             return self::SUCCESS;
         }
 
-        $query->delete();
-        $this->info($count . ' vragen verwijderd (ouder dan ' . $cutoff->toDateString() . ').');
+        $questions->delete();
+        $facts->delete();
+
+        $this->info($this->lineFor($counts, $cutoff, 'verwijderd'));
 
         return self::SUCCESS;
+    }
+
+    /** @param array{0: int, 1: int} $counts */
+    private function lineFor(array $counts, CarbonInterface $cutoff, string $verb): string
+    {
+        return $counts[0] . ' vragen en ' . $counts[1] . ' gespreksnotities ' . $verb
+            . ' (ouder dan ' . $cutoff->toDateString() . ').';
     }
 }

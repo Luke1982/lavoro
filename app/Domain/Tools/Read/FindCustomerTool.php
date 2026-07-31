@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Read;
 
 use App\Domain\Tools\Read\Concerns\OffersAChoice;
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
 class FindCustomerTool implements Tool
 {
     use OffersAChoice;
+    use ReportsTheWholeCount;
 
     public static function name(): string
     {
@@ -147,11 +149,7 @@ class FindCustomerTool implements Tool
             );
         }
 
-        /**
-         * How many there really are, not how many fitted. Told "25 gevonden" for a
-         * village with eighty, somebody reasonably reads it as the whole list.
-         */
-        $total = $customers->count() < $limit ? $customers->count() : $matching->count();
+        $total = $this->howManyInAll($matching, $customers->count(), $limit);
 
         return $this->answerFor($customers, $described, filled($city), $total);
     }
@@ -170,7 +168,7 @@ class FindCustomerTool implements Tool
         ?int $total = null,
     ): ToolResult {
         $content = ['customers' => $customers->map(fn (Customer $customer) => [
-            'id' => $customer->id,
+            'customer_id' => $customer->id,
             'name' => $customer->name,
             'address' => $customer->address,
             'postal_code' => $customer->postal_code,
@@ -178,7 +176,7 @@ class FindCustomerTool implements Tool
             'email' => $customer->email,
             'phone' => $customer->phone,
             'locations' => $customer->locations->map(fn (Location $location) => [
-                'id' => $location->id,
+                'location_id' => $location->id,
                 'title' => $location->title,
                 'code' => $location->location_code,
                 'address' => $location->addressLine(),

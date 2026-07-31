@@ -127,7 +127,7 @@ class SearchServiceOrderTool implements Tool
         $orders = $query->orderByDesc('id')->limit($limit)->get();
 
         $rows = $orders->map(fn (ServiceOrder $order) => [
-            'id' => $order->id,
+            'service_order_id' => $order->id,
             'description' => $order->description,
             'customer' => $order->customer?->name,
             'where' => $order->linkedLocation?->addressLine(),
@@ -137,11 +137,6 @@ class SearchServiceOrderTool implements Tool
             'closed_on' => $order->closed_on,
         ])->all();
 
-        $total = $this->howManyInAll($matching, count($rows), $limit);
-
-        return ToolResult::ok(
-            ['service_orders' => $rows] + $this->countNote(count($rows), $total, 'werkbonnen'),
-            $this->foundLine(count($rows), $total, 'werkbon(nen)'),
-        );
+        return $this->answerWithCount(['service_orders' => $rows], count($rows), $matching, $limit, 'werkbonnen');
     }
 }

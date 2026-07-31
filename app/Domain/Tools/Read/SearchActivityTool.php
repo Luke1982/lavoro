@@ -193,7 +193,7 @@ class SearchActivityTool implements Tool
         $activities = $query->orderByDesc('occurred_at')->orderByDesc('id')->limit($limit)->get();
 
         $rows = $activities->map(fn (Activity $activity) => [
-            'id' => $activity->id,
+            'activity_id' => $activity->id,
             /**
              * On the clock the timeline shows it on. Reported raw, the assistant
              * said a werkbon was closed at 18:39 when every screen in the

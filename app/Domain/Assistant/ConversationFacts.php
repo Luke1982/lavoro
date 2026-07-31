@@ -25,18 +25,21 @@ use Throwable;
 class ConversationFacts
 {
     /**
-     * Where a single record of each kind is found in a tool result, and what to
-     * call it in Dutch. Keyed by the array a tool returns.
+     * Which array a tool returns, and which key inside a row holds its number.
      *
-     * @var array<string, array{key: string, noun: string}>
+     * Rows name their own id after the argument that takes it — a customer row
+     * says customer_id — so the number a model reads is spelled the same as the
+     * place it has to put it, and cannot be mistaken for another table's.
+     *
+     * @var array<string, array{id: string, noun: string}>
      */
     private const FROM_RESULTS = [
-        'customers' => ['key' => 'klant', 'noun' => 'klant'],
-        'service_orders' => ['key' => 'werkbon', 'noun' => 'werkbon'],
-        'assets' => ['key' => 'machine', 'noun' => 'machine'],
-        'tickets' => ['key' => 'storing', 'noun' => 'storing'],
-        'products' => ['key' => 'product', 'noun' => 'product'],
-        'appointments' => ['key' => 'afspraak', 'noun' => 'afspraak'],
+        'customers' => ['id' => 'customer_id', 'noun' => 'klant'],
+        'service_orders' => ['id' => 'service_order_id', 'noun' => 'werkbon'],
+        'assets' => ['id' => 'asset_id', 'noun' => 'machine'],
+        'tickets' => ['id' => 'ticket_id', 'noun' => 'storing'],
+        'products' => ['id' => 'product_id', 'noun' => 'product'],
+        'appointments' => ['id' => 'event_id', 'noun' => 'afspraak'],
     ];
 
     /**
@@ -164,12 +167,12 @@ class ConversationFacts
 
             $row = reset($rows);
 
-            if (!is_array($row) || !isset($row['id'])) {
+            if (!is_array($row) || !isset($row[$meaning['id']])) {
                 continue;
             }
 
-            $learned[$meaning['key']] = [
-                'id' => (int) $row['id'],
+            $learned[$meaning['noun']] = [
+                'id' => (int) $row[$meaning['id']],
                 'label' => $this->labelIn($row),
             ];
         }

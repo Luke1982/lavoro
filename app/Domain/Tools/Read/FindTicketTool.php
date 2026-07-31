@@ -44,6 +44,12 @@ class FindTicketTool implements Tool
                     'items' => ['type' => 'integer'],
                     'description' => 'Haal deze storingen op via hun nummer.',
                 ],
+                'status' => [
+                    'type' => 'string',
+                    'description' => 'Beperk tot storingen met deze status. Vraagt iemand wat er "open" '
+                        . 'staat, gebruik dat dan hier — anders krijg je ook alles wat al gesloten is en '
+                        . 'lijkt de lijst veel langer dan het werk dat er nog ligt.',
+                ],
                 'query' => [
                     'type' => 'string',
                     'description' => 'Vrije zoektekst in onderwerp of omschrijving.',
@@ -118,6 +124,25 @@ class FindTicketTool implements Tool
                 ->orWhere('description', 'like', $like));
         }
 
+        if (filled($wanted_status = $call->stringArgument('status'))) {
+            /**
+             * Matched against the statuses that exist rather than as free text.
+             * A LIKE here quietly answers "open" with anything containing it, and
+             * a status that does not exist at all would come back as nought
+             * storingen — a confident answer to a question never really asked.
+             */
+            $known = Ticket::query()->distinct()->orderBy('status')->pluck('status');
+            $status = $known->first(fn (string $name) => mb_strtolower($name) === mb_strtolower($wanted_status));
+
+            if ($status === null) {
+                return ToolResult::failed(
+                    'Onbekende status "' . $wanted_status . '". Bestaande statussen: ' . $known->implode(', ') . '.'
+                );
+            }
+
+            $query->where('status', $status);
+        }
+
         if ($asset_id = $call->integerArgument('asset_id')) {
             $query->where('asset_id', $asset_id);
         }
@@ -134,7 +159,7 @@ class FindTicketTool implements Tool
         $tickets = $query->orderByDesc('id')->limit($limit)->get();
 
         $rows = $tickets->map(fn (Ticket $ticket) => [
-            'id' => $ticket->id,
+            'ticket_id' => $ticket->id,
             'subject' => $ticket->subject,
             'description' => $ticket->description,
             'status' => $ticket->status,
@@ -152,11 +177,6 @@ class FindTicketTool implements Tool
             'closed_by_id' => $ticket->closed_by_id,
         ])->all();
 
-        $total = $this->howManyInAll($matching, count($rows), $limit);
-
-        return ToolResult::ok(
-            ['tickets' => $rows] + $this->countNote(count($rows), $total, 'storingen'),
-            $this->foundLine(count($rows), $total, 'storing(en)'),
-        );
+        return $this->answerWithCount(['tickets' => $rows], count($rows), $matching, $limit, 'storingen');
     }
 }

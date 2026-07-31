@@ -104,7 +104,7 @@ class FindAssetTool implements Tool
         $assets = $query->orderBy('next_service_date')->limit($limit)->get();
 
         $rows = $assets->map(fn (Asset $asset) => [
-            'id' => $asset->id,
+            'asset_id' => $asset->id,
             'serial_number' => $asset->serial_number,
             'product' => $asset->product?->display_name,
             'customer' => $asset->customer?->name,
@@ -134,11 +134,6 @@ class FindAssetTool implements Tool
                 . 'zeg kort wat je vond en laat hem kiezen.';
         }
 
-        $total = $this->howManyInAll($matching, count($rows), $limit);
-
-        return ToolResult::ok(
-            $content + $this->countNote(count($rows), $total, 'machines'),
-            $this->foundLine(count($rows), $total, 'machine(s)'),
-        );
+        return $this->answerWithCount($content, count($rows), $matching, $limit, 'machines');
     }
 }

@@ -109,7 +109,7 @@ class ResearchTicketTool implements Tool
 
         $content = [
             'ticket' => [
-                'id' => $ticket->id,
+                'ticket_id' => $ticket->id,
                 'subject' => $ticket->subject,
                 'description' => $ticket->description,
                 'status' => $ticket->status,
@@ -121,7 +121,7 @@ class ResearchTicketTool implements Tool
                 'remarks' => $this->remarksOn($ticket),
             ],
             'earlier_on_this_product' => $similar->map(fn (Ticket $other) => [
-                'id' => $other->id,
+                'ticket_id' => $other->id,
                 'subject' => $other->subject,
                 'description' => $other->description,
                 'status' => $other->status,

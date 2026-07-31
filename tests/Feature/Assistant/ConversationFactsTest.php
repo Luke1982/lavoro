@@ -263,6 +263,51 @@ class ConversationFactsTest extends TestCase
 
         $this->assertSame([], app(ConversationFacts::class)->for(self::THREAD, $user));
     }
+
+    /**
+     * The notes go when the conversation does. They hold a customer's name and
+     * number, so leaving them behind would keep the part worth keeping least for
+     * ever, under a retention rule that only looked at the transcript beside them.
+     */
+    public function test_old_notes_are_pruned_with_the_conversation(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        $old = AssistantConversationFact::create([
+            'user_id' => $user->id,
+            'conversation_id' => self::THREAD,
+            'facts' => ['klant' => ['id' => 2, 'label' => 'Majorlabel']],
+        ]);
+        $old->forceFill(['updated_at' => now()->subMonths(9)])->saveQuietly();
+
+        AssistantConversationFact::create([
+            'user_id' => $user->id,
+            'conversation_id' => '11111111-2222-4333-8444-555555555555',
+            'facts' => ['klant' => ['id' => 3, 'label' => 'Recent']],
+        ]);
+
+        $this->artisan('assistant:prune', ['--months' => 6])->assertSuccessful();
+
+        $this->assertSame(1, AssistantConversationFact::count(), 'the old notes outlived their conversation');
+        $this->assertSame(3, AssistantConversationFact::sole()->facts['klant']['id']);
+    }
+
+    /** And a dry run still removes nothing. */
+    public function test_a_dry_run_keeps_the_notes(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        $row = AssistantConversationFact::create([
+            'user_id' => $user->id,
+            'conversation_id' => self::THREAD,
+            'facts' => ['klant' => ['id' => 2, 'label' => 'Majorlabel']],
+        ]);
+        $row->forceFill(['updated_at' => now()->subMonths(9)])->saveQuietly();
+
+        $this->artisan('assistant:prune', ['--months' => 6, '--dry-run' => true])->assertSuccessful();
+
+        $this->assertSame(1, AssistantConversationFact::count());
+    }
 }
 
 /** Keeps whatever text was sent up, so the context can be read back. */

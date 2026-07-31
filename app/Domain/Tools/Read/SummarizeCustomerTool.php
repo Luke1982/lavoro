@@ -96,7 +96,7 @@ class SummarizeCustomerTool implements Tool
 
         return ToolResult::ok([
             'customer' => [
-                'id' => $customer->id,
+                'customer_id' => $customer->id,
                 'name' => $customer->name,
                 'address' => trim($customer->address . ' ' . $customer->postal_code . ' ' . $customer->city),
                 'email' => $customer->email,
@@ -104,13 +104,13 @@ class SummarizeCustomerTool implements Tool
                 'contact' => $customer->contactname,
             ],
             'open_service_orders' => $open_orders->map(fn (ServiceOrder $order) => [
-                'id' => $order->id,
+                'service_order_id' => $order->id,
                 'description' => $order->description,
                 'stage' => $order->serviceOrderStage?->name,
             ])->all(),
             'open_service_order_count' => $open_orders->count(),
             'assets' => $assets->map(fn (Asset $asset) => [
-                'id' => $asset->id,
+                'asset_id' => $asset->id,
                 'serial_number' => $asset->serial_number,
                 'product' => $asset->product?->display_name,
                 'next_service_date' => $asset->next_service_date,

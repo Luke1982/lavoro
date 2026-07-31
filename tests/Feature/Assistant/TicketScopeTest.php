@@ -46,7 +46,7 @@ class TicketScopeTest extends TestCase
     /** @return array<int, int> */
     private function ticketIds(ToolResult $result): array
     {
-        return array_column($result->content['tickets'] ?? [], 'id');
+        return array_column($result->content['tickets'] ?? [], 'ticket_id');
     }
 
     /**

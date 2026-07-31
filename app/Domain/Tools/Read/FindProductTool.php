@@ -48,6 +48,12 @@ class FindProductTool implements Tool
                     'type' => 'string',
                     'description' => 'Zoektekst in merk, model of omschrijving.',
                 ],
+                'brand' => [
+                    'type' => 'string',
+                    'description' => 'Beperk tot dit merk, bijvoorbeeld "Mitsubishi". Gebruik dit als de '
+                        . 'gebruiker een merk noemt, in plaats van het merk in query te zetten: dan zoekt '
+                        . 'query ook in modelnamen en omschrijvingen en komt er van alles mee.',
+                ],
                 'product_type' => [
                     'type' => 'string',
                     'description' => 'Beperk tot dit soort product, bijvoorbeeld Airco of Boiler.',
@@ -108,6 +114,10 @@ class FindProductTool implements Tool
             $query->whereHas('productType', fn ($t) => $t->where('name', 'like', $call->likeArgument('product_type')));
         }
 
+        if (filled($call->stringArgument('brand'))) {
+            $query->whereHas('brand', fn ($b) => $b->where('name', 'like', $call->likeArgument('brand')));
+        }
+
         $matching = clone $query;
         $products = $query->orderBy('id')->limit($limit)->get();
 
@@ -138,12 +148,7 @@ class FindProductTool implements Tool
                 . 'zeg kort wat je vond en laat hem kiezen.';
         }
 
-        $total = $this->howManyInAll($matching, count($rows), $limit);
-
-        return ToolResult::ok(
-            $content + $this->countNote(count($rows), $total, 'producten'),
-            $this->foundLine(count($rows), $total, 'product(en)'),
-        );
+        return $this->answerWithCount($content, count($rows), $matching, $limit, 'producten');
     }
 
     /**
@@ -158,7 +163,7 @@ class FindProductTool implements Tool
     private function rowFor(Product $product): array
     {
         return [
-            'id' => $product->id,
+            'product_id' => $product->id,
             'name' => $product->display_name,
             'brand' => $product->brand?->name,
             'model' => $product->model,
