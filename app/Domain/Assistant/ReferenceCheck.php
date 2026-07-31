@@ -2,6 +2,7 @@
 
 namespace App\Domain\Assistant;
 
+use App\Models\AssistantToolCall;
 use App\Models\Brand;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,11 @@ use Illuminate\Support\Facades\Log;
  */
 class ReferenceCheck
 {
+    /** How far back a sitting reaches, for deciding what somebody has already been shown. */
+    private const CONVERSATION_MINUTES = 60;
+
+    private const CONVERSATION_CALLS = 40;
+
     /**
      * Paths the assistant is allowed to link to at all.
      *
@@ -161,6 +167,21 @@ class ReferenceCheck
             $models,
         ));
 
+        /**
+         * A conversation is longer than a turn, and this only ever saw the turn.
+         * Told the products two questions ago and asked to plan them now, the
+         * model repeats a model number it genuinely read — and got reported for
+         * inventing it, in a warning sitting above an answer that was correct.
+         * A false alarm here is worse than none: it teaches people to scroll past
+         * the one line that matters when it is real.
+         *
+         * Only asked when there is something to warn about, so the ordinary
+         * question still costs nothing.
+         */
+        if ($unverified !== []) {
+            $unverified = $this->stillUnverified($unverified, $user_id);
+        }
+
         if ($unverified !== []) {
             Log::warning('De assistent noemde records die geen tool heeft opgeleverd', [
                 'user_id' => $user_id,
@@ -169,5 +190,36 @@ class ReferenceCheck
         }
 
         return $unverified;
+    }
+
+    /**
+     * The same references, minus the ones this person's own tools handed back
+     * earlier in the sitting.
+     *
+     * @param  array<int, string>  $unverified
+     * @return array<int, string>
+     */
+    private function stillUnverified(array $unverified, int $user_id): array
+    {
+        $earlier = AssistantToolCall::query()
+            ->where('user_id', $user_id)
+            ->where('created_at', '>=', now()->subMinutes(self::CONVERSATION_MINUTES))
+            ->latest('id')
+            ->limit(self::CONVERSATION_CALLS)
+            ->pluck('result')
+            ->implode("\n");
+
+        if ($earlier === '') {
+            return $unverified;
+        }
+
+        return array_values(array_filter(
+            $unverified,
+            /** The prefix is ours; what was named is the part after it. */
+            fn (string $reference) => !str_contains(
+                mb_strtolower($earlier),
+                mb_strtolower(str_starts_with($reference, 'model ') ? mb_substr($reference, 6) : $reference),
+            ),
+        ));
     }
 }

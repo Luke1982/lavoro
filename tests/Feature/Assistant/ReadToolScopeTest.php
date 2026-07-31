@@ -255,4 +255,48 @@ class ReadToolScopeTest extends TestCase
         $this->assertStringContainsString('ticket_id', (string) $result->summary);
         $this->assertStringNotContainsString('niet gevonden', (string) $result->summary, 'it claimed to have looked');
     }
+
+    /**
+     * A place on its own is a question, not half of one.
+     *
+     * "Welke klanten zijn er in Meteren?" was refused three times in a row, each
+     * time asking for a name the person had already said they did not have — which
+     * was the entire reason they were asking. The tool offered a city argument that
+     * could not be used without also knowing the answer.
+     */
+    public function test_a_place_on_its_own_is_enough_to_search_on(): void
+    {
+        $user = $this->userWith('customer.read');
+
+        Customer::factory()->create(['name' => 'Majorlabel', 'city' => 'Meteren']);
+        Customer::factory()->create(['name' => 'Ster Timmerwerken', 'city' => 'Meteren']);
+        Customer::factory()->create(['name' => 'Bouwbedrijf Kreeft', 'city' => 'Ede']);
+
+        $found = $this->invoke('find_customer', $user, ['city' => 'Meteren']);
+
+        $this->assertFalse($found->is_error, 'a place alone was refused: ' . $found->summary);
+
+        $names = collect($found->content['customers'])->pluck('name');
+
+        $this->assertCount(2, $names);
+        $this->assertContains('Majorlabel', $names->all());
+        $this->assertNotContains('Bouwbedrijf Kreeft', $names->all());
+    }
+
+    /**
+     * And with the place already given, it must not ask for a place again — that
+     * was the loop: eighty customers in Meteren came back as "in welke plaats?".
+     */
+    public function test_it_does_not_ask_for_the_place_it_was_just_given(): void
+    {
+        $user = $this->userWith('customer.read');
+
+        Customer::factory()->count(12)->create(['city' => 'Meteren']);
+
+        $found = $this->invoke('find_customer', $user, ['city' => 'Meteren']);
+
+        $this->assertStringNotContainsString('plaats kiezen', (string) $found->summary);
+        $this->assertStringContainsString('naam', (string) $found->content['note']);
+        $this->assertSame(12, $found->content['matches'], 'it reported how many fitted, not how many there are');
+    }
 }

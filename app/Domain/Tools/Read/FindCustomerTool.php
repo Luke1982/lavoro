@@ -96,26 +96,38 @@ class FindCustomerTool implements Tool
         }
 
         $query = $call->stringArgument('query');
+        $city = $call->stringArgument('city');
+        $by_place_alone = blank($query) && filled($city) && mb_strlen($city) >= 2;
 
-        if ($query === null || mb_strlen($query) < 2) {
-            return ToolResult::failed('Geef een klantnummer, of minimaal twee tekens om op te zoeken.');
+        /**
+         * A place on its own is a question, not half of one. "Welke klanten zijn er
+         * in Meteren" was refused three times in a row, each time asking for a name
+         * the person had already said they did not have — which is the whole reason
+         * they were asking.
+         */
+        if (!$by_place_alone && ($query === null || mb_strlen($query) < 2)) {
+            return ToolResult::failed(
+                'Geef een klantnummer, minimaal twee tekens om op te zoeken, of een plaats in city.'
+            );
         }
 
         $limit = (int) config('assistant.max_results', 25);
 
         $like = $call->likeArgument('query');
 
-        $customers = Customer::query()
-            ->where(fn ($q) => $q
+        $matching = Customer::query()
+            ->when(!$by_place_alone, fn ($q) => $q->where(fn ($inner) => $inner
                 ->where('name', 'like', $like)
                 ->orWhere('city', 'like', $like)
                 ->orWhere('email', 'like', $like)
                 ->orWhere('phone', 'like', $like)
-                ->orWhere('mobile', 'like', $like))
+                ->orWhere('mobile', 'like', $like)))
             ->when(
-                filled($call->stringArgument('city')),
+                filled($city),
                 fn ($q) => $q->where('city', 'like', $call->likeArgument('city'))
-            )
+            );
+
+        $customers = (clone $matching)
             ->orderBy('name')
             ->limit($limit)
             /**
@@ -126,14 +138,22 @@ class FindCustomerTool implements Tool
             ->with('locations:id,customer_id,title,location_code,address,postal_code,city')
             ->get(['id', 'name', 'address', 'postal_code', 'city', 'email', 'phone']);
 
+        $described = $by_place_alone ? 'plaats "' . $city . '"' : '"' . $query . '"';
+
         if ($customers->isEmpty()) {
             return ToolResult::ok(
-                ['customers' => [], 'note' => 'Geen klanten gevonden voor "' . $query . '".'],
-                'Geen klanten gevonden voor "' . $query . '".',
+                ['customers' => [], 'note' => 'Geen klanten gevonden voor ' . $described . '.'],
+                'Geen klanten gevonden voor ' . $described . '.',
             );
         }
 
-        return $this->answerFor($customers, '"' . $query . '"');
+        /**
+         * How many there really are, not how many fitted. Told "25 gevonden" for a
+         * village with eighty, somebody reasonably reads it as the whole list.
+         */
+        $total = $customers->count() < $limit ? $customers->count() : $matching->count();
+
+        return $this->answerFor($customers, $described, filled($city), $total);
     }
 
     /**
@@ -143,8 +163,12 @@ class FindCustomerTool implements Tool
      *
      * @param  Collection<int, Customer>  $customers
      */
-    private function answerFor(Collection $customers, string $described): ToolResult
-    {
+    private function answerFor(
+        Collection $customers,
+        string $described,
+        bool $place_already_given = false,
+        ?int $total = null,
+    ): ToolResult {
         $content = ['customers' => $customers->map(fn (Customer $customer) => [
             'id' => $customer->id,
             'name' => $customer->name,
@@ -204,19 +228,32 @@ class FindCustomerTool implements Tool
 
         if ($customers->count() > 8) {
             $per_place = $customers->groupBy('city')->map->count()->sortDesc();
+            $found = $total ?? $customers->count();
 
             $content = [
                 'customers' => [],
-                'matches' => $customers->count(),
+                'matches' => $found,
                 'per_place' => $per_place->take(15)->all(),
-                'note' => 'Te veel klanten om iemand uit te laten kiezen, dus de regels zijn niet '
-                    . 'meegestuurd — filter zelf niet op wat je niet hebt. Noemde de gebruiker een '
-                    . 'plaats, zoek dan opnieuw met city erbij. Deed hij dat niet, vraag dan in welke '
-                    . 'plaats, en gebruik daarvoor ask_which_one met de plaatsen hierboven.',
             ];
 
+            /**
+             * Asking for a place when the place was the question is the loop this
+             * fell into: "welke klanten zijn er in Meteren" came back as "in welke
+             * plaats?" three times over. With the place already given, the only
+             * thing left to narrow by is the name — so that is what it asks for.
+             */
+            $content['note'] = $place_already_given
+                ? 'Te veel klanten om iemand uit te laten kiezen, dus de regels zijn niet meegestuurd '
+                    . '— noem er geen enkele bij naam. De plaats is al bekend, dus vraag om een deel '
+                    . 'van de klantnaam en zoek opnieuw met city én query. Zeg er wel bij hoeveel het '
+                    . 'er in die plaats zijn.'
+                : 'Te veel klanten om iemand uit te laten kiezen, dus de regels zijn niet '
+                    . 'meegestuurd — filter zelf niet op wat je niet hebt. Noemde de gebruiker een '
+                    . 'plaats, zoek dan opnieuw met city erbij. Deed hij dat niet, vraag dan in welke '
+                    . 'plaats, en gebruik daarvoor ask_which_one met de plaatsen hierboven.';
+
             /** Buttons only when there are few enough places for them to help. */
-            if ($places !== null) {
+            if ($places !== null && !$place_already_given) {
                 $content['choice'] = $places;
                 $content['note'] .= ' De gebruiker krijgt hier al knoppen per plaats te zien; '
                     . 'som ze dan niet nog eens op.';
@@ -224,7 +261,9 @@ class FindCustomerTool implements Tool
 
             return ToolResult::ok(
                 $content,
-                $customers->count() . ' klanten gevonden; eerst de plaats kiezen.',
+                $place_already_given
+                    ? $found . ' klanten daar; een deel van de naam erbij maakt het een keuze.'
+                    : $found . ' klanten gevonden; eerst de plaats kiezen.',
             );
         }
 

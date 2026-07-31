@@ -43,6 +43,9 @@ class FindAvailableTechnicianTool implements Tool
      * Not something the model may set: the schema forbids it, so reading it back
      * was a parameter that could never arrive, quietly defaulting for ever.
      */
+    /** Carbon counts Sunday as nought. */
+    private const WEEKDAYS = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+
     private const WINDOW_DAYS = 14;
 
     /**
@@ -409,7 +412,7 @@ class FindAvailableTechnicianTool implements Tool
                 'not_in_requested_group' => $outsiders,
                 'costs_someone_their_day_off' => $overrides,
                 'same_crew_throughout' => $option['same_crew_throughout'],
-                'days' => array_map(fn (array $day) => [
+                'days' => array_map(fn (array $day) => $this->dayOf($day['date']) + [
                     'date' => $day['date'],
                     'from' => $this->clock($day['from']),
                     'until' => $this->clock($day['until']),
@@ -428,6 +431,18 @@ class FindAvailableTechnicianTool implements Tool
             );
         }
 
+        /**
+         * A diary with nothing in it on a Sunday is not the same as a working day,
+         * and the difference does not show in a gap. Offered as "de snelste optie"
+         * without the word Sunday anywhere near it, it reads like any other plan.
+         */
+        $weekend = collect($options)
+            ->flatMap(fn (array $option) => $option['days'])
+            ->filter(fn (array $day) => $day['weekend'])
+            ->pluck('weekday', 'date')
+            ->map(fn (string $weekday, string $date) => $weekday . ' ' . $date)
+            ->values();
+
         return ToolResult::ok(
             [
                 'options' => $options,
@@ -437,7 +452,12 @@ class FindAvailableTechnicianTool implements Tool
                     'days' => $days,
                     'total_work_minutes' => $total_work,
                 ],
-                'note' => 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
+                'weekend_days_in_these_options' => $weekend->all(),
+                'note' => ($weekend->isEmpty() ? '' : 'Let op: er zitten weekenddagen bij ('
+                    . $weekend->implode(', ') . '). Niemand staat dan ingeroosterd, dus een gat in de agenda '
+                    . 'betekent daar niet dat iemand kan. Noem het weekend er altijd bij en vraag of het mag, '
+                    . 'net als bij een vrije dag. ')
+                    . 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
                     . 'daarin zijn op die dagen tegelijk vrij. Onder availability staat per monteur per dag '
                     . 'wanneer hij vrij is, als achtergrond bij het antwoord. Neem tijden en dagen altijd '
                     . 'letterlijk over uit options en reken ze nooit zelf uit: gaat een vervolgvraag over '
@@ -512,12 +532,14 @@ class FindAvailableTechnicianTool implements Tool
                     continue;
                 }
 
-                $per_day[$date] = $segments === []
+                $named = $this->dayOf($date);
+
+                $per_day[$date] = $named['weekday'] . ' ' . ($segments === []
                     ? 'geen ruimte'
                     : implode(', ', array_map(
                         fn (array $segment) => $this->clock($segment['start_min']) . '-' . $this->clock($segment['end_min']),
                         $segments,
-                    ));
+                    )));
             }
 
             /**
@@ -616,6 +638,27 @@ class FindAvailableTechnicianTool implements Tool
         }
 
         return Asset::with('product:id,brand_id')->find($asset_id)?->product?->brand_id;
+    }
+
+    /**
+     * Which day of the week that date is, and whether it is a working one.
+     *
+     * Handed bare dates the model works the weekday out itself, and it gets it
+     * wrong: "dinsdag 31 juli" for a Friday, in an answer that was otherwise
+     * right, which is the kind of mistake somebody only catches if they happen to
+     * know. It also offered a Sunday as the fastest option without ever saying it
+     * was a Sunday. Both are ours to state, so we state them.
+     *
+     * @return array{weekday: string, weekend: bool}
+     */
+    private function dayOf(string $date): array
+    {
+        $day = CarbonImmutable::parse($date);
+
+        return [
+            'weekday' => self::WEEKDAYS[(int) $day->dayOfWeek],
+            'weekend' => $day->isWeekend(),
+        ];
     }
 
     private function clock(int $minutes): string

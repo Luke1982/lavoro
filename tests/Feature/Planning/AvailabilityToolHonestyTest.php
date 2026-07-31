@@ -8,6 +8,7 @@ use App\Domain\Tools\ToolResult;
 use App\Models\User;
 use App\Models\UserPlanGroup;
 use App\Models\UserUnavailability;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -278,5 +279,63 @@ class AvailabilityToolHonestyTest extends TestCase
 
         $this->assertSame($mechanic->id, $result->content['availability']['Jeremy']['user_id']);
         $this->assertNotEmpty($result->content['availability']['Jeremy']['vrij']);
+    }
+
+    /**
+     * Which day of the week it is, said rather than left to be worked out.
+     *
+     * Handed bare dates the model does the sum itself and gets it wrong — "dinsdag
+     * 31 juli" for a Friday, inside an answer that was otherwise right. That is the
+     * kind of mistake only somebody who already knows will catch.
+     */
+    public function test_every_day_it_offers_says_which_day_of_the_week_it_is(): void
+    {
+        $user = $this->admin();
+        User::factory()->create(['plannable' => true]);
+        $this->travelTo(CarbonImmutable::parse('2026-07-31 09:00', 'Europe/Amsterdam'));
+
+        $answer = app(ToolExecutor::class)->run(new ToolCall(
+            'find_available_technician',
+            ['total_work_minutes' => 240, 'crew_size' => 1],
+            $user,
+        ))->content;
+
+        $first = $answer['options'][0]['days'][0];
+
+        $this->assertSame('2026-07-31', $first['date']);
+        $this->assertSame('vrijdag', $first['weekday'], 'the model is left to work the weekday out itself');
+        $this->assertFalse($first['weekend']);
+
+        $windows = collect($answer['availability'])->first()['vrij'];
+
+        $this->assertStringContainsString('zaterdag', $windows['2026-08-01'] ?? '');
+        $this->assertStringContainsString('zondag', $windows['2026-08-02'] ?? '');
+
+        $this->travelBack();
+    }
+
+    /**
+     * Nobody is rostered at the weekend, so an empty Sunday is not an opening. It
+     * was offered as "de snelste optie" without the word Sunday anywhere near it.
+     */
+    public function test_a_weekend_in_the_plan_is_said_out_loud(): void
+    {
+        $user = $this->admin();
+        User::factory()->create(['plannable' => true]);
+        $this->travelTo(CarbonImmutable::parse('2026-07-31 09:00', 'Europe/Amsterdam'));
+
+        $answer = app(ToolExecutor::class)->run(new ToolCall(
+            'find_available_technician',
+            ['total_work_minutes' => 3000, 'crew_size' => 1],
+            $user,
+        ))->content;
+
+        $this->assertNotEmpty(
+            $answer['weekend_days_in_these_options'],
+            'a plan running across a weekend never mentioned one',
+        );
+        $this->assertStringContainsString('weekend', $answer['note']);
+
+        $this->travelBack();
     }
 }

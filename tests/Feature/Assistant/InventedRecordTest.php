@@ -5,6 +5,7 @@ namespace Tests\Feature\Assistant;
 use App\Domain\Assistant\ReferenceCheck;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
+use App\Models\AssistantToolCall;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductAttribute;
@@ -260,5 +261,72 @@ class InventedRecordTest extends TestCase
 
         $this->assertNotEmpty($result->content['products']);
         $this->assertArrayNotHasKey('brands_that_do_exist', $result->content);
+    }
+
+    /**
+     * A conversation is longer than a turn. Told the products two questions ago and
+     * asked to plan them now, the model repeats a model number it genuinely read —
+     * and this reported it as invented, in a warning sitting above a correct
+     * answer. A false alarm is worse than none: it teaches people to scroll past
+     * the one line that matters on the day it is real.
+     */
+    public function test_a_record_found_earlier_in_the_sitting_is_not_an_invention(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        /**
+         * A real brand, or nothing is extracted at all and this passes without
+         * ever reaching the thing it is about.
+         */
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Mitsubishi'])->id,
+            'model' => 'SRK 25 ZS-W',
+        ]);
+
+        AssistantToolCall::create([
+            'user_id' => $user->id,
+            'tool' => 'find_products',
+            'arguments' => ['query' => 'Mitsubishi'],
+            'outcome' => 'ok',
+            'result' => 'Mitsubishi SRK 25 ZS-W binnendeel multisplit 2,5 kW',
+            'duration_ms' => 4,
+        ]);
+
+        $answer = 'Ik ga voor de Mitsubishi SRK 25 ZS-W voor de 8 binnenunits.';
+
+        $this->assertSame(
+            [],
+            app(ReferenceCheck::class)->report($answer, [], $user->id),
+            'a product this person was shown minutes ago was reported as made up',
+        );
+    }
+
+    /** And something nobody was ever shown is still reported. */
+    public function test_a_model_number_from_nowhere_is_still_reported(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        /** The check only looks for models of brands this catalogue actually has. */
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Mitsubishi'])->id,
+            'model' => 'SRK 25 ZS-W',
+        ]);
+
+        AssistantToolCall::create([
+            'user_id' => $user->id,
+            'tool' => 'find_products',
+            'arguments' => ['query' => 'Mitsubishi'],
+            'outcome' => 'ok',
+            'result' => 'Mitsubishi SRK 25 ZS-W binnendeel multisplit 2,5 kW',
+            'duration_ms' => 4,
+        ]);
+
+        $reported = app(ReferenceCheck::class)->report(
+            'Ik gebruik de Mitsubishi MSZ 99 XP-Q hiervoor.',
+            [],
+            $user->id,
+        );
+
+        $this->assertNotEmpty($reported, 'a model number nobody ever returned went unreported');
     }
 }
