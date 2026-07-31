@@ -187,4 +187,32 @@ class ToolContractTest extends TestCase
             );
         }
     }
+
+    /**
+     * A tool that stops at a ceiling has to say so.
+     *
+     * Six of them reported the slice as the answer — "25 storingen gevonden" with
+     * three hundred and sixty in the table — and the fix went in one tool at a
+     * time, which is exactly how the other five stayed broken for a fortnight. A
+     * seventh written next month would go the same way, so the rule is checked
+     * rather than remembered.
+     */
+    public function test_a_tool_that_caps_its_results_reports_the_whole_count(): void
+    {
+        $forgetful = [];
+
+        foreach ($this->tools() as $class) {
+            $source = file_get_contents((new \ReflectionClass($class))->getFileName());
+
+            $caps = str_contains($source, 'limit($limit)')
+                || str_contains($source, "limit((int) config('assistant.max_results'");
+
+            if ($caps && !str_contains($source, 'ReportsTheWholeCount')) {
+                $forgetful[] = $class::name();
+            }
+        }
+
+        $this->assertSame([], $forgetful, 'these cap their results and call the slice a total: '
+            . implode(', ', $forgetful));
+    }
 }

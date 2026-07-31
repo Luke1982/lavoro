@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Read;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -36,6 +37,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SearchActivityTool implements Tool
 {
+    use ReportsTheWholeCount;
+
     /**
      * The names a person uses for the things history is kept about, mapped to the
      * classes stored in subject_type.
@@ -190,6 +193,7 @@ class SearchActivityTool implements Tool
             }
         }
 
+        $matching = clone $query;
         $activities = $query->orderByDesc('occurred_at')->orderByDesc('id')->limit($limit)->get();
 
         $rows = $activities->map(fn (Activity $activity) => [
@@ -233,7 +237,7 @@ class SearchActivityTool implements Tool
                 . 'aan gekoppeld en blijven daarom buiten beeld.';
         }
 
-        return ToolResult::ok($content, count($rows) . ' wijziging(en) gevonden.');
+        return $this->answerWithCount($content, count($rows), $matching, $limit, 'wijzigingen');
     }
 
     /**

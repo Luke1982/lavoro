@@ -7,6 +7,7 @@ use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
+use App\Enums\TicketStatusses;
 use App\Models\Ticket;
 use App\Models\User;
 
@@ -126,12 +127,16 @@ class FindTicketTool implements Tool
 
         if (filled($wanted_status = $call->stringArgument('status'))) {
             /**
-             * Matched against the statuses that exist rather than as free text.
-             * A LIKE here quietly answers "open" with anything containing it, and
-             * a status that does not exist at all would come back as nought
-             * storingen — a confident answer to a question never really asked.
+             * Matched against the statuses this application has, rather than as
+             * free text. A LIKE answers "open" with anything containing it, and a
+             * status that exists nowhere comes back as nought storingen — a
+             * confident answer to a question never really asked.
+             *
+             * From the enum rather than from a distinct over the table: the list
+             * is what the application allows, not what happens to have been
+             * recorded, and it costs no query.
              */
-            $known = Ticket::query()->distinct()->orderBy('status')->pluck('status');
+            $known = collect(TicketStatusses::cases())->map(fn (TicketStatusses $case) => $case->value);
             $status = $known->first(fn (string $name) => mb_strtolower($name) === mb_strtolower($wanted_status));
 
             if ($status === null) {
