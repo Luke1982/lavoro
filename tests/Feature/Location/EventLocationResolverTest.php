@@ -26,6 +26,10 @@ use Tests\TestCase;
  *   4. the werkbon's free text
  *   5. the project's location
  *   6. the customer's address
+ *
+ * Below those, the second question the same ladder answers: whether the address
+ * an appointment carries is one of its own, or one it would have been given
+ * anyway — what the planner dialog flags as "Afwijkend adres".
  */
 class EventLocationResolverTest extends TestCase
 {
@@ -34,6 +38,11 @@ class EventLocationResolverTest extends TestCase
     private function resolve(Event $event): ?string
     {
         return app(EventLocationResolver::class)->resolve($event->fresh());
+    }
+
+    private function deviates(Event $event): bool
+    {
+        return app(EventLocationResolver::class)->deviatesFromInherited($event->fresh());
     }
 
     private function customer(): Customer
@@ -153,5 +162,75 @@ class EventLocationResolverTest extends TestCase
         $event->customers()->attach($customer->id);
 
         $this->assertEquals('Klantweg 9, 5555EE Breda', $this->resolve($event));
+    }
+
+    /**
+     * inherited() is the same ladder with the appointment's own two rungs taken
+     * out, so a free text of its own must not shadow the werkbon's.
+     */
+    public function test_inherited_ignores_the_appointments_own_address(): void
+    {
+        $customer = $this->customer();
+        $order = $this->orderFor($customer);
+        $event = Event::factory()->create(['location' => 'Afspraak vrije tekst', 'location_id' => null]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->assertEquals('Werkbon vrije tekst', app(EventLocationResolver::class)->inherited($event->fresh()));
+    }
+
+    public function test_an_address_of_its_own_deviates(): void
+    {
+        $customer = $this->customer();
+        $order = $this->orderFor($customer);
+        $event = Event::factory()->create(['location' => 'Kade 12, Delfzijl', 'location_id' => null]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->assertTrue($this->deviates($event));
+    }
+
+    /**
+     * The planner dialog used to save the address it was showing straight back
+     * onto the appointment, so a filled column is not by itself an address of
+     * anyone's choosing. A copy of what would have been inherited anyway says
+     * nothing and must not be flagged.
+     */
+    public function test_a_copy_of_the_inherited_address_does_not_deviate(): void
+    {
+        $customer = $this->customer();
+        $order = $this->orderFor($customer);
+        $event = Event::factory()->create(['location' => 'werkbon  Vrije tekst ', 'location_id' => null]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->assertFalse($this->deviates($event));
+    }
+
+    public function test_an_appointment_without_an_address_of_its_own_does_not_deviate(): void
+    {
+        $customer = $this->customer();
+        $order = $this->orderFor($customer);
+        $event = Event::factory()->create(['location' => null, 'location_id' => null]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->assertFalse($this->deviates($event));
+    }
+
+    /**
+     * A location picked for this visit is judged the same way: it is the address
+     * it resolves to that has to differ, not the fact that a link exists.
+     */
+    public function test_a_linked_location_deviates_when_the_werkbon_points_elsewhere(): void
+    {
+        $customer = $this->customer();
+        $event_location = Location::factory()->create([
+            'customer_id' => $customer->id,
+            'address' => 'Afspraakweg 2',
+            'postal_code' => '1111AA',
+            'city' => 'Assen',
+        ]);
+        $order = $this->orderFor($customer);
+        $event = Event::factory()->create(['location' => null, 'location_id' => $event_location->id]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->assertTrue($this->deviates($event));
     }
 }

@@ -48,6 +48,11 @@ function mapEvent(ev) {
         // Resolved once on the backend (EventLocationResolver) so the escalation
         // order can never drift between the planner, the calendar and the export.
         location: ev.display_location ?? null,
+        // What the appointment itself holds, kept apart from the address it is
+        // shown with: the dialog edits the first and only falls back to the
+        // second when the appointment has nothing of its own.
+        own_location: ev.location ?? null,
+        inherited_location: ev.inherited_location ?? null,
         has_deviating_location: ev.has_deviating_location ?? false,
         task_titles: (ev.service_orders?.[0]?.task_instances || [])
             .map((ti) => ti.service_order_task?.title)

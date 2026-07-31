@@ -21,12 +21,22 @@ class EventLocationTest extends TestCase
     use CreatesAuthenticatedUsers;
     use RefreshDatabase;
 
-    private function customerWithOrder(): array
+    private function customerWithOrder(array $customer_attributes = []): array
     {
-        $customer = Customer::factory()->create();
+        $customer = Customer::factory()->create($customer_attributes);
         $order = ServiceOrder::factory()->create(['customer_id' => $customer->id]);
 
         return [$customer, $order];
+    }
+
+    /** The address the escalation falls back to when nothing else is set. */
+    private function customerAddress(): array
+    {
+        return [
+            'address' => 'Brouwersstraat 6',
+            'postal_code' => '9712 HN',
+            'city' => 'Groningen',
+        ];
     }
 
     public function test_resolved_location_prefers_the_linked_location(): void
@@ -161,6 +171,75 @@ class EventLocationTest extends TestCase
             ->getJson('/api/events?start=' . now()->format('Y-m-d H:i:s') . '&end=' . now()->addDays(2)->format('Y-m-d H:i:s'))
             ->assertOk()
             ->assertJsonFragment(['display_location' => 'Plannerweg 3, 3333CC Deventer']);
+    }
+
+    /**
+     * The planner dialog posts location and location_id together on every save,
+     * whatever the user came to change. It once sent a null id along with a copy
+     * of the address it was showing, which unlinked the location and left a
+     * one-off address behind — so the payload it sends is pinned down here.
+     */
+    public function test_the_dialog_payload_keeps_a_linked_location(): void
+    {
+        [$customer, $order] = $this->customerWithOrder();
+        $location = Location::factory()->create(['customer_id' => $customer->id]);
+        $event = Event::factory()->create(['location_id' => $location->id]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/events/{$event->id}", [
+                'location' => '',
+                'location_id' => $location->id,
+            ])->assertSuccessful();
+
+        $this->assertEquals($location->id, $event->fresh()->location_id);
+    }
+
+    /**
+     * An empty field means "wherever the werkbon or the customer says", so saving
+     * one must leave the appointment without an address of its own. Writing the
+     * resolved address back would make every edited appointment deviate.
+     */
+    public function test_an_empty_location_field_leaves_the_escalation_alone(): void
+    {
+        [, $order] = $this->customerWithOrder($this->customerAddress());
+        $event = Event::factory()->create(['location' => null, 'location_id' => null]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/events/{$event->id}", ['location' => '', 'location_id' => null])
+            ->assertSuccessful();
+
+        $fresh = $event->fresh();
+        $this->assertNull($fresh->location);
+        $this->assertEquals('Brouwersstraat 6, 9712 HN Groningen', $fresh->display_location);
+        $this->assertFalse($fresh->has_deviating_location);
+    }
+
+    /**
+     * Four different answers to "where is this appointment", and the dialog needs
+     * all four: the address it edits, the address the planner shows, the address
+     * behind an empty field, and whether the first one deviates.
+     */
+    public function test_the_planner_payload_separates_the_appointments_own_address(): void
+    {
+        [, $order] = $this->customerWithOrder($this->customerAddress());
+        $event = Event::factory()->create([
+            'location' => 'Kade 12, Delfzijl',
+            'start' => now()->addDay(),
+            'end' => now()->addDay()->addHour(),
+        ]);
+        $event->serviceOrders()->attach($order->id);
+
+        $this->actingAs($this->admin())
+            ->getJson('/api/events?start=' . now()->format('Y-m-d H:i:s') . '&end=' . now()->addDays(2)->format('Y-m-d H:i:s'))
+            ->assertOk()
+            ->assertJsonFragment([
+                'location' => 'Kade 12, Delfzijl',
+                'display_location' => 'Kade 12, Delfzijl',
+                'inherited_location' => 'Brouwersstraat 6, 9712 HN Groningen',
+                'has_deviating_location' => true,
+            ]);
     }
 
     public function test_event_search_finds_and_shows_a_linked_location(): void

@@ -68,7 +68,7 @@ class EventApiController extends Controller
             ->orderBy('start')
             ->get();
 
-        $events->each->append(['display_location', 'has_deviating_location']);
+        $events->each->append(['display_location', 'has_deviating_location', 'inherited_location']);
 
         return response()->json($this->withUserRoles($events));
     }

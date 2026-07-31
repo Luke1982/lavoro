@@ -131,6 +131,15 @@ class Event extends Model
         return app(EventLocationResolver::class)->deviatesFromInherited($this);
     }
 
+    /**
+     * Where this appointment would happen without an address of its own — what
+     * the planner dialog offers as the placeholder behind an empty field.
+     */
+    public function getInheritedLocationAttribute(): ?string
+    {
+        return app(EventLocationResolver::class)->inherited($this);
+    }
+
     public function serviceOrders()
     {
         return $this->morphedByMany(ServiceOrder::class, 'eventable');

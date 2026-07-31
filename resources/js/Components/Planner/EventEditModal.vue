@@ -187,7 +187,7 @@
                             </div>
                             <div class="flex items-center gap-2" v-auto-animate>
                                 <TextInput v-if="locationMode === 'freeform'" v-model="form.location" label=""
-                                    type="text" class="flex-1 min-w-0" placeholder="Zoek locatie..." />
+                                    type="text" class="flex-1 min-w-0" :placeholder="locationPlaceholder" />
                                 <ComboBox v-else v-model="selectedLocationId" :options="locationOptions"
                                     :initial-id="selectedLocationId" class="flex-1 min-w-0"
                                     placeholder="Kies een locatie" @update:model-value="onLocationPicked" />
@@ -211,6 +211,10 @@
                             </div>
                             <p v-if="hasDeviatingLocation" class="mt-1 text-xs text-amber-600 dark:text-amber-500">
                                 Afwijkend adres
+                            </p>
+                            <p v-else-if="followsInheritedLocation"
+                                class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Volgt het adres van de werkbon of de klant
                             </p>
                         </div>
                     </div>
@@ -567,6 +571,19 @@ const { locations: locationOptions, load: loadCustomerLocations } = useCustomerL
 const hasLocations = computed(() => locationOptions.value.length > 0)
 const locationMode = ref(props.initial.location_id ? 'picker' : 'freeform')
 const selectedLocationId = ref(props.initial.location_id || null)
+
+/**
+ * The field holds the appointment's own address and nothing else, so leaving it
+ * empty is a real answer: the escalation takes over. The address that would be
+ * used then stands behind it as the placeholder.
+ */
+const locationPlaceholder = computed(() =>
+    props.initial.inherited_location || 'Zoek locatie...'
+)
+
+const followsInheritedLocation = computed(() =>
+    !form.location && !form.location_id && !!props.initial.inherited_location
+)
 
 /**
  * The backend resolved that the saved address is this appointment's own, not the
