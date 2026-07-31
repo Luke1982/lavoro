@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
+use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
@@ -53,6 +54,7 @@ class AssistantController extends Controller
         ToolRegistry $registry,
         PageContext $pages,
         QuestionSorter $sorter,
+        ConversationFacts $facts,
     ): JsonResponse {
         $user = $request->user();
         $tools = [];
@@ -65,9 +67,19 @@ class AssistantController extends Controller
                 user: $user,
                 question: $request->validated('question'),
                 system: $this->systemPrompt(),
-                context: $this->context($user, $pages->describe($request->validated('page'))),
+                context: $this->context(
+                    $user,
+                    $pages->describe($request->validated('page')),
+                    $facts->sentence($facts->for($request->validated('conversation'), $user)),
+                ),
                 history: $request->validated('history') ?? [],
-                onTool: $this->toolWatcher($tools, $pending, $choices, $seen),
+                onTool: $this->toolWatcher(
+                    $tools,
+                    $pending,
+                    $choices,
+                    $seen,
+                    fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
+                ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
             );
         } catch (ModelUnavailable $e) {
@@ -125,6 +137,7 @@ class AssistantController extends Controller
         AssistantLoop $loop,
         ToolRegistry $registry,
         PageContext $pages,
+        ConversationFacts $facts,
     ): JsonResponse {
         /**
          * Carrying on is not a fresh question, and what comes next is usually the
@@ -135,6 +148,7 @@ class AssistantController extends Controller
         $tools = [];
         $pending = [];
         $choices = [];
+        $ignored = [];
 
         try {
             $answer = $loop->ask(
@@ -144,8 +158,18 @@ class AssistantController extends Controller
                     . 'gedaan, zeg dan kort wat er nu staat en vraag of er nog iets moet gebeuren. '
                     . 'Doe niets opnieuw wat al is uitgevoerd.',
                 system: $this->systemPrompt(),
-                context: $this->context($user, $pages->describe($request->validated('page'))),
-                onTool: $this->toolWatcher($tools, $pending, $choices),
+                context: $this->context(
+                    $user,
+                    $pages->describe($request->validated('page')),
+                    $facts->sentence($facts->for($request->validated('conversation'), $user)),
+                ),
+                onTool: $this->toolWatcher(
+                    $tools,
+                    $pending,
+                    $choices,
+                    $ignored,
+                    fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
+                ),
                 history: $request->validated('history'),
             );
         } catch (ModelUnavailable $e) {
@@ -187,8 +211,13 @@ class AssistantController extends Controller
      * @param  array<int, array<string, mixed>>  $pending
      * @param  array<int, array<string, mixed>>  $choices
      */
-    private function toolWatcher(array &$tools, array &$pending, array &$choices, array &$seen = []): Closure
-    {
+    private function toolWatcher(
+        array &$tools,
+        array &$pending,
+        array &$choices,
+        array &$seen = [],
+        ?Closure $learn = null,
+    ): Closure {
         return function (
             string $name,
             array $arguments,
@@ -199,8 +228,13 @@ class AssistantController extends Controller
             &$pending,
             &$choices,
             &$seen,
+            $learn,
         ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
+
+            if ($learn !== null && $result !== null) {
+                $learn($result);
+            }
             $seen[] = $result?->toModelContent() ?? '';
             $status = is_array($result?->content) ? ($result->content['status'] ?? null) : null;
 
@@ -521,12 +555,21 @@ class AssistantController extends Controller
      * Everything that changes per person, per day and per page, kept out of the
      * system prompt so the cached prefix stays byte-for-byte identical.
      */
-    private function context(User $user, string $page): string
+    private function context(User $user, string $page, string $settled = ''): string
     {
         $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . Clock::today() . '.'];
 
         if ($page !== '') {
             $lines[] = $page;
+        }
+
+        /**
+         * What earlier turns established, so the thread does not have to be held
+         * in prose. Prose came loose: a werkbon numbered #4 turned into customer
+         * #4 and the conversation carried on with the wrong company.
+         */
+        if ($settled !== '') {
+            $lines[] = $settled;
         }
 
         return implode(' ', $lines);
