@@ -191,7 +191,7 @@
 
         <!-- FAB: create new event -->
         <button v-if="canCreate"
-            class="fixed bottom-6 right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+            class="fixed bottom-24 right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition lg:bottom-6"
             aria-label="Nieuwe afspraak aanmaken" @click="openCreate">
             <PlusIcon class="size-7 text-gray-900" />
         </button>

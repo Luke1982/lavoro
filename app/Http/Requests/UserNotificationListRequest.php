@@ -16,6 +16,7 @@ class UserNotificationListRequest extends FormRequest
     {
         return [
             'unread' => ['sometimes', 'boolean'],
+            'important' => ['sometimes', 'boolean'],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
         ];
     }

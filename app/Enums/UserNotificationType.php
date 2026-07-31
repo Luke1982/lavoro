@@ -44,10 +44,34 @@ enum UserNotificationType: string
         };
     }
 
+    /**
+     * Het pictogram en de kleur waarin dit type in de lijst verschijnt. Namen,
+     * geen klassen: de front end vertaalt ze, zodat een kleur veranderen hier
+     * gebeurt en niet in een template.
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::ticket_created => 'Wrench',
+        };
+    }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ticket_created => 'amber',
+        };
+    }
+
+    /**
+     * De titel is een kort etiket en niet de hele melding: in de lijst staat er
+     * één regel voor, en een onderwerp dat daar niet in past wordt afgekapt op
+     * het woord waar het interessant werd. Wat het is, staat eronder.
+     */
     public function titleFor(Signal $signal): string
     {
         return match ($this) {
-            self::ticket_created => 'Nieuwe storing: ' . Str::limit($this->ticket($signal)->subject, 180),
+            self::ticket_created => 'Nieuwe storing #' . $this->ticket($signal)->id,
         };
     }
 
@@ -86,9 +110,8 @@ enum UserNotificationType: string
         $ticket = $this->ticket($signal);
         $machine = $ticket->asset?->serial_number;
 
-        return 'Storing #' . $ticket->id
-            . ($machine ? ' op machine ' . $machine : '')
-            . ', prioriteit ' . mb_strtolower((string) $ticket->priority)
+        return Str::limit($ticket->subject, 120)
+            . ($machine ? ' — machine ' . $machine : '')
             . ', gemeld door ' . ($signal->actorName() ?? 'het systeem');
     }
 

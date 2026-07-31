@@ -1,12 +1,12 @@
 <template>
-    <IndexHeaderComponent title="Gebruikersrollen" subtitle="Beheer van rollen die gebruikers op afspraken vervullen"
+    <IndexHeaderComponent title="Planrollen" subtitle="Beheer van rollen die gebruikers op afspraken vervullen"
         :show-search="false" add-label="Voeg rol toe" @add="showDrawer = true" />
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0" class="mt-4">
         <EditableGridComponent :headers="headers" :items="innerRoles" @update="onCellUpdate" :urlBase="urlBase" />
     </BoxComponent>
 
-    <DrawerComponent v-model="showDrawer" title="Nieuwe gebruikersrol"
+    <DrawerComponent v-model="showDrawer" title="Nieuwe planrol"
         subtitle="Vul de gegevens in voor de nieuwe rol.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">

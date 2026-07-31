@@ -3,7 +3,14 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{--
+        viewport-fit=cover laat env(safe-area-inset-*) pas echt een waarde
+        krijgen; zonder dat is die nul en valt de balk onderaan onder de
+        home-indicator. interactive-widget zorgt dat het toetsenbord de pagina
+        verkleint in plaats van eroverheen te schuiven.
+    --}}
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 
     <title>{{ env('APP_NAME', 'Laravel') }}</title>
     <link rel="manifest" href="/manifest.json">

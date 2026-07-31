@@ -2,7 +2,7 @@
     <OfflineBanner />
     <UpdateBanner />
     <PushPermissionBanner v-if="page.props.auth?.user" />
-    <div class="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
+    <div class="min-h-dvh bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
             <Dialog class="relative z-50 lg:hidden" @close="sidebarOpen = false">
                 <TransitionChild as="template" enter="transition-opacity ease-linear duration-300"
@@ -12,66 +12,64 @@
                 </TransitionChild>
 
                 <div class="fixed inset-0 flex">
+                    <!--
+                        Het menu is op een telefoon het hele scherm, zoals in het
+                        ontwerp: geen strook pagina die er half achter vandaan
+                        piept. De sluitknop staat daarom in het menu zelf.
+
+                        Deze uitleg staat buiten TransitionChild en niet erin: met
+                        as="template" mag daar precies één knooppunt in staan, en
+                        een commentaar telt mee. Stond het erbinnen, dan kon de ref
+                        niet doorgegeven worden en bleef het menu onzichtbaar —
+                        met alleen de laag eroverheen die klikken tegenhield.
+                    -->
                     <TransitionChild as="template" enter="transition ease-in-out duration-300 transform"
                         enter-from="-translate-x-full" enter-to="translate-x-0"
                         leave="transition ease-in-out duration-300 transform" leave-from="translate-x-0"
                         leave-to="-translate-x-full">
-                        <DialogPanel class="relative mr-16 flex w-full max-w-xs flex-1">
-                            <TransitionChild as="template" enter="ease-in-out duration-300" enter-from="opacity-0"
-                                enter-to="opacity-100" leave="ease-in-out duration-300" leave-from="opacity-100"
-                                leave-to="opacity-0">
-                                <div class="absolute top-0 left-full flex w-16 justify-center pt-5">
-                                    <button type="button" class="-m-2.5 p-2.5" @click="sidebarOpen = false">
-                                        <span class="sr-only">Close sidebar</span>
-                                        <XMarkIcon class="size-6 text-white" aria-hidden="true" />
-                                    </button>
-                                </div>
-                            </TransitionChild>
+                        <DialogPanel class="relative flex w-full flex-1">
+                            <button type="button"
+                                class="absolute top-5 right-4 z-10 rounded-lg p-2 text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text"
+                                @click="sidebarOpen = false">
+                                <span class="sr-only">Menu sluiten</span>
+                                <XMarkIcon class="size-6" aria-hidden="true" />
+                            </button>
 
-                            <SidebarContent @navigate="sidebarOpen = false" @logout="logout" />
+                            <MenuSidebar :allow-collapse="false" @navigate="sidebarOpen = false" @logout="logout" />
                         </DialogPanel>
                     </TransitionChild>
                 </div>
             </Dialog>
         </TransitionRoot>
 
-        <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
-            :style="{ width: desktopCollapsed ? '0px' : '18rem', transition: 'width 300ms ease-in-out' }">
-            <SidebarContent @logout="logout" />
+        <!--
+            Ingeklapt is nu een smalle balk en niet meer niets: de pictogrammen
+            blijven staan, met de naam bij het aanwijzen. De knop om te wisselen
+            zit in de zijbalk zelf, waar hij hoort.
+        -->
+        <div class="menu-shell hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col overflow-hidden"
+            :style="{ width: collapsed ? '4.5rem' : '18rem' }">
+            <MenuSidebar @logout="logout" />
         </div>
 
-        <button
-            class="hidden lg:flex fixed z-[60] top-6 items-center justify-center w-6 h-6 rounded-full bg-white text-gray-500 hover:text-gray-900 shadow-md border border-gray-200"
-            :style="{ left: desktopCollapsed ? '8px' : 'calc(18rem - 12px)', transition: 'left 300ms ease-in-out' }"
-            @click="toggleDesktopSidebar">
-            <ChevronLeftIcon class="size-3.5 transition-transform duration-300"
-                :class="desktopCollapsed ? 'rotate-180' : ''" />
-        </button>
-
-        <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-sidebar-bg px-4 py-4 shadow-xs sm:px-6 lg:hidden">
-            <button type="button" class="-m-2.5 p-2.5 text-sidebar-muted lg:hidden" @click="toggleSidebar">
-                <span class="sr-only">Open sidebar</span>
-                <Bars3Icon class="size-6" aria-hidden="true" />
-            </button>
-            <div class="flex-1 text-sm/6 font-semibold text-white">{{ currentTopTitle }}</div>
-            <button type="button" class="-m-2.5 p-2.5 text-sidebar-muted hover:text-lavoro-green"
-                @click="openNavigator">
-                <span class="sr-only">Zoeken</span>
-                <MagnifyingGlassIcon class="size-6" aria-hidden="true" />
-            </button>
-            <img src="/img/logo-neg.svg" class="h-6" alt="">
-            <Link :href="'/me/edit'">
-                <span class="sr-only">Profiel</span>
-                <div class="size-8 rounded-full bg-sidebar-card overflow-hidden flex items-center justify-center">
-                    <img v-if="authUser?.avatar" :src="authUser.avatar" class="object-cover w-full h-full" />
-                    <span v-else class="text-xs font-medium text-white">{{ initials }}</span>
-                </div>
-            </Link>
-
+        <!--
+            Zoals in het ontwerp: het logo links, zoeken en meldingen rechts, en
+            verder niets. Het menu en het profiel staan onderin binnen duimbereik,
+            dus die hoeven hier niet nog een keer.
+        -->
+        <div class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 lg:hidden">
+            <img src="/img/logo-neg.svg" class="h-8" alt="Lavoro">
+            <div class="flex items-center gap-x-1">
+                <button type="button" class="p-2 text-sidebar-muted hover:text-lavoro-green" @click="openNavigator">
+                    <span class="sr-only">Zoeken</span>
+                    <MagnifyingGlassIcon class="size-6" aria-hidden="true" />
+                </button>
+                <NotificationBell button-class="size-10 text-sidebar-muted hover:text-lavoro-green" />
+            </div>
         </div>
 
         <main
-            :class="[page.props.noPadding ? '' : 'pt-4 pb-10', desktopCollapsed ? 'lg:pl-0' : 'lg:pl-72', 'bg-svg min-h-[100vh] transition-[padding-left] duration-300 ease-in-out']">
+            :class="[page.props.noPadding ? 'pb-24 lg:pb-0' : 'pt-4 pb-28 lg:pb-10', collapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-72', 'bg-svg menu-pad min-h-[100dvh]']">
             <div v-if="showGoogleReconnectBanner"
                 class="bg-amber-100 border-b border-amber-300 px-4 py-2 text-sm text-amber-900 flex items-center justify-between dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                 <span>Je Google Agenda synchronisatie is gepauzeerd.</span>
@@ -85,6 +83,7 @@
             </div>
         </main>
     </div>
+    <MobileTabBar v-if="page.props.auth?.user" :menu-open="sidebarOpen" @menu="sidebarOpen = !sidebarOpen" />
     <GlobalNotification />
 
         <!--
@@ -101,15 +100,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import { Bars3Icon, ChevronLeftIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import { Link, usePage, router } from '@inertiajs/vue3'
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { usePage, router } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
-import { useSidebarNav } from '@/Composables/useSidebarNav.js'
-import SidebarContent from '@/Components/Layout/SidebarContent.vue'
+import { useMenu } from '@/Composables/useMenu.js'
+import MenuSidebar from '@/Components/Layout/MenuSidebar.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import PushPermissionBanner from '@/Components/UI/PushPermissionBanner.vue'
+import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
+import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
 import { openNavigator } from '@/Composables/useNavigator.js'
@@ -138,7 +139,7 @@ const { check: check_update } = useAppUpdate()
 const { init: init_deep_links } = useDeepLinks()
 
 const page = usePage()
-const { authUser, initials, currentTopTitle } = useSidebarNav()
+const { authUser, collapsed } = useMenu()
 
 onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
@@ -175,21 +176,6 @@ const dismissGoogleBanner = () => {
 }
 
 const sidebarOpen = ref(false)
-
-const toggleSidebar = () => {
-    sidebarOpen.value = !sidebarOpen.value
-}
-
-const desktopCollapsed = ref(
-    typeof window !== 'undefined' && localStorage.getItem('desktopSidebarCollapsed') === '1'
-)
-
-const toggleDesktopSidebar = () => {
-    desktopCollapsed.value = !desktopCollapsed.value
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('desktopSidebarCollapsed', desktopCollapsed.value ? '1' : '0')
-    }
-}
 
 const logout = async () => {
     await stop_tracking()

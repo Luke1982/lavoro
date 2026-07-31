@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssetSearchRequest;
 use App\Http\Requests\CustomerSearchRequest;
+use App\Http\Requests\EventTypeSearchRequest;
 use App\Http\Requests\LocationSearchRequest;
 use App\Http\Requests\MaterialSearchRequest;
 use App\Http\Requests\ProductSearchRequest;
 use App\Http\Requests\ServiceOrderSearchRequest;
 use App\Http\Requests\SupplierSearchRequest;
+use App\Http\Requests\UserSearchRequest;
+use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\EventType;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Supplier;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
 class ComboSearchController extends Controller
@@ -30,6 +36,58 @@ class ComboSearchController extends Controller
                 'id' => $c->id,
                 'name' => $c->city ? "{$c->name} – {$c->city}" : $c->name,
             ]);
+
+        return response()->json($results);
+    }
+
+    /**
+     * Machines om een storing aan te hangen. Alleen wat deze gebruiker mag zien:
+     * de zoeker mag geen machines tonen die de lijst zelf zou verbergen.
+     *
+     * De machines gaan er heel uit en niet als id met naam: aan de andere kant
+     * staat AssetSelectMenu, en die toont merk, model, serienummer en locatie.
+     * mapAssetForSelect maakt daar in de browser het juiste van.
+     */
+    public function assets(AssetSearchRequest $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $results = Asset::visibleTo($request->user())
+            ->when($q !== '', fn ($query) => $query->where('serial_number', 'like', "%{$q}%"))
+            ->when(
+                $request->filled('customer_id'),
+                fn ($query) => $query->where('customer_id', $request->integer('customer_id'))
+            )
+            ->with(['product.brand', 'product.productType', 'linkedLocation'])
+            ->orderBy('serial_number')
+            ->limit(25)
+            ->get();
+
+        return response()->json($results);
+    }
+
+    public function users(UserSearchRequest $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $results = User::query()
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name']);
+
+        return response()->json($results);
+    }
+
+    public function eventTypes(EventTypeSearchRequest $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $results = EventType::query()
+            ->when($q !== '', fn ($query) => $query->where('name', 'like', "%{$q}%"))
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name']);
 
         return response()->json($results);
     }

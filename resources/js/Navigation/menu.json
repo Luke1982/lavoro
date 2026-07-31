@@ -1,0 +1,208 @@
+{
+    "pinned": [
+        { "id": "dashboard", "label": "Dashboard", "icon": "Home", "href": "/", "exact": true }
+    ],
+    "sections": [
+        {
+            "id": "operatie",
+            "label": "Operatie",
+            "accent": "operatie",
+            "items": [
+                {
+                    "id": "planning",
+                    "label": "Planning",
+                    "icon": "CalendarDays",
+                    "href": "/planner",
+                    "permission": "event.read",
+                    "children": [
+                        { "id": "eventtypes", "label": "Afspraaktypes", "href": "/eventtypes", "permission": "eventtype.read" },
+                        { "id": "planrollen", "label": "Planrollen", "href": "/userroles", "permission": "userrole.read" }
+                    ]
+                },
+                {
+                    "id": "werkbonnen",
+                    "label": "Werkbonnen",
+                    "icon": "FileText",
+                    "href": "/serviceorders",
+                    "anyPermission": ["serviceorder.read", "serviceorder.read_own"],
+                    "children": [
+                        { "id": "serviceorderstages", "label": "Fases", "href": "/serviceorderstages", "permission": "serviceorderstage.read" },
+                        { "id": "serviceordertasks", "label": "Taken", "href": "/serviceordertasks", "permission": "serviceordertask.read" }
+                    ]
+                },
+                {
+                    "id": "storingen",
+                    "label": "Storingen",
+                    "icon": "TriangleAlert",
+                    "href": "/tickets",
+                    "permission": "ticket.see_all",
+                    "indicator": "open_tickets"
+                },
+                {
+                    "id": "projecten",
+                    "label": "Projecten",
+                    "icon": "FolderKanban",
+                    "href": "/projects",
+                    "permission": "project.read"
+                }
+            ]
+        },
+        {
+            "id": "relaties",
+            "label": "Relaties",
+            "accent": "relaties",
+            "items": [
+                {
+                    "id": "klanten",
+                    "label": "Klanten",
+                    "icon": "Users",
+                    "href": "/customers",
+                    "permission": "customer.read",
+                    "children": [
+                        { "id": "locaties", "label": "Locaties", "href": "/locations", "permission": "location.read" },
+                        { "id": "contacten", "label": "Contacten", "href": "/contacts", "permission": "contact.read" },
+                        { "id": "onderhoudscontracten", "label": "Onderhoudscontracten", "href": "/maintenancecontracts", "permission": "maintenancecontract.read" }
+                    ]
+                },
+                {
+                    "id": "machines",
+                    "label": "Machines",
+                    "icon": "Cog",
+                    "href": "/assets",
+                    "permission": "asset.read"
+                },
+                {
+                    "id": "catalogus",
+                    "label": "Catalogus",
+                    "icon": "Box",
+                    "children": [
+                        {
+                            "id": "producten",
+                            "label": "Producten",
+                            "href": "/products",
+                            "permission": "product.read",
+                            "children": [
+                                { "id": "producttypes", "label": "Producttypes", "href": "/producttypes", "permission": "producttype.read" },
+                                { "id": "merken", "label": "Merken", "href": "/brands", "permission": "brand.read" },
+                                { "id": "kenmerken", "label": "Kenmerken", "href": "/productattributes", "permission": "productattribute.read" },
+                                { "id": "relatietypes", "label": "Relatietypes", "href": "/productrelations", "permission": "productrelation.read" }
+                            ]
+                        },
+                        {
+                            "id": "materialen",
+                            "label": "Materialen",
+                            "href": "/materials",
+                            "permission": "material.read",
+                            "children": [
+                                { "id": "materiaalcategorieen", "label": "Categorieën", "href": "/materialcategories", "permission": "materialcategory.read" },
+                                { "id": "gebruikseenheden", "label": "Gebruikseenheden", "href": "/materialusageunits", "permission": "materialusageunit.read" }
+                            ]
+                        },
+                        {
+                            "id": "keurpunten",
+                            "label": "Keurpunten",
+                            "href": "/servicechecks",
+                            "permission": "servicecheck.read",
+                            "children": [
+                                { "id": "keurpuntgroepen", "label": "Groepen", "href": "/servicecheckgroups", "permission": "servicecheckgroup.read" }
+                            ]
+                        },
+                        { "id": "leveranciers", "label": "Leveranciers", "href": "/suppliers", "permission": "supplier.read" }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "organisatie",
+            "label": "Organisatie",
+            "accent": "organisatie",
+            "items": [
+                { "id": "bedrijf", "label": "Bedrijf", "icon": "Building2", "href": "/companies", "adminOnly": true },
+                {
+                    "id": "gebruikers",
+                    "label": "Gebruikers",
+                    "icon": "UserCog",
+                    "href": "/users",
+                    "permission": "user.read",
+                    "children": [
+                        { "id": "rollen", "label": "Rollen", "href": "/roles", "adminOnly": true }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "lijsten",
+            "label": "Lijsten",
+            "accent": "lijsten",
+            "items": [
+                {
+                    "id": "aankomendekeuringen",
+                    "label": "Aankomende keuringen",
+                    "initial": "A",
+                    "href": "/upcomingactivities",
+                    "permission": "activitylist.read"
+                }
+            ]
+        },
+        {
+            "id": "beheer",
+            "label": "Beheer & instellingen",
+            "items": [
+                {
+                    "id": "communicatie",
+                    "label": "Communicatie",
+                    "icon": "Mail",
+                    "children": [
+                        { "id": "standaardemails", "label": "Standaard e-mails", "href": "/standard-emails", "permission": "standardemail.manage" },
+                        { "id": "standaardbijlagen", "label": "Standaard bijlagen", "href": "/standard-attachments", "permission": "standardattachment.manage" }
+                    ]
+                },
+                {
+                    "id": "instellingen",
+                    "label": "Instellingen",
+                    "icon": "Settings",
+                    "children": [
+                        { "id": "algemeneinstellingen", "label": "Algemeen", "href": "/admin/settings", "adminOnly": true },
+                        { "id": "agendatoegang", "label": "Agenda-toegang", "href": "/admin/calendar-grants", "adminOnly": true },
+                        { "id": "extravelden", "label": "Extra velden", "href": "/customfields", "permission": "customfield.read" }
+                    ]
+                },
+                {
+                    "id": "technischbeheer",
+                    "label": "Technisch beheer",
+                    "icon": "Wrench",
+                    "href": "/technical-management",
+                    "explicitPermission": "technical.management"
+                }
+            ]
+        }
+    ],
+    "search": { "id": "zoeken", "label": "Zoeken", "icon": "Search", "action": "search" },
+    "cards": [
+        { "id": "license", "type": "license", "license": "Team" },
+        {
+            "id": "support",
+            "type": "support",
+            "label": "Support",
+            "description": "We helpen je graag",
+            "icon": "CircleHelp",
+            "href": "mailto:info@majorlabel.nl",
+            "external": true
+        },
+        { "id": "profiel", "type": "user", "href": "/me/edit" },
+        { "id": "uitloggen", "type": "logout", "label": "Uitloggen", "icon": "LogOut", "action": "logout" }
+    ],
+    "createActions": [
+        { "id": "nieuwe-werkbon", "label": "Werkbon", "icon": "FileText", "href": "/serviceorders/create", "permission": "serviceorder.create" },
+        { "id": "nieuwe-storing", "label": "Storing", "icon": "TriangleAlert", "href": "/tickets/create", "permission": "ticket.create" },
+        { "id": "nieuwe-afspraak", "label": "Afspraak", "icon": "CalendarDays", "href": "/planner", "permission": "event.create" },
+        { "id": "nieuwe-klant", "label": "Klant", "icon": "Users", "href": "/customers", "permission": "customer.create" }
+    ],
+    "mobileTabs": [
+        { "id": "menu", "label": "Menu", "icon": "Menu", "action": "menu" },
+        { "id": "agenda", "label": "Agenda", "icon": "CalendarDays", "href": "/planner", "permission": "event.read" },
+        { "id": "nieuw", "label": "Nieuw", "icon": "Plus", "action": "create", "variant": "fab" },
+        { "id": "meldingen", "label": "Meldingen", "icon": "Bell", "href": "/usernotifications", "badge": "unread_notifications" },
+        { "id": "profiel", "label": "Profiel", "icon": "User", "href": "/me/edit" }
+    ]
+}

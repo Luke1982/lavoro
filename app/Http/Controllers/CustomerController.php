@@ -163,7 +163,11 @@ class CustomerController extends Controller
 
         $customer = Customer::create($data);
 
-        return redirect()->route('customers.index')->with('success', 'Klant aangemaakt.');
+        /** Net als bij een storing reist het nieuwe record mee terug. */
+        return redirect()->route('customers.index')->with([
+            'success' => 'Klant aangemaakt.',
+            'extra' => ['customer' => $customer],
+        ]);
     }
 
     public function updateCoords(CustomerUpdateCoordsRequest $request, Customer $customer)

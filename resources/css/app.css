@@ -24,6 +24,16 @@
     --color-sidebar-text: #e6eeff;
     --color-sidebar-muted: #94a3b8;
     --color-sidebar-border: #1f2937;
+
+    /*
+     * Het streepje voor een sectienaam in het menu. Eén kleur per sectie, zodat
+     * je aan de rand van je oog ziet in welk deel van de applicatie je zit;
+     * menu.json wijst ze toe onder deze namen.
+     */
+    --color-nav-operatie: #2563eb;
+    --color-nav-relaties: #22c55e;
+    --color-nav-organisatie: #8b5cf6;
+    --color-nav-lijsten: #2563eb;
 }
 
 @utility bg-svg {
@@ -39,6 +49,242 @@
         opacity: 0.2;
         z-index: -1;
     }
+}
+
+/*
+ * floating-vue tekent zijn eigen witte kaartje onder wat je erin zet. Het paneel
+ * van het belletje brengt zijn eigen donkere achtergrond en rand mee, dus dat
+ * kaartje moet weg — alleen voor deze popper, want de rest van de applicatie
+ * gebruikt het standaardthema wel.
+ *
+ * De selector noemt .v-popper__popper mee om zwaarder te wegen dan
+ * .v-popper--theme-dropdown .v-popper__inner uit de stylesheet van de plugin:
+ * even zwaar en later geladen wint anders, en dan blijven de witte hoeken staan.
+ */
+.v-popper__popper.nav-popper .v-popper__inner {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    color: inherit;
+    overflow: visible;
+}
+
+.v-popper__popper.nav-popper .v-popper__arrow-container {
+    display: none;
+}
+
+/*
+ * Eén tijd en één curve voor de hele beweging, zodat de balk, het logo, de
+ * teksten en de pagina ernaast in hetzelfde tempo lopen. De curve schiet in het
+ * begin hard weg en glijdt daarna lang uit — het laatste stuk duurt langer dan de
+ * eerste helft, en dat is precies wat het rustig laat aanvoelen.
+ */
+:root {
+    --menu-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --menu-duration: 700ms;
+}
+
+.menu-shell {
+    transition: width var(--menu-duration) var(--menu-ease);
+}
+
+.menu-pad {
+    transition: padding-left var(--menu-duration) var(--menu-ease);
+}
+
+.menu-morph {
+    transition:
+        width var(--menu-duration) var(--menu-ease),
+        padding var(--menu-duration) var(--menu-ease),
+        border-color var(--menu-duration) var(--menu-ease);
+}
+
+/*
+ * Inklappen is één beweging en geen wissel van twee menu's. De pictogrammen
+ * blijven precies waar ze staan; wat verdwijnt, krimpt weg. Daarom staat alles
+ * in één boom en zet .menu-collapsed alleen andere maten, in plaats van dat er
+ * een tweede menu voor in de plaats komt.
+ */
+/*
+ * Niets steekt zijwaarts uit als de balk smal is. De uitklappers staan op
+ * position: fixed en worden hier niet door afgeknipt; dat is precies waarom ze
+ * fixed zijn.
+ */
+.menu-collapsed {
+    overflow-x: hidden;
+}
+
+.menu-label {
+    display: inline-block;
+    max-width: 14rem;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    transition:
+        max-width var(--menu-duration) var(--menu-ease),
+        opacity calc(var(--menu-duration) * 0.45) ease-out,
+        margin-left var(--menu-duration) var(--menu-ease);
+}
+
+.menu-collapsed .menu-label {
+    max-width: 0;
+    margin-left: 0 !important;
+    opacity: 0;
+}
+
+/*
+ * Chevrons, stippen, tellers en de sneltoets horen bij de tekst en gaan mee.
+ * Ze krimpen ook echt weg: alleen doorzichtig maken laat de ruimte staan, en dan
+ * staat het pictogram ernaast uit het midden.
+ */
+.menu-trailing {
+    /*
+     * min-width: 0 hoort erbij: een flex-item mag standaard niet kleiner worden
+     * dan zijn inhoud, en dan wint die auto-ondergrens het van max-width 0.
+     */
+    min-width: 0;
+    max-width: 8rem;
+    overflow: hidden;
+    opacity: 1;
+    transition:
+        opacity calc(var(--menu-duration) * 0.3) ease-out,
+        max-width var(--menu-duration) var(--menu-ease);
+}
+
+.menu-collapsed .menu-trailing {
+    max-width: 0;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/*
+ * Ingeklapt staan de pictogrammen als één rij onder elkaar. De ruimte tussen de
+ * secties was er voor de kopjes; die zijn weg, dus die ruimte hoort ook weg —
+ * anders vallen er gaten tussen de pictogrammen.
+ */
+.menu-collapsed .menu-sections {
+    row-gap: 0.5rem;
+}
+
+.menu-collapsed .menu-sections > li > ul {
+    margin-top: 0;
+}
+
+/*
+ * De kop van een sectie verdwijnt hele­maal: het gekleurde streepje hoort bij de
+ * naam ernaast, en zonder die naam is het een los streepje in de balk.
+ */
+.menu-collapsed .menu-section-header {
+    display: none;
+}
+
+/* Onderliggende regels staan ingeklapt naast de balk, niet eronder. */
+.menu-collapsed .menu-children {
+    display: none;
+}
+
+/*
+ * Het logo krimpt mee: de doos wordt smaller en het woord schuift eruit. Dat is
+ * dezelfde afbeelding die blijft staan, geen tweede die ervoor in de plaats komt.
+ */
+.menu-logo {
+    display: block;
+    overflow: hidden;
+    height: 3rem;
+    width: 10.4rem;
+    transition:
+        width var(--menu-duration) var(--menu-ease),
+        height var(--menu-duration) var(--menu-ease);
+}
+
+.menu-logo img {
+    height: 100%;
+    max-width: none;
+}
+
+.menu-collapsed .menu-logo {
+    height: 2.25rem;
+
+    /* 106 van de 431 eenheden van de tekening: precies tot waar het beeldmerk eindigt. */
+    width: 1.925rem;
+}
+
+/*
+ * Onzichtbaar is niet weg: de kaarten hielden hun hoogte en lieten een gat van
+ * driehonderd pixels achter boven de avatar. Wat niet getoond wordt, wordt hier
+ * dus echt uit de opmaak gehaald.
+ */
+.menu-footer {
+    display: grid;
+
+    /*
+     * minmax(0, 1fr) en niet auto: de kaarten zijn onzichtbaar als de balk smal
+     * is, maar ze blijven wel hun breedte innemen. Zonder deze regel houdt de
+     * zijbalk de breedte van de kaarten, en dat is de horizontale schuifbalk.
+     */
+    grid-template-columns: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.menu-footer > * {
+    grid-area: 1 / 1;
+    transition: opacity calc(var(--menu-duration) * 0.5) ease-out;
+}
+
+.menu-footer .menu-footer-narrow {
+    display: none;
+}
+
+.menu-collapsed .menu-footer .menu-footer-wide {
+    display: none;
+}
+
+.menu-collapsed .menu-footer .menu-footer-narrow {
+    display: flex;
+}
+
+/*
+ * De uitklappers verschijnen alleen als de balk ingeklapt is. Puur :hover —
+ * daardoor kan er per definitie maar één tegelijk openstaan, want de muis staat
+ * op één regel.
+ *
+ * position: fixed zonder top of left houdt het paneel op de plek waar het in de
+ * stroom zou staan, maar buiten het bereik van de overloop van de zijbalk, die
+ * het anders zou afknippen. De negatieve bovenmarge zet het terug op de hoogte
+ * van de knop; dat mag een vaste waarde zijn omdat elke knop hier even hoog is.
+ */
+.rail-flyout {
+    position: fixed;
+    z-index: 50;
+    margin-top: -2.5rem;
+
+    /*
+     * De ruimte tussen knop en paneel zit ín het paneel, als padding. Als het
+     * een marge was, liet de muis onderweg los en klapte alles weer dicht.
+     */
+    margin-left: 2.5rem;
+    padding-left: 1rem;
+
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-0.25rem);
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+/*
+ * :focus-visible en niet :focus-within — anders houdt een aangeklikte link de
+ * uitklapper open nadat de muis allang weg is, want de klik laat de focus achter
+ * in het paneel. Met focus-visible telt alleen toetsenbordfocus mee.
+ */
+.menu-collapsed .rail-item:hover > .rail-flyout,
+.menu-collapsed .rail-item:has(:focus-visible) > .rail-flyout {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
 }
 
 @keyframes sidebarItemIn {

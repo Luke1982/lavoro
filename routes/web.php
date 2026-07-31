@@ -145,6 +145,9 @@ Route::group(
         Route::get('combo/customers/{customer}/locations', [ComboSearchController::class, 'locationsForCustomer'])
             ->name('combo.customer.locations');
         Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');
+        Route::get('combo/assets', [ComboSearchController::class, 'assets'])->name('combo.assets');
+        Route::get('combo/users', [ComboSearchController::class, 'users'])->name('combo.users');
+        Route::get('combo/eventtypes', [ComboSearchController::class, 'eventTypes'])->name('combo.eventtypes');
         Route::get('combo/materials', [ComboSearchController::class, 'materials'])->name('combo.materials');
         Route::get('combo/products', [ComboSearchController::class, 'products'])->name('combo.products');
         Route::get('combo/suppliers', [ComboSearchController::class, 'suppliers'])->name('combo.suppliers');
@@ -405,6 +408,10 @@ Route::group(
             ->name('upcomingactivities.map'); // requires activitylist.read
         Route::get('usernotifications', [UserNotificationController::class, 'index'])
             ->name('usernotifications.index');
+        Route::get('usernotifications/feed', [UserNotificationController::class, 'feed'])
+            ->name('usernotifications.feed');
+        Route::post('usernotifications/read-all', [UserNotificationController::class, 'acknowledgeAll'])
+            ->name('usernotifications.acknowledgeAll');
         Route::patch('usernotifications/{usernotification}/read', [UserNotificationController::class, 'acknowledge'])
             ->name('usernotifications.acknowledge');
         Route::delete('usernotifications/{usernotification}/read', [UserNotificationController::class, 'unacknowledge'])

@@ -20,20 +20,20 @@ class UserRoleController extends Controller
     {
         UserRole::create($request->validated());
 
-        return redirect()->back()->with('success', 'Gebruikersrol is aangemaakt');
+        return redirect()->back()->with('success', 'Planrol is aangemaakt');
     }
 
     public function update(UserRoleStoreUpdateRequest $request, UserRole $userrole)
     {
         $userrole->update($request->validated());
 
-        return redirect()->back()->with('success', 'Gebruikersrol is bijgewerkt');
+        return redirect()->back()->with('success', 'Planrol is bijgewerkt');
     }
 
     public function destroy(UserRoleDeleteRequest $request, UserRole $userrole)
     {
         $userrole->delete();
 
-        return redirect()->back()->with('success', 'Gebruikersrol is verwijderd');
+        return redirect()->back()->with('success', 'Planrol is verwijderd');
     }
 }

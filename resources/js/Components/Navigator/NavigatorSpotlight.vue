@@ -85,7 +85,8 @@ import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import SpotlightShell from '@/Components/UI/SpotlightShell.vue'
-import { useSidebarNav } from '@/Composables/useSidebarNav.js'
+import { useMenu } from '@/Composables/useMenu.js'
+import { navIcon } from '@/Navigation/icons.js'
 import { navigatorShortcutLabel, matchesNavigatorShortcut } from '@/Composables/useNavigator.js'
 import { closeAssistant } from '@/Composables/useAssistant.js'
 
@@ -96,7 +97,7 @@ const MIN_TERM_LENGTH = 2
 // person an error for a rule they cannot see, so the extra is simply not sent.
 const MAX_TERM_LENGTH = 100
 
-const { filteredNavigation, filteredLists, visibleChildren } = useSidebarNav()
+const { destinations } = useMenu()
 
 const open = ref(false)
 const query = ref('')
@@ -121,22 +122,14 @@ let request_token = 0
  * sidebar already decides who sees what, so reading it here means the spotlight
  * can never offer a chapter the menu hides.
  */
-const chapters = computed(() => {
-    const rows = []
-
-    filteredNavigation.value.forEach((item) => {
-        rows.push({ title: item.name, subtitle: null, href: item.href, icon: item.icon })
-        visibleChildren(item).forEach((child) => {
-            rows.push({ title: child.name, subtitle: item.name, href: child.href, icon: child.icon })
-        })
-    })
-
-    filteredLists.value.forEach((list) => {
-        rows.push({ title: list.name, subtitle: 'Lijsten', href: list.href, icon: null })
-    })
-
-    return rows
-})
+const chapters = computed(() =>
+    destinations.value.map((destination) => ({
+        title: destination.label,
+        subtitle: destination.trail.length ? destination.trail.join(' · ') : null,
+        href: destination.href,
+        icon: navIcon(destination.icon),
+    }))
+)
 
 /**
  * MySQL's collation matches "categorieen" against "Categorieën" without being

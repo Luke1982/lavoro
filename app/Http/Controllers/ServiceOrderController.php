@@ -176,7 +176,11 @@ class ServiceOrderController extends Controller
         }
 
         if ($redirect === 'back' || $request->input('redirect') === false) {
-            return redirect()->back()->with('success', 'Werkbon succesvol aangemaakt.');
+            /** De bon reist mee terug, zodat wie hem meteen wil openen niet hoeft te zoeken. */
+            return redirect()->back()->with([
+                'success' => 'Werkbon succesvol aangemaakt.',
+                'extra' => ['serviceorder' => $serviceorder],
+            ]);
         } else {
             return redirect()->route($redirect, $serviceorder->id)
                 ->with(

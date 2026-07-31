@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TicketStatusses;
 use App\Models\Assistant;
 use App\Models\GeneralSetting;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -79,6 +81,24 @@ class HandleInertiaRequests extends Middleware
                 'can' => [
                     'use_assistant' => $request->user()?->can('use', Assistant::class) ?? false,
                 ],
+            ],
+            /**
+             * What the menu paints on top of itself: the dot beside Storingen and
+             * the count on the bell. Booleans and counts only — the menu's shape
+             * lives in menu.json, and this says nothing about what it looks like.
+             *
+             * The storingen dot asks whether any exist rather than how many, which
+             * is a cheaper question and the only one a dot can answer.
+             */
+            'nav' => [
+                'open_tickets' => $request->user()
+                    ? Ticket::visibleTo($request->user())
+                        ->where('status', '!=', TicketStatusses::gesloten->value)
+                        ->exists()
+                    : false,
+                'unread_notifications' => $request->user()
+                    ? $request->user()->userNotifications()->unread()->count()
+                    : 0,
             ],
             /**
              * The public half of the VAPID keypair, which the browser needs in
