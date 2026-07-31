@@ -33,6 +33,14 @@ enum UserNotificationType: string
     case task_signed = 'taskinstance.signed';
     case customer_created = 'customer.created';
 
+    /**
+     * De enige soort die niet aan een signaal hangt: er gebeurt niets op het moment
+     * dat een afspraak voorbij is zonder ingevulde tijden. Die wordt geschreven
+     * door notifications:missing-times, met zijn eigen tekst, want dat commando
+     * weet welke afspraak en welke monteur het betreft.
+     */
+    case execution_times_missing = 'eventexecution.times_missing';
+
     public function label(): string
     {
         return match ($this) {
@@ -43,6 +51,7 @@ enum UserNotificationType: string
             self::material_attached => 'Materiaal toegevoegd',
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
+            self::execution_times_missing => 'Tijden nog niet ingevuld',
         };
     }
 
@@ -57,6 +66,7 @@ enum UserNotificationType: string
             self::material_attached => 'Zodra er materiaal op een werkbon komt.',
             self::task_signed => 'Zodra een keuring wordt ondertekend.',
             self::customer_created => 'Zodra er een klant wordt toegevoegd.',
+            self::execution_times_missing => 'Als je tijden van een afspraak van gisteren of eerder nog openstaan.',
         };
     }
 
@@ -71,6 +81,9 @@ enum UserNotificationType: string
             self::appointment_scheduled, self::appointment_rescheduled => 'event.read',
             self::serviceorder_closed, self::material_attached, self::task_signed => 'serviceorder.read',
             self::customer_created => 'customer.read',
+
+            /** Over je eigen uren hoef je niets extra's te mogen. */
+            self::execution_times_missing => null,
         };
     }
 
@@ -96,6 +109,7 @@ enum UserNotificationType: string
             self::material_attached => 'Box',
             self::task_signed => 'ClipboardCheck',
             self::customer_created => 'Users',
+            self::execution_times_missing => 'Clock',
         };
     }
 
@@ -108,6 +122,7 @@ enum UserNotificationType: string
             self::serviceorder_closed, self::task_signed => 'green',
             self::material_attached => 'purple',
             self::customer_created => 'blue',
+            self::execution_times_missing => 'red',
         };
     }
 
@@ -125,6 +140,7 @@ enum UserNotificationType: string
             self::material_attached => 'Materiaal op werkbon #' . $this->serviceOrder($signal)->id,
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
+            self::execution_times_missing => 'Tijden nog niet ingevuld',
         };
     }
 
@@ -137,6 +153,7 @@ enum UserNotificationType: string
             self::material_attached => $this->materialBody($signal),
             self::task_signed => $this->taskSignedBody($signal),
             self::customer_created => $this->customerBody($signal),
+            self::execution_times_missing => 'Er staan nog tijden open.',
         };
     }
 

@@ -121,6 +121,16 @@ class Event extends Model
         return app(EventLocationResolver::class)->resolve($this);
     }
 
+    /**
+     * Whether the address shown for this appointment is one of its own that the
+     * escalation would not have produced — an address entered for this visit
+     * only. Append it alongside display_location; same relations, same caveat.
+     */
+    public function getHasDeviatingLocationAttribute(): bool
+    {
+        return app(EventLocationResolver::class)->deviatesFromInherited($this);
+    }
+
     public function serviceOrders()
     {
         return $this->morphedByMany(ServiceOrder::class, 'eventable');

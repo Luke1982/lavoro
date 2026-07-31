@@ -64,7 +64,7 @@
                     <span class="sr-only">Zoeken</span>
                     <MagnifyingGlassIcon class="size-6" aria-hidden="true" />
                 </button>
-                <NotificationBell button-class="size-10 text-sidebar-muted hover:text-lavoro-green" />
+                <NotificationBell sheet button-class="size-10 text-sidebar-muted hover:text-lavoro-green" />
             </div>
         </div>
 

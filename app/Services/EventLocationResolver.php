@@ -56,6 +56,21 @@ class EventLocationResolver
             return $event->location;
         }
 
+        return $this->inherited($event);
+    }
+
+    /**
+     * The same escalation with the appointment's own two rungs taken out: where
+     * this appointment would happen if nobody had given it an address of its own.
+     */
+    public function inherited(Event $event): ?string
+    {
+        $order = $event->serviceOrders->first();
+
+        if ($order?->location_id) {
+            return $order->linkedLocation?->addressLine();
+        }
+
         if (!empty($order?->execution_location)) {
             return $order->execution_location;
         }
@@ -65,6 +80,33 @@ class EventLocationResolver
         }
 
         return $this->customerAddress($event);
+    }
+
+    /**
+     * Whether this appointment carries an address that the escalation would not
+     * have produced by itself — a one-off, entered for this visit only.
+     *
+     * A filled `location` column is not enough to say that: the planner dialog
+     * prefills its input with the resolved address and saves it back verbatim,
+     * so an appointment can own a copy of the very address it inherits. Only a
+     * value that actually differs deviates.
+     */
+    public function deviatesFromInherited(Event $event): bool
+    {
+        $own = $event->location_id
+            ? $event->linkedLocation?->addressLine()
+            : $event->location;
+
+        if (empty($own)) {
+            return false;
+        }
+
+        return $this->comparable($own) !== $this->comparable($this->inherited($event));
+    }
+
+    private function comparable(?string $address): string
+    {
+        return preg_replace('/\s+/', ' ', mb_strtolower(trim((string) $address)));
     }
 
     private function customerAddress(Event $event): ?string

@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\Google\PullCalendarChangesJob;
+use App\Jobs\Google\RenewWatchChannelsJob;
 use App\Models\GoogleSyncedCalendar;
 use App\Models\LocationPing;
 use Illuminate\Foundation\Inspiring;
@@ -18,7 +19,7 @@ Schedule::call(function () {
         ->each(fn ($id) => PullCalendarChangesJob::dispatch($id));
 })->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();
 
-Schedule::job(new \App\Jobs\Google\RenewWatchChannelsJob())
+Schedule::job(new RenewWatchChannelsJob)
     ->hourly()
     ->name('google-renew-watches')
     ->withoutOverlapping();
@@ -41,4 +42,13 @@ Schedule::command('maintenancecontracts:generate-serviceorders')
 Schedule::command('assistant:prune')
     ->dailyAt('03:20')
     ->name('assistant-prune-questions')
+    ->withoutOverlapping();
+
+/**
+ * Kijkt of er nog uren openstaan van afspraken van gisteren of eerder. 's Ochtends
+ * vroeg, zodat het een herinnering is voor vandaag en geen storing van gisteravond.
+ */
+Schedule::command('notifications:missing-times')
+    ->dailyAt('07:00')
+    ->name('notifications-missing-times')
     ->withoutOverlapping();

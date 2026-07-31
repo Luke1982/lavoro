@@ -192,6 +192,10 @@
                                     :initial-id="selectedLocationId" class="flex-1 min-w-0"
                                     placeholder="Kies een locatie" @update:model-value="onLocationPicked" />
 
+                                <ExclamationTriangleIcon v-if="hasDeviatingLocation"
+                                    class="shrink-0 size-5 text-amber-500"
+                                    v-tooltip="'Deze afspraak heeft een eigen adres, niet het adres van de werkbon of de klant'" />
+
                                 <button v-if="locationMode === 'freeform' && hasLocations" type="button"
                                     @click="switchToPickerLocation"
                                     class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
@@ -205,6 +209,9 @@
                                     <PencilSquareIcon class="size-5" />
                                 </button>
                             </div>
+                            <p v-if="hasDeviatingLocation" class="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                                Afwijkend adres
+                            </p>
                         </div>
                     </div>
 
@@ -560,6 +567,17 @@ const { locations: locationOptions, load: loadCustomerLocations } = useCustomerL
 const hasLocations = computed(() => locationOptions.value.length > 0)
 const locationMode = ref(props.initial.location_id ? 'picker' : 'freeform')
 const selectedLocationId = ref(props.initial.location_id || null)
+
+/**
+ * The backend resolved that the saved address is this appointment's own, not the
+ * one its werkbon, project or customer would hand it. That is a fact about what
+ * is stored, so the badge follows the saved value: touching the field drops it.
+ */
+const hasDeviatingLocation = computed(() =>
+    props.initial.has_deviating_location === true
+    && form.location === (props.initial.location || '')
+    && (form.location_id ?? null) === (props.initial.location_id ?? null)
+)
 
 function onLocationPicked(id) {
     selectedLocationId.value = id

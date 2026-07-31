@@ -552,6 +552,7 @@ function handleEventTap(ev) {
         customer_id: ev.customer_id,
         customer_name: ev.customer_name || null,
         location: ev.location || '',
+        has_deviating_location: ev.has_deviating_location || false,
         executing_user_ids: [...ev.executing_user_ids],
         executing_users: [...(ev.executing_users || [])],
         no_service_order: ev.no_service_order || false,
