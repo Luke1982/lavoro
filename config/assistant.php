@@ -10,6 +10,7 @@ use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
+use App\Domain\Tools\Read\ReadManualTool;
 use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
@@ -54,6 +55,7 @@ return [
         CreateTicketTool::class,
         CreateServiceOrderTool::class,
         AddServiceOrderTaskTool::class,
+        ReadManualTool::class,
     ],
 
     /*

@@ -32,7 +32,8 @@ class ReadDocumentationTool implements Tool
         return 'Kijkt of er documentatie bij een product of machine is opgeslagen — handleidingen, '
             . 'datasheets, technische specificaties — en zet die erbij zodat je vragen erover kunt '
             . 'beantwoorden. Gebruik dit bij technische vragen over een apparaat in plaats van uit '
-            . 'je hoofd te antwoorden.';
+            . 'je hoofd te antwoorden. Niet voor vragen over hoe Lavoro zelf werkt: daarvoor is '
+            . 'read_manual.';
     }
 
     public function inputSchema(): array

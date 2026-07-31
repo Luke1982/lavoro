@@ -58,6 +58,24 @@ dan is dat de ernstigste fout die deze lijst kan vinden.
 | Wanneer is werkbon 999999 afgesloten? | niet gevonden |
 | Hoeveel omzet hebben we vorige maand gedraaid? | zegt dat hij dat niet kan opzoeken |
 
+## Handleiding
+
+Vragen over hoe Lavoro zelf werkt horen naar `read_manual` te gaan — en technische
+vragen over een apparaat juist naar `read_documentation`. Kiest hij de verkeerde
+van de twee, dan zijn de beschrijvingen van die tools niet scherp genoeg.
+
+| Vraag | Verwacht |
+|---|---|
+| Hoe sluit ik een werkbon af? | `read_manual`, antwoord uit het hoofdstuk Werkbonnen |
+| Wat betekent de fase gefactureerd? | `read_manual`, "gefactureerd telt als gesloten" |
+| Waar stel ik de rechten van een gebruiker in? | `read_manual`, hoofdstuk over rollen en rechten |
+| Hoe koppel ik mijn Google Agenda? | `read_manual`, hoofdstuk Koppelingen |
+| Wat is het koudemiddel van machine 173? | `read_documentation`, niet `read_manual` |
+| Hoe werkt de voorraad als ik materiaal op een werkbon boek? | `read_manual`, hoofdstuk Materialen en voorraad |
+
+Staat het antwoord niet in de handleiding, dan hoort hij dat te zeggen — niet
+alsnog uit zijn hoofd te antwoorden.
+
 ## Geschiedenis
 
 Let op: regels van vóór de omslag naar de nieuwe activiteitenlogging hangen nog

@@ -27,17 +27,18 @@ class ToolSchemaBudgetTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Sixteen tools. Raised three times now — 12000, 14000, 16000, 18000 — each
-     * time for something the assistant could not work without, most recently
-     * reading the diary it was already able to write to, and putting a choice to
-     * somebody instead of listing it at them.
+     * Seventeen tools. Raised four times now — 12000, 14000, 16000, 18000,
+     * 19000 — each time for something the assistant could not work without,
+     * most recently the manual of the application itself, so questions about
+     * how Lavoro works stopped being answered from a model's general idea of
+     * what a field-service system probably does.
      *
      * The bytes themselves cost little, since these sit behind the cache marker
-     * and are read rather than rewritten. What is worth watching at fifteen is not
-     * the size but the choosing: every tool added is one more thing to pick wrongly
-     * from, and that shows up as a bad answer rather than a bill.
+     * and are read rather than rewritten. What is worth watching at seventeen is
+     * not the size but the choosing: every tool added is one more thing to pick
+     * wrongly from, and that shows up as a bad answer rather than a bill.
      */
-    private const ROOM_FOR = 18000;
+    private const ROOM_FOR = 19000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

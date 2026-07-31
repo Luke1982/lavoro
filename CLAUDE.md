@@ -39,6 +39,7 @@ npm run fix:eslint
 -   Validation belongs in Form Request `rules()` only; frontend only displays `form.errors`.
 -   Selecting/toggling in UI components: clicking a selected item deselects it — never add separate X / clear buttons.
 -   String concatenation should always be done with spaces: $string . ' some other string'
+-   `docs/handleiding.md` is the user manual the AI assistant answers from (`read_manual` tool). When user-facing behavior changes, update the relevant chapter in the same change.
 
 ## Project overview
 
