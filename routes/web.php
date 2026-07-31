@@ -417,7 +417,7 @@ Route::group(
         Route::delete('usernotifications/{usernotification}/read', [UserNotificationController::class, 'unacknowledge'])
             ->name('usernotifications.unacknowledge');
         Route::resource('notificationsubscriptions', NotificationSubscriptionController::class)
-            ->only(['store', 'destroy']);
+            ->only(['index', 'store', 'destroy']);
         Route::post('pushsubscriptions', [PushSubscriptionController::class, 'store'])
             ->name('pushsubscriptions.store');
         Route::delete('pushsubscriptions', [PushSubscriptionController::class, 'destroy'])

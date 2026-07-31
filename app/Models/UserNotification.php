@@ -69,6 +69,11 @@ class UserNotification extends Model
     {
         return match ($this->notificationable_type) {
             Ticket::class => '/tickets/' . $this->notificationable_id,
+            ServiceOrder::class => '/serviceorders/' . $this->notificationable_id,
+            Customer::class => '/customers/' . $this->notificationable_id,
+
+            /** Een afspraak heeft geen eigen pagina; die woont in de planner. */
+            Event::class => '/planner',
             default => null,
         };
     }

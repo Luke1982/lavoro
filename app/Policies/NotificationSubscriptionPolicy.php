@@ -28,6 +28,12 @@ class NotificationSubscriptionPolicy
         return $user->hasPermission('usernotification.manage_subscriptions');
     }
 
+    /** Alleen om te vragen of dit scherm de voorkeuren van een ander mag laten zien. */
+    public function manageOthers(User $user): bool
+    {
+        return $user->hasPermission('usernotification.manage_subscriptions');
+    }
+
     public function delete(User $user, NotificationSubscription $notification_subscription): bool
     {
         return $notification_subscription->user_id === $user->id

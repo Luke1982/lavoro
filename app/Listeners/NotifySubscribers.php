@@ -53,7 +53,7 @@ class NotifySubscribers
     {
         $type = UserNotificationType::tryFrom($signal->eventKey());
 
-        if ($type === null) {
+        if ($type === null || !$type->shouldNotify($signal)) {
             return;
         }
 
