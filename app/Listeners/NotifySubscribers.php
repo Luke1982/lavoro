@@ -13,11 +13,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Tells the people who asked to be told. Registered by Laravel's listener
- * discovery through the Signal type hint, exactly like the activity trail, so
- * every fact the application already raises is a candidate and no creation path
- * has to know that notifications exist. Only the keys named in
- * UserNotificationType produce anything.
+ * Tells the people who asked to be told, and the few who do not get a say.
+ * Registered by Laravel's listener discovery through the Signal type hint,
+ * exactly like the activity trail, so every fact the application already raises
+ * is a candidate and no creation path has to know that notifications exist. Only
+ * the keys named in UserNotificationType produce anything.
+ *
+ * Not getting a say is the exception and it is narrow: news about your own work,
+ * such as an appointment you have to carry out moving to another day. Subscribing
+ * to that would be subscribing to your own agenda.
  *
  * The rows are written inside the transaction that raised the signal, so work
  * that rolls back takes its notifications with it and nobody is told about a
@@ -49,31 +53,66 @@ class NotifySubscribers
         }
     }
 
+    /**
+     * Twee bewegingen achter elkaar. Eerst wat hoe dan ook gezegd wordt, want dat
+     * hangt aan het feit zelf en niet aan een keuze van de lezer; daarna wat de
+     * ingetekende lezers ervan te horen krijgen.
+     *
+     * De volgorde is niet willekeurig: wie het bericht al persoonlijk krijgt, hoort
+     * niet ook nog de algemene versie van hetzelfde moment te lezen. Één gebeurtenis
+     * is één bericht.
+     */
     private function notify(Signal $signal): void
     {
+        $written = collect();
+        $told = collect();
+
+        foreach (UserNotificationType::mandatoryFor($signal) as $must) {
+            $recipients = $must->mandatoryRecipients($signal)
+                ->reject(fn (int $user_id) => $user_id === $signal->actorId())
+                ->unique()
+                ->values();
+
+            $written = $written->merge($this->write($must, $signal, $recipients));
+            $this->dropSuperseded($must, $signal, $recipients);
+            $told = $told->merge($recipients);
+        }
+
         $type = UserNotificationType::tryFrom($signal->eventKey());
 
-        if ($type === null || !$type->shouldNotify($signal)) {
+        if ($type !== null && $type->shouldNotify($signal)) {
+            $subscribers = $this->subscribersFor($type, $signal->actorId())->diff($told);
+
+            $written = $written->merge($this->write($type, $signal, $subscribers));
+        }
+
+        if ($written->isEmpty()) {
             return;
         }
 
-        $subscribers = $this->subscribersFor($type, $signal->actorId());
+        $this->pushAfterCommit($written->all());
+    }
 
-        if ($subscribers->isEmpty()) {
-            return;
+    /**
+     * Worded once for everybody, not once per person: the sentence is the same for
+     * all of them, and rendering it inside the loop would ask the record about
+     * itself again for every extra reader.
+     *
+     * @param  Collection<int, int>  $user_ids
+     * @return Collection<int, int>
+     */
+    private function write(UserNotificationType $type, Signal $signal, Collection $user_ids): Collection
+    {
+        if ($user_ids->isEmpty()) {
+            return collect();
         }
 
-        /**
-         * Worded once for everybody, not once per person: the sentence is the same
-         * for all of them, and rendering it inside the loop would ask the record
-         * about itself again for every extra subscriber.
-         */
         $subject = $signal->subject();
         $priority = $type->priorityFor($signal);
         $title = $type->titleFor($signal);
         $body = $type->bodyFor($signal);
 
-        $written = $subscribers->map(fn (int $user_id) => UserNotification::create([
+        return $user_ids->map(fn (int $user_id) => UserNotification::create([
             'user_id' => $user_id,
             'type' => $type->value,
             'priority' => $priority,
@@ -81,9 +120,35 @@ class NotifySubscribers
             'notificationable_id' => $subject->getKey(),
             'title' => $title,
             'body' => $body,
-        ]));
+        ])->id);
+    }
 
-        $this->pushAfterCommit($written->pluck('id')->all());
+    /**
+     * Een melding die door een volgende achterhaald wordt, verdwijnt: iemand die
+     * net van een afspraak gehaald is heeft niets aan het bericht dat diezelfde
+     * afspraak verzet is, en dat bericht noemt bovendien de nieuwe dag.
+     *
+     * Alleen wat nog niet gelezen is. Wat iemand al gezien heeft weghalen is de
+     * geschiedenis herschrijven, en de push die erbij hoort is dan toch al weg.
+     *
+     * @param  Collection<int, int>  $user_ids
+     */
+    private function dropSuperseded(UserNotificationType $type, Signal $signal, Collection $user_ids): void
+    {
+        $superseded = $type->supersedes();
+
+        if ($superseded === [] || $user_ids->isEmpty()) {
+            return;
+        }
+
+        $subject = $signal->subject();
+
+        UserNotification::whereIn('user_id', $user_ids)
+            ->whereIn('type', array_column($superseded, 'value'))
+            ->where('notificationable_type', $subject->getMorphClass())
+            ->where('notificationable_id', $subject->getKey())
+            ->whereNull('read_at')
+            ->delete();
     }
 
     /**
@@ -124,14 +189,23 @@ class NotifySubscribers
      */
     private function subscribersFor(UserNotificationType $type, ?int $actor_id): Collection
     {
-        $permission = $type->requiredPermission();
+        $required = $type->requiredPermissions();
 
         return User::query()
             ->whereHas('notificationSubscriptions', fn ($query) => $query->where('type', $type->value))
             ->when($actor_id !== null, fn ($query) => $query->whereKeyNot($actor_id))
-            ->when($permission !== null, fn ($query) => $query->where(fn ($allowed) => $allowed
+            ->when($required !== [], fn ($query) => $query->where(fn ($allowed) => $allowed
                 ->whereHas('roles', fn ($roles) => $roles->where('name', 'admin'))
-                ->orWhereHas('roles.permissions', fn ($permissions) => $permissions->where('name', $permission))))
+
+                /** Alle rechten, niet een ervan: ze staan er samen, niet als keuze. */
+                ->orWhere(function ($holder) use ($required) {
+                    foreach ($required as $permission) {
+                        $holder->whereHas(
+                            'roles.permissions',
+                            fn ($permissions) => $permissions->where('name', $permission)
+                        );
+                    }
+                })))
             ->pluck('id');
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Domain\Signals\Appointments\AppointmentRescheduled;
+use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Domain\Signals\Signal;
@@ -9,6 +11,8 @@ use App\Domain\Signals\Tasks\TaskSigned;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
+use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -34,12 +38,32 @@ enum UserNotificationType: string
     case customer_created = 'customer.created';
 
     /**
-     * De enige soort die niet aan een signaal hangt: er gebeurt niets op het moment
-     * dat een afspraak voorbij is zonder ingevulde tijden. Die wordt geschreven
+     * Deze hangt aan geen enkel signaal: er gebeurt niets op het moment dat een
+     * afspraak voorbij is zonder ingevulde tijden. Die wordt geschreven
      * door notifications:missing-times, met zijn eigen tekst, want dat commando
      * weet welke afspraak en welke monteur het betreft.
      */
     case execution_times_missing = 'eventexecution.times_missing';
+
+    /**
+     * De tweede zonder eigen signaal. Een verzette afspraak geeft wel een signaal
+     * af, maar dat gaat over elke wijziging aan elke afspraak en is er één waarop
+     * je intekent; dit gaat over jouw dag die verschuift en komt daarom hoe dan
+     * ook. Twee gezichten van hetzelfde moment, dus twee soorten.
+     */
+    case own_appointment_moved = 'appointment.moved_for_executor';
+
+    /**
+     * Heeft wel een eigen signaal maar draagt niet zijn sleutel, want niet de
+     * sleutel wijst hier de lezers aan: het signaal brengt de namen mee van wie
+     * eraf gehaald is, en die staan al niet meer bij de afspraak.
+     *
+     * Zegt alleen dat de afspraak niet meer van jou is. Niet naar wie hij gegaan
+     * is en niet naar wanneer hij verzet is: wie eraf gehaald wordt kan de afspraak
+     * daarna niet meer inzien, en een bericht mag niet vertellen wat het scherm
+     * erachter terecht verzwijgt.
+     */
+    case removed_from_appointment = 'appointment.removed_for_executor';
 
     public function label(): string
     {
@@ -52,6 +76,8 @@ enum UserNotificationType: string
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
             self::execution_times_missing => 'Tijden nog niet ingevuld',
+            self::own_appointment_moved => 'Jouw afspraak verplaatst',
+            self::removed_from_appointment => 'Van afspraak afgehaald',
         };
     }
 
@@ -67,35 +93,133 @@ enum UserNotificationType: string
             self::task_signed => 'Zodra een keuring wordt ondertekend.',
             self::customer_created => 'Zodra er een klant wordt toegevoegd.',
             self::execution_times_missing => 'Als je tijden van een afspraak van gisteren of eerder nog openstaan.',
+            self::own_appointment_moved => 'Als een afspraak waarop jij staat een andere datum of tijd krijgt.',
+            self::removed_from_appointment => 'Als een afspraak niet langer op jouw naam staat.',
         };
     }
 
     /**
-     * Het recht dat een lezer moet hebben. Gecontroleerd bij het aanzetten én
-     * opnieuw bij het schrijven, zodat het recht beslist en niet het abonnement.
+     * Of je hier zelf iets over te zeggen hebt. Bijna alles is nieuws waar je op
+     * intekent, maar wat over je eigen werk gaat is geen nieuws: je openstaande uren
+     * en je eigen verzette afspraak krijg je te horen omdat het werk is dat gedaan
+     * moet worden. Een schakelaar ernaast zou beloven dat je hem uit kunt zetten,
+     * en dat is niet zo.
      */
-    public function requiredPermission(): ?string
+    public function subscribable(): bool
     {
         return match ($this) {
-            self::ticket_created => 'ticket.read',
-            self::appointment_scheduled, self::appointment_rescheduled => 'event.read',
-            self::serviceorder_closed, self::material_attached, self::task_signed => 'serviceorder.read',
-            self::customer_created => 'customer.read',
+            self::execution_times_missing, self::own_appointment_moved,
+            self::removed_from_appointment => false,
+            default => true,
+        };
+    }
 
-            /** Over je eigen uren hoef je niets extra's te mogen. */
-            self::execution_times_missing => null,
+    /** @return array<int, self> */
+    public static function subscribableCases(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $case) => $case->subscribable()
+        ));
+    }
+
+    /** @return array<int, self> */
+    public static function unconditionalCases(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $case) => !$case->subscribable()
+        ));
+    }
+
+    /**
+     * De soorten die dit signaal hoe dan ook oplevert, los van wie zich waarvoor
+     * heeft aangemeld. Een lege lijst is het normale geval: bijna alles is nieuws
+     * waar je op intekent.
+     *
+     * @return array<int, self>
+     */
+    public static function mandatoryFor(Signal $signal): array
+    {
+        return match (true) {
+            $signal instanceof AppointmentRescheduled && $signal->moved_in_time => [self::own_appointment_moved],
+            $signal instanceof AppointmentUnassigned && $signal->removed_user_ids !== [] => [self::removed_from_appointment],
+            default => [],
+        };
+    }
+
+    /**
+     * Wie zo'n verplichte melding krijgt. Alleen de mensen die de afspraak moeten
+     * uitvoeren: het is hun dag die verschuift. Verwijderde gebruikers vallen af,
+     * want de relatie houdt ze met opzet vast voor de geschiedenis en dat is iets
+     * anders dan iemand die nog bericht moet krijgen.
+     *
+     * @return Collection<int, int>
+     */
+    public function mandatoryRecipients(Signal $signal): Collection
+    {
+        return match ($this) {
+            self::own_appointment_moved => $this->event($signal)
+                ->executingUsers()
+                ->whereNull('users.deleted_at')
+                ->pluck('users.id')
+                ->map(fn ($id) => (int) $id),
+
+            /**
+             * Deze mensen staan al niet meer bij de afspraak, dus ze komen van het
+             * signaal en niet uit de tabel.
+             */
+            self::removed_from_appointment => $signal instanceof AppointmentUnassigned
+                ? User::whereIn('id', $signal->removed_user_ids)->pluck('id')->map(fn ($id) => (int) $id)
+                : collect(),
+
+            default => collect(),
+        };
+    }
+
+    /**
+     * De rechten die een lezer moet hebben, allemaal. Gecontroleerd bij het
+     * aanzetten én opnieuw bij het schrijven, zodat het recht beslist en niet het
+     * abonnement.
+     *
+     * Bij afspraken zijn het er twee. Bericht krijgen over elke planning die
+     * langskomt is alleen zinnig voor wie de hele planning ook mag zien: wie
+     * alleen zijn eigen week kent, krijgt anders meldingen over afspraken die hij
+     * daarna nergens terugvindt.
+     *
+     * @return array<int, string>
+     */
+    public function requiredPermissions(): array
+    {
+        return match ($this) {
+            self::ticket_created => ['ticket.read'],
+            self::appointment_scheduled, self::appointment_rescheduled => [
+                'event.read',
+                'event.see_all',
+                'event.see_beyond_current_week',
+            ],
+            self::serviceorder_closed, self::material_attached, self::task_signed => ['serviceorder.read'],
+            self::customer_created => ['customer.read'],
+
+            /** Over je eigen uren en je eigen dag hoef je niets extra's te mogen. */
+            self::execution_times_missing, self::own_appointment_moved,
+            self::removed_from_appointment => [],
         };
     }
 
     /**
      * Niet elk signaal is ook een bericht waard. Een werkbon wisselt vaak van fase
-     * en alleen de laatste stap is nieuws; de rest van de soorten gaat altijd door.
+     * en alleen de laatste stap is nieuws; een afspraak geeft hetzelfde signaal af
+     * bij een verzette dag als bij een bijgewerkte omschrijving, en alleen het
+     * eerste is wat hier beloofd wordt. De rest van de soorten gaat altijd door.
      */
     public function shouldNotify(Signal $signal): bool
     {
         return match ($this) {
             self::serviceorder_closed => $signal instanceof ServiceOrderStageChanged
                 && (bool) $signal->new_stage?->is_closed_state,
+            self::appointment_rescheduled => $signal instanceof AppointmentRescheduled
+                && $signal->moved_in_time,
             default => true,
         };
     }
@@ -110,6 +234,8 @@ enum UserNotificationType: string
             self::task_signed => 'ClipboardCheck',
             self::customer_created => 'Users',
             self::execution_times_missing => 'Clock',
+            self::own_appointment_moved => 'CalendarClock',
+            self::removed_from_appointment => 'CalendarX',
         };
     }
 
@@ -123,6 +249,8 @@ enum UserNotificationType: string
             self::material_attached => 'purple',
             self::customer_created => 'blue',
             self::execution_times_missing => 'red',
+            self::own_appointment_moved => 'amber',
+            self::removed_from_appointment => 'red',
         };
     }
 
@@ -141,6 +269,8 @@ enum UserNotificationType: string
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
             self::execution_times_missing => 'Tijden nog niet ingevuld',
+            self::own_appointment_moved => 'Jouw afspraak is verplaatst',
+            self::removed_from_appointment => 'Van afspraak afgehaald',
         };
     }
 
@@ -154,6 +284,8 @@ enum UserNotificationType: string
             self::task_signed => $this->taskSignedBody($signal),
             self::customer_created => $this->customerBody($signal),
             self::execution_times_missing => 'Er staan nog tijden open.',
+            self::own_appointment_moved => $this->ownAppointmentMovedBody($signal),
+            self::removed_from_appointment => $this->removedFromAppointmentBody($signal),
         };
     }
 
@@ -166,6 +298,9 @@ enum UserNotificationType: string
         return match ($this) {
             self::ticket_created => UserNotificationPriority::fromTicketPriority($this->ticket($signal)->priority),
             self::appointment_scheduled, self::appointment_rescheduled => UserNotificationPriority::normaal,
+
+            /** Jouw eigen dag die verandert is het soort bericht waarvoor je stopt. */
+            self::own_appointment_moved, self::removed_from_appointment => UserNotificationPriority::hoog,
             default => UserNotificationPriority::laag,
         };
     }
@@ -175,7 +310,7 @@ enum UserNotificationType: string
     {
         return array_map(
             fn (self $case) => ['id' => $case->value, 'name' => $case->label()],
-            self::cases()
+            self::subscribableCases()
         );
     }
 
@@ -187,6 +322,72 @@ enum UserNotificationType: string
         return Str::limit($ticket->subject, 120)
             . ($machine ? ' — machine ' . $machine : '')
             . ', gemeld door ' . $this->actor($signal);
+    }
+
+    /**
+     * Wat er staat is dat de afspraak niet meer van jou is, en niets meer dan dat.
+     * Geen nieuwe datum, want die gaat je niet meer aan, en geen naam van degene
+     * die je plek inneemt, want dat is niet aan jou om te weten. Ook geen 'door
+     * wie': dat zou soms de opvolger zelf zijn.
+     */
+    private function removedFromAppointmentBody(Signal $signal): string
+    {
+        $event = $this->event($signal);
+        $name = $event->name ?: 'Een afspraak';
+
+        $was = $signal instanceof AppointmentUnassigned && $signal->started_at
+            ? $signal->started_at->format('d-m-Y H:i')
+            : $event->start?->format('d-m-Y H:i');
+
+        return $name . ($was ? ' van ' . $was : '') . ' staat niet meer op jouw naam.';
+    }
+
+    /**
+     * Wat overbodig wordt zodra deze melding binnenkomt. Wie van een afspraak af
+     * is heeft niets meer aan het bericht dat diezelfde afspraak verzet is: dat
+     * wijst naar een dag die niet meer van hem is, op een scherm dat hij niet meer
+     * mag zien.
+     *
+     * @return array<int, self>
+     */
+    public function supersedes(): array
+    {
+        return match ($this) {
+            self::removed_from_appointment => [self::own_appointment_moved],
+            default => [],
+        };
+    }
+
+    /**
+     * Een afspraak kan op twee manieren opschuiven en de zin moet zeggen welke van
+     * de twee het was. Een andere begintijd is de gewone: die staat er van-naar in.
+     * Blijft het begin staan en schuift alleen het eind, dan gaat het over hoe lang
+     * je bezig bent, en 'verplaatst van 08:00 naar 08:00' zou een raadsel zijn.
+     */
+    private function ownAppointmentMovedBody(Signal $signal): string
+    {
+        $event = $this->event($signal);
+        $was_start = $signal instanceof AppointmentRescheduled ? $signal->previous_start : null;
+        $was_end = $signal instanceof AppointmentRescheduled ? $signal->previous_end : null;
+        $name = $event->name ?: 'Afspraak';
+        $by = ', door ' . $this->actor($signal);
+
+        $start_stayed = $was_start && $event->start && $was_start->equalTo($event->start);
+
+        if ($start_stayed && $was_end && $event->end) {
+            return $name . ' duurt nu tot ' . $event->end->format('H:i')
+                . ' in plaats van tot ' . $was_end->format('H:i') . $by;
+        }
+
+        $now = $event->start?->format('d-m-Y H:i');
+
+        $moment = match (true) {
+            $was_start !== null && $now !== null => 'van ' . $was_start->format('d-m-Y H:i') . ' naar ' . $now,
+            $now !== null => 'naar ' . $now,
+            default => 'naar een ander moment',
+        };
+
+        return $name . ' verplaatst ' . $moment . $by;
     }
 
     private function appointmentBody(Signal $signal): string

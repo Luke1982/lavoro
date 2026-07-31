@@ -147,6 +147,23 @@ class User extends Authenticatable
         return in_array($name, $this->permissionNames(), true);
     }
 
+    /**
+     * Alle rechten uit de lijst, niet een ervan. Een lege lijst is geen drempel:
+     * wie niets hoeft te mogen, mag.
+     *
+     * @param  array<int, string>  $names
+     */
+    public function hasEveryPermission(array $names): bool
+    {
+        foreach ($names as $name) {
+            if (!$this->hasPermission($name)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function scopeCanLeadProjects($query)
     {
         return $query->whereHas('roles', function ($role_query) {

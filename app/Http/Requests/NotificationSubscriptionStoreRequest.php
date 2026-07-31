@@ -33,7 +33,7 @@ class NotificationSubscriptionStoreRequest extends FormRequest
             ],
             'type' => [
                 'required',
-                Rule::in(array_column(UserNotificationType::cases(), 'value')),
+                Rule::in(array_column(UserNotificationType::subscribableCases(), 'value')),
                 Rule::unique('notification_subscriptions')
                     ->where(fn ($query) => $query->where('user_id', $this->subscriberId())),
                 fn (string $attribute, mixed $value, callable $fail) => $this->rejectUnreadableType($value, $fail),
@@ -45,7 +45,7 @@ class NotificationSubscriptionStoreRequest extends FormRequest
     {
         return [
             'type.required' => 'Het meldingstype is verplicht.',
-            'type.in' => 'Dit meldingstype bestaat niet.',
+            'type.in' => 'Dit meldingstype kan niet aan- of uitgezet worden.',
             'type.unique' => 'Dit abonnement bestaat al.',
             'user_id.exists' => 'De opgegeven gebruiker bestaat niet.',
         ];
@@ -65,9 +65,7 @@ class NotificationSubscriptionStoreRequest extends FormRequest
             return;
         }
 
-        $permission = $type->requiredPermission();
-
-        if ($permission === null || $subscriber->hasPermission($permission)) {
+        if ($subscriber->hasEveryPermission($type->requiredPermissions())) {
             return;
         }
 

@@ -18,9 +18,11 @@ use Inertia\Response;
 class NotificationSubscriptionController extends Controller
 {
     /**
-     * Elk soort melding met de schakelaar erachter. Wat iemand niet mag lezen staat
-     * er wel bij, maar uit en op slot: verzwijgen zou de indruk wekken dat het
-     * soort niet bestaat, terwijl het gewoon een recht is dat ontbreekt.
+     * Elk soort melding waar iets over te kiezen valt, met de schakelaar erachter.
+     * Wat iemand niet mag lezen staat er wel bij, maar uit en op slot: verzwijgen
+     * zou de indruk wekken dat het soort niet bestaat, terwijl het gewoon een recht
+     * is dat ontbreekt. Wat altijd komt staat er niet bij: een schakelaar die niets
+     * doet is erger dan geen schakelaar.
      */
     public function index(NotificationSubscriptionListRequest $request): Response
     {
@@ -45,11 +47,23 @@ class NotificationSubscriptionController extends Controller
                 'description' => $type->description(),
                 'icon' => $type->icon(),
                 'color' => $type->color(),
-                'permission' => $type->requiredPermission(),
-                'allowed' => $type->requiredPermission() === null
-                    || $subject->hasPermission($type->requiredPermission()),
+                'permissions' => $type->requiredPermissions(),
+                'allowed' => $subject->hasEveryPermission($type->requiredPermissions()),
                 'subscription_id' => $subscribed[$type->value] ?? null,
-            ], UserNotificationType::cases()),
+            ], UserNotificationType::subscribableCases()),
+
+            /**
+             * Wat er altijd komt, benoemd maar zonder schakelaar. Zonder dit zou het
+             * lijken alsof de lijst compleet is, en krijgt iemand berichten waarvan
+             * hij nergens leest waarom.
+             */
+            'always' => array_map(fn (UserNotificationType $type) => [
+                'value' => $type->value,
+                'label' => $type->label(),
+                'description' => $type->description(),
+                'icon' => $type->icon(),
+                'color' => $type->color(),
+            ], UserNotificationType::unconditionalCases()),
         ]);
     }
 

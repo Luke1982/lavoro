@@ -2,6 +2,7 @@
 
 namespace App\Actions\Appointments;
 
+use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\Signals;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
@@ -10,6 +11,7 @@ use App\Models\Event;
 use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,6 +27,12 @@ class UpdateAppointmentAction
 {
     public function execute(Event $event, AppointmentChanges $changes): Event
     {
+        /**
+         * Vastgelegd voordat de afspraak verschuift: wie er in dezelfde handeling
+         * af gehaald wordt, kent de afspraak op dit moment en op geen ander.
+         */
+        $known_start = $event->start?->copy();
+
         $event->update($changes->attributes);
 
         $eventable_type = $changes->create_service_order
@@ -47,7 +55,7 @@ class UpdateAppointmentAction
         }
 
         if ($changes->assignment) {
-            $this->assign($event, $changes->assignment, $model);
+            $this->assign($event, $changes->assignment, $model, $known_start);
         }
 
         return $event;
@@ -104,8 +112,17 @@ class UpdateAppointmentAction
         });
     }
 
-    private function assign(Event $event, AppointmentAssignment $assignment, ?Model $model): void
-    {
+    private function assign(
+        Event $event,
+        AppointmentAssignment $assignment,
+        ?Model $model,
+        ?Carbon $known_start = null
+    ): void {
+        $departed = array_values(array_diff(
+            $event->executingUsers()->pluck('users.id')->map(fn ($id) => (int) $id)->all(),
+            array_map('intval', $assignment->user_ids),
+        ));
+
         $event->syncExecutingUsers(
             $assignment->user_ids,
             $assignment->breaktimes,
@@ -116,6 +133,10 @@ class UpdateAppointmentAction
         PushEventJob::dispatch($event->id);
 
         $this->dropGoogleCopiesForDepartedUsers($event);
+
+        if ($departed !== []) {
+            Signals::dispatch(new AppointmentUnassigned($event, $departed, $known_start));
+        }
 
         if ($model) {
             $previously_executing = $model instanceof ServiceOrder

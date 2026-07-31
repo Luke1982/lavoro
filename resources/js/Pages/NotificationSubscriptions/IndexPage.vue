@@ -38,6 +38,28 @@
 
         <p v-if="error" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </BoxComponent>
+
+    <!--
+        Wat er hoe dan ook komt, benoemd maar zonder schakelaar: het gaat over je
+        eigen werk, en een schakelaar zou beloven dat het uit kan.
+    -->
+    <BoxComponent v-if="always.length" class="mt-4">
+        <p class="text-sm font-bold text-gray-900 dark:text-slate-200">Deze meldingen krijg je altijd</p>
+
+        <ul class="mt-2 divide-y divide-gray-200 dark:divide-slate-700">
+            <li v-for="type in always" :key="type.value" class="flex items-center gap-x-4 py-4">
+                <span class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                    :class="colorClass(type.color)">
+                    <component :is="navIcon(type.icon)" v-if="navIcon(type.icon)" class="size-5" />
+                </span>
+
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ type.label }}</p>
+                    <p class="text-[13px] text-gray-500 dark:text-slate-400">{{ type.description }}</p>
+                </div>
+            </li>
+        </ul>
+    </BoxComponent>
 </template>
 
 <script setup>
@@ -56,6 +78,7 @@ import { navIcon } from '@/Navigation/icons.js'
  */
 const props = defineProps({
     types: { type: Array, required: true },
+    always: { type: Array, default: () => [] },
     subject: { type: Object, required: true },
     colleagues: { type: Array, default: () => [] },
     manages_others: { type: Boolean, default: false },
