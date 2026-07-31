@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 
@@ -12,8 +12,8 @@ import axios from 'axios'
  * beter dan een pagina die al even openstaat.
  */
 const items = ref([])
+const total = ref(0)
 const loading = ref(false)
-const loaded_filter = ref(null)
 const server_unread = ref(null)
 
 const FILTERS = {
@@ -27,6 +27,13 @@ export function useNotifications() {
 
     const unreadCount = computed(() => server_unread.value ?? page.props.nav?.unread_notifications ?? 0)
 
+    /**
+     * Het antwoord van de server is het meest recent — tot de volgende pagina een
+     * nieuwer getal meebrengt. Zonder dit bleef een teller van tien minuten geleden
+     * winnen van wat er sindsdien is binnengekomen.
+     */
+    watch(() => page.props.nav?.unread_notifications, () => { server_unread.value = null })
+
     const filter = ref('alles')
 
     async function load(name = filter.value) {
@@ -36,8 +43,8 @@ export function useNotifications() {
         try {
             const { data } = await axios.get('/usernotifications/feed', { params: FILTERS[name] ?? {} })
             items.value = data.notifications.data
+            total.value = data.notifications.total ?? data.notifications.data.length
             server_unread.value = data.unread_count
-            loaded_filter.value = name
         } catch (error) {
             console.error('Kon meldingen niet ophalen:', error)
         } finally {
@@ -46,13 +53,12 @@ export function useNotifications() {
     }
 
     /**
-     * Openen laadt alleen als er nog niets staat of als er op een ander tabblad
-     * gekeken wordt: opnieuw ophalen wat er al staat laat de lijst knipperen.
+     * Openen haalt altijd opnieuw op. Dat is juist waarvoor het belletje bestaat:
+     * zien wat er sinds daarnet is binnengekomen. De oude lijst blijft ondertussen
+     * staan, dus het knippert niet — hij wordt pas vervangen als er iets terug is.
      */
     async function open() {
-        if (items.value.length === 0 || loaded_filter.value !== filter.value) {
-            await load()
-        }
+        await load()
     }
 
     async function acknowledge(notification) {
@@ -89,5 +95,5 @@ export function useNotifications() {
         if (notification.url) router.visit(notification.url)
     }
 
-    return { items, loading, filter, unreadCount, load, open, acknowledge, acknowledgeAll, follow }
+    return { items, total, loading, filter, unreadCount, load, open, acknowledge, acknowledgeAll, follow }
 }

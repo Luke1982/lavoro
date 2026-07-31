@@ -40,6 +40,13 @@ const store = (key, value) => {
 const open_ids = ref(new Set(readStored(OPEN_STATE_KEY, [])))
 
 /**
+ * Zes componenten gebruiken deze composable, en zonder deze grens zou elk van hen
+ * bij iedere navigatie dezelfde tak opnieuw openklappen. Eén keer per pad is
+ * genoeg; wie later komt, treft het al gedaan aan.
+ */
+let opened_for_path = null
+
+/**
  * De vorige zijbalk bewaarde dit als '1' en '0'. Wie de balk ooit heeft
  * ingeklapt vindt hem zo niet uitgeklapt terug na een update.
  */
@@ -164,16 +171,6 @@ export function useMenu() {
         return flat
     })
 
-    /** De naam van waar je nu bent, voor de titelbalk op een klein scherm. */
-    const currentTitle = computed(() => {
-        const match = destinations.value
-            .filter((destination) => destination.href !== '/')
-            .find((destination) =>
-                currentPath.value === destination.href || currentPath.value.startsWith(destination.href + '/'))
-
-        return match?.label ?? 'Dashboard'
-    })
-
     const isOpen = (item) => open_ids.value.has(item.id)
 
     const toggle = (item) => {
@@ -193,6 +190,9 @@ export function useMenu() {
      * anders klapt het menu dicht op het moment dat je ergens anders heen gaat.
      */
     const openActiveTrail = () => {
+        if (opened_for_path === currentPath.value) return
+        opened_for_path = currentPath.value
+
         const next = new Set(open_ids.value)
 
         const walk = (items) => {
@@ -216,8 +216,6 @@ export function useMenu() {
         search,
         mobileTabs,
         destinations,
-        currentTitle,
-        currentPath,
         badges,
         collapsed,
         setCollapsed,

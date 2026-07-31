@@ -60,7 +60,13 @@ class ComboSearchController extends Controller
             )
             ->with(['product.brand', 'product.productType', 'linkedLocation'])
             ->orderBy('serial_number')
-            ->limit(25)
+
+            /*
+             * Op één klant mag de lijst compleet zijn: AssetSelectMenu zoekt in wat
+             * het krijgt, dus wat hier wegvalt is aan de andere kant onvindbaar. Het
+             * machinepark van één klant is te overzien; dat van iedereen niet.
+             */
+            ->limit($request->filled('customer_id') ? 200 : 25)
             ->get();
 
         return response()->json($results);

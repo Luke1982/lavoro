@@ -164,7 +164,7 @@ class CustomerController extends Controller
         $customer = Customer::create($data);
 
         /** Net als bij een storing reist het nieuwe record mee terug. */
-        return redirect()->route('customers.index')->with([
+        return redirect()->back()->with([
             'success' => 'Klant aangemaakt.',
             'extra' => ['customer' => $customer],
         ]);

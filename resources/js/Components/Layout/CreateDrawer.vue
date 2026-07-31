@@ -205,18 +205,39 @@ const subtitle = computed(() => ({
 watch(() => [props.modelValue, props.action?.id], async ([isOpen, id]) => {
     if (!isOpen) return
 
+    /**
+     * Leeg beginnen, elke keer. Wie iets intikt en dan annuleert, wil dat niet
+     * terugvinden zodra hij de la opnieuw opent — en al helemaal niet in een la
+     * voor iets heel anders, want een paar velden delen ze.
+     */
+    form.reset()
     form.clearErrors()
+    selectedAsset.value = null
+    assets.value = []
+    locations.value = []
 
     if (id === 'nieuwe-werkbon') customers.value = (await axios.get('/combo/customers')).data
     if (id === 'nieuwe-storing') assets.value = []
     if (id === 'nieuwe-afspraak') {
         form.date = form.date || new Date().toISOString().slice(0, 10)
-        const [types, people] = await Promise.all([
-            axios.get('/combo/eventtypes'),
-            axios.get('/combo/users'),
-        ])
-        eventTypes.value = types.data
-        users.value = people.data
+
+        /**
+         * Mag deze gebruiker de lijsten niet ophalen, dan blijft het veld leeg en
+         * zegt de server bij het opslaan waarom. Een onafgevangen fout zou de la
+         * halverwege laten staan zonder dat iemand weet wat er mis is.
+         */
+        try {
+            const [types, people] = await Promise.all([
+                axios.get('/combo/eventtypes'),
+                axios.get('/combo/users'),
+            ])
+            eventTypes.value = types.data
+            users.value = people.data
+        } catch (error) {
+            console.error('Kon de keuzelijsten voor een afspraak niet ophalen:', error)
+            eventTypes.value = []
+            users.value = []
+        }
     }
 })
 
@@ -311,7 +332,7 @@ const createAppointment = async () => {
             no_service_order: true,
         })
         done()
-        router.reload({ only: [] })
+        router.reload()
     } catch (error) {
         saving.value = false
         const errors = error.response?.data?.errors ?? {}

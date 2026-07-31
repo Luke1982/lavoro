@@ -74,10 +74,10 @@ defineProps({
     label: { type: String, default: '' },
 })
 
-const { items, loading, filter, unreadCount, load, open, acknowledge, acknowledgeAll, follow } = useNotifications()
+const { items, total, loading, filter, unreadCount, load, open, acknowledge, acknowledgeAll, follow } = useNotifications()
 
 const tabs = computed(() => [
-    { id: 'alles', label: 'Alles', count: items.value.length || null },
+    { id: 'alles', label: 'Alles', count: total.value || null },
     { id: 'ongelezen', label: 'Ongelezen', count: unreadCount.value || null },
     { id: 'belangrijk', label: 'Belangrijk', count: null },
 ])
