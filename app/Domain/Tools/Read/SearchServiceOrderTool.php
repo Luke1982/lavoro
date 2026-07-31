@@ -93,7 +93,7 @@ class SearchServiceOrderTool implements Tool
             ->visibleTo($call->user)
             ->with([
                 'customer:id,name',
-                'serviceOrderStage:id,name,is_closed_state',
+                'serviceOrderStage:id,name,is_closed_state,is_invoiced_state',
                 'linkedLocation:id,title,address,postal_code,city',
             ]);
 
@@ -120,7 +120,7 @@ class SearchServiceOrderTool implements Tool
          * asking for a stage that says so would silently drop every one of them.
          */
         if ($call->argument('only_open') === true) {
-            $query->whereDoesntHave('serviceOrderStage', fn ($sq) => $sq->where('is_closed_state', true));
+            $query->whereDoesntHave('serviceOrderStage', fn ($sq) => $sq->closesOrder());
         }
 
         $matching = clone $query;

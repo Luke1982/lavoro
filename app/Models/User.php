@@ -182,7 +182,7 @@ class User extends Authenticatable
     public function relevantAssetIds(): array
     {
         $serviceorders = $this->serviceOrdersExecuting()
-            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true))
+            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder())
             ->with(['serviceJobs:id,service_order_id,asset_id', 'tickets:id,service_order_id,asset_id'])
             ->get();
 

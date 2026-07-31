@@ -149,7 +149,13 @@ class ServiceOrderUpdateRequest extends FormRequest
                 return;
             }
 
-            if (!$new_stage->is_closed_state) {
+            /**
+             * De eisen hieronder gelden voor iedere fase die de bon sluit, ook de
+             * gefactureerde: anders sluit een sprong naar factureren de bon alsnog
+             * met open taken. Een bon die al gesloten is doorstond ze bij het
+             * sluiten en wordt er niet opnieuw op afgerekend.
+             */
+            if (!$new_stage->closesOrder() || $serviceorder->is_closed) {
                 return;
             }
 

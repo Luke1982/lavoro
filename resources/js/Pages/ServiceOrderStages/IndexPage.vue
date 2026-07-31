@@ -194,24 +194,41 @@ function closeStageDrawer() {
     newStageForm.clearErrors()
 }
 
-const internalStages = ref((stages.data || []).map(s => ({ ...s })))
+const internalStages = ref([])
 
-watch(
-    () => stages.data,
-    (newData) => {
-        internalStages.value = (newData || []).map(s => ({ ...s }))
-    }
-)
+function syncStagesFromServer() {
+    internalStages.value = (stages.data || []).map(s => ({ ...s }))
+}
+
+syncStagesFromServer()
+
+watch(() => stages.data, syncStagesFromServer)
 
 const reorderForm = useForm({ payload: [] })
 
 function onReorder() {
     reorderForm.payload = internalStages.value.map((s, i) => ({ id: s.id, order: i + 1 }))
-    reorderForm.post('/serviceorderstages/reorder', { preserveScroll: true })
+    reorderForm.post('/serviceorderstages/reorder', {
+        preserveScroll: true,
+        onError: syncStagesFromServer,
+    })
 }
 
+/**
+ * De rij loopt vooruit op het antwoord, want een schakelaar die pas omgaat als de
+ * server het goedvindt voelt kapot. Dat vooruitlopen is ook wat een afgewezen
+ * wijziging weer terug laat springen: zonder eerst een andere waarde te zien blijft
+ * de schakelaar staan waar de klik hem zette.
+ */
 function saveStage(id, payload) {
-    router.patch(`/serviceorderstages/${id}`, payload, { preserveScroll: true, preserveState: true })
+    const stage = internalStages.value.find(s => s.id === id)
+    if (stage) Object.assign(stage, payload)
+
+    router.patch(`/serviceorderstages/${id}`, payload, {
+        preserveScroll: true,
+        preserveState: true,
+        onError: syncStagesFromServer,
+    })
 }
 
 function deleteStage(id) {

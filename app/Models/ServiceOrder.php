@@ -211,7 +211,7 @@ class ServiceOrder extends Model
 
     public function getIsClosedAttribute(): bool
     {
-        return $this->serviceOrderStage?->is_closed_state === true;
+        return $this->serviceOrderStage?->closesOrder() === true;
     }
 
     public function getIsIncompleteAttribute(): bool

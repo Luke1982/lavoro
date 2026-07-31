@@ -80,7 +80,7 @@ class SummarizeCustomerTool implements Tool
         $open_orders = ServiceOrder::query()
             ->visibleTo($call->user)
             ->where('customer_id', $customer->id)
-            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where('is_closed_state', true))
+            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder())
             ->with('serviceOrderStage:id,name')
             ->orderByDesc('id')
             ->limit(10)

@@ -35,4 +35,25 @@ class ServiceOrderStage extends Model
     {
         return $this->hasMany(ServiceOrder::class);
     }
+
+    /**
+     * Facturatie volgt op sluiten, dus een gefactureerde fase sluit de werkbon net
+     * zo goed als de gesloten fase zelf. Iedere lezer stelt de vraag hier, zodat
+     * niemand per ongeluk alleen naar is_closed_state kijkt.
+     */
+    public function closesOrder(): bool
+    {
+        return $this->is_closed_state === true || $this->is_invoiced_state === true;
+    }
+
+    /**
+     * Dezelfde vraag als closesOrder(), maar voor een query: beperkt tot de fases
+     * die een werkbon als gesloten laten gelden.
+     */
+    public function scopeClosesOrder($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->where('is_closed_state', true)
+            ->orWhere('is_invoiced_state', true));
+    }
 }

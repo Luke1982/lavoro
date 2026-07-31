@@ -72,10 +72,10 @@ class ServiceOrderController extends Controller
     public function index(ServiceOrderIndexRequest $request)
     {
         $search = $request->get('search', '');
-        $only_stages = array_values(array_filter(
+        $only_stages = array_values(array_map('intval', array_filter(
             explode(',', (string) $request->get('onlyStage', '')),
             fn ($v) => is_numeric($v)
-        ));
+        )));
         $only_needs_closing = $request->boolean('onlyNeedsClosing');
         $per_page = $this->perPage($request, 25);
 
@@ -107,21 +107,29 @@ class ServiceOrderController extends Controller
             });
         }
 
-        if (count($only_stages)) {
-            $query->whereIn('service_order_stage_id', $only_stages);
+        $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');
+        $invoiced_stage_id = (int) ServiceOrderStage::where('is_invoiced_state', true)->value('id');
+        $only_closed_stage = $only_stages === [$closed_stage_id];
+
+        /**
+         * Een gefactureerde bon is ook gesloten, dus wie op gesloten filtert krijgt hem
+         * erbij. De keuze zelf blijft ongemoeid: die reist terug naar de filterchips.
+         */
+        $filter_stages = $only_stages;
+        if ($invoiced_stage_id && in_array($closed_stage_id, $only_stages, true)) {
+            $filter_stages[] = $invoiced_stage_id;
         }
 
-        $closed_stage_id = ServiceOrderStage::where('is_closed_state', true)->value('id');
-        $only_closed_stage = count($only_stages) === 1 && (int) $only_stages[0] === $closed_stage_id;
+        if (count($filter_stages)) {
+            $query->whereIn('service_order_stage_id', $filter_stages);
+        }
 
         if ($only_needs_closing) {
             $query->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
                 ->whereDoesntHave('events', fn ($q) => $q
                     ->where('status', '!=', EventStatusses::cancelled->value)
                     ->where('end', '>=', now()))
-                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->where(fn ($sub) => $sub
-                    ->where('is_closed_state', true)
-                    ->orWhere('is_invoiced_state', true)));
+                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder());
         }
 
         return inertia('ServiceOrders/IndexPage', [
