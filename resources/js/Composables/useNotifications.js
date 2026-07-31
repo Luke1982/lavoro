@@ -13,6 +13,9 @@ import axios from 'axios'
  */
 const items = ref([])
 const total = ref(0)
+
+/** Ook gedeeld: anders wijst het ene belletje een tabblad aan en toont het andere de rijen van een ander. */
+const filter = ref('alles')
 const loading = ref(false)
 const server_unread = ref(null)
 
@@ -33,8 +36,6 @@ export function useNotifications() {
      * winnen van wat er sindsdien is binnengekomen.
      */
     watch(() => page.props.nav?.unread_notifications, () => { server_unread.value = null })
-
-    const filter = ref('alles')
 
     async function load(name = filter.value) {
         filter.value = name

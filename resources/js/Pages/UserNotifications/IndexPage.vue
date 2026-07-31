@@ -24,8 +24,8 @@
             Dezelfde lijst als in de uitklapper, op een donkere kaart zodat de
             gekleurde pictogrammen hetzelfde lezen als in het menu.
         -->
-        <div class="-mx-4 mt-2 rounded-xl bg-sidebar-bg px-1 py-2 sm:-mx-2">
-            <NotificationList :items="rows" @follow="follow" @acknowledge="toggleRead" />
+        <div class="-mx-4 mt-2 px-1 py-2 sm:-mx-2">
+            <NotificationList :items="rows" tone="page" @follow="follow" @acknowledge="toggleRead" />
         </div>
 
         <PaginationComponent v-if="notifications.last_page > 1" :paginator="notifications" class="mt-4" />

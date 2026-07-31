@@ -35,7 +35,13 @@
         </Teleport>
     </template>
 
-    <VDropdown v-else :placement="placement" :distance="10" popper-class="nav-popper" @show="open">
+    <!--
+        Beide manieren delen één schakelaar, zodat het paneel op dezelfde manier
+        dichtgaat: bij het weggaan naar een pagina, en bij een klik op de regel
+        onderin. Zonder dat bleef de uitklapper openstaan nadat je hem gebruikt had.
+    -->
+    <VDropdown v-else v-model:shown="showing" :placement="placement" :distance="10" popper-class="nav-popper"
+        @show="open">
         <button type="button" class="relative flex items-center justify-center rounded-lg transition-colors"
             :class="buttonClass" :aria-label="ariaLabel">
             <span class="relative flex">
@@ -49,7 +55,7 @@
         </button>
 
         <template #popper>
-            <NotificationPanel class="max-h-[32rem] w-[22rem]" />
+            <NotificationPanel class="max-h-[32rem] w-[22rem]" @close="showing = false" />
         </template>
     </VDropdown>
 </template>
