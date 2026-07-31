@@ -371,8 +371,11 @@ class AssistantController extends Controller
      * person read is what happens — sending it back through the assistant would
      * put a language model between the words on screen and the act they approved.
      */
-    public function confirm(AssistantConfirmRequest $request, ToolExecutor $executor): JsonResponse
-    {
+    public function confirm(
+        AssistantConfirmRequest $request,
+        ToolExecutor $executor,
+        ConversationFacts $facts,
+    ): JsonResponse {
         $user = $request->user();
         $approval = ConfirmationToken::decode($request->validated('token'), $user);
 
@@ -388,6 +391,13 @@ class AssistantController extends Controller
             user: $user,
             confirmation_token: $request->validated('token'),
         ));
+
+        /**
+         * The firmest fact there is. A person read it and agreed to it and the
+         * code carried it out, so the werkbon it just made is the werkbon this
+         * conversation is about — no lookup could establish that better.
+         */
+        $facts->learn($request->validated('conversation'), $user, $result);
 
         return response()->json([
             'ok' => !$result->is_error,

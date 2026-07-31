@@ -192,6 +192,8 @@ class CreateServiceOrderTool implements Confirmable, Tool
         return ToolResult::ok(
             [
                 'service_order_id' => $order->id,
+                /** By number as well as by name, or the next step looks it up again. */
+                'customer_id' => $customer->id,
                 'customer' => $customer->name,
                 'description' => $order->description,
                 'assets' => $assets->pluck('serial_number')->all(),

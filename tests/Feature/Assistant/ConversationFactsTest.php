@@ -8,6 +8,7 @@ use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
@@ -218,6 +219,49 @@ class ConversationFactsTest extends TestCase
 
         $this->assertStringContainsString('klant #2 (Majorlabel)', $said, 'the settled customer never reached the model');
         $this->assertStringContainsString('geen klantnummer', $said);
+    }
+
+    /**
+     * The firmest fact there is: a person read it, agreed to it, and the code
+     * carried it out. No lookup establishes a record better than having just made
+     * it, and until now the conversation remembered everything it had looked up
+     * and nothing it had done.
+     */
+    public function test_a_confirmed_write_settles_what_it_created(): void
+    {
+        /** The assistant is granted explicitly, never inherited from being an admin. */
+        $user = $this->userWithPermissions('assistant.use', 'serviceorder.create', 'serviceorder.read', 'customer.read');
+        $customer = Customer::factory()->create(['name' => 'Majorlabel']);
+
+        $token = ConfirmationToken::for(
+            'create_service_order',
+            ['customer_id' => $customer->id, 'description' => 'Airco plaatsen'],
+            $user,
+        )->encoded();
+
+        $this->actingAs($user)->postJson('/assistant/confirm', [
+            'token' => $token,
+            'conversation' => self::THREAD,
+        ])->assertOk();
+
+        $settled = app(ConversationFacts::class)->for(self::THREAD, $user);
+        $order = ServiceOrder::where('customer_id', $customer->id)->sole();
+
+        $this->assertSame($order->id, $settled['werkbon']['id'], 'the werkbon it just made was forgotten');
+        $this->assertSame($customer->id, $settled['klant']['id'], 'the customer it made it for was forgotten');
+    }
+
+    /** A write that never happened settles nothing either. */
+    public function test_a_refused_confirmation_settles_nothing(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        $this->actingAs($user)->postJson('/assistant/confirm', [
+            'token' => 'ja hoor',
+            'conversation' => self::THREAD,
+        ])->assertStatus(422);
+
+        $this->assertSame([], app(ConversationFacts::class)->for(self::THREAD, $user));
     }
 }
 

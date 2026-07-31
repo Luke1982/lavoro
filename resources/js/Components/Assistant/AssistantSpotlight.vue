@@ -502,7 +502,7 @@ async function confirmAction(action) {
 
     try {
         await axios.get('/sanctum/csrf-cookie')
-        const { data } = await axios.post('/assistant/confirm', { token: action.token })
+        const { data } = await axios.post('/assistant/confirm', { token: action.token, conversation: conversation.value })
         action.done = data.message
         proceed()
     } catch (e) {

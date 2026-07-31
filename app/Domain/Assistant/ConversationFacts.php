@@ -39,6 +39,26 @@ class ConversationFacts
         'appointments' => ['key' => 'afspraak', 'noun' => 'afspraak'],
     ];
 
+    /**
+     * The same thing said the other way round: a record named outright by its own
+     * id, rather than arrived at through a list.
+     *
+     * This is how a write reports itself — creating a werkbon hands back
+     * service_order_id and nothing that looks like a search result — so without it
+     * the conversation remembered everything it looked up and nothing it made.
+     *
+     * @var array<string, string>
+     */
+    private const FROM_IDS = [
+        'customer_id' => 'klant',
+        'service_order_id' => 'werkbon',
+        'asset_id' => 'machine',
+        'ticket_id' => 'storing',
+        'product_id' => 'product',
+        'event_id' => 'afspraak',
+        'location_id' => 'locatie',
+    ];
+
     /** @return array<string, array{id: int, label: ?string}> */
     public function for(?string $conversation, User $user): array
     {
@@ -120,6 +140,19 @@ class ConversationFacts
     private function readFrom(array $content): array
     {
         $learned = [];
+
+        foreach (self::FROM_IDS as $key => $noun) {
+            $id = $content[$key] ?? null;
+
+            /** Only a real number at the top of the result, never one buried in a row. */
+            if (!is_int($id) && !(is_string($id) && ctype_digit($id))) {
+                continue;
+            }
+
+            if ((int) $id > 0) {
+                $learned[$noun] = ['id' => (int) $id, 'label' => $this->labelIn($content)];
+            }
+        }
 
         foreach (self::FROM_RESULTS as $array => $meaning) {
             $rows = $content[$array] ?? null;

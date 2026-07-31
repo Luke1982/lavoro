@@ -21,6 +21,8 @@ class AssistantConfirmRequest extends FormRequest
     {
         return [
             'token' => ['required', 'string', 'max:8000'],
+            /** So what gets created can be written into the notes of the right conversation. */
+            'conversation' => ['nullable', 'uuid'],
         ];
     }
 }
