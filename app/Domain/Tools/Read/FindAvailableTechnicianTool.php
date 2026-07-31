@@ -431,18 +431,6 @@ class FindAvailableTechnicianTool implements Tool
             );
         }
 
-        /**
-         * A diary with nothing in it on a Sunday is not the same as a working day,
-         * and the difference does not show in a gap. Offered as "de snelste optie"
-         * without the word Sunday anywhere near it, it reads like any other plan.
-         */
-        $weekend = collect($options)
-            ->flatMap(fn (array $option) => $option['days'])
-            ->filter(fn (array $day) => $day['weekend'])
-            ->pluck('weekday', 'date')
-            ->map(fn (string $weekday, string $date) => $weekday . ' ' . $date)
-            ->values();
-
         return ToolResult::ok(
             [
                 'options' => $options,
@@ -452,12 +440,7 @@ class FindAvailableTechnicianTool implements Tool
                     'days' => $days,
                     'total_work_minutes' => $total_work,
                 ],
-                'weekend_days_in_these_options' => $weekend->all(),
-                'note' => ($weekend->isEmpty() ? '' : 'Let op: er zitten weekenddagen bij ('
-                    . $weekend->implode(', ') . '). Niemand staat dan ingeroosterd, dus een gat in de agenda '
-                    . 'betekent daar niet dat iemand kan. Noem het weekend er altijd bij en vraag of het mag, '
-                    . 'net als bij een vrije dag. ')
-                    . 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
+                'note' => 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
                     . 'daarin zijn op die dagen tegelijk vrij. Onder availability staat per monteur per dag '
                     . 'wanneer hij vrij is, als achtergrond bij het antwoord. Neem tijden en dagen altijd '
                     . 'letterlijk over uit options en reken ze nooit zelf uit: gaat een vervolgvraag over '
@@ -641,24 +624,23 @@ class FindAvailableTechnicianTool implements Tool
     }
 
     /**
-     * Which day of the week that date is, and whether it is a working one.
+     * Which day of the week that date is.
      *
      * Handed bare dates the model works the weekday out itself, and it gets it
      * wrong: "dinsdag 31 juli" for a Friday, in an answer that was otherwise
      * right, which is the kind of mistake somebody only catches if they happen to
-     * know. It also offered a Sunday as the fastest option without ever saying it
-     * was a Sunday. Both are ours to state, so we state them.
+     * know. So it is stated rather than left to be derived.
      *
-     * @return array{weekday: string, weekend: bool}
+     * Only the name. Whether that day is a working one is not for this to decide
+     * — plenty of Saturdays are worked here — and who is available when is
+     * already recorded per person as recurring unavailability. A blanket rule
+     * about weekends would talk over that real data with a guess.
+     *
+     * @return array{weekday: string}
      */
     private function dayOf(string $date): array
     {
-        $day = CarbonImmutable::parse($date);
-
-        return [
-            'weekday' => self::WEEKDAYS[(int) $day->dayOfWeek],
-            'weekend' => $day->isWeekend(),
-        ];
+        return ['weekday' => self::WEEKDAYS[(int) CarbonImmutable::parse($date)->dayOfWeek]];
     }
 
     private function clock(int $minutes): string

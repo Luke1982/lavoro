@@ -304,7 +304,6 @@ class AvailabilityToolHonestyTest extends TestCase
 
         $this->assertSame('2026-07-31', $first['date']);
         $this->assertSame('vrijdag', $first['weekday'], 'the model is left to work the weekday out itself');
-        $this->assertFalse($first['weekend']);
 
         $windows = collect($answer['availability'])->first()['vrij'];
 
@@ -315,10 +314,14 @@ class AvailabilityToolHonestyTest extends TestCase
     }
 
     /**
-     * Nobody is rostered at the weekend, so an empty Sunday is not an opening. It
-     * was offered as "de snelste optie" without the word Sunday anywhere near it.
+     * A Saturday is a day like any other here, and plenty of them are worked.
+     *
+     * Who is free when is already recorded per person as recurring unavailability,
+     * so a blanket rule about weekends in this tool would talk over real data with
+     * an assumption — and did: it announced that nobody is rostered at the weekend
+     * and told the model to ask permission for a day people work by choice.
      */
-    public function test_a_weekend_in_the_plan_is_said_out_loud(): void
+    public function test_it_invents_no_rule_about_working_at_the_weekend(): void
     {
         $user = $this->admin();
         User::factory()->create(['plannable' => true]);
@@ -330,11 +333,17 @@ class AvailabilityToolHonestyTest extends TestCase
             $user,
         ))->content;
 
-        $this->assertNotEmpty(
-            $answer['weekend_days_in_these_options'],
-            'a plan running across a weekend never mentioned one',
+        $this->assertArrayNotHasKey('weekend_days_in_these_options', $answer);
+        $this->assertStringNotContainsString('weekend', $answer['note']);
+        $this->assertStringNotContainsString('ingeroosterd', $answer['note']);
+
+        /** The day is still named, so anybody reading it can see it is a Saturday. */
+        $days = collect($answer['options'])->flatMap(fn (array $option) => $option['days']);
+
+        $this->assertTrue(
+            $days->contains(fn (array $day) => $day['weekday'] === 'zaterdag'),
+            'a Saturday in the plan went out without being named',
         );
-        $this->assertStringContainsString('weekend', $answer['note']);
 
         $this->travelBack();
     }
