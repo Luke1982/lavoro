@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Read;
 
 use App\Domain\Tools\Read\Concerns\OffersAChoice;
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -24,6 +25,7 @@ use App\Models\User;
 class FindProductTool implements Tool
 {
     use OffersAChoice;
+    use ReportsTheWholeCount;
 
     public static function name(): string
     {
@@ -106,6 +108,7 @@ class FindProductTool implements Tool
             $query->whereHas('productType', fn ($t) => $t->where('name', 'like', $call->likeArgument('product_type')));
         }
 
+        $matching = clone $query;
         $products = $query->orderBy('id')->limit($limit)->get();
 
         if ($products->isEmpty()) {
@@ -135,9 +138,11 @@ class FindProductTool implements Tool
                 . 'zeg kort wat je vond en laat hem kiezen.';
         }
 
+        $total = $this->howManyInAll($matching, count($rows), $limit);
+
         return ToolResult::ok(
-            $content,
-            count($rows) . ' product(en) gevonden.',
+            $content + $this->countNote(count($rows), $total, 'producten'),
+            $this->foundLine(count($rows), $total, 'product(en)'),
         );
     }
 

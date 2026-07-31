@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Read;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -27,6 +28,8 @@ use Carbon\CarbonImmutable;
  */
 class FindAppointmentTool implements Tool
 {
+    use ReportsTheWholeCount;
+
     public static function name(): string
     {
         return 'find_appointments';
@@ -166,9 +169,12 @@ class FindAppointmentTool implements Tool
             $query->where('start', '<', Clock::startOfLocalDay($until->addDay()));
         }
 
+        $limit = (int) config('assistant.max_results', 25);
+        $matching = clone $query;
+
         $events = $query
             ->orderBy('start')
-            ->limit((int) config('assistant.max_results', 25))
+            ->limit($limit)
             ->get();
 
         $rows = $events->map(fn (Event $event) => [
@@ -195,9 +201,11 @@ class FindAppointmentTool implements Tool
             );
         }
 
+        $total = $this->howManyInAll($matching, count($rows), $limit);
+
         return ToolResult::ok(
-            ['appointments' => $rows],
-            count($rows) . ' afspraak/afspraken gevonden.',
+            ['appointments' => $rows] + $this->countNote(count($rows), $total, 'afspraken'),
+            $this->foundLine(count($rows), $total, 'afspraak/afspraken'),
         );
     }
 }

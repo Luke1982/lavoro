@@ -299,4 +299,48 @@ class ReadToolScopeTest extends TestCase
         $this->assertStringContainsString('naam', (string) $found->content['note']);
         $this->assertSame(12, $found->content['matches'], 'it reported how many fitted, not how many there are');
     }
+
+    /**
+     * How many there are, not how many fitted.
+     *
+     * Every search here stops at a ceiling, and every one of them reported the
+     * slice as the answer: "25 storingen gevonden" with three hundred and sixty in
+     * the table. Nothing in that sentence suggests it is partial, so it gets
+     * repeated as a total and somebody plans a week around a number that is wrong
+     * by an order of magnitude.
+     */
+    public function test_a_search_that_hit_its_ceiling_says_how_many_there_really_are(): void
+    {
+        config(['assistant.max_results' => 3]);
+
+        $user = $this->userWith('serviceorder.read');
+        ServiceOrder::factory()->count(9)->create([
+            'customer_id' => Customer::factory()->create()->id,
+        ]);
+
+        $found = $this->invoke('search_service_orders', $user);
+
+        $this->assertCount(3, $found->content['service_orders']);
+        $this->assertSame(9, $found->content['total'], 'it counted what fitted rather than what exists');
+        $this->assertSame(3, $found->content['shown']);
+        $this->assertStringContainsString('van de 9', (string) $found->summary);
+        $this->assertStringContainsString('niet alles', $found->content['note']);
+    }
+
+    /** And a search that fits says so plainly, with no query spent counting. */
+    public function test_a_search_that_fits_is_reported_as_the_whole_answer(): void
+    {
+        config(['assistant.max_results' => 25]);
+
+        $user = $this->userWith('serviceorder.read');
+        ServiceOrder::factory()->count(2)->create([
+            'customer_id' => Customer::factory()->create()->id,
+        ]);
+
+        $found = $this->invoke('search_service_orders', $user);
+
+        $this->assertSame(2, $found->content['total']);
+        $this->assertArrayNotHasKey('shown', $found->content, 'a complete answer was described as a slice');
+        $this->assertStringContainsString('2 werkbon(nen) gevonden', (string) $found->summary);
+    }
 }

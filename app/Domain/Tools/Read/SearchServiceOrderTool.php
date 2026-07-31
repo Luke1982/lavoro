@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -16,6 +17,8 @@ use App\Models\User;
  */
 class SearchServiceOrderTool implements Tool
 {
+    use ReportsTheWholeCount;
+
     public static function name(): string
     {
         return 'search_service_orders';
@@ -120,6 +123,7 @@ class SearchServiceOrderTool implements Tool
             $query->whereDoesntHave('serviceOrderStage', fn ($sq) => $sq->where('is_closed_state', true));
         }
 
+        $matching = clone $query;
         $orders = $query->orderByDesc('id')->limit($limit)->get();
 
         $rows = $orders->map(fn (ServiceOrder $order) => [
@@ -133,9 +137,11 @@ class SearchServiceOrderTool implements Tool
             'closed_on' => $order->closed_on,
         ])->all();
 
+        $total = $this->howManyInAll($matching, count($rows), $limit);
+
         return ToolResult::ok(
-            ['service_orders' => $rows],
-            count($rows) . ' werkbon(nen) gevonden.',
+            ['service_orders' => $rows] + $this->countNote(count($rows), $total, 'werkbonnen'),
+            $this->foundLine(count($rows), $total, 'werkbon(nen)'),
         );
     }
 }

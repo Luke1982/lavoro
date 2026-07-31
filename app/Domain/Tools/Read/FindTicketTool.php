@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -19,6 +20,8 @@ use App\Models\User;
  */
 class FindTicketTool implements Tool
 {
+    use ReportsTheWholeCount;
+
     public static function name(): string
     {
         return 'find_tickets';
@@ -127,6 +130,7 @@ class FindTicketTool implements Tool
             $query->whereHas('asset', fn ($q) => $q->where('product_id', $product_id));
         }
 
+        $matching = clone $query;
         $tickets = $query->orderByDesc('id')->limit($limit)->get();
 
         $rows = $tickets->map(fn (Ticket $ticket) => [
@@ -148,9 +152,11 @@ class FindTicketTool implements Tool
             'closed_by_id' => $ticket->closed_by_id,
         ])->all();
 
+        $total = $this->howManyInAll($matching, count($rows), $limit);
+
         return ToolResult::ok(
-            ['tickets' => $rows],
-            count($rows) . ' storing(en) gevonden.',
+            ['tickets' => $rows] + $this->countNote(count($rows), $total, 'storingen'),
+            $this->foundLine(count($rows), $total, 'storing(en)'),
         );
     }
 }

@@ -4,6 +4,7 @@ namespace App\Domain\Tools\Read;
 
 use App\Domain\Planning\Clock;
 use App\Domain\Tools\Read\Concerns\OffersAChoice;
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -14,6 +15,7 @@ use App\Models\User;
 class FindAssetTool implements Tool
 {
     use OffersAChoice;
+    use ReportsTheWholeCount;
 
     public static function name(): string
     {
@@ -98,6 +100,7 @@ class FindAssetTool implements Tool
             ]);
         }
 
+        $matching = clone $query;
         $assets = $query->orderBy('next_service_date')->limit($limit)->get();
 
         $rows = $assets->map(fn (Asset $asset) => [
@@ -131,9 +134,11 @@ class FindAssetTool implements Tool
                 . 'zeg kort wat je vond en laat hem kiezen.';
         }
 
+        $total = $this->howManyInAll($matching, count($rows), $limit);
+
         return ToolResult::ok(
-            $content,
-            count($rows) . ' machine(s) gevonden.',
+            $content + $this->countNote(count($rows), $total, 'machines'),
+            $this->foundLine(count($rows), $total, 'machine(s)'),
         );
     }
 }
