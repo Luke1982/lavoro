@@ -329,4 +329,53 @@ class InventedRecordTest extends TestCase
 
         $this->assertNotEmpty($reported, 'a model number nobody ever returned went unreported');
     }
+
+    /**
+     * A customer found two questions ago and linked to now is not an invention.
+     *
+     * The sitting-wide check looked for the whole phrase, "customers #2", which a
+     * tool result never contains — it says customer_id and 2, never the sentence
+     * we wrote about it. So every record named from an earlier turn was reported
+     * as made up while model numbers went through, and the warning sat on an
+     * answer that had the customer exactly right.
+     */
+    public function test_a_customer_linked_from_an_earlier_turn_is_not_an_invention(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        AssistantToolCall::create([
+            'user_id' => $user->id,
+            'tool' => 'find_customer',
+            'arguments' => ['query' => 'label'],
+            'outcome' => 'ok',
+            'result' => '{"customers":[{"customer_id":2,"name":"Majorlabel","city":"Meteren"}]}',
+            'duration_ms' => 3,
+        ]);
+
+        $this->assertSame(
+            [],
+            app(ReferenceCheck::class)->report('Ik maak een werkbon voor [Majorlabel](/customers/2).', [], $user->id),
+            'a customer this person was shown minutes ago was reported as made up',
+        );
+    }
+
+    /** A record nobody was ever shown is still reported, from any turn. */
+    public function test_a_record_nobody_was_shown_is_still_reported(): void
+    {
+        $user = $this->userWith('assistant.use');
+
+        AssistantToolCall::create([
+            'user_id' => $user->id,
+            'tool' => 'find_customer',
+            'arguments' => ['query' => 'label'],
+            'outcome' => 'ok',
+            'result' => '{"customers":[{"customer_id":2,"name":"Majorlabel"}]}',
+            'duration_ms' => 3,
+        ]);
+
+        $this->assertNotEmpty(
+            app(ReferenceCheck::class)->report('Zie werkbon [#7788](/serviceorders/7788).', [], $user->id),
+            'a record no tool ever returned went unreported',
+        );
+    }
 }

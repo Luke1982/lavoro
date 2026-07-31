@@ -215,11 +215,28 @@ class ReferenceCheck
 
         return array_values(array_filter(
             $unverified,
-            /** The prefix is ours; what was named is the part after it. */
-            fn (string $reference) => !str_contains(
-                mb_strtolower($earlier),
-                mb_strtolower(str_starts_with($reference, 'model ') ? mb_substr($reference, 6) : $reference),
-            ),
+            fn (string $reference) => !$this->wasShown($reference, $earlier),
         ));
+    }
+
+    /**
+     * Whether this reference is somewhere in what the tools handed back earlier.
+     *
+     * A record is looked for by its number, the way it is inside a single turn.
+     * Looked for by the whole phrase, "customers #2" was never going to be found —
+     * a tool result says customer_id and 2, never the sentence we wrote about it —
+     * so every record named from an earlier turn was reported as invented while
+     * only the model numbers were let through. The warning was on an answer that
+     * had the customer perfectly right.
+     */
+    private function wasShown(string $reference, string $earlier): bool
+    {
+        if (preg_match('/^\w+ #(\d+)$/u', $reference, $found) === 1) {
+            return preg_match('/\b' . preg_quote($found[1], '/') . '\b/', $earlier) === 1;
+        }
+
+        $named = str_starts_with($reference, 'model ') ? mb_substr($reference, 6) : $reference;
+
+        return str_contains(mb_strtolower($earlier), mb_strtolower($named));
     }
 }

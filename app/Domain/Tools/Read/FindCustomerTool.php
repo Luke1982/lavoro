@@ -151,7 +151,18 @@ class FindCustomerTool implements Tool
 
         $total = $this->howManyInAll($matching, $customers->count(), $limit);
 
-        return $this->answerFor($customers, $described, filled($city), $total);
+        /** Only worth a query when there are too many to show and no place yet. */
+        $per_place = $customers->count() > 8 && blank($city)
+            ? (clone $matching)->reorder()->select('city')
+                ->selectRaw('count(*) as found')
+                ->groupBy('city')
+                ->orderByDesc('found')
+                ->limit(15)
+                ->pluck('found', 'city')
+                ->all()
+            : null;
+
+        return $this->answerFor($customers, $described, filled($city), $total, $per_place);
     }
 
     /**
@@ -166,6 +177,7 @@ class FindCustomerTool implements Tool
         string $described,
         bool $place_already_given = false,
         ?int $total = null,
+        ?array $counted_per_place = null,
     ): ToolResult {
         $content = ['customers' => $customers->map(fn (Customer $customer) => [
             'customer_id' => $customer->id,
@@ -225,14 +237,25 @@ class FindCustomerTool implements Tool
         );
 
         if ($customers->count() > 8) {
-            $per_place = $customers->groupBy('city')->map->count()->sortDesc();
             $found = $total ?? $customers->count();
 
             $content = [
                 'customers' => [],
                 'matches' => $found,
-                'per_place' => $per_place->take(15)->all(),
             ];
+
+            /**
+             * Counted over everything that matched, not over the handful that
+             * fitted. Grouped on the loaded rows it said "Meteren: 25" for a
+             * village with eighty, and that is the number a model reads out — the
+             * honest total sat right beside it and lost.
+             *
+             * Left out entirely once a place is known, because then there is only
+             * one and it is the one that was asked about.
+             */
+            if (!$place_already_given && $counted_per_place !== null) {
+                $content['per_place'] = $counted_per_place;
+            }
 
             /**
              * Asking for a place when the place was the question is the loop this

@@ -415,4 +415,28 @@ class ReadToolScopeTest extends TestCase
         $this->assertCount(1, $found->content['products']);
         $this->assertSame('Mitsubishi', $found->content['products'][0]['brand']);
     }
+
+    /**
+     * The places are counted over everything that matched, not over the handful
+     * that fitted.
+     *
+     * Grouped on the loaded rows it reported "Meteren: 25" for a village with
+     * eighty — and that is the number a model reads out, with the honest total
+     * sitting right beside it, losing.
+     */
+    public function test_the_places_are_counted_over_the_whole_match_not_the_slice(): void
+    {
+        /** Above eight, or the branch that withholds the rows never runs. */
+        config(['assistant.max_results' => 10]);
+
+        $user = $this->userWith('customer.read');
+        Customer::factory()->count(9)->create(['name' => 'Dijkstra Techniek', 'city' => 'Meteren']);
+        Customer::factory()->count(4)->create(['name' => 'Dijkgraaf BV', 'city' => 'Ede']);
+
+        $found = $this->invoke('find_customer', $user, ['query' => 'dijk']);
+
+        $this->assertSame(13, $found->content['matches']);
+        $this->assertSame(9, $found->content['per_place']['Meteren'], 'the places were counted off the slice');
+        $this->assertSame(4, $found->content['per_place']['Ede']);
+    }
 }
