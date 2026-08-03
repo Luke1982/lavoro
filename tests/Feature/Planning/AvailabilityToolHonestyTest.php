@@ -378,4 +378,60 @@ class AvailabilityToolHonestyTest extends TestCase
 
         $this->assertEmpty(array_diff($option['crew_user_ids'], $crew->pluck('id')->push($user->id)->all()));
     }
+
+    /**
+     * The plans come back as buttons, not as material for a numbered list.
+     *
+     * Which crew takes the job was left to the model to ask nicely, and asking
+     * nicely happens about half the time — the other half was prose with nothing
+     * to click. The ambiguity is in this data, so this data offers the choice,
+     * and the reference carries the monteurs' numbers and the dates so the click
+     * hands the follow-up everything. Looked up again by name is how Alptug and
+     * Jeremy once became Ferhat and Jimmy.
+     */
+    public function test_more_than_one_plan_offers_itself_as_buttons(): void
+    {
+        $user = $this->admin();
+        User::factory()->count(2)->create(['plannable' => true]);
+
+        $content = app(ToolExecutor::class)->run(new ToolCall(
+            'find_available_technician',
+            ['total_work_minutes' => 960],
+            $user,
+        ))->content;
+
+        $this->assertGreaterThan(1, count($content['options']), 'one plan proves nothing about choosing');
+        $this->assertNotNull($content['choice'], 'the plans were left for the model to ask about nicely');
+        $this->assertCount(count($content['options']), $content['choice']['options']);
+
+        foreach ($content['choice']['options'] as $index => $button) {
+            /**
+             * The exact phrase, not the digits somewhere in the string: a
+             * single-digit id also occurs inside "2026-08-03", so checking the
+             * digits let a reference full of names pass for one full of numbers.
+             */
+            $this->assertStringContainsString(
+                'monteurs ' . implode(', ', $content['options'][$index]['crew_user_ids']),
+                $button['reference'],
+                'a click would lose the crew',
+            );
+
+            $this->assertStringContainsString($content['options'][$index]['days'][0]['date'], $button['reference']);
+        }
+    }
+
+    /** One plan is a proposal, not a choice; a single button asking "which one?" is noise. */
+    public function test_a_single_plan_is_not_dressed_up_as_a_choice(): void
+    {
+        $user = $this->admin();
+        User::factory()->create(['plannable' => true]);
+
+        $content = app(ToolExecutor::class)->run(new ToolCall(
+            'find_available_technician',
+            ['total_work_minutes' => 240, 'crew_size' => 1],
+            $user,
+        ))->content;
+
+        $this->assertNull($content['choice']);
+    }
 }

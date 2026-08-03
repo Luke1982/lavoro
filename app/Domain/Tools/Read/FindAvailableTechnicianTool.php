@@ -442,9 +442,12 @@ class FindAvailableTechnicianTool implements Tool
             );
         }
 
+        $choice = $this->planChoice($options);
+
         return ToolResult::ok(
             [
                 'options' => $options,
+                'choice' => $choice,
                 'availability' => $this->freeWindows($grid, $users, $from),
                 'searched' => [
                     'from' => $from->toDateString(),
@@ -460,10 +463,70 @@ class FindAvailableTechnicianTool implements Tool
                     . 'monteurs dan de namen in het antwoord. Gaat een vervolgvraag over een andere '
                     . 'ploeg, stel die dan opnieuw met user_ids. Staat er bij een optie iets in '
                     . 'costs_someone_their_day_off, noem die dan altijd met naam en dag erbij en vraag of '
-                    . 'dat mag — die planning kan alleen doorgaan als iemand daarmee akkoord gaat.',
+                    . 'dat mag — die planning kan alleen doorgaan als iemand daarmee akkoord gaat.'
+                    . ($choice === null ? '' : ' De gebruiker krijgt deze opties als knoppen te zien; '
+                    . 'som ze niet nog eens op, zeg kort wat het verschil is en wacht op de klik.'),
             ],
             count($options) . ' werkbare planning(en) gevonden.',
         );
+    }
+
+    /**
+     * The plans as buttons, so choosing one is a click rather than a sentence.
+     *
+     * Which crew takes the job was left to the model to ask nicely, and asking
+     * nicely happens about half the time — the other half it was a numbered list
+     * in prose with nothing to click. The ambiguity is in this data, so this data
+     * offers the choice, the way a handful of matching customers already does.
+     *
+     * The reference carries the monteurs' numbers and the dates: the click hands
+     * the follow-up everything it needs, and nobody gets looked up again by name —
+     * which is how Alptug and Jeremy once turned into Ferhat and Jimmy.
+     *
+     * @param  array<int, array<string, mixed>>  $options
+     * @return array{question: string, options: array<int, array{label: string, reference: string, link: null}>}|null
+     */
+    private function planChoice(array $options): ?array
+    {
+        if (count($options) < 2 || count($options) > 8) {
+            return null;
+        }
+
+        return [
+            'question' => 'Welke bezetting wil je?',
+            'options' => array_map(fn (array $option) => [
+                'label' => mb_substr(
+                    $option['crew_size'] . ' man, ' . $option['days_needed']
+                        . ($option['days_needed'] === 1 ? ' dag: ' : ' dagen: ')
+                        . $this->daysLine($option['days'])
+                        . ' — ' . implode(', ', $option['crew']),
+                    0,
+                    120,
+                ),
+                'reference' => 'monteurs ' . implode(', ', $option['crew_user_ids'])
+                    . ' op ' . implode(' en ', array_column($option['days'], 'date')),
+                'link' => null,
+            ], $options),
+        ];
+    }
+
+    /**
+     * The days of one plan, short enough for a button.
+     *
+     * @param  array<int, array<string, mixed>>  $days
+     */
+    private function daysLine(array $days): string
+    {
+        $named = fn (array $day) => $day['weekday'] . ' ' . CarbonImmutable::parse($day['date'])->format('d-m');
+
+        if (count($days) > 3) {
+            return count($days) . ' dagen van ' . $named($days[0]) . ' t/m ' . $named($days[count($days) - 1]);
+        }
+
+        return implode(' + ', array_map(
+            fn (array $day) => $named($day) . ' ' . $day['from'] . '–' . $day['until'],
+            $days,
+        ));
     }
 
     /**
