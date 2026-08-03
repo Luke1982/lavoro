@@ -56,6 +56,20 @@ final class ToolResult
         return new self(true, $reason, $reason);
     }
 
+    /**
+     * A refusal that carries something with it.
+     *
+     * Some refusals are more useful than a sentence: told an afspraaksoort does
+     * not exist, the one thing that helps is the list of ones that do, as buttons
+     * rather than as names to copy out.
+     *
+     * @param  array<string, mixed>  $content
+     */
+    public static function failedWith(array $content, string $reason): self
+    {
+        return new self(true, $content, $reason);
+    }
+
     public static function denied(): self
     {
         return self::failed('Je hebt geen rechten voor deze actie.');

@@ -84,7 +84,58 @@ class CreateEventToolTest extends TestCase
         ]);
 
         $this->assertTrue($result->is_error, 'a kind of appointment was chosen for somebody');
-        $this->assertStringContainsString('Oplossen storing', $result->content, 'it did not say what the choices are');
+        $this->assertContains('Oplossen storing', $result->content['soorten_afspraak'], 'it did not say what the choices are');
+
+        /** Buttons, not a spelling test — the names here start with a digit. */
+        $this->assertNotEmpty($result->content['choice']['options'] ?? [], 'there was nothing to click');
+        $this->assertSame(0, Event::count());
+    }
+
+    /**
+     * These are called "1. Loodgieter" and "3. Aircomonteur": the number is part of
+     * the name, put there to order them on screen. Listed in a refusal they read
+     * as a numbered menu, so answering "3" is the obvious move — and it was
+     * refused, twice, with the person on the other end out of options.
+     */
+    public function test_the_numbering_in_a_kind_of_appointment_is_not_a_wall(): void
+    {
+        EventType::firstOrCreate(['name' => '3. Aircomonteur']);
+        $mechanic = $this->mechanic();
+
+        foreach (['3. Aircomonteur', 'Aircomonteur', 'aircomonteur', '3'] as $said) {
+            Event::query()->delete();
+
+            $result = $this->carryOut([
+                'starts_at' => $this->tomorrowAt(9),
+                'ends_at' => $this->tomorrowAt(11),
+                'user_ids' => [$mechanic->id],
+                'event_type' => $said,
+            ]);
+
+            $this->assertFalse($result->is_error, '"' . $said . '" was refused: ' . json_encode($result->content));
+            $this->assertSame('3. Aircomonteur', Event::sole()->eventType->name);
+        }
+    }
+
+    /**
+     * A monteursrol is not a soort afspraak. The model sent "Airco", which is a
+     * role and a plan group and not an appointment kind at all, and the refusal
+     * never said the two were different things.
+     */
+    public function test_a_mechanics_role_is_not_accepted_as_a_kind_of_appointment(): void
+    {
+        EventType::firstOrCreate(['name' => '3. Aircomonteur']);
+        $mechanic = $this->mechanic();
+
+        $result = $this->carryOut([
+            'starts_at' => $this->tomorrowAt(9),
+            'ends_at' => $this->tomorrowAt(11),
+            'user_ids' => [$mechanic->id],
+            'event_type' => 'Airco',
+        ]);
+
+        $this->assertTrue($result->is_error);
+        $this->assertStringContainsString('monteursrol', $result->content['note']);
         $this->assertSame(0, Event::count());
     }
 

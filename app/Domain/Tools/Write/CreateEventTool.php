@@ -8,6 +8,7 @@ use App\Actions\Appointments\NewAppointment;
 use App\Domain\Planning\Clock;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Tools\Confirmable;
+use App\Domain\Tools\Read\Concerns\OffersAChoice;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
@@ -37,6 +38,8 @@ use Illuminate\Support\Collection;
  */
 class CreateEventTool implements Confirmable, Tool
 {
+    use OffersAChoice;
+
     public static function name(): string
     {
         return 'create_event';
@@ -148,16 +151,30 @@ class CreateEventTool implements Confirmable, Tool
          * a morning without seeing the address approves the wrong building just as
          * easily as the right one.
          */
-        $location = $call->integerArgument('location_id') === null
-            ? null
-            : Location::find($call->integerArgument('location_id'));
-
         $for_customer = $call->integerArgument('create_service_order_for_customer_id');
         $customer = $for_customer === null ? null : Customer::find($for_customer);
 
         $existing = $call->integerArgument('service_order_id') === null
             ? null
             : ServiceOrder::with('customer:id,name')->find($call->integerArgument('service_order_id'));
+
+        /**
+         * Looked up against the customer it is supposed to belong to, exactly as
+         * carrying it out does.
+         *
+         * Found by number alone it showed somebody else's address as though it
+         * were settled: asked to plan at Majorlabel, the button read "Dalidastraat
+         * 25, Lent" — a real address, of a different customer, on a location the
+         * write would have refused. A preview that shows what will not happen is
+         * worse than one that shows nothing.
+         */
+        $location_id = $call->integerArgument('location_id');
+        $owner = $customer?->id ?? $existing?->customer_id;
+        $location = $location_id === null
+            ? null
+            : Location::where('id', $location_id)->when($owner !== null, fn ($q) => $q->where('customer_id', $owner))->first();
+
+        $wrong_location = $location_id !== null && $location === null;
 
         /**
          * Both ends of it. Shown only as a start, an afternoon and a whole day
@@ -172,10 +189,70 @@ class CreateEventTool implements Confirmable, Tool
             . $window
             . ($names->isNotEmpty() ? ' met ' . $names->implode(', ') : '')
             . ($location ? ' op ' . $location->addressLine() : '')
+            . ($wrong_location ? ' — LET OP: locatie #' . $location_id . ' hoort niet bij deze klant, dit gaat zo niet lukken' : '')
             . (blank($call->stringArgument('subject')) ? '' : ' — ' . $call->stringArgument('subject'))
             . ($customer ? ', met een nieuwe werkbon voor ' . $customer->name : '')
             /** The customer, so a werkbon belonging to other work is visible as such. */
             . ($existing ? ', op werkbon #' . $existing->id . ' (' . ($existing->customer?->name ?? 'onbekende klant') . ')' : '');
+    }
+
+    /**
+     * The soort afspraak this name means, read generously.
+     *
+     * These are called "1. Loodgieter" and "3. Aircomonteur" — the number is part
+     * of the name, put there to order them on screen. Exact matching turned that
+     * into a wall: the model sent "Airco", which is a monteursrol and not a soort
+     * afspraak at all, and the refusal listed the names in a way that reads as a
+     * numbered menu, so answering "3" was the obvious move and was refused too.
+     *
+     * So the numbering is stripped from both sides before comparing, and a bare
+     * number is matched against it. "3", "Aircomonteur" and "3. Aircomonteur" all
+     * mean the one thing they can only mean.
+     *
+     * @param  Collection<int, string>  $types
+     */
+    private function typeNamed(Collection $types, string $wanted): int|false
+    {
+        $bare = fn (string $name) => mb_strtolower(trim(preg_replace('/^\s*\d+\s*[.)]?\s*/u', '', $name)));
+        $number = fn (string $name) => preg_match('/^\s*(\d+)\s*[.)]/u', $name, $found) === 1 ? $found[1] : null;
+
+        $wanted = trim($wanted);
+
+        return $types->search(fn (string $name) => strcasecmp($name, $wanted) === 0
+            || $bare($name) === $bare($wanted)
+            || (ctype_digit($wanted) && $number($name) === $wanted));
+    }
+
+    /**
+     * Buttons rather than a sentence to copy out.
+     *
+     * A refusal listing seven names is a spelling test, and the person on the
+     * other end had no way to answer it — they tried "3" and got refused again.
+     *
+     * @param  Collection<int, string>  $types
+     */
+    private function askWhichType(Collection $types, ?string $wanted): ToolResult
+    {
+        $said = blank($wanted)
+            ? 'Wat voor soort afspraak is dit?'
+            : '"' . $wanted . '" is geen soort afspraak. Wat voor soort is het wel?';
+
+        $content = [
+            'error' => $said,
+            'soorten_afspraak' => $types->values()->all(),
+            'note' => 'Let op: een soort afspraak is iets anders dan de rol van de monteur. '
+                . '"Airco" is een monteursrol; de bijbehorende soort afspraak heet hier anders. '
+                . 'Neem de naam letterlijk over uit de lijst.',
+        ];
+
+        $choice = $this->choiceOfValues($types->values(), $said, 'afspraaksoort');
+
+        if ($choice !== null) {
+            $content['choice'] = $choice;
+            $content['note'] .= ' De gebruiker krijgt hier knoppen voor te zien; som ze niet nog eens op.';
+        }
+
+        return ToolResult::failedWith($content, $said);
     }
 
     public static function availableTo(): array
@@ -264,18 +341,10 @@ class CreateEventTool implements Confirmable, Tool
 
         $wanted_type = $call->stringArgument('event_type');
 
-        if (blank($wanted_type)) {
-            return ToolResult::failed(
-                'Wat voor soort afspraak is dit? Kies uit: ' . $types->implode(', ') . '.'
-            );
-        }
-
-        $event_type_id = $types->search(fn (string $name) => strcasecmp($name, $wanted_type) === 0);
+        $event_type_id = blank($wanted_type) ? false : $this->typeNamed($types, $wanted_type);
 
         if ($event_type_id === false) {
-            return ToolResult::failed(
-                'Onbekende afspraaksoort "' . $wanted_type . '". Kies uit: ' . $types->implode(', ') . '.'
-            );
+            return $this->askWhichType($types, $wanted_type);
         }
 
         $roles = UserRole::query()->orderBy('name')->pluck('name', 'id');

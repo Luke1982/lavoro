@@ -126,4 +126,40 @@ class ConfirmationPreviewTest extends TestCase
         $this->assertStringContainsString('Fabrieksweg 8', $preview, 'nothing said where anybody has to be');
         $this->assertStringContainsString('Jansen Elektrotechniek', $preview);
     }
+
+    /**
+     * A preview must not show somebody else's address as though it were settled.
+     *
+     * Asked to plan at Majorlabel, the button read "Dalidastraat 25, Lent" — a
+     * real address, of a different customer, on a location the write itself would
+     * have refused. Reading that, you approve a morning at the wrong building; the
+     * only reason it did not happen is that the write said no afterwards.
+     */
+    public function test_a_location_belonging_to_another_customer_is_not_shown_as_the_address(): void
+    {
+        $user = $this->userWith('event.create');
+        $mine = Customer::factory()->create(['name' => 'Majorlabel']);
+        $theirs = Customer::factory()->create(['name' => 'Iemand anders']);
+
+        $elsewhere = Location::factory()->create([
+            'customer_id' => $theirs->id,
+            'address' => 'Dalidastraat 25',
+            'postal_code' => '6663MJ',
+            'city' => 'Lent',
+        ]);
+
+        $day = Clock::todayAsDate()->addDay()->toDateString();
+
+        $preview = app(ToolExecutor::class)->run(new ToolCall('create_event', [
+            'starts_at' => $day . ' 07:00',
+            'ends_at' => $day . ' 15:00',
+            'user_ids' => [$user->id],
+            'event_type' => 'Onderhoud',
+            'location_id' => $elsewhere->id,
+            'create_service_order_for_customer_id' => $mine->id,
+        ], $user))->content['preview'];
+
+        $this->assertStringNotContainsString('Dalidastraat', $preview, "another customer's address was presented as the site");
+        $this->assertStringContainsString('hoort niet bij deze klant', $preview, 'nothing said the location was wrong');
+    }
 }
