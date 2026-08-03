@@ -258,11 +258,12 @@ Wie het recht heeft ziet op belangrijke pagina's (werkbon, storing, klant, plann
 Wat je ervan mag verwachten:
 
 - **Hij ziet alleen wat jij mag zien.** Elke opzoekactie gebruikt jouw rechten. Een leeg resultaat betekent "niets gevonden of niets zichtbaar".
-- **Hij verzint niets.** Records waar hij naar verwijst maakt hij klikbaar; noemt hij toch iets dat niet uit een zoekactie kwam, dan waarschuwt het scherm daarvoor.
+- **Hij hoort niets te verzinnen — maar controleer hem.** Records waar hij naar verwijst maakt hij klikbaar; noemt hij toch iets dat niet uit een zoekactie kwam, dan waarschuwt het scherm daarvoor. Voor technische uitspraken over apparatuur bestaat zo'n vangnet niet: hij hoort alleen te herhalen wat in de productomschrijving of documentatie staat, maar een taalmodel kan een gat stellig opvullen. Onderin het venster staat daarom altijd: de AI-assistent kan fouten maken, controleer de gegevens altijd. Wil je dat een verschil tussen twee uitvoeringen wél betrouwbaar beantwoord wordt, zet het dan in de productomschrijving — dan leest hij het voortaan gewoon op.
 - **Wijzigen gaat altijd met een bevestigingsknop.** De assistent kan voorstellen een afspraak te plannen, een storing vast te leggen, een werkbon aan te maken of een taak toe te voegen — maar er gebeurt niets tot jij op **Bevestigen** klikt. Wat er op de knop staat is precies wat er uitgevoerd wordt. Een voorstel verloopt na een kwartier.
 - **Meerdere kandidaten? Dan krijg je de keuze** voorgelegd in plaats van een gok.
 - **Hij weet op welke pagina je bent**, dus "deze werkbon" werkt. Bij het wisselen van pagina begint een nieuw gesprek; eerdere gesprekken staan onder "Eerdere gesprekken" en zijn te hervatten. Alleen jijzelf kan je eigen gesprekken teruglezen.
 - Bij technische vragen over een apparaat leest hij de documentatie mee die bij het product is opgeslagen, en bij vragen over de werking van Lavoro zelf raadpleegt hij deze handleiding.
 - Vragen over de geschiedenis ("wie heeft dit gewijzigd?") beantwoordt hij uit de tijdlijn.
+- **Ging een gesprek mis?** Klik onderin op **Gesprek melden**. Het hele gesprek wordt dan — met wat er achter de schermen is opgezocht — als bestand bewaard, zodat de fout onderzocht kan worden. Alleen je eigen gesprekken zijn te melden.
 
 Wat de assistent doet wordt vastgelegd: de gestelde vragen, de gebruikte opzoekacties en de kosten per vraag. Handelingen die je via de assistent bevestigt staan op de tijdlijn op jouw naam, herkenbaar als via de assistent gedaan.
