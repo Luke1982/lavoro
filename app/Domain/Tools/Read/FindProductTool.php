@@ -10,8 +10,10 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * Searches the catalogue: what can be sold and installed.
@@ -24,6 +26,9 @@ use App\Models\User;
  */
 class FindProductTool implements Tool
 {
+    /** @var Collection<int, string>|null */
+    private ?Collection $relation_names = null;
+
     use OffersAChoice;
     use ReportsTheWholeCount;
 
@@ -35,7 +40,10 @@ class FindProductTool implements Tool
     public function description(): string
     {
         return 'Zoekt producten in het assortiment op merk, model of soort — dus wat er geïnstalleerd '
-            . 'of verkocht kan worden, niet wat er al staat. Gebruik dit als je moet weten welk '
+            . 'of verkocht kan worden. Bij een product staan ook de vastgelegde relaties '
+            . '(related_products): onderdelen en toebehoren, zoals de buitenunit die bij een '
+            . 'binnenunit hoort. Staat daar niets, dan is er geen koppeling vastgelegd — leid er '
+            . 'dan geen combinatie uit af. Niet voor wat er al bij een klant staat. Gebruik dit als je moet weten welk '
             . 'apparaat het betreft, bijvoorbeeld bij een nieuwe installatie.';
     }
 
@@ -92,7 +100,14 @@ class FindProductTool implements Tool
         $query = Product::query()
             ->visibleTo($call->user)
             ->withAttributeData()
-            ->with(['brand:id,name', 'productType:id,name']);
+            ->with([
+                'brand:id,name',
+                'productType:id,name',
+                'childProducts:id,brand_id,model',
+                'childProducts.brand:id,name',
+                'parentProducts:id,brand_id,model',
+                'parentProducts.brand:id,name',
+            ]);
 
         if ($search = $call->stringArgument('query')) {
             $like = $call->likeArgument('query');
@@ -171,7 +186,47 @@ class FindProductTool implements Tool
             'description' => $product->description,
             'part_no' => $product->part_no,
             'attributes' => $product->specific_attributes ?? [],
+        ] + $this->pairingsOf($product);
+    }
+
+    /**
+     * What belongs with this product, when somebody has recorded it.
+     *
+     * Which buitenunit goes with a binnenunit is exactly the question the
+     * assistant kept answering from the shape of the catalogue — "er is maar één
+     * Mitsubishi buitendeel, dus dat zal hem zijn" — while the application has a
+     * place to record the pairing outright. Recorded beats deduced, so when the
+     * pairing exists it rides along with the product.
+     *
+     * Left out entirely when nothing is recorded: an empty list on every row
+     * reads as "checked, none", which is more certainty than absence carries.
+     *
+     * @return array<string, mixed>
+     */
+    private function pairingsOf(Product $product): array
+    {
+        /** Once per answer, not once per row — three names do not need 25 queries. */
+        $names = $this->relation_names ??= ProductRelation::query()->pluck('name', 'id');
+
+        $described = fn (Product $related, bool $reversed) => [
+            'product_id' => $related->id,
+            'name' => $related->display_name,
+            'relation' => trim((string) ($names[$related->pivot->product_relation_id] ?? 'Hoort erbij'))
+                . ($reversed ? ' van' : ''),
+            'quantity' => (int) $related->pivot->quantity,
+            'required' => (bool) $related->pivot->is_required,
         ];
+
+        /**
+         * toBase() first: mapping an empty Eloquent collection keeps it Eloquent,
+         * and Eloquent's merge() then calls getKey() on the arrays being merged
+         * in — so a product with only reverse pairings threw, and only that one.
+         */
+        $pairings = $product->childProducts->toBase()->map(fn (Product $related) => $described($related, false))
+            ->merge($product->parentProducts->toBase()->map(fn (Product $related) => $described($related, true)))
+            ->values();
+
+        return $pairings->isEmpty() ? [] : ['related_products' => $pairings->all()];
     }
 
     /**

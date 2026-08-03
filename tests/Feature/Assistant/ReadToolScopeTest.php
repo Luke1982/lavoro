@@ -10,6 +10,7 @@ use App\Models\Asset;
 use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\ProductRelation;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\Ticket;
@@ -438,5 +439,59 @@ class ReadToolScopeTest extends TestCase
         $this->assertSame(13, $found->content['matches']);
         $this->assertSame(9, $found->content['per_place']['Meteren'], 'the places were counted off the slice');
         $this->assertSame(4, $found->content['per_place']['Ede']);
+    }
+
+    /**
+     * A recorded pairing rides along with the product.
+     *
+     * Which buitenunit goes with a binnenunit kept being answered from the shape
+     * of the catalogue — "er is maar één Mitsubishi buitendeel, dus dat zal hem
+     * zijn" — while the application has a place to record exactly that. Recorded
+     * beats deduced, in both directions.
+     */
+    public function test_a_recorded_pairing_travels_with_the_product(): void
+    {
+        $user = $this->userWith('product.read');
+        $brand = Brand::factory()->create(['name' => 'Mitsubishi']);
+
+        $binnen = Product::factory()->create(['brand_id' => $brand->id, 'model' => 'SRK 25 ZS-W']);
+        $buiten = Product::factory()->create(['brand_id' => $brand->id, 'model' => 'SCM 80ZS-W']);
+        $relation = ProductRelation::create(['name' => 'Onderdeel']);
+
+        $binnen->childProducts()->attach($buiten->id, [
+            'product_relation_id' => $relation->id,
+            'quantity' => 1,
+            'is_required' => true,
+        ]);
+
+        $rows = collect($this->invoke('find_products', $user, ['query' => 'SRK 25'])->content['products']);
+        $paired = $rows->firstWhere('product_id', $binnen->id)['related_products'] ?? [];
+
+        $this->assertCount(1, $paired, 'the recorded buitenunit did not ride along');
+        $this->assertSame($buiten->id, $paired[0]['product_id']);
+        $this->assertSame('Onderdeel', $paired[0]['relation']);
+        $this->assertTrue($paired[0]['required']);
+
+        /** And from the other side, so the buitenunit knows what it belongs to. */
+        $other = collect($this->invoke('find_products', $user, ['query' => 'SCM 80'])->content['products']);
+        $reverse = $other->firstWhere('product_id', $buiten->id)['related_products'] ?? [];
+
+        $this->assertCount(1, $reverse);
+        $this->assertSame($binnen->id, $reverse[0]['product_id']);
+        $this->assertSame('Onderdeel van', $reverse[0]['relation']);
+    }
+
+    /** No pairing recorded means no key at all — an empty list reads as "checked, none". */
+    public function test_a_product_without_pairings_says_nothing_about_them(): void
+    {
+        $user = $this->userWith('product.read');
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Zehnder'])->id,
+            'model' => 'WHR 930',
+        ]);
+
+        $row = collect($this->invoke('find_products', $user, ['query' => 'WHR'])->content['products'])->first();
+
+        $this->assertArrayNotHasKey('related_products', $row, 'absence was dressed up as an empty answer');
     }
 }
