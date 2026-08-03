@@ -287,6 +287,25 @@ return [
     |
     */
 
+    /*
+    |---------------------------------------------------------------------------
+    | Waar gemelde gesprekken landen
+    |---------------------------------------------------------------------------
+    |
+    | Een gemeld gesprek is een bestand met de vragen, de antwoorden, en wat de
+    | tools werden meegegeven en teruggaven. Dat laatste is de helft die in een
+    | overgetypt gesprek ontbreekt en waar de fouten in blijken te zitten.
+    |
+    | Het bevat dus klantgegevens. Het staat op een niet-openbare schijf, het
+    | hoort niet in versiebeheer, en het valt onder dezelfde bewaartermijn als de
+    | vragen zelf.
+    |
+    */
+
+    'reports_disk' => env('ASSISTANT_REPORTS_DISK', 'local'),
+
+    'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),
+
     'pricing' => [
         'claude-sonnet-5' => ['input' => 3.00, 'output' => 15.00, 'cache_write' => 3.75, 'cache_read' => 0.30],
         'claude-opus-5' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],

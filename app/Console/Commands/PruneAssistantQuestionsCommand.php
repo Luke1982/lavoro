@@ -6,6 +6,7 @@ use App\Models\AssistantConversationFact;
 use App\Models\AssistantQuestion;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Throws away transcripts past their keeping.
@@ -39,7 +40,15 @@ class PruneAssistantQuestionsCommand extends Command
          */
         $facts = AssistantConversationFact::query()->where('updated_at', '<', $cutoff);
 
-        $counts = [$questions->count(), $facts->count()];
+        /**
+         * The reported conversations go too. They are the fullest copy of any of
+         * this — the questions, the answers, and what the tools were handed —
+         * so keeping them longer than the rows they were written from would put
+         * the retention rule exactly the wrong way round.
+         */
+        $reports = $this->reportsOlderThan($cutoff);
+
+        $counts = [$questions->count(), $facts->count(), count($reports)];
 
         if ($this->option('dry-run')) {
             $this->info($this->lineFor($counts, $cutoff, 'zouden verdwijnen'));
@@ -49,16 +58,33 @@ class PruneAssistantQuestionsCommand extends Command
 
         $questions->delete();
         $facts->delete();
+        Storage::disk(config('assistant.reports_disk', 'local'))->delete($reports);
 
         $this->info($this->lineFor($counts, $cutoff, 'verwijderd'));
 
         return self::SUCCESS;
     }
 
-    /** @param array{0: int, 1: int} $counts */
+    /** @param array{0: int, 1: int, 2: int} $counts */
     private function lineFor(array $counts, CarbonInterface $cutoff, string $verb): string
     {
-        return $counts[0] . ' vragen en ' . $counts[1] . ' gespreksnotities ' . $verb
-            . ' (ouder dan ' . $cutoff->toDateString() . ').';
+        return $counts[0] . ' vragen, ' . $counts[1] . ' gespreksnotities en ' . $counts[2]
+            . ' gemelde gesprekken ' . $verb . ' (ouder dan ' . $cutoff->toDateString() . ').';
+    }
+
+    /**
+     * Reported conversations past their keeping, by the time the file was written.
+     *
+     * @return array<int, string>
+     */
+    private function reportsOlderThan(CarbonInterface $cutoff): array
+    {
+        $disk = Storage::disk(config('assistant.reports_disk', 'local'));
+        $folder = trim((string) config('assistant.reports_path', 'assistant-reports'), '/');
+
+        return collect($disk->files($folder))
+            ->filter(fn (string $file) => $disk->lastModified($file) < $cutoff->timestamp)
+            ->values()
+            ->all();
     }
 }

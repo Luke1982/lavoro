@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Domain\Assistant;
+
+use App\Domain\Planning\Clock;
+use App\Models\AssistantQuestion;
+use App\Models\AssistantToolCall;
+use App\Models\User;
+use Illuminate\Support\Collection;
+
+/**
+ * One conversation written out so somebody can find out what went wrong in it.
+ *
+ * A transcript copied off the screen is not enough. Every fault worth finding
+ * this year was in what the tools were actually called with and what they handed
+ * back — a place counted off twenty-five rows, a location looked up by a number
+ * belonging to another customer, a crew returned without its ids. None of that
+ * appears in the prose; it is the prose that looks fine.
+ *
+ * So this writes the arguments and the results beside the answer, in the order
+ * they happened.
+ */
+class ConversationReport
+{
+    /** Enough of a result to see the shape of it, without pasting a database in. */
+    private const RESULT_CHARS = 1200;
+
+    public function markdownFor(string $conversation, User $user): ?string
+    {
+        $turns = AssistantQuestion::query()
+            ->where('user_id', $user->id)
+            ->where('conversation_id', $conversation)
+            ->orderBy('id')
+            ->get();
+
+        if ($turns->isEmpty()) {
+            return null;
+        }
+
+        $lines = [
+            '# Gesprek ' . $conversation,
+            '',
+            '- **Gebruiker:** ' . $user->name . ' (#' . $user->id . ')',
+            '- **Begonnen:** ' . Clock::toLocal($turns->first()->created_at)->toDateTimeString(),
+            '- **Beurten:** ' . $turns->count(),
+            '- **Kosten:** € ' . number_format($turns->sum('cost_micros') / 1_000_000, 4, ',', ''),
+            '',
+            '> Geschreven vanuit de applicatie. De argumenten en resultaten hieronder komen uit de '
+                . 'auditregels, niet uit het antwoord — juist daar zitten de fouten die in de tekst goed lijken.',
+            '',
+        ];
+
+        foreach ($this->factsFor($conversation, $user) as $line) {
+            $lines[] = $line;
+        }
+
+        /** Consumed as the turns are walked, so repeats keep their own answers. */
+        $results = $this->resultsAround($turns, $user);
+
+        foreach ($turns as $index => $turn) {
+            $lines[] = '## Beurt ' . ($index + 1) . ' — ' . Clock::toLocal($turn->created_at)->toTimeString();
+            $lines[] = '';
+            $lines[] = '**Gevraagd:** ' . ($turn->is_continuation ? '_(doorgegaan na bevestiging)_' : $turn->question);
+
+            if (filled($turn->page)) {
+                $lines[] = '';
+                $lines[] = '**Vanaf pagina:** `' . $turn->page . '`';
+            }
+
+            $lines[] = '';
+
+            foreach ($turn->tools ?? [] as $call) {
+                $lines[] = '### Tool `' . ($call['name'] ?? '?') . '`' . (($call['failed'] ?? false) ? ' — mislukt' : '');
+                $lines[] = '';
+                $lines[] = '```json';
+                $lines[] = json_encode($call['arguments'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $lines[] = '```';
+
+                /**
+                 * Taken in order and used once. Keyed only by name, a tool called
+                 * five times showed the same result against all five, which is a
+                 * diagnostic that quietly lies — worse than one that says nothing.
+                 */
+                $named = $call['name'] ?? '';
+                $answered = empty($results[$named]) ? null : array_shift($results[$named]);
+
+                if ($answered !== null) {
+                    $lines[] = '';
+                    $lines[] = 'Kwam terug (' . $answered['outcome'] . '):';
+                    $lines[] = '';
+                    $lines[] = '```';
+                    $lines[] = mb_substr((string) $answered['result'], 0, self::RESULT_CHARS);
+                    $lines[] = '```';
+                }
+
+                $lines[] = '';
+            }
+
+            $lines[] = '**Antwoord:**';
+            $lines[] = '';
+            $lines[] = filled($turn->failure)
+                ? '_Mislukt: ' . $turn->failure . '_'
+                : (string) $turn->answer;
+            $lines[] = '';
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    /** @return array<int, string> */
+    private function factsFor(string $conversation, User $user): array
+    {
+        $facts = app(ConversationFacts::class)->for($conversation, $user);
+
+        if ($facts === []) {
+            return [];
+        }
+
+        $lines = ['## Wat het gesprek had vastgelegd', ''];
+
+        foreach ($facts as $noun => $fact) {
+            $lines[] = '- **' . $noun . '** #' . $fact['id'] . (blank($fact['label']) ? '' : ' — ' . $fact['label']);
+        }
+
+        $lines[] = '';
+
+        return $lines;
+    }
+
+    /**
+     * What the tools handed back, matched to this conversation by who ran them
+     * and when.
+     *
+     * The audit table records no conversation of its own, so this is bounded by
+     * the first and last question in the thread rather than joined to it. One
+     * person holds one conversation at a time in the box, so that is sound in
+     * practice — but it is a window, not a key, and the report says which tool
+     * name a result belongs to rather than pretending to know the call.
+     *
+     * @param  Collection<int, AssistantQuestion>  $turns
+     * @return array<string, array<int, array{outcome: string, result: ?string}>>
+     */
+    private function resultsAround(Collection $turns, User $user): array
+    {
+        return AssistantToolCall::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>=', $turns->first()->created_at)
+            ->where('created_at', '<=', $turns->last()->created_at->addMinutes(5))
+            ->orderBy('id')
+            ->get(['tool', 'outcome', 'result'])
+            ->groupBy('tool')
+            ->map(fn (Collection $calls) => $calls->map(fn (AssistantToolCall $call) => [
+                'outcome' => $call->outcome,
+                'result' => $call->result,
+            ])->all())
+            ->all();
+    }
+}

@@ -161,6 +161,14 @@
             <button v-if="!showing_history" type="button" class="hover:text-slate-600" @click="showHistory">
                 Eerdere gesprekken
             </button>
+            <!--
+                Only once something has been said, because an empty conversation
+                is nothing to look at.
+            -->
+            <button v-if="!showing_history && exchanges.length" type="button"
+                class="ml-3 hover:text-slate-600" :disabled="reporting" @click="reportConversation">
+                {{ reported || (reporting ? 'Bezig…' : 'Gesprek melden') }}
+            </button>
             <span v-else>De assistent ziet alleen wat jij mag zien.</span>
         </template>
 
@@ -187,6 +195,34 @@ const asking = ref(false)
 const shellRef = ref(null)
 const threadRef = ref(null)
 const shortcutLabel = assistantShortcutLabel()
+
+const reporting = ref(false)
+const reported = ref('')
+
+/**
+ * Writes this conversation out to a file somebody can hand over.
+ *
+ * What makes it worth having is not the prose — that can be copied off the
+ * screen — but the arguments the tools were called with and what they gave back.
+ * Every fault found in this assistant so far was in there, behind an answer that
+ * read perfectly well.
+ */
+async function reportConversation() {
+    if (reporting.value) return
+
+    reporting.value = true
+    reported.value = ''
+
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const { data } = await axios.post('/assistant/report', { conversation: conversation.value })
+        reported.value = data.message || 'Gesprek opgeslagen.'
+    } catch (e) {
+        reported.value = e.response?.data?.message || 'Melden is niet gelukt.'
+    } finally {
+        reporting.value = false
+    }
+}
 
 const ASK_TIMEOUT_MS = 180000
 

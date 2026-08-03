@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ConversationFacts;
+use App\Domain\Assistant\ConversationReport;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
@@ -18,12 +19,14 @@ use App\Http\Requests\AssistantAskRequest;
 use App\Http\Requests\AssistantConfirmRequest;
 use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
+use App\Http\Requests\AssistantReportRequest;
 use App\Models\AssistantQuestion;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
@@ -403,6 +406,41 @@ class AssistantController extends Controller
             'ok' => !$result->is_error,
             'message' => $result->summary ?? ($result->is_error ? 'Het is niet gelukt.' : 'Gelukt.'),
         ], $result->is_error ? 422 : 200);
+    }
+
+    /**
+     * Writes one conversation out as a file somebody can hand over.
+     *
+     * A transcript copied off the screen leaves out the half that matters: what
+     * the tools were called with and what they gave back. Every fault found in
+     * this assistant so far was in there, behind prose that read perfectly well.
+     */
+    public function report(AssistantReportRequest $request, ConversationReport $reports): JsonResponse
+    {
+        $user = $request->user();
+        $conversation = $request->validated('conversation');
+
+        $markdown = $reports->markdownFor($conversation, $user);
+
+        if ($markdown === null) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
+
+        $name = Clock::toLocal(now())->format('Y-m-d_H-i') . '_' . $user->id . '_' . $conversation . '.md';
+        $path = trim((string) config('assistant.reports_path', 'assistant-reports'), '/') . '/' . $name;
+
+        try {
+            Storage::disk(config('assistant.reports_disk', 'local'))->put($path, $markdown);
+        } catch (Throwable $e) {
+            Log::error('Kon gespreksrapport niet wegschrijven', ['exception' => $e]);
+
+            return response()->json(['message' => 'Het rapport kon niet worden opgeslagen.'], 500);
+        }
+
+        return response()->json([
+            'message' => 'Gesprek opgeslagen als ' . $name . '.',
+            'path' => $path,
+        ]);
     }
 
     /**

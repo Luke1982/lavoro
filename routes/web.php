@@ -106,6 +106,14 @@ Route::group(
             ->middleware('throttle:20,1')
             ->name('assistant.continue');
 
+        /**
+         * Writes a conversation out to a file so it can be handed over for
+         * diagnosis. Costs nothing at a supplier and touches no model.
+         */
+        Route::post('assistant/report', [AssistantController::class, 'report'])
+            ->middleware('throttle:10,1')
+            ->name('assistant.report');
+
         /** Carries out something already agreed to; no model runs here. */
         Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
             ->middleware('throttle:20,1')
