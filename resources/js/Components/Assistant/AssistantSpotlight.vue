@@ -160,6 +160,29 @@
 
                 </div>
             </div>
+
+            <!--
+                Why it is being reported, asked before anything is sent. The
+                transcript says what happened; only the melder can say what
+                should have happened instead — which is the investigator's brief.
+            -->
+            <div v-if="asking_reason && !showing_history" class="border-t border-slate-100 bg-amber-50/60 px-4 py-3">
+                <label class="text-xs font-medium text-slate-700" for="report-reason">
+                    Wat ging er mis, of wat had je verwacht? (mag leeg blijven)
+                </label>
+                <div class="mt-1.5 flex items-center gap-2">
+                    <input id="report-reason" ref="reasonRef" v-model="report_reason" type="text"
+                        class="min-w-0 flex-1 rounded-md border-slate-300 text-sm focus:border-amber-500 focus:ring-amber-500"
+                        placeholder="Bijvoorbeeld: hij noemde de verkeerde klant"
+                        @keydown.enter.prevent="reportConversation"
+                        @keydown.esc.stop.prevent="asking_reason = false">
+                    <button type="button" :disabled="reporting"
+                        class="shrink-0 rounded-md bg-amber-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                        @click="reportConversation">
+                        {{ reporting ? 'Bezig…' : 'Verstuur melding' }}
+                    </button>
+                </div>
+            </div>
         </template>
 
         <!--
@@ -180,8 +203,8 @@
                 is nothing to look at.
             -->
             <button v-if="!showing_history && exchanges.length" type="button"
-                class="ml-3 hover:text-slate-600" :disabled="reporting" @click="reportConversation">
-                {{ reported || (reporting ? 'Bezig…' : 'Gesprek melden') }}
+                class="ml-3 hover:text-slate-600" :disabled="reporting" @click="startReport">
+                {{ reported || (asking_reason ? 'Annuleren' : 'Gesprek melden') }}
             </button>
             <span v-else>De assistent ziet alleen wat jij mag zien.</span>
         </template>
@@ -212,6 +235,19 @@ const shortcutLabel = assistantShortcutLabel()
 
 const reporting = ref(false)
 const reported = ref('')
+const asking_reason = ref(false)
+const report_reason = ref('')
+const reasonRef = ref(null)
+
+/** Opens the why-field first; the same button cancels it again. */
+function startReport() {
+    if (reporting.value) return
+
+    reported.value = ''
+    asking_reason.value = !asking_reason.value
+
+    if (asking_reason.value) nextTick(() => reasonRef.value?.focus())
+}
 
 /**
  * Writes this conversation out to a file somebody can hand over.
@@ -229,8 +265,13 @@ async function reportConversation() {
 
     try {
         await axios.get('/sanctum/csrf-cookie')
-        const { data } = await axios.post('/assistant/report', { conversation: conversation.value })
+        const { data } = await axios.post('/assistant/report', {
+            conversation: conversation.value,
+            reason: report_reason.value.trim() || null,
+        })
         reported.value = data.message || 'Gesprek opgeslagen.'
+        asking_reason.value = false
+        report_reason.value = ''
     } catch (e) {
         reported.value = e.response?.data?.message || 'Melden is niet gelukt.'
     } finally {

@@ -234,4 +234,64 @@ class ConversationReportTest extends TestCase
 
         Mail::assertNothingSent();
     }
+
+    /**
+     * The reason travels with the report, first in the file and again in the
+     * mail. The transcript says what happened; only the melder can say what
+     * should have happened instead, and that sentence is the investigator's brief.
+     */
+    public function test_the_reason_rides_along_in_file_and_mail(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+        config(['assistant.reports_mail_to' => 'info@majorlabel.nl']);
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', [
+            'conversation' => self::THREAD,
+            'reason' => 'Hij noemde de verkeerde klant.',
+        ]);
+
+        $written = Storage::disk('local')->get($response->json('path'));
+
+        $this->assertStringContainsString('## Waarom gemeld', $written);
+        $this->assertStringContainsString('Hij noemde de verkeerde klant.', $written);
+
+        Mail::assertSent(
+            AssistantConversationReportedMail::class,
+            fn (AssistantConversationReportedMail $mail) => str_contains($mail->build()->render(), 'Hij noemde de verkeerde klant.'),
+        );
+    }
+
+    /** No reason given is no section at all, not an empty heading. */
+    public function test_no_reason_means_no_waarom_section(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+
+        $this->assertStringNotContainsString('Waarom gemeld', Storage::disk('local')->get($response->json('path')));
+    }
+
+    /** A reason is a sentence, not an essay pasted past the column. */
+    public function test_an_overlong_reason_is_refused(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $this->actingAs($user)->postJson('/assistant/report', [
+            'conversation' => self::THREAD,
+            'reason' => str_repeat('a', 2001),
+        ])->assertStatus(422);
+
+        $this->assertEmpty(Storage::disk('local')->allFiles(), 'the report was written before validation');
+    }
 }

@@ -24,6 +24,7 @@ class AssistantConversationReportedMail extends Mailable
         private readonly string $report,
         private readonly string $filename,
         private readonly string $reporter,
+        private readonly ?string $reason = null,
     ) {}
 
     public function build(): self
@@ -31,6 +32,7 @@ class AssistantConversationReportedMail extends Mailable
         return $this->subject('Gemeld assistent-gesprek van ' . $this->reporter)
             ->html(
                 '<p>' . e($this->reporter) . ' heeft een gesprek met de assistent gemeld.</p>'
+                . (blank($this->reason) ? '' : '<p><strong>Waarom:</strong> ' . nl2br(e($this->reason)) . '</p>')
                 . '<p>Het volledige gesprek zit als bijlage bij deze mail, inclusief wat de '
                 . 'tools werden meegegeven en teruggaven — daar zitten meestal de fouten '
                 . 'die in de antwoordtekst goed lijken.</p>'

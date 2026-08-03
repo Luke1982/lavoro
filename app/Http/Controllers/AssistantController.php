@@ -422,7 +422,8 @@ class AssistantController extends Controller
         $user = $request->user();
         $conversation = $request->validated('conversation');
 
-        $markdown = $reports->markdownFor($conversation, $user);
+        $reason = $request->validated('reason');
+        $markdown = $reports->markdownFor($conversation, $user, $reason);
 
         if ($markdown === null) {
             return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
@@ -445,7 +446,7 @@ class AssistantController extends Controller
          * mail is best effort — the report is already safe on disk, and a broken
          * mailserver must not turn a successful melding into an error.
          */
-        $mailed = $this->mailReport($markdown, $name, $user);
+        $mailed = $this->mailReport($markdown, $name, $user, $reason);
 
         return response()->json([
             'message' => 'Gesprek opgeslagen als ' . $name . ($mailed ? ' en gemaild.' : '.'),
@@ -453,7 +454,7 @@ class AssistantController extends Controller
         ]);
     }
 
-    private function mailReport(string $markdown, string $name, User $user): bool
+    private function mailReport(string $markdown, string $name, User $user, ?string $reason = null): bool
     {
         $to = config('assistant.reports_mail_to');
 
@@ -462,7 +463,7 @@ class AssistantController extends Controller
         }
 
         try {
-            Mail::to($to)->send(new AssistantConversationReportedMail($markdown, $name, $user->name));
+            Mail::to($to)->send(new AssistantConversationReportedMail($markdown, $name, $user->name, $reason));
 
             return true;
         } catch (Throwable $e) {

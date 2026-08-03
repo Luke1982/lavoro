@@ -25,7 +25,7 @@ class ConversationReport
     /** Enough of a result to see the shape of it, without pasting a database in. */
     private const RESULT_CHARS = 1200;
 
-    public function markdownFor(string $conversation, User $user): ?string
+    public function markdownFor(string $conversation, User $user, ?string $reason = null): ?string
     {
         $turns = AssistantQuestion::query()
             ->where('user_id', $user->id)
@@ -49,6 +49,17 @@ class ConversationReport
                 . 'auditregels, niet uit het antwoord — juist daar zitten de fouten die in de tekst goed lijken.',
             '',
         ];
+
+        /**
+         * First, because it is the reader's brief. The transcript says what
+         * happened; only the melder can say what should have happened instead.
+         */
+        if (filled($reason)) {
+            $lines[] = '## Waarom gemeld';
+            $lines[] = '';
+            $lines[] = trim($reason);
+            $lines[] = '';
+        }
 
         foreach ($this->factsFor($conversation, $user) as $line) {
             $lines[] = $line;

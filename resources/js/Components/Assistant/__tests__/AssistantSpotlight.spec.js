@@ -278,3 +278,59 @@ describe('the pinned opening question', () => {
         expect(wrapper.find('p[title]').exists()).toBe(false)
     })
 })
+
+/**
+ * Reporting asks why first. The transcript says what happened; only the melder
+ * can say what should have happened instead.
+ */
+describe('reporting with a reason', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        get.mockResolvedValue({ data: { conversations: [] } })
+        post.mockResolvedValue({ data: { answer: 'Goed.', tools: [], choices: [] } })
+    })
+
+    const sendQuestion = async (wrapper, text) => {
+        await wrapper.find('textarea').setValue(text)
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    const clickText = async (wrapper, text) => {
+        await wrapper.findAll('button').find((b) => b.text().includes(text)).trigger('click')
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    it('asks why before it sends anything', async () => {
+        const wrapper = await box()
+        await sendQuestion(wrapper, 'Plan iets in')
+
+        await clickText(wrapper, 'Gesprek melden')
+
+        expect(post).toHaveBeenCalledTimes(1)
+        expect(wrapper.find('#report-reason').exists()).toBe(true)
+
+        await wrapper.find('#report-reason').setValue('Hij noemde de verkeerde klant')
+        post.mockResolvedValue({ data: { message: 'Opgeslagen en gemaild.' } })
+        await clickText(wrapper, 'Verstuur melding')
+
+        const sent = post.mock.calls.at(-1)
+        expect(sent[0]).toBe('/assistant/report')
+        expect(sent[1].reason).toBe('Hij noemde de verkeerde klant')
+        expect(wrapper.find('#report-reason').exists()).toBe(false)
+    })
+
+    it('sends null rather than an empty sentence', async () => {
+        const wrapper = await box()
+        await sendQuestion(wrapper, 'Plan iets in')
+
+        await clickText(wrapper, 'Gesprek melden')
+        post.mockResolvedValue({ data: { message: 'Opgeslagen.' } })
+        await clickText(wrapper, 'Verstuur melding')
+
+        expect(post.mock.calls.at(-1)[1].reason).toBeNull()
+    })
+})

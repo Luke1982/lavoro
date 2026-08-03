@@ -17,6 +17,8 @@ class AssistantReportRequest extends FormRequest
     {
         return [
             'conversation' => ['required', 'uuid'],
+            /** Why it is being reported — the half no transcript can reconstruct. */
+            'reason' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }
