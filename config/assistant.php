@@ -304,6 +304,13 @@ return [
 
     'reports_disk' => env('ASSISTANT_REPORTS_DISK', 'local'),
 
+    /*
+    | Wie een melding in de inbox krijgt, met het gesprek als bijlage. Leeg laten
+    | zet het mailen uit; het bestand wordt dan alleen op de schijf bewaard.
+    */
+
+    'reports_mail_to' => env('ASSISTANT_REPORTS_MAIL', 'info@majorlabel.nl'),
+
     'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),
 
     'pricing' => [

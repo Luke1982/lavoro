@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
 use App\Models\AssistantToolCall;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -168,5 +170,68 @@ class ConversationReportTest extends TestCase
         $this->assertCount(0, Storage::disk('local')->allFiles(), 'an old report outlived its conversation');
 
         $this->travelBack();
+    }
+
+    /**
+     * Delivered as well as filed. The disk is private, which is exactly where
+     * nobody looks; a melding belongs in an inbox with the file attached.
+     */
+    public function test_a_melding_lands_in_the_inbox_with_the_file_attached(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+        config(['assistant.reports_mail_to' => 'info@majorlabel.nl']);
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+
+        $response->assertOk();
+        $this->assertStringContainsString('gemaild', $response->json('message'));
+
+        Mail::assertSent(AssistantConversationReportedMail::class, function (AssistantConversationReportedMail $mail) use ($user) {
+            $built = $mail->build();
+
+            return $mail->hasTo('info@majorlabel.nl')
+                && str_contains($built->subject, $user->name)
+                && collect($built->rawAttachments)->contains(
+                    fn (array $attached) => str_ends_with($attached['name'], '.md')
+                        && str_contains($attached['data'], 'Welke klanten zijn er in Meteren?')
+                );
+        });
+    }
+
+    /** A broken mailserver must not turn a successful melding into an error. */
+    public function test_a_dead_mailserver_does_not_break_the_melding(): void
+    {
+        Storage::fake('local');
+        config(['assistant.reports_mail_to' => 'info@majorlabel.nl']);
+
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('mailserver weg'));
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+
+        $response->assertOk();
+        $this->assertStringNotContainsString('gemaild', $response->json('message'));
+        $this->assertCount(1, Storage::disk('local')->allFiles(), 'the report itself was lost with the mail');
+    }
+
+    /** Nobody configured means nothing sent, quietly. */
+    public function test_no_recipient_means_no_mail(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+        config(['assistant.reports_mail_to' => null]);
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD])->assertOk();
+
+        Mail::assertNothingSent();
     }
 }

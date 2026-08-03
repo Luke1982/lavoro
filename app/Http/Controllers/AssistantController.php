@@ -20,12 +20,14 @@ use App\Http\Requests\AssistantConfirmRequest;
 use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
 use App\Http\Requests\AssistantReportRequest;
+use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
@@ -437,10 +439,37 @@ class AssistantController extends Controller
             return response()->json(['message' => 'Het rapport kon niet worden opgeslagen.'], 500);
         }
 
+        /**
+         * Delivered as well as filed. The disk is private, which is exactly where
+         * nobody looks; a melding belongs in an inbox with the file attached. The
+         * mail is best effort — the report is already safe on disk, and a broken
+         * mailserver must not turn a successful melding into an error.
+         */
+        $mailed = $this->mailReport($markdown, $name, $user);
+
         return response()->json([
-            'message' => 'Gesprek opgeslagen als ' . $name . '.',
+            'message' => 'Gesprek opgeslagen als ' . $name . ($mailed ? ' en gemaild.' : '.'),
             'path' => $path,
         ]);
+    }
+
+    private function mailReport(string $markdown, string $name, User $user): bool
+    {
+        $to = config('assistant.reports_mail_to');
+
+        if (blank($to)) {
+            return false;
+        }
+
+        try {
+            Mail::to($to)->send(new AssistantConversationReportedMail($markdown, $name, $user->name));
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Kon gespreksrapport niet mailen', ['exception' => $e]);
+
+            return false;
+        }
     }
 
     /**
