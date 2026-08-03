@@ -215,6 +215,17 @@ class ClockTest extends TestCase
      */
     public function test_an_appointment_comes_back_at_the_time_it_was_asked_for(): void
     {
+        /**
+         * Pinned, because the date in this test is a real one. Written on the
+         * thirtieth it read as tomorrow, and it went red of its own accord the
+         * next afternoon when eight o'clock became the past — a test that passes
+         * on some days is worse than no test, since the day it fails is never the
+         * day something actually broke.
+         */
+        /** In UTC, like the clock the application keeps: a test-now carrying another
+         * zone becomes the default for every bare parse and quietly moves the rest. */
+        $this->travelTo(CarbonImmutable::parse('2026-07-30 07:00:00', 'UTC'));
+
         EventType::firstOrCreate(['name' => 'Bezoek']);
         $mechanic = User::factory()->create(['plannable' => true]);
         $customer = Customer::factory()->create();

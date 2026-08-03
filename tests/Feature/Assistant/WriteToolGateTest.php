@@ -59,7 +59,13 @@ class WriteToolGateTest extends TestCase
             [],
             ['customer_id' => 1, 'asset_id' => 1, 'service_order_id' => 1],
             ['customer_id' => 'Jansen', 'user_ids' => 'Jeremy'],
-            ['starts_at' => '2026-08-01 08:00', 'ends_at' => '2026-08-01 10:00', 'user_ids' => [1]],
+            /** Relative, so this case keeps testing the gate rather than decaying
+             * into a date the tool refuses for being in the past. */
+            [
+                'starts_at' => Clock::todayAsDate()->addDay()->toDateString() . ' 08:00',
+                'ends_at' => Clock::todayAsDate()->addDay()->toDateString() . ' 10:00',
+                'user_ids' => [1],
+            ],
             ['subject' => 'Storing', 'description' => 'Doet niets', 'asset_id' => 1],
             ['confirmation_token' => 'ja hoor'],
             ['customer_id' => -1, 'asset_id' => 999999],
