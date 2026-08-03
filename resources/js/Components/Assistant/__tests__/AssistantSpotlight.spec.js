@@ -239,3 +239,42 @@ describe('answering pickers', () => {
         expect(leftover).toBeUndefined()
     })
 })
+
+/**
+ * Three exchanges in, the opener is off the top of the scroll and every answer
+ * below reads without its context — which klant, which klus. So it rides along.
+ */
+describe('the pinned opening question', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        get.mockResolvedValue({ data: { conversations: [] } })
+        post.mockResolvedValue({ data: { answer: 'Goed.', tools: [], choices: [] } })
+    })
+
+    const sendQuestion = async (wrapper, text) => {
+        await wrapper.find('textarea').setValue(text)
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    it('keeps the first question on top, whatever comes after', async () => {
+        const wrapper = await box()
+
+        await sendQuestion(wrapper, 'Drie aircos plaatsen bij Majorlabel')
+        await sendQuestion(wrapper, 'Doe de ZS-WF maar')
+
+        const pinned = wrapper.find('p[title]')
+
+        expect(pinned.exists()).toBe(true)
+        expect(pinned.text()).toBe('Drie aircos plaatsen bij Majorlabel')
+        expect(pinned.classes()).toContain('sticky')
+    })
+
+    it('shows nothing before anything has been asked', async () => {
+        const wrapper = await box()
+
+        expect(wrapper.find('p[title]').exists()).toBe(false)
+    })
+})

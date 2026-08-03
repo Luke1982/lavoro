@@ -41,6 +41,17 @@
 
             <div v-else-if="exchanges.length" ref="threadRef"
                 class="max-h-[65vh] overflow-y-auto divide-y divide-slate-100">
+                <!--
+                    The question that started it, pinned. Three exchanges in, the
+                    opener is off the top of the scroll and every answer below
+                    reads without its context — which klant, which klus. It rides
+                    along as a slim title so the thread always says what it is
+                    about.
+                -->
+                <p v-if="openingQuestion" :title="openingQuestion"
+                    class="sticky top-0 z-10 truncate bg-white/95 px-4 py-2 text-xs font-medium text-slate-500 shadow-sm backdrop-blur">
+                    {{ openingQuestion }}
+                </p>
                 <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
                     <p v-if="exchange.question" class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
@@ -182,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { SparklesIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
@@ -255,6 +266,9 @@ const recalled = ref(-1)
 const conversation = ref(newConversationId())
 
 const showing_history = ref(false)
+
+/** What this conversation is about: the first real question, skipping continuations. */
+const openingQuestion = computed(() => exchanges.value.find((exchange) => exchange.question)?.question ?? '')
 const loading_history = ref(false)
 const history_error = ref('')
 const earlier = ref([])
