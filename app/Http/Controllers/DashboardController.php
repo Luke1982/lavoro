@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DashboardReadRequest;
+use App\Jobs\GeocodeMissingCoordinatesJob;
 use App\Models\User;
 use App\Services\DashboardMetrics;
 use Illuminate\Support\Facades\Auth;
@@ -23,12 +24,25 @@ class DashboardController extends Controller
         $sees_stats = $user->hasPermission('dashboard.see_stats');
         $sees_orders = $this->seesServiceOrders($user);
 
+        $map = $user->hasPermission('dashboard.see_map') ? $metrics->plannedOnMap() : null;
+
+        /**
+         * Kwam de kaart adressen tegen die het niet kon plaatsen, dan gaat het
+         * opzoeken naar de wachtrij. Tijdens het tekenen van de pagina kan dat
+         * niet — Nominatim staat één vraag per seconde toe — maar erom vragen
+         * kan wel, en dan staan ze er de volgende keer op. Anders zou de kaart
+         * pas bijtrekken als iemand aan het commando denkt.
+         */
+        if ($map && $map['unplaced'] > 0) {
+            GeocodeMissingCoordinatesJob::request();
+        }
+
         return inertia('Index/DashBoard', [
             'period' => $metrics->period(),
             'periodOptions' => DashboardMetrics::periodOptions(),
             'kpis' => $sees_stats ? $metrics->kpis() : null,
             'openOrders' => $sees_stats ? $metrics->openOrdersByStage() : null,
-            'mapPoints' => $user->hasPermission('dashboard.see_map') ? $metrics->plannedOnMap() : null,
+            'mapPoints' => $map,
             'agenda' => $user->hasPermission('dashboard.see_events') ? $metrics->agenda() : null,
             'upcomingInspections' => $user->hasPermission('dashboard.see_upcoming_servicejobs')
                 ? $metrics->upcomingInspections()

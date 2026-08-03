@@ -13,6 +13,7 @@
                 </p>
             </div>
 
+            <div class="flex flex-none items-center gap-2">
             <Menu as="div" class="relative flex-none">
                 <MenuButton
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-lavoro-box hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:shadow-none dark:hover:bg-slate-800">
@@ -35,7 +36,40 @@
                     </MenuItems>
                 </transition>
             </Menu>
+
+            <!--
+                Dezelfde vier soorten en dezelfde la als de plusknop op mobiel:
+                dit is één plek erbij om ze te openen, geen tweede manier om ze
+                aan te maken. Staat er niets in dat deze persoon mag aanmaken,
+                dan is er ook geen knop.
+            -->
+            <Menu v-if="createActions.length" as="div" class="relative flex-none">
+                <MenuButton
+                    class="inline-flex items-center gap-2 rounded-lg bg-lavoro-blue px-3.5 py-2.5 text-sm font-semibold text-white shadow-lavoro-box hover:brightness-110 dark:shadow-none">
+                    <PlusIcon class="size-4" aria-hidden="true" />
+                    <span>Nieuw</span>
+                    <ChevronDownIcon class="size-4 opacity-70" aria-hidden="true" />
+                </MenuButton>
+                <transition leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <MenuItems
+                        class="absolute right-0 z-30 mt-2 w-56 origin-top-right overflow-hidden rounded-lg bg-white py-1 shadow-lg outline-1 outline-black/5 dark:bg-slate-800 dark:outline-white/10">
+                        <MenuItem v-for="action in createActions" :key="action.id" v-slot="{ active }">
+                        <button type="button" @click="startCreating(action)"
+                            :class="['flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-200', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                            <span class="flex size-7 flex-none items-center justify-center rounded-lg bg-lavoro-blue/10">
+                                <component :is="navIcon(action.icon)" class="size-4 text-lavoro-blue" />
+                            </span>
+                            {{ action.label }}
+                        </button>
+                        </MenuItem>
+                    </MenuItems>
+                </transition>
+            </Menu>
+            </div>
         </header>
+
+        <CreateDrawer v-model="creatingOpen" :action="creatingAction" />
 
         <section v-if="kpis" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <KpiTile v-for="kpi in kpis" :key="kpi.key" :kpi="kpi" :dates="trendDates" />
@@ -265,10 +299,14 @@ import {
     CheckIcon,
     ChevronDownIcon,
     CircleAlertIcon,
+    PlusIcon,
     FileTextIcon,
     PhoneCallIcon,
 } from '@lucide/vue';
 import dayjs from '@/Utilities/dayjs';
+import { useMenu } from '@/Composables/useMenu.js';
+import { navIcon } from '@/Navigation/icons';
+import CreateDrawer from '@/Components/Layout/CreateDrawer.vue';
 import CircularCounter from '@/Components/UI/CircularCounter.vue';
 import DashCard from '@/Components/Dashboard/DashCard.vue';
 import DashboardMap from '@/Components/Dashboard/DashboardMap.vue';
@@ -294,6 +332,20 @@ const props = defineProps({
     recentOrders: { type: Array, default: null },
     openTickets: { type: Array, default: null },
 });
+
+/**
+ * De soorten records die deze persoon mag aanmaken komen uit het menu, net als
+ * bij de plusknop op mobiel. Wie er een bijzet, zet hem op beide plekken bij.
+ */
+const { createActions } = useMenu();
+
+const creatingOpen = ref(false);
+const creatingAction = ref(null);
+
+const startCreating = (action) => {
+    creatingAction.value = action;
+    creatingOpen.value = true;
+};
 
 const firstName = computed(() => (usePage().props.auth?.user?.name ?? '').split(' ')[0] || 'collega');
 

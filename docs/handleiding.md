@@ -33,7 +33,7 @@ Een paar vaste gewoontes in de hele applicatie:
 
 ## Dashboard
 
-De startpagina vat samen wat er in een gekozen periode gebeurt. Rechtsboven staat de **periodekiezer** (deze week, vorige week, deze maand, laatste 30 dagen); de knop toont het bereik waar je naar kijkt. Standaard staat hij op de laatste 30 dagen. De teltegels en de kaart volgen die keuze; de ring met openstaande werkbonnen en de blokken onderin doen dat bewust niet.
+De startpagina vat samen wat er in een gekozen periode gebeurt. Rechtsboven staat de **periodekiezer** (deze week, vorige week, deze maand, laatste 30 dagen); de knop toont het bereik waar je naar kijkt. Standaard staat hij op de laatste 30 dagen. Daarnaast staat de blauwe knop **Nieuw**: die opent dezelfde vier soorten records als de plusknop op de telefoon (werkbon, storing, afspraak, klant), in dezelfde la. Je ziet alleen de soorten die je mag aanmaken; mag je er geen enkele, dan staat de knop er niet. De teltegels en de kaart volgen die keuze; de ring met openstaande werkbonnen en de blokken onderin doen dat bewust niet.
 
 Bovenaan staan vijf teltegels met een staafje per dag: **nieuwe werkbonnen**, **geplande uren** (de duur van alle afspraken samen), **storingen open**, **werkbonnen afgerond** en **storingen binnen een week opgelost**. Onder elk getal staat het verschil met de vorige, even lange periode — groen als dat goede en rood als dat slechte ontwikkeling is, grijs bij gelijk gebleven. Staat er "Geen vergelijking", dan viel er in de vorige periode niets te vergelijken. Boven de staafjes staat de hoogste dag van de periode als schaal, eronder de nullijn en de begin- en einddatum; wijs een staafje aan voor de dag en de waarde erbij.
 
@@ -58,6 +58,8 @@ Elk blok is aan een eigen recht gebonden: heb je het recht niet, dan wordt het b
 Coördinaten worden alleen bewaard als iemand ze opzoekt, dus van veel klanten zijn ze er niet — en zonder coördinaten kan een adres niet op de kaart. Een beheerder vult ze in bulk aan met `php artisan geocode:addresses`. Dat commando zoekt achter elkaar de ontbrekende coördinaten op van locaties, van klanten met afspraken in de buurt van vandaag, en van de losse adressen die alleen als tekst op een afspraak staan.
 
 De dienst erachter staat één vraag per seconde toe, dus het commando pauzeert tussen de adressen en stopt na `--limit` stuks (standaard 100). Draai het gerust nog eens: wat al gevonden is wordt overgeslagen. Met `--all` gaat het langs alle klanten zonder coördinaten in plaats van alleen die met afspraken.
+
+Meestal hoeft dat commando niet. Ziet het dashboard adressen die het niet kan plaatsen, dan zet het zelf een opdracht in de wachtrij om ze op te zoeken — hoogstens één per kwartier, en het opzoeken gebeurt op de achtergrond zodat de pagina er niet op wacht. De kaart vult zichzelf dus aan; het commando is er voor wie niet wil wachten. Een adres dat niets oplevert wordt een week onthouden als "niet gevonden", zodat postbussen en adressen over de grens niet elke ronde opnieuw geprobeerd worden.
 
 ## Klanten
 
