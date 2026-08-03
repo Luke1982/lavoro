@@ -1,12 +1,12 @@
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-50 flex items-start lg:items-center justify-center px-4 lg:px-0 transition-all duration-200"
+        <div class="fixed inset-0 z-50 flex items-start lg:items-center justify-center px-4 py-4 lg:px-0 lg:py-6 transition-all duration-200"
             :class="visible ? 'bg-black/30 backdrop-blur-sm' : 'bg-transparent'">
-            <div class="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 my-4 lg:my-0"
+            <div class="w-full max-w-2xl max-h-full flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200"
                 :class="visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'">
 
                 <!-- Header -->
-                <div class="flex items-start p-6 pb-5">
+                <div class="flex items-start flex-shrink-0 p-6 pb-5">
                     <div
                         class="flex-shrink-0 w-12 h-12 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-xl flex items-center justify-center mr-4">
                         <CalendarDaysIcon class="h-6 w-6 text-lavoro-blue" />
@@ -25,7 +25,7 @@
                 </div>
 
                 <!-- Scrollable body -->
-                <div class="px-6 pb-2 max-h-[70vh] overflow-y-auto space-y-5">
+                <div class="px-6 pb-2 flex-1 min-h-0 overflow-y-auto space-y-5">
 
                     <!-- Start / Einde -->
                     <div
@@ -369,7 +369,7 @@
 
                 <!-- Footer -->
                 <div
-                    class="flex items-end sm:items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                    class="flex items-end sm:items-center justify-between flex-shrink-0 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
                     <button @click="closeModal"
                         class="px-6 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         Annuleren
@@ -409,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import {
@@ -427,6 +427,7 @@ import { formatAddress, formatLocalDateAsISO, localToUtcDatetime, nlTime, hasPer
 import { useComboSearch } from '@/Composables/useComboSearch'
 import { useCustomerLocations } from '@/Composables/useCustomerLocations'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
+import { useScrollLock } from '@/Composables/useScrollLock'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -442,6 +443,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 const page = usePage()
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock()
 
 const visible = ref(false)
 const saving = ref(false)
@@ -991,6 +993,7 @@ async function save() {
 }
 
 onMounted(() => {
+    lockScroll()
     requestAnimationFrame(() => { visible.value = true })
     if (!form.eventable_id && internalServiceOrders.value.length > 0) {
         form.eventable_id = internalServiceOrders.value[0].id
@@ -1000,4 +1003,6 @@ onMounted(() => {
         loadEmailHistory()
     }
 })
+
+onUnmounted(() => unlockScroll())
 </script>
