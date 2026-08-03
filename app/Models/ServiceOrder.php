@@ -180,7 +180,14 @@ class ServiceOrder extends Model
 
     /**
      * Limits a query to the orders this person is allowed to see: everything if
-     * they may read orders at large, otherwise only the ones they are executing.
+     * they may read orders at large, otherwise only the ones that are theirs.
+     *
+     * Theirs means one of two things, because a werkbon can reach someone along
+     * two paths: hij staat als uitvoerder op de werkbon zelf, of er staat een
+     * afspraak op de werkbon die hij uitvoert. Wie ergens heen gepland is moet
+     * die werkbon kunnen openen — anders staat hij voor de deur zonder te weten
+     * wat hij er komt doen. Een geannuleerde afspraak telt bewust mee: het werk
+     * ging niet door, maar wat er speelde blijft navraagbaar.
      *
      * Anything that shows orders to a user goes through here. The rule used to be
      * written out at each call site, which is how a new reader of the data ends up
@@ -196,7 +203,30 @@ class ServiceOrder extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereHas('executingUsers', fn ($q) => $q->where('users.id', $user->id));
+        return $query->where(fn ($q) => $q
+            ->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
+            ->orWhereHas('events.executingUsers', fn ($sq) => $sq->where('users.id', $user->id)));
+    }
+
+    /**
+     * Werkbonnen waar het werk op zit maar de administratie nog niet.
+     *
+     * Drie voorwaarden, en alle drie zijn ze nodig: er is minstens één afspraak
+     * geweest, er staat er geen meer in de toekomst, en de fase sluit de werkbon
+     * nog niet. Geannuleerde afspraken tellen nergens mee — die zijn niet geweest
+     * en komen ook niet meer.
+     *
+     * whereDoesntHave op de fase pakt ook de werkbonnen zonder fase mee: die is
+     * door niets gesloten, dus die hoort er net zo goed bij.
+     */
+    public function scopeNeedsClosing($query)
+    {
+        return $query
+            ->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
+            ->whereDoesntHave('events', fn ($q) => $q
+                ->where('status', '!=', EventStatusses::cancelled->value)
+                ->where('end', '>=', now()))
+            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder());
     }
 
     /**

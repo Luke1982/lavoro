@@ -68,6 +68,12 @@ class Ticket extends Model
      * given a machine, and the storingen on it come with that. Inventing a
      * separate rule here would let history and search disagree with what opening
      * the record actually shows.
+     *
+     * Dat leunen op ServiceOrder::visibleTo is precies waarom een monteur die
+     * ingepland staat op een werkbon ook de storingen erop ziet: die scope kent
+     * naast "staat als uitvoerder op de werkbon" ook "voert een afspraak op de
+     * werkbon uit". Wie hier een eigen regel zou schrijven, moest die tweede weg
+     * opnieuw bedenken — en zou hem de volgende keer vergeten.
      */
     public function scopeVisibleTo($query, ?User $user)
     {

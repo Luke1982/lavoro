@@ -49,10 +49,14 @@
                 <div v-if="openOrders.total > 0" ref="ringBox"
                     class="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-5 pb-5 sm:flex-row">
                     <CircularCounter :segments="donutSegments" :total="openOrders.total" label="Totaal"
-                        :size="ringSize" :stroke="ringStroke" />
+                        :size="ringSize" :stroke="ringStroke" selectable :highlight="hoveredSegment" @select="openStage" />
                     <ul class="w-full min-w-0 max-w-72 flex-1 space-y-2.5 self-center overflow-y-auto">
-                        <li v-for="segment in openOrders.segments" :key="segment.name"
-                            class="flex items-center gap-2.5 text-sm">
+                        <li v-for="(segment, index) in openOrders.segments" :key="segment.name">
+                            <component :is="segment.stage_ids.length ? Link : 'div'"
+                                :href="segment.stage_ids.length ? stageFilterUrl(segment) : undefined"
+                                class="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1 text-left text-sm transition-colors"
+                                :class="segment.stage_ids.length ? 'hover:bg-gray-50 dark:hover:bg-slate-800' : ''"
+                                @mouseenter="hoveredSegment = index" @mouseleave="hoveredSegment = null">
                             <span class="size-2.5 flex-none rounded-full"
                                 :style="{ backgroundColor: slotColor(segment.slot) }" aria-hidden="true" />
                             <span class="line-clamp-2 min-w-0 flex-1 leading-tight text-gray-600 dark:text-slate-300">
@@ -64,12 +68,37 @@
                             <span class="w-9 flex-none text-right tabular-nums text-gray-400 dark:text-slate-500">
                                 {{ segment.share }}%
                             </span>
+                            </component>
                         </li>
                     </ul>
                 </div>
                 <p v-else class="flex flex-1 items-center justify-center px-5 pb-8 text-sm text-gray-500 dark:text-slate-400">
                     Geen openstaande werkbonnen
                 </p>
+
+                <!--
+                    Deze liggen over alle fases verspreid, dus in de verdeling
+                    zelf zie je ze nooit als groep — terwijl het juist de stapel
+                    is waar iemand iets mee moet.
+                -->
+                <Link v-if="openOrders.needs_closing > 0" href="/serviceorders?onlyNeedsClosing=1"
+                    class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 transition-colors hover:bg-gray-50 dark:border-slate-800 dark:hover:bg-slate-800">
+                <span class="flex min-w-0 items-center gap-2">
+                    <CircleAlertIcon class="size-4 flex-none text-amber-500" aria-hidden="true" />
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium text-gray-900 dark:text-slate-100">Te sluiten</span>
+                        <span class="block truncate text-xs text-gray-400 dark:text-slate-500">
+                            Alle afspraken geweest, fase nog niet gesloten
+                        </span>
+                    </span>
+                </span>
+                <span class="flex flex-none items-center gap-1.5">
+                    <span class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100">
+                        {{ openOrders.needs_closing }}
+                    </span>
+                    <ArrowRightIcon class="size-4 text-gray-400 dark:text-slate-500" aria-hidden="true" />
+                </span>
+                </Link>
             </DashCard>
 
             <DashCard v-if="mapPoints" fill class="overflow-hidden xl:col-span-3">
@@ -235,6 +264,7 @@ import {
     CalendarIcon,
     CheckIcon,
     ChevronDownIcon,
+    CircleAlertIcon,
     FileTextIcon,
     PhoneCallIcon,
 } from '@lucide/vue';
@@ -302,10 +332,21 @@ const ringBox = ref(null);
 const { width: ringBoxWidth, height: ringBoxHeight } = useElementSize(ringBox);
 
 const ringSize = computed(() => {
-    const byWidth = ringBoxWidth.value ? ringBoxWidth.value * 0.46 : 176;
-    const byHeight = ringBoxHeight.value ? ringBoxHeight.value - 16 : 176;
+    const width = ringBoxWidth.value;
+    const height = ringBoxHeight.value;
 
-    return Math.round(Math.min(260, Math.max(140, Math.min(byWidth, byHeight))));
+    if (!width) return 176;
+
+    /*
+     * De hoogte telt alleen mee zolang de kaart hem oplegt, en dat is zo bij een
+     * brede rij: ring naast legenda. Staat de legenda eronder, dan bepaalt de
+     * ring de hoogte van het vak zelf, en meerekenen zou een lus zijn — groter
+     * meten, groter tekenen, opnieuw meten.
+     */
+    const byWidth = width * 0.46;
+    const room = width > height ? Math.min(byWidth, height - 16) : byWidth;
+
+    return Math.round(Math.min(260, Math.max(140, room)));
 });
 
 const ringStroke = computed(() => Math.round(ringSize.value * 0.14));
@@ -314,8 +355,28 @@ const slotColor = (slot) => `var(--dash-series-${slot})`;
 
 const tint = (variable) => ({ backgroundColor: `color-mix(in srgb, var(${variable}) 12%, transparent)` });
 
+const hoveredSegment = ref(null);
+
 const donutSegments = computed(() => (props.openOrders?.segments ?? [])
-    .map((segment) => ({ value: segment.count, color: slotColor(segment.slot) })));
+    .map((segment) => ({
+        value: segment.count,
+        color: slotColor(segment.slot),
+        title: `${segment.name}: ${segment.count} werkbonnen (${segment.share}%)`,
+    })));
+
+/**
+ * De werkbonnenlijst leest zijn fasefilter uit `onlyStage` in de adresbalk, dus
+ * een schijf hoeft alleen zijn fases mee te geven om daar gefilterd aan te komen.
+ */
+const stageFilterUrl = (segment) => `/serviceorders?onlyStage=${segment.stage_ids.join(',')}`;
+
+const openStage = (index) => {
+    const segment = props.openOrders?.segments?.[index];
+
+    if (segment?.stage_ids.length) {
+        router.visit(stageFilterUrl(segment));
+    }
+};
 
 const eventStatusColors = {
     Gepland: '#3b82f6',

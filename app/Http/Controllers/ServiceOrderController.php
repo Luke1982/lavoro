@@ -11,7 +11,6 @@ use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
 use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Domain\Signals\Signals;
-use App\Enums\EventStatusses;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
 use App\Http\Requests\ServiceOrderBulkUpdateRequest;
 use App\Http\Requests\ServiceOrderDeleteRequest;
@@ -125,11 +124,7 @@ class ServiceOrderController extends Controller
         }
 
         if ($only_needs_closing) {
-            $query->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
-                ->whereDoesntHave('events', fn ($q) => $q
-                    ->where('status', '!=', EventStatusses::cancelled->value)
-                    ->where('end', '>=', now()))
-                ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder());
+            $query->needsClosing();
         }
 
         return inertia('ServiceOrders/IndexPage', [

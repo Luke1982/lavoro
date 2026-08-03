@@ -46,15 +46,34 @@ class DashboardMetrics
 
     private string $period;
 
+    /**
+     * Het laatste moment waarvan deze gebruiker afspraken mag zien, of null als
+     * er geen grens is. Wie `event.see_beyond_current_week` niet heeft, kijkt
+     * niet verder vooruit dan een week — dezelfde grens die de planner en de
+     * afsprakenAPI aanhouden, zodat het dashboard geen achterdeur wordt.
+     */
+    private ?CarbonImmutable $event_horizon;
+
     public function __construct(private User $user, ?string $period = null)
     {
         $this->period = array_key_exists((string) $period, self::PERIODS) ? (string) $period : 'last_30';
 
         [$this->start, $this->end] = $this->resolveRange($this->period);
 
-        $days = $this->start->diffInDays($this->end) + 1;
+        /**
+         * Beide einden op middernacht zetten voor het aftellen is geen franje:
+         * diffInDays() rekent in echte tijd, en van middernacht tot 23:59:59 is
+         * 6,999… dagen. Dat afgeronde restje maakte de vorige periode een dag
+         * langer dan de huidige, en dus elk percentage op het dashboard scheef.
+         */
+        $days = (int) $this->start->startOfDay()->diffInDays($this->end->startOfDay()) + 1;
+
         $this->previous_end = $this->start->subDay()->endOfDay();
         $this->previous_start = $this->previous_end->subDays($days - 1)->startOfDay();
+
+        $this->event_horizon = $user->can('seeBeyondCurrentWeek', Event::class)
+            ? null
+            : CarbonImmutable::now()->startOfDay()->addDays(7)->endOfDay();
     }
 
     public function period(): array
@@ -84,85 +103,109 @@ class DashboardMetrics
     public function kpis(): array
     {
         $created = $this->ordersCreated($this->start, $this->end);
-        $created_before = $this->ordersCreated($this->previous_start, $this->previous_end);
-
         $hours = $this->plannedHours($this->start, $this->end);
-        $hours_before = $this->plannedHours($this->previous_start, $this->previous_end);
-
         $open_tickets = $this->openTicketsOn($this->start, $this->end);
-        $open_tickets_before = $this->openTicketsOn($this->previous_start, $this->previous_end);
-
         $closed = $this->ordersClosed($this->start, $this->end);
+        $resolved_fast = $this->ticketsResolvedWithinWeek($this->start, $this->end);
+
+        $created_before = $this->ordersCreated($this->previous_start, $this->previous_end);
+        $hours_before = $this->plannedHours($this->previous_start, $this->previous_end);
+        $open_tickets_before = $this->openTicketsOn($this->previous_start, $this->previous_end);
         $closed_before = $this->ordersClosed($this->previous_start, $this->previous_end);
-
-        $on_time = $this->onTimeShare($this->start, $this->end);
-        $on_time_before = $this->onTimeShare($this->previous_start, $this->previous_end);
-
-        $compare = self::PERIODS[$this->period]['compare'];
+        $resolved_fast_before = $this->ticketsResolvedWithinWeek($this->previous_start, $this->previous_end);
 
         return [
-            [
-                'key' => 'orders_created',
-                'label' => 'Nieuwe werkbonnen',
-                'value' => array_sum($created),
-                'unit' => '',
-                'trend' => $created,
-                'delta' => $this->delta(array_sum($created), array_sum($created_before)),
-                'compare' => $compare,
-                'accent' => 1,
-                'higher_is_better' => true,
-                'icon' => 'orders',
-            ],
-            [
-                'key' => 'planned_hours',
-                'label' => 'Geplande uren',
-                'value' => round(array_sum($hours)),
-                'unit' => 'u',
-                'trend' => $hours,
-                'delta' => $this->delta(array_sum($hours), array_sum($hours_before)),
-                'compare' => $compare,
-                'accent' => 2,
-                'higher_is_better' => true,
-                'icon' => 'hours',
-            ],
-            [
-                'key' => 'open_tickets',
-                'label' => 'Storingen open',
-                'value' => end($open_tickets) ?: 0,
-                'unit' => '',
-                'trend' => $open_tickets,
-                'delta' => $this->delta(end($open_tickets) ?: 0, end($open_tickets_before) ?: 0),
-                'compare' => $compare,
-                'accent' => 5,
-                'higher_is_better' => false,
-                'icon' => 'tickets',
-            ],
-            [
-                'key' => 'orders_closed',
-                'label' => 'Werkbonnen afgerond',
-                'value' => array_sum($closed),
-                'unit' => '',
-                'trend' => $closed,
-                'delta' => $this->delta(array_sum($closed), array_sum($closed_before)),
-                'compare' => $compare,
-                'accent' => 3,
-                'higher_is_better' => true,
-                'icon' => 'closed',
-            ],
-            [
-                'key' => 'on_time',
-                'label' => 'Op tijd afgerond',
-                'value' => $on_time,
-                'unit' => '%',
-                'ring' => $on_time,
-                'trend' => [],
-                'delta' => $this->delta($on_time, $on_time_before),
-                'compare' => $compare,
-                'accent' => 6,
-                'higher_is_better' => true,
-                'icon' => 'ontime',
-            ],
+            $this->tile(
+                key: 'orders_created',
+                label: 'Nieuwe werkbonnen',
+                value: array_sum($created),
+                before: array_sum($created_before),
+                accent: 1,
+                icon: 'orders',
+                trend: $created,
+            ),
+            $this->tile(
+                key: 'planned_hours',
+                label: 'Geplande uren',
+                value: (int) round(array_sum($hours)),
+                before: (int) round(array_sum($hours_before)),
+                accent: 2,
+                icon: 'hours',
+                unit: 'u',
+                trend: $hours,
+            ),
+            $this->tile(
+                key: 'open_tickets',
+                label: 'Storingen open',
+                value: $this->lastOf($open_tickets),
+                before: $this->lastOf($open_tickets_before),
+                accent: 5,
+                icon: 'tickets',
+                trend: $open_tickets,
+                higher_is_better: false,
+            ),
+            $this->tile(
+                key: 'orders_closed',
+                label: 'Werkbonnen afgerond',
+                value: array_sum($closed),
+                before: array_sum($closed_before),
+                accent: 3,
+                icon: 'closed',
+                trend: $closed,
+            ),
+            $this->tile(
+                key: 'tickets_within_week',
+                label: 'Storingen binnen een week opgelost',
+                value: $resolved_fast,
+                before: $resolved_fast_before,
+                accent: 6,
+                icon: 'resolved',
+                unit: '%',
+                shape: 'ring',
+            ),
         ];
+    }
+
+    /**
+     * Eén tegel. Het verschil met de vorige periode wordt hier uitgerekend, zodat
+     * geen enkele tegel dat kan vergeten of anders kan doen dan de rest.
+     *
+     * `shape` zegt waar de tegel zijn getal mee tekent: staafjes per dag, of een
+     * ring voor een aandeel. Dat is een eigen veld en niet af te leiden uit de
+     * aanwezigheid van een sleutel — "kijken of er toevallig iets in staat" is
+     * geen manier om een keuze over te brengen.
+     */
+    private function tile(
+        string $key,
+        string $label,
+        int|float|null $value,
+        int|float|null $before,
+        int $accent,
+        string $icon,
+        string $unit = '',
+        array $trend = [],
+        string $shape = 'bars',
+        bool $higher_is_better = true,
+    ): array {
+        return [
+            'key' => $key,
+            'label' => $label,
+            'value' => $value,
+            'unit' => $unit,
+            'shape' => $shape,
+            'trend' => $trend,
+            'delta' => $this->delta($value, $before),
+            'compare' => self::PERIODS[$this->period]['compare'],
+            'accent' => $accent,
+            'higher_is_better' => $higher_is_better,
+            'icon' => $icon,
+        ];
+    }
+
+    /** De stand op de laatste dag van een reeks; een lege reeks staat op nul. */
+    private function lastOf(array $values): int
+    {
+        return $values === [] ? 0 : (int) $values[array_key_last($values)];
     }
 
     /**
@@ -177,6 +220,18 @@ class DashboardMetrics
      * colour when an earlier fase runs empty. There are six slots, and everything
      * past them — plus de werkbonnen zonder fase — folds into one grey rest-slice
      * rather than getting a seventh colour.
+     *
+     * `needs_closing` telt daarnaast de werkbonnen waar het werk op zit maar de
+     * administratie nog niet — alle afspraken geweest, fase nog niet gesloten.
+     * Die zitten al in de schijven verwerkt en worden er dus niet bij opgeteld;
+     * ze staan er los bij omdat ze over alle fases verspreid liggen en je ze in
+     * de verdeling zelf nooit ziet. ServiceOrder::scopeNeedsClosing is dezelfde
+     * regel die de knop "Alleen te sluiten" op de werkbonnenlijst gebruikt.
+     *
+     * `stage_ids` zijn de fases achter een schijf, zodat het dashboard er de
+     * fasefilter van de werkbonnenlijst mee kan vullen. De grijze schijf draagt
+     * de fases die erin zijn samengevouwen; bestaat hij alleen uit werkbonnen
+     * zonder fase, dan is de lijst leeg — daar is geen filter voor.
      */
     public function openOrdersByStage(): array
     {
@@ -195,6 +250,7 @@ class DashboardMetrics
         $segments = collect();
         $rest = (int) ($counts[null] ?? 0);
         $rest_is_only_unstaged = true;
+        $rest_stage_ids = [];
 
         $stages = ServiceOrderStage::orderBy('order')
             ->orderBy('id')
@@ -211,6 +267,7 @@ class DashboardMetrics
             if ($index >= self::COLOUR_SLOTS) {
                 $rest += $count;
                 $rest_is_only_unstaged = false;
+                $rest_stage_ids[] = $stage->id;
 
                 continue;
             }
@@ -220,6 +277,7 @@ class DashboardMetrics
                 'name' => $stage->name,
                 'count' => $count,
                 'slot' => $index + 1,
+                'stage_ids' => [$stage->id],
             ]);
         }
 
@@ -229,11 +287,13 @@ class DashboardMetrics
                 'name' => $rest_is_only_unstaged ? 'Geen fase' : 'Overige fases',
                 'count' => $rest,
                 'slot' => 'rest',
+                'stage_ids' => $rest_stage_ids,
             ]);
         }
 
         return [
             'total' => $total,
+            'needs_closing' => ServiceOrder::visibleTo($this->user)->needsClosing()->count(),
             'segments' => $segments
                 ->map(fn ($segment) => [
                     ...$segment,
@@ -265,7 +325,7 @@ class DashboardMetrics
         $geocoder = app(Geocoder::class);
 
         $events = Event::visibleTo($this->user)
-            ->whereBetween('start', [$this->start, $this->end])
+            ->whereBetween('start', [$this->start, $this->horizon($this->end)])
             ->where('status', '!=', EventStatusses::cancelled->value)
             ->with([
                 ...EventLocationResolver::relations(),
@@ -284,29 +344,25 @@ class DashboardMetrics
 
             $planned++;
 
-            $coordinates = $this->coordinatesFor($event, $resolver, $geocoder);
+            $place = $this->mapPlaceFor($event, $resolver, $geocoder);
 
-            if (!$coordinates) {
+            if (!$place) {
                 $unplaced++;
 
                 continue;
             }
 
-            [$lat, $lon] = $coordinates;
-            $key = $lat . ':' . $lon;
+            $key = $place['lat'] . ':' . $place['lon'];
 
-            if (!isset($points[$key])) {
-                $points[$key] = [
-                    'lat' => $lat,
-                    'lon' => $lon,
-                    'name' => $event->primaryCustomer()?->name ?? 'Onbekende locatie',
-                    'city' => $event->primaryCustomer()?->city,
-                    'total' => 0,
-                    'appointments' => 0,
-                    'done' => 0,
-                    'order_ids' => [],
-                ];
-            }
+            $points[$key] ??= [
+                'lat' => $place['lat'],
+                'lon' => $place['lon'],
+                'name' => $event->primaryCustomer()?->name ?? 'Onbekende locatie',
+                'city' => $place['city'],
+                'appointments' => 0,
+                'done' => 0,
+                'order_ids' => [],
+            ];
 
             $points[$key]['appointments']++;
 
@@ -315,43 +371,55 @@ class DashboardMetrics
             }
 
             foreach ($event->serviceOrders as $order) {
-                if (!in_array($order->id, $points[$key]['order_ids'], true)) {
-                    $points[$key]['order_ids'][] = $order->id;
-                    $points[$key]['total']++;
-                }
+                $points[$key]['order_ids'][$order->id] = true;
             }
         }
 
         return [
-            'points' => array_values($points),
+            'points' => array_values(array_map(
+                /** De verzameling id's is een teller onderweg, geen gegeven voor de kaart. */
+                fn (array $point) => ['total' => count($point['order_ids'])] + array_diff_key($point, ['order_ids' => null]),
+                $points,
+            )),
             'planned' => $planned,
             'unplaced' => $unplaced,
         ];
     }
 
     /**
-     * Coördinaten voor de plek die de resolver aanwijst: eerst die van het model
-     * zelf, anders die van het adres als dat al eens opgezocht is.
+     * De plek waar de speld hoort, met de plaatsnaam van diezelfde plek.
      *
-     * @return array{0: float, 1: float}|null
+     * Eerst de coördinaten van het model dat de resolver aanwijst, anders die van
+     * het adres als dat al eens opgezocht is. De plaatsnaam komt mee uit de
+     * winnende sport en niet van de klant: staat de speld op een locatieadres,
+     * dan hoort daar de plaats van díé locatie bij.
+     *
+     * @return array{lat: float, lon: float, city: ?string}|null
      */
-    private function coordinatesFor(Event $event, EventLocationResolver $resolver, Geocoder $geocoder): ?array
+    private function mapPlaceFor(Event $event, EventLocationResolver $resolver, Geocoder $geocoder): ?array
     {
         $place = $resolver->coordinates($event);
 
         if ($place) {
-            return [round((float) $place->lat, 4), round((float) $place->lon, 4)];
+            return [
+                'lat' => round((float) $place->lat, 4),
+                'lon' => round((float) $place->lon, 4),
+                'city' => $place->city,
+            ];
         }
 
         $address = $resolver->resolve($event);
+        $cached = $address ? $geocoder->cached($address) : null;
 
-        if (!$address) {
+        if (!$cached) {
             return null;
         }
 
-        $cached = $geocoder->cached($address);
-
-        return $cached ? [round($cached['lat'], 4), round($cached['lon'], 4)] : null;
+        return [
+            'lat' => round($cached['lat'], 4),
+            'lon' => round($cached['lon'], 4),
+            'city' => $event->primaryCustomer()?->city,
+        ];
     }
 
     /**
@@ -362,7 +430,7 @@ class DashboardMetrics
         $today = CarbonImmutable::now();
 
         return Event::visibleTo($this->user)
-            ->whereBetween('start', [$today->startOfDay(), $today->endOfDay()])
+            ->whereBetween('start', [$today->startOfDay(), $this->horizon($today->endOfDay())])
             ->with([
                 'eventType:id,name,color',
                 'serviceOrders:id,customer_id',
@@ -370,12 +438,11 @@ class DashboardMetrics
                 'customers:id,name',
             ])
             ->orderBy('start')
-            ->get(['id', 'name', 'start', 'end', 'status', 'event_type_id'])
+            ->get(['id', 'name', 'start', 'status', 'event_type_id', 'location_id'])
             ->map(fn (Event $event) => [
                 'id' => $event->id,
                 'name' => $event->name,
                 'start' => $event->start?->toIso8601String(),
-                'end' => $event->end?->toIso8601String(),
                 'status' => $event->status,
                 'type' => $event->eventType?->name,
                 'service_order_id' => $event->serviceOrders->first()?->id,
@@ -420,7 +487,7 @@ class DashboardMetrics
     public function recentOrders(int $limit = 6): array
     {
         return ServiceOrder::visibleTo($this->user)
-            ->with(['customer:id,name', 'serviceOrderStage:id,name,is_closed_state,is_invoiced_state,is_planned_state'])
+            ->with(['customer:id,name', 'serviceOrderStage:id,name,is_closed_state,is_invoiced_state'])
             ->orderByDesc('updated_at')
             ->take($limit)
             ->get(['id', 'customer_id', 'description', 'service_order_stage_id', 'updated_at'])
@@ -430,7 +497,6 @@ class DashboardMetrics
                 'customer' => $order->customer?->name,
                 'stage' => $order->serviceOrderStage?->name,
                 'is_closed' => (bool) $order->serviceOrderStage?->closesOrder(),
-                'is_planned' => (bool) $order->serviceOrderStage?->is_planned_state,
                 'updated_at' => $order->updated_at?->toIso8601String(),
             ])
             ->all();
@@ -449,10 +515,18 @@ class DashboardMetrics
                 'subject' => $ticket->subject,
                 'customer' => $ticket->asset?->customer?->name,
                 'priority' => $ticket->priority,
-                'status' => $ticket->status,
                 'created_at' => $ticket->created_at?->toIso8601String(),
             ])
             ->all();
+    }
+
+    /**
+     * Het einde van een afsprakenvenster, ingekort tot waar deze gebruiker mag
+     * kijken. Wie de hele planning mag zien, houdt zijn eigen einddatum.
+     */
+    private function horizon(CarbonImmutable $end): CarbonImmutable
+    {
+        return $this->event_horizon && $end->gt($this->event_horizon) ? $this->event_horizon : $end;
     }
 
     private function resolveRange(string $period): array
@@ -523,9 +597,19 @@ class DashboardMetrics
     /**
      * Hours are summed in PHP rather than in SQL: the date arithmetic differs per
      * database engine and the number of afspraken in a period is small.
+     *
+     * Loopt de periode voorbij wat deze gebruiker mag zien, dan houdt de reeks
+     * daar op in plaats van nullen te tonen: nul uur gepland en "dat mag jij niet
+     * weten" zijn niet hetzelfde, en een staaf van nul zegt het eerste.
      */
     private function plannedHours(CarbonImmutable $start, CarbonImmutable $end): array
     {
+        $end = $this->horizon($end);
+
+        if ($end->lt($start)) {
+            return [];
+        }
+
         $buckets = $this->emptyBuckets($start, $end);
 
         $events = Event::visibleTo($this->user)
@@ -541,7 +625,7 @@ class DashboardMetrics
             $key = $event->start->toDateString();
 
             if (array_key_exists($key, $buckets)) {
-                $buckets[$key] += max(0, $event->start->diffInMinutes($event->end)) / 60;
+                $buckets[$key] += max(0, $event->start->diffInMinutes($event->end, false)) / 60;
             }
         }
 
@@ -550,18 +634,20 @@ class DashboardMetrics
 
     /**
      * How many storingen stood open at the close of each day in the range, so the
-     * sparkline draws the same quantity the big number states.
+     * staafjes draw the same quantity the big number states.
      *
-     * The line stops at today when the period runs on into the future: how many
+     * The row stops at today when the period runs on into the future: how many
      * storingen will stand open on Friday is not known, and drawing today's count
      * across the rest of the week would be a guess dressed up as a measurement.
+     * De reeks is dan korter dan de periode; de staafjes lezen hun datum per
+     * plek vanaf het begin, dus dat komt vanzelf goed uit.
      */
     private function openTicketsOn(CarbonImmutable $start, CarbonImmutable $end): array
     {
         $end = $end->min(CarbonImmutable::now());
 
         if ($end->lt($start)) {
-            return [0];
+            return [];
         }
 
         $tickets = Ticket::visibleTo($this->user)
@@ -595,37 +681,38 @@ class DashboardMetrics
     }
 
     /**
-     * A werkbon counts as on time when it was closed no later than the day of its
-     * last afspraak. Werkbonnen that were never planned have no promise to keep
-     * and stay out of the ratio entirely.
+     * Welk deel van de storingen die in deze periode zijn gesloten, binnen een
+     * week na aanmelden opgelost was.
+     *
+     * De noemer is "gesloten in de periode" en niet "aangemeld in de periode:
+     * een storing van gisteren kan nog geen week oud zijn, dus die zou het
+     * percentage omlaag trekken voor iets dat nog helemaal op tijd is.
+     *
+     * Zonder gesloten storingen in de periode is er niets te delen; dan geeft
+     * dit null terug en zegt de tegel dat er niets te vergelijken viel, in
+     * plaats van een nul die als slecht nieuws leest.
      */
-    private function onTimeShare(CarbonImmutable $start, CarbonImmutable $end): ?int
+    private function ticketsResolvedWithinWeek(CarbonImmutable $start, CarbonImmutable $end): ?int
     {
-        $orders = ServiceOrder::visibleTo($this->user)
+        $tickets = Ticket::visibleTo($this->user)
             ->whereNotNull('closed_on')
             ->whereBetween('closed_on', [$start->toDateString(), $end->toDateString()])
-            ->with(['events' => fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value)])
-            ->get(['id', 'closed_on']);
+            ->get(['created_at', 'closed_on']);
 
-        $planned = $orders->filter(fn (ServiceOrder $order) => $order->events->isNotEmpty());
-
-        if ($planned->isEmpty()) {
+        if ($tickets->isEmpty()) {
             return null;
         }
 
-        $on_time = $planned->filter(function (ServiceOrder $order) {
-            $last = $order->events->max('end');
-
-            if (!$last) {
+        $within_week = $tickets->filter(function (Ticket $ticket) {
+            if (!$ticket->created_at) {
                 return false;
             }
 
-            return CarbonImmutable::parse($order->closed_on)
-                ->startOfDay()
-                ->lte(CarbonImmutable::parse($last)->startOfDay());
+            return CarbonImmutable::parse($ticket->closed_on)->startOfDay()
+                ->lte($ticket->created_at->copy()->startOfDay()->addDays(7));
         });
 
-        return (int) round($on_time->count() / $planned->count() * 100);
+        return (int) round($within_week->count() / $tickets->count() * 100);
     }
 
     private function fill(array $buckets, Collection $dates): array

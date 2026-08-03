@@ -80,7 +80,7 @@ const icons = {
     hours: ClockIcon,
     tickets: PhoneCallIcon,
     closed: CalendarCheckIcon,
-    ontime: CircleCheckBigIcon,
+    resolved: CircleCheckBigIcon,
 };
 
 const numberFormat = new Intl.NumberFormat('nl-NL');
@@ -89,8 +89,8 @@ const icon = computed(() => icons[props.kpi.icon] ?? FileTextIcon);
 const accent = computed(() => `var(--dash-series-${props.kpi.accent})`);
 const tintStyle = computed(() => ({ backgroundColor: `color-mix(in srgb, ${accent.value} 12%, transparent)` }));
 
-const isRing = computed(() => props.kpi.ring !== undefined);
-const hasTrend = computed(() => Array.isArray(props.kpi.trend) && props.kpi.trend.length > 0);
+const isRing = computed(() => props.kpi.shape === 'ring');
+const hasTrend = computed(() => props.kpi.shape === 'bars' && props.kpi.trend.length > 0);
 
 const formattedValue = computed(() => (props.kpi.value === null ? '—' : numberFormat.format(props.kpi.value)));
 const ringText = computed(() => (props.kpi.value === null ? '—' : `${props.kpi.value}%`));
