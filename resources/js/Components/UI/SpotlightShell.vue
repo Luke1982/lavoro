@@ -46,6 +46,17 @@
 
                         <slot name="after" />
 
+                        <!--
+                            A line of its own, above the two-column footer, so it
+                            cannot be crowded out by whatever is on either side.
+                            Empty unless the caller fills it: the navigator has
+                            nothing to disclaim.
+                        -->
+                        <p v-if="$slots.notice"
+                            class="border-t border-slate-100 px-4 pt-2 text-center text-[11px] text-slate-400">
+                            <slot name="notice" />
+                        </p>
+
                         <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
                             <p class="text-[11px] text-slate-400">
                                 <slot name="footer-left" />

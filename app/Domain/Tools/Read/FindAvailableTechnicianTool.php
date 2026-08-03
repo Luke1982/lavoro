@@ -409,6 +409,17 @@ class FindAvailableTechnicianTool implements Tool
                 'days_needed' => $option['days_needed'],
                 'hours_per_person_per_day' => round($option['minutes_per_person_per_day'] / 60, 1),
                 'crew' => array_map(fn (int $id) => $names[$id] ?? ('#' . $id), $option['crew']),
+                /**
+                 * The numbers beside the names, because the next step needs them
+                 * and this was the only place they were missing.
+                 *
+                 * Told "Alptug & Jeremy" and then asked to plan it, the model had
+                 * to find their ids somewhere else, took two off a different list,
+                 * and proposed an appointment for Ferhat and Jimmy — right day,
+                 * wrong men, and the names in the sentence still said Alptug and
+                 * Jeremy. Nothing about the proposal looked wrong.
+                 */
+                'crew_user_ids' => array_values($option['crew']),
                 'not_in_requested_group' => $outsiders,
                 'costs_someone_their_day_off' => $overrides,
                 'same_crew_throughout' => $option['same_crew_throughout'],
@@ -443,8 +454,11 @@ class FindAvailableTechnicianTool implements Tool
                 'note' => 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
                     . 'daarin zijn op die dagen tegelijk vrij. Onder availability staat per monteur per dag '
                     . 'wanneer hij vrij is, als achtergrond bij het antwoord. Neem tijden en dagen altijd '
-                    . 'letterlijk over uit options en reken ze nooit zelf uit: gaat een vervolgvraag over '
-                    . 'een andere ploeg, stel die dan opnieuw met user_ids. Staat er bij een optie iets in '
+                    . 'letterlijk over uit options en reken ze nooit zelf uit. Plan je een optie in, '
+                    . 'neem user_ids dan letterlijk over uit crew_user_ids van diezelfde optie en zoek de '
+                    . 'monteurs niet opnieuw op naam op — dat leverde een afspraak op met twee andere '
+                    . 'monteurs dan de namen in het antwoord. Gaat een vervolgvraag over een andere '
+                    . 'ploeg, stel die dan opnieuw met user_ids. Staat er bij een optie iets in '
                     . 'costs_someone_their_day_off, noem die dan altijd met naam en dag erbij en vraag of '
                     . 'dat mag — die planning kan alleen doorgaan als iemand daarmee akkoord gaat.',
             ],

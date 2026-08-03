@@ -148,6 +148,15 @@
             </div>
         </template>
 
+        <!--
+            Always there, whatever the answer says. An assistant that sounds
+            certain is the one worth doubting, and the sentence costs nothing on
+            the turns where it happens to be right.
+        -->
+        <template #notice>
+            De AI assistent kan fouten maken, controleer de gegevens altijd
+        </template>
+
         <template #footer-left>
             <button v-if="!showing_history" type="button" class="hover:text-slate-600" @click="showHistory">
                 Eerdere gesprekken

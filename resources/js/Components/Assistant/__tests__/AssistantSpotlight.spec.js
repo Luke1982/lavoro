@@ -145,4 +145,16 @@ describe('the assistant history panel', () => {
         expect(asks[0][1].conversation).toBeTruthy()
         expect(asks[1][1].conversation).toBe(asks[0][1].conversation)
     })
+
+    /**
+     * Always there, whatever the answer says. An assistant that sounds certain is
+     * the one worth doubting, and this costs nothing on the turns where it is
+     * right.
+     */
+    it('always says the assistant can be wrong', async () => {
+        const wrapper = await box()
+
+        expect(wrapper.text()).toContain('De AI assistent kan fouten maken, controleer de gegevens altijd')
+    })
+
 })

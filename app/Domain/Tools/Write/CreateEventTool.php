@@ -421,6 +421,15 @@ class CreateEventTool implements Confirmable, Tool
                 'starts_at' => Clock::toLocal($starts_at)->format('Y-m-d H:i'),
                 'ends_at' => Clock::toLocal($ends_at)->format('Y-m-d H:i'),
                 'mechanics' => $mechanics->pluck('name')->all(),
+                /** The numbers beside the names, so a follow-up need not look them up again. */
+                'user_ids' => $mechanics->pluck('id')->all(),
+                /**
+                 * One line saying what this is, which is what the conversation
+                 * keeps as its note — an afspraak recorded as a bare number tells
+                 * the next question nothing about who is going or when.
+                 */
+                'what' => Clock::toLocal($starts_at)->format('d-m-Y H:i')
+                    . ' met ' . $mechanics->pluck('name')->implode(', '),
                 'event_type' => $types[$event_type_id],
                 'user_role' => $role_id === null ? null : $roles[$role_id],
                 'service_order_id' => $order_id,

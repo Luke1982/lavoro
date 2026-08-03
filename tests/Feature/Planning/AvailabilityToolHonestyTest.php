@@ -347,4 +347,35 @@ class AvailabilityToolHonestyTest extends TestCase
 
         $this->travelBack();
     }
+
+    /**
+     * The numbers beside the names, in the same object and the same order.
+     *
+     * The crew came back as names alone, so a model told "Alptug & Jeremy" and
+     * then asked to plan it had to find their ids somewhere else. It took two off
+     * a different list and proposed an appointment for Ferhat and Jimmy — right
+     * day, wrong men, with the names in its own sentence still saying Alptug and
+     * Jeremy. Nothing about the proposal looked wrong.
+     */
+    public function test_a_crew_carries_the_numbers_the_next_step_needs(): void
+    {
+        $user = $this->admin();
+        $crew = User::factory()->count(2)->create(['plannable' => true]);
+
+        $option = app(ToolExecutor::class)->run(new ToolCall(
+            'find_available_technician',
+            ['total_work_minutes' => 240, 'crew_size' => 2],
+            $user,
+        ))->content['options'][0];
+
+        $this->assertCount(2, $option['crew_user_ids']);
+        $this->assertSame(count($option['crew']), count($option['crew_user_ids']), 'names and numbers disagree');
+
+        /** Same order, or the pairing is a coin toss. */
+        foreach ($option['crew_user_ids'] as $index => $id) {
+            $this->assertSame(User::find($id)->name, $option['crew'][$index]);
+        }
+
+        $this->assertEmpty(array_diff($option['crew_user_ids'], $crew->pluck('id')->push($user->id)->all()));
+    }
 }
