@@ -457,7 +457,9 @@ class FindAvailableTechnicianTool implements Tool
                 'note' => 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
                     . 'daarin zijn op die dagen tegelijk vrij. Onder availability staat per monteur per dag '
                     . 'wanneer hij vrij is, als achtergrond bij het antwoord. Neem tijden en dagen altijd '
-                    . 'letterlijk over uit options en reken ze nooit zelf uit. Plan je een optie in, '
+                    . 'letterlijk over uit options en reken ze nooit zelf uit — ook vandaag en morgen '
+                    . 'staan er al bij waar dat zo is; noem een dag nooit zelf "vandaag" of "morgen". '
+                    . 'Plan je een optie in, '
                     . 'neem user_ids dan letterlijk over uit crew_user_ids van diezelfde optie en zoek de '
                     . 'monteurs niet opnieuw op naam op — dat leverde een afspraak op met twee andere '
                     . 'monteurs dan de namen in het antwoord. Gaat een vervolgvraag over een andere '
@@ -717,7 +719,23 @@ class FindAvailableTechnicianTool implements Tool
      */
     private function dayOf(string $date): array
     {
-        return ['weekday' => self::WEEKDAYS[(int) CarbonImmutable::parse($date)->dayOfWeek]];
+        $weekday = self::WEEKDAYS[(int) CarbonImmutable::parse($date)->dayOfWeek];
+
+        /**
+         * Vandaag and morgen are said outright, for the same reason the weekday
+         * is: left to work them out, the model announced a plan that starts today
+         * as "morgen al beginnen" — today's date was in its context and the
+         * weekday was on the day, and it still did the arithmetic wrong.
+         */
+        if ($date === Clock::today()) {
+            return ['weekday' => 'vandaag (' . $weekday . ')'];
+        }
+
+        if ($date === Clock::todayAsDate()->addDay()->toDateString()) {
+            return ['weekday' => 'morgen (' . $weekday . ')'];
+        }
+
+        return ['weekday' => $weekday];
     }
 
     private function clock(int $minutes): string

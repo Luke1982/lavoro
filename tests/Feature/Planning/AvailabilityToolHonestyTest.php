@@ -303,12 +303,19 @@ class AvailabilityToolHonestyTest extends TestCase
         $first = $answer['options'][0]['days'][0];
 
         $this->assertSame('2026-07-31', $first['date']);
-        $this->assertSame('vrijdag', $first['weekday'], 'the model is left to work the weekday out itself');
+
+        /**
+         * Today is said outright too. Told the date and shown the weekday, the
+         * model still announced a plan starting today as "morgen al beginnen" —
+         * relative words are arithmetic, and its arithmetic is not to be trusted.
+         */
+        $this->assertSame('vandaag (vrijdag)', $first['weekday'], 'the model is left to work out what vandaag is');
 
         $windows = collect($answer['availability'])->first()['vrij'];
 
-        $this->assertStringContainsString('zaterdag', $windows['2026-08-01'] ?? '');
+        $this->assertStringContainsString('morgen (zaterdag)', $windows['2026-08-01'] ?? '');
         $this->assertStringContainsString('zondag', $windows['2026-08-02'] ?? '');
+        $this->assertStringNotContainsString('morgen', $windows['2026-08-02'] ?? '', 'overmorgen was called morgen');
 
         $this->travelBack();
     }
@@ -341,7 +348,7 @@ class AvailabilityToolHonestyTest extends TestCase
         $days = collect($answer['options'])->flatMap(fn (array $option) => $option['days']);
 
         $this->assertTrue(
-            $days->contains(fn (array $day) => $day['weekday'] === 'zaterdag'),
+            $days->contains(fn (array $day) => str_contains($day['weekday'], 'zaterdag')),
             'a Saturday in the plan went out without being named',
         );
 
