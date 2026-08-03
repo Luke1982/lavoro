@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Event;
 use App\Support\AddressFormatter;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * The single definition of "where does this appointment happen".
@@ -57,6 +58,48 @@ class EventLocationResolver
         }
 
         return $this->inherited($event);
+    }
+
+    /**
+     * Waar de speld hoort te staan: dezelfde escalatie als resolve(), maar dan
+     * het eerste model op die ladder dat ook coördinaten draagt.
+     *
+     * Alleen een gekoppelde locatie en de klant hebben lat/lon; de sporten met
+     * vrije tekst ertussen hebben die niet. Landt de escalatie op zo'n sport,
+     * dan komt er geen speld — doorschuiven naar de klant zou hem neerzetten op
+     * precies het adres dat die vrije tekst overruled.
+     *
+     * Op één plek is dat te streng: de planner vult het tekstveld van een
+     * afspraak voor met het afgeleide adres en slaat het onveranderd terug op,
+     * dus een gevulde regel is meestal een kopie en geen afwijking. Alleen een
+     * regel die er echt anders uitziet houdt de afspraak van de kaart.
+     */
+    public function coordinates(Event $event): ?Model
+    {
+        if ($event->location_id) {
+            return $this->withCoordinates($event->linkedLocation);
+        }
+
+        $order = $event->serviceOrders->first();
+
+        if ($order?->location_id) {
+            return $this->withCoordinates($order->linkedLocation);
+        }
+
+        if (!empty($event->location) && $this->deviatesFromInherited($event)) {
+            return null;
+        }
+
+        if (!empty($order?->execution_location) || !empty($order?->project?->location)) {
+            return null;
+        }
+
+        return $this->withCoordinates($event->primaryCustomer());
+    }
+
+    private function withCoordinates(?Model $place): ?Model
+    {
+        return $place && $place->lat !== null && $place->lon !== null ? $place : null;
     }
 
     /**

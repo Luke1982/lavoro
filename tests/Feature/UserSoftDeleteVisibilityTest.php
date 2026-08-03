@@ -48,17 +48,25 @@ class UserSoftDeleteVisibilityTest extends TestCase
         $this->assertPropExcludesDeletedUser($response, 'allPlanUsers', $active->id, $deleted->id);
     }
 
-    public function test_dashboard_excludes_soft_deleted_users(): void
+    /**
+     * Het dashboard stuurt geen gebruikerslijst meer mee sinds de planner er niet
+     * meer op staat, dus er is ook niets meer waar een verwijderde gebruiker uit
+     * kan opduiken. Deze test bewaakt dat die lijst niet stilletjes terugkomt —
+     * gebeurt dat wel, dan komt de vraag van hierboven er meteen bij.
+     */
+    public function test_dashboard_ships_no_user_list(): void
     {
         $admin = $this->makeAdmin();
-        $active = User::factory()->create();
+        User::factory()->create();
         $deleted = User::factory()->create();
         $deleted->delete();
 
         $response = $this->actingAs($admin)->get('/');
 
         $response->assertOk();
-        $this->assertPropExcludesDeletedUser($response, 'allUsers', $active->id, $deleted->id);
+        $this->assertNull($response->inertiaProps('allUsers'));
+        $this->assertNull($response->inertiaProps('plannableUsers'));
+        $response->assertDontSee($deleted->email);
     }
 
     public function test_upcoming_activities_excludes_soft_deleted_users(): void

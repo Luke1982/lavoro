@@ -2,91 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AssetStatusses;
-use App\Models\Asset;
-use App\Models\Customer;
-use App\Models\Event;
-use App\Models\EventType;
-use App\Models\ServiceJob;
-use App\Models\ServiceOrder;
-use App\Models\Ticket;
+use App\Http\Requests\DashboardReadRequest;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Services\DashboardMetrics;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function __invoke()
+    /**
+     * A block that the user may not see is not gathered either, so its queries
+     * never run — the permission decides the work, not just the rendering.
+     */
+    public function __invoke(DashboardReadRequest $request)
     {
-        $customers = Customer::with(['assets' => function ($q) {
-            $q->select('id', 'customer_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-                ->with(['product.productType']);
-        }])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
+        /** @var User $user */
+        $user = Auth::user();
 
-        $now = Carbon::now();
-        $customers->transform(function ($c) use ($now) {
-            $eligible = $c->assets->filter(
-                fn($a) => $a->next_service_date && $a->status !== AssetStatusses::inactive->value
-            );
-            $days = $eligible
-                ->map(fn($a) => $now->diffInDays(Carbon::parse($a->next_service_date), false))
-                ->min();
-            $c->next_service_in_days = $days;
-            $earliest = $eligible->sortBy(fn($a) => $a->next_service_date)->first();
-            if ($earliest) {
-                $c->earliest_asset_serial = $earliest->serial_number;
-                $c->earliest_asset_product_type = $earliest->product?->productType?->name;
-            }
+        $metrics = new DashboardMetrics($user, $request->validated()['period'] ?? null);
 
-            return $c;
-        });
-
-        $stats = [
-            'assets' => Asset::count(),
-            'serviceOrders' => ServiceOrder::count(),
-            'serviceJobs' => ServiceJob::count(),
-            'tickets' => Ticket::count(),
-        ];
-
-        $openServiceOrders = ServiceOrder::with('customer')
-            ->where(function ($q) {
-                $q->where('sent_to_administration', false)
-                    ->orWhere('sent_to_customer', false);
-            })
-            ->orderByDesc('updated_at')
-            ->get([
-                'id',
-                'customer_id',
-                'updated_at',
-                'closed_on',
-                'sent_to_administration',
-                'sent_to_customer',
-            ]);
-
-        $upcomingJobs = ServiceJob::with(['serviceOrder.customer'])
-            ->whereNull('completed_on')
-            ->orderBy('created_at')
-            ->take(5)
-            ->get(['id', 'service_order_id', 'created_at', 'completed_on']);
-
-        $recentTickets = Ticket::with(['asset.customer'])
-            ->orderByDesc('created_at')
-            ->take(5)
-            ->get(['id', 'asset_id', 'subject', 'status', 'created_at']);
+        $sees_stats = $user->hasPermission('dashboard.see_stats');
+        $sees_orders = $this->seesServiceOrders($user);
 
         return inertia('Index/DashBoard', [
-            'customers' => $customers,
-            'stats' => $stats,
-            'openServiceOrders' => $openServiceOrders,
-            'upcomingJobs' => $upcomingJobs,
-            'recentTickets' => $recentTickets,
-            'eventTypes' => EventType::all(),
-            'eventStatusses' => Event::statusses(),
-            'allUsers' => User::select('id', 'name')->get(),
-            'plannableUsers' => User::where('plannable', true)
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-                ->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'avatar' => $u->avatar]),
+            'period' => $metrics->period(),
+            'periodOptions' => DashboardMetrics::periodOptions(),
+            'kpis' => $sees_stats ? $metrics->kpis() : null,
+            'openOrders' => $sees_stats ? $metrics->openOrdersByStage() : null,
+            'mapPoints' => $user->hasPermission('dashboard.see_map') ? $metrics->plannedOnMap() : null,
+            'agenda' => $user->hasPermission('dashboard.see_events') ? $metrics->agenda() : null,
+            'upcomingInspections' => $user->hasPermission('dashboard.see_upcoming_servicejobs')
+                ? $metrics->upcomingInspections()
+                : null,
+            'recentOrders' => $sees_orders ? $metrics->recentOrders() : null,
+            'openTickets' => $user->hasPermission('dashboard.see_pending_tickets') ? $metrics->openTickets() : null,
         ]);
+    }
+
+    /**
+     * The werkbonnenlijst is shown to anyone who had a reason to see werkbonnen
+     * on the dashboard before, whichever of the four verzendrechten that was.
+     */
+    private function seesServiceOrders(User $user): bool
+    {
+        return $user->hasPermission('dashboard.see_open_serviceorders.all')
+            || $user->hasPermission('dashboard.see_open_serviceorders.not_sent')
+            || $user->hasPermission('dashboard.see_open_serviceorders.sent_administration')
+            || $user->hasPermission('dashboard.see_open_serviceorders.sent_customer');
     }
 }

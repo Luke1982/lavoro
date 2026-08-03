@@ -33,7 +33,29 @@ Een paar vaste gewoontes in de hele applicatie:
 
 ## Dashboard
 
-De startpagina toont teltegels (machines, werkbonnen, keuringen, storingen), een kaart met klanten en wanneer daar weer service nodig is, de planning (dezelfde planner als op de planningspagina), een lijst open werkbonnen met filterknoppen (niet verzonden, alleen administratie, alleen klant), de eerstvolgende keuringen en de nieuwste storingen. Elk blok is aan rechten gebonden, dus niet iedereen ziet hetzelfde dashboard.
+De startpagina vat samen wat er in een gekozen periode gebeurt. Rechtsboven staat de **periodekiezer** (deze week, vorige week, deze maand, laatste 30 dagen); de knop toont het bereik waar je naar kijkt. Standaard staat hij op de laatste 30 dagen. De teltegels en de kaart volgen die keuze; de ring met openstaande werkbonnen en de blokken onderin doen dat bewust niet.
+
+Bovenaan staan vijf teltegels met een staafje per dag: **nieuwe werkbonnen**, **geplande uren** (de duur van alle afspraken samen), **storingen open**, **werkbonnen afgerond** en **op tijd afgerond**. Onder elk getal staat het verschil met de vorige, even lange periode — groen als dat goede en rood als dat slechte ontwikkeling is, grijs bij gelijk gebleven. Staat er "Geen vergelijking", dan viel er in de vorige periode niets te vergelijken. Boven de staafjes staat de hoogste dag van de periode als schaal, eronder de nullijn en de begin- en einddatum; wijs een staafje aan voor de dag en de waarde erbij.
+
+"Op tijd afgerond" telt alleen werkbonnen die een afspraak hadden: die geldt als op tijd wanneer hij uiterlijk op de dag van zijn laatste afspraak is afgesloten. Werkbonnen zonder afspraak tellen niet mee.
+
+Daaronder staan drie blokken naast elkaar:
+
+- **Werkbonnen overzicht** — een ring met **alle openstaande werkbonnen** verdeeld over de fases waar ze nu op staan, met aantal en percentage per fase. Dit blok loopt niet met de periodekiezer mee: het antwoordt op "waar staat het werk dat nog moet", en dat verandert niet als je naar een andere week kijkt. Een werkbon zonder fase telt als openstaand. Fases houden hun eigen kleur; voorbij zes fases vallen de rest en de werkbonnen zonder fase samen onder "Overige fases".
+- **Werkbonnen op locatie** — een kaart met de werkbonnen die in deze periode zijn **ingepland**, dus op grond van hun afspraken. Eén speld per adres: het cijfer is het aantal werkbonnen daar, en een groene speld met vinkje betekent dat alle afspraken op dat adres afgerond zijn. De knop met het richtkruis brengt alle spelden weer in beeld.
+
+  Het adres komt van de afspraak zelf, anders van de werkbon en anders van de klant — dezelfde volgorde die de planner aanhoudt. Een adres kan alleen op de kaart als er coördinaten bij bekend zijn; is dat er niet, dan zegt een balkje onderaan de kaart hoeveel afspraken er niet op staan. Zie *Adressen op de kaart krijgen* hieronder.
+- **Agenda (vandaag)** — de afspraken van vandaag op tijd gesorteerd, met werkbonnummer, klant en status.
+
+Onderin staan **aankomende keuringen** (de machines met de eerstvolgende keuringsdatum, met een label hoeveel dagen dat nog is), **recente werkbonnen** en **actieve storingen**.
+
+Elk blok is aan een eigen recht gebonden: heb je het recht niet, dan wordt het blok niet getoond én niet opgehaald. Wie geen enkel recht heeft, krijgt daar een melding over.
+
+### Adressen op de kaart krijgen
+
+Coördinaten worden alleen bewaard als iemand ze opzoekt, dus van veel klanten zijn ze er niet — en zonder coördinaten kan een adres niet op de kaart. Een beheerder vult ze in bulk aan met `php artisan geocode:addresses`. Dat commando zoekt achter elkaar de ontbrekende coördinaten op van locaties, van klanten met afspraken in de buurt van vandaag, en van de losse adressen die alleen als tekst op een afspraak staan.
+
+De dienst erachter staat één vraag per seconde toe, dus het commando pauzeert tussen de adressen en stopt na `--limit` stuks (standaard 100). Draai het gerust nog eens: wat al gevonden is wordt overgeslagen. Met `--all` gaat het langs alle klanten zonder coördinaten in plaats van alleen die met afspraken.
 
 ## Klanten
 

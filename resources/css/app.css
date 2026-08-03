@@ -312,3 +312,36 @@
     display: block;
     background-color: transparent;
 }
+
+/*
+ * De grafiekkleuren van het dashboard, per rol benoemd zodat licht en donker op
+ * één plek wisselen. De volgorde is vast en draait nooit door: een fase houdt
+ * zijn kleur als er een fase bijkomt of wegvalt.
+ *
+ * Die volgorde is de toegankelijkheidsmaatregel zelf. Hij is gekozen — en
+ * nagerekend — zodat elk paar dat in de ring naast elkaar komt te liggen ook bij
+ * kleurenblindheid uit elkaar te houden blijft, in beide thema's. Blauw naast
+ * paars en groen naast oranje vallen daarbij af; wie hier een kleur verzet, moet
+ * opnieuw narekenen. Voorbij de zes kleuren komt er geen zevende bij: de rest
+ * valt samen in één grijze schijf.
+ */
+:root {
+    --dash-series-1: #2563eb;
+    --dash-series-2: #16a34a;
+    --dash-series-3: #8b5cf6;
+    --dash-series-4: #db2777;
+    --dash-series-5: #f97316;
+    --dash-series-6: #14b8a6;
+    --dash-series-rest: #94a3b8;
+    --dash-track: #eef2f7;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --dash-series-1: #3b82f6;
+        --dash-series-5: #ea580c;
+        --dash-series-6: #0d9488;
+        --dash-series-rest: #64748b;
+        --dash-track: #1e293b;
+    }
+}

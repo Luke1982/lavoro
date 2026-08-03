@@ -23,6 +23,20 @@ export const localToUtcDatetime = (dateStr, timeStr) =>
 
 export const nlTime = (date) => dayjs(date).format("HH:mm");
 
+/**
+ * "Vandaag 07:45", "Gisteren 16:15" or "12-05-2026 11:30" — the time stays put,
+ * only the date turns into a word for the two days that have one.
+ */
+export const nlRelativeDateTime = (date) => {
+    if (!date) return "";
+    const moment = dayjs(date);
+    if (!moment.isValid()) return "";
+    const today = dayjs().startOf("day");
+    if (moment.isSame(today, "day")) return `Vandaag ${moment.format("HH:mm")}`;
+    if (moment.isSame(today.subtract(1, "day"), "day")) return `Gisteren ${moment.format("HH:mm")}`;
+    return moment.format("DD-MM-YYYY HH:mm");
+};
+
 export const mapsLinkFromAddress = (address) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 

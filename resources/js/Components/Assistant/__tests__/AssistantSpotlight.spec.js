@@ -158,3 +158,84 @@ describe('the assistant history panel', () => {
     })
 
 })
+
+/**
+ * A turn can carry two pickers — which product, which werkbon — and firing on
+ * the first click shipped half an answer and killed the other question unasked.
+ */
+describe('answering pickers', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        get.mockResolvedValue({ data: { conversations: [] } })
+    })
+
+    const answerWith = (choices) =>
+        post.mockResolvedValue({ data: { answer: 'Kies maar.', tools: [], choices } })
+
+    const sendQuestion = async (wrapper, text) => {
+        await wrapper.find('textarea').setValue(text)
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    const clickOption = async (wrapper, label) => {
+        await wrapper.findAll('button').find((b) => b.text() === label).trigger('click')
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    it('waits for every picker of the turn before sending', async () => {
+        answerWith([
+            { question: 'Welk product?', options: [{ label: 'ZS-W', reference: 'product 2', link: null }, { label: 'ZS-WF', reference: 'product 6', link: null }] },
+            { question: 'Welke werkbon?', options: [{ label: 'Werkbon #4', reference: 'werkbon 4', link: null }, { label: 'Werkbon #324', reference: 'werkbon 324', link: null }] },
+        ])
+
+        const wrapper = await box()
+        await sendQuestion(wrapper, 'Plan drie units in')
+
+        expect(post).toHaveBeenCalledTimes(1)
+
+        await clickOption(wrapper, 'ZS-WF')
+
+        expect(post).toHaveBeenCalledTimes(1)
+        expect(wrapper.text()).toContain('Gekozen: ZS-WF')
+
+        await clickOption(wrapper, 'Werkbon #4')
+
+        expect(post).toHaveBeenCalledTimes(2)
+        expect(post.mock.calls[1][1].question).toContain('ZS-WF (product 6)')
+        expect(post.mock.calls[1][1].question).toContain('Werkbon #4 (werkbon 4)')
+    })
+
+    it('still sends straight away when the turn asks one thing', async () => {
+        answerWith([
+            { question: 'Welke klant?', options: [{ label: 'Majorlabel', reference: 'klant 2', link: null }, { label: 'Kreeft', reference: 'klant 4', link: null }] },
+        ])
+
+        const wrapper = await box()
+        await sendQuestion(wrapper, 'Zoek de klant')
+        await clickOption(wrapper, 'Majorlabel')
+
+        expect(post).toHaveBeenCalledTimes(2)
+        expect(post.mock.calls[1][1].question).toBe('Ik bedoel: Majorlabel (klant 2)')
+    })
+
+    it('retires a picker once something else is asked instead', async () => {
+        answerWith([
+            { question: 'Welke klant?', options: [{ label: 'Majorlabel', reference: 'klant 2', link: null }, { label: 'Kreeft', reference: 'klant 4', link: null }] },
+        ])
+
+        const wrapper = await box()
+        await sendQuestion(wrapper, 'Zoek de klant')
+
+        answerWith([])
+        await sendQuestion(wrapper, 'Laat maar, iets anders')
+
+        expect(wrapper.text()).toContain('Vervallen')
+
+        const leftover = wrapper.findAll('button').find((b) => b.text() === 'Majorlabel')
+        expect(leftover).toBeUndefined()
+    })
+})

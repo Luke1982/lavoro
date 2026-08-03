@@ -90,7 +90,10 @@
                     <div v-for="(choice, choiceIndex) in exchange.choices" :key="'c' + choiceIndex"
                         class="rounded-lg bg-indigo-50 px-3 py-2.5 ring-1 ring-indigo-200">
                         <p class="text-xs font-medium text-indigo-900">
-                            {{ choice.chosen ? 'Gekozen: ' + choice.chosen : choice.question }}
+                            {{ choice.chosen && !choice.stale ? 'Gekozen: ' + choice.chosen : choice.question }}
+                        </p>
+                        <p v-if="choice.stale" class="mt-1 text-[11px] text-slate-500">
+                            Vervallen — er is daarna iets anders gevraagd. Vraag het opnieuw als dit alsnog moet.
                         </p>
                     <!--
                         Two things per option on purpose. The button is the answer
@@ -98,7 +101,7 @@
                         record first. Offering only the link was what made people
                         read "open this" as "choose this".
                     -->
-                    <ul v-if="!choice.chosen" class="mt-2 space-y-1">
+                    <ul v-if="!choice.chosen && !choice.stale" class="mt-2 space-y-1">
                         <li v-for="(option, optionIndex) in choice.options" :key="optionIndex"
                             class="flex items-center gap-2">
                             <button type="button" :disabled="asking"
@@ -288,7 +291,7 @@ const TOOL_LABELS = {
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
 
-const asChoices = (choices) => (choices || []).map((choice) => ({ ...choice, chosen: '' }))
+const asChoices = (choices) => (choices || []).map((choice) => ({ ...choice, chosen: '', reference: '', sent: false, stale: false }))
 
 const asActions = (pending) => (pending || []).map((action) => ({
     ...action,
@@ -444,6 +447,13 @@ async function ask() {
         exchange.pendingActions.forEach((action) => {
             if (!action.done) action.stale = true
         })
+
+        // A picker left behind goes the same way. Clicked later it would answer
+        // a question the conversation has moved past — and one clicked but never
+        // sent must not keep saying "Gekozen" as though the model heard it.
+        exchange.choices.forEach((entry) => {
+            if (!entry.sent) entry.stale = true
+        })
     })
 
     const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
@@ -504,12 +514,25 @@ async function ask() {
  * Sent as a question, because that is what it is: clicking is the answer, and the
  * reference travels with it so there is nothing left to guess about which record
  * was meant.
+ *
+ * Sent only when it is the last unanswered choice of its turn. A turn can carry
+ * two pickers — which product, which werkbon — and firing on the first click
+ * shipped half an answer and killed the other question unasked. So the clicks
+ * collect, and the last one sends them together.
  */
 function choose(choice, option) {
-    if (asking.value || choice.chosen) return
+    if (asking.value || choice.chosen || choice.stale) return
 
     choice.chosen = option.label
-    question.value = 'Ik bedoel: ' + option.label + ' (' + option.reference + ')'
+    choice.reference = option.reference
+
+    const owner = exchanges.value.find((exchange) => exchange.choices.includes(choice))
+    const answered = (owner?.choices || []).filter((entry) => entry.chosen && !entry.stale)
+
+    if ((owner?.choices || []).some((entry) => !entry.chosen && !entry.stale)) return
+
+    answered.forEach((entry) => { entry.sent = true })
+    question.value = 'Ik bedoel: ' + answered.map((entry) => entry.chosen + ' (' + entry.reference + ')').join(' en ')
     ask()
 }
 
