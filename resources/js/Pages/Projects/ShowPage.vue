@@ -13,7 +13,7 @@
             <template #chapter-0>
             <TwoThirdsOneThird>
                 <template #main>
-                    <BoxComponent>
+                    <BoxComponent class="h-full">
                         <SectionHeader :icon="DocumentTextIcon" title="Details"
                             subtitle="Titel, looptijd en locatie van dit project." chapter="details" />
                         <StepsProgressBar :steps="statuses" v-model="form.status"
@@ -88,216 +88,225 @@
                             </button>
                         </div>
                     </BoxComponent>
-
-                    <BoxComponent class="mt-4">
-                        <SectionHeader :icon="CalendarIcon" title="Tijdlijn"
-                            subtitle="De looptijd van dit project met de mijlpalen erop uitgezet." chapter="timeline" border />
-                        <ProjectTimeline :project-id="project.id" :project-start-date="project.start_date"
-                            :project-end-date="project.end_date" :project-milestones="project.milestones" />
-                    </BoxComponent>
-
-                    <BoxComponent class="mt-4">
-                        <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
-                            subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
-                            <template #actions>
-                                <button @click="createServiceOrder"
-                                    class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
-                                    Werkbon aanmaken
-                                </button>
-                            </template>
-                        </SectionHeader>
-                        <div class="space-y-2" v-auto-animate>
-                            <div v-if="!project.service_orders?.length" key="empty"
-                                class="text-xs text-gray-500 dark:text-slate-500">
-                                Nog geen werkbonnen
-                            </div>
-                            <ServiceOrderRow v-for="so in project.service_orders" :key="so.id" :serviceorder="so" />
-                        </div>
-                    </BoxComponent>
-
-                    <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
-                        documentable-type="\App\Models\Project" class="mt-4" />
-
-                    <BoxComponent class="mt-4">
-                        <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
-                            imageable-type="\App\Models\Project" />
-                    </BoxComponent>
                 </template>
                 <template #sidebar>
-                    <BoxComponent v-if="project.customer" class="mt-4 sm:mt-0">
-                        <SectionHeader :icon="BuildingOfficeIcon" title="Klant"
-                            subtitle="De opdrachtgever van dit project." chapter="customer" border />
-                        <dl class="space-y-2 text-sm">
-                            <div>
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">Naam</dt>
-                                <dd class="text-gray-800 dark:text-slate-200 font-medium">
-                                    <Link :href="`/customers/${project.customer.id}`"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.name }}
-                                    </Link>
-                                </dd>
-                            </div>
-                            <div v-if="project.customer.contactname">
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">Contactpersoon</dt>
-                                <dd class="text-gray-800 dark:text-slate-200">{{ project.customer.contactname }}</dd>
-                            </div>
-                            <div v-if="project.customer.email">
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">E-mail</dt>
-                                <dd><a :href="'mailto:' + project.customer.email"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.email
-                                        }}</a></dd>
-                            </div>
-                            <div v-if="project.customer.phone">
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">Telefoon</dt>
-                                <dd><a :href="'tel:' + project.customer.phone"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.phone
-                                        }}</a></dd>
-                            </div>
-                            <div v-if="project.customer.mobile">
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">Mobiel</dt>
-                                <dd><a :href="'tel:' + project.customer.mobile"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.mobile
-                                        }}</a></dd>
-                            </div>
-                            <div v-if="project.customer.address">
-                                <dt class="text-[11px] text-gray-500 dark:text-slate-500">Adres</dt>
-                                <dd>
-                                    <a :href="mapsLinkFromCustomer(project.customer)" target="_blank"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">
-                                        {{ project.customer.address }}<br>
-                                        {{ project.customer.postal_code }} {{ project.customer.city }}
-                                    </a>
-                                </dd>
-                            </div>
-                        </dl>
-                    </BoxComponent>
+                    <div class="h-full flex flex-col">
+                        <BoxComponent v-if="project.customer" class="mt-4 sm:mt-0">
+                            <SectionHeader :icon="BuildingOfficeIcon" title="Klant"
+                                subtitle="De opdrachtgever van dit project." chapter="customer" border />
+                            <dl class="space-y-2 text-sm">
+                                <div>
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">Naam</dt>
+                                    <dd class="text-gray-800 dark:text-slate-200 font-medium">
+                                        <Link :href="`/customers/${project.customer.id}`"
+                                            class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.name }}
+                                        </Link>
+                                    </dd>
+                                </div>
+                                <div v-if="project.customer.contactname">
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">Contactpersoon</dt>
+                                    <dd class="text-gray-800 dark:text-slate-200">{{ project.customer.contactname }}</dd>
+                                </div>
+                                <div v-if="project.customer.email">
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">E-mail</dt>
+                                    <dd><a :href="'mailto:' + project.customer.email"
+                                            class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.email
+                                            }}</a></dd>
+                                </div>
+                                <div v-if="project.customer.phone">
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">Telefoon</dt>
+                                    <dd><a :href="'tel:' + project.customer.phone"
+                                            class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.phone
+                                            }}</a></dd>
+                                </div>
+                                <div v-if="project.customer.mobile">
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">Mobiel</dt>
+                                    <dd><a :href="'tel:' + project.customer.mobile"
+                                            class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ project.customer.mobile
+                                            }}</a></dd>
+                                </div>
+                                <div v-if="project.customer.address">
+                                    <dt class="text-[11px] text-gray-500 dark:text-slate-500">Adres</dt>
+                                    <dd>
+                                        <a :href="mapsLinkFromCustomer(project.customer)" target="_blank"
+                                            class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                            {{ project.customer.address }}<br>
+                                            {{ project.customer.postal_code }} {{ project.customer.city }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </BoxComponent>
 
-                    <BoxComponent :class="{ 'mt-4': project.customer }">
-                        <SectionHeader :icon="FlagIcon" title="Mijlpalen"
-                            subtitle="De ijkpunten waarlangs dit project vordert." chapter="milestones" border />
+                        <BoxComponent class="grow" :class="{ 'mt-4': project.customer }">
+                            <SectionHeader :icon="FlagIcon" title="Mijlpalen"
+                                subtitle="De ijkpunten waarlangs dit project vordert." chapter="milestones" border />
 
-                        <div v-if="!sortedMilestones.length" class="text-xs text-gray-500 dark:text-slate-500">
-                            Nog geen mijlpalen
-                        </div>
-                        <div v-else class="flow-root">
-                            <ul role="list" class="-mb-5" v-auto-animate>
-                                <li v-for="(ms, idx) in sortedMilestones" :key="ms.id">
-                                    <div class="relative pb-5">
-                                        <span v-if="idx !== sortedMilestones.length - 1"
-                                            class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200 dark:bg-slate-700/60"
-                                            aria-hidden="true" />
-                                        <div class="relative flex space-x-3">
-                                            <div>
-                                                <span v-if="!canUpdateMilestone"
-                                                    :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm']">
-                                                    <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
-                                                    <ClockIcon v-else class="size-4 text-white" />
-                                                </span>
-                                                <button v-else type="button"
-                                                    v-tooltip="ms.actual_date ? 'Markeer als niet afgerond' : 'Markeer als afgerond met vandaag als werkelijke datum'"
-                                                    @click="toggleMilestoneComplete(ms)"
-                                                    :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm cursor-pointer hover:brightness-110']">
-                                                    <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
-                                                    <ClockIcon v-else class="size-4 text-white" />
-                                                </button>
-                                            </div>
-                                            <div class="min-w-0 flex-1 pt-1">
-                                                <div class="flex items-start justify-between">
-                                                    <div>
-                                                        <p class="text-sm font-medium text-gray-800 dark:text-slate-200">{{
-                                                            ms.title }}</p>
-                                                        <p v-if="ms.assigned_user"
-                                                            class="mt-0.5 text-xs text-gray-500 dark:text-slate-500 flex items-center gap-1">
-                                                            <UserIcon class="size-3" />
-                                                            {{ ms.assigned_user.name }}
-                                                        </p>
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5 ml-2 shrink-0">
-                                                        <PencilSquareIcon v-if="canUpdateMilestone"
-                                                            class="size-4 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
-                                                            @click="toggleEditMilestone(ms)" />
-                                                        <TrashIcon v-if="canDeleteMilestone"
-                                                            class="size-4 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
-                                                            @click="deleteMilestone(ms.id)" />
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="flex flex-wrap gap-x-3 mt-1 text-[11px] text-gray-500 dark:text-slate-500">
-                                                    <span v-if="ms.projected_date" class="flex items-center gap-1">
-                                                        <CalendarIcon class="size-3" />Gepland: {{ nlDate(ms.projected_date) }}
+                            <div v-if="!sortedMilestones.length" class="text-xs text-gray-500 dark:text-slate-500">
+                                Nog geen mijlpalen
+                            </div>
+                            <div v-else class="flow-root">
+                                <ul role="list" class="-mb-5" v-auto-animate>
+                                    <li v-for="(ms, idx) in sortedMilestones" :key="ms.id">
+                                        <div class="relative pb-5">
+                                            <span v-if="idx !== sortedMilestones.length - 1"
+                                                class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200 dark:bg-slate-700/60"
+                                                aria-hidden="true" />
+                                            <div class="relative flex space-x-3">
+                                                <div>
+                                                    <span v-if="!canUpdateMilestone"
+                                                        :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm']">
+                                                        <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
+                                                        <ClockIcon v-else class="size-4 text-white" />
                                                     </span>
-                                                    <span v-if="ms.actual_date"
-                                                        class="text-green-600 dark:text-green-400 flex items-center gap-1">
-                                                        <CalendarIcon class="size-3" />Afgerond: {{ nlDate(ms.actual_date) }}
-                                                    </span>
+                                                    <button v-else type="button"
+                                                        v-tooltip="ms.actual_date ? 'Markeer als niet afgerond' : 'Markeer als afgerond met vandaag als werkelijke datum'"
+                                                        @click="toggleMilestoneComplete(ms)"
+                                                        :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm cursor-pointer hover:brightness-110']">
+                                                        <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
+                                                        <ClockIcon v-else class="size-4 text-white" />
+                                                    </button>
                                                 </div>
-                                                <div v-auto-animate>
-                                                    <div v-if="ms.description && editingMilestoneId !== ms.id" key="desc"
-                                                        class="mt-1.5">
-                                                        <div class="description-clamp"
-                                                            :class="{ 'expanded': expandedDescriptions[ms.id] }">
-                                                            <p class="text-xs text-gray-600 dark:text-slate-400">
-                                                                {{ ms.description }}
+                                                <div class="min-w-0 flex-1 pt-1">
+                                                    <div class="flex items-start justify-between">
+                                                        <div>
+                                                            <p class="text-sm font-medium text-gray-800 dark:text-slate-200">{{
+                                                                ms.title }}</p>
+                                                            <p v-if="ms.assigned_user"
+                                                                class="mt-0.5 text-xs text-gray-500 dark:text-slate-500 flex items-center gap-1">
+                                                                <UserIcon class="size-3" />
+                                                                {{ ms.assigned_user.name }}
                                                             </p>
                                                         </div>
-                                                        <button v-if="ms.description.length > 80"
-                                                            @click="expandedDescriptions[ms.id] = !expandedDescriptions[ms.id]"
-                                                            class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline mt-0.5">
-                                                            {{ expandedDescriptions[ms.id] ? 'Toon minder' : 'Lees meer' }}
-                                                        </button>
+                                                        <div class="flex items-center gap-1.5 ml-2 shrink-0">
+                                                            <PencilSquareIcon v-if="canUpdateMilestone"
+                                                                class="size-4 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
+                                                                @click="toggleEditMilestone(ms)" />
+                                                            <TrashIcon v-if="canDeleteMilestone"
+                                                                class="size-4 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
+                                                                @click="deleteMilestone(ms.id)" />
+                                                        </div>
                                                     </div>
-                                                    <div v-if="editingMilestoneId === ms.id" key="edit"
-                                                        class="mt-3 p-3 rounded-md bg-gray-50 dark:bg-slate-800 ring-1 ring-gray-200 dark:ring-slate-700 space-y-3">
-                                                        <div>
-                                                            <span
-                                                                class="text-xs font-bold text-gray-600 dark:text-slate-400">Titel</span>
-                                                            <EditableTextField v-model="editForms[ms.id].title"
-                                                                class="w-full" />
+                                                    <div
+                                                        class="flex flex-wrap gap-x-3 mt-1 text-[11px] text-gray-500 dark:text-slate-500">
+                                                        <span v-if="ms.projected_date" class="flex items-center gap-1">
+                                                            <CalendarIcon class="size-3" />Gepland: {{ nlDate(ms.projected_date) }}
+                                                        </span>
+                                                        <span v-if="ms.actual_date"
+                                                            class="text-green-600 dark:text-green-400 flex items-center gap-1">
+                                                            <CalendarIcon class="size-3" />Afgerond: {{ nlDate(ms.actual_date) }}
+                                                        </span>
+                                                    </div>
+                                                    <div v-auto-animate>
+                                                        <div v-if="ms.description && editingMilestoneId !== ms.id" key="desc"
+                                                            class="mt-1.5">
+                                                            <div class="description-clamp"
+                                                                :class="{ 'expanded': expandedDescriptions[ms.id] }">
+                                                                <p class="text-xs text-gray-600 dark:text-slate-400">
+                                                                    {{ ms.description }}
+                                                                </p>
+                                                            </div>
+                                                            <button v-if="ms.description.length > 80"
+                                                                @click="expandedDescriptions[ms.id] = !expandedDescriptions[ms.id]"
+                                                                class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline mt-0.5">
+                                                                {{ expandedDescriptions[ms.id] ? 'Toon minder' : 'Lees meer' }}
+                                                            </button>
                                                         </div>
-                                                        <div>
-                                                            <span
-                                                                class="text-xs font-bold text-gray-600 dark:text-slate-400">Omschrijving</span>
-                                                            <EditableTextField v-model="editForms[ms.id].description"
-                                                                type="textarea" class="w-full" />
-                                                        </div>
-                                                        <div>
-                                                            <span
-                                                                class="text-xs font-bold text-gray-600 dark:text-slate-400">Toegewezen
-                                                                gebruiker</span>
-                                                            <EditableTextField type="combobox"
-                                                                v-model="editForms[ms.id].assigned_user_id" :options="users"
-                                                                :error="milestoneForm.errors.assigned_user_id"
-                                                                @revert="milestoneForm.clearErrors('assigned_user_id')">
-                                                                <template #display>
-                                                                    <span v-if="ms.assigned_user">{{ ms.assigned_user.name
-                                                                        }}</span>
-                                                                    <span v-else class="text-gray-400">Selecteer
-                                                                        gebruiker</span>
-                                                                </template>
-                                                            </EditableTextField>
-                                                        </div>
-                                                        <div>
-                                                            <span
-                                                                class="text-xs font-bold text-gray-600 dark:text-slate-400">Geplande
-                                                                datum</span>
-                                                            <EditableTextField v-model="editForms[ms.id].projected_date"
-                                                                type="input" input-type="date" class="w-full" />
-                                                        </div>
-                                                        <div>
-                                                            <span
-                                                                class="text-xs font-bold text-gray-600 dark:text-slate-400">Werkelijke
-                                                                datum</span>
-                                                            <EditableTextField v-model="editForms[ms.id].actual_date"
-                                                                type="input" input-type="date" class="w-full" />
+                                                        <div v-if="editingMilestoneId === ms.id" key="edit"
+                                                            class="mt-3 p-3 rounded-md bg-gray-50 dark:bg-slate-800 ring-1 ring-gray-200 dark:ring-slate-700 space-y-3">
+                                                            <div>
+                                                                <span
+                                                                    class="text-xs font-bold text-gray-600 dark:text-slate-400">Titel</span>
+                                                                <EditableTextField v-model="editForms[ms.id].title"
+                                                                    class="w-full" />
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    class="text-xs font-bold text-gray-600 dark:text-slate-400">Omschrijving</span>
+                                                                <EditableTextField v-model="editForms[ms.id].description"
+                                                                    type="textarea" class="w-full" />
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    class="text-xs font-bold text-gray-600 dark:text-slate-400">Toegewezen
+                                                                    gebruiker</span>
+                                                                <EditableTextField type="combobox"
+                                                                    v-model="editForms[ms.id].assigned_user_id" :options="users"
+                                                                    :error="milestoneForm.errors.assigned_user_id"
+                                                                    @revert="milestoneForm.clearErrors('assigned_user_id')">
+                                                                    <template #display>
+                                                                        <span v-if="ms.assigned_user">{{ ms.assigned_user.name
+                                                                            }}</span>
+                                                                        <span v-else class="text-gray-400">Selecteer
+                                                                            gebruiker</span>
+                                                                    </template>
+                                                                </EditableTextField>
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    class="text-xs font-bold text-gray-600 dark:text-slate-400">Geplande
+                                                                    datum</span>
+                                                                <EditableTextField v-model="editForms[ms.id].projected_date"
+                                                                    type="input" input-type="date" class="w-full" />
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    class="text-xs font-bold text-gray-600 dark:text-slate-400">Werkelijke
+                                                                    datum</span>
+                                                                <EditableTextField v-model="editForms[ms.id].actual_date"
+                                                                    type="input" input-type="date" class="w-full" />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </BoxComponent>
+                                    </li>
+                                </ul>
+                            </div>
+                        </BoxComponent>
+                    </div>
+                </template>
+            </TwoThirdsOneThird>
+
+            <BoxComponent class="mt-4">
+                <SectionHeader :icon="CalendarIcon" title="Tijdlijn"
+                    subtitle="De looptijd van dit project met de mijlpalen erop uitgezet." chapter="timeline" border />
+                <ProjectTimeline :project-id="project.id" :project-start-date="project.start_date"
+                    :project-end-date="project.end_date" :project-milestones="project.milestones" />
+            </BoxComponent>
+
+            <TwoThirdsOneThird class="mt-4">
+                <template #main>
+                    <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
+                        documentable-type="\App\Models\Project" class="h-full" />
+                </template>
+                <template #sidebar>
+                    <div class="h-full flex flex-col">
+                        <BoxComponent class="mt-4 md:mt-0">
+                            <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
+                                imageable-type="\App\Models\Project" />
+                        </BoxComponent>
+
+                        <BoxComponent class="mt-4 grow">
+                            <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
+                                subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
+                                <template #actions>
+                                    <button @click="createServiceOrder"
+                                        class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
+                                        Werkbon aanmaken
+                                    </button>
+                                </template>
+                            </SectionHeader>
+                            <div class="space-y-2" v-auto-animate>
+                                <div v-if="!project.service_orders?.length" key="empty"
+                                    class="text-xs text-gray-500 dark:text-slate-500">
+                                    Nog geen werkbonnen
+                                </div>
+                                <ServiceOrderRow v-for="so in project.service_orders" :key="so.id" :serviceorder="so" />
+                            </div>
+                        </BoxComponent>
+                    </div>
                 </template>
             </TwoThirdsOneThird>
             </template>
