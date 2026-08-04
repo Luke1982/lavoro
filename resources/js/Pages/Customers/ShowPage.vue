@@ -507,13 +507,12 @@
                                         class="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-400">
                                         Werkbonnen
                                     </h4>
-                                    <div class="mt-2 space-y-2" v-auto-animate>
+                                    <div class="mt-2" v-auto-animate>
                                         <div v-if="!project.service_orders?.length"
                                             class="text-xs text-gray-500 dark:text-slate-400">
                                             Geen werkbonnen binnen dit project
                                         </div>
-                                        <ServiceOrderRow v-for="serviceorder in project.service_orders"
-                                            :key="serviceorder.id" :serviceorder="serviceorder" />
+                                        <ServiceOrderList v-else :serviceorders="project.service_orders" />
                                     </div>
                                 </div>
                             </div>
@@ -538,8 +537,7 @@
                                     class="text-sm text-gray-500 dark:text-slate-400">
                                     Geen losse werkbonnen
                                 </div>
-                                <ServiceOrderRow v-for="serviceorder in serviceOrdersWithoutProject"
-                                    :key="serviceorder.id" :serviceorder="serviceorder" />
+                                <ServiceOrderList v-else :serviceorders="serviceOrdersWithoutProject" />
                             </BoxComponent>
                         </div>
                     </template>
@@ -733,7 +731,7 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
-import ServiceOrderRow from '@/Components/ServiceOrderRow.vue';
+import ServiceOrderList from '@/Components/ServiceOrderList.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';

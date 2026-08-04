@@ -298,12 +298,12 @@
                                     </button>
                                 </template>
                             </SectionHeader>
-                            <div class="space-y-2" v-auto-animate>
+                            <div v-auto-animate>
                                 <div v-if="!project.service_orders?.length" key="empty"
                                     class="text-xs text-gray-500 dark:text-slate-500">
                                     Nog geen werkbonnen
                                 </div>
-                                <ServiceOrderRow v-for="so in project.service_orders" :key="so.id" :serviceorder="so" />
+                                <ServiceOrderList v-else :serviceorders="project.service_orders" />
                             </div>
                         </BoxComponent>
                     </div>
@@ -426,7 +426,7 @@ import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
 import SpreadsheetComponent from '@/Components/UI/SpreadsheetComponent.vue'
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
-import ServiceOrderRow from '@/Components/ServiceOrderRow.vue'
+import ServiceOrderList from '@/Components/ServiceOrderList.vue'
 import ProjectTimeline from '@/Components/Projects/ProjectTimeline.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'

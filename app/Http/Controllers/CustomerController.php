@@ -86,12 +86,19 @@ class CustomerController extends Controller
             'openTickets',
             'pendingTickets',
             'closedTickets',
-            'serviceOrders.serviceJobs.asset.tickets',
+            'serviceOrders.customer:id,name,city',
+            'serviceOrders.executingUsers:id,name',
+            'serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
             'serviceOrders.events.eventType',
             'serviceOrders.events.executingUsers:id,name',
             'serviceOrders.events.owners:id,name',
             'projects.projectManager',
-            'projects.serviceOrders.serviceJobs',
+            'projects.serviceOrders.customer:id,name,city',
+            'projects.serviceOrders.project:id,location',
+            'projects.serviceOrders.executingUsers:id,name',
+            'projects.serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
+            'projects.serviceOrders.events.executingUsers:id,name',
+            'projects.serviceOrders.events.owners:id,name',
             'customFields',
             'contacts',
             'maintenanceContracts',
@@ -101,7 +108,8 @@ class CustomerController extends Controller
         $user = Auth::user();
         $has_all = $user->hasPermission('event.view_all');
         if (!$has_all) {
-            foreach ($customer->serviceOrders as $order) {
+            $orders = $customer->serviceOrders->concat($customer->projects->flatMap->serviceOrders);
+            foreach ($orders as $order) {
                 $order->setRelation('events', $order->events->filter(function ($e) use ($user) {
                     $executing_ids = $e->executingUsers->pluck('id')->all();
                     $owner_ids = $e->owners->pluck('id')->all();

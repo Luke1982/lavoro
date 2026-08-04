@@ -65,7 +65,7 @@ Meestal hoeft dat commando niet. Ziet het dashboard adressen die het niet kan pl
 
 Een klant heeft adresgegevens (bezoek- en postadres), meerdere e-mailadressen (algemeen, factuur, offerte), telefoonnummers, KvK-nummer en optioneel IBAN en btw-nummer (die laatste zijn afgeschermd achter een apart recht voor gevoelige gegevens). Een klant kan een **facturatieklant** hebben: dan gaan facturen naar die andere klant.
 
-Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbonnen & Projecten en Afspraken. Vanaf de klant maak je direct een nieuw contact, onderhoudscontract of nieuwe machine aan.
+Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbonnen & Projecten en Afspraken. Vanaf de klant maak je direct een nieuw contact, onderhoudscontract of nieuwe machine aan. Onder Werkbonnen & Projecten staan de werkbonnen als kaartjes met nummer, klant en locatie, geplande afspraken, fase, monteurs en taakvoortgang (zie het hoofdstuk Projecten voor de details van die weergave).
 
 - **Locaties** zijn de vestigingen of adressen van een klant. Machines, werkbonnen en afspraken kunnen aan een locatie hangen.
 - **Contactpersonen** horen bij een klant en kunnen bij meerdere klanten tegelijk horen.
@@ -210,6 +210,8 @@ De catalogus beschrijft wat het bedrijf levert en onderhoudt:
 Een project bundelt werk voor een klant dat groter is dan één werkbon. Het heeft een projectleider, een status (Niet gestart, Gestart, Afgerond, Geannuleerd), een looptijd en een locatie. Werkbonnen kunnen aan een project hangen; heeft de werkbon zelf geen locatie, dan geldt die van het project.
 
 Op de projectpagina staan de details, een **tijdlijn** (mijlpalen, werkbonnen met hun fases, afspraken, taken en storingen in de tijd), de werkbonnen, de klant en de **mijlpalen** — elk met een geplande en een werkelijke datum en een verantwoordelijke. Projecten verschijnen ook als balk boven in de planner.
+
+De werkbonnen staan er als kaartjes: nummer en aanmaakdatum, klant met de locatie eronder, de geplande afspraken (de eerste twee; een +teller klapt de rest uit als je eroverheen beweegt), de fase (met bijvoorbeeld de afsluitdatum of de werkelijke starttijd eronder), de monteurs en hoeveel taken er af zijn. Het kleurbalkje links volgt de fase. Op een smal scherm klapt de rij samen tot een compact kaartje met dezelfde informatie. Dezelfde weergave wordt gebruikt op de klantpagina.
 
 Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met financiële notities (met vastgelegd wie ze het laatst bijwerkte).
 
