@@ -76,7 +76,7 @@ class InvoicedServiceOrderIsClosedTest extends TestCase
         $this->assertEquals($closed_on, $order->fresh()->closed_on);
     }
 
-    public function test_filtering_on_the_closed_stage_returns_invoiced_orders_too(): void
+    public function test_filtering_on_a_stage_returns_that_stage_alone(): void
     {
         $closed_order = $this->order_in_stage($this->closed_stage);
         $invoiced_order = $this->order_in_stage($this->invoiced_stage);
@@ -89,19 +89,9 @@ class InvoicedServiceOrderIsClosedTest extends TestCase
         $ids = collect($props['serviceOrders']['data'])->pluck('id');
 
         $this->assertTrue($ids->contains($closed_order->id));
-        $this->assertTrue($ids->contains($invoiced_order->id));
+        $this->assertFalse($ids->contains($invoiced_order->id));
         $this->assertFalse($ids->contains($open_order->id));
-    }
-
-    public function test_the_chosen_filter_travels_back_without_the_invoiced_stage(): void
-    {
-        $response = $this->actingAs($this->admin_user())
-            ->get('/serviceorders?onlyStage=' . $this->closed_stage->id);
-
-        $this->assertSame(
-            [$this->closed_stage->id],
-            $response->viewData('page')['props']['onlyStage']
-        );
+        $this->assertSame([$this->closed_stage->id], $props['onlyStage']);
     }
 
     public function test_the_invoiced_flag_cannot_move_before_the_closed_stage(): void

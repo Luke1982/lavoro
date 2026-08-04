@@ -107,20 +107,11 @@ class ServiceOrderController extends Controller
         }
 
         $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');
-        $invoiced_stage_id = (int) ServiceOrderStage::where('is_invoiced_state', true)->value('id');
         $only_closed_stage = $only_stages === [$closed_stage_id];
 
-        /**
-         * Een gefactureerde bon is ook gesloten, dus wie op gesloten filtert krijgt hem
-         * erbij. De keuze zelf blijft ongemoeid: die reist terug naar de filterchips.
-         */
-        $filter_stages = $only_stages;
-        if ($invoiced_stage_id && in_array($closed_stage_id, $only_stages, true)) {
-            $filter_stages[] = $invoiced_stage_id;
-        }
-
-        if (count($filter_stages)) {
-            $query->whereIn('service_order_stage_id', $filter_stages);
+        /** Een fase kiezen levert die ene fase op, ook al geldt de gefactureerde ook als gesloten. */
+        if (count($only_stages)) {
+            $query->whereIn('service_order_stage_id', $only_stages);
         }
 
         if ($only_needs_closing) {
