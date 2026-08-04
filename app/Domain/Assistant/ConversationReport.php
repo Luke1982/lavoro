@@ -81,19 +81,24 @@ class ConversationReport
             $lines[] = '';
 
             foreach ($turn->tools ?? [] as $call) {
-                $lines[] = '### Tool `' . ($call['name'] ?? '?') . '`' . (($call['failed'] ?? false) ? ' — mislukt' : '');
+                /**
+                 * The turn stores only the tool's name — a bare string. The first
+                 * version of this expected the full call and rendered "Tool ?"
+                 * with empty arguments for every real conversation, while its own
+                 * tests passed on fixtures shaped like nothing the application
+                 * ever writes. The arguments live in the audit rows, so that is
+                 * where they are read from, paired with their own result.
+                 */
+                $named = is_array($call) ? (string) ($call['name'] ?? '?') : (string) $call;
+
+                /** Taken in order and used once, so repeats keep their own answers. */
+                $answered = empty($results[$named]) ? null : array_shift($results[$named]);
+
+                $lines[] = '### Tool `' . $named . '`';
                 $lines[] = '';
                 $lines[] = '```json';
-                $lines[] = json_encode($call['arguments'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $lines[] = json_encode($answered['arguments'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 $lines[] = '```';
-
-                /**
-                 * Taken in order and used once. Keyed only by name, a tool called
-                 * five times showed the same result against all five, which is a
-                 * diagnostic that quietly lies — worse than one that says nothing.
-                 */
-                $named = $call['name'] ?? '';
-                $answered = empty($results[$named]) ? null : array_shift($results[$named]);
 
                 if ($answered !== null) {
                     $lines[] = '';
@@ -149,7 +154,7 @@ class ConversationReport
      * name a result belongs to rather than pretending to know the call.
      *
      * @param  Collection<int, AssistantQuestion>  $turns
-     * @return array<string, array<int, array{outcome: string, result: ?string}>>
+     * @return array<string, array<int, array{arguments: mixed, outcome: string, result: ?string}>>
      */
     private function resultsAround(Collection $turns, User $user): array
     {
@@ -158,9 +163,10 @@ class ConversationReport
             ->where('created_at', '>=', $turns->first()->created_at)
             ->where('created_at', '<=', $turns->last()->created_at->addMinutes(5))
             ->orderBy('id')
-            ->get(['tool', 'outcome', 'result'])
+            ->get(['tool', 'arguments', 'outcome', 'result'])
             ->groupBy('tool')
             ->map(fn (Collection $calls) => $calls->map(fn (AssistantToolCall $call) => [
+                'arguments' => $call->arguments,
                 'outcome' => $call->outcome,
                 'result' => $call->result,
             ])->all())

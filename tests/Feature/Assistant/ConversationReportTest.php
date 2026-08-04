@@ -2,9 +2,16 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Assistant\Contracts\ModelReply;
+use App\Domain\Assistant\Contracts\ModelToolCall;
+use App\Domain\Assistant\Contracts\StopReason;
+use App\Domain\Assistant\Contracts\TalksToModel;
+use App\Domain\Assistant\Contracts\TokenUsage;
+use App\Domain\Assistant\ModelPicker;
 use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
 use App\Models\AssistantToolCall;
+use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -27,13 +34,18 @@ class ConversationReportTest extends TestCase
 
     private function turn(int $user_id, array $attributes = []): AssistantQuestion
     {
-        /** Merged, not unioned: array union keeps the left-hand key and drops the override. */
+        /**
+         * Merged, not unioned: array union keeps the left-hand key and drops the
+         * override. And tools is a list of bare names, because that is what the
+         * application writes — the first fixtures here stored full call arrays,
+         * so the tests passed while every real report rendered "Tool ?".
+         */
         return AssistantQuestion::create(array_merge([
             'user_id' => $user_id,
             'conversation_id' => self::THREAD,
             'question' => 'Welke klanten zijn er in Meteren?',
             'answer' => 'Er zijn er 25.',
-            'tools' => [['name' => 'find_customer', 'arguments' => ['city' => 'Meteren'], 'failed' => false]],
+            'tools' => ['find_customer'],
         ], $attributes));
     }
 
@@ -76,12 +88,7 @@ class ConversationReportTest extends TestCase
 
         $user = $this->userWith('assistant.use');
 
-        $this->turn($user->id, [
-            'tools' => [
-                ['name' => 'find_customer', 'arguments' => ['city' => 'Meteren'], 'failed' => false],
-                ['name' => 'find_customer', 'arguments' => ['query' => 'label'], 'failed' => false],
-            ],
-        ]);
+        $this->turn($user->id, ['tools' => ['find_customer', 'find_customer']]);
 
         foreach (['EERSTE ANTWOORD', 'TWEEDE ANTWOORD'] as $said) {
             AssistantToolCall::create([
@@ -293,5 +300,72 @@ class ConversationReportTest extends TestCase
         ])->assertStatus(422);
 
         $this->assertEmpty(Storage::disk('local')->allFiles(), 'the report was written before validation');
+    }
+
+    /**
+     * Through the real ask endpoint, because the fixture-only tests proved
+     * nothing: they stored tool calls in a shape the application never writes,
+     * passed, and every real report said "Tool ?" with empty arguments.
+     */
+    public function test_a_report_of_a_real_conversation_carries_the_tools(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+
+        $this->app->bind(
+            ModelPicker::class,
+            fn () => ModelPicker::fixed(new ReportSpyModel)
+        );
+
+        $user = $this->userWithPermissions('assistant.use', 'customer.read');
+        Customer::factory()->create(['name' => 'Majorlabel', 'city' => 'Meteren']);
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'Zoek de klant met label in de naam',
+            'conversation' => self::THREAD,
+        ])->assertOk();
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+        $written = Storage::disk('local')->get($response->json('path'));
+
+        $this->assertStringContainsString('### Tool `find_customer`', $written, 'the tool lost its name');
+        $this->assertStringContainsString('"query": "label"', $written, 'the arguments were left out');
+        $this->assertStringContainsString('Kwam terug (ok)', $written, 'what the tool returned was left out');
+        $this->assertStringContainsString('Majorlabel', $written);
+    }
+}
+
+/** Calls one tool, then answers — the smallest conversation that uses a tool. */
+class ReportSpyModel implements TalksToModel
+{
+    private bool $asked = false;
+
+    public function readsDocuments(): bool
+    {
+        return false;
+    }
+
+    public function send(array $turns, array $tools, string $system): ModelReply
+    {
+        $reply = fn (array $texts, array $calls, $stop) => new ModelReply(
+            texts: $texts,
+            tool_calls: $calls,
+            usage: new TokenUsage(1, 1, 0, 0),
+            stop_reason: $stop,
+            model: 'report-fake',
+            raw: null,
+        );
+
+        if (!$this->asked) {
+            $this->asked = true;
+
+            return $reply([], [new ModelToolCall(
+                id: 'toolu_report_fake',
+                name: 'find_customer',
+                arguments: ['query' => 'label'],
+            )], StopReason::wants_tools);
+        }
+
+        return $reply(['Gevonden: Majorlabel.'], [], StopReason::finished);
     }
 }
