@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Assistant\AssistantLoop;
+use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\ConversationReport;
+use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
@@ -67,6 +69,19 @@ class AssistantController extends Controller
         $choices = [];
         $seen = [];
 
+        $attachments = $this->imagesAsAttachments($request->validated('images') ?? []);
+
+        /**
+         * Refused up front rather than silently dropped. A photo handed to a
+         * provider that cannot look at it gets answered in the same confident
+         * voice as one that was seen, which is fabrication with extra steps.
+         */
+        if ($attachments !== [] && !app(ModelPicker::class)->canSee()) {
+            return response()->json([
+                'message' => 'Er is geen model ingesteld dat foto\'s kan bekijken.',
+            ], 422);
+        }
+
         try {
             $answer = $loop->ask(
                 user: $user,
@@ -86,6 +101,7 @@ class AssistantController extends Controller
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
+                attachments: $attachments,
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -454,6 +470,37 @@ class AssistantController extends Controller
         ]);
     }
 
+    /**
+     * Data-URLs into attachments, dropping anything that does not decode.
+     *
+     * The shape is already validated; this is the base64 itself. A corrupt image
+     * costs its own slot, never the question.
+     *
+     * @param  array<int, string>  $images
+     * @return array<int, Attachment>
+     */
+    private function imagesAsAttachments(array $images): array
+    {
+        $attachments = [];
+
+        foreach ($images as $index => $image) {
+            [$header, $base64] = explode(',', $image, 2) + [1 => ''];
+            $media_type = str_replace(['data:', ';base64'], '', $header);
+
+            if (base64_decode($base64, true) === false) {
+                continue;
+            }
+
+            $attachments[] = new Attachment(
+                name: 'foto-' . ($index + 1),
+                media_type: $media_type,
+                base64: $base64,
+            );
+        }
+
+        return $attachments;
+    }
+
     private function mailReport(string $markdown, string $name, User $user, ?string $reason = null): bool
     {
         $to = config('assistant.reports_mail_to');
@@ -606,6 +653,14 @@ class AssistantController extends Controller
             'zes dingen opzoeken om te raden wat bedoeld wordt — vraag het, met ask_which_one, en',
             'zoek daarna één keer het goede op. Datum, duur, monteur en product zijn ook geen dingen',
             'om aan te nemen: die vraag je.',
+            '',
+            'Krijg je foto\'s bij een vraag — meestal een typeplaatje — lees dan merk, type, model',
+            'en serienummer letterlijk af. Zoek eerst met find_products of het product al bestaat',
+            '(op merk); pas als het er echt niet staat maak je het aan met create_product, en',
+            'alleen met wat je van het plaatje of uit meegegeven documentatie hebt — verzin geen',
+            'kenmerken en gok niet wat lettercodes betekenen. Hoort de machine bij een klant,',
+            'registreer hem daarna met create_asset en het serienummer van het plaatje. Is iets',
+            'op de foto onleesbaar, zeg dan welk deel, in plaats van het in te vullen.',
             '',
             'Stel één vraag tegelijk. Moet je meerdere dingen weten, vraag dan eerst het meest',
             'bepalende en bewaar de rest voor de volgende beurt — drie vragen in één bericht',

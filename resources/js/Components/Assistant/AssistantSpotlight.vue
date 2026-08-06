@@ -55,6 +55,11 @@
                 <div v-for="(exchange, index) in exchanges" :key="index" class="px-4 py-3 space-y-2">
                     <p v-if="exchange.question" class="text-sm font-medium text-slate-900">{{ exchange.question }}</p>
 
+                    <div v-if="exchange.images?.length" class="flex gap-2">
+                        <img v-for="(image, imageIndex) in exchange.images" :key="imageIndex" :src="image" alt=""
+                            class="h-14 w-14 rounded-md object-cover ring-1 ring-slate-200">
+                    </div>
+
                     <!--
                         The tool calls are shown as they happen. A question that
                         takes ten seconds with no sign of life reads as broken, and
@@ -162,6 +167,21 @@
             </div>
 
             <!--
+                Photos riding with the next question. Clicking a thumbnail removes
+                it — selecting toggles here, there are no separate crosses.
+            -->
+            <div v-if="pending_images.length && !showing_history"
+                class="flex items-center gap-2 border-t border-slate-100 px-4 py-2">
+                <button v-for="(image, imageIndex) in pending_images" :key="imageIndex" type="button"
+                    class="h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-slate-200 hover:ring-red-400"
+                    title="Klik om te verwijderen"
+                    @click="pending_images.splice(imageIndex, 1)">
+                    <img :src="image" alt="" class="h-full w-full object-cover">
+                </button>
+                <p class="text-[11px] text-slate-400">Deze foto's gaan mee met je volgende vraag.</p>
+            </div>
+
+            <!--
                 Why it is being reported, asked before anything is sent. The
                 transcript says what happened; only the melder can say what
                 should have happened instead — which is the investigator's brief.
@@ -206,7 +226,13 @@
                 class="ml-3 hover:text-slate-600" :disabled="reporting" @click="startReport">
                 {{ reported || (asking_reason ? 'Annuleren' : 'Gesprek melden') }}
             </button>
-            <span v-else>De assistent ziet alleen wat jij mag zien.</span>
+            <button v-if="!showing_history" type="button" class="ml-3 hover:text-slate-600"
+                @click="imageInputRef?.click()">
+                Foto toevoegen
+            </button>
+            <input ref="imageInputRef" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple class="hidden" @change="addImages">
+            <span v-if="showing_history">De assistent ziet alleen wat jij mag zien.</span>
         </template>
 
         <template #footer-right>
@@ -236,6 +262,23 @@ const shortcutLabel = assistantShortcutLabel()
 const reporting = ref(false)
 const reported = ref('')
 const asking_reason = ref(false)
+const pending_images = ref([])
+const imageInputRef = ref(null)
+
+/** Four photos of ~3 MB is a typeplaatje from every angle; more is a mistake. */
+const MAX_IMAGES = 4
+
+function addImages(event) {
+    const files = Array.from(event.target.files || []).slice(0, MAX_IMAGES - pending_images.value.length)
+
+    files.forEach((file) => {
+        const reader = new FileReader()
+        reader.onload = () => pending_images.value.push(reader.result)
+        reader.readAsDataURL(file)
+    })
+
+    event.target.value = ''
+}
 const report_reason = ref('')
 const reasonRef = ref(null)
 
@@ -511,7 +554,10 @@ async function ask() {
         })
     })
 
-    const exchange = { question: asked, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
+    const images = pending_images.value.slice()
+    pending_images.value = []
+
+    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -531,7 +577,13 @@ async function ask() {
         // what a path means so a made-up one cannot put words into the prompt.
         const { data } = await axios.post(
             '/assistant/ask',
-            { question: asked, page: window.location.pathname, history, conversation: conversation.value },
+            {
+                question: asked,
+                page: window.location.pathname,
+                history,
+                conversation: conversation.value,
+                images: images.length ? images : undefined,
+            },
             { timeout: ASK_TIMEOUT_MS },
         )
         exchange.answer = data.answer
@@ -553,8 +605,9 @@ async function ask() {
                 || 'Er ging iets mis bij het stellen van de vraag.'
         }
         // A question that failed is not lost work, so it goes back in the box
-        // ready to be sent again or reworded.
+        // ready to be sent again or reworded — photos included.
         question.value = asked
+        pending_images.value = images
     } finally {
         exchange.pending = false
         asking.value = false

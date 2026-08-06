@@ -59,6 +59,7 @@ class AssistantLoop
         string $context = '',
         ?int $difficulty = null,
         array $history = [],
+        array $attachments = [],
     ): AssistantAnswer {
         $tools = $this->registry->definitionsFor($user);
 
@@ -66,7 +67,10 @@ class AssistantLoop
          * The cheapest model equal to the hardest tool this person can reach
          * for, unless the caller insists on one.
          */
-        $model = $this->models->forDifficulty($difficulty ?? $this->registry->requiredDifficultyFor($user));
+        $model = $this->models->forDifficulty(
+            $difficulty ?? $this->registry->requiredDifficultyFor($user),
+            needs_vision: $attachments !== [],
+        );
         /**
          * Earlier exchanges go back as words rather than as the replies they
          * came from: what was actually said is all a follow-up needs, and the
@@ -83,7 +87,7 @@ class AssistantLoop
             $turns[] = new AssistantSaidTurn($exchange['answer']);
         }
 
-        $turns[] = new UserTurn($context === '' ? [$question] : [$context, $question]);
+        $turns[] = new UserTurn($context === '' ? [$question] : [$context, $question], $attachments);
         $rounds = 0;
         $spoken = [];
         $spent = 0;

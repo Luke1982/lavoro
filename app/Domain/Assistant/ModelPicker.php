@@ -41,13 +41,13 @@ class ModelPicker
         return new self(fn () => $model);
     }
 
-    public function forDifficulty(int $difficulty): TalksToModel
+    public function forDifficulty(int $difficulty, bool $needs_vision = false): TalksToModel
     {
         if ($this->using !== null) {
             return ($this->using)($difficulty);
         }
 
-        $provider = $this->providerFor($difficulty);
+        $provider = $this->providerFor($difficulty, $needs_vision);
 
         return $this->resolved[$provider] ??= $this->build($provider);
     }
@@ -61,7 +61,19 @@ class ModelPicker
      * expensive answer than none, and better still a line in the log saying the
      * ratings need revisiting.
      */
-    public function providerFor(int $difficulty): string
+    /** Whether any usable provider can actually look at a photo. */
+    public function canSee(): bool
+    {
+        foreach (config('assistant.providers', []) as $settings) {
+            if (filled($settings['api_key'] ?? null) && ($settings['sees_images'] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function providerFor(int $difficulty, bool $needs_vision = false): string
     {
         $usable = [];
 
@@ -72,6 +84,15 @@ class ModelPicker
 
             /** Entries kept for a particular job are never picked by capability. */
             if ($settings['reserved'] ?? false) {
+                continue;
+            }
+
+            /**
+             * A photo sent to a provider whose adapter drops attachments is worse
+             * than a refusal: the model answers about an image it never saw, in
+             * the same confident voice as about one it did.
+             */
+            if ($needs_vision && !($settings['sees_images'] ?? false)) {
                 continue;
             }
 

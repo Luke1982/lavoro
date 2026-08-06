@@ -10,6 +10,11 @@ class AssetPolicy
     /**
      * Determine if the user can view the asset.
      */
+    public function create(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('asset.create');
+    }
+
     public function view(User $user, Asset $asset): bool
     {
         if ($user->hasPermission('asset.read')) {

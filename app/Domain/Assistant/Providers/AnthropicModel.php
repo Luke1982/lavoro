@@ -133,6 +133,24 @@ class AnthropicModel implements TalksToModel
             );
 
             foreach ($turn->attachments as $attachment) {
+                /**
+                 * A photo is an image block, not a document: this supplier reads
+                 * documents as text and images as pictures, and a typeplaatje
+                 * sent as a document comes back as garbage OCR instead of sight.
+                 */
+                if (str_starts_with($attachment->media_type, 'image/')) {
+                    $content[] = [
+                        'type' => 'image',
+                        'source' => [
+                            'type' => 'base64',
+                            'media_type' => $attachment->media_type,
+                            'data' => $attachment->base64,
+                        ],
+                    ];
+
+                    continue;
+                }
+
                 $content[] = [
                     'type' => 'document',
                     'source' => [

@@ -27,6 +27,18 @@ class AssistantAskRequest extends FormRequest
             'history' => ['nullable', 'array', 'max:6'],
             'history.*.question' => ['required', 'string', 'max:2000'],
             'history.*.answer' => ['required', 'string', 'max:8000'],
+            /**
+             * Foto's, als data-URLs. Het aantal en de maat zitten in config met
+             * voorzichtige standaardwaarden — de limieten van de dev-machine
+             * zeggen niets over de server, dus hier wordt niets aangenomen.
+             */
+            'images' => ['nullable', 'array', 'max:' . (int) config('assistant.max_images', 4)],
+            'images.*' => [
+                'required',
+                'string',
+                'regex:#^data:image/(jpeg|png|webp|gif);base64,#',
+                'max:' . ((int) config('assistant.max_image_kb', 4000)) * 1024,
+            ],
         ];
     }
 
@@ -35,6 +47,10 @@ class AssistantAskRequest extends FormRequest
         return [
             'question.required' => 'Stel een vraag.',
             'question.max' => 'Die vraag is te lang.',
+            'images.max' => 'Maximaal ' . (int) config('assistant.max_images', 4) . ' foto\'s per vraag.',
+            'images.*.regex' => 'Alleen foto\'s (JPEG, PNG, WebP of GIF) kunnen mee met een vraag.',
+            'images.*.max' => 'Die foto is te groot. Maak hem kleiner dan '
+                . round((int) config('assistant.max_image_kb', 4000) / 1024, 1) . ' MB.',
         ];
     }
 }

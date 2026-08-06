@@ -158,7 +158,7 @@ class WriteToolGateTest extends TestCase
             $this->assertStringContainsString('nog niets gewijzigd', $result->content['note'] ?? '');
         }
 
-        $this->assertSame(4, $proposed, 'a write tool was added or lost without this test noticing');
+        $this->assertSame(6, $proposed, 'a write tool was added or lost without this test noticing');
     }
 
     /**
@@ -187,6 +187,16 @@ class WriteToolGateTest extends TestCase
                 'description' => 'Hij start niet meer op.',
             ],
             'create_service_order' => ['customer_id' => $customer->id],
+            'create_product' => [
+                'brand' => 'Mitsubishi Heavy',
+                'product_type' => 'Airco binnendeel',
+                'model' => 'SRK 25 ZS-WF',
+            ],
+            'create_asset' => [
+                'customer_id' => $customer->id,
+                'product_id' => Product::factory()->create()->id,
+                'serial_number' => 'SN-' . $customer->id . '-0001',
+            ],
             'add_service_order_task' => [
                 'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
                 'description' => 'Filter vervangen',

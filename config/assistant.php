@@ -16,7 +16,9 @@ use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
 use App\Domain\Tools\Write\AddServiceOrderTaskTool;
+use App\Domain\Tools\Write\CreateAssetTool;
 use App\Domain\Tools\Write\CreateEventTool;
+use App\Domain\Tools\Write\CreateProductTool;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
 
@@ -54,6 +56,8 @@ return [
         CreateEventTool::class,
         CreateTicketTool::class,
         CreateServiceOrderTool::class,
+        CreateProductTool::class,
+        CreateAssetTool::class,
         AddServiceOrderTaskTool::class,
         ReadManualTool::class,
     ],
@@ -112,6 +116,8 @@ return [
         'anthropic' => [
             'driver' => AnthropicModel::class,
             'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+            /** De enige adapter die bijlagen echt doorgeeft; foto's dwingen deze aanbieder af. */
+            'sees_images' => true,
             'api_key' => env('ANTHROPIC_API_KEY'),
             'capability' => 9,
         ],
@@ -310,6 +316,15 @@ return [
     */
 
     'reports_mail_to' => env('ASSISTANT_REPORTS_MAIL', 'info@majorlabel.nl'),
+
+    /*
+    | Foto's bij een vraag: hoeveel en hoe groot. Basis64 groeit een derde boven
+    | de bestandsgrootte, dus 4000 kB hier is ruwweg een foto van 3 MB.
+    */
+
+    'max_images' => env('ASSISTANT_MAX_IMAGES', 4),
+
+    'max_image_kb' => env('ASSISTANT_MAX_IMAGE_KB', 4000),
 
     'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),
 
