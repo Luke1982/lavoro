@@ -25,6 +25,15 @@ final class ModelReply
         public readonly string $model,
         public readonly mixed $raw,
         /**
+         * What the supplier's own web search read on the way to this answer, as
+         * "title (url)" lines. Empty on every reply that never searched.
+         *
+         * Kept so the invented-record check can tell an internet-sourced model
+         * number from a fabricated one: both are absent from the tool results,
+         * and only one of them deserves a warning.
+         */
+        public readonly array $searched = [],
+        /**
          * The model that was asked for, when it differs from the one that
          * answered.
          *

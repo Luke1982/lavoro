@@ -101,4 +101,28 @@ describe('SpotlightShell', () => {
 
         expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['Wie kan er dinsdag?'])
     })
+
+    /**
+     * Files dropped or pasted on the panel go to whoever is showing it — but
+     * only when that caller says it takes files. The navigator has no use for
+     * them, and a drop it does not expect should stay a browser default.
+     */
+    it('hands dropped files over when the caller takes them', async () => {
+        const wrapper = shell({ acceptsFiles: true })
+        const file = new File(['x'], 'plaatje.jpg', { type: 'image/jpeg' })
+
+        await wrapper.find('.mx-auto').trigger('drop', { dataTransfer: { files: [file] } })
+
+        expect(wrapper.emitted('files')).toHaveLength(1)
+        expect(wrapper.emitted('files')[0][0][0].name).toBe('plaatje.jpg')
+    })
+
+    it('ignores drops when the caller never asked for files', async () => {
+        const wrapper = shell()
+        const file = new File(['x'], 'plaatje.jpg', { type: 'image/jpeg' })
+
+        await wrapper.find('.mx-auto').trigger('drop', { dataTransfer: { files: [file] } })
+
+        expect(wrapper.emitted('files')).toBeUndefined()
+    })
 })

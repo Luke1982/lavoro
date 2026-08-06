@@ -11,6 +11,9 @@ use Anthropic\Messages\TextBlockParam;
 use Anthropic\Messages\Tool;
 use Anthropic\Messages\ToolResultBlockParam;
 use Anthropic\Messages\ToolUseBlock;
+use Anthropic\Messages\WebSearchResultBlock;
+use Anthropic\Messages\WebSearchTool20250305;
+use Anthropic\Messages\WebSearchToolResultBlock;
 use App\Domain\Assistant\Contracts\AssistantSaidTurn;
 use App\Domain\Assistant\Contracts\AssistantTurn;
 use App\Domain\Assistant\Contracts\ModelFailure;
@@ -55,7 +58,7 @@ class AnthropicModel implements TalksToModel
                 messages: array_map(fn ($turn) => $this->toMessage($turn), $turns),
                 model: $this->setting('model'),
                 system: [$this->cacheableSystem($system)],
-                tools: array_map(fn (array $tool) => $this->toTool($tool), $tools),
+                tools: $this->withServerTools(array_map(fn (array $tool) => $this->toTool($tool), $tools)),
             );
         } catch (APIConnectionException $e) {
             throw new ModelUnavailable(ModelFailure::unreachable, $e->getMessage());
@@ -98,6 +101,27 @@ class AnthropicModel implements TalksToModel
     /**
      * @param  array{name: string, description: string, input_schema: array<string, mixed>, strict: bool}  $tool
      */
+    /**
+     * The supplier's own tools, added when this entry is allowed them.
+     *
+     * Web search runs on their side: the model searches mid-answer, reads what
+     * it finds and cites it, and this application writes no search code. The cap
+     * keeps one question at a handful of searches rather than a spree.
+     *
+     * @param  array<int, mixed>  $tools
+     * @return array<int, mixed>
+     */
+    private function withServerTools(array $tools): array
+    {
+        if ($this->setting('web_search')) {
+            $tools[] = WebSearchTool20250305::with(
+                maxUses: (int) ($this->setting('web_search_max_uses') ?: 3),
+            );
+        }
+
+        return $tools;
+    }
+
     private function toTool(array $tool): Tool
     {
         return Tool::with(
@@ -195,6 +219,8 @@ class AnthropicModel implements TalksToModel
         $texts = [];
         $calls = [];
 
+        $searched = [];
+
         foreach ($response->content as $block) {
             if ($block instanceof TextBlock && filled(trim($block->text))) {
                 $texts[] = $block->text;
@@ -202,6 +228,20 @@ class AnthropicModel implements TalksToModel
 
             if ($block instanceof ToolUseBlock) {
                 $calls[] = new ModelToolCall(id: $block->id, name: $block->name, arguments: $block->input);
+            }
+
+            /**
+             * What the supplier's web search read, kept as "title (url)" lines.
+             * Without this, a model number the model just read on a spec sheet is
+             * indistinguishable from one it made up, and the invented-record
+             * check would cry wolf over an answer that did its homework.
+             */
+            if ($block instanceof WebSearchToolResultBlock && is_array($block->content)) {
+                foreach ($block->content as $found) {
+                    if ($found instanceof WebSearchResultBlock) {
+                        $searched[] = $found->title . ' (' . $found->url . ')';
+                    }
+                }
             }
         }
 
@@ -220,6 +260,7 @@ class AnthropicModel implements TalksToModel
             /** Kept whole: thinking blocks are signed and must go back untouched. */
             requested_model: (string) $this->setting('model'),
             raw: $response->content,
+            searched: $searched,
         );
     }
 

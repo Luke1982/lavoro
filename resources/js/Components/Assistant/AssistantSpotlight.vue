@@ -1,5 +1,6 @@
 <template>
-    <SpotlightShell ref="shellRef" v-model="question" :open="open" :disabled="asking"
+    <SpotlightShell ref="shellRef" v-model="question" :open="open" :disabled="asking" accepts-files
+        @files="readFiles"
         :divider-above-input="exchanges.length > 0"
         :placeholder="exchanges.length ? 'Stel een vervolgvraag…' : 'Vraag iets over je werkbonnen, klanten of planning…'"
         @close="close" @enter="ask" @up="recall(-1)" @down="recall(1)">
@@ -182,6 +183,33 @@
             </div>
 
             <!--
+                The parked photos, asked about when the conversation closes. Their
+                storage is theirs and counts against their limits, so nothing
+                lands in it without them choosing — and closing again just leaves
+                the photos parked; they are cleaned up after a few days.
+            -->
+            <div v-if="asking_about_photos && !showing_history"
+                class="border-t border-slate-100 bg-indigo-50/60 px-4 py-3">
+                <p class="text-xs font-medium text-slate-700">
+                    Er horen {{ photos_sent }} foto('s) bij dit gesprek. In je opslag bewaren?
+                    Dit telt mee voor je opslaglimiet.
+                </p>
+                <div class="mt-1.5 flex items-center gap-2">
+                    <button type="button" :disabled="deciding_photos"
+                        class="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                        @click="decidePhotos(true)">
+                        Bewaren
+                    </button>
+                    <button type="button" :disabled="deciding_photos"
+                        class="rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                        @click="decidePhotos(false)">
+                        Weggooien
+                    </button>
+                    <p v-if="photo_outcome" class="text-[11px] text-slate-500">{{ photo_outcome }}</p>
+                </div>
+            </div>
+
+            <!--
                 Why it is being reported, asked before anything is sent. The
                 transcript says what happened; only the melder can say what
                 should have happened instead — which is the investigator's brief.
@@ -268,15 +296,20 @@ const imageInputRef = ref(null)
 /** Four photos of ~3 MB is a typeplaatje from every angle; more is a mistake. */
 const MAX_IMAGES = 4
 
+/** One reader for all three roads in: the picker, a drop and a paste. */
+function readFiles(files) {
+    Array.from(files || [])
+        .filter((file) => file.type?.startsWith('image/'))
+        .slice(0, MAX_IMAGES - pending_images.value.length)
+        .forEach((file) => {
+            const reader = new FileReader()
+            reader.onload = () => pending_images.value.push(reader.result)
+            reader.readAsDataURL(file)
+        })
+}
+
 function addImages(event) {
-    const files = Array.from(event.target.files || []).slice(0, MAX_IMAGES - pending_images.value.length)
-
-    files.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = () => pending_images.value.push(reader.result)
-        reader.readAsDataURL(file)
-    })
-
+    readFiles(event.target.files)
     event.target.value = ''
 }
 const report_reason = ref('')
@@ -522,9 +555,61 @@ async function open_() {
     shellRef.value?.focus()
 }
 
+const photos_sent = ref(0)
+const asking_about_photos = ref(false)
+const deciding_photos = ref(false)
+const photo_outcome = ref('')
+
+/**
+ * Keeps or discards the parked photos, then lets the box close.
+ *
+ * Kept ones land attached to whatever record the conversation settled — the
+ * backend knows, the box does not have to.
+ */
+async function decidePhotos(keep) {
+    if (deciding_photos.value) return
+
+    deciding_photos.value = true
+
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const { data } = keep
+            ? await axios.post('/assistant/photos/keep', { conversation: conversation.value })
+            : await axios.delete('/assistant/photos', { data: { conversation: conversation.value } })
+
+        photo_outcome.value = data.message || 'Gebeurd.'
+        photos_sent.value = 0
+
+        setTimeout(() => {
+            asking_about_photos.value = false
+            photo_outcome.value = ''
+            close()
+        }, 1200)
+    } catch (e) {
+        photo_outcome.value = e.response?.data?.message || 'Dat lukte niet.'
+        deciding_photos.value = false
+
+        return
+    }
+
+    deciding_photos.value = false
+}
+
 function close() {
+    /**
+     * Photos nobody decided about hold the door once. Closing again closes
+     * anyway — the question is a question, not a lock — and undecided photos
+     * are cleaned up by themselves after a few days.
+     */
+    if (photos_sent.value > 0 && !asking_about_photos.value) {
+        asking_about_photos.value = true
+
+        return
+    }
+
     open.value = false
     showing_history.value = false
+    asking_about_photos.value = false
 }
 
 async function scrollToLatest() {
@@ -586,6 +671,7 @@ async function ask() {
             },
             { timeout: ASK_TIMEOUT_MS },
         )
+        photos_sent.value += images.length
         exchange.answer = data.answer
         exchange.tools = data.tools || []
         exchange.pendingActions = asActions(data.pending)
@@ -748,6 +834,8 @@ const stopListening = router.on('navigate', () => {
     question.value = ''
     /** A new page is a new conversation; the old one is readable in the panel. */
     conversation.value = newConversationId()
+    photos_sent.value = 0
+    asking_about_photos.value = false
 })
 
 onMounted(() => {

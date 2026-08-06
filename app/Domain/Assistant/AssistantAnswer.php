@@ -15,6 +15,8 @@ final class AssistantAnswer
         public readonly int $tool_rounds,
         public readonly ModelReply $final,
         public readonly int $cost_micros = 0,
+        /** What the supplier's web search read along the way, as "title (url)" lines. */
+        public readonly array $searched = [],
     ) {}
 
     public function costEuros(): float

@@ -4,6 +4,9 @@
         :search-other-params="filterParams" :paginator="false" add-label="Voeg product toe"
         :has-active-filters="activeFilters.length > 0" @add="openNewProductDrawer"
         :can-add="hasPermission('product.create')">
+        <template #actions>
+            <AssistantButton />
+        </template>
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
@@ -401,6 +404,7 @@ import { Link, useForm, router } from '@inertiajs/vue3'
 import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'

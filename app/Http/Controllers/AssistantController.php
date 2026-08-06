@@ -6,6 +6,7 @@ use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ConversationFacts;
+use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ConversationReport;
 use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\PageContext;
@@ -21,6 +22,7 @@ use App\Http\Requests\AssistantAskRequest;
 use App\Http\Requests\AssistantConfirmRequest;
 use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
+use App\Http\Requests\AssistantPhotosRequest;
 use App\Http\Requests\AssistantReportRequest;
 use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
@@ -82,6 +84,16 @@ class AssistantController extends Controller
             ], 422);
         }
 
+        /**
+         * Parked, not kept. The photos wait in a temporary corner so the person
+         * can decide at the end of the conversation whether they go into their
+         * storage — that space is theirs and counts against their limits, so
+         * nothing lands there without them saying so.
+         */
+        if ($attachments !== [] && filled($request->validated('conversation'))) {
+            app(ConversationPhotos::class)->stash($request->validated('conversation'), $attachments);
+        }
+
         try {
             $answer = $loop->ask(
                 user: $user,
@@ -125,7 +137,12 @@ class AssistantController extends Controller
              * inventing them and a prompt is not a guarantee, so this is checked
              * and shown rather than trusted.
              */
-            'unverified' => app(ReferenceCheck::class)->report($answer->text, $seen, $user->id),
+            /**
+             * The web search's reading list counts as seen: a model number the
+             * model just read on a spec sheet is not an invention, and warning
+             * over it teaches people to scroll past the warning that matters.
+             */
+            'unverified' => app(ReferenceCheck::class)->report($answer->text, array_merge($seen, $answer->searched), $user->id),
         ]);
     }
 
@@ -427,6 +444,59 @@ class AssistantController extends Controller
     }
 
     /**
+     * Puts the parked photos of a conversation into the person's own storage,
+     * attached to whatever record the conversation settled.
+     */
+    public function keepPhotos(AssistantPhotosRequest $request, ConversationPhotos $photos): JsonResponse
+    {
+        $user = $request->user();
+        $conversation = $request->validated('conversation');
+
+        if (!$this->ownsConversation($user, $conversation)) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
+
+        $kept = $photos->keep($conversation, $user);
+
+        if ($kept === null) {
+            return response()->json(['message' => 'Er staan geen foto\'s meer klaar bij dit gesprek.'], 404);
+        }
+
+        if ($kept['count'] === 0) {
+            return response()->json([
+                'message' => 'Dit gesprek heeft geen machine, werkbon of product vastgelegd om de foto\'s '
+                    . 'aan te hangen. Open het record en zet ze daar op, of gooi ze weg.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => $kept['count'] . ' foto\'s bewaard bij ' . $kept['home'] . '.',
+        ]);
+    }
+
+    public function discardPhotos(AssistantPhotosRequest $request, ConversationPhotos $photos): JsonResponse
+    {
+        $user = $request->user();
+        $conversation = $request->validated('conversation');
+
+        if (!$this->ownsConversation($user, $conversation)) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
+
+        $photos->discard($conversation);
+
+        return response()->json(['message' => 'Foto\'s weggegooid.']);
+    }
+
+    private function ownsConversation(User $user, string $conversation): bool
+    {
+        return AssistantQuestion::query()
+            ->where('user_id', $user->id)
+            ->where('conversation_id', $conversation)
+            ->exists();
+    }
+
+    /**
      * Writes one conversation out as a file somebody can hand over.
      *
      * A transcript copied off the screen leaves out the half that matters: what
@@ -653,6 +723,12 @@ class AssistantController extends Controller
             'zes dingen opzoeken om te raden wat bedoeld wordt — vraag het, met ask_which_one, en',
             'zoek daarna één keer het goede op. Datum, duur, monteur en product zijn ook geen dingen',
             'om aan te nemen: die vraag je.',
+            '',
+            'Je mag internet raadplegen, maar alleen voor technische kennis die het systeem niet',
+            'heeft: specificaties, documentatie, wat een typecode betekent. Het systeem blijft',
+            'leidend — wat daar staat zoek je niet nog eens op. Zeg er bij alles wat van internet',
+            'komt bij dát het van internet komt en waarvandaan, en zoek nooit naar klanten of',
+            'personen.',
             '',
             'Krijg je foto\'s bij een vraag — meestal een typeplaatje — lees dan merk, type, model',
             'en serienummer letterlijk af. Zoek eerst met find_products of het product al bestaat',

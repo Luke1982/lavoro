@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Assistant\ConversationPhotos;
 use App\Models\AssistantConversationFact;
 use App\Models\AssistantQuestion;
 use Carbon\CarbonInterface;
@@ -58,6 +59,12 @@ class PruneAssistantQuestionsCommand extends Command
 
         $questions->delete();
         $facts->delete();
+
+        /**
+         * Parked photos get days, not months: nobody chose to keep them, and
+         * they are the one thing here that was explicitly left undecided.
+         */
+        app(ConversationPhotos::class)->pruneOlderThan((int) config('assistant.photo_days', 7));
         Storage::disk(config('assistant.reports_disk', 'local'))->delete($reports);
 
         $this->info($this->lineFor($counts, $cutoff, 'verwijderd'));

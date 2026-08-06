@@ -118,6 +118,13 @@ return [
             'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
             /** De enige adapter die bijlagen echt doorgeeft; foto's dwingen deze aanbieder af. */
             'sees_images' => true,
+            /**
+             * Internet opzoeken, door de leverancier zelf uitgevoerd. Kost circa
+             * een cent per zoekactie plus de tokens van wat er gelezen wordt;
+             * max_uses houdt één vraag bij een handvol zoekacties.
+             */
+            'web_search' => env('ANTHROPIC_WEB_SEARCH', true),
+            'web_search_max_uses' => env('ANTHROPIC_WEB_SEARCH_MAX_USES', 3),
             'api_key' => env('ANTHROPIC_API_KEY'),
             'capability' => 9,
         ],
@@ -325,6 +332,9 @@ return [
     'max_images' => env('ASSISTANT_MAX_IMAGES', 4),
 
     'max_image_kb' => env('ASSISTANT_MAX_IMAGE_KB', 4000),
+
+    /** Hoeveel dagen geparkeerde foto's wachten op een keuze voordat ze weggaan. */
+    'photo_days' => env('ASSISTANT_PHOTO_DAYS', 7),
 
     'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),
 

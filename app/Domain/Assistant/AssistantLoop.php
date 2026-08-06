@@ -91,11 +91,13 @@ class AssistantLoop
         $rounds = 0;
         $spoken = [];
         $spent = 0;
+        $searched = [];
 
         while (true) {
             $reply = $model->send($turns, $tools, $system);
 
             $spent += $this->recordCost($user, $reply);
+            $searched = array_merge($searched, $reply->searched);
 
             if ($reply->stop_reason === StopReason::refused) {
                 throw new RuntimeException('Het model heeft de vraag geweigerd.');
@@ -125,7 +127,7 @@ class AssistantLoop
                  * single newline is markdown for "the same paragraph continues",
                  * which runs "Ik zoek het even op" into the answer itself.
                  */
-                return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent);
+                return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched);
             }
 
             if (++$rounds > $max_rounds) {
@@ -144,7 +146,7 @@ class AssistantLoop
                         . 'Wat hierboven staat klopt, maar het is nog geen antwoord op de hele vraag. '
                         . 'Stel hem eventueel smaller.';
 
-                    return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent);
+                    return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched);
                 }
 
                 throw new RuntimeException('Gestopt na ' . $max_rounds . ' tool-rondes zonder antwoord.');

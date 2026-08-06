@@ -110,6 +110,15 @@ Route::group(
          * Writes a conversation out to a file so it can be handed over for
          * diagnosis. Costs nothing at a supplier and touches no model.
          */
+        /** The parked photos of a conversation: into their storage, or gone. */
+        Route::post('assistant/photos/keep', [AssistantController::class, 'keepPhotos'])
+            ->middleware('throttle:20,1')
+            ->name('assistant.photos.keep');
+
+        Route::delete('assistant/photos', [AssistantController::class, 'discardPhotos'])
+            ->middleware('throttle:20,1')
+            ->name('assistant.photos.discard');
+
         Route::post('assistant/report', [AssistantController::class, 'report'])
             ->middleware('throttle:10,1')
             ->name('assistant.report');

@@ -16,7 +16,10 @@
                     enter-to="opacity-100 scale-100" leave="ease-in duration-100" leave-from="opacity-100 scale-100"
                     leave-to="opacity-0 scale-95">
                     <DialogPanel
-                        class="mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all">
+                        class="mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all"
+                        @dragover.prevent
+                        @drop.prevent="onFiles($event.dataTransfer?.files)"
+                        @paste="onFiles($event.clipboardData?.files)">
                         <slot name="before" />
 
                         <div class="flex items-start gap-3 px-4 py-[0.9375rem]"
@@ -88,6 +91,7 @@ const props = defineProps({
     placeholder: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     dividerAboveInput: { type: Boolean, default: false },
+    acceptsFiles: { type: Boolean, default: false },
     /**
      * Whether the arrow keys drive a list instead of the caret. Off by default:
      * the box holds a textarea, and swallowing up and down would strand the caret
@@ -96,7 +100,18 @@ const props = defineProps({
     interceptArrows: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update:modelValue', 'close', 'enter', 'up', 'down'])
+const emit = defineEmits(['update:modelValue', 'close', 'enter', 'up', 'down', 'files'])
+
+/**
+ * Files dropped or pasted anywhere on the panel, handed to whoever is showing
+ * this. Only when the caller says it takes files: the navigator has no use for
+ * them, and a drop it does not expect should stay a browser default.
+ */
+function onFiles(files) {
+    if (!props.acceptsFiles || !files?.length) return
+
+    emit('files', Array.from(files))
+}
 
 const inputRef = ref(null)
 
