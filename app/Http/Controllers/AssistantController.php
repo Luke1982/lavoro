@@ -88,7 +88,16 @@ class AssistantController extends Controller
          * a photo conversation. That is the price of the box behaving the way
          * anybody would expect it to.
          */
-        if ($attachments === [] && filled($request->validated('conversation'))) {
+        if ($attachments === []
+            && filled($request->validated('conversation'))
+            && NeedsEyes::inQuestion($request->validated('question'))) {
+            /**
+             * Only when the question is about them. Sent on every follow-up, six
+             * photographs went up again to be asked something that had nothing to
+             * do with looking — eight thousand tokens to answer "kun je die
+             * modellen opzoeken", which is tens of times what the question is
+             * worth.
+             */
             $attachments = app(ConversationPhotos::class)->parked($request->validated('conversation'));
         }
 
@@ -904,6 +913,18 @@ class AssistantController extends Controller
             'leidend — wat daar staat zoek je niet nog eens op. Zeg er bij alles wat van internet',
             'komt bij dát het van internet komt en waarvandaan, en zoek nooit naar klanten of',
             'personen.',
+            '',
+            'Kun je het merk en de bouwvorm zien maar het typeplaatje niet lezen, zoek dan op',
+            'internet welke modellen van dat merk die bouwvorm hebben en meld die als kandidaten,',
+            'met een percentage en de bron erbij. Dat is geen gokken: gokken is een typenummer',
+            'opschrijven dat je nergens vandaan hebt, kandidaten voorleggen is de gebruiker laten',
+            'kiezen uit wat er bestaat. Een monteur die het apparaat voor zich heeft, herkent zijn',
+            'model in twee tellen uit een rijtje van drie — hij kan niets met "ik kan het niet',
+            'lezen". Zeg dus nooit alleen dat het onleesbaar is: zoek en kom met opties.',
+            '',
+            'Je kunt geen foto op internet opzoeken, alleen tekst — maar dat hoeft ook niet: het',
+            'merk en de bouwvorm die je van de foto afleest zijn genoeg om op te zoeken. Zeg niet',
+            'dat je geen beeldherkenning hebt, want dat is niet wat er gevraagd wordt.',
             '',
             'Bekijk je een foto, meld dan altijd met report_findings wat je eruit haalt, per',
             'onderdeel met een percentage — en meld ze in één keer, niet in rondes. Zwijgen omdat je '

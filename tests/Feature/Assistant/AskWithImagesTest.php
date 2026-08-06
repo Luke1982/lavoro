@@ -190,12 +190,25 @@ class AskWithImagesTest extends TestCase
         ImageSpyModel::$attachments = [];
 
         $this->actingAs($user)->postJson('/assistant/ask', [
-            'question' => 'Kijk nog eens goed',
+            'question' => 'Kijk nog eens goed naar die foto',
             'conversation' => $conversation,
         ])->assertOk();
 
         $this->assertCount(1, ImageSpyModel::$attachments, 'the follow-up had no photo to look at');
-        $this->assertSame('image/png', ImageSpyModel::$attachments[0]->media_type);
+
+        /**
+         * And only then. Sent on every follow-up, six photographs went back up to
+         * answer a question that had nothing to do with looking — tens of times
+         * what that question is worth.
+         */
+        ImageSpyModel::$attachments = [];
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'Wie is de klant van deze werkbon?',
+            'conversation' => $conversation,
+        ])->assertOk();
+
+        $this->assertSame([], ImageSpyModel::$attachments, 'the photos went up again for nothing');
     }
 
     /** Once thrown away, they stop following the conversation around. */
@@ -218,7 +231,7 @@ class AskWithImagesTest extends TestCase
         ImageSpyModel::$attachments = [];
 
         $this->actingAs($user)->postJson('/assistant/ask', [
-            'question' => 'En nu?',
+            'question' => 'En nu, kijk nog eens naar die foto',
             'conversation' => $conversation,
         ])->assertOk();
 
