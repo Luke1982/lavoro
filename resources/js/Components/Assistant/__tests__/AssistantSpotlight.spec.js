@@ -452,3 +452,60 @@ describe('findings grouped by machine', () => {
         expect(wrapper.text()).not.toContain('onduidelijk')
     })
 })
+
+/**
+ * The cost of a photo is invisible at the moment somebody attaches one: a turn
+ * with six of them measured sixty times a turn without.
+ */
+describe('the photo cost warning', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        get.mockResolvedValue({ data: { conversations: [] } })
+        post.mockResolvedValue({ data: { answer: 'Goed.', tools: [], choices: [] } })
+    })
+
+    const ask = async (wrapper, text) => {
+        await wrapper.find('textarea').setValue(text)
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+    }
+
+    it('says nothing on a conversation without photos', async () => {
+        const wrapper = await box()
+        await ask(wrapper, 'Wie is klant 12?')
+
+        expect(wrapper.text()).not.toContain('tientallen keren')
+    })
+
+    /** A tool that fetched the photos already on a record costs just as much. */
+    it('warns when a tool went and looked at photos', async () => {
+        post.mockResolvedValue({
+            data: {
+                answer: 'Gevonden.',
+                tools: [{ name: 'view_images', arguments: {}, failed: false }],
+                choices: [],
+            },
+        })
+
+        const wrapper = await box()
+        await ask(wrapper, "Kijk naar de foto's bij deze werkbon")
+
+        expect(wrapper.text()).toContain('tientallen keren')
+    })
+
+    it('keeps warning while photos stay parked with the conversation', async () => {
+        post.mockResolvedValue({ data: { answer: 'Goed.', tools: [], choices: [] } })
+
+        const wrapper = await box()
+        wrapper.vm.pending_images.push('data:image/png;base64,AAAA')
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.text()).toContain('tientallen keren')
+
+        await ask(wrapper, 'Wat is dit?')
+
+        expect(wrapper.text()).toContain('tientallen keren')
+    })
+})

@@ -383,6 +383,17 @@
             the turns where it happens to be right.
         -->
         <template #notice>
+            <!--
+                Above the standing disclaimer and in the same fixed place, because
+                the cost of a photo is invisible at the moment somebody attaches
+                one: a turn with six of them measured tens of times a turn
+                without. Said as a factor, never as an amount — what this costs
+                us and what it costs them are not the same number.
+            -->
+            <span v-if="costingMore" class="mb-1 block font-medium text-amber-700">
+                Foto's gaan mee met deze vraag. Dat kost al gauw tientallen keren zoveel als een
+                vraag zonder foto's en gaat dus sneller door je tegoed.
+            </span>
             De AI assistent kan fouten maken, controleer de gegevens altijd
         </template>
 
@@ -703,6 +714,18 @@ function byMachine(findings) {
     return [...groups].map(([subject, fields]) => ({ subject, findings: [...fields.values()] }))
 }
 
+/**
+ * Whether pictures are going up with the next question.
+ *
+ * Three roads lead there and the warning has to cover all of them: photos
+ * waiting to be sent, photos parked with this conversation that ride along with
+ * every follow-up, and a tool that fetched the ones already on a record.
+ */
+const looked_at_photos = ref(false)
+
+const costingMore = computed(() =>
+    pending_images.value.length > 0 || photos_sent.value > 0 || looked_at_photos.value)
+
 const confidenceColour = (confidence) =>
     confidence >= 80 ? 'bg-emerald-500' : confidence >= 50 ? 'bg-amber-500' : 'bg-red-400'
 
@@ -958,6 +981,17 @@ async function ask() {
             { timeout: ASK_TIMEOUT_MS },
         )
         photos_sent.value += images.length
+
+        /**
+         * Tracked on its own rather than read back off the exchange: that object
+         * is pushed before its tools are filled in, so a computed watching it
+         * never hears about the change and the warning stayed dark on exactly the
+         * turns that cost the most.
+         */
+        if ((data.tools || []).some((tool) => tool.name === 'view_images')) {
+            looked_at_photos.value = true
+        }
+
         exchange.answer = data.answer
         exchange.tools = data.tools || []
         exchange.pendingActions = asActions(data.pending)
@@ -1123,6 +1157,7 @@ const stopListening = router.on('navigate', () => {
     /** A new page is a new conversation; the old one is readable in the panel. */
     conversation.value = newConversationId()
     photos_sent.value = 0
+    looked_at_photos.value = false
     asking_about_photos.value = false
 })
 
