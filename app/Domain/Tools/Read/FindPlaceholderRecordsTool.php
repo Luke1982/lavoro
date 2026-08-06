@@ -99,9 +99,16 @@ class FindPlaceholderRecordsTool implements Tool
             )
             ->when(
                 $call->integerArgument('service_order_id') !== null,
+                /**
+                 * A machine hangs off a werkbon through the task it was booked
+                 * on, not off the werkbon directly — Asset has no serviceOrders
+                 * relation, and asking for one threw where the model expected an
+                 * answer. It came back as "de plaatshoudertool liep vast", which
+                 * is the tool telling somebody their question was the problem.
+                 */
                 fn ($q) => $q->whereHas(
-                    'serviceOrders',
-                    fn ($o) => $o->where('service_orders.id', $call->integerArgument('service_order_id'))
+                    'serviceOrderTaskInstance',
+                    fn ($t) => $t->where('service_order_id', $call->integerArgument('service_order_id'))
                 )
             );
 

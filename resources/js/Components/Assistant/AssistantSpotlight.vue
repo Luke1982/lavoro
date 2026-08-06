@@ -40,6 +40,98 @@
                 </button>
             </div>
 
+            <!--
+                Managing the saved questions: all of them, where they belong, and
+                what they actually ask. Inline in the box because that is where
+                somebody realises a question is missing or wrong.
+            -->
+            <div v-else-if="managing_prompts" class="max-h-[65vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+                    <p class="text-xs font-medium text-slate-500">Vaste vragen</p>
+                    <button type="button" class="text-xs text-slate-400 hover:text-slate-600"
+                        @click="managing_prompts = false">
+                        Terug
+                    </button>
+                </div>
+
+                <div v-for="prompt in all_prompts" :key="prompt.id"
+                    class="border-b border-slate-100 px-4 py-2.5">
+                    <div v-if="editing?.id === prompt.id" class="space-y-1.5">
+                        <input v-model="editing.label" type="text" placeholder="Naam op de knop"
+                            class="w-full rounded-md border-slate-300 text-sm">
+                        <textarea v-model="editing.question" rows="2" placeholder="De vraag zelf"
+                            class="w-full rounded-md border-slate-300 text-sm" />
+                        <select v-model="editing.context" class="w-full rounded-md border-slate-300 text-sm">
+                            <option v-for="page in PAGES" :key="page.value ?? 'all'" :value="page.value">
+                                {{ page.label }}
+                            </option>
+                        </select>
+                        <div class="flex gap-2">
+                            <button type="button"
+                                class="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+                                @click="savePrompt">
+                                Bewaren
+                            </button>
+                            <button type="button" class="text-xs text-slate-500 hover:text-slate-700"
+                                @click="editing = null">
+                                Annuleren
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-else class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-slate-900">{{ prompt.label }}</p>
+                            <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ prompt.question }}</p>
+                            <p class="mt-0.5 text-[11px] text-slate-400">
+                                {{ pageLabel(prompt.context) }}{{ prompt.mine ? '' : ' · standaardvraag' }}
+                            </p>
+                        </div>
+                        <div v-if="prompt.mine" class="flex shrink-0 gap-2 text-[11px]">
+                            <button type="button" class="text-indigo-600 hover:text-indigo-800"
+                                @click="editing = { ...prompt }">
+                                wijzigen
+                            </button>
+                            <button type="button" class="text-slate-400 hover:text-red-600"
+                                @click="forgetPrompt(prompt)">
+                                verwijderen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 py-3">
+                    <button v-if="!editing || editing.id" type="button"
+                        class="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                        @click="editing = { id: null, label: '', question: question.trim(), context: pageContext() }">
+                        Vraag toevoegen
+                    </button>
+                    <div v-else class="space-y-1.5">
+                        <input v-model="editing.label" type="text" placeholder="Naam op de knop"
+                            class="w-full rounded-md border-slate-300 text-sm">
+                        <textarea v-model="editing.question" rows="2" placeholder="De vraag zelf"
+                            class="w-full rounded-md border-slate-300 text-sm" />
+                        <select v-model="editing.context" class="w-full rounded-md border-slate-300 text-sm">
+                            <option v-for="page in PAGES" :key="page.value ?? 'all'" :value="page.value">
+                                {{ page.label }}
+                            </option>
+                        </select>
+                        <div class="flex gap-2">
+                            <button type="button"
+                                class="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+                                @click="savePrompt">
+                                Bewaren
+                            </button>
+                            <button type="button" class="text-xs text-slate-500 hover:text-slate-700"
+                                @click="editing = null">
+                                Annuleren
+                            </button>
+                        </div>
+                    </div>
+                    <p v-if="prompt_error" class="mt-1.5 text-[11px] text-red-600">{{ prompt_error }}</p>
+                </div>
+            </div>
+
             <div v-else-if="exchanges.length" ref="threadRef"
                 class="max-h-[65vh] overflow-y-auto divide-y divide-slate-100">
                 <!--
@@ -208,27 +300,14 @@
             <div v-if="!showing_history && !exchanges.length && prompts.length"
                 class="border-t border-slate-100 px-4 py-3">
                 <p class="text-xs font-medium text-slate-500">Veelgestelde vragen op deze pagina</p>
-                <ul class="mt-2 space-y-1">
-                    <li v-for="prompt in prompts" :key="prompt.id" class="flex items-center gap-2">
-                        <button type="button"
-                            class="min-w-0 flex-1 truncate rounded-md bg-slate-50 px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 ring-1 ring-slate-200 hover:bg-indigo-50 hover:text-indigo-900"
-                            :title="prompt.question"
-                            @click="askPrompt(prompt)">
-                            {{ prompt.label }}
-                        </button>
-                        <button v-if="prompt.mine" type="button"
-                            class="shrink-0 text-[11px] text-slate-400 hover:text-red-600"
-                            title="Deze vraag verwijderen"
-                            @click="forgetPrompt(prompt)">
-                            verwijderen
-                        </button>
-                    </li>
-                </ul>
-                <button v-if="question.trim().length > 1" type="button"
-                    class="mt-2 text-[11px] text-indigo-600 hover:text-indigo-800"
-                    @click="rememberPrompt">
-                    Wat er nu staat als vaste vraag bewaren
-                </button>
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                    <button v-for="prompt in prompts" :key="prompt.id" type="button"
+                        class="max-w-full truncate rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200 hover:bg-indigo-50 hover:text-indigo-900 hover:ring-indigo-300"
+                        :title="prompt.question"
+                        @click="askPrompt(prompt)">
+                        {{ prompt.label }}
+                    </button>
+                </div>
             </div>
 
             <!--
@@ -322,6 +401,10 @@
                 @click="imageInputRef?.click()">
                 Foto toevoegen
             </button>
+            <button v-if="!showing_history" type="button" class="ml-3 hover:text-slate-600"
+                @click="managePrompts">
+                Vragen beheren
+            </button>
             <input ref="imageInputRef" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                 multiple class="hidden" @change="addImages">
             <span v-if="showing_history">De assistent ziet alleen wat jij mag zien.</span>
@@ -370,6 +453,68 @@ function pageContext() {
     return parts[0] + (parts[1] && /^\d+$/.test(parts[1]) ? '.show' : '.index')
 }
 
+const managing_prompts = ref(false)
+const all_prompts = ref([])
+const editing = ref(null)
+const prompt_error = ref('')
+
+/** Where a question can live. The value is the context string it is filed under. */
+const PAGES = [
+    { value: null, label: 'Op elke pagina' },
+    { value: 'serviceorders.show', label: 'Op een werkbon' },
+    { value: 'serviceorders.index', label: 'In het werkbonoverzicht' },
+    { value: 'assets.show', label: 'Op een machine' },
+    { value: 'customers.show', label: 'Op een klant' },
+    { value: 'products.index', label: 'In het assortiment' },
+    { value: 'tickets.show', label: 'Op een storing' },
+    { value: 'planner.index', label: 'In de planning' },
+]
+
+const pageLabel = (context) => PAGES.find((page) => page.value === context)?.label ?? context
+
+async function managePrompts() {
+    managing_prompts.value = true
+    editing.value = null
+    prompt_error.value = ''
+
+    try {
+        const { data } = await axios.get('/assistant/prompts', { params: { context: 'all' } })
+        all_prompts.value = data.prompts || []
+    } catch {
+        all_prompts.value = []
+    }
+}
+
+/** One save for both roads: a new question and an edited one. */
+async function savePrompt() {
+    const draft = editing.value
+
+    if (!draft || draft.label.trim().length < 1 || draft.question.trim().length < 2) {
+        prompt_error.value = 'Geef een korte naam en de vraag zelf.'
+
+        return
+    }
+
+    prompt_error.value = ''
+
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const body = { label: draft.label.trim(), question: draft.question.trim(), context: draft.context }
+        const { data } = draft.id
+            ? await axios.patch('/assistant/prompts/' + draft.id, body)
+            : await axios.post('/assistant/prompts', body)
+
+        all_prompts.value = draft.id
+            ? all_prompts.value.map((entry) => (entry.id === draft.id ? data.prompt : entry))
+            : [...all_prompts.value, data.prompt]
+
+        editing.value = null
+        loadPrompts()
+    } catch (e) {
+        prompt_error.value = e.response?.data?.message || 'Bewaren lukte niet.'
+    }
+}
+
 async function loadPrompts() {
     try {
         const { data } = await axios.get('/assistant/prompts', { params: { context: pageContext() } })
@@ -385,30 +530,12 @@ function askPrompt(prompt) {
     ask()
 }
 
-async function rememberPrompt() {
-    const asked = question.value.trim()
-
-    if (asked.length < 2) return
-
-    try {
-        await axios.get('/sanctum/csrf-cookie')
-        const { data } = await axios.post('/assistant/prompts', {
-            label: asked.slice(0, 60),
-            question: asked,
-            context: pageContext(),
-        })
-
-        prompts.value.push(data.prompt)
-    } catch (e) {
-        history_error.value = e.response?.data?.message || 'Bewaren lukte niet.'
-    }
-}
-
 async function forgetPrompt(prompt) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.delete('/assistant/prompts/' + prompt.id)
         prompts.value = prompts.value.filter((entry) => entry.id !== prompt.id)
+        all_prompts.value = all_prompts.value.filter((entry) => entry.id !== prompt.id)
     } catch (e) {
         history_error.value = e.response?.data?.message || 'Verwijderen lukte niet.'
     }
@@ -727,6 +854,7 @@ async function decidePhotos(keep) {
 }
 
 function close() {
+    managing_prompts.value = false
     /**
      * Photos nobody decided about hold the door once. Closing again closes
      * anyway — the question is a question, not a lock — and undecided photos

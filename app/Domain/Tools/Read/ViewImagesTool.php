@@ -10,10 +10,12 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\Image;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -127,7 +129,7 @@ class ViewImagesTool implements Tool
             return ToolResult::notFound(ucfirst($type) . ' #' . $call->integerArgument('subject_id'));
         }
 
-        $all = $record->images()->orderBy('images.id')->get();
+        $all = $this->everyImageOn($record);
         $skip = max(0, (int) ($call->integerArgument('skip') ?? 0));
         $showing = $all->slice($skip, self::MOST);
 
@@ -154,7 +156,12 @@ class ViewImagesTool implements Tool
                 base64: base64_encode($bytes),
             );
 
-            $rows[] = ['image_id' => $image->id, 'name' => $image->name];
+            $rows[] = [
+                'image_id' => $image->id,
+                'name' => $image->name,
+                /** Internal ones are the monteur's own working photos — usually the plates. */
+                'internal' => (bool) ($image->pivot->internal ?? false),
+            ];
         }
 
         if ($attachments === []) {
@@ -179,6 +186,27 @@ class ViewImagesTool implements Tool
             ],
             count($rows) . ' van de ' . $all->count() . ' foto(\'s) opgehaald.',
         )->showing($attachments);
+    }
+
+    /**
+     * Every photo on the record, the customer-facing ones and the internal ones.
+     *
+     * images() hides anything marked internal, because that relation exists to
+     * decide what a customer may see on a PDF. The monteur's own photos live on
+     * the other side of that flag — and those are the ones with the typeplaatje
+     * in them, so reading only the public half was reading the wrong half.
+     *
+     * @return Collection<int, Image>
+     */
+    private function everyImageOn(object $record): Collection
+    {
+        $images = $record->images()->get();
+
+        if (method_exists($record, 'internalImages')) {
+            $images = $images->concat($record->internalImages()->get());
+        }
+
+        return $images->sortBy('id')->values();
     }
 
     private function bytesOf(string $path): ?string

@@ -37,13 +37,13 @@ class ViewImagesTest extends TestCase
         $this->app->bind(TalksToModel::class, fn () => new EyesModel($sees));
     }
 
-    private function photoOn(ServiceOrder $order, string $name): Image
+    private function photoOn(ServiceOrder $order, string $name, bool $internal = false): Image
     {
         $path = 'uploaded/serviceorder/' . $order->id . '/' . $name;
         Storage::disk('public')->put($path, 'nep-bytes');
 
         $image = Image::create(['name' => $name, 'path' => $path]);
-        $order->images()->attach($image->id);
+        $order->images()->attach($image->id, ['internal' => $internal]);
 
         return $image;
     }
@@ -172,6 +172,33 @@ class ViewImagesTest extends TestCase
         $this->assertSame($placeholder->id, $found->content['assets'][0]['asset_id']);
         $this->assertTrue($found->content['assets'][0]['serial_is_placeholder']);
         $this->assertTrue($found->content['assets'][0]['product_is_placeholder']);
+    }
+
+    /**
+     * The monteur's own photos are the ones with the typeplaatje in them.
+     *
+     * images() hides anything marked internal, because that relation decides
+     * what a customer sees on a PDF. Reading only that half read the wrong half:
+     * the working photos, the whole reason for asking, were the ones left out.
+     */
+    public function test_the_internal_photos_are_read_as_well(): void
+    {
+        Storage::fake('public');
+        $this->seeing();
+
+        $order = ServiceOrder::factory()->create(['customer_id' => Customer::factory()->create()->id]);
+        $this->photoOn($order, 'voor-de-klant.jpg');
+        $this->photoOn($order, 'typeplaatje.jpg', internal: true);
+
+        $result = $this->look(['subject_type' => 'werkbon', 'subject_id' => $order->id]);
+
+        $this->assertCount(2, $result->attachments, "the monteur's own photos were left out");
+        $this->assertSame(2, $result->content['total']);
+
+        $internal = collect($result->content['images'])->firstWhere('name', 'typeplaatje.jpg');
+
+        $this->assertNotNull($internal, 'the internal photo never came back');
+        $this->assertTrue($internal['internal'], 'nothing said which photos were the internal ones');
     }
 }
 

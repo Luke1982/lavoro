@@ -119,6 +119,10 @@ Route::group(
             ->middleware('throttle:30,1')
             ->name('assistant.prompts.store');
 
+        Route::patch('assistant/prompts/{prompt}', [AssistantController::class, 'updatePrompt'])
+            ->middleware('throttle:30,1')
+            ->name('assistant.prompts.update');
+
         Route::delete('assistant/prompts/{prompt}', [AssistantController::class, 'destroyPrompt'])
             ->middleware('throttle:30,1')
             ->name('assistant.prompts.destroy');

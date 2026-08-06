@@ -497,7 +497,8 @@ class AssistantController extends Controller
 
         $prompts = AssistantPrompt::query()
             ->visibleTo($request->user())
-            ->forContext(is_string($context) ? $context : null)
+            /** "all" is the management view; anything else is one page's shortlist. */
+            ->when($context !== 'all', fn ($q) => $q->forContext(is_string($context) ? $context : null))
             ->orderBy('sort')
             ->orderBy('id')
             ->get(['id', 'label', 'question', 'context', 'user_id']);
@@ -508,6 +509,7 @@ class AssistantController extends Controller
                 'label' => $prompt->label,
                 'question' => $prompt->question,
                 /** Only your own can be removed; the shipped ones stay put. */
+                'context' => $prompt->context,
                 'mine' => $prompt->user_id !== null,
             ])->all(),
         ]);
@@ -525,8 +527,34 @@ class AssistantController extends Controller
 
         return response()->json([
             'message' => 'Vraag bewaard.',
-            'prompt' => ['id' => $prompt->id, 'label' => $prompt->label, 'question' => $prompt->question, 'mine' => true],
+            'prompt' => [
+                'id' => $prompt->id,
+                'label' => $prompt->label,
+                'question' => $prompt->question,
+                'context' => $prompt->context,
+                'mine' => true,
+            ],
         ], 201);
+    }
+
+    public function updatePrompt(AssistantPromptStoreRequest $request, AssistantPrompt $prompt): JsonResponse
+    {
+        if ($prompt->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Deze vraag is niet van jou.'], 403);
+        }
+
+        $prompt->update($request->validated());
+
+        return response()->json([
+            'message' => 'Vraag bijgewerkt.',
+            'prompt' => [
+                'id' => $prompt->id,
+                'label' => $prompt->label,
+                'question' => $prompt->question,
+                'context' => $prompt->context,
+                'mine' => true,
+            ],
+        ]);
     }
 
     public function destroyPrompt(AssistantHistoryRequest $request, AssistantPrompt $prompt): JsonResponse
@@ -780,8 +808,16 @@ class AssistantController extends Controller
     {
         return implode("\n", [
             'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
-            'Je schrijft altijd Nederlands, ook de zinnetjes tussendoor waarin je zegt wat je gaat opzoeken.',
+            'Je schrijft altijd Nederlands.',
             'Je antwoordt kort en concreet. Gebruik korte alinea\'s of een opsomming, geen tabellen.',
+            '',
+            'Vertel niet wat je gaat doen of aan het doen bent. Geen "ik ga even kijken", geen "laat',
+            'me dat opzoeken", geen "ik heb nu alle foto\'s gezien", geen samenvatting achteraf van',
+            'je eigen stappen. De gebruiker ziet zelf welke tools je aanroept; die zinnen zijn ruis',
+            'die het antwoord naar beneden duwt. Begin met wat je gevonden hebt.',
+            '',
+            'Zeg iets één keer. Staat het in een keuzeknop, een balkje of een bevestigingsknop, dan',
+            'hoort het niet nog eens in je tekst. Herhaal aan het eind niet wat je hierboven al zei.',
             '',
             'Gebruik de tools om echte gegevens op te halen. Verzin nooit een werkbonnummer,',
             'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',
@@ -829,7 +865,8 @@ class AssistantController extends Controller
             'personen.',
             '',
             'Bekijk je een foto, meld dan altijd met report_findings wat je eruit haalt, per',
-            'onderdeel met een percentage. Zwijgen omdat je niet zeker bent is geen voorzichtigheid',
+            'onderdeel met een percentage — en meld ze in één keer, niet in rondes. Zwijgen omdat je '
+            . 'niet zeker bent is geen voorzichtigheid',
             'maar nutteloosheid: een merk dat je op 70 procent herkent kan de gebruiker in één',
             'seconde bevestigen, een weigering kan hij niets mee. Niets verzinnen en wél een',
             'onzekere gok mélden met het percentage erbij zijn niet hetzelfde; het eerste blijft',
