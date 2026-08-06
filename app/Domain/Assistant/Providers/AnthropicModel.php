@@ -161,7 +161,9 @@ class AnthropicModel implements TalksToModel
                 $turn->texts,
             );
 
-            foreach ($turn->attachments as $attachment) {
+            $last = array_key_last($turn->attachments);
+
+            foreach ($turn->attachments as $index => $attachment) {
                 /**
                  * A photo is an image block, not a document: this supplier reads
                  * documents as text and images as pictures, and a typeplaatje
@@ -175,6 +177,19 @@ class AnthropicModel implements TalksToModel
                             'media_type' => $attachment->media_type,
                             'data' => $attachment->base64,
                         ],
+                        /**
+                         * One marker, on the last picture. A photograph is the
+                         * most expensive thing this application sends and the same
+                         * six go up again the moment somebody asks a second
+                         * question about them; written once at a small premium
+                         * they read back at a tenth.
+                         *
+                         * A breakpoint, not a flag: it caches everything up to
+                         * here, and there is room for four in a request — marking
+                         * every image spent them all and came back as "A maximum
+                         * of 4 blocks with cache_control may be provided".
+                         */
+                        ...($index === $last ? ['cache_control' => ['type' => 'ephemeral']] : []),
                     ];
 
                     continue;

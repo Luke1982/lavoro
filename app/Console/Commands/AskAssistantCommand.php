@@ -50,7 +50,11 @@ class AskAssistantCommand extends Command
          */
         $difficulty = (int) ($this->option('difficulty')
             ?: app(QuestionSorter::class)->difficultyFor($this->argument('question'), $user, $registry));
-        $provider = app(ModelPicker::class)->providerFor($difficulty);
+        /** With the same vision flag the ask uses, or the header names a model that never ran. */
+        $provider = app(ModelPicker::class)->providerFor(
+            $difficulty,
+            needs_vision: NeedsEyes::inQuestion($this->argument('question')),
+        );
 
         if (blank(config('assistant.providers.' . $provider . '.api_key'))) {
             $this->error('Er is geen API-sleutel ingesteld voor aanbieder "' . $provider . '".');

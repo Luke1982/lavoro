@@ -159,6 +159,10 @@ class ViewImagesTool implements Tool
 
             $rows[] = [
                 'image_id' => $image->id,
+                /** So a finding can point back at the photo it came from. */
+                'url' => Storage::disk('public')->exists($image->path)
+                    ? Storage::disk('public')->url($image->path)
+                    : null,
                 'name' => $image->name,
                 /** Internal ones are the monteur's own working photos — usually the plates. */
                 'internal' => (bool) ($image->pivot->internal ?? false),
@@ -179,8 +183,10 @@ class ViewImagesTool implements Tool
                 'images' => $rows,
                 'total' => $all->count(),
                 'shown' => count($rows),
-                'note' => 'Je krijgt deze foto\'s hierna te zien. Lees ze af zoals een meegestuurde foto '
-                    . 'en meld met report_findings wat je eruit haalt, met percentages.'
+                'note' => 'Je krijgt deze foto\'s hierna te zien, in dezelfde volgorde als hierboven. '
+                    . 'Lees ze af en meld met report_findings wat je eruit haalt, met percentages en met '
+                    . 'de image_id\'s erbij van de foto\'s waar je het vanaf leest — de gebruiker ziet '
+                    . 'die foto\'s dan bij je bevinding staan.'
                     . ($left > 0
                         ? ' Er staan er nog ' . $left . '; haal die op met skip=' . ($skip + count($rows)) . '.'
                         : ''),

@@ -202,9 +202,25 @@
                         same at 55 as at 90, and a bar at 45 tells somebody
                         exactly where to point the lens next.
                     -->
-                    <div v-for="group in byMachine(exchange.findings)" :key="group.subject"
+                    <div v-for="group in byMachine(exchange.findings, exchange.photos)" :key="group.subject"
                         class="rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200">
-                        <p class="text-xs font-medium text-slate-700">{{ group.subject }}</p>
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="text-xs font-medium text-slate-700">{{ group.subject }}</p>
+                            <!--
+                                The photos this reading came off, beside the reading
+                                itself. Six pictures and four machines is otherwise a
+                                claim with no way to check it — and checking it is the
+                                one thing the person holding the camera can do.
+                            -->
+                            <div v-if="group.photos.length" class="flex shrink-0 gap-1">
+                                <a v-for="photo in group.photos" :key="photo" :href="photo"
+                                    target="_blank" rel="noopener noreferrer"
+                                    title="Foto waar dit vanaf gelezen is">
+                                    <img :src="photo" alt=""
+                                        class="h-9 w-9 rounded object-cover ring-1 ring-slate-300 hover:ring-indigo-400">
+                                </a>
+                            </div>
+                        </div>
                         <ul class="mt-2 space-y-1.5">
                             <li v-for="(finding, findingIndex) in group.findings" :key="findingIndex">
                                 <div class="flex items-baseline justify-between gap-2 text-xs">
@@ -697,21 +713,29 @@ const toolLabel = (name) => TOOL_LABELS[name] || name
  * spoke, which nobody asked. The same field twice for one machine keeps the
  * surer reading.
  */
-function byMachine(findings) {
+function byMachine(findings, photos) {
     const groups = new Map()
 
     for (const finding of findings || []) {
         const subject = finding.subject || 'Apparaat'
 
-        if (!groups.has(subject)) groups.set(subject, new Map())
+        if (!groups.has(subject)) groups.set(subject, { fields: new Map(), photos: new Set() })
 
-        const fields = groups.get(subject)
-        const seen = fields.get(finding.field)
+        const group = groups.get(subject)
+        const seen = group.fields.get(finding.field)
 
-        if (!seen || finding.confidence > seen.confidence) fields.set(finding.field, finding)
+        if (!seen || finding.confidence > seen.confidence) group.fields.set(finding.field, finding)
+
+        for (const id of finding.image_ids || []) {
+            if (photos?.[id]) group.photos.add(photos[id])
+        }
     }
 
-    return [...groups].map(([subject, fields]) => ({ subject, findings: [...fields.values()] }))
+    return [...groups].map(([subject, group]) => ({
+        subject,
+        findings: [...group.fields.values()],
+        photos: [...group.photos],
+    }))
 }
 
 /**
@@ -970,7 +994,7 @@ async function ask() {
     const images = pending_images.value.slice()
     pending_images.value = []
 
-    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], unverified: [] }
+    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], photos: {}, unverified: [] }
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -1014,6 +1038,7 @@ async function ask() {
         exchange.choices = asChoices(data.choices)
         exchange.findings = data.findings || []
         exchange.unreadable = data.unreadable || []
+        exchange.photos = data.photos || {}
         exchange.unverified = data.unverified || []
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.

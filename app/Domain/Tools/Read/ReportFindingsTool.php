@@ -81,6 +81,13 @@ class ReportFindingsTool implements Tool
                                     . 'meent te herkennen is 60 tot 80, letters die je echt kunt lezen '
                                     . 'zijn 95, een gok op basis van vorm is 30.',
                             ],
+                            'image_ids' => [
+                                'type' => 'array',
+                                'description' => 'De image_id\'s van de foto\'s waar je dit vanaf leest, '
+                                    . 'uit wat view_images teruggaf. De gebruiker ziet die foto\'s dan bij '
+                                    . 'deze bevinding staan, dus hij kan zelf zien waar je het op baseert.',
+                                'items' => ['type' => 'integer'],
+                            ],
                             'basis' => [
                                 'type' => 'string',
                                 'description' => 'Waar het vandaan komt: "foto", "typeplaatje", '
@@ -141,6 +148,19 @@ class ReportFindingsTool implements Tool
             ->values()
             ->all();
 
+        /**
+         * The nudge fires where the gap is, not in a prompt somewhere above.
+         *
+         * Told in the system prompt to look up candidates it kept not doing it —
+         * "een gok op vorm, niet op tekst" — while the search that finds them
+         * takes one call: brand and bouwvorm are text, and text is exactly what
+         * it can look up. A monteur holding the machine picks his model out of
+         * three in seconds and can do nothing with "onleesbaar".
+         */
+        $missing = $unreadable === [] ? '' : ' Er staat iets bij unreadable: zoek nu op internet welke '
+            . 'modellen van dat merk die bouwvorm hebben en meld die als kandidaten met report_findings, '
+            . 'met een percentage en de bron erbij. Laat het niet bij "onleesbaar" — dat helpt niemand.';
+
         return ToolResult::ok(
             [
                 'findings' => $findings,
@@ -150,7 +170,7 @@ class ReportFindingsTool implements Tool
                     . 'in een tweede ronde. Herhaal ze '
                     . 'niet in je antwoord; zeg kort wat je conclusie is, waar je het minst zeker over '
                     . 'bent, en wat een betere foto zou oplossen. Ga niet verder aanmaken zolang iets '
-                    . 'onder de 70 procent zit zonder dat de gebruiker het bevestigt.',
+                    . 'onder de 70 procent zit zonder dat de gebruiker het bevestigt.' . $missing,
             ],
             count($findings) . ' bevinding(en) gemeld.',
         );
@@ -188,6 +208,11 @@ class ReportFindingsTool implements Tool
                 /** Clamped rather than refused: 120 per cent is enthusiasm, not an error. */
                 'confidence' => max(0, min(100, (int) ($finding['confidence'] ?? 0))),
                 'basis' => mb_substr(trim((string) ($finding['basis'] ?? 'foto')), 0, 20) ?: 'foto',
+                'image_ids' => collect($finding['image_ids'] ?? [])
+                    ->filter(fn ($id) => is_int($id) || (is_string($id) && ctype_digit($id)))
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all(),
             ];
         }
 

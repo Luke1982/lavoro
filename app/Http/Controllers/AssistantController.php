@@ -75,6 +75,7 @@ class AssistantController extends Controller
         $seen = [];
         $findings = [];
         $unreadable = [];
+        $photos = [];
 
         $attachments = $this->imagesAsAttachments($request->validated('images') ?? []);
 
@@ -141,6 +142,7 @@ class AssistantController extends Controller
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                     $findings,
                     $unreadable,
+                    $photos,
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
                 attachments: $attachments,
@@ -172,6 +174,7 @@ class AssistantController extends Controller
             'choices' => $choices,
             'findings' => $findings,
             'unreadable' => array_values(array_unique($unreadable)),
+            'photos' => $photos,
             /**
              * Records the answer named that no tool returned. A prompt forbids
              * inventing them and a prompt is not a guarantee, so this is checked
@@ -298,6 +301,7 @@ class AssistantController extends Controller
         ?Closure $learn = null,
         array &$findings = [],
         array &$unreadable = [],
+        array &$photos = [],
     ): Closure {
         return function (
             string $name,
@@ -312,6 +316,7 @@ class AssistantController extends Controller
             $learn,
             &$findings,
             &$unreadable,
+            &$photos,
         ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
 
@@ -342,6 +347,17 @@ class AssistantController extends Controller
              * Tosot — a grouping that describes when the model spoke, not what it
              * was looking at. The box groups these by machine instead.
              */
+            /**
+             * Where the photos live, so a finding can be shown beside the picture
+             * it was read off. The box never sees a tool result, so the addresses
+             * have to travel with the answer.
+             */
+            foreach ($result?->content['images'] ?? [] as $photo) {
+                if (filled($photo['url'] ?? null)) {
+                    $photos[(int) $photo['image_id']] = $photo['url'];
+                }
+            }
+
             if (is_array($result?->content) && isset($result->content['findings'])) {
                 $findings = array_merge($findings, $result->content['findings']);
                 $unreadable = array_merge($unreadable, $result->content['unreadable'] ?? []);
