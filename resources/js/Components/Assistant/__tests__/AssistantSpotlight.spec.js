@@ -384,3 +384,71 @@ describe('the questions panel', () => {
         expect(wrapper.text()).not.toContain('Veelgestelde vragen')
     })
 })
+
+/**
+ * Grouped by tool call — which is how they arrive — a set read in two batches
+ * drew a box with an outdoor unit and one indoor unit, then a box with a second
+ * indoor unit and an unrelated Tosot.
+ */
+describe('findings grouped by machine', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        get.mockResolvedValue({ data: { conversations: [] } })
+    })
+
+    it('puts one machine in one box however the readings arrived', async () => {
+        post.mockResolvedValue({
+            data: {
+                answer: 'Gevonden.',
+                tools: [],
+                choices: [],
+                findings: [
+                    { subject: 'buitenunit', field: 'model', value: 'SCM80ZS-W', confidence: 95 },
+                    { subject: 'binnenunit 1', field: 'model', value: 'SRK35ZS-WF', confidence: 95 },
+                    { subject: 'buitenunit', field: 'serienummer', value: '654600682CE', confidence: 90 },
+                ],
+                unreadable: ['Tosot typeplaatje'],
+            },
+        })
+
+        const wrapper = await box()
+        await wrapper.find('textarea').setValue('Lees de plaatjes')
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+
+        const boxes = wrapper.findAll('.bg-slate-50').filter((node) => node.text().includes('%'))
+
+        expect(boxes).toHaveLength(2)
+        expect(boxes[0].text()).toContain('buitenunit')
+        expect(boxes[0].text()).toContain('SCM80ZS-W')
+        expect(boxes[0].text()).toContain('654600682CE')
+        expect(boxes[1].text()).toContain('SRK35ZS-WF')
+        expect(wrapper.text()).toContain('Tosot typeplaatje')
+    })
+
+    it('keeps the surer reading when a field is reported twice', async () => {
+        post.mockResolvedValue({
+            data: {
+                answer: 'Gevonden.',
+                tools: [],
+                choices: [],
+                findings: [
+                    // The surer one first, so "last wins" would show the vague one.
+                    { subject: 'buitenunit', field: 'model', value: 'SCM80ZS-W', confidence: 95 },
+                    { subject: 'buitenunit', field: 'model', value: 'onduidelijk', confidence: 40 },
+                ],
+            },
+        })
+
+        const wrapper = await box()
+        await wrapper.find('textarea').setValue('Lees')
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.text()).toContain('SCM80ZS-W')
+        expect(wrapper.text()).not.toContain('onduidelijk')
+    })
+})

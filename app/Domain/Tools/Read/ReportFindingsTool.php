@@ -22,6 +22,12 @@ use App\Models\User;
  * draws bars. A merk at 80 and a model at 45 tells somebody exactly where to
  * point the lens next. Prose hedging cannot do that — "waarschijnlijk" reads
  * the same at 55 as at 90.
+ *
+ * Every finding also says which machine it is about, because the alternative
+ * grouping is the one the box had: a box per tool call. Six photos read in two
+ * batches produced two boxes holding an outdoor unit with one indoor unit, and
+ * a second indoor unit with a completely unrelated Tosot — a grouping that
+ * describes when the model happened to speak, not what it was looking at.
  */
 class ReportFindingsTool implements Tool
 {
@@ -51,10 +57,19 @@ class ReportFindingsTool implements Tool
                     'items' => [
                         'type' => 'object',
                         'properties' => [
+                            'subject' => [
+                                'type' => 'string',
+                                'description' => 'Welk apparaat dit is, kort en steeds hetzelfde geschreven: '
+                                    . '"buitenunit", "binnenunit 1", "binnenunit 2". Alles wat je van hetzelfde '
+                                    . 'apparaat afleest krijgt dezelfde naam, ook als het van verschillende '
+                                    . 'foto\'s komt of je het in twee rondes meldt — het wordt per apparaat '
+                                    . 'bij elkaar gezet. Twee foto\'s van één machine zijn één apparaat.',
+                            ],
                             'field' => [
                                 'type' => 'string',
-                                'description' => 'Wat dit is: merk, model, productsoort, serienummer, '
-                                    . 'vermogen, of iets anders dat je van het plaatje haalt.',
+                                'description' => 'Welk gegeven: merk, model, serienummer, productsoort, '
+                                    . 'vermogen. Zet het apparaat er niet in — dat staat al in subject, en '
+                                    . '"model buitenunit" naast subject "buitenunit" is dubbelop.',
                             ],
                             'value' => [
                                 'type' => 'string',
@@ -72,7 +87,7 @@ class ReportFindingsTool implements Tool
                                     . '"internet" of "systeem".',
                             ],
                         ],
-                        'required' => ['field', 'value', 'confidence'],
+                        'required' => ['subject', 'field', 'value', 'confidence'],
                         'additionalProperties' => false,
                     ],
                 ],
@@ -130,7 +145,9 @@ class ReportFindingsTool implements Tool
             [
                 'findings' => $findings,
                 'unreadable' => $unreadable,
-                'note' => 'De gebruiker ziet deze bevindingen als balkjes met percentages. Herhaal ze '
+                'note' => 'De gebruiker ziet deze bevindingen als balkjes met percentages, per apparaat '
+                    . 'bij elkaar gezet — meld hetzelfde apparaat dus altijd onder dezelfde subject, ook '
+                    . 'in een tweede ronde. Herhaal ze '
                     . 'niet in je antwoord; zeg kort wat je conclusie is, waar je het minst zeker over '
                     . 'bent, en wat een betere foto zou oplossen. Ga niet verder aanmaken zolang iets '
                     . 'onder de 70 procent zit zonder dat de gebruiker het bevestigt.',
@@ -165,6 +182,7 @@ class ReportFindingsTool implements Tool
             }
 
             $findings[] = [
+                'subject' => mb_substr(trim((string) ($finding['subject'] ?? '')), 0, 40) ?: 'Apparaat',
                 'field' => mb_substr($field, 0, 40),
                 'value' => mb_substr($value, 0, 120),
                 /** Clamped rather than refused: 120 per cent is enthusiasm, not an error. */

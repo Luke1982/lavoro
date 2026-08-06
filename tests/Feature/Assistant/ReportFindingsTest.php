@@ -94,10 +94,40 @@ class ReportFindingsTest extends TestCase
         ])->assertOk()->json();
 
         $this->assertCount(1, $answer['findings'], 'the bars never left the server');
-        $this->assertSame('merk', $answer['findings'][0]['findings'][0]['field']);
-        $this->assertSame('Tosot', $answer['findings'][0]['findings'][0]['value']);
-        $this->assertSame(70, $answer['findings'][0]['findings'][0]['confidence']);
-        $this->assertSame(['serienummer'], $answer['findings'][0]['unreadable']);
+        $this->assertSame('merk', $answer['findings'][0]['field']);
+        $this->assertSame('Tosot', $answer['findings'][0]['value']);
+        $this->assertSame(70, $answer['findings'][0]['confidence']);
+        $this->assertSame('buitenunit', $answer['findings'][0]['subject']);
+        $this->assertSame(['serienummer'], $answer['unreadable']);
+    }
+
+    /**
+     * Every finding says which machine it describes.
+     *
+     * The alternative grouping is the one the box had — a box per tool call —
+     * and six photos read in two batches drew an outdoor unit beside one indoor
+     * unit, then a second indoor unit beside a completely unrelated Tosot. That
+     * describes when the model spoke, not what it was looking at.
+     */
+    public function test_a_finding_carries_the_machine_it_is_about(): void
+    {
+        $result = $this->report(['findings' => [
+            ['subject' => 'buitenunit', 'field' => 'model', 'value' => 'SCM80ZS-W', 'confidence' => 95],
+            ['subject' => 'binnenunit 1', 'field' => 'model', 'value' => 'SRK35ZS-WF', 'confidence' => 95],
+        ]]);
+
+        $this->assertSame('buitenunit', $result->content['findings'][0]['subject']);
+        $this->assertSame('binnenunit 1', $result->content['findings'][1]['subject']);
+    }
+
+    /** Left out, it still lands somewhere rather than breaking the box. */
+    public function test_a_finding_without_a_machine_gets_a_neutral_one(): void
+    {
+        $result = $this->report(['findings' => [
+            ['field' => 'merk', 'value' => 'Tosot', 'confidence' => 70],
+        ]]);
+
+        $this->assertSame('Apparaat', $result->content['findings'][0]['subject']);
     }
 }
 
@@ -134,7 +164,13 @@ class FindingsModel implements TalksToModel
                 id: 'toolu_findings',
                 name: 'report_findings',
                 arguments: [
-                    'findings' => [['field' => 'merk', 'value' => 'Tosot', 'confidence' => 70, 'basis' => 'foto']],
+                    'findings' => [[
+                        'subject' => 'buitenunit',
+                        'field' => 'merk',
+                        'value' => 'Tosot',
+                        'confidence' => 70,
+                        'basis' => 'foto',
+                    ]],
                     'unreadable' => ['serienummer'],
                 ],
             )], StopReason::wants_tools);

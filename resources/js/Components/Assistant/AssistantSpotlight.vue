@@ -202,11 +202,11 @@
                         same at 55 as at 90, and a bar at 45 tells somebody
                         exactly where to point the lens next.
                     -->
-                    <div v-for="(read, readIndex) in exchange.findings" :key="'f' + readIndex"
+                    <div v-for="group in byMachine(exchange.findings)" :key="group.subject"
                         class="rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200">
-                        <p class="text-xs font-medium text-slate-700">Van de foto afgelezen</p>
+                        <p class="text-xs font-medium text-slate-700">{{ group.subject }}</p>
                         <ul class="mt-2 space-y-1.5">
-                            <li v-for="(finding, findingIndex) in read.findings" :key="findingIndex">
+                            <li v-for="(finding, findingIndex) in group.findings" :key="findingIndex">
                                 <div class="flex items-baseline justify-between gap-2 text-xs">
                                     <span class="text-slate-500">{{ finding.field }}</span>
                                     <span class="min-w-0 flex-1 truncate font-medium text-slate-900">
@@ -223,10 +223,11 @@
                                 </div>
                             </li>
                         </ul>
-                        <p v-if="read.unreadable?.length" class="mt-2 text-[11px] text-slate-500">
-                            Niet te lezen: {{ read.unreadable.join(', ') }}
-                        </p>
                     </div>
+
+                    <p v-if="exchange.unreadable?.length" class="text-[11px] text-slate-500">
+                        Niet te lezen: {{ exchange.unreadable.join(' · ') }}
+                    </p>
 
                     <div v-for="(choice, choiceIndex) in exchange.choices" :key="'c' + choiceIndex"
                         class="rounded-lg bg-indigo-50 px-3 py-2.5 ring-1 ring-indigo-200">
@@ -676,6 +677,32 @@ const toolLabel = (name) => TOOL_LABELS[name] || name
  * is barely more than a shape. The thresholds match what the tool tells the
  * model they mean.
  */
+/**
+ * Findings grouped by the machine they describe, in the order first mentioned.
+ *
+ * Grouped by tool call — which is how they arrive — a set read in two batches
+ * drew a box with an outdoor unit and one indoor unit, then a box with a second
+ * indoor unit and an unrelated Tosot. That grouping tells you when the model
+ * spoke, which nobody asked. The same field twice for one machine keeps the
+ * surer reading.
+ */
+function byMachine(findings) {
+    const groups = new Map()
+
+    for (const finding of findings || []) {
+        const subject = finding.subject || 'Apparaat'
+
+        if (!groups.has(subject)) groups.set(subject, new Map())
+
+        const fields = groups.get(subject)
+        const seen = fields.get(finding.field)
+
+        if (!seen || finding.confidence > seen.confidence) fields.set(finding.field, finding)
+    }
+
+    return [...groups].map(([subject, fields]) => ({ subject, findings: [...fields.values()] }))
+}
+
 const confidenceColour = (confidence) =>
     confidence >= 80 ? 'bg-emerald-500' : confidence >= 50 ? 'bg-amber-500' : 'bg-red-400'
 
@@ -901,7 +928,7 @@ async function ask() {
     const images = pending_images.value.slice()
     pending_images.value = []
 
-    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unverified: [] }
+    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], unverified: [] }
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -936,6 +963,7 @@ async function ask() {
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
         exchange.findings = data.findings || []
+        exchange.unreadable = data.unreadable || []
         exchange.unverified = data.unverified || []
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.

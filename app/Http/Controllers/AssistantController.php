@@ -74,6 +74,7 @@ class AssistantController extends Controller
         $choices = [];
         $seen = [];
         $findings = [];
+        $unreadable = [];
 
         $attachments = $this->imagesAsAttachments($request->validated('images') ?? []);
 
@@ -130,6 +131,7 @@ class AssistantController extends Controller
                     $seen,
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                     $findings,
+                    $unreadable,
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
                 attachments: $attachments,
@@ -160,6 +162,7 @@ class AssistantController extends Controller
             'pending' => $pending,
             'choices' => $choices,
             'findings' => $findings,
+            'unreadable' => array_values(array_unique($unreadable)),
             /**
              * Records the answer named that no tool returned. A prompt forbids
              * inventing them and a prompt is not a guarantee, so this is checked
@@ -285,6 +288,7 @@ class AssistantController extends Controller
         array &$seen = [],
         ?Closure $learn = null,
         array &$findings = [],
+        array &$unreadable = [],
     ): Closure {
         return function (
             string $name,
@@ -298,6 +302,7 @@ class AssistantController extends Controller
             &$seen,
             $learn,
             &$findings,
+            &$unreadable,
         ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
 
@@ -321,11 +326,16 @@ class AssistantController extends Controller
              * like a choice: the box draws bars from the data rather than from
              * the model remembering to phrase percentages in prose.
              */
+            /**
+             * Merged across calls rather than kept per call. Grouped by call, six
+             * photos read in two batches drew two boxes holding an outdoor unit
+             * with one indoor unit, then a second indoor unit with an unrelated
+             * Tosot — a grouping that describes when the model spoke, not what it
+             * was looking at. The box groups these by machine instead.
+             */
             if (is_array($result?->content) && isset($result->content['findings'])) {
-                $findings[] = [
-                    'findings' => $result->content['findings'],
-                    'unreadable' => $result->content['unreadable'] ?? [],
-                ];
+                $findings = array_merge($findings, $result->content['findings']);
+                $unreadable = array_merge($unreadable, $result->content['unreadable'] ?? []);
             }
 
             if ($status === 'keuze_nodig') {
