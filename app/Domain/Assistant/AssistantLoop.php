@@ -62,6 +62,7 @@ class AssistantLoop
         array $history = [],
         array $attachments = [],
         bool $needs_vision = false,
+        bool $needs_documents = false,
     ): AssistantAnswer {
         $tools = $this->registry->definitionsFor($user);
 
@@ -70,7 +71,20 @@ class AssistantLoop
          * for, unless the caller insists on one.
          */
         $wanted = $difficulty ?? $this->registry->requiredDifficultyFor($user);
-        $model = $this->models->forDifficulty($wanted, needs_vision: $needs_vision || $attachments !== []);
+
+        /**
+         * Which capability the attachments actually demand, rather than "some
+         * file rode along, buy eyes". A pdf needs a provider that opens files and
+         * a photo needs one that looks — asking for the wrong one either passes
+         * over a model that would have done, or picks one that drops the file.
+         */
+        $pictures = array_filter($attachments, fn ($file) => str_starts_with($file->media_type, 'image/'));
+
+        $model = $this->models->forDifficulty(
+            $wanted,
+            needs_vision: $needs_vision || $pictures !== [],
+            needs_documents: $needs_documents || count($pictures) !== count($attachments),
+        );
 
         /**
          * The tools ask what the model can do, and until now they asked the

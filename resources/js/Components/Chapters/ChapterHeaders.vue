@@ -1,12 +1,14 @@
 <template>
     <div>
         <!-- Mobile: select menu -->
-        <div class="flex sm:hidden mb-2">
+        <div class="flex sm:hidden mb-2" :class="dense ? 'px-3 pt-2' : ''">
             <SelectMenuComponent v-model="activeChapterWritable" :options="selectOptions" class="w-full" />
         </div>
 
         <!-- Desktop: tab bar -->
-        <div class="hidden sm:flex mb-5 relative border-b-2 border-gray-200">
+        <!-- Dense bars live in narrow frames, where three chapters can outgrow the column. -->
+        <div class="hidden sm:flex relative border-b-2 border-gray-200"
+            :class="dense ? 'mb-0 px-1 overflow-x-auto' : 'mb-5'">
             <slot />
             <div class="flex-grow"></div>
             <div class="absolute bottom-[-2px] h-[3px] bg-lavoro-blue rounded-full transition-all duration-300 ease-in-out"
@@ -19,7 +21,7 @@
 import { inject, computed, onMounted, nextTick } from 'vue'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 
-const { activeChapter, indicatorLeft, indicatorWidth, labels, setActiveChapter, updateIndicator } = inject('chapters')
+const { activeChapter, dense, indicatorLeft, indicatorWidth, labels, setActiveChapter, updateIndicator } = inject('chapters')
 
 const activeChapterWritable = computed({
     get: () => activeChapter.value,

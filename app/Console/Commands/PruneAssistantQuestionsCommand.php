@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Models\AssistantConversationFact;
 use App\Models\AssistantQuestion;
@@ -62,9 +63,12 @@ class PruneAssistantQuestionsCommand extends Command
 
         /**
          * Parked photos get days, not months: nobody chose to keep them, and
-         * they are the one thing here that was explicitly left undecided.
+         * they are the one thing here that was explicitly left undecided. Files
+         * borrowed for a conversation go on the same clock — nobody chose to
+         * keep those either; they were never offered the choice.
          */
         app(ConversationPhotos::class)->pruneOlderThan((int) config('assistant.photo_days', 7));
+        app(ConversationFiles::class)->pruneOlderThan((int) config('assistant.photo_days', 7));
         Storage::disk(config('assistant.reports_disk', 'local'))->delete($reports);
 
         $this->info($this->lineFor($counts, $cutoff, 'verwijderd'));

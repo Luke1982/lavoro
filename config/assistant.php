@@ -124,6 +124,8 @@ return [
             'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
             /** De enige adapter die bijlagen echt doorgeeft; foto's dwingen deze aanbieder af. */
             'sees_images' => true,
+            /** En dezelfde adapter leest pdf's; een bijlage dwingt deze aanbieder net zo goed af. */
+            'reads_documents' => true,
             /**
              * Internet opzoeken, door de leverancier zelf uitgevoerd. Kost circa
              * een cent per zoekactie plus de tokens van wat er gelezen wordt;
@@ -181,6 +183,8 @@ return [
             'model' => env('ANTHROPIC_LIGHT_MODEL', 'claude-haiku-4-5-20251001'),
             'api_key' => env('ANTHROPIC_API_KEY'),
             'capability' => 4,
+            /** Reading a datasheet is not the same work as weighing one; the cheap one can do it. */
+            'reads_documents' => true,
         ],
 
         /*
@@ -339,7 +343,17 @@ return [
 
     'max_image_kb' => env('ASSISTANT_MAX_IMAGE_KB', 4000),
 
-    /** Hoeveel dagen geparkeerde foto's wachten op een keuze voordat ze weggaan. */
+    /*
+    | Bestanden bij een vraag: pdf's en platte tekst. Krapper dan foto's, want een
+    | pdf van twintig pagina's is tienduizenden tokens — en twee bestanden naast
+    | elkaar leggen is de vraag die mensen stellen, drie vrijwel nooit.
+    */
+
+    'max_documents' => env('ASSISTANT_MAX_DOCUMENTS', 2),
+
+    'max_document_kb' => env('ASSISTANT_MAX_DOCUMENT_KB', 4000),
+
+    /** Hoeveel dagen geparkeerde foto's en bestanden wachten op een keuze voordat ze weggaan. */
     'photo_days' => env('ASSISTANT_PHOTO_DAYS', 7),
 
     'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),

@@ -279,8 +279,11 @@ class VisionFlagPicker extends ModelPicker
 {
     public static bool $wanted = false;
 
-    public function forDifficulty(int $difficulty, bool $needs_vision = false): TalksToModel
-    {
+    public function forDifficulty(
+        int $difficulty,
+        bool $needs_vision = false,
+        bool $needs_documents = false,
+    ): TalksToModel {
         self::$wanted = $needs_vision;
 
         return new ImageSpyModel;

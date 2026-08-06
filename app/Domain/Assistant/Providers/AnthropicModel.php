@@ -137,9 +137,14 @@ class AnthropicModel implements TalksToModel
         return (bool) $this->setting('sees_images');
     }
 
+    /**
+     * Config rather than a hard yes, so the picker and the adapter cannot
+     * disagree: routing skips entries without the flag, and an entry that says
+     * nothing should not then claim it reads files after being chosen anyway.
+     */
     public function readsDocuments(): bool
     {
-        return true;
+        return (bool) $this->setting('reads_documents');
     }
 
     /** @return array<string, mixed> */

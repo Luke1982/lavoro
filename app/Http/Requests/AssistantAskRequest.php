@@ -39,6 +39,19 @@ class AssistantAskRequest extends FormRequest
                 'regex:#^data:image/(jpeg|png|webp|gif);base64,#',
                 'max:' . ((int) config('assistant.max_image_kb', 4000)) * 1024,
             ],
+            /**
+             * Bestanden, ook als data-URLs. Alleen soorten die de aanbieder echt
+             * openslaat: een docx die als document wordt meegestuurd komt terug
+             * als onleesbare bytes, en een antwoord daarop leest als een antwoord.
+             */
+            'documents' => ['nullable', 'array', 'max:' . (int) config('assistant.max_documents', 2)],
+            'documents.*.name' => ['required', 'string', 'max:255'],
+            'documents.*.data' => [
+                'required',
+                'string',
+                'regex:#^data:(application/pdf|text/plain|text/csv);base64,#',
+                'max:' . ((int) config('assistant.max_document_kb', 4000)) * 1024,
+            ],
         ];
     }
 
@@ -51,6 +64,11 @@ class AssistantAskRequest extends FormRequest
             'images.*.regex' => 'Alleen foto\'s (JPEG, PNG, WebP of GIF) kunnen mee met een vraag.',
             'images.*.max' => 'Die foto is te groot. Maak hem kleiner dan '
                 . round((int) config('assistant.max_image_kb', 4000) / 1024, 1) . ' MB.',
+            'documents.max' => 'Maximaal ' . (int) config('assistant.max_documents', 2) . ' bestanden per vraag.',
+            'documents.*.data.regex' => 'Alleen pdf- en tekstbestanden kunnen mee met een vraag. '
+                . 'Een Word- of Excel-bestand kun je als pdf opslaan en zo meesturen.',
+            'documents.*.data.max' => 'Dat bestand is te groot. Houd het onder '
+                . round((int) config('assistant.max_document_kb', 4000) / 1024, 1) . ' MB.',
         ];
     }
 }

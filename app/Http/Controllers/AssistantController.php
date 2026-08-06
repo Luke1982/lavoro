@@ -6,10 +6,12 @@ use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ConversationFacts;
+use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ConversationReport;
 use App\Domain\Assistant\ModelPicker;
 use App\Domain\Assistant\NeedsEyes;
+use App\Domain\Assistant\NeedsTheFile;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
@@ -77,7 +79,11 @@ class AssistantController extends Controller
         $unreadable = [];
         $photos = [];
 
-        $attachments = $this->imagesAsAttachments($request->validated('images') ?? []);
+        $conversation = (string) $request->validated('conversation');
+        $question = (string) $request->validated('question');
+
+        $pictures = $this->imagesAsAttachments($request->validated('images') ?? []);
+        $files = $this->documentsAsAttachments($request->validated('documents') ?? []);
 
         /**
          * A photo stays with the conversation, not with the one message it came
@@ -88,28 +94,35 @@ class AssistantController extends Controller
          * Re-sent from the parked copy, so it costs tokens on every follow-up of
          * a photo conversation. That is the price of the box behaving the way
          * anybody would expect it to.
+         *
+         * Only when the question is about them, though. Sent on every follow-up,
+         * six photographs went up again to be asked something that had nothing
+         * to do with looking — eight thousand tokens to answer "kun je die
+         * modellen opzoeken", which is tens of times what the question is worth.
          */
-        if ($attachments === []
-            && filled($request->validated('conversation'))
-            && NeedsEyes::inQuestion($request->validated('question'))) {
-            /**
-             * Only when the question is about them. Sent on every follow-up, six
-             * photographs went up again to be asked something that had nothing to
-             * do with looking — eight thousand tokens to answer "kun je die
-             * modellen opzoeken", which is tens of times what the question is
-             * worth.
-             */
-            $attachments = app(ConversationPhotos::class)->parked($request->validated('conversation'));
+        if ($pictures === [] && filled($conversation) && NeedsEyes::inQuestion($question)) {
+            $pictures = app(ConversationPhotos::class)->parked($conversation);
+        }
+
+        /** And a datasheet is the same story, told about a file instead of a photo. */
+        if ($files === [] && filled($conversation) && NeedsTheFile::inQuestion($question)) {
+            $files = app(ConversationFiles::class)->parked($conversation);
         }
 
         /**
-         * Refused up front rather than silently dropped. A photo handed to a
-         * provider that cannot look at it gets answered in the same confident
-         * voice as one that was seen, which is fabrication with extra steps.
+         * Refused up front rather than silently dropped. An attachment handed to
+         * a provider that cannot open it gets answered in the same confident
+         * voice as one that was read, which is fabrication with extra steps.
          */
-        if ($attachments !== [] && !app(ModelPicker::class)->canSee()) {
+        if ($pictures !== [] && !app(ModelPicker::class)->canSee()) {
             return response()->json([
                 'message' => 'Er is geen model ingesteld dat foto\'s kan bekijken.',
+            ], 422);
+        }
+
+        if ($files !== [] && !app(ModelPicker::class)->canRead()) {
+            return response()->json([
+                'message' => 'Er is geen model ingesteld dat bestanden kan lezen.',
             ], 422);
         }
 
@@ -118,10 +131,18 @@ class AssistantController extends Controller
          * can decide at the end of the conversation whether they go into their
          * storage — that space is theirs and counts against their limits, so
          * nothing lands there without them saying so.
+         *
+         * Files wait too, but only so the rest of the conversation can keep
+         * reading them; they are never offered a home in somebody's storage,
+         * because a document without a category filed by itself is a document
+         * nobody will find again.
          */
-        if ($attachments !== [] && filled($request->validated('conversation'))) {
-            app(ConversationPhotos::class)->stash($request->validated('conversation'), $attachments);
+        if (filled($conversation)) {
+            app(ConversationPhotos::class)->stash($conversation, $pictures);
+            app(ConversationFiles::class)->stash($conversation, $files);
         }
+
+        $attachments = array_merge($pictures, $files);
 
         try {
             $answer = $loop->ask(
@@ -154,6 +175,8 @@ class AssistantController extends Controller
                  * about what it can do.
                  */
                 needs_vision: $this->willLookAtPictures($request),
+                /** And a conversation that had a file stays with a provider that can open one. */
+                needs_documents: filled($conversation) && app(ConversationFiles::class)->has($conversation),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -646,6 +669,8 @@ class AssistantController extends Controller
         }
 
         $photos->discard($conversation);
+        /** Whatever was borrowed goes with them; it was never anybody's to keep. */
+        app(ConversationFiles::class)->discard($conversation);
 
         return response()->json(['message' => 'Foto\'s weggegooid.']);
     }
@@ -729,26 +754,59 @@ class AssistantController extends Controller
         return NeedsEyes::inQuestion($request->validated('question'));
     }
 
+    /** @return array<int, Attachment> */
     private function imagesAsAttachments(array $images): array
     {
         $attachments = [];
 
         foreach ($images as $index => $image) {
-            [$header, $base64] = explode(',', $image, 2) + [1 => ''];
-            $media_type = str_replace(['data:', ';base64'], '', $header);
+            $attachment = $this->asAttachment('foto-' . ($index + 1), (string) $image);
 
-            if (base64_decode($base64, true) === false) {
-                continue;
+            if ($attachment !== null) {
+                $attachments[] = $attachment;
             }
-
-            $attachments[] = new Attachment(
-                name: 'foto-' . ($index + 1),
-                media_type: $media_type,
-                base64: $base64,
-            );
         }
 
         return $attachments;
+    }
+
+    /**
+     * Files keep the name they arrived under, because the model is shown it as
+     * the document's title. "SRK71-datasheet.pdf" tells it which machine it is
+     * holding; "bestand-2" tells it nothing, and it will guess.
+     *
+     * @param  array<int, array{name: string, data: string}>  $documents
+     * @return array<int, Attachment>
+     */
+    private function documentsAsAttachments(array $documents): array
+    {
+        $attachments = [];
+
+        foreach ($documents as $index => $document) {
+            $attachment = $this->asAttachment(
+                (string) ($document['name'] ?? 'bestand-' . ($index + 1)),
+                (string) ($document['data'] ?? ''),
+            );
+
+            if ($attachment !== null) {
+                $attachments[] = $attachment;
+            }
+        }
+
+        return $attachments;
+    }
+
+    /** One reader for both kinds: a data URL is a data URL. */
+    private function asAttachment(string $name, string $data_url): ?Attachment
+    {
+        [$header, $base64] = explode(',', $data_url, 2) + [1 => ''];
+        $media_type = str_replace(['data:', ';base64'], '', $header);
+
+        if ($base64 === '' || base64_decode($base64, true) === false) {
+            return null;
+        }
+
+        return new Attachment(name: $name, media_type: $media_type, base64: $base64);
     }
 
     private function mailReport(string $markdown, string $name, User $user, ?string $reason = null): bool

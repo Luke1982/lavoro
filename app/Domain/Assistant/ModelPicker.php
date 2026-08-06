@@ -41,13 +41,16 @@ class ModelPicker
         return new self(fn () => $model);
     }
 
-    public function forDifficulty(int $difficulty, bool $needs_vision = false): TalksToModel
-    {
+    public function forDifficulty(
+        int $difficulty,
+        bool $needs_vision = false,
+        bool $needs_documents = false,
+    ): TalksToModel {
         if ($this->using !== null) {
             return ($this->using)($difficulty);
         }
 
-        $provider = $this->providerFor($difficulty, $needs_vision);
+        $provider = $this->providerFor($difficulty, $needs_vision, $needs_documents);
 
         return $this->resolved[$provider] ??= $this->build($provider);
     }
@@ -64,8 +67,19 @@ class ModelPicker
     /** Whether any usable provider can actually look at a photo. */
     public function canSee(): bool
     {
+        return $this->anyProviderWith('sees_images');
+    }
+
+    /** And whether any of them can actually open a file that is not a photo. */
+    public function canRead(): bool
+    {
+        return $this->anyProviderWith('reads_documents');
+    }
+
+    private function anyProviderWith(string $capability): bool
+    {
         foreach (config('assistant.providers', []) as $settings) {
-            if (filled($settings['api_key'] ?? null) && ($settings['sees_images'] ?? false)) {
+            if (filled($settings['api_key'] ?? null) && ($settings[$capability] ?? false)) {
                 return true;
             }
         }
@@ -73,7 +87,7 @@ class ModelPicker
         return false;
     }
 
-    public function providerFor(int $difficulty, bool $needs_vision = false): string
+    public function providerFor(int $difficulty, bool $needs_vision = false, bool $needs_documents = false): string
     {
         $usable = [];
 
@@ -93,6 +107,15 @@ class ModelPicker
              * the same confident voice as about one it did.
              */
             if ($needs_vision && !($settings['sees_images'] ?? false)) {
+                continue;
+            }
+
+            /**
+             * The same rule for a datasheet. An adapter that quietly drops the
+             * file answers the question from memory about a document sitting
+             * unread — confidently, and about the wrong machine.
+             */
+            if ($needs_documents && !($settings['reads_documents'] ?? false)) {
                 continue;
             }
 
