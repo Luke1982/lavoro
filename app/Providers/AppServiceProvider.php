@@ -33,6 +33,7 @@ use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
+use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
@@ -111,6 +112,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /**
+         * `php artisan serve` runs the real web server as a child process and
+         * strips its environment down to an allowlist, so the machine's stock
+         * php.ini limits apply there — far below what DocumentStoreRequest
+         * promises. Point PHP at .php.d (the leading colon keeps the default
+         * conf.d) and let the variable through, so any locally started dev
+         * server accepts what the app accepts. Production runs FPM behind
+         * nginx and must be raised in server config instead.
+         */
+        $needs_ini_scan_dir = $this->app->environment('local')
+            && $this->app->runningInConsole()
+            && getenv('PHP_INI_SCAN_DIR') === false;
+
+        if ($needs_ini_scan_dir) {
+            $scan_dir = ':' . base_path('.php.d');
+            putenv('PHP_INI_SCAN_DIR=' . $scan_dir);
+            $_ENV['PHP_INI_SCAN_DIR'] = $scan_dir;
+            $_SERVER['PHP_INI_SCAN_DIR'] = $scan_dir;
+            ServeCommand::$passthroughVariables[] = 'PHP_INI_SCAN_DIR';
+        }
+
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);

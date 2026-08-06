@@ -556,7 +556,7 @@ const resolvedSubtitle = computed(() => props.subtitle || subjectSubtitle(
 
 // Mirrors DocumentStoreRequest's mimes/max rule — the dropzone must not promise
 // more than the server accepts.
-const MAX_FILE_MB = 20;
+const MAX_FILE_MB = 100;
 const EXTENSIONS = [
     'pdf', 'odt', 'odf', 'ods', 'doc', 'docx', 'xls', 'xlsx', 'csv',
     'ppt', 'pptx', 'txt', 'jpg', 'jpeg', 'png',

@@ -31,7 +31,7 @@ class DocumentStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'documents.*' => 'required|file|mimes:' . self::ALLOWED_MIMES . '|max:20480',
+            'documents.*' => 'required|file|mimes:' . self::ALLOWED_MIMES . '|max:102400',
             'documentable_id' => 'required|integer',
             'documentable_type' => 'required|string',
             'document_category_id' => 'nullable|integer|exists:document_categories,id',
