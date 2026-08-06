@@ -70,8 +70,23 @@ class AssistantController extends Controller
         $pending = [];
         $choices = [];
         $seen = [];
+        $findings = [];
 
         $attachments = $this->imagesAsAttachments($request->validated('images') ?? []);
+
+        /**
+         * A photo stays with the conversation, not with the one message it came
+         * on. "Kijk nog eens" arrived with no image at all and was answered
+         * truthfully — "ik heb geen foto ontvangen" — one turn after the photo
+         * had been described, which reads as the assistant losing its mind.
+         *
+         * Re-sent from the parked copy, so it costs tokens on every follow-up of
+         * a photo conversation. That is the price of the box behaving the way
+         * anybody would expect it to.
+         */
+        if ($attachments === [] && filled($request->validated('conversation'))) {
+            $attachments = app(ConversationPhotos::class)->parked($request->validated('conversation'));
+        }
 
         /**
          * Refused up front rather than silently dropped. A photo handed to a
@@ -111,6 +126,7 @@ class AssistantController extends Controller
                     $choices,
                     $seen,
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
+                    $findings,
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
                 attachments: $attachments,
@@ -140,6 +156,7 @@ class AssistantController extends Controller
             'tools' => $tools,
             'pending' => $pending,
             'choices' => $choices,
+            'findings' => $findings,
             /**
              * Records the answer named that no tool returned. A prompt forbids
              * inventing them and a prompt is not a guarantee, so this is checked
@@ -264,6 +281,7 @@ class AssistantController extends Controller
         array &$choices,
         array &$seen = [],
         ?Closure $learn = null,
+        array &$findings = [],
     ): Closure {
         return function (
             string $name,
@@ -276,6 +294,7 @@ class AssistantController extends Controller
             &$choices,
             &$seen,
             $learn,
+            &$findings,
         ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
 
@@ -291,6 +310,18 @@ class AssistantController extends Controller
                     'preview' => $result->content['preview'] ?? null,
                     'arguments' => $result->content['proposed'] ?? [],
                     'token' => $result->content['confirmation_token'],
+                ];
+            }
+
+            /**
+             * What was read off a photo, with how sure each part is. Collected
+             * like a choice: the box draws bars from the data rather than from
+             * the model remembering to phrase percentages in prose.
+             */
+            if (is_array($result?->content) && isset($result->content['findings'])) {
+                $findings[] = [
+                    'findings' => $result->content['findings'],
+                    'unreadable' => $result->content['unreadable'] ?? [],
                 ];
             }
 
@@ -738,6 +769,14 @@ class AssistantController extends Controller
             'leidend — wat daar staat zoek je niet nog eens op. Zeg er bij alles wat van internet',
             'komt bij dát het van internet komt en waarvandaan, en zoek nooit naar klanten of',
             'personen.',
+            '',
+            'Bekijk je een foto, meld dan altijd met report_findings wat je eruit haalt, per',
+            'onderdeel met een percentage. Zwijgen omdat je niet zeker bent is geen voorzichtigheid',
+            'maar nutteloosheid: een merk dat je op 70 procent herkent kan de gebruiker in één',
+            'seconde bevestigen, een weigering kan hij niets mee. Niets verzinnen en wél een',
+            'onzekere gok mélden met het percentage erbij zijn niet hetzelfde; het eerste blijft',
+            'verboden, het tweede is juist de bedoeling. Zeg er daarna in één zin bij wat je',
+            'conclusie is en welke foto het onzekerste deel zou oplossen.',
             '',
             'Krijg je foto\'s bij een vraag — meestal een typeplaatje — lees dan merk, type, model',
             'en serienummer letterlijk af. Zoek eerst met find_products of het product al bestaat',

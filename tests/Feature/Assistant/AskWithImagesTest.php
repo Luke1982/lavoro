@@ -160,6 +160,70 @@ class AskWithImagesTest extends TestCase
     {
         return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
     }
+
+    /**
+     * A photo belongs to the conversation, not to the one message it arrived on.
+     *
+     * "Kijk nog eens" came in with no image attached and was answered honestly —
+     * "ik heb geen foto ontvangen" — one turn after the photo had been described,
+     * which reads as the assistant losing its mind rather than as plumbing.
+     */
+    public function test_a_follow_up_sees_the_photo_again_without_resending_it(): void
+    {
+        Storage::fake('local');
+        $this->seeingPicker();
+
+        $conversation = 'cc33dd44-1111-4222-8333-999900001111';
+        $user = $this->userWith('assistant.use');
+
+        ImageSpyModel::$attachments = [];
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'Wat is dit voor apparaat?',
+            'conversation' => $conversation,
+            'images' => [$this->photo()],
+        ])->assertOk();
+
+        $this->assertCount(1, ImageSpyModel::$attachments);
+
+        /** The follow-up carries no image of its own. */
+        ImageSpyModel::$attachments = [];
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'Kijk nog eens goed',
+            'conversation' => $conversation,
+        ])->assertOk();
+
+        $this->assertCount(1, ImageSpyModel::$attachments, 'the follow-up had no photo to look at');
+        $this->assertSame('image/png', ImageSpyModel::$attachments[0]->media_type);
+    }
+
+    /** Once thrown away, they stop following the conversation around. */
+    public function test_discarded_photos_do_not_come_back(): void
+    {
+        Storage::fake('local');
+        $this->seeingPicker();
+
+        $conversation = 'cc33dd44-1111-4222-8333-999900002222';
+        $user = $this->userWith('assistant.use');
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'Wat is dit?',
+            'conversation' => $conversation,
+            'images' => [$this->photo()],
+        ])->assertOk();
+
+        $this->actingAs($user)->deleteJson('/assistant/photos', ['conversation' => $conversation])->assertOk();
+
+        ImageSpyModel::$attachments = [];
+
+        $this->actingAs($user)->postJson('/assistant/ask', [
+            'question' => 'En nu?',
+            'conversation' => $conversation,
+        ])->assertOk();
+
+        $this->assertSame([], ImageSpyModel::$attachments, 'a discarded photo came back');
+    }
 }
 
 /** Keeps what attachments arrived, so arrival can be asserted rather than assumed. */

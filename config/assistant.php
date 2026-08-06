@@ -11,6 +11,7 @@ use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
 use App\Domain\Tools\Read\ReadManualTool;
+use App\Domain\Tools\Read\ReportFindingsTool;
 use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
@@ -43,6 +44,7 @@ return [
     'tools' => [
         FindCustomerTool::class,
         AskWhichOneTool::class,
+        ReportFindingsTool::class,
         SearchServiceOrderTool::class,
         FindAssetTool::class,
         FindTicketTool::class,

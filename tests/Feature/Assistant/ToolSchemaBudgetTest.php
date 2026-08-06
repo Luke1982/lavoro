@@ -38,7 +38,7 @@ class ToolSchemaBudgetTest extends TestCase
      * not the size but the choosing: every tool added is one more thing to pick
      * wrongly from, and that shows up as a bad answer rather than a bill.
      */
-    private const ROOM_FOR = 22000;
+    private const ROOM_FOR = 24000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

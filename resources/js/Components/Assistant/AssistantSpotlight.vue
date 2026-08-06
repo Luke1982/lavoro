@@ -104,6 +104,38 @@
                         the conversation that needed the answer, and "de eerste" is
                         not reliably understood — so the options are options.
                     -->
+                    <!--
+                        What was read off the photo, each part with how sure it
+                        is. Bars rather than prose: "waarschijnlijk" reads the
+                        same at 55 as at 90, and a bar at 45 tells somebody
+                        exactly where to point the lens next.
+                    -->
+                    <div v-for="(read, readIndex) in exchange.findings" :key="'f' + readIndex"
+                        class="rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200">
+                        <p class="text-xs font-medium text-slate-700">Van de foto afgelezen</p>
+                        <ul class="mt-2 space-y-1.5">
+                            <li v-for="(finding, findingIndex) in read.findings" :key="findingIndex">
+                                <div class="flex items-baseline justify-between gap-2 text-xs">
+                                    <span class="text-slate-500">{{ finding.field }}</span>
+                                    <span class="min-w-0 flex-1 truncate font-medium text-slate-900">
+                                        {{ finding.value }}
+                                    </span>
+                                    <span class="shrink-0 tabular-nums text-slate-400">
+                                        {{ finding.confidence }}%
+                                    </span>
+                                </div>
+                                <div class="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                                    <div class="h-full rounded-full transition-all"
+                                        :class="confidenceColour(finding.confidence)"
+                                        :style="{ width: finding.confidence + '%' }" />
+                                </div>
+                            </li>
+                        </ul>
+                        <p v-if="read.unreadable?.length" class="mt-2 text-[11px] text-slate-500">
+                            Niet te lezen: {{ read.unreadable.join(', ') }}
+                        </p>
+                    </div>
+
                     <div v-for="(choice, choiceIndex) in exchange.choices" :key="'c' + choiceIndex"
                         class="rounded-lg bg-indigo-50 px-3 py-2.5 ring-1 ring-indigo-200">
                         <p class="text-xs font-medium text-indigo-900">
@@ -422,6 +454,14 @@ const TOOL_LABELS = {
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
 
+/**
+ * Green when it is worth acting on, amber when it wants confirming, red when it
+ * is barely more than a shape. The thresholds match what the tool tells the
+ * model they mean.
+ */
+const confidenceColour = (confidence) =>
+    confidence >= 80 ? 'bg-emerald-500' : confidence >= 50 ? 'bg-amber-500' : 'bg-red-400'
+
 const asChoices = (choices) => (choices || []).map((choice) => ({ ...choice, chosen: '', reference: '', sent: false, stale: false }))
 
 const asActions = (pending) => (pending || []).map((action) => ({
@@ -642,7 +682,7 @@ async function ask() {
     const images = pending_images.value.slice()
     pending_images.value = []
 
-    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
+    const exchange = { question: asked, images, answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unverified: [] }
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -676,6 +716,7 @@ async function ask() {
         exchange.tools = data.tools || []
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
+        exchange.findings = data.findings || []
         exchange.unverified = data.unverified || []
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.

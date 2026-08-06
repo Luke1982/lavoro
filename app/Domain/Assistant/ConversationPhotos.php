@@ -120,6 +120,29 @@ class ConversationPhotos
         return Storage::disk('local')->files($this->folder($conversation)) !== [];
     }
 
+    /**
+     * The parked photos as attachments again, so a follow-up can look at them.
+     *
+     * @return array<int, Attachment>
+     */
+    public function parked(string $conversation): array
+    {
+        $disk = Storage::disk('local');
+
+        return collect($disk->files($this->folder($conversation)))
+            ->map(function (string $file) use ($disk) {
+                $extension = pathinfo($file, PATHINFO_EXTENSION);
+
+                return new Attachment(
+                    name: basename($file),
+                    media_type: $extension === 'jpg' ? 'image/jpeg' : 'image/' . $extension,
+                    base64: base64_encode((string) $disk->get($file)),
+                );
+            })
+            ->values()
+            ->all();
+    }
+
     public function discard(string $conversation): void
     {
         Storage::disk('local')->deleteDirectory($this->folder($conversation));
