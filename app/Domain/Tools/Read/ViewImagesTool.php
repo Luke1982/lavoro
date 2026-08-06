@@ -117,8 +117,9 @@ class ViewImagesTool implements Tool
          */
         if (!app(TalksToModel::class)->seesImages()) {
             return ToolResult::failed(
-                'Het model dat deze vraag beantwoordt kan geen foto\'s bekijken. Zeg dat tegen de '
-                    . 'gebruiker in plaats van te beschrijven wat er op zou staan.'
+                'Dit gesprek draait op een model zonder beeld. Zeg tegen de gebruiker dat hij het '
+                    . 'opnieuw moet vragen met het woord "foto" in de vraag, dan komt er een model bij '
+                    . 'dat wel kan kijken. Beschrijf niet wat er op de foto zou staan.'
             );
         }
 

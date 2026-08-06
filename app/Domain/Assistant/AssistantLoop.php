@@ -9,6 +9,7 @@ use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
 use App\Domain\Assistant\Contracts\ModelToolResult;
 use App\Domain\Assistant\Contracts\StopReason;
+use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\ToolResultsTurn;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Tools\ToolCall;
@@ -68,10 +69,17 @@ class AssistantLoop
          * The cheapest model equal to the hardest tool this person can reach
          * for, unless the caller insists on one.
          */
-        $model = $this->models->forDifficulty(
-            $difficulty ?? $this->registry->requiredDifficultyFor($user),
-            needs_vision: $needs_vision || $attachments !== [],
-        );
+        $wanted = $difficulty ?? $this->registry->requiredDifficultyFor($user);
+        $model = $this->models->forDifficulty($wanted, needs_vision: $needs_vision || $attachments !== []);
+
+        /**
+         * The tools ask what the model can do, and until now they asked the
+         * container — which hands back the configured default, not the one this
+         * question is actually being answered by. view_images checked a model
+         * with eyes while DeepSeek did the answering, and the photos went into
+         * the dark.
+         */
+        app()->instance(TalksToModel::class, $model);
         /**
          * Earlier exchanges go back as words rather than as the replies they
          * came from: what was actually said is all a follow-up needs, and the
@@ -164,7 +172,14 @@ class AssistantLoop
              * sees it, so a datasheet cannot travel inside one.
              */
             if ($attachments !== []) {
-                $turns[] = new UserTurn(['De opgevraagde documenten:'], $attachments);
+                /**
+                 * Not a chance to swap in a model with eyes, however much this
+                 * round needs them: an assistant turn carries the supplier's own
+                 * raw content, and handing DeepSeek's to Anthropic gets
+                 * "messages.1.content: Input should be a valid array". Whether
+                 * this conversation can see is settled before the first round.
+                 */
+                $turns[] = new UserTurn(['De opgevraagde bestanden:'], $attachments);
             }
         }
     }

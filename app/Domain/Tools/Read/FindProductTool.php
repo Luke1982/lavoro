@@ -115,6 +115,16 @@ class FindProductTool implements Tool
                 ->where('model', 'like', $like)
                 ->orWhere('description', 'like', $like)
                 ->orWhere('part_no', 'like', $like)
+                /**
+                 * Also without spaces and dashes. A plate reads SRK35ZS-WF and
+                 * the catalogue holds "SRK 35 ZS-WF"; comparing them literally
+                 * meant the one search that matters most — the model number
+                 * somebody just read off the machine — found nothing.
+                 */
+                ->orWhereRaw(
+                    "REPLACE(REPLACE(LOWER(products.model), ' ', ''), '-', '') LIKE ?",
+                    ['%' . $this->squashed((string) $call->stringArgument('query')) . '%'],
+                )
                 ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $like))
                 /**
                  * The recorded attributes count as searchable text. A capacity, a
@@ -130,7 +140,17 @@ class FindProductTool implements Tool
         }
 
         if (filled($call->stringArgument('brand'))) {
-            $query->whereHas('brand', fn ($b) => $b->where('name', 'like', $call->likeArgument('brand')));
+            /**
+             * Matched both ways round. A typeplaatje says "Mitsubishi Heavy
+             * Industries" and this catalogue says "Mitsubishi", so looking only
+             * for the longer inside the shorter found nothing — and the answer
+             * that followed invented a reason why, involving Tosot.
+             */
+            $wanted_brand = trim((string) $call->stringArgument('brand'));
+
+            $query->whereHas('brand', fn ($b) => $b
+                ->where('name', 'like', $call->likeArgument('brand'))
+                ->orWhereRaw('? LIKE CONCAT(\'%\', LOWER(brands.name), \'%\')', [mb_strtolower($wanted_brand)]));
         }
 
         $matching = clone $query;
@@ -175,6 +195,22 @@ class FindProductTool implements Tool
      *
      * @return array<string, mixed>
      */
+    /**
+     * A model number with the punctuation nobody agrees on taken out, and its
+     * wildcards defanged.
+     *
+     * This bypasses likeArgument, which is where the escaping normally lives —
+     * so it has to do the escaping itself. Without it a search for "%" squashes
+     * to "%" and matches the whole catalogue, which is the bug this application
+     * has already had once.
+     */
+    private function squashed(string $value): string
+    {
+        $squashed = str_replace([' ', '-', '.'], '', mb_strtolower(trim($value)));
+
+        return addcslashes($squashed, '%_\\');
+    }
+
     private function rowFor(Product $product): array
     {
         return [

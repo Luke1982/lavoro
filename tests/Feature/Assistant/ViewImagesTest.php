@@ -74,8 +74,12 @@ class ViewImagesTest extends TestCase
     }
 
     /**
-     * Handed to a model that cannot see, the photos arrive as nothing and the
-     * answer describes them anyway — the one failure that reads like success.
+     * A blind model is told so rather than handed pictures it cannot see.
+     *
+     * Whether a conversation can see is settled before the first round — an
+     * assistant turn carries the supplier's own raw content, so it cannot change
+     * providers halfway — which means the tool can genuinely land on a model
+     * without eyes, and must say so instead of trying.
      */
     public function test_a_blind_model_is_told_so_instead_of_being_handed_photos(): void
     {
@@ -89,7 +93,7 @@ class ViewImagesTest extends TestCase
 
         $this->assertTrue($result->is_error);
         $this->assertSame([], $result->attachments);
-        $this->assertStringContainsString('geen foto', (string) $result->summary);
+        $this->assertStringContainsString('zonder beeld', (string) $result->summary);
     }
 
     public function test_more_photos_than_fit_are_reported_with_how_to_get_the_rest(): void

@@ -6,6 +6,7 @@ use App\Domain\Assistant\AssistantLoop;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Assistant\NeedsEyes;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
@@ -70,6 +71,8 @@ class AskAssistantCommand extends Command
                 system: $this->systemPrompt(),
                 context: $this->userContext($user),
                 difficulty: $difficulty,
+                /** Same call the box makes, or the command answers on a different model. */
+                needs_vision: NeedsEyes::inQuestion($this->argument('question')),
                 max_rounds: (int) $this->option('steps'),
                 onText: fn (string $text) => $this->line($text),
                 onTool: fn (string $name, array $arguments, bool $failed) => $this->line(

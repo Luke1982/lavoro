@@ -9,6 +9,7 @@ use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ConversationReport;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Assistant\NeedsEyes;
 use App\Domain\Assistant\PageContext;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Assistant\ReferenceCheck;
@@ -139,7 +140,7 @@ class AssistantController extends Controller
                  * truthfully for that model — which reads as the assistant lying
                  * about what it can do.
                  */
-                needs_vision: app(ConversationPhotos::class)->has((string) $request->validated('conversation')),
+                needs_vision: $this->willLookAtPictures($request),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -236,7 +237,7 @@ class AssistantController extends Controller
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                 ),
                 history: $request->validated('history'),
-                needs_vision: app(ConversationPhotos::class)->has((string) $request->validated('conversation')),
+                needs_vision: $this->willLookAtPictures($request),
             );
         } catch (ModelUnavailable $e) {
             $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $this->explain($e), continuation: true);
@@ -675,6 +676,24 @@ class AssistantController extends Controller
      * @param  array<int, string>  $images
      * @return array<int, Attachment>
      */
+    /**
+     * Whether this turn is going to end up looking at pictures.
+     *
+     * Decided before the first round because it cannot be decided later: an
+     * assistant turn carries the supplier's own raw content, so a conversation
+     * cannot change providers halfway. Parked photos are certain; the words are
+     * a guess, and a cheap one to get wrong — the cost of guessing yes is a
+     * dearer model, the cost of guessing no is a tool that has to refuse.
+     */
+    private function willLookAtPictures(AssistantAskRequest $request): bool
+    {
+        if (app(ConversationPhotos::class)->has((string) $request->validated('conversation'))) {
+            return true;
+        }
+
+        return NeedsEyes::inQuestion($request->validated('question'));
+    }
+
     private function imagesAsAttachments(array $images): array
     {
         $attachments = [];
@@ -809,15 +828,27 @@ class AssistantController extends Controller
         return implode("\n", [
             'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
             'Je schrijft altijd Nederlands.',
-            'Je antwoordt kort en concreet. Gebruik korte alinea\'s of een opsomming, geen tabellen.',
+            'Schrijf kort. Een antwoord is hooguit een paar regels tekst; alles wat opsombaar is',
+            'zet je in een opsomming of een tabel in plaats van in zinnen. Meerdere records met',
+            'dezelfde velden — machines met model en serienummer, producten met een nummer — horen',
+            'in een markdown-tabel, niet in lopende tekst.',
             '',
             'Vertel niet wat je gaat doen of aan het doen bent. Geen "ik ga even kijken", geen "laat',
             'me dat opzoeken", geen "ik heb nu alle foto\'s gezien", geen samenvatting achteraf van',
-            'je eigen stappen. De gebruiker ziet zelf welke tools je aanroept; die zinnen zijn ruis',
-            'die het antwoord naar beneden duwt. Begin met wat je gevonden hebt.',
+            'je eigen stappen. De gebruiker ziet zelf welke tools je aanroept. Begin met wat je',
+            'gevonden hebt.',
             '',
-            'Zeg iets één keer. Staat het in een keuzeknop, een balkje of een bevestigingsknop, dan',
-            'hoort het niet nog eens in je tekst. Herhaal aan het eind niet wat je hierboven al zei.',
+            'Zeg iets één keer. Staat het in een keuzeknop, een balkje met percentages of een',
+            'bevestigingsknop, dan hoort het niet nog eens in je tekst — noem hooguit de conclusie.',
+            'Herhaal aan het eind niet wat je hierboven al zei, en kondig geen knoppen aan die de',
+            'gebruiker al ziet staan.',
+            '',
+            'Zit je ernaast, dan corrigeer je het in één zin en ga je verder. Geen excuses, geen',
+            'uitleg over hoe het misging, geen herhaling van wat je eerder verkeerd zei. "Klopt,',
+            'het is X" is genoeg; de rest is ruis.',
+            '',
+            'Vraag aan het eind hooguit één ding, en alleen als je zonder dat antwoord niet verder',
+            'kunt. Geen rijtjes vervolgvragen.',
             '',
             'Gebruik de tools om echte gegevens op te halen. Verzin nooit een werkbonnummer,',
             'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',

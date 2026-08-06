@@ -494,4 +494,49 @@ class ReadToolScopeTest extends TestCase
 
         $this->assertArrayNotHasKey('related_products', $row, 'absence was dressed up as an empty answer');
     }
+
+    /**
+     * A typeplaatje and a catalogue never spell a model the same way.
+     *
+     * The plate reads SRK35ZS-WF and the catalogue holds "SRK 35 ZS-WF", so the
+     * one search that matters most — the number somebody just read off the
+     * machine — found nothing at all.
+     */
+    public function test_a_model_number_is_found_however_it_is_spaced(): void
+    {
+        $user = $this->userWith('product.read');
+        $brand = Brand::factory()->create(['name' => 'Mitsubishi']);
+        $product = Product::factory()->create(['brand_id' => $brand->id, 'model' => 'SRK 35 ZS-WF']);
+
+        foreach (['SRK35ZS-WF', 'srk35zswf', 'SRK 35 ZS-WF'] as $spelling) {
+            $found = $this->invoke('find_products', $user, ['query' => $spelling]);
+
+            $this->assertSame(
+                [$product->id],
+                array_column($found->content['products'] ?? [], 'product_id'),
+                '"' . $spelling . '" found the wrong thing',
+            );
+        }
+    }
+
+    /**
+     * The plate says "Mitsubishi Heavy Industries" and the catalogue says
+     * "Mitsubishi". Looking only for the longer inside the shorter found no
+     * brand at all, and the answer that followed invented a reason why.
+     */
+    public function test_a_brand_matches_the_longer_name_on_the_plate(): void
+    {
+        $user = $this->userWith('product.read');
+        $mitsubishi = Brand::factory()->create(['name' => 'Mitsubishi']);
+        Product::factory()->create(['brand_id' => $mitsubishi->id, 'model' => 'SRK 25 ZS-W']);
+        Product::factory()->create([
+            'brand_id' => Brand::factory()->create(['name' => 'Tosot'])->id,
+            'model' => 'Iets anders',
+        ]);
+
+        $found = $this->invoke('find_products', $user, ['brand' => 'Mitsubishi Heavy Industries']);
+
+        $this->assertCount(1, $found->content['products']);
+        $this->assertSame('Mitsubishi', $found->content['products'][0]['brand']);
+    }
 }
