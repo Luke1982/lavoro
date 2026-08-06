@@ -60,6 +60,7 @@ class AssistantLoop
         ?int $difficulty = null,
         array $history = [],
         array $attachments = [],
+        bool $needs_vision = false,
     ): AssistantAnswer {
         $tools = $this->registry->definitionsFor($user);
 
@@ -69,7 +70,7 @@ class AssistantLoop
          */
         $model = $this->models->forDifficulty(
             $difficulty ?? $this->registry->requiredDifficultyFor($user),
-            needs_vision: $attachments !== [],
+            needs_vision: $needs_vision || $attachments !== [],
         );
         /**
          * Earlier exchanges go back as words rather than as the replies they

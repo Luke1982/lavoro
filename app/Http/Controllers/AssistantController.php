@@ -114,6 +114,14 @@ class AssistantController extends Controller
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
                 attachments: $attachments,
+                /**
+                 * A conversation that had photos stays with the provider that can
+                 * see. Rated on its own, "kan je niet op internet zoeken?" is an
+                 * easy question, went to the cheap blind model, and was answered
+                 * truthfully for that model — which reads as the assistant lying
+                 * about what it can do.
+                 */
+                needs_vision: app(ConversationPhotos::class)->has((string) $request->validated('conversation')),
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -209,6 +217,7 @@ class AssistantController extends Controller
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                 ),
                 history: $request->validated('history'),
+                needs_vision: app(ConversationPhotos::class)->has((string) $request->validated('conversation')),
             );
         } catch (ModelUnavailable $e) {
             $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $this->explain($e), continuation: true);

@@ -114,6 +114,12 @@ class ConversationPhotos
         return ['count' => count($kept), 'home' => $noun . ' #' . $record->id];
     }
 
+    /** Whether this conversation has photos parked — which also means it HAD photos. */
+    public function has(string $conversation): bool
+    {
+        return Storage::disk('local')->files($this->folder($conversation)) !== [];
+    }
+
     public function discard(string $conversation): void
     {
         Storage::disk('local')->deleteDirectory($this->folder($conversation));

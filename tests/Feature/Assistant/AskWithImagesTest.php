@@ -8,8 +8,10 @@ use App\Domain\Assistant\Contracts\StopReason;
 use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\Contracts\UserTurn;
+use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ModelPicker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -113,6 +115,51 @@ class AskWithImagesTest extends TestCase
         $this->assertSame('deepseek', $picker->providerFor(3), 'without a photo the cheap provider is fine');
         $this->assertSame('anthropic', $picker->providerFor(3, needs_vision: true), 'a photo went to a blind provider');
     }
+
+    /**
+     * A conversation that had photos stays with the provider that can see.
+     *
+     * Rated on its own, the follow-up "kan je niet op internet zoeken?" is an
+     * easy question: it went to the cheap blind model, which truthfully answered
+     * that it cannot search or see — which reads as the assistant lying about
+     * what it can do, one turn after it described the photo.
+     */
+    public function test_a_follow_up_in_a_photo_conversation_keeps_the_seeing_provider(): void
+    {
+        Storage::fake('local');
+
+        $conversation = 'aa11bb22-3333-4444-8555-666677778888';
+
+        config(['assistant.providers.anthropic.api_key' => 'test-key']);
+        $this->app->bind(ModelPicker::class, fn () => new VisionFlagPicker);
+
+        app(ConversationPhotos::class)->stash($conversation, [
+            new Attachment(name: 'foto-1', media_type: 'image/png', base64: $this->pixelData()),
+        ]);
+
+        VisionFlagPicker::$wanted = false;
+
+        $this->actingAs($this->userWith('assistant.use'))->postJson('/assistant/ask', [
+            'question' => 'Kan je niet op internet zoeken wat het is?',
+            'conversation' => $conversation,
+        ])->assertOk();
+
+        $this->assertTrue(VisionFlagPicker::$wanted, 'the follow-up drifted to a blind provider');
+
+        /** And a fresh conversation without photos is free to go cheap. */
+        VisionFlagPicker::$wanted = true;
+
+        $this->actingAs($this->userWith('assistant.use'))->postJson('/assistant/ask', [
+            'question' => 'Wie is klant 12?',
+        ])->assertOk();
+
+        $this->assertFalse(VisionFlagPicker::$wanted);
+    }
+
+    private function pixelData(): string
+    {
+        return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    }
 }
 
 /** Keeps what attachments arrived, so arrival can be asserted rather than assumed. */
@@ -142,5 +189,18 @@ class ImageSpyModel implements TalksToModel
             model: 'image-fake',
             raw: null,
         );
+    }
+}
+
+/** Captures whether vision was demanded of the pick, then answers cheaply. */
+class VisionFlagPicker extends ModelPicker
+{
+    public static bool $wanted = false;
+
+    public function forDifficulty(int $difficulty, bool $needs_vision = false): TalksToModel
+    {
+        self::$wanted = $needs_vision;
+
+        return new ImageSpyModel;
     }
 }

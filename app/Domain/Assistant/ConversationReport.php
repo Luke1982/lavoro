@@ -7,6 +7,7 @@ use App\Models\AssistantQuestion;
 use App\Models\AssistantToolCall;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One conversation written out so somebody can find out what went wrong in it.
@@ -62,6 +63,10 @@ class ConversationReport
         }
 
         foreach ($this->factsFor($conversation, $user) as $line) {
+            $lines[] = $line;
+        }
+
+        foreach ($this->photosIn($conversation) as $line) {
             $lines[] = $line;
         }
 
@@ -123,6 +128,40 @@ class ConversationReport
         return implode("\n", $lines) . "\n";
     }
 
+    /**
+     * The photos still parked with this conversation, embedded whole.
+     *
+     * The prose describes what the model thought it saw; whoever diagnoses the
+     * conversation needs what it actually saw. Base64 makes the file heavy and
+     * that is the right trade — a report you cannot read the photo from is half
+     * a report. Kept or discarded photos are gone from here by definition; the
+     * section only exists while they are parked.
+     *
+     * @return array<int, string>
+     */
+    private function photosIn(string $conversation): array
+    {
+        $disk = Storage::disk('local');
+        $files = $disk->files('assistant-photos/' . $conversation);
+
+        if ($files === []) {
+            return [];
+        }
+
+        $lines = ["## Foto's bij dit gesprek", ''];
+
+        foreach ($files as $file) {
+            $extension = pathinfo($file, PATHINFO_EXTENSION);
+            $media_type = $extension === 'jpg' ? 'image/jpeg' : 'image/' . $extension;
+
+            $lines[] = '![' . basename($file) . '](data:' . $media_type . ';base64,'
+                . base64_encode((string) $disk->get($file)) . ')';
+            $lines[] = '';
+        }
+
+        return $lines;
+    }
+
     /** @return array<int, string> */
     private function factsFor(string $conversation, User $user): array
     {
@@ -160,7 +199,14 @@ class ConversationReport
     {
         return AssistantToolCall::query()
             ->where('user_id', $user->id)
-            ->where('created_at', '>=', $turns->first()->created_at)
+            /**
+             * Opens well before the first question row, because a turn's tools
+             * run during the minutes before that row is written. Anchored on the
+             * row itself, the first turn's calls fell outside the window and the
+             * pairing shifted one whole turn: a production report showed turn 3's
+             * arguments under turn 1 and nothing under turn 3.
+             */
+            ->where('created_at', '>=', $turns->first()->created_at->copy()->subMinutes(10))
             ->where('created_at', '<=', $turns->last()->created_at->addMinutes(5))
             ->orderBy('id')
             ->get(['tool', 'arguments', 'outcome', 'result'])

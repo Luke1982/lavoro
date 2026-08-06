@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelReply;
 use App\Domain\Assistant\Contracts\ModelToolCall;
 use App\Domain\Assistant\Contracts\StopReason;
 use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
+use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ModelPicker;
 use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
@@ -332,6 +334,76 @@ class ConversationReportTest extends TestCase
         $this->assertStringContainsString('"query": "label"', $written, 'the arguments were left out');
         $this->assertStringContainsString('Kwam terug (ok)', $written, 'what the tool returned was left out');
         $this->assertStringContainsString('Majorlabel', $written);
+    }
+
+    /**
+     * A turn's tools run during the minutes before its question row is written.
+     * Anchored on the row itself, the first turn's calls fell outside the window
+     * and every pairing shifted one whole turn — a production report showed turn
+     * 3's arguments under turn 1 and nothing at all under turn 3.
+     */
+    public function test_tools_that_ran_before_the_first_row_was_written_still_pair(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->userWith('assistant.use');
+        $turn = $this->turn($user->id);
+
+        $early = AssistantToolCall::create([
+            'user_id' => $user->id,
+            'tool' => 'find_customer',
+            'arguments' => ['city' => 'Meteren'],
+            'outcome' => 'ok',
+            'result' => 'HET ECHTE RESULTAAT VAN BEURT EEN',
+            'duration_ms' => 5,
+        ]);
+        $early->forceFill(['created_at' => $turn->created_at->copy()->subMinutes(2)])->saveQuietly();
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+        $written = Storage::disk('local')->get($response->json('path'));
+
+        $this->assertStringContainsString('"city": "Meteren"', $written, 'the early call fell out of the window');
+        $this->assertStringContainsString('HET ECHTE RESULTAAT VAN BEURT EEN', $written);
+    }
+
+    /**
+     * What the model actually saw, not just what it said it saw. The photos ride
+     * along whole while they are still parked — heavy, and that is the right
+     * trade: a report you cannot read the photo from is half a report.
+     */
+    public function test_parked_photos_are_embedded_in_the_report(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        app(ConversationPhotos::class)->stash(self::THREAD, [
+            new Attachment(
+                name: 'foto-1',
+                media_type: 'image/png',
+                base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            ),
+        ]);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+        $written = Storage::disk('local')->get($response->json('path'));
+
+        $this->assertStringContainsString("## Foto's bij dit gesprek", $written);
+        $this->assertStringContainsString('data:image/png;base64,iVBORw0KGgo', $written, 'the photo did not ride along');
+    }
+
+    /** No parked photos, no section — not an empty heading. */
+    public function test_a_conversation_without_photos_has_no_photo_section(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->userWith('assistant.use');
+        $this->turn($user->id);
+
+        $response = $this->actingAs($user)->postJson('/assistant/report', ['conversation' => self::THREAD]);
+
+        $this->assertStringNotContainsString('Foto', Storage::disk('local')->get($response->json('path')));
     }
 }
 
