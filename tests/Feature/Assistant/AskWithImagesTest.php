@@ -232,6 +232,11 @@ class ImageSpyModel implements TalksToModel
     /** @var array<int, Attachment> */
     public static array $attachments = [];
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

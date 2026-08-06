@@ -142,6 +142,11 @@ class SortingModel implements TalksToModel
         private readonly bool $throws = false,
     ) {}
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

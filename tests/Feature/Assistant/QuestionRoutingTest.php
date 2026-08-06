@@ -166,6 +166,11 @@ class FixedSorter extends QuestionSorter
 
 class RoutingModel implements TalksToModel
 {
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

@@ -412,6 +412,11 @@ class ReportSpyModel implements TalksToModel
 {
     private bool $asked = false;
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

@@ -110,6 +110,19 @@ Route::group(
          * Writes a conversation out to a file so it can be handed over for
          * diagnosis. Costs nothing at a supplier and touches no model.
          */
+        /** Questions worth asking again, per kind of page. */
+        Route::get('assistant/prompts', [AssistantController::class, 'prompts'])
+            ->middleware('throttle:60,1')
+            ->name('assistant.prompts');
+
+        Route::post('assistant/prompts', [AssistantController::class, 'storePrompt'])
+            ->middleware('throttle:30,1')
+            ->name('assistant.prompts.store');
+
+        Route::delete('assistant/prompts/{prompt}', [AssistantController::class, 'destroyPrompt'])
+            ->middleware('throttle:30,1')
+            ->name('assistant.prompts.destroy');
+
         /** The parked photos of a conversation: into their storage, or gone. */
         Route::post('assistant/photos/keep', [AssistantController::class, 'keepPhotos'])
             ->middleware('throttle:20,1')

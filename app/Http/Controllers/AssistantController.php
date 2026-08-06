@@ -23,8 +23,10 @@ use App\Http\Requests\AssistantConfirmRequest;
 use App\Http\Requests\AssistantContinueRequest;
 use App\Http\Requests\AssistantHistoryRequest;
 use App\Http\Requests\AssistantPhotosRequest;
+use App\Http\Requests\AssistantPromptStoreRequest;
 use App\Http\Requests\AssistantReportRequest;
 use App\Mail\AssistantConversationReportedMail;
+use App\Models\AssistantPrompt;
 use App\Models\AssistantQuestion;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -481,6 +483,62 @@ class AssistantController extends Controller
             'ok' => !$result->is_error,
             'message' => $result->summary ?? ($result->is_error ? 'Het is niet gelukt.' : 'Gelukt.'),
         ], $result->is_error ? 422 : 200);
+    }
+
+    /**
+     * The questions worth asking on the page somebody is looking at.
+     *
+     * Half of what this assistant can do is invisible from a blank prompt box —
+     * nobody guesses it can read a typeplaatje off photos already on a werkbon.
+     */
+    public function prompts(AssistantHistoryRequest $request): JsonResponse
+    {
+        $context = $request->query('context');
+
+        $prompts = AssistantPrompt::query()
+            ->visibleTo($request->user())
+            ->forContext(is_string($context) ? $context : null)
+            ->orderBy('sort')
+            ->orderBy('id')
+            ->get(['id', 'label', 'question', 'context', 'user_id']);
+
+        return response()->json([
+            'prompts' => $prompts->map(fn (AssistantPrompt $prompt) => [
+                'id' => $prompt->id,
+                'label' => $prompt->label,
+                'question' => $prompt->question,
+                /** Only your own can be removed; the shipped ones stay put. */
+                'mine' => $prompt->user_id !== null,
+            ])->all(),
+        ]);
+    }
+
+    public function storePrompt(AssistantPromptStoreRequest $request): JsonResponse
+    {
+        $prompt = AssistantPrompt::create([
+            'user_id' => $request->user()->id,
+            'label' => $request->validated('label'),
+            'question' => $request->validated('question'),
+            'context' => $request->validated('context'),
+            'sort' => 100,
+        ]);
+
+        return response()->json([
+            'message' => 'Vraag bewaard.',
+            'prompt' => ['id' => $prompt->id, 'label' => $prompt->label, 'question' => $prompt->question, 'mine' => true],
+        ], 201);
+    }
+
+    public function destroyPrompt(AssistantHistoryRequest $request, AssistantPrompt $prompt): JsonResponse
+    {
+        /** Yours to delete, and only yours: the shipped ones belong to everybody. */
+        if ($prompt->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Deze vraag is niet van jou.'], 403);
+        }
+
+        $prompt->delete();
+
+        return response()->json(['message' => 'Vraag verwijderd.']);
     }
 
     /**

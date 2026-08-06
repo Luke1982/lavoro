@@ -106,6 +106,11 @@ class FindingsModel implements TalksToModel
 {
     private bool $reported = false;
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

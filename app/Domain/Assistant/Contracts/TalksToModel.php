@@ -26,6 +26,16 @@ interface TalksToModel
     public function readsDocuments(): bool;
 
     /**
+     * Whether this model can look at a photo.
+     *
+     * Asked separately from documents because they are separate abilities and
+     * one adapter has one without the other. A tool that hands back images to a
+     * model that cannot see them fails silently — the answer arrives describing
+     * what was never looked at.
+     */
+    public function seesImages(): bool;
+
+    /**
      * @param  array<int, Turn>  $turns
      * @param  array<int, array{name: string, description: string, input_schema: array<string, mixed>, strict: bool}>  $tools
      */

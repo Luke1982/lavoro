@@ -66,6 +66,11 @@ class SearchedModel implements TalksToModel
     /** @var array<int, string> */
     public static array $searched = [];
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

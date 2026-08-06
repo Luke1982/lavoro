@@ -132,6 +132,11 @@ class AnthropicModel implements TalksToModel
         );
     }
 
+    public function seesImages(): bool
+    {
+        return (bool) $this->setting('sees_images');
+    }
+
     public function readsDocuments(): bool
     {
         return true;

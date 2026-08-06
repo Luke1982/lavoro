@@ -322,6 +322,11 @@ class FactsSpyModel implements TalksToModel
      */
     public static array $seen = [];
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

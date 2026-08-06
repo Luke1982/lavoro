@@ -334,3 +334,53 @@ describe('reporting with a reason', () => {
         expect(post.mock.calls.at(-1)[1].reason).toBeNull()
     })
 })
+
+/**
+ * Half of what this assistant can do is invisible from a blank prompt box —
+ * nobody guesses it can read a typeplaatje off photos already on a werkbon.
+ */
+describe('the questions panel', () => {
+    beforeEach(() => {
+        get.mockReset()
+        post.mockReset()
+        post.mockResolvedValue({ data: { answer: 'Goed.', tools: [], choices: [] } })
+    })
+
+    const withPrompts = (prompts) =>
+        get.mockImplementation((url) =>
+            url.startsWith('/assistant/prompts')
+                ? Promise.resolve({ data: { prompts } })
+                : Promise.resolve({ data: { conversations: [] } }))
+
+    it('offers the questions for this page while nothing has been asked', async () => {
+        withPrompts([{ id: 1, label: "Foto's uitlezen", question: 'Kijk naar de foto’s', mine: false }])
+
+        const wrapper = await box()
+
+        expect(wrapper.text()).toContain("Foto's uitlezen")
+        expect(get.mock.calls.some(([url, config]) =>
+            url === '/assistant/prompts' && config?.params?.context)).toBe(true)
+    })
+
+    it('asks the saved question when its button is clicked', async () => {
+        withPrompts([{ id: 1, label: 'Tijdelijke machines', question: 'Welke machines staan als onbekend?', mine: false }])
+
+        const wrapper = await box()
+        await wrapper.findAll('button').find((b) => b.text() === 'Tijdelijke machines').trigger('click')
+        await new Promise((resolve) => setTimeout(resolve))
+
+        expect(post.mock.calls.at(-1)[1].question).toBe('Welke machines staan als onbekend?')
+    })
+
+    it('leaves the panel behind once the conversation starts', async () => {
+        withPrompts([{ id: 1, label: "Foto's uitlezen", question: 'Kijk', mine: false }])
+
+        const wrapper = await box()
+        await wrapper.find('textarea').setValue('Iets anders')
+        await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+        await new Promise((resolve) => setTimeout(resolve))
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.text()).not.toContain('Veelgestelde vragen')
+    })
+})

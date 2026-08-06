@@ -68,6 +68,12 @@ class OpenAiCompatibleModel implements TalksToModel
      * datasheet would be dropped on the way out without a word. Saying no lets
      * the tool tell somebody why rather than answer from nothing.
      */
+    /** This adapter renders no attachments at all, of either kind. */
+    public function seesImages(): bool
+    {
+        return false;
+    }
+
     public function readsDocuments(): bool
     {
         return false;

@@ -200,6 +200,38 @@
             </div>
 
             <!--
+                Questions worth asking on this page. Shown while the box is still
+                empty, because that is the moment somebody does not know what to
+                type — half of what this assistant can do is invisible from a
+                blank prompt.
+            -->
+            <div v-if="!showing_history && !exchanges.length && prompts.length"
+                class="border-t border-slate-100 px-4 py-3">
+                <p class="text-xs font-medium text-slate-500">Veelgestelde vragen op deze pagina</p>
+                <ul class="mt-2 space-y-1">
+                    <li v-for="prompt in prompts" :key="prompt.id" class="flex items-center gap-2">
+                        <button type="button"
+                            class="min-w-0 flex-1 truncate rounded-md bg-slate-50 px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 ring-1 ring-slate-200 hover:bg-indigo-50 hover:text-indigo-900"
+                            :title="prompt.question"
+                            @click="askPrompt(prompt)">
+                            {{ prompt.label }}
+                        </button>
+                        <button v-if="prompt.mine" type="button"
+                            class="shrink-0 text-[11px] text-slate-400 hover:text-red-600"
+                            title="Deze vraag verwijderen"
+                            @click="forgetPrompt(prompt)">
+                            verwijderen
+                        </button>
+                    </li>
+                </ul>
+                <button v-if="question.trim().length > 1" type="button"
+                    class="mt-2 text-[11px] text-indigo-600 hover:text-indigo-800"
+                    @click="rememberPrompt">
+                    Wat er nu staat als vaste vraag bewaren
+                </button>
+            </div>
+
+            <!--
                 Photos riding with the next question. Clicking a thumbnail removes
                 it — selecting toggles here, there are no separate crosses.
             -->
@@ -323,6 +355,64 @@ const reporting = ref(false)
 const reported = ref('')
 const asking_reason = ref(false)
 const pending_images = ref([])
+const prompts = ref([])
+
+/**
+ * Which kind of page this is, as "serviceorders.show" — the same shape the
+ * saved questions are filed under. A numeric segment means a record is being
+ * looked at; anything else is an overview.
+ */
+function pageContext() {
+    const parts = window.location.pathname.split('/').filter(Boolean)
+
+    if (!parts.length) return 'dashboard'
+
+    return parts[0] + (parts[1] && /^\d+$/.test(parts[1]) ? '.show' : '.index')
+}
+
+async function loadPrompts() {
+    try {
+        const { data } = await axios.get('/assistant/prompts', { params: { context: pageContext() } })
+        prompts.value = data.prompts || []
+    } catch {
+        /** No suggestions is a quieter box, never a broken one. */
+        prompts.value = []
+    }
+}
+
+function askPrompt(prompt) {
+    question.value = prompt.question
+    ask()
+}
+
+async function rememberPrompt() {
+    const asked = question.value.trim()
+
+    if (asked.length < 2) return
+
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const { data } = await axios.post('/assistant/prompts', {
+            label: asked.slice(0, 60),
+            question: asked,
+            context: pageContext(),
+        })
+
+        prompts.value.push(data.prompt)
+    } catch (e) {
+        history_error.value = e.response?.data?.message || 'Bewaren lukte niet.'
+    }
+}
+
+async function forgetPrompt(prompt) {
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        await axios.delete('/assistant/prompts/' + prompt.id)
+        prompts.value = prompts.value.filter((entry) => entry.id !== prompt.id)
+    } catch (e) {
+        history_error.value = e.response?.data?.message || 'Verwijderen lukte niet.'
+    }
+}
 const imageInputRef = ref(null)
 
 /** Four photos of ~3 MB is a typeplaatje from every angle; more is a mistake. */
@@ -589,6 +679,7 @@ function recall(direction) {
 }
 
 async function open_() {
+    loadPrompts()
     closeNavigator()
     open.value = true
     loadHistory()

@@ -356,6 +356,11 @@ class FakeModel implements TalksToModel
 
     public bool $reads_documents = true;
 
+    public function seesImages(): bool
+    {
+        return true;
+    }
+
     public function readsDocuments(): bool
     {
         return $this->reads_documents;
