@@ -512,7 +512,8 @@
                                             class="text-xs text-gray-500 dark:text-slate-400">
                                             Geen werkbonnen binnen dit project
                                         </div>
-                                        <ServiceOrderList v-else :serviceorders="project.service_orders" />
+                                        <ServiceOrderList v-else :serviceorders="project.service_orders"
+                                            :stages="serviceOrderStages" />
                                     </div>
                                 </div>
                             </div>
@@ -537,7 +538,8 @@
                                     class="text-sm text-gray-500 dark:text-slate-400">
                                     Geen losse werkbonnen
                                 </div>
-                                <ServiceOrderList v-else :serviceorders="serviceOrdersWithoutProject" />
+                                <ServiceOrderList v-else :serviceorders="serviceOrdersWithoutProject"
+                                    :stages="serviceOrderStages" />
                             </BoxComponent>
                         </div>
                     </template>
@@ -781,6 +783,10 @@ const props = defineProps({
         default: () => ({}),
     },
     contractIntervalOptions: {
+        type: Array,
+        default: () => [],
+    },
+    serviceOrderStages: {
         type: Array,
         default: () => [],
     },

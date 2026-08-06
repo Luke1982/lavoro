@@ -35,6 +35,7 @@
             :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
             Tijden ontbreken: {{ missingTimes.join(', ') }}
         </BadgeComponent>
+        <PlanInPlannerButton :serviceorder="serviceOrder" variant="button" />
     </div>
     <ChaptersComponent>
         <template v-if="chapterHeaders.length > 1">
@@ -625,6 +626,7 @@ import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue
 import { BadgeCheck, ChevronRightIcon, Euro as EuroIcon, Package, Signature, TimelineIcon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';

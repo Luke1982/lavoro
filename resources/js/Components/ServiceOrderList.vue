@@ -12,7 +12,7 @@
         </div>
         <div class="space-y-2" v-auto-animate>
             <ServiceOrderRow v-for="serviceorder in serviceorders" :key="serviceorder.id"
-                :serviceorder="serviceorder" />
+                :serviceorder="serviceorder" :stages="stages" />
         </div>
     </div>
 </template>
@@ -22,6 +22,10 @@ import ServiceOrderRow, { serviceOrderGridColumns } from '@/Components/ServiceOr
 
 defineProps({
     serviceorders: {
+        type: Array,
+        default: () => []
+    },
+    stages: {
         type: Array,
         default: () => []
     }

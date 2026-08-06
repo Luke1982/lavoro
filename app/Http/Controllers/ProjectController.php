@@ -11,6 +11,7 @@ use App\Http\Requests\ProjectUpdateRequest;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Project;
+use App\Models\ServiceOrderStage;
 use App\Models\User;
 
 class ProjectController extends Controller
@@ -74,6 +75,7 @@ class ProjectController extends Controller
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),
+            'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),
         ]);
     }
 

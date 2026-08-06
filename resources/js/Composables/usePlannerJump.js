@@ -31,6 +31,21 @@ export function takeJumpTarget() {
 }
 
 /**
+ * De werkbon die vanaf een werkbonscherm mee de planner in komt. Zelfde afspraak
+ * als hierboven: één keer lezen en meteen uit het adres halen.
+ */
+export function takeServiceOrderJumpTarget() {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('highlightserviceorder')
+
+    if (!id) return null
+
+    window.history.replaceState(null, '', window.location.pathname)
+
+    return Number(id)
+}
+
+/**
  * De rijen worden pas getekend als de afspraken binnen zijn, en bij een sprong
  * vanuit een melding komt het opbouwen van de pagina daar nog bij. Eén keer kijken
  * is te snel geoordeeld; twee seconden geduld is genoeg gebleken.

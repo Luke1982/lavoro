@@ -10,6 +10,7 @@ use App\Http\Requests\CustomerUpdateCoordsRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Services\ProductableService;
 use Illuminate\Support\Facades\Auth;
@@ -145,6 +146,7 @@ class CustomerController extends Controller
             'customFields' => $customer->allCustomFieldsWithValues(),
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
+            'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),
         ]);
     }
 

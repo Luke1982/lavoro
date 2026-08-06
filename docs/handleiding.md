@@ -88,7 +88,7 @@ De werkbon is het middelpunt van de applicatie: de opdracht bij een klant, met a
 
 ### Fases
 
-De fases vormen een instelbare pijplijn (te beheren onder Werkbonnen → Fases). Elke fase heeft vlaggen die betekenen wat de fase inhoudt: *inplanbaar* (klaar om in te plannen), *ingepland*, *gesloten*, *gefactureerd*, *planning vervallen* en *onvolledig*. Op de werkbon staat de fase als stappenbalk; klikken verzet de fase, en er wordt bijgehouden wie een fase wanneer bereikte.
+De fases vormen een instelbare pijplijn (te beheren onder Werkbonnen → Fases). Elke fase heeft vlaggen die betekenen wat de fase inhoudt: *inplanbaar* (klaar om in te plannen), *ingepland*, *gesloten*, *gefactureerd*, *planning vervallen* en *onvolledig*. Op de werkbon staat de fase als stappenbalk; klikken verzet de fase, en er wordt bijgehouden wie een fase wanneer bereikte. In de werkbonlijsten bij een klant of project kan de fase ook met de rechtermuisknop worden gewijzigd; wie alleen mag afsluiten of onvolledig markeren ziet daar alleen die fases.
 
 Belangrijke automatiek rond fases:
 
@@ -163,6 +163,7 @@ Storingen aanmaken kan vanaf de storingenlijst, de plus-knop, de machinepagina e
 De planningspagina is een tijdbalk: monteurs als rijen, de tijd van links naar rechts, per week of per dag. Bovenin: Vandaag, vorige/volgende, de week/dag-schakelaar, een zoekveld voor afspraken, de monteurkaart (live locatie van monteurs) en een instellingenmenu (exporteren, standaardduur, slotgrootte, leidende kleur — afspraaktype of monteurrol — en de begintijd en eindtijd van de dagweergave).
 
 - **Slepen om te plannen**: rechts staat een lijst met **ongeplande werkbonnen** (werkbonnen in een inplanbare fase). Sleep er één naar een monteur en tijdstip en er ontstaat een afspraak. Afspraken zelf zijn ook te verslepen en op te rekken. Klikken opent het bewerkscherm.
+- **Open plekken**: bovenin zit een schakelaar die de vrije ruimte in de planning groen laat oplichten. Het invoerveld ernaast bepaalt hoeveel minuten een open plek minstens moet zijn; leeg gelaten geldt de standaardduur voor nieuwe afspraken. Werkbonnen in een inplanbare fase hebben bovendien een knop **Inplannen** (op de werkbonlijsten en de werkbonpagina) die je naar de planner brengt: de werkbon licht op in de lijst met ongeplande werkbonnen — of, bij een projectwerkbon, onder zijn projectbalk — en de open plekken waar hij past lichten mee op.
 - **De afspraak** heeft een soort (afspraaktype, met kleur), begin- en eindtijd, een klant, een gekoppelde werkbon, een locatie, een omschrijving en één of meer monteurs — per monteur met eigen pauze, eventueel **afwijkende tijden** en een planrol. Een afspraak kan ook **voorlopig** zijn.
 - Bij het aanmaken van een afspraak kan automatisch een werkbon worden meegemaakt (of juist uitdrukkelijk zonder werkbon). Koppelen van een afspraak zet de werkbon in de fase "ingepland"; de afspraak verwijderen zet hem terug naar "planning vervallen".
 - **Onbeschikbaarheid** (vrije dagen en vaste vrije momenten uit het rooster) ligt als blok over de planning. Plannen over een blok heen kan alleen als de beheerder dat toestaat, en dan met een uitdrukkelijke bevestiging.

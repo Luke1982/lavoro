@@ -112,7 +112,7 @@
                         </div>
                         <div class="col-span-2 items-center hidden sm:flex pr-2">
                             <EditableTextField type="combobox" :model-value="so.service_order_stage_id"
-                                :options="stages" :decoration="false" @update="(val) => updateStage(so, val)">
+                                :options="stages" :decoration="false" @update="(val) => patchServiceOrderStage(so, val)">
                                 <template #display>
                                     <BadgeComponent :color="so.service_order_stage ? 'blue' : 'gray'" :has-dot="false">
                                         {{ so.service_order_stage?.name ?? 'Geen fase' }}
@@ -151,6 +151,7 @@
                             <span v-if="!so.events?.length" class="text-xs text-slate-400">—</span>
                         </div>
                         <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2">
+                            <PlanInPlannerButton :serviceorder="so" variant="circle" />
                             <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
                                 <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
                                     <EyeIcon class="h-5 w-5" />
@@ -248,9 +249,11 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
+import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import { nlDate, nlTime, initials, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
+import { patchServiceOrderStage } from '@/Utilities/serviceOrders'
 
 const { serviceOrders, stages, perPage } = defineProps({
     serviceOrders: { type: Object, required: true },
@@ -383,13 +386,6 @@ function saveBulkEdit() {
             selectedIds.value = []
         },
     })
-}
-
-function updateStage(so, stage_id) {
-    router.patch(`/serviceorders/${so.id}`, {
-        customer_id: so.customer_id,
-        service_order_stage_id: stage_id,
-    }, { preserveScroll: true, preserveState: true })
 }
 
 function updateInvoiceNo(so, val) {

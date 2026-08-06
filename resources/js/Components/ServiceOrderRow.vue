@@ -1,5 +1,5 @@
 <template>
-    <div :class="serviceOrderGridColumns"
+    <div :class="serviceOrderGridColumns" @contextmenu="onContextMenu"
         class="group relative flex flex-col gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-xs transition hover:border-gray-200 dark:border-slate-700/60 dark:bg-slate-800/40 dark:hover:border-slate-600 @2xl:grid @2xl:items-start @2xl:px-4">
         <span :class="['absolute inset-y-0 left-0 w-1 rounded-l-lg', accentClass]" />
         <Link :href="`/serviceorders/${serviceorder.id}`" :aria-label="`Werkbon ${serviceorder.id} bekijken`"
@@ -96,25 +96,29 @@
                 {{ taskCounts.done }} van {{ taskCounts.total }}
             </span>
         </div>
-        <div class="items-center justify-end gap-1" :class="canDelete ? 'flex' : 'hidden @2xl:flex'">
+        <div class="items-center justify-end gap-1" :class="canDelete || showPlanButton ? 'flex' : 'hidden @2xl:flex'">
+            <PlanInPlannerButton :serviceorder="serviceorder" />
             <TrashIcon v-if="canDelete"
-                class="relative z-10 size-4.5 cursor-pointer text-red-500 opacity-70 transition hover:opacity-100 dark:text-red-400"
+                class="relative z-10 size-4.5 shrink-0 cursor-pointer text-red-500 opacity-70 transition hover:opacity-100 dark:text-red-400"
                 @click.stop="deleteServiceOrder" />
-            <ChevronRightIcon class="hidden size-5 text-gray-300 dark:text-slate-600 @2xl:block" />
+            <ChevronRightIcon class="hidden size-5 shrink-0 text-gray-300 dark:text-slate-600 @2xl:block" />
         </div>
     </div>
 </template>
 
 <script>
 export const serviceOrderGridColumns =
-    '@2xl:grid-cols-[7.5rem_1.6fr_1.4fr_5.5rem_2.5rem] @4xl:grid-cols-[7.5rem_1.5fr_1fr_1.2fr_1fr_5.5rem_2.5rem]';
+    '@2xl:grid-cols-[7.5rem_1.6fr_1.4fr_5.5rem_4.5rem] @4xl:grid-cols-[7.5rem_1.5fr_1fr_1.2fr_1fr_5.5rem_4.5rem]';
 </script>
 
 <script setup>
 import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import ContextMenu from '@imengyu/vue3-context-menu';
 import { nlDate, nlTime, initials, hasPermission } from '@/Utilities/Utilities';
+import { serviceOrderIsPlannable, patchServiceOrderStage } from '@/Utilities/serviceOrders';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue';
 import {
     BuildingOffice2Icon,
     CalendarIcon,
@@ -128,6 +132,10 @@ const props = defineProps({
     serviceorder: {
         type: Object,
         required: true
+    },
+    stages: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -208,6 +216,35 @@ const allTasksDone = computed(() => taskCounts.value.done >= taskCounts.value.to
 const canDelete = computed(() =>
     hasPermission('serviceorder.delete') && !props.serviceorder.sent_to_administration
 );
+
+const showPlanButton = computed(() =>
+    hasPermission('serviceorder.plan') && serviceOrderIsPlannable(props.serviceorder)
+);
+
+const mayMoveToStage = (target_stage) =>
+    hasPermission('serviceorder.update')
+    || (hasPermission('serviceorder.close') && target_stage.is_closed_state)
+    || (hasPermission('serviceorder.mark_partially_complete') && target_stage.is_incomplete_state);
+
+const stageMenuStages = computed(() => props.stages.filter(mayMoveToStage));
+
+function onContextMenu(event) {
+    const current_stage_id = props.serviceorder.service_order_stage_id;
+    if (!stageMenuStages.value.some(target_stage => target_stage.id !== current_stage_id)) return;
+    event.preventDefault();
+    ContextMenu.showContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        items: [
+            { label: `Werkbon #${props.serviceorder.id} — fase`, disabled: true },
+            ...stageMenuStages.value.map(target_stage => ({
+                label: target_stage.id === current_stage_id ? `${target_stage.name}  ✓` : target_stage.name,
+                disabled: target_stage.id === current_stage_id,
+                onClick: () => patchServiceOrderStage(props.serviceorder, target_stage.id),
+            })),
+        ],
+    });
+}
 
 const form = useForm({});
 

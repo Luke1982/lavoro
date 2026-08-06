@@ -30,6 +30,20 @@
                     @click="setPlannerView('day')">Dag</button>
             </div>
 
+            <!-- Open-spot highlighting -->
+            <div class="flex items-center gap-2 text-sm">
+                <span :class="highlightGaps ? 'font-medium' : 'text-gray-500 dark:text-slate-400'">Open plekken</span>
+                <SwitchComponent v-model="highlightGaps" />
+                <label v-if="highlightGaps"
+                    class="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400"
+                    v-tooltip="'Minimale grootte van een open plek; leeg = standaard planminuten'">
+                    <input type="number" v-model.number="gapMinutesInput" :placeholder="plannerMinutes" min="15"
+                        step="15"
+                        class="w-16 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1 text-center text-sm" />
+                    min
+                </label>
+            </div>
+
             <div class="flex-1 min-w-64">
                 <ComboBox v-model="eventSearchSelection" :options="eventSearchOptions" :searching="eventSearching"
                     has-external-searching disable-internal-filter placeholder="Zoek een afspraak..."
@@ -341,9 +355,12 @@
                                                 :style="{ maxWidth: '100%' }">
                                                 <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
                                                     draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                                    @dragend="onProjectServiceOrderDragEnd"
+                                                    @dragend="onProjectServiceOrderDragEnd" :data-so-card-id="so.id"
                                                     :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
-                                                    class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700  dark:bg-slate-800 px-2 shadow-sm hover:border-lavoro-blue transition"
+                                                    class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border dark:bg-slate-800 px-2 shadow-sm transition"
+                                                    :class="highlightedSoCardId === so.id
+                                                        ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/20'
+                                                        : 'border-gray-200 dark:border-slate-700 hover:border-lavoro-blue'"
                                                     :title="`Sleep naar de planning — werkbon #${so.id}`">
                                                     <ArrowsRightLeftIcon
                                                         class="size-3 shrink-0 text-gray-400 dark:text-slate-500" />
@@ -398,6 +415,19 @@
                                             <span
                                                 class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1.5 truncate select-none whitespace-nowrap">
                                                 {{ overlay.label || 'Niet beschikbaar' }}
+                                            </span>
+                                        </div>
+                                    </template>
+
+                                    <!-- Open-spot highlights -->
+                                    <template v-if="highlightGaps">
+                                        <div v-for="(gap, gi) in gapSegmentsFor(user.id, day.iso)"
+                                            :key="'gap-' + user.id + '-' + day.iso + '-' + gi"
+                                            class="absolute top-1 bottom-1 pointer-events-none rounded-md border-2 border-dashed border-emerald-500/70 bg-emerald-400/15 overflow-hidden"
+                                            :style="{ left: gap.left + '%', width: gap.width + '%' }">
+                                            <span
+                                                class="absolute top-1 left-1.5 max-w-full truncate text-[10px] font-medium text-emerald-700 dark:text-emerald-300 select-none">
+                                                {{ gap.label }}
                                             </span>
                                         </div>
                                     </template>
@@ -531,7 +561,8 @@ import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import { isBlockedAt, blockedUsersAt, unavailabilityBandsFor, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import PlannerOverlapBand from '@/Components/Planner/PlannerOverlapBand.vue'
-import { computeLaneOverlaps, effectiveMinutesFor, isCancelledForUser, UNAVAILABLE_PATTERN } from '@/Utilities/plannerOverlaps'
+import { computeLaneOverlaps, effectiveMinutesFor, formatDurationLabel, isCancelledForUser, UNAVAILABLE_PATTERN } from '@/Utilities/plannerOverlaps'
+import { daySegmentsFor } from '@/Composables/usePlannerGaps'
 import { useEventLeadingColor } from '@/Composables/useEventLeadingColor'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
@@ -580,6 +611,8 @@ const props = defineProps({
     /** Latest location ping per user_id, keyed by user_id */
     latestPings: { type: Object, default: () => ({}) },
     allowOverrideUnavailability: { type: Boolean, default: false },
+    /** Werkbon arriving via /planner?highlightserviceorder=… — lights up its open spots */
+    highlightServiceOrderId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
@@ -1269,10 +1302,51 @@ watch(eventSearchSelection, async (id) => {
     await jumpToEvent(opt)
 })
 
+const highlightedSoCardId = ref(null)
+
+/**
+ * A werkbon arriving from a werkbonscherm: light up the open spots it fits in,
+ * and for a project-werkbon also bring its hanging card into view.
+ */
+function jumpToServiceOrder(soId) {
+    highlightGaps.value = true
+
+    const match = props.projects
+        .flatMap(project => (project.service_orders || []).map(so => ({ so, project })))
+        .find(entry => entry.so.id === soId)
+    if (!match) return
+
+    highlightedSoCardId.value = soId
+
+    const projectStart = dayjs(match.project.start_date)
+    const projectEnd = dayjs(match.project.end_date).endOf('day')
+    const viewStart = dayjs(weekStart.value).startOf('day')
+    const viewEnd = viewStart.add(viewDayCount.value, 'day')
+    if (!(projectStart.isBefore(viewEnd) && projectEnd.isAfter(viewStart))) {
+        const target = projectStart.isAfter(dayjs()) ? projectStart.toDate() : new Date()
+        weekStart.value = plannerView.value === 'day' ? dayjs(target).startOf('day').toDate() : startOfWeek(target)
+    }
+
+    // Klap de projectband precies zo ver open als nodig is om de kaart te tonen,
+    // zodat de monteursbanen met de opgelichte plekken in beeld blijven.
+    const trackIndex = allDay.value.tracks.findIndex(track => track.id === match.project.id)
+    if (trackIndex >= PROJECTS_VISIBLE_COUNT) {
+        allDayState.value = 'full'
+    } else if (trackIndex !== -1 && allDayState.value === 'closed') {
+        allDayState.value = 'partial'
+    }
+
+    nextTick(() => {
+        gridScrollRef.value?.querySelector(`[data-so-card-id="${soId}"]`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    })
+}
+
 onMounted(() => {
     const target = takeJumpTarget()
 
     if (target) jumpToEvent(target)
+    if (props.highlightServiceOrderId) jumpToServiceOrder(props.highlightServiceOrderId)
 })
 
 function scrollToWorkdayStart() {
@@ -1951,6 +2025,48 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
 }
 
 const plannerMinutes = ref(props.defaultPlannerMinutes)
+
+const highlightGaps = ref(false)
+const gapMinutesInput = ref(null)
+
+const gapMinimumMinutes = computed(() =>
+    typeof gapMinutesInput.value === 'number' && gapMinutesInput.value > 0
+        ? gapMinutesInput.value
+        : plannerMinutes.value
+)
+
+// One pass per week rather than one per lane cell: the grid asks per monteur per day on every render.
+const gapSegmentsByLane = computed(() => {
+    const byLane = new Map()
+    if (!highlightGaps.value) return byLane
+    const dayStartMin = dayStartHour.value * 60
+    const totalMin = (dayEndHour.value - dayStartHour.value) * 60
+    for (const day of weekDays.value) {
+        for (const user of visibleUsers.value) {
+            const segments = daySegmentsFor({
+                events: events.value,
+                plannableUsers: props.plannableUsers,
+                userId: user.id,
+                dayIso: day.iso,
+                dayStartHour: dayStartHour.value,
+                dayEndHour: dayEndHour.value,
+                minSegmentMinutes: gapMinimumMinutes.value,
+            })
+            byLane.set(`${day.iso}|${user.id}`, segments
+                .filter(segment => segment.kind === 'free')
+                .map(segment => ({
+                    left: ((segment.startMin - dayStartMin) / totalMin) * 100,
+                    width: ((segment.endMin - segment.startMin) / totalMin) * 100,
+                    label: formatDurationLabel(segment.endMin - segment.startMin),
+                })))
+        }
+    }
+    return byLane
+})
+
+function gapSegmentsFor(userId, dayIso) {
+    return gapSegmentsByLane.value.get(`${dayIso}|${userId}`) ?? []
+}
 let lastSavedPlannerMinutes = props.defaultPlannerMinutes
 
 const feedback = useEventFeedback()

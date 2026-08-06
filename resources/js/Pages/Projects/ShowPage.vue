@@ -303,7 +303,8 @@
                                     class="text-xs text-gray-500 dark:text-slate-500">
                                     Nog geen werkbonnen
                                 </div>
-                                <ServiceOrderList v-else :serviceorders="project.service_orders" />
+                                <ServiceOrderList v-else :serviceorders="project.service_orders"
+                                    :stages="serviceOrderStages" />
                             </div>
                         </BoxComponent>
                     </div>
@@ -438,6 +439,7 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     users: { type: Array, default: () => [] },
     statuses: { type: Array, default: () => [] },
+    serviceOrderStages: { type: Array, default: () => [] },
 })
 
 const initialStatus = props.statuses.find(s => s.name === props.project.status)

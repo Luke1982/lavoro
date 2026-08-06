@@ -21,13 +21,14 @@
                     :default-leading-color="props.defaultLeadingColor"
                     :latest-pings="props.latestPings"
                     :allow-override-unavailability="props.allowOverrideUnavailability"
+                    :highlight-service-order-id="highlightedServiceOrderId"
                     @service-order-planned="onServiceOrderPlanned"
                     @service-order-unplanned="onServiceOrderUnplanned" />
             </BoxComponent>
         </div>
         <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3 min-h-0 overflow-y-auto">
             <BoxComponent v-if="canPlan" padding="p-0">
-                <UnplannedServiceOrdersWidget :service-orders="unplanned" />
+                <UnplannedServiceOrdersWidget :service-orders="unplanned" :highlight-id="highlightedServiceOrderId" />
             </BoxComponent>
             <PlanGroupsWidget v-if="canManageGroups" :plan-groups="planGroupsRef" :all-users="allPlanUsersRef"
                 @group-created="onGroupCreated" @group-updated="onGroupUpdated" @group-deleted="onGroupDeleted"
@@ -47,6 +48,7 @@ import PlanGroupsWidget from '@/Components/Planner/PlanGroupsWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
 import { hasPermission } from '@/Utilities/Utilities'
+import { takeServiceOrderJumpTarget } from '@/Composables/usePlannerJump'
 
 const props = defineProps({
     eventTypes: { type: Array, required: true },
@@ -68,6 +70,8 @@ const props = defineProps({
 })
 
 const page = usePage()
+
+const highlightedServiceOrderId = takeServiceOrderJumpTarget()
 
 const planGroupsRef = ref(props.planGroups)
 const plannableUsersRef = ref(props.plannableUsers)

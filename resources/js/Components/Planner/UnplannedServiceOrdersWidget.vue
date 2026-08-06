@@ -11,10 +11,11 @@
                 </label>
             </div>
 
-            <div class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
+            <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
                 <div v-for="so in visibleServiceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
-                    @dragend="onDragEnd"
+                    @dragend="onDragEnd" :data-so-id="so.id"
                     class="group cursor-grab active:cursor-grabbing select-none p-3 transition"
+                    :class="so.id === highlightId ? 'rounded-md ring-2 ring-inset ring-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/15' : ''"
                     :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-1">
@@ -87,6 +88,7 @@
 </template>
 
 <script setup>
+import { ref, onMounted, nextTick } from 'vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon,
@@ -98,10 +100,12 @@ import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
 const props = defineProps({
     serviceOrders: { type: Array, default: () => [] },
+    highlightId: { type: Number, default: null },
 })
 
 const maxVisible = 4
 const maxVisibleTasks = 5
+const listEl = ref(null)
 
 const {
     searchQuery,
@@ -113,6 +117,17 @@ const {
     so.resolved_city?.toLowerCase().includes(query) ||
     so.description?.toLowerCase().includes(query),
     maxVisible)
+
+onMounted(() => {
+    if (!props.highlightId) return
+    const index = props.serviceOrders.findIndex(so => so.id === props.highlightId)
+    if (index === -1) return
+    if (index >= maxVisible) isExpanded.value = true
+    nextTick(() => {
+        listEl.value?.querySelector(`[data-so-id="${props.highlightId}"]`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+})
 
 function effectiveTitle(ti) {
     return ti.title || ti.service_order_task?.title || '(geen titel)'
