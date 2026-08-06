@@ -723,6 +723,20 @@ function byMachine(findings) {
  */
 const looked_at_photos = ref(false)
 
+/**
+ * Notes that this conversation has looked at photographs.
+ *
+ * Kept in one place because there are three ways in — asking, carrying on after
+ * a confirmation, and reopening an old thread — and the warning was set on only
+ * the first of them, so it went quiet on precisely the conversations that had
+ * already run up the bill.
+ */
+function notePhotoTools(tools) {
+    if ((tools || []).some((tool) => tool?.name === 'view_images')) {
+        looked_at_photos.value = true
+    }
+}
+
 const costingMore = computed(() =>
     pending_images.value.length > 0 || photos_sent.value > 0 || looked_at_photos.value)
 
@@ -790,7 +804,12 @@ async function reopen(thread) {
     try {
         const { data } = await axios.get('/assistant/history/' + thread.id)
 
-        exchanges.value = (data.turns || []).map((turn) => ({
+        const turns = data.turns || []
+
+        /** A reopened thread that once looked at photos still costs what it costs. */
+        turns.forEach((turn) => notePhotoTools((turn.tools || []).map((name) => ({ name }))))
+
+        exchanges.value = turns.map((turn) => ({
             question: turn.question,
             answer: turn.answer || '',
             error: turn.failure || '',
@@ -988,12 +1007,9 @@ async function ask() {
          * never hears about the change and the warning stayed dark on exactly the
          * turns that cost the most.
          */
-        if ((data.tools || []).some((tool) => tool.name === 'view_images')) {
-            looked_at_photos.value = true
-        }
-
         exchange.answer = data.answer
         exchange.tools = data.tools || []
+        notePhotoTools(data.tools)
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
         exchange.findings = data.findings || []
@@ -1111,7 +1127,7 @@ async function proceed() {
 
     if (!history.length) return
 
-    const exchange = { question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], unverified: [] }
+    const exchange = { question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], unverified: [] }
     exchanges.value.push(exchange)
     asking.value = true
     scrollToLatest()
@@ -1124,6 +1140,7 @@ async function proceed() {
         )
         exchange.answer = data.answer
         exchange.tools = data.tools || []
+        notePhotoTools(data.tools)
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
         exchange.unverified = data.unverified || []
