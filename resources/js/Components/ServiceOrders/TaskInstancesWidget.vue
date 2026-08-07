@@ -12,8 +12,17 @@
         </SectionHeader>
 
         <div v-auto-animate>
+            <p v-if="hiddenCount > 0"
+                class="flex items-start gap-1.5 text-xs text-gray-500 dark:text-slate-400 py-2 border-b border-gray-100 dark:border-slate-800/60">
+                <EyeOffIcon class="w-3.5 h-3.5 mt-px flex-none" />
+                <span>
+                    Er {{ hiddenCount === 1 ? 'is 1 taak' : `zijn ${hiddenCount} taken` }} op deze bon die jij niet kunt
+                    zien. {{ hiddenCount === 1 ? 'Die hoort' : 'Die horen' }} bij een rol waarin jij deze werkbon niet
+                    uitvoert.
+                </span>
+            </p>
             <div v-if="internalInstances.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-2">
-                Nog geen taken toegevoegd.
+                {{ hiddenCount > 0 ? 'Verder staan er geen taken op deze bon.' : 'Nog geen taken toegevoegd.' }}
             </div>
             <div v-for="instance in internalInstances" :key="instance.id"
                 class="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-slate-800/60 last:border-0">
@@ -23,11 +32,11 @@
                 <div class="flex flex-col sm:flex-row justify-between flex-grow gap-y-3">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
-                            {{ effectiveTitle(instance) }}
+                            {{ taskInstanceTitle(instance) }}
                         </p>
-                        <p v-if="effectiveDescription(instance)"
+                        <p v-if="taskInstanceDescription(instance)"
                             class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                            {{ effectiveDescription(instance) }}
+                            {{ taskInstanceDescription(instance) }}
                         </p>
                         <p v-if="instance.product" class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
                             {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
@@ -233,7 +242,7 @@
 
         <!-- Serial number drawer -->
         <DrawerComponent v-model="serialDrawerOpen" title="Serienummers invoeren"
-            :subtitle="serialInstance ? `Voer de serienummers in voor: ${effectiveTitle(serialInstance)}` : ''"
+            :subtitle="serialInstance ? `Voer de serienummers in voor: ${taskInstanceTitle(serialInstance)}` : ''"
             max-width-class="max-w-lg">
             <div class="p-4 sm:p-6 space-y-6">
                 <p class="text-xs text-gray-500 dark:text-slate-400">
@@ -290,7 +299,7 @@
 
         <!-- Materials modal -->
         <ModalDialog :open="materialsModalOpen" @update:open="materialsModalOpen = $event"
-            :title="materialsInstance ? `Materialen — ${effectiveTitle(materialsInstance)}` : 'Materialen'"
+            :title="materialsInstance ? `Materialen — ${taskInstanceTitle(materialsInstance)}` : 'Materialen'"
             max-width-class="sm:max-w-3xl">
             <button type="button" @click="materialsModalOpen = false" aria-label="Sluiten"
                 class="absolute top-4 right-4 z-10 flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors">
@@ -453,8 +462,8 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon, Package as PackageIcon, X as XIcon } from '@lucide/vue'
-import { hasPermission, hasAnyPermission, nlDate, nlTime } from '@/Utilities/Utilities'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon } from '@lucide/vue'
+import { hasPermission, hasAnyPermission, nlDate, nlTime, taskInstanceTitle, taskInstanceDescription } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -481,6 +490,8 @@ const props = defineProps({
     materialUsageUnits: { type: Array, default: () => [] },
     /** Opt out where the widget is one section among others that sit flush, rather than a card of its own. */
     boxed: { type: Boolean, default: true },
+    /** Tasks on this order that fall outside the reader's roles, and so never reach the list below. */
+    hiddenCount: { type: Number, default: 0 },
 })
 
 const canManageMaterials = computed(() => hasAnyPermission([
@@ -1054,12 +1065,4 @@ function deleteInstance(id) {
     })
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function effectiveTitle(instance) {
-    return instance.title || instance.service_order_task?.title || '(geen titel)'
-}
-
-function effectiveDescription(instance) {
-    return instance.description || instance.service_order_task?.description || ''
-}
 </script>

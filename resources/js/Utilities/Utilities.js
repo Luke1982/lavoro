@@ -80,6 +80,20 @@ export const serviceOrderSentState = (order) => {
     return "none";
 };
 
+/**
+ * A task on a werkbon may override its template, so the title that counts is its own where
+ * it has one and the template's otherwise. Four screens show the same task; they had better
+ * call it the same thing.
+ *
+ * Note the `||`: an emptied title falls back to the template. Editing forms deliberately use
+ * `??` instead, so clearing a field there does not silently re-inherit what was just removed.
+ */
+export const taskInstanceTitle = (instance) =>
+    instance?.title || instance?.service_order_task?.title || "(geen titel)";
+
+export const taskInstanceDescription = (instance) =>
+    instance?.description || instance?.service_order_task?.description || "";
+
 export const serviceOrderPillText = (order) => {
     switch (serviceOrderSentState(order)) {
         case "both":
