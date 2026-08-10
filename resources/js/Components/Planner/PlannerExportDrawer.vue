@@ -53,6 +53,7 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 import dayjs from '@/Utilities/dayjs'
 import { initials } from '@/Utilities/Utilities'
+import { downloadBlob } from '@/Utilities/download.js'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { Check, FileSpreadsheet, LoaderCircle } from '@lucide/vue'
@@ -102,14 +103,7 @@ async function exportExcel() {
             params: { start: startDate.value, end: endDate.value, user_ids: selectedIds.value, tz },
             responseType: 'blob',
         })
-        const url = URL.createObjectURL(response.data)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `planning-export-${startDate.value}-${endDate.value}.xlsx`
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        URL.revokeObjectURL(url)
+        await downloadBlob(response.data, `planning-export-${startDate.value}-${endDate.value}.xlsx`)
         open.value = false
     } finally {
         downloading.value = false

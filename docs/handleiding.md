@@ -224,7 +224,7 @@ Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met 
 
 Aan vrijwel elk record (werkbon, storing, project, klant, machine, product…) kunnen bijlagen hangen:
 
-- **Documenten**: bestanden uploaden (meerdere tegelijk), een titel en een **categorie** geven, en per document markeren of het intern is. Interne documenten komen nooit bij de klant. Documenten zijn te bekijken in een voorbeeldweergave en te downloaden; beide gaan langs de rechtencontrole. Categorieën beheert de beheerder; er is bulk-hercategoriseren en bulk-verwijderen.
+- **Documenten**: bestanden uploaden (meerdere tegelijk), een titel en een **categorie** geven, en per document markeren of het intern is. Interne documenten komen nooit bij de klant. Documenten zijn te bekijken in een voorbeeldweergave en te downloaden; beide gaan langs de rechtencontrole. Op een iPhone met Lavoro als app op het beginscherm opent downloaden het deelvenster van iOS — kies daar bijvoorbeeld "Bewaar in Bestanden". Categorieën beheert de beheerder; er is bulk-hercategoriseren en bulk-verwijderen.
 - **Foto's**: afbeeldingen uploaden, een hoofdfoto aanwijzen, en op werkbonnen een apart blok voor interne foto's. De werkbon-PDF bundelt de (openbare) foto's van het werk.
 - **Opmerkingen**: notities op een record. Werkbonnen kennen openbare én **interne opmerkingen**; interne opmerkingen zijn de plek voor diagnoses en aantekeningen die niet op de bon voor de klant horen.
 

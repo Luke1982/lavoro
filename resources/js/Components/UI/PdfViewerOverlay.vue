@@ -12,14 +12,14 @@
                 <span class="flex-1 text-center text-sm font-semibold text-gray-800 dark:text-slate-100 truncate px-2">
                     {{ title }}
                 </span>
-                <a
-                    :href="url"
-                    download
-                    class="flex items-center min-h-[44px] px-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100"
+                <button
+                    type="button"
+                    @click="download"
+                    class="flex items-center min-h-[44px] px-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 cursor-pointer"
                     title="Downloaden"
                 >
                     <ArrowDownTrayIcon class="h-5 w-5" />
-                </a>
+                </button>
             </div>
 
             <div class="flex-1 overflow-y-auto overscroll-contain flex flex-col items-center gap-4 py-4 px-2" style="-webkit-overflow-scrolling: touch">
@@ -29,7 +29,9 @@
 
                 <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center gap-3 text-gray-500 dark:text-slate-400 text-sm">
                     <p>Dit document kon niet worden geladen.</p>
-                    <a :href="url" download class="text-indigo-600 hover:underline">Probeer te downloaden</a>
+                    <button type="button" @click="download" class="text-indigo-600 hover:underline cursor-pointer">
+                        Probeer te downloaden
+                    </button>
                 </div>
 
                 <canvas
@@ -46,14 +48,21 @@
 <script setup>
 import { ref, watch, onUnmounted, nextTick } from 'vue'
 import { ChevronLeftIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
+import { downloadFile } from '@/Utilities/download.js'
 
 const props = defineProps({
     open: { type: Boolean, required: true },
     url: { type: String, required: true },
     title: { type: String, default: '' },
+    /** Filename the download is saved under; the title often has no extension. */
+    filename: { type: String, default: '' },
 })
 
 defineEmits(['update:open'])
+
+function download() {
+    downloadFile(props.url, props.filename || 'document.pdf')
+}
 
 const loading = ref(false)
 const error = ref(false)
