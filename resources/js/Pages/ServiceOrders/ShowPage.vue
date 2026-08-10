@@ -512,15 +512,12 @@
                                         frameborder="0" />
                                 </div>
                                 <div class="flex gap-2">
-                                    <a :href="selectedExportItem.type === 'werkbon'
-                                        ? `/serviceorders/${serviceOrder.id}/export/pdf`
-                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`" target="_blank"
-                                        rel="noopener"
-                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90">
+                                    <button type="button" @click="openExportPdf"
+                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90 cursor-pointer">
                                         <span
                                             class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                                         Genereer
-                                    </a>
+                                    </button>
                                     <button @click="emailSelectedPdf" :disabled="exportEmailing"
                                         class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
                                         {{ exportEmailing ? 'Versturen...' : 'E-mail PDF' }}
@@ -640,6 +637,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle } from '@/Utilities/Utilities';
+import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Check, TrashIcon } from '@lucide/vue';
@@ -1129,6 +1127,16 @@ const createAndAttachTicket = () => {
 };
 
 const selectedExportItem = ref(null);
+
+const openExportPdf = () => {
+    const item = selectedExportItem.value;
+
+    if (item.type === 'werkbon') {
+        openInNewTab(`/serviceorders/${props.serviceOrder.id}/export/pdf`, `werkbon-${props.serviceOrder.id}.pdf`);
+    } else {
+        openInNewTab(`/servicejobs/${item.id}/export/pdf`, `keuring-${item.id}.pdf`);
+    }
+};
 const exportEmailing = ref(false);
 const exportEmailForm = useForm({});
 

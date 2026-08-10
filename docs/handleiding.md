@@ -112,7 +112,7 @@ De knop **Bekijk & onderteken** opent het overzicht dat je aan de klant laat zie
 
 Op **Administratie** staan de materialen met prijzen, subtotaal, btw (21%) en totaal, financieel commentaar, en — als de SnelStart-koppeling aanstaat — de knop **Verstuur naar SnelStart**.
 
-Op **Exporteren** staan de werkbon-PDF en de keuring-PDF's met een voorbeeldweergave, een genereerknop en een **E-mail PDF**-knop.
+Op **Exporteren** staan de werkbon-PDF en de keuring-PDF's met een voorbeeldweergave, een genereerknop en een **E-mail PDF**-knop. Op een iPhone met Lavoro als app op het beginscherm opent de genereerknop het deelvenster van iOS, net als bij het downloaden van documenten.
 
 ### PDF, e-mail en SnelStart
 

@@ -287,7 +287,10 @@
                                         Downloaden
                                     </button>
                                     </MenuItem>
-                                    <MenuItem v-slot="{ active }">
+                                    <!-- The iOS home-screen app has no tabs, and a same-scope
+                                         target="_blank" takes over the webview with no way back;
+                                         Downloaden already opens the share sheet there. -->
+                                    <MenuItem v-if="!isStandaloneApp" v-slot="{ active }">
                                     <a :href="`/documents/${doc.id}/preview`" target="_blank" rel="noopener"
                                         :class="['flex items-center gap-2 px-3 py-2 text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                                         <ArrowTopRightOnSquareIcon class="size-4 text-gray-400" />
@@ -528,7 +531,8 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import SpreadsheetViewerOverlay from '@/Components/UI/SpreadsheetViewerOverlay.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
-import { downloadFile } from '@/Utilities/download.js';
+import { downloadFile, isIosStandalone } from '@/Utilities/download.js';
+import { openImageLightbox } from '@/Utilities/lightbox.js';
 import {
     documentCategoryColors,
     documentCategoryPillClasses,
@@ -574,6 +578,8 @@ const PREVIEWABLE = ['pdf', ...SPREADSHEETS, ...IMAGES];
 const UNCATEGORIZED = 'none';
 
 const page = usePage();
+
+const isStandaloneApp = isIosStandalone();
 
 const maySee = computed(() => hasPermission('document.see'));
 const mayUpload = computed(() => hasPermission('document.upload'));
@@ -711,7 +717,7 @@ function openDocument(doc) {
     } else if (SPREADSHEETS.includes(extension)) {
         viewingSheet.value = doc;
     } else if (IMAGES.includes(extension)) {
-        window.open(`/documents/${doc.id}/preview`, '_blank', 'noopener');
+        openImageLightbox([`/documents/${doc.id}/preview`]);
     }
 }
 

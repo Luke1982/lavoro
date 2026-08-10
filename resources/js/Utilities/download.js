@@ -6,7 +6,7 @@
  * `navigator.standalone` only exists on iOS and is true exactly there;
  * Android (browser, PWA and the Capacitor app) keeps the plain anchor.
  */
-const isIosStandalone = () => window.navigator.standalone === true;
+export const isIosStandalone = () => window.navigator.standalone === true;
 
 function anchorDownload(href, filename) {
     const link = document.createElement('a');
@@ -73,4 +73,16 @@ export async function downloadFile(url, filename, fallback_url = null) {
     if (await fetchAndShare(url, filename)) return;
 
     window.open(fallback_url ?? url, '_blank', 'noopener');
+}
+
+/**
+ * For URLs that render inline (PDF streams, previews): a real new tab in a
+ * browser, but the share sheet in the iOS home-screen app — a new tab does
+ * not exist there, and target="_blank" on a same-scope URL takes over the
+ * webview with no way back.
+ */
+export async function openInNewTab(url, filename) {
+    if (isIosStandalone() && await fetchAndShare(url, filename)) return;
+
+    window.open(url, '_blank', 'noopener');
 }

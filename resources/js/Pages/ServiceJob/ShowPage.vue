@@ -276,6 +276,7 @@ import ServiceCheckInstanceComponent from '@/Components/ServiceCheckInstanceComp
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { nlDate, hasPermission } from '@/Utilities/Utilities';
+import { openInNewTab } from '@/Utilities/download.js';
 import { Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { watch, ref, computed, reactive } from 'vue';
 import { debounce } from 'lodash';
@@ -358,7 +359,7 @@ const clearCompletedOn = () => {
 };
 
 const openPdf = () => {
-    window.open(`/servicejobs/${servicejob.id}/export/pdf`, '_blank');
+    openInNewTab(`/servicejobs/${servicejob.id}/export/pdf`, `keuring-${servicejob.id}.pdf`);
 };
 
 const mailForm = useForm({});
