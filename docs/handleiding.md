@@ -106,9 +106,13 @@ Op Details staan: de stappenbalk, de gegevens (klant, project, locatie, datum op
 
 **Afsluiten**: onderaan zit de knop om de werkbon af te sluiten, met aankomst- en vertrektijden, afsluitende opmerkingen en de handtekening van de klant (naam plus getekende handtekening). Er kan een minimumaantal foto's vereist zijn om af te sluiten (instelbaar door de beheerder). Een werkbon kan ook heropend of als onvolledig gemarkeerd worden. Het vinkje "werk volledig afgerond" zet je uit als het werk niet af is.
 
+De knop **Bekijk & onderteken** opent het overzicht dat je aan de klant laat zien: de opmerkingen, de foto's, de materialen, de uitgevoerde werkzaamheden en de handtekening. De taken staan daar als leeslijst — wat er gedaan is, met serienummers en de reden bij een geannuleerde taak — en niet als de werklijst die je zelf afvinkt.
+
+**Openstaande taken houden de bon dicht.** Zolang er taken zijn die niet afgerond en niet geannuleerd zijn, gaat de werkbon niet naar een fase die hem sluit (ook niet naar de gefactureerde fase). Je krijgt dan een venster met de taken die het tegenhouden. Zit daar een taak bij die aan een rol hangt waarin jij deze bon niet uitvoert, dan staat die er ook bij, met de reden waarom hij niet in jouw eigen takenlijst stond. Diezelfde poging levert een melding op voor wie de werkbon mag bijwerken, zodat iemand die de taak wél kan afronden of annuleren het weet.
+
 Op **Administratie** staan de materialen met prijzen, subtotaal, btw (21%) en totaal, financieel commentaar, en — als de SnelStart-koppeling aanstaat — de knop **Verstuur naar SnelStart**.
 
-Op **Exporteren** staan de werkbon-PDF en de keuring-PDF's met een voorbeeldweergave, een genereerknop en een **E-mail PDF**-knop.
+Op **Exporteren** staan de werkbon-PDF en de keuring-PDF's met een voorbeeldweergave, een genereerknop en een **E-mail PDF**-knop. Op een iPhone met Lavoro als app op het beginscherm opent de genereerknop het deelvenster van iOS, net als bij het downloaden van documenten.
 
 ### PDF, e-mail en SnelStart
 
@@ -132,7 +136,7 @@ Per taak op de werkbon kan:
 - **Apparatuur registreren**: bij een taak die apparatuur levert, vul je de serienummers in; daarmee ontstaan de machines in het systeem, inclusief onderdelen volgens de productsamenstelling. Zodra apparatuur geregistreerd is kan de taak niet meer heropend worden.
 - **Materialen boeken** op de taak zelf (naast materialen op de werkbon); op de bon en PDF is te zien bij welke taak materiaal hoort.
 
-Taken kunnen aan planrollen gebonden zijn, zodat monteurs alleen de taken van hun eigen rol zien; er is een recht om altijd alle taken te zien.
+Taken kunnen aan planrollen gebonden zijn, zodat monteurs alleen de taken van hun eigen rol zien; er is een recht om altijd alle taken te zien. Staan er taken op de bon die buiten jouw rollen vallen, dan meldt het takenblok dat er taken zijn die je niet kunt zien — je weet dan dat de lijst niet compleet is, ook al lees je de taken zelf niet.
 
 ## Keuringen
 
@@ -220,7 +224,7 @@ Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met 
 
 Aan vrijwel elk record (werkbon, storing, project, klant, machine, product…) kunnen bijlagen hangen:
 
-- **Documenten**: bestanden uploaden (meerdere tegelijk), een titel en een **categorie** geven, en per document markeren of het intern is. Interne documenten komen nooit bij de klant. Documenten zijn te bekijken in een voorbeeldweergave en te downloaden; beide gaan langs de rechtencontrole. Categorieën beheert de beheerder; er is bulk-hercategoriseren en bulk-verwijderen.
+- **Documenten**: bestanden uploaden (meerdere tegelijk), een titel en een **categorie** geven, en per document markeren of het intern is. Interne documenten komen nooit bij de klant. Documenten zijn te bekijken in een voorbeeldweergave en te downloaden; beide gaan langs de rechtencontrole. Op een iPhone met Lavoro als app op het beginscherm opent downloaden het deelvenster van iOS — kies daar bijvoorbeeld "Bewaar in Bestanden". Categorieën beheert de beheerder; er is bulk-hercategoriseren en bulk-verwijderen.
 - **Foto's**: afbeeldingen uploaden, een hoofdfoto aanwijzen, en op werkbonnen een apart blok voor interne foto's. De werkbon-PDF bundelt de (openbare) foto's van het werk.
 - **Opmerkingen**: notities op een record. Werkbonnen kennen openbare én **interne opmerkingen**; interne opmerkingen zijn de plek voor diagnoses en aantekeningen die niet op de bon voor de klant horen.
 
@@ -236,7 +240,7 @@ De beheerder kan eigen velden definiëren op klanten, machines, producten, werkb
 
 **Meldingen.** Het belletje toont meldingen in de applicatie; wie dat toestaat krijgt ze ook als pushbericht op telefoon of computer. Twee soorten:
 
-- **Abonnementen** (zelf aan te zetten onder Instellingen → Meldingen): nieuwe storing, nieuwe planning, planning gewijzigd, werkbon afgerond, materiaal toegevoegd, keuring ondertekend, nieuwe klant. Je krijgt alleen meldingen over dingen die je mag zien.
+- **Abonnementen** (zelf aan te zetten onder Instellingen → Meldingen): nieuwe storing, nieuwe planning, planning gewijzigd, werkbon afgerond, materiaal toegevoegd, keuring ondertekend, nieuwe klant, en "werkbon niet te sluiten" — die laatste komt als iemand een werkbon probeert te sluiten en wordt tegengehouden door taken die diegene zelf niet mag zien, en is alleen aan te zetten door wie werkbonnen mag bijwerken. Je krijgt alleen meldingen over dingen die je mag zien.
 - **Verplichte meldingen** (niet uit te zetten, over je eigen werk): je afspraak is verplaatst, je bent van een afspraak afgehaald, en je hebt nog tijden van een afgelopen afspraak niet ingevuld (dagelijkse herinnering).
 
 Over je eigen handelingen krijg je nooit een melding. Een nieuwere melding over hetzelfde record vervangt de oudere.

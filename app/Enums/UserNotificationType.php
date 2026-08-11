@@ -5,6 +5,7 @@ namespace App\Enums;
 use App\Domain\Signals\Appointments\AppointmentRescheduled;
 use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
+use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Domain\Signals\Signal;
 use App\Domain\Signals\Tasks\TaskSigned;
@@ -36,6 +37,7 @@ enum UserNotificationType: string
     case material_attached = 'serviceorder.material_attached';
     case task_signed = 'taskinstance.signed';
     case customer_created = 'customer.created';
+    case close_blocked_by_hidden_tasks = 'serviceorder.close_blocked_by_hidden_tasks';
 
     /**
      * Deze hangt aan geen enkel signaal: er gebeurt niets op het moment dat een
@@ -75,6 +77,7 @@ enum UserNotificationType: string
             self::material_attached => 'Materiaal toegevoegd',
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
+            self::close_blocked_by_hidden_tasks => 'Werkbon niet te sluiten',
             self::execution_times_missing => 'Tijden nog niet ingevuld',
             self::own_appointment_moved => 'Jouw afspraak verplaatst',
             self::removed_from_appointment => 'Van afspraak afgehaald',
@@ -92,6 +95,8 @@ enum UserNotificationType: string
             self::material_attached => 'Zodra er materiaal op een werkbon komt.',
             self::task_signed => 'Zodra een keuring wordt ondertekend.',
             self::customer_created => 'Zodra er een klant wordt toegevoegd.',
+            self::close_blocked_by_hidden_tasks => 'Als iemand een werkbon niet kan sluiten '
+                . 'door taken die diegene zelf niet mag zien.',
             self::execution_times_missing => 'Als je tijden van een afspraak van gisteren of eerder nog openstaan.',
             self::own_appointment_moved => 'Als een afspraak waarop jij staat een andere datum of tijd krijgt.',
             self::removed_from_appointment => 'Als een afspraak niet langer op jouw naam staat.',
@@ -201,6 +206,14 @@ enum UserNotificationType: string
             self::serviceorder_closed, self::material_attached, self::task_signed => ['serviceorder.read'],
             self::customer_created => ['customer.read'],
 
+            /**
+             * Lezen is hier niet genoeg. Het bericht vraagt om iets te doen aan een taak
+             * die de melder zelf niet kwijt kan, en wie de bon niet mag bijwerken kan dat
+             * evenmin: die krijgt dan een probleem te horen dat alleen doorgegeven kan
+             * worden.
+             */
+            self::close_blocked_by_hidden_tasks => ['serviceorder.read', 'serviceorder.update'],
+
             /** Over je eigen uren en je eigen dag hoef je niets extra's te mogen. */
             self::execution_times_missing, self::own_appointment_moved,
             self::removed_from_appointment => [],
@@ -233,6 +246,7 @@ enum UserNotificationType: string
             self::material_attached => 'Box',
             self::task_signed => 'ClipboardCheck',
             self::customer_created => 'Users',
+            self::close_blocked_by_hidden_tasks => 'Lock',
             self::execution_times_missing => 'Clock',
             self::own_appointment_moved => 'CalendarClock',
             self::removed_from_appointment => 'CalendarX',
@@ -248,6 +262,7 @@ enum UserNotificationType: string
             self::serviceorder_closed, self::task_signed => 'green',
             self::material_attached => 'purple',
             self::customer_created => 'blue',
+            self::close_blocked_by_hidden_tasks => 'amber',
             self::execution_times_missing => 'red',
             self::own_appointment_moved => 'amber',
             self::removed_from_appointment => 'red',
@@ -268,6 +283,8 @@ enum UserNotificationType: string
             self::material_attached => 'Materiaal op werkbon #' . $this->serviceOrder($signal)->id,
             self::task_signed => 'Keuring ondertekend',
             self::customer_created => 'Nieuwe klant',
+            self::close_blocked_by_hidden_tasks => 'Werkbon #' . $this->serviceOrder($signal)->id
+                . ' kan niet gesloten worden',
             self::execution_times_missing => 'Tijden nog niet ingevuld',
             self::own_appointment_moved => 'Jouw afspraak is verplaatst',
             self::removed_from_appointment => 'Van afspraak afgehaald',
@@ -283,6 +300,7 @@ enum UserNotificationType: string
             self::material_attached => $this->materialBody($signal),
             self::task_signed => $this->taskSignedBody($signal),
             self::customer_created => $this->customerBody($signal),
+            self::close_blocked_by_hidden_tasks => $this->closeBlockedBody($signal),
             self::execution_times_missing => 'Er staan nog tijden open.',
             self::own_appointment_moved => $this->ownAppointmentMovedBody($signal),
             self::removed_from_appointment => $this->removedFromAppointmentBody($signal),
@@ -298,6 +316,9 @@ enum UserNotificationType: string
         return match ($this) {
             self::ticket_created => UserNotificationPriority::fromTicketPriority($this->ticket($signal)->priority),
             self::appointment_scheduled, self::appointment_rescheduled => UserNotificationPriority::normaal,
+
+            /** Er staat iemand stil op een bon die diegene zelf niet vlot kan trekken. */
+            self::close_blocked_by_hidden_tasks => UserNotificationPriority::normaal,
 
             /** Jouw eigen dag die verandert is het soort bericht waarvoor je stopt. */
             self::own_appointment_moved, self::removed_from_appointment => UserNotificationPriority::hoog,
@@ -428,6 +449,28 @@ enum UserNotificationType: string
             . ', ondertekend door ' . ($signal->signed_by ?: $this->actor($signal));
     }
 
+    /**
+     * Noemt de taken en de rol waar ze aan hangen, want dat is precies wat de melder
+     * niet kon zien en waar de lezer wel bij kan.
+     */
+    private function closeBlockedBody(Signal $signal): string
+    {
+        if (!$signal instanceof ServiceOrderCloseBlockedByHiddenTasks) {
+            return $this->actor($signal) . ' kon de werkbon niet sluiten.';
+        }
+
+        $roles = $signal->role_names === []
+            ? ''
+            : ' (' . (count($signal->role_names) === 1 ? 'rol ' : 'rollen ')
+                . implode(', ', $signal->role_names) . ')';
+
+        return $this->actor($signal) . ' kon de werkbon niet sluiten: '
+            . $signal->hiddenTaskSummary() . $roles . ($signal->isOneTask()
+                ? ' staat nog open en valt'
+                : ' staan nog open en vallen')
+            . ' buiten de rollen waarin diegene deze bon uitvoert.';
+    }
+
     private function customerBody(Signal $signal): string
     {
         $customer = $signal->subject();
@@ -460,7 +503,11 @@ enum UserNotificationType: string
             return $signal->service_order;
         }
 
-        if ($signal instanceof MaterialAttachedToOrder || $signal instanceof TaskSigned) {
+        if (
+            $signal instanceof MaterialAttachedToOrder
+            || $signal instanceof TaskSigned
+            || $signal instanceof ServiceOrderCloseBlockedByHiddenTasks
+        ) {
             return $signal->service_order;
         }
 

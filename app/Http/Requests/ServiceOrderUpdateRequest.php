@@ -2,10 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
+use App\Domain\Signals\Signals;
 use App\Enums\ServiceOrderTypes;
 use App\Models\Asset;
 use App\Models\GeneralSetting;
+use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
+use App\Models\ServiceOrderTaskInstance;
+use App\Services\TaskInstanceVisibility;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -159,17 +165,7 @@ class ServiceOrderUpdateRequest extends FormRequest
                 return;
             }
 
-            $incomplete = $serviceorder->taskInstances()
-                ->where('is_complete', false)
-                ->where('is_cancelled', false)
-                ->count();
-            if ($incomplete > 0) {
-                $validator->errors()->add(
-                    'service_order_stage_id',
-                    "Er zijn nog {$incomplete} taken niet afgerond of geannuleerd. " .
-                    'Rond alle taken af of annuleer ze voordat je de werkbon sluit.'
-                );
-            }
+            $this->guardOpenTaskInstances($validator, $serviceorder);
 
             $min = (int) GeneralSetting::get('serviceorder_min_images', 0);
             if ($min > 0) {
@@ -188,6 +184,62 @@ class ServiceOrderUpdateRequest extends FormRequest
                 );
             }
         });
+    }
+
+    /**
+     * Een bon met openstaande taken gaat niet dicht. De weigering krijgt een eigen sleutel
+     * omdat het scherm er meer mee doet dan een regel tonen: het benoemt de taken, ook de
+     * taken die de lezer zelf niet in zijn lijst heeft staan.
+     */
+    private function guardOpenTaskInstances($validator, ServiceOrder $serviceorder): void
+    {
+        $serviceorder->loadMissing(['taskInstances.userRoles', 'taskInstances.serviceOrderTask', 'events']);
+
+        $open = $serviceorder->taskInstances
+            ->where('is_complete', false)
+            ->where('is_cancelled', false);
+
+        if ($open->isEmpty()) {
+            return;
+        }
+
+        $validator->errors()->add('open_task_instances', $open->count() === 1
+            ? 'Er is nog 1 taak niet afgerond of geannuleerd. Rond hem af of annuleer hem '
+                . 'voordat je de werkbon sluit.'
+            : 'Er zijn nog ' . $open->count() . ' taken niet afgerond of geannuleerd. Rond ze '
+                . 'af of annuleer ze voordat je de werkbon sluit.');
+
+        $this->announceHiddenBlockers($serviceorder, $open);
+    }
+
+    /**
+     * Zit er onder de openstaande taken werk dat deze lezer niet eens te zien krijgt, dan
+     * loopt hij vast op iets dat voor hem niet bestaat en kan hij er zelf niets aan doen.
+     * Dat is een feit op zich, dus het gaat als signaal de deur uit naar wie de bon wel mag
+     * bijwerken.
+     *
+     * Aangekondigd vanuit het weigeren zelf, en niet verderop vanuit de controller: het
+     * verzoek strandt hier op de validatie en komt daar nooit aan.
+     *
+     * @param  Collection<int, ServiceOrderTaskInstance>  $open
+     */
+    private function announceHiddenBlockers(ServiceOrder $serviceorder, Collection $open): void
+    {
+        $hidden = $open->whereIn(
+            'id',
+            app(TaskInstanceVisibility::class)->hiddenFrom($serviceorder, $this->user())->modelKeys()
+        );
+
+        if ($hidden->isEmpty()) {
+            return;
+        }
+
+        Signals::dispatch(new ServiceOrderCloseBlockedByHiddenTasks(
+            $serviceorder,
+            $hidden->map(fn ($instance) => $instance->effective_title ?: 'Taak zonder titel')->values()->all(),
+            $hidden->flatMap->userRoles->pluck('name')->unique()->values()->all(),
+            $open->count(),
+        ));
     }
 
     /**

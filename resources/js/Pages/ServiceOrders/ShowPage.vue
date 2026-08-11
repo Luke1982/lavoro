@@ -135,7 +135,7 @@
                             :is-closed="serviceOrder.is_closed" :type="serviceOrder.type"
                             :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
-                            class="my-4" />
+                            :hidden-count="hiddenTaskCount" class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
@@ -512,15 +512,12 @@
                                         frameborder="0" />
                                 </div>
                                 <div class="flex gap-2">
-                                    <a :href="selectedExportItem.type === 'werkbon'
-                                        ? `/serviceorders/${serviceOrder.id}/export/pdf`
-                                        : `/servicejobs/${selectedExportItem.id}/export/pdf`" target="_blank"
-                                        rel="noopener"
-                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90">
+                                    <button type="button" @click="openExportPdf"
+                                        class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90 cursor-pointer">
                                         <span
                                             class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                                         Genereer
-                                    </a>
+                                    </button>
                                     <button @click="emailSelectedPdf" :disabled="exportEmailing"
                                         class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
                                         {{ exportEmailing ? 'Versturen...' : 'E-mail PDF' }}
@@ -582,8 +579,45 @@
 
     <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
         :all-task-instances="allTaskInstances" :materials="combinedMaterials"
-        :freeform-materials="combinedFreeformMaterials" :user-roles="userRoles" @confirm="handleSignatureConfirm"
+        :freeform-materials="combinedFreeformMaterials" @confirm="handleSignatureConfirm"
         @update-work-completed="updateWorkCompleted" />
+
+    <ModalDialog :open="showOpenTasksAlert" @update:open="showOpenTasksAlert = $event"
+        title="Er staan nog taken open" max-width-class="sm:max-w-lg">
+        <div class="sm:flex sm:items-start gap-4">
+            <div
+                class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 sm:mx-0 sm:size-10">
+                <ExclamationTriangleIcon class="size-6 text-yellow-600" />
+            </div>
+            <div class="mt-3 sm:mt-0 min-w-0 flex-1 text-left">
+                <p class="text-sm text-gray-500 dark:text-slate-400">
+                    Deze werkbon kan niet gesloten worden zolang er taken openstaan. Rond de onderstaande taken af of
+                    annuleer ze.
+                </p>
+                <ul class="mt-4 space-y-3">
+                    <li v-for="task in openTaskInstances" :key="task.id">
+                        <p class="text-sm font-semibold text-gray-800 dark:text-slate-200">{{ task.title }}</p>
+                        <p v-if="!task.visible" class="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
+                            Staat niet in jouw takenlijst: deze taak hoort bij {{ task.roleLabel }}, en jij voert
+                            deze werkbon niet in die rol uit.
+                        </p>
+                    </li>
+                </ul>
+                <p v-if="hiddenOpenTaskCount > 0" class="mt-4 text-xs text-gray-500 dark:text-slate-400">
+                    Vraag een collega met de juiste rol om
+                    {{ hiddenOpenTaskCount === 1 ? 'deze taak' : 'deze taken' }} af te ronden of te annuleren.
+                </p>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end">
+                <button type="button" @click="showOpenTasksAlert = false"
+                    class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-lavoro-blue text-white hover:opacity-90 cursor-pointer transition-opacity">
+                    Begrepen
+                </button>
+            </div>
+        </template>
+    </ModalDialog>
 
     <CustomerTransferModal v-model:open="showTransferModal" context="serviceorder"
         :subject-id="serviceOrder.id" :customer-id="form.customer_id"
@@ -602,7 +636,8 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect } from '@/Utilities/Utilities';
+import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle } from '@/Utilities/Utilities';
+import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
 import { Check, TrashIcon } from '@lucide/vue';
@@ -619,6 +654,7 @@ import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import EventsWidget from '@/Components/ServiceOrders/EventsWidget.vue';
 import CloseServiceOrderModal from '@/Components/ServiceOrders/CloseServiceOrderModal.vue';
+import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { ticketPriorities } from '@/Components/data/TicketData';
@@ -820,6 +856,39 @@ watch(() => form.customer_id, (customerId) => {
     loadLocations(customerId);
 });
 
+const showOpenTasksAlert = ref(false);
+
+const visibleTaskInstanceIds = computed(
+    () => new Set((props.serviceOrder.task_instances ?? []).map(instance => instance.id))
+);
+
+function roleLabel(names) {
+    if (names.length === 0) return 'een andere rol';
+
+    return (names.length === 1 ? 'de rol ' : 'de rollen ') + names.join(', ');
+}
+
+/**
+ * Read from the unfiltered list: a task hidden behind a user role the reader does not have
+ * blocks the close just as hard, and is precisely what the alert has to name.
+ */
+const openTaskInstances = computed(() => props.allTaskInstances
+    .filter(instance => !instance.is_complete && !instance.is_cancelled)
+    .map(instance => ({
+        id: instance.id,
+        title: taskInstanceTitle(instance),
+        visible: visibleTaskInstanceIds.value.has(instance.id),
+        roleLabel: roleLabel((instance.user_roles ?? []).map(role => role.name)),
+    }))
+);
+
+const hiddenOpenTaskCount = computed(() => openTaskInstances.value.filter(task => !task.visible).length);
+
+/** Everything missing from the reader's own list entirely, finished or not. */
+const hiddenTaskCount = computed(
+    () => props.allTaskInstances.filter(instance => !visibleTaskInstanceIds.value.has(instance.id)).length
+);
+
 function closeViaStage() {
     if (!isSigned.value) {
         alert('Vul zowel de naam als de handtekening in om de werkbon te kunnen afsluiten.')
@@ -884,6 +953,20 @@ function onStageChange(stage_id) {
     form.patch(`/serviceorders/${props.serviceOrder.id}`, {
         preserveScroll: true,
         onError: (errors) => {
+            /**
+             * Open tasks get the dialog rather than a line at the bottom of the screen: the
+             * reason is a list, and part of that list is missing from the overview the
+             * reader is looking at. A flash that does not say so sends them hunting for
+             * something that, for them, is not there.
+             *
+             * Unless this page has never heard of those tasks, in which case it went stale
+             * since it loaded. An empty dialog would swallow the refusal, so the server's
+             * own sentence stands in.
+             */
+            if (errors.open_task_instances && openTaskInstances.value.length > 0) {
+                showOpenTasksAlert.value = true
+                return
+            }
             const msg = errors.service_order_stage_id || Object.values(errors)[0]
             if (msg) usePage().props.flash.error = msg
         },
@@ -1044,6 +1127,16 @@ const createAndAttachTicket = () => {
 };
 
 const selectedExportItem = ref(null);
+
+const openExportPdf = () => {
+    const item = selectedExportItem.value;
+
+    if (item.type === 'werkbon') {
+        openInNewTab(`/serviceorders/${props.serviceOrder.id}/export/pdf`, `werkbon-${props.serviceOrder.id}.pdf`);
+    } else {
+        openInNewTab(`/servicejobs/${item.id}/export/pdf`, `keuring-${item.id}.pdf`);
+    }
+};
 const exportEmailing = ref(false);
 const exportEmailForm = useForm({});
 

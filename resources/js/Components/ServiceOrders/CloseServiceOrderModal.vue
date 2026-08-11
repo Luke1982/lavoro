@@ -27,8 +27,7 @@
             </div>
 
             <div>
-                <TaskInstancesWidget :service-order-id="serviceOrder.id" :instances="allTaskInstances"
-                    :available-tasks="[]" :products="[]" :user-roles="userRoles" :is-closed="true" :boxed="false" />
+                <TaskInstancesSummary :instances="allTaskInstances" />
             </div>
 
             <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
@@ -89,7 +88,7 @@ import GLightbox from 'glightbox';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
-import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
+import TaskInstancesSummary from '@/Components/ServiceOrders/TaskInstancesSummary.vue';
 import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
@@ -101,7 +100,6 @@ const props = defineProps({
     allTaskInstances: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
     freeformMaterials: { type: Array, default: () => [] },
-    userRoles: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:open', 'confirm', 'update-work-completed']);

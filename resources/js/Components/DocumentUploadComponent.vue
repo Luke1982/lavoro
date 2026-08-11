@@ -264,10 +264,10 @@
                                     class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer transition-colors @4xl:flex">
                                     <EyeIcon class="size-5" />
                                 </button>
-                                <a :href="`/documents/${doc.id}/download`" download title="Downloaden"
-                                    class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors @4xl:flex">
+                                <button type="button" @click="downloadDocument(doc)" title="Downloaden"
+                                    class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors cursor-pointer @4xl:flex">
                                     <ArrowDownTrayIcon class="size-5" />
-                                </a>
+                                </button>
                                 <DropdownMenu placement="bottom-end" width-class="w-56" title="Meer acties"
                                     button-class="flex size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer transition-colors">
                                     <template #button>
@@ -281,13 +281,16 @@
                                     </button>
                                     </MenuItem>
                                     <MenuItem v-slot="{ active }">
-                                    <a :href="`/documents/${doc.id}/download`" download
-                                        :class="['flex items-center gap-2 px-3 py-2 text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                    <button type="button" @click="downloadDocument(doc)"
+                                        :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                                         <ArrowDownTrayIcon class="size-4 text-gray-400" />
                                         Downloaden
-                                    </a>
+                                    </button>
                                     </MenuItem>
-                                    <MenuItem v-slot="{ active }">
+                                    <!-- The iOS home-screen app has no tabs, and a same-scope
+                                         target="_blank" takes over the webview with no way back;
+                                         Downloaden already opens the share sheet there. -->
+                                    <MenuItem v-if="!isStandaloneApp" v-slot="{ active }">
                                     <a :href="`/documents/${doc.id}/preview`" target="_blank" rel="noopener"
                                         :class="['flex items-center gap-2 px-3 py-2 text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                                         <ArrowTopRightOnSquareIcon class="size-4 text-gray-400" />
@@ -395,11 +398,13 @@
             @change="handleFiles" />
 
         <PdfViewerOverlay :open="viewingDoc !== null" :url="viewingDoc ? `/documents/${viewingDoc.id}/download` : ''"
-            :title="viewingDoc ? (viewingDoc.title || viewingDoc.name) : ''" @update:open="viewingDoc = null" />
+            :title="viewingDoc ? (viewingDoc.title || viewingDoc.name) : ''"
+            :filename="viewingDoc ? viewingDoc.name : ''" @update:open="viewingDoc = null" />
 
         <SpreadsheetViewerOverlay :open="viewingSheet !== null"
             :url="viewingSheet ? `/documents/${viewingSheet.id}/download` : ''"
-            :title="viewingSheet ? (viewingSheet.title || viewingSheet.name) : ''" @update:open="viewingSheet = null" />
+            :title="viewingSheet ? (viewingSheet.title || viewingSheet.name) : ''"
+            :filename="viewingSheet ? viewingSheet.name : ''" @update:open="viewingSheet = null" />
 
         <ModalDialog :open="categoryModalOpen" @update:open="categoryModalOpen = $event" title="Categorie aanmaken"
             max-width-class="sm:max-w-md">
@@ -526,6 +531,8 @@ import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import SpreadsheetViewerOverlay from '@/Components/UI/SpreadsheetViewerOverlay.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
+import { downloadFile, isIosStandalone } from '@/Utilities/download.js';
+import { openImageLightbox } from '@/Utilities/lightbox.js';
 import {
     documentCategoryColors,
     documentCategoryPillClasses,
@@ -571,6 +578,8 @@ const PREVIEWABLE = ['pdf', ...SPREADSHEETS, ...IMAGES];
 const UNCATEGORIZED = 'none';
 
 const page = usePage();
+
+const isStandaloneApp = isIosStandalone();
 
 const maySee = computed(() => hasPermission('document.see'));
 const mayUpload = computed(() => hasPermission('document.upload'));
@@ -696,6 +705,10 @@ const uploadTargetCategory = computed(() => (
 
 const canPreview = (doc) => PREVIEWABLE.includes(documentExtension(doc.name));
 
+function downloadDocument(doc) {
+    downloadFile(`/documents/${doc.id}/download`, doc.name, `/documents/${doc.id}/preview`);
+}
+
 function openDocument(doc) {
     const extension = documentExtension(doc.name);
 
@@ -704,7 +717,7 @@ function openDocument(doc) {
     } else if (SPREADSHEETS.includes(extension)) {
         viewingSheet.value = doc;
     } else if (IMAGES.includes(extension)) {
-        window.open(`/documents/${doc.id}/preview`, '_blank', 'noopener');
+        openImageLightbox([`/documents/${doc.id}/preview`]);
     }
 }
 

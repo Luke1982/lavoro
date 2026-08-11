@@ -139,11 +139,12 @@
                                             {{ group.subject }}
                                         </p>
                                         <div v-if="group.photos.length" class="flex shrink-0 gap-1">
-                                            <a v-for="photo in group.photos" :key="photo" :href="photo" target="_blank"
-                                                rel="noopener noreferrer" title="De foto waar dit vanaf gelezen is">
+                                            <button v-for="(photo, photoIndex) in group.photos" :key="photo"
+                                                type="button" @click="openImageLightbox(group.photos, photoIndex)"
+                                                class="cursor-pointer" title="De foto waar dit vanaf gelezen is">
                                                 <img :src="photo" alt=""
                                                     class="size-9 rounded object-cover ring-1 ring-slate-300 hover:ring-lavoro-blue">
-                                            </a>
+                                            </button>
                                         </div>
                                     </div>
                                     <ul class="mt-1.5 space-y-1">
@@ -443,6 +444,7 @@ import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import MarkdownText from '@/Components/UI/MarkdownText.vue'
 import { CHAT, HISTORY, PROMPTS, startOver, useAssistantThread } from '@/Composables/useAssistantThread.js'
+import { openImageLightbox } from '@/Utilities/lightbox.js'
 
 /**
  * The assistant itself, with no opinion about the frame around it.

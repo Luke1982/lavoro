@@ -45,6 +45,7 @@ use App\Services\MateriableService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\ServiceOrderLocationResolver;
 use App\Services\SnelStartClient;
+use App\Services\TaskInstanceVisibility;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
@@ -250,20 +251,7 @@ class ServiceOrderController extends Controller
         $service_order->taskInstances->each->append('serial_slots');
 
         $all_task_instances = $service_order->taskInstances;
-        $visible_instances = $all_task_instances;
-
-        if (!$user->isAdmin() && !$user->hasPermission('serviceorder.see_all_task_instances')) {
-            $role_ids = $service_order->events
-                ->flatMap(fn ($event) => $event->executingUserRoleIds($user->id))
-                ->unique()
-                ->values()
-                ->all();
-
-            $visible_instances = $all_task_instances->filter(
-                fn ($instance) => $instance->userRoles->isEmpty()
-                    || $instance->userRoles->pluck('id')->intersect($role_ids)->isNotEmpty()
-            )->values();
-        }
+        $visible_instances = app(TaskInstanceVisibility::class)->visibleTo($service_order, $user);
 
         /**
          * Built before the relation is narrowed, so what the order was billed for reads the

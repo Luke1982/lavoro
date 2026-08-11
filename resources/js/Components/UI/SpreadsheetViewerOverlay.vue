@@ -9,11 +9,11 @@
                     </p>
                 </div>
                 <div class="flex flex-none items-center gap-2">
-                    <a v-if="url" :href="url" download
-                        class="inline-flex items-center gap-1.5 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    <button v-if="url" type="button" @click="download"
+                        class="inline-flex items-center gap-1.5 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer">
                         <ArrowDownTrayIcon class="size-4" />
                         Downloaden
-                    </a>
+                    </button>
                     <!-- ModalDialog only renders its own close button on mobile, and
                          the grid swallows Escape, so this modal needs its own. -->
                     <button type="button" @click="$emit('update:open', false)" aria-label="Sluiten"
@@ -42,9 +42,10 @@
 
                 <div v-else-if="error" class="flex h-48 flex-col items-center justify-center gap-3 text-sm">
                     <p class="text-gray-500 dark:text-slate-400">{{ error }}</p>
-                    <a v-if="url" :href="url" download class="font-medium text-lavoro-blue hover:underline">
+                    <button v-if="url" type="button" @click="download"
+                        class="font-medium text-lavoro-blue hover:underline cursor-pointer">
                         Probeer te downloaden
-                    </a>
+                    </button>
                 </div>
 
                 <p v-else-if="activeSheet && activeSheet.data.length === 0"
@@ -64,6 +65,7 @@ import { computed, ref, shallowRef, watch } from 'vue';
 import { ArrowDownTrayIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import SpreadsheetComponent from '@/Components/UI/SpreadsheetComponent.vue';
+import { downloadFile } from '@/Utilities/download.js';
 
 /**
  * Renders a workbook in jspreadsheet. jspreadsheet-ce reads no binary format of
@@ -74,9 +76,15 @@ const props = defineProps({
     open: { type: Boolean, required: true },
     url: { type: String, default: '' },
     title: { type: String, default: '' },
+    /** Filename the download is saved under; the title often has no extension. */
+    filename: { type: String, default: '' },
 });
 
 defineEmits(['update:open']);
+
+function download() {
+    downloadFile(props.url, props.filename || 'document.xlsx');
+}
 
 // A viewer, not an editor: the cap keeps a runaway export from locking up the
 // tab, and the header says so rather than silently showing a partial sheet.

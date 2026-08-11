@@ -41,7 +41,7 @@
                             class="text-xs text-gray-600 dark:text-slate-400 flex items-start gap-1.5">
                             <span class="size-1 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0 mt-1.5"></span>
                             <span class="min-w-0">
-                                {{ effectiveTitle(ti) }}
+                                {{ taskInstanceTitle(ti) }}
                                 <span v-if="ti.product" class="text-indigo-500 dark:text-indigo-400">
                                     — {{ ti.quantity }}× {{ ti.product.brand.name }} {{ ti.product.model }}
                                 </span>
@@ -94,7 +94,7 @@ import {
     ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon,
     MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, MapPinIcon,
 } from '@heroicons/vue/24/outline'
-import { nlDate } from '@/Utilities/Utilities'
+import { nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
@@ -128,10 +128,6 @@ onMounted(() => {
             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
 })
-
-function effectiveTitle(ti) {
-    return ti.title || ti.service_order_task?.title || '(geen titel)'
-}
 
 function onDragStart(e, so) {
     setServiceOrderDragData(e, so)
