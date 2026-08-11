@@ -183,6 +183,8 @@ Op een telefoon toont de planner één monteur tegelijk, per week, als lijst of 
 
 Een onderhoudscontract hoort bij een klant en dekt een set machines. Het heeft een looptijd (start- en einddatum), een prijs met een prijsinterval, en een **onderhoudsfrequentie**: maandelijks, halfjaarlijks, jaarlijks of een eigen aantal dagen. De frequentie geldt voor het hele contract, of — als "frequentie per machine" aanstaat — per machine apart.
 
+De **einddatum mag leeg blijven**: dat is een contract dat doorloopt tot je het annuleert. Een ingevulde einddatum haal je weg met het kruisje dat rechts naast het veld verschijnt zodra je er met de muis overheen gaat; klap je het veld open om de datum te wijzigen, dan staat het kruisje naast de opslaanknop.
+
 De **status** volgt uit de datums: toekomstig (nog niet begonnen), actief, verlopen (einddatum voorbij) of geannuleerd. Annuleren en weer activeren zijn knoppen op het contract.
 
 **Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren.

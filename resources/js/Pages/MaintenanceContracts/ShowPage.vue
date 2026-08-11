@@ -49,7 +49,7 @@
                         :error="form.errors.start_date" :readonly="!canUpdate"
                         @update="() => patch('start_date')" @revert="form.clearErrors('start_date')" />
                     <EditableTextField v-model="form.end_date" type="input" inputType="date" label="Einddatum"
-                        placeholder="Geen einddatum"
+                        placeholder="Geen einddatum" clearable
                         :error="form.errors.end_date" :readonly="!canUpdate"
                         @update="() => patch('end_date')" @revert="form.clearErrors('end_date')" />
                     <div v-if="hasPermission('maintenancecontract.see_financials')">

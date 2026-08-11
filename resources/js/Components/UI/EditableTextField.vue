@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="{ 'group pr-5': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration && bordered }"
+        :class="[closedPadding, { 'group': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration && bordered }]"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
             <slot name="label-suffix" />
@@ -24,6 +24,10 @@
                 :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
                 :hasExternalSearching="hasExternalSearching" :searching="searching" @change="$emit('change', $event)"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
+            <button v-if="canClear" type="button" @click.stop="clear" v-tooltip="clearTooltip"
+                :aria-label="clearTooltip" class="px-2 py-1 cursor-pointer">
+                <XMarkIcon class="w-5 h-5 text-gray-500 dark:text-gray-200 hover:text-red-500" />
+            </button>
             <button v-if="!$slots.open && inErrorState" @click.stop="revert"
                 class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">
                 <ArrowUturnLeftIcon class="w-5 h-5 text-gray-500 dark:text-gray-200" />
@@ -43,12 +47,22 @@
         <PencilSquareIcon v-if="!editing && !readonly && !disabled && decoration"
             :class="['size-4 text-gray-400 dark:text-gray-300 absolute right-2 top-4 -translate-y-1/2 cursor-pointer transition-opacity', { 'opacity-0 group-hover:opacity-100': indicatorMeta }]"
             @click="startEdit" />
+        <!--
+            Kept invisible rather than transparent until hover: a see-through button still
+            swallows clicks, and an accidental one here wipes the value instead of harmlessly
+            opening the editor like the pencil does.
+        -->
+        <button v-if="showClosedClearButton" type="button" @click.stop="clear" v-tooltip="clearTooltip"
+            :aria-label="clearTooltip"
+            class="absolute right-8 top-4 -translate-y-1/2 cursor-pointer text-gray-400 dark:text-gray-300 hover:text-red-500 invisible opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
+            <XMarkIcon class="size-4 stroke-2" />
+        </button>
     </div>
 </template>
 
 <script setup>
 import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
-import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, ChevronUpDownIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, ChevronUpDownIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
@@ -79,6 +93,12 @@ const props = defineProps({
     hasExternalSearching: { type: Boolean, default: false },
     searching: { type: Boolean, default: false },
     indicator: { type: String, default: '' },
+    /**
+     * Offers a button that empties the field, both while editing and while closed.
+     * Only for fields the backend accepts as null — a required field has nothing
+     * sensible to fall back to once wiped.
+     */
+    clearable: { type: Boolean, default: false },
 });
 
 const editing = ref(false);
@@ -120,10 +140,41 @@ const indicatorMeta = computed(() => {
     return null;
 });
 
+const isEmpty = (value) => value === null || value === undefined || value === '';
+
+/**
+ * Comboboxes and fields with their own `open` editor are excluded on purpose: a
+ * combobox clears by clicking its selected option again, and a custom editor owns
+ * its own controls. Both would otherwise get the closed-state cross without a
+ * matching one in the open state.
+ */
+const canClear = computed(() =>
+    props.clearable
+    && !props.readonly
+    && !props.disabled
+    && props.type !== 'combobox'
+    && !slots.open
+    && !isEmpty(editing.value ? local.value : model.value)
+);
+
+// The closed-state button rides along with the pencil, so it follows the same
+// decoration switch — a field that hides its affordances hides this one too.
+const showClosedClearButton = computed(() => !editing.value && props.decoration && canClear.value);
+
+const clearTooltip = computed(() =>
+    props.inputType === 'date' ? 'Datum wissen' : 'Veld leegmaken'
+);
+
+// Room on the right for the icons the closed state parks there: the pencil alone,
+// or the pencil plus the cross.
+const closedPadding = computed(() =>
+    editing.value ? '' : showClosedClearButton.value ? 'pr-10' : 'pr-5'
+);
+
 const currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
 
 const displayValue = computed(() => {
-    if (model.value === null || model.value === undefined || model.value === '') {
+    if (isEmpty(model.value)) {
         return props.placeholder;
     }
     if (props.inputType === 'date') {
@@ -177,6 +228,19 @@ function save() {
         editing.value = false;
         lastSubmittedValue.value = NO_SAVE;
     }, 200);
+}
+
+// Wiping goes through save() so a closed field that the backend rejects still
+// reopens with its error, exactly as a typed-in value would. Clearing a closed
+// field skips startEdit(), so it has to take the snapshot revert() needs itself —
+// while editing, startEdit() already captured a value save() may since have
+// overwritten, and that older one is the right thing to go back to.
+function clear() {
+    if (!editing.value) {
+        originalValue.value = model.value;
+    }
+    local.value = null;
+    save();
 }
 
 function revert() {
