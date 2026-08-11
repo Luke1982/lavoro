@@ -81,6 +81,8 @@ class CustomerController extends Controller
             'activeAssets.product.brand',
             'activeAssets.product.productType',
             'activeAssets.linkedLocation',
+            'activeAssets.childAssets.product.brand',
+            'activeAssets.childAssets.product.productType',
             'activeAssets.openTickets',
             'activeAssets.pendingTickets',
             'activeAssets.closedTickets',

@@ -65,6 +65,24 @@
                             v-if="asset.closed_tickets.length > 1">en</span>
                     </span>
                 </div>
+                <div v-if="asset.product.bundle && asset.child_assets?.length"
+                    class="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700/60">
+                    <p class="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">
+                        Onderdelen
+                    </p>
+                    <ul class="mt-1 flex flex-col gap-0.5">
+                        <li v-for="child in asset.child_assets" :key="child.id"
+                            class="flex flex-wrap items-baseline gap-x-2 text-xs">
+                            <Link :href="`/assets/${child.id}`"
+                                class="text-gray-700 dark:text-slate-300 hover:text-lavoro-blue dark:hover:text-lavoro-lightblue">
+                                {{ child.product.brand.name }} {{ child.product.model }}
+                            </Link>
+                            <span class="text-gray-500 dark:text-slate-500">
+                                {{ child.product.bundle ? 'Bundel' : (child.serial_number ?? '—') }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
             </div>
             <div class="absolute top-2 right-2 flex items-center gap-2">
                 <LocateFixed v-if="customerId"

@@ -65,7 +65,7 @@ Meestal hoeft dat commando niet. Ziet het dashboard adressen die het niet kan pl
 
 Een klant heeft adresgegevens (bezoek- en postadres), meerdere e-mailadressen (algemeen, factuur, offerte), telefoonnummers, KvK-nummer en optioneel IBAN en btw-nummer (die laatste zijn afgeschermd achter een apart recht voor gevoelige gegevens). Een klant kan een **facturatieklant** hebben: dan gaan facturen naar die andere klant.
 
-Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbonnen & Projecten en Afspraken. Vanaf de klant maak je direct een nieuw contact, onderhoudscontract of nieuwe machine aan. Onder Werkbonnen & Projecten staan de werkbonnen als kaartjes met nummer, klant en locatie, geplande afspraken, fase, monteurs en taakvoortgang (zie het hoofdstuk Projecten voor de details van die weergave).
+Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbonnen & Projecten en Afspraken. Vanaf de klant maak je direct een nieuw contact, onderhoudscontract of nieuwe machine aan. Onder Machines staat elke machine als kaartje; is de machine een bundel, dan staan de onderdelen die eronder hangen op het kaartje zelf vermeld, met hun serienummer en een link naar de onderdeelmachine. Onder Werkbonnen & Projecten staan de werkbonnen als kaartjes met nummer, klant en locatie, geplande afspraken, fase, monteurs en taakvoortgang (zie het hoofdstuk Projecten voor de details van die weergave).
 
 - **Locaties** zijn de vestigingen of adressen van een klant. Machines, werkbonnen en afspraken kunnen aan een locatie hangen.
 - **Contactpersonen** horen bij een klant en kunnen bij meerdere klanten tegelijk horen.
