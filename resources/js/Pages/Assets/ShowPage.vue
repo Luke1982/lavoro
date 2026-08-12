@@ -1,11 +1,13 @@
 <template>
     <div class="flex items-start justify-between gap-4 mb-6">
         <BreadcrumbComponent :items="breadcrumbItems" />
-        <AssistantButton />
-        <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
-            class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
-            <TrashIcon class="size-5" />
-        </button>
+        <div class="flex items-center gap-4">
+            <AssistantButton />
+            <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
+                class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
+                <TrashIcon class="size-5" />
+            </button>
+        </div>
     </div>
 
     <div class="flex items-start gap-4">
