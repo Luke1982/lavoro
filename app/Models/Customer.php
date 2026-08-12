@@ -8,7 +8,6 @@ use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Customer extends Model
 {
@@ -102,15 +101,7 @@ class Customer extends Model
      */
     public function assetTree(array $with = []): Collection
     {
-        $ids = collect(DB::select(
-            'WITH RECURSIVE asset_tree (id) AS ('
-            . ' SELECT id FROM assets WHERE customer_id = ?'
-            . ' UNION ALL'
-            . ' SELECT assets.id FROM assets'
-            . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
-            . ') SELECT id FROM asset_tree',
-            [$this->id]
-        ))->pluck('id');
+        $ids = Asset::treeIdsForCustomers([$this->id]);
 
         return Asset::query()
             ->whereIn('id', $ids)

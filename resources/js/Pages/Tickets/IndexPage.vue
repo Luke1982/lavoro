@@ -125,7 +125,7 @@
                     </Link>
                 </div>
                 <div class="col-span-2 items-center hidden lg:flex pr-2">
-                    <div class="flex flex-col min-w-0">
+                    <div v-if="ticket.asset.customer" class="flex flex-col min-w-0">
                         <Link :href="`/customers/${ticket.asset.customer.id}`"
                             class="text-lavoro-darkerblue underline truncate">
                             {{ ticket.asset.customer.name }}
@@ -136,6 +136,7 @@
                             {{ ticket.asset.linked_location.title }}
                         </Link>
                     </div>
+                    <span v-else class="text-slate-400">&mdash;</span>
                 </div>
                 <div class="col-span-3 items-center hidden lg:flex pr-2">
                     <a v-if="addressSource(ticket).address" :href="mapsLinkFromCustomer(addressSource(ticket))"
@@ -428,9 +429,8 @@ function updatePriority(ticket, value) {
  * the customer's own address. Both shapes carry address/postal_code/city.
  */
 function addressSource(ticket) {
-    return ticket.asset.linked_location ?? ticket.asset.customer
+    return ticket.asset.linked_location ?? ticket.asset.customer ?? {}
 }
-
 
 
 function openMap() {

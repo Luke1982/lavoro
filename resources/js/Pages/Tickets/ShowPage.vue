@@ -111,11 +111,12 @@
                                 {{ ticket.asset.serial_number }}
                             </component>
                             <span class="text-slate-400">bij</span>
-                            <component :is="hasPermission('customer.read') ? Link : 'span'"
+                            <component v-if="ticket.asset.customer" :is="hasPermission('customer.read') ? Link : 'span'"
                                 :href="`/customers/${ticket.asset.customer.id}`"
                                 :class="hasPermission('customer.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''">
                                 {{ ticket.asset.customer.name }}
                             </component>
+                            <span v-else class="text-slate-400">onbekend</span>
                             <span v-if="ticket.asset.linked_location">(<component
                                     :is="hasPermission('location.read') ? Link : 'span'"
                                     :href="`/locations/${ticket.asset.linked_location.id}`"

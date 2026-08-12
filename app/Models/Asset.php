@@ -11,6 +11,7 @@ use Database\Factories\AssetsFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Asset extends Model
 {
@@ -231,6 +232,36 @@ class Asset extends Model
     public function resolvedLinkedLocation(): ?Location
     {
         return $this->rootAsset()->linkedLocation;
+    }
+
+    /**
+     * Every asset id belonging to any of the given customers, at any depth: the
+     * roots plus each descendant hanging under them. Backs Customer::assetTree()
+     * and ticket search, so "does this machine ultimately belong to customer X"
+     * is answered by one recursive query instead of being reimplemented per caller.
+     *
+     * @param  array<int, int>  $customer_ids
+     * @return array<int, int>
+     */
+    public static function treeIdsForCustomers(array $customer_ids): array
+    {
+        $customer_ids = array_values(array_unique($customer_ids));
+
+        if ($customer_ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($customer_ids), '?'));
+
+        return collect(DB::select(
+            'WITH RECURSIVE asset_tree (id) AS ('
+            . " SELECT id FROM assets WHERE customer_id IN ({$placeholders})"
+            . ' UNION ALL'
+            . ' SELECT assets.id FROM assets'
+            . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
+            . ') SELECT id FROM asset_tree',
+            $customer_ids
+        ))->pluck('id')->all();
     }
 
     public function maintenanceContracts()

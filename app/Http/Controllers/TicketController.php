@@ -11,6 +11,8 @@ use App\Http\Requests\TicketCreateRequest;
 use App\Http\Requests\TicketListRequest;
 use App\Http\Requests\TicketReadRequest;
 use App\Http\Requests\TicketUpdateRequest;
+use App\Models\Asset;
+use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
 use App\Models\Ticket;
@@ -205,20 +207,25 @@ class TicketController extends Controller
 
         $query = $this->applyTicketFilters(
             Ticket::with('asset.customer', 'asset.linkedLocation')
-                ->whereHas('asset.customer')
                 ->where('status', '!=', TicketStatusses::gesloten->value),
             $data
         );
 
         $tickets = $query->get(['id', 'subject', 'priority', 'status', 'asset_id']);
 
+        foreach ($tickets as $ticket) {
+            $this->resolveAssetOwnership($ticket);
+        }
+
+        $tickets = $tickets->filter(fn ($ticket) => $ticket->asset?->customer !== null)->values();
+
         $items = $tickets
-            ->groupBy(fn ($ticket) => $ticket->asset->location_id
-                ? 'loc:' . $ticket->asset->location_id
+            ->groupBy(fn ($ticket) => $ticket->asset->linkedLocation
+                ? 'loc:' . $ticket->asset->linkedLocation->id
                 : 'cust:' . $ticket->asset->customer->id)
             ->map(function ($group) {
                 $asset = $group->first()->asset;
-                $location = $asset->location;
+                $location = $asset->linkedLocation;
                 $customer = $asset->customer;
 
                 return [
@@ -249,6 +256,8 @@ class TicketController extends Controller
     /**
      * Apply multi-word search across subject, product brand/model/type, serial number and customer name.
      * Each word must match at least one of the fields (logical AND across words).
+     * Customer name matches by asset tree, not by direct relation, so a ticket on a
+     * part asset is still found by the name of the customer its root belongs to.
      */
     private function applySearch($query, ?string $term)
     {
@@ -258,13 +267,13 @@ class TicketController extends Controller
         $words = preg_split('/\s+/', trim($term)) ?: [];
         foreach ($words as $word) {
             $query->where(function ($q) use ($word) {
+                $matching_customer_ids = Customer::where('name', 'like', "%{$word}%")->pluck('id')->all();
+
                 $q->where('subject', 'like', "%{$word}%")
                     ->orWhereHas('asset', function ($qa) use ($word) {
                         $qa->where('serial_number', 'like', "%{$word}%");
                     })
-                    ->orWhereHas('asset.customer', function ($qc) use ($word) {
-                        $qc->where('name', 'like', "%{$word}%");
-                    })
+                    ->orWhereIn('asset_id', Asset::treeIdsForCustomers($matching_customer_ids))
                     ->orWhereHas('asset.product', function ($qp) use ($word) {
                         $qp->where('model', 'like', "%{$word}%")
                             ->orWhereHas('brand', function ($qb) use ($word) {
