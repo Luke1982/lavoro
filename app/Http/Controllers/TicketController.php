@@ -82,6 +82,10 @@ class TicketController extends Controller
 
         $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
 
+        foreach ($tickets as $ticket) {
+            $this->resolveAssetOwnership($ticket);
+        }
+
         $closed_by_options = User::whereIn(
             'id',
             Ticket::whereNotNull('closed_by_id')->distinct()->pluck('closed_by_id')
@@ -277,6 +281,26 @@ class TicketController extends Controller
     }
 
     /**
+     * A part asset carries no customer or location of its own, so the ticket page
+     * would otherwise render against a null customer. Fill both in from the root
+     * asset it hangs under, matching Asset::resolvedCustomerId()/resolvedLocationId().
+     */
+    private function resolveAssetOwnership(Ticket $ticket): void
+    {
+        $asset = $ticket->asset;
+        if (!$asset) {
+            return;
+        }
+
+        if ($asset->customer === null) {
+            $asset->setRelation('customer', $asset->resolvedCustomer());
+        }
+        if ($asset->linkedLocation === null) {
+            $asset->setRelation('linkedLocation', $asset->resolvedLinkedLocation());
+        }
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -331,6 +355,8 @@ class TicketController extends Controller
         ]);
 
         $ticket->remarks->load('user');
+
+        $this->resolveAssetOwnership($ticket);
 
         return inertia('Tickets/ShowPage', [
             'ticket' => $ticket,

@@ -216,6 +216,23 @@ class Asset extends Model
         return $this->rootAsset()->location_id;
     }
 
+    /**
+     * The customer this machine is actually about: itself when it's a root asset,
+     * or its root ancestor's customer when it's a part hanging under one.
+     */
+    public function resolvedCustomer(): ?Customer
+    {
+        return $this->rootAsset()->customer;
+    }
+
+    /**
+     * The location this machine is actually at, resolved the same way as resolvedCustomer().
+     */
+    public function resolvedLinkedLocation(): ?Location
+    {
+        return $this->rootAsset()->linkedLocation;
+    }
+
     public function maintenanceContracts()
     {
         return $this->morphedByMany(MaintenanceContract::class, 'assetable')
