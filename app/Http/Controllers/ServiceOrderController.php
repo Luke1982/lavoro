@@ -245,6 +245,7 @@ class ServiceOrderController extends Controller
                 'product.images',
                 'linkedLocation',
                 'servicejobs:id,asset_id,completed_on',
+                'childAssets.product.brand',
             ])
             : collect();
 

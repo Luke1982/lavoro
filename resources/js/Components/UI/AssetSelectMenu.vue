@@ -40,7 +40,7 @@
                     class="absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg outline-1 outline-black/5 dark:outline-white/10 max-h-72 focus:outline-none">
                     <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 p-2 border-b border-gray-100 dark:border-slate-700">
                         <input v-model="search" type="text"
-                            placeholder="Zoek op merk, model, serienummer of locatie" @keydown.stop @click.stop
+                            placeholder="Zoek op merk, model, serienummer, locatie of onderdeel" @keydown.stop @click.stop
                             class="w-full rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-lavoro-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-lavoro-blue" />
                     </div>
                     <p v-if="!filteredAssets.length" class="px-3 py-4 text-sm text-gray-400 dark:text-slate-500">
@@ -81,6 +81,26 @@
                                         asset.next_service_date :
                                         null].filter(Boolean).join(' • ') }}
                                 </p>
+                                <ul v-if="asset.parts?.length" class="mt-1 space-y-0.5">
+                                    <li v-for="part in asset.parts.slice(0, maxVisibleParts)" :key="part.id" :class="[
+                                        active ? 'text-lavoro-lightblue' : 'text-gray-500 dark:text-slate-400',
+                                        'flex items-center gap-1.5 text-[11px]',
+                                    ]">
+                                        <span :class="[
+                                            active ? 'bg-white/60' : 'bg-gray-400 dark:bg-slate-500',
+                                            'size-1 rounded-full shrink-0',
+                                        ]" />
+                                        <span class="truncate">
+                                            {{ [part.name, part.serial_number].filter(Boolean).join(' • ') }}
+                                        </span>
+                                    </li>
+                                    <li v-if="asset.parts.length > maxVisibleParts" :class="[
+                                        active ? 'text-lavoro-lightblue' : 'text-gray-400 dark:text-slate-500',
+                                        'pl-2.5 text-[11px]',
+                                    ]">
+                                        +{{ asset.parts.length - maxVisibleParts }} meer
+                                    </li>
+                                </ul>
                                 <span v-if="asset.location" :class="[
                                     active ? 'text-white ring-white/60' : 'text-lavoro-blue ring-lavoro-blue/60',
                                     'inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset',
@@ -125,17 +145,25 @@ const emit = defineEmits(['select'])
 
 const model = defineModel()
 
+const maxVisibleParts = 4
+
 const direction = ref('down')
 const transitionName = computed(() => `asset-label-${direction.value}`)
 
 const search = ref('')
 
+/**
+ * The parts of a bundle count as its own text: someone who only knows the
+ * serial number on a component still lands on the bundle it lives in.
+ */
 const filteredAssets = computed(() => {
     const term = search.value.trim().toLowerCase()
     if (!term) return props.assets
     return props.assets.filter((a) => {
-        const haystack = [a.brand, a.model, a.serial_number, a.location?.title, a.location?.city]
-            .filter(Boolean).join(' ').toLowerCase()
+        const haystack = [
+            a.brand, a.model, a.serial_number, a.location?.title, a.location?.city,
+            ...(a.parts ?? []).flatMap((part) => [part.name, part.serial_number]),
+        ].filter(Boolean).join(' ').toLowerCase()
         return haystack.includes(term)
     })
 })

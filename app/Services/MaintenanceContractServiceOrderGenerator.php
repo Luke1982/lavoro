@@ -14,6 +14,10 @@ use Carbon\Carbon;
 
 class MaintenanceContractServiceOrderGenerator
 {
+    public function __construct(
+        private readonly BundleServiceJobCreator $bundle_service_job_creator,
+    ) {}
+
     /**
      * @return array<int, ServiceOrder>
      */
@@ -126,9 +130,10 @@ class MaintenanceContractServiceOrderGenerator
         ]);
 
         $labels = [];
+        $jobs = [];
 
         foreach ($assets as $asset) {
-            ServiceJob::create([
+            $jobs[] = ServiceJob::create([
                 'asset_id' => $asset->id,
                 'service_order_id' => $service_order->id,
                 'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
@@ -140,6 +145,8 @@ class MaintenanceContractServiceOrderGenerator
 
             $labels[] = $asset->serial_number ?? ('#' . $asset->id);
         }
+
+        $this->bundle_service_job_creator->createForAll($jobs);
 
         Signals::dispatch(new ContractServiceOrderGenerated($contract, $service_order, $activity_verb, $labels));
 

@@ -380,22 +380,38 @@ export const formatAddress = (addressable) => [
     .join(', ');
 
 /**
+ * The one name a machine goes by: merk en model, falling back to its serial
+ * number and finally to its id, so a machine is never rendered nameless.
+ */
+export function assetDisplayName(asset) {
+    const brand = asset.product?.brand?.name ?? '';
+    const model = asset.product?.model ?? '';
+    return `${brand} ${model}`.trim() || asset.serial_number || `Machine #${asset.id}`;
+}
+
+/**
  * Shape an asset into the object AssetSelectMenu expects.
  * Exposes brand, model, serial_number and location explicitly so the
- * component's search can filter on them precisely.
+ * component's search can filter on them precisely, and the machines hanging
+ * under it so a bundle can be told apart from its look-alikes.
  */
 export function mapAssetForSelect(asset) {
     const brand = asset.product?.brand?.name ?? '';
     const model = asset.product?.model ?? '';
     return {
         id: asset.id,
-        name: `${brand} ${model}`.trim() || asset.serial_number || `Machine #${asset.id}`,
+        name: assetDisplayName(asset),
         brand,
         model,
         category: asset.product?.product_type?.name ?? null,
         article_number: asset.product?.part_no ?? null,
         serial_number: asset.serial_number,
         is_bundle: !!asset.product?.bundle,
+        parts: (asset.child_assets ?? []).map((child) => ({
+            id: child.id,
+            name: assetDisplayName(child),
+            serial_number: child.serial_number,
+        })),
         next_service_date: asset.next_service_date,
         location: asset.linked_location
             ? { id: asset.linked_location.id, title: asset.linked_location.title, city: asset.linked_location.city }

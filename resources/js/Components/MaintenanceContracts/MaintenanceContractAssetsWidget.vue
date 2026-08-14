@@ -49,6 +49,10 @@
                         <span class="font-semibold text-sm text-gray-900 dark:text-slate-100 truncate">
                             {{ assetDisplayName(asset) }}
                         </span>
+                        <span v-if="asset.product?.product_type"
+                            class="text-xs text-gray-500 dark:text-slate-400 truncate">
+                            {{ asset.product.product_type.name }}
+                        </span>
                         <span v-if="asset.serial_number" class="text-xs text-gray-400 dark:text-slate-500">
                             Serienummer: {{ asset.serial_number }}
                         </span>
@@ -89,7 +93,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
-import { hasPermission, mapAssetForSelect } from '@/Utilities/Utilities'
+import { assetDisplayName, hasPermission, mapAssetForSelect } from '@/Utilities/Utilities'
 
 const props = defineProps({
     maintenanceContractId: { type: Number, required: true },
@@ -105,11 +109,6 @@ const canDelete = computed(() => hasPermission('assetable.delete.maintenancecont
 
 const showAddForm = ref(false)
 const assetToAdd = ref(null)
-
-function assetDisplayName(asset) {
-    if (!asset.product) return asset.serial_number || `Machine #${asset.id}`
-    return `${asset.product.brand?.name ?? ''} ${asset.product.model ?? ''}`.trim() || asset.serial_number
-}
 
 const attachedAssetIds = computed(() => props.assets.map(a => a.id))
 const availableAssets = computed(() =>

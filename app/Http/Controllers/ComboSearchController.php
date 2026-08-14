@@ -58,7 +58,7 @@ class ComboSearchController extends Controller
                 $request->filled('customer_id'),
                 fn ($query) => $query->where('customer_id', $request->integer('customer_id'))
             )
-            ->with(['product.brand', 'product.productType', 'linkedLocation'])
+            ->with(['product.brand', 'product.productType', 'linkedLocation', 'childAssets.product.brand'])
             ->orderBy('serial_number')
 
             /*

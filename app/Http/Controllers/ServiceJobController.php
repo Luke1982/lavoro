@@ -11,10 +11,10 @@ use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
 use App\Mail\ServiceJobPdfMail;
-use App\Models\Asset;
 use App\Models\Company;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
+use App\Services\BundleServiceJobCreator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use Carbon\Carbon;
@@ -49,52 +49,27 @@ class ServiceJobController extends Controller
     public function store(ServiceJobCreateRequest $request)
     {
         $job = ServiceJob::create($request->validated());
+        $job->load(['asset.product.brand', 'asset.product.productType']);
 
-        $serviceOrder = ServiceOrder::with('customer')->find($job->service_order_id);
-        if ($serviceOrder) {
-            $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
-            if ($asset) {
-                Signals::dispatch(new ServiceJobAdded($serviceOrder, $asset));
+        $service_order = ServiceOrder::with('customer')->find($job->service_order_id);
+        $child_jobs = app(BundleServiceJobCreator::class)->createFor($job);
+
+        if ($service_order) {
+            if ($job->asset) {
+                Signals::dispatch(new ServiceJobAdded($service_order, $job->asset));
+            }
+
+            foreach ($child_jobs as $child_job) {
+                Signals::dispatch(new ServiceJobAdded($service_order, $child_job->asset, combined: true));
             }
         }
 
-        // Auto-create service jobs for all child assets
-        $parentAsset = Asset::with([
-            'childAssets.product.brand',
-            'childAssets.product.productType',
-        ])->find($job->asset_id);
+        $message = 'Keuring succesvol aangemaakt.';
 
-        $newChildCount = 0;
-
-        foreach ($parentAsset?->childAssets ?? [] as $childAsset) {
-            $childJob = ServiceJob::firstOrCreate(
-                [
-                    'asset_id' => $childAsset->id,
-                    'service_order_id' => $job->service_order_id,
-                ],
-                [
-                    'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
-                    'parent_service_job_id' => $job->id,
-                ]
-            );
-
-            // If the job already existed, ensure the parent link is set
-            if (!$childJob->wasRecentlyCreated && $childJob->parent_service_job_id === null) {
-                $childJob->update(['parent_service_job_id' => $job->id]);
-            }
-
-            if ($childJob->wasRecentlyCreated) {
-                $newChildCount++;
-                if ($serviceOrder) {
-                    Signals::dispatch(new ServiceJobAdded($serviceOrder, $childAsset, combined: true));
-                }
-            }
+        if ($child_jobs !== []) {
+            $message .= ' ' . count($child_jobs)
+                . ' gecombineerde keuring(en) aangemaakt voor gerelateerde onderdelen.';
         }
-
-        $childNote = "{$newChildCount} gecombineerde keuring(en) aangemaakt voor gerelateerde onderdelen.";
-        $message = $newChildCount > 0
-            ? "Keuring succesvol aangemaakt. {$childNote}"
-            : 'Keuring succesvol aangemaakt.';
 
         return redirect()->back()->with('success', $message);
     }

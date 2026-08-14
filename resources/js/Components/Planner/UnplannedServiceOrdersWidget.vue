@@ -1,9 +1,18 @@
 <template>
     <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto">
         <div class="flex flex-col gap-2">
-            <div class="text-xs px-3 text-lavoro-dark pt-2">Niet ingeplande werkbonnen</div>
+            <div class="flex flex-col gap-1.5 px-3 pt-2">
+                <div class="text-xs text-lavoro-dark dark:text-slate-200">Niet ingeplande werkbonnen</div>
+                <div class="flex items-center gap-2">
+                    <SwitchComponent v-model="showContractOrders" />
+                    <span class="text-[11px] text-gray-500 dark:text-slate-400">
+                        Contractwerkbonnen
+                        <template v-if="contractOrderCount">({{ contractOrderCount }})</template>
+                    </span>
+                </div>
+            </div>
 
-            <div v-if="serviceOrders.length" class="px-3">
+            <div v-if="listedServiceOrders.length" class="px-3">
                 <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                     <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
                     <input v-model="searchQuery" type="text" placeholder="Zoeken op klant, plaats of omschrijving..."
@@ -22,6 +31,11 @@
                             #{{ so.id }}
                             <ExclamationTriangleIcon v-if="so.events_count > 0" class="size-4 text-amber-500"
                                 v-tooltip="`Let op: deze werkbon heeft al ${so.events_count} eerdere afspra(a)k(en) gekoppeld`" />
+                            <span v-if="so.maintenance_contract_id"
+                                v-tooltip="`Komt uit onderhoudscontract #${so.maintenance_contract_id}`"
+                                class="rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-500/30">
+                                Contract
+                            </span>
                         </span>
                         <span v-if="so.order_date" class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{
                             nlDate(so.order_date) }}</span>
@@ -64,6 +78,12 @@
                     Alle werkbonnen zijn ingepland.
                 </div>
 
+                <div v-else-if="listedServiceOrders.length === 0"
+                    class="flex flex-col items-center justify-center gap-2 px-3 py-10 text-center text-sm text-gray-500 dark:text-slate-400">
+                    <DocumentCheckIcon class="size-8 text-gray-300 dark:text-slate-600" />
+                    Alleen contractwerkbonnen open — zet de schakelaar aan om ze te tonen.
+                </div>
+
                 <div v-else-if="filteredServiceOrders.length === 0"
                     class="flex flex-col items-center justify-center gap-2 py-10 text-center text-sm text-gray-500 dark:text-slate-400">
                     <MagnifyingGlassIcon class="size-8 text-gray-300 dark:text-slate-600" />
@@ -88,12 +108,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
-    ArrowsRightLeftIcon, CheckCircleIcon, ExclamationTriangleIcon,
+    ArrowsRightLeftIcon, CheckCircleIcon, DocumentCheckIcon, ExclamationTriangleIcon,
     MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, MapPinIcon,
 } from '@heroicons/vue/24/outline'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
@@ -107,22 +128,49 @@ const maxVisible = 4
 const maxVisibleTasks = 5
 const listEl = ref(null)
 
+/**
+ * Werkbonnen uit een onderhoudscontract komen er vanzelf bij en overstemmen
+ * anders het werk dat echt om een plek in de agenda vraagt. Ze blijven daarom
+ * verborgen tot de planner er zelf om vraagt, en die keuze blijft staan.
+ */
+const CONTRACT_ORDERS_KEY = 'plannerShowContractServiceOrders'
+const showContractOrders = ref(localStorage.getItem(CONTRACT_ORDERS_KEY) === '1')
+watch(showContractOrders, value => localStorage.setItem(CONTRACT_ORDERS_KEY, value ? '1' : '0'))
+
+const contractOrderCount = computed(() =>
+    props.serviceOrders.filter(so => so.maintenance_contract_id).length
+)
+
+const listedServiceOrders = computed(() =>
+    showContractOrders.value
+        ? props.serviceOrders
+        : props.serviceOrders.filter(so => !so.maintenance_contract_id)
+)
+
 const {
     searchQuery,
     isExpanded,
     filteredItems: filteredServiceOrders,
     visibleItems: visibleServiceOrders,
-} = useExpandableFilter(() => props.serviceOrders, (so, query) =>
+} = useExpandableFilter(listedServiceOrders, (so, query) =>
     so.customer?.name?.toLowerCase().includes(query) ||
     so.resolved_city?.toLowerCase().includes(query) ||
     so.description?.toLowerCase().includes(query),
     maxVisible)
 
+/**
+ * De werkbon waar de knop "Inplannen" vandaan komt moet zichtbaar zijn, ook als
+ * hij uit een contract komt en de schakelaar uitstaat.
+ */
 onMounted(() => {
     if (!props.highlightId) return
-    const index = props.serviceOrders.findIndex(so => so.id === props.highlightId)
-    if (index === -1) return
+    const highlighted = props.serviceOrders.find(so => so.id === props.highlightId)
+    if (!highlighted) return
+    if (highlighted.maintenance_contract_id) showContractOrders.value = true
+
+    const index = listedServiceOrders.value.findIndex(so => so.id === props.highlightId)
     if (index >= maxVisible) isExpanded.value = true
+
     nextTick(() => {
         listEl.value?.querySelector(`[data-so-id="${props.highlightId}"]`)
             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })

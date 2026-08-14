@@ -103,6 +103,7 @@ class MaintenanceContractController extends Controller
                 'product.productType',
                 'product.images',
                 'linkedLocation',
+                'childAssets.product.brand',
             ])
             : collect();
 
@@ -279,7 +280,8 @@ class MaintenanceContractController extends Controller
         MaintenanceContractGenerateServiceOrdersRequest $request,
         MaintenanceContract $maintenancecontract
     ) {
-        $service_orders = (new MaintenanceContractServiceOrderGenerator)->generateNowForContract($maintenancecontract);
+        $service_orders = app(MaintenanceContractServiceOrderGenerator::class)
+            ->generateNowForContract($maintenancecontract);
         $count = count($service_orders);
 
         if ($count === 0) {

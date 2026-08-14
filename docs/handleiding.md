@@ -80,6 +80,8 @@ Machines kunnen in elkaar zitten: een machine kan onderdelen hebben die zelf ook
 
 **Verhuizen naar een andere klant**: wijzig je op een machine, werkbon of contract de klant, dan kan de hele machineboom mee-verhuizen. Je krijgt eerst een voorbeeldscherm dat laat zien wat er gebeurt, inclusief het opnieuw kiezen van een locatie bij de nieuwe klant. Keuringen en storingen reizen met de machine mee — de historie hoort bij het apparaat. Onderhoudscontracten van de oude klant laten de machine automatisch los.
 
+**Een machine kiezen** doe je overal met hetzelfde keuzemenu (op een werkbon, een contract of een storing). Het zoekveld kijkt naar merk, model, serienummer, locatie én naar de onderdelen: het serienummer van een onderdeel brengt je dus bij de machine waar het in zit. Machines met onderdelen tonen die onderdelen eronder, zodat je bij twee gelijkende machines ziet welke je moet hebben.
+
 De **volgende keuringsdatum** schuift automatisch op wanneer een keuring wordt afgerond met een goedkeuring (met het aantal certificaatdagen van het product) of een tijdelijke goedkeuring (met het ingevulde aantal dagen). De lijst "Aankomende keuringen" en het dashboard gebruiken deze datum.
 
 ## Werkbonnen
@@ -167,6 +169,7 @@ Storingen aanmaken kan vanaf de storingenlijst, de plus-knop, de machinepagina e
 De planningspagina is een tijdbalk: monteurs als rijen, de tijd van links naar rechts, per week of per dag. Bovenin: Vandaag, vorige/volgende, de week/dag-schakelaar, een zoekveld voor afspraken, de monteurkaart (live locatie van monteurs) en een instellingenmenu (exporteren, standaardduur, slotgrootte, leidende kleur — afspraaktype of monteurrol — en de begintijd en eindtijd van de dagweergave).
 
 - **Slepen om te plannen**: rechts staat een lijst met **ongeplande werkbonnen** (werkbonnen in een inplanbare fase). Sleep er één naar een monteur en tijdstip en er ontstaat een afspraak. Afspraken zelf zijn ook te verslepen en op te rekken. Klikken opent het bewerkscherm.
+- **Contractwerkbonnen** staan standaard *niet* in die lijst: werkbonnen die uit een onderhoudscontract zijn gegenereerd zouden het werk dat om een plek in de agenda vraagt anders overstemmen. Bovenin de lijst zit een schakelaar "Contractwerkbonnen" (met het aantal dat er open staat) die ze erbij zet; ze zijn dan te herkennen aan het paarse label **Contract**. De stand van de schakelaar wordt onthouden. Spring je met de knop "Inplannen" naar een contractwerkbon, dan gaat de schakelaar vanzelf aan.
 - **Open plekken**: bovenin zit een schakelaar die de vrije ruimte in de planning groen laat oplichten. Het invoerveld ernaast bepaalt hoeveel minuten een open plek minstens moet zijn; leeg gelaten geldt de standaardduur voor nieuwe afspraken. Werkbonnen in een inplanbare fase hebben bovendien een knop **Inplannen** (op de werkbonlijsten en de werkbonpagina) die je naar de planner brengt: de werkbon licht op in de lijst met ongeplande werkbonnen — of, bij een projectwerkbon, onder zijn projectbalk — en de open plekken waar hij past lichten mee op.
 - **De afspraak** heeft een soort (afspraaktype, met kleur), begin- en eindtijd, een klant, een gekoppelde werkbon, een locatie, een omschrijving en één of meer monteurs — per monteur met eigen pauze, eventueel **afwijkende tijden** en een planrol. Een afspraak kan ook **voorlopig** zijn.
 - Bij het aanmaken van een afspraak kan automatisch een werkbon worden meegemaakt (of juist uitdrukkelijk zonder werkbon). Koppelen van een afspraak zet de werkbon in de fase "ingepland"; de afspraak verwijderen zet hem terug naar "planning vervallen".
@@ -187,7 +190,9 @@ De **einddatum mag leeg blijven**: dat is een contract dat doorloopt tot je het 
 
 De **status** volgt uit de datums: toekomstig (nog niet begonnen), actief, verlopen (einddatum voorbij) of geannuleerd. Annuleren en weer activeren zijn knoppen op het contract.
 
-**Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren.
+De lijst met gekoppelde machines toont per machine het **producttype** en het serienummer, zodat je zonder doorklikken ziet wat er onder het contract valt.
+
+**Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Zit er een bundel bij, dan krijgen de onderdelen daarvan hun eigen deelkeuring, net als wanneer je de machine met de hand aan een werkbon toevoegt. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren.
 
 Verhuist een machine naar een andere klant, dan wordt hij automatisch van contracten van de oude klant losgekoppeld. De contractprijzen zijn alleen zichtbaar met het recht op financiële contractgegevens.
 
