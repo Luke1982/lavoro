@@ -196,6 +196,16 @@ De lijst met gekoppelde machines toont per machine het **producttype** en het se
 
 Verhuist een machine naar een andere klant, dan wordt hij automatisch van contracten van de oude klant losgekoppeld. De contractprijzen zijn alleen zichtbaar met het recht op financiële contractgegevens.
 
+### Sjablonen
+
+Onder Onderhoudscontracten staan de **sjablonen**: contracten die je vaker afsluit, één keer vastgelegd. Een sjabloon bevat alles wat een contract heeft behalve de klant en de machines — een contracttitel, een looptijd in maanden, prijs en prijsinterval, de servicefrequentie (of "per machine"), en of er automatisch werkbonnen gegenereerd worden en met welk interval. Elk veld mag leeg blijven; wat het sjabloon niet invult, vul je op het contract zelf in.
+
+In de **contracttitel** mag je `{klant}` en `{jaar}` gebruiken. Die worden ingevuld zodra het sjabloon toegepast wordt: `{klant}` met de naam van de klant, `{jaar}` met het jaar van de startdatum. "Onderhoud {jaar} — {klant}" wordt zo "Onderhoud 2026 — Jansen BV". Iets anders tussen accolades blijft staan zoals je het typt.
+
+**Toepassen** doe je bij het aanmaken van een contract: bovenin het scherm "nieuw onderhoudscontract" — zowel vanaf de contractenlijst als vanaf de klant — staat een keuzelijst met sjablonen. Kies je er een, dan worden de velden ingevuld: de startdatum wordt vandaag als je er nog geen gekozen had, de einddatum volgt uit de looptijd (een looptijd van 12 maanden vanaf 1 januari loopt tot en met 31 december; geen looptijd betekent geen einddatum). Alles blijft daarna gewoon aan te passen, en zodra je zelf in de titel of de einddatum typt laat het sjabloon dat veld met rust. Een contract onthoudt niet uit welk sjabloon het komt: een sjabloon later wijzigen verandert niets aan bestaande contracten.
+
+Sjablonen bekijken, aanmaken, wijzigen en verwijderen zijn aparte rechten, los van de rechten op contracten zelf.
+
 ## Materialen en voorraad
 
 **Producten en materialen zijn verschillende dingen.** Een product is een model in de catalogus (merk plus type) — het *soort* apparaat dat een machine is. Een materiaal is een voorraadartikel dat je op een werkbon boekt: onderdelen, verbruiksartikelen of diensten, met een prijs, kostprijs, code, voorraad en minimum-/maximumvoorraad.

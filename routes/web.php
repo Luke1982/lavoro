@@ -28,6 +28,7 @@ use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
+use App\Http\Controllers\MaintenanceContractTemplateController;
 use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\MaterialSupplierController;
@@ -170,6 +171,8 @@ Route::group(
             'maintenancecontracts/{maintenancecontract}/generate-serviceorders',
             [MaintenanceContractController::class, 'generateServiceOrders']
         )->name('maintenancecontracts.generateServiceOrders');
+        Route::resource('maintenancecontracttemplates', MaintenanceContractTemplateController::class)
+            ->except(['create', 'edit']);
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
         Route::resource('locations', LocationController::class)

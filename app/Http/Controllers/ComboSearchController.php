@@ -32,10 +32,7 @@ class ComboSearchController extends Controller
             ->orderBy('name')
             ->limit(25)
             ->get(['id', 'name', 'city'])
-            ->map(fn ($c) => [
-                'id' => $c->id,
-                'name' => $c->city ? "{$c->name} – {$c->city}" : $c->name,
-            ]);
+            ->map->toComboOption();
 
         return response()->json($results);
     }

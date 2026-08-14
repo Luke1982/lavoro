@@ -13,12 +13,15 @@ use App\Models\Product;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Services\ProductableService;
+use App\Traits\OffersContractTemplates;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
+    use OffersContractTemplates;
+
     /**
      * Display a listing of the resource.
      */
@@ -58,7 +61,7 @@ class CustomerController extends Controller
     public function edit(CustomerReadRequest $request, Customer $customer)
     {
         $customer_count = Customer::count();
-        $allCustomers = $customer_count <= 50
+        $allCustomers = $customer_count <= Customer::COMBO_AJAX_THRESHOLD
             ? Customer::select('id', DB::raw("CONCAT_WS(' – ', name, city) as name"))
                 ->where('id', '!=', $customer->id)
                 ->orderBy('name')
@@ -68,7 +71,7 @@ class CustomerController extends Controller
         return inertia('Customers/EditPage', [
             'customer' => $customer,
             'allCustomers' => $allCustomers,
-            'customersUseAjax' => $customer_count > 50,
+            'customersUseAjax' => $customer_count > Customer::COMBO_AJAX_THRESHOLD,
         ]);
     }
 
@@ -127,7 +130,7 @@ class CustomerController extends Controller
         $billing_customer = $customer->billing_customer_id
             ? Customer::find($customer->billing_customer_id, ['id', 'name'])
             : null;
-        $allCustomers = $customer_count <= 50
+        $allCustomers = $customer_count <= Customer::COMBO_AJAX_THRESHOLD
             ? Customer::select('id', DB::raw("CONCAT_WS(' – ', name, city) as name"))
                 ->orderBy('name')
                 ->get()
@@ -140,7 +143,7 @@ class CustomerController extends Controller
             'customer' => $customer,
             'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
-            'customersUseAjax' => $customer_count > 50,
+            'customersUseAjax' => $customer_count > Customer::COMBO_AJAX_THRESHOLD,
             'allProducts' => $allProducts,
             'productsUseAjax' => $product_count > 50,
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
@@ -148,6 +151,7 @@ class CustomerController extends Controller
             'customFields' => $customer->allCustomFieldsWithValues(),
             'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
+            'contractTemplates' => $this->templatesFor($request),
             'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),
         ]);
     }

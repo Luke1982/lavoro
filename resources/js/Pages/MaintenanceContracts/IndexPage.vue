@@ -8,7 +8,9 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
                 <div class="sm:col-span-2">
-                    <ComboBox :options="allCustomers" v-model="customerFilter" placeholder="Alle klanten" />
+                    <ComboBox :options="customerOptions" v-model="customerFilter" placeholder="Alle klanten"
+                        :has-external-searching="customersUseAjax" :searching="customersSearching"
+                        @change="searchCustomers" />
                 </div>
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Status</label>
                 <div class="sm:col-span-2">
@@ -90,98 +92,9 @@
     <PaginationComponent v-if="(maintenanceContracts.links || []).length" :paginator="maintenanceContracts"
         :params="{ search: searchParam, ...filterParams }" class="border-t border-gray-200 dark:border-slate-700/60" />
 
-    <DrawerComponent v-model="showCreateDrawer" title="Nieuw onderhoudscontract"
-        subtitle="Vul de gegevens in van het nieuwe contract.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700" v-auto-animate>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="customerOptions" v-model="form.customer_id" placeholder="Selecteer klant"
-                        :hasError="Boolean(form.errors.customer_id)" :errorMessage="form.errors.customer_id" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="form.title" type="text" placeholder="Optioneel"
-                        :hasError="Boolean(form.errors.title)" :errorMessage="form.errors.title" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Startdatum</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="form.start_date" type="date"
-                        :hasError="Boolean(form.errors.start_date)" :errorMessage="form.errors.start_date" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einddatum</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="form.end_date" type="date" placeholder="Optioneel"
-                        :hasError="Boolean(form.errors.end_date)" :errorMessage="form.errors.end_date" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
-                <div class="sm:col-span-2">
-                    <CurrencyInput v-model="form.price"
-                        :hasError="Boolean(form.errors.price)" :errorMessage="form.errors.price" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="intervalOptions" v-model="form.price_interval"
-                        :hasError="Boolean(form.errors.price_interval)" :errorMessage="form.errors.price_interval" />
-                </div>
-            </div>
-            <div v-if="form.price_interval === 'Aangepast (dagen)'"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="form.price_interval_days" type="number"
-                        :hasError="Boolean(form.errors.price_interval_days)"
-                        :errorMessage="form.errors.price_interval_days" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
-                <div class="sm:col-span-2">
-                    <SwitchComponent v-model="form.manage_frequency_per_asset" />
-                </div>
-            </div>
-            <template v-if="!form.manage_frequency_per_asset">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Servicefrequentie</label>
-                    <div class="sm:col-span-2">
-                        <ComboBox :options="intervalOptions" v-model="form.frequency"
-                            :hasError="Boolean(form.errors.frequency)" :errorMessage="form.errors.frequency" />
-                    </div>
-                </div>
-                <div v-if="form.frequency === 'Aangepast (dagen)'"
-                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                    <div class="sm:col-span-2">
-                        <TextInput v-model="form.frequency_days" type="number"
-                            :hasError="Boolean(form.errors.frequency_days)"
-                            :errorMessage="form.errors.frequency_days" />
-                    </div>
-                </div>
-            </template>
-        </div>
-        <template #footer>
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="closeCreateDrawer"
-                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
-                    Annuleren
-                </button>
-                <button type="button" @click="submitCreate" :disabled="form.processing"
-                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
-                    Opslaan
-                </button>
-            </div>
-        </template>
-    </DrawerComponent>
+    <MaintenanceContractCreateDrawer v-model="showCreateDrawer" :customers="allCustomers"
+        :customers-use-ajax="customersUseAjax" :templates="contractTemplates"
+        :contract-interval-options="contractIntervalOptions" />
 </template>
 
 <script setup>
@@ -189,20 +102,20 @@ import { ref, computed, watch } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
 import { ClipboardDocumentCheckIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
-import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
-import TextInput from '@/Components/UI/TextInput.vue'
-import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
-import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
+import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue'
+import { useComboSearch } from '@/Composables/useComboSearch'
 import { hasPermission, nlDate, nlCurrency, maintenanceContractStatusText, maintenanceContractStatusClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
     maintenanceContracts: { type: Object, required: true },
     allCustomers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     contractIntervalOptions: { type: Array, default: () => [] },
+    contractTemplates: { type: Array, default: () => [] },
     search: { type: String, default: '' },
     onlyStatus: { type: String, default: '' },
 })
@@ -211,7 +124,8 @@ const searchParam = props.search
 
 const showCreateDrawer = ref(false)
 
-const customerOptions = computed(() => props.allCustomers)
+const { options: customerOptions, searching: customersSearching, search: searchCustomers } =
+    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
 const statusFilterOptions = [
     { id: 'actief', name: 'Actief' },
@@ -251,39 +165,6 @@ function updateContractStatus(contract, value) {
         preserveScroll: true,
         preserveState: true,
     })
-}
-
-// comboBoxArray() gives {id: case-name, name: case-value}. price_interval/frequency
-// are cast on the model by case *value*, so both id and name must be the value here.
-const intervalOptions = computed(() => props.contractIntervalOptions.map(o => ({ id: o.name, name: o.name })))
-
-const form = useForm({
-    customer_id: null,
-    title: '',
-    start_date: '',
-    end_date: '',
-    price: null,
-    price_interval: 'Maandelijks',
-    price_interval_days: null,
-    manage_frequency_per_asset: false,
-    frequency: 'Jaarlijks',
-    frequency_days: null,
-})
-
-function submitCreate() {
-    form.post('/maintenancecontracts', {
-        preserveScroll: true,
-        onSuccess: () => {
-            showCreateDrawer.value = false
-            form.reset()
-        },
-    })
-}
-
-function closeCreateDrawer() {
-    showCreateDrawer.value = false
-    form.reset()
-    form.clearErrors()
 }
 
 function deleteContract(id) {

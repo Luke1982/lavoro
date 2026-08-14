@@ -220,4 +220,26 @@ class Customer extends Model
     {
         return $this->morphToMany(Contact::class, 'contactable')->withTimestamps();
     }
+
+    /**
+     * Above this many customers a combobox stops holding them all and searches
+     * server-side instead, through ComboSearchController.
+     */
+    public const COMBO_AJAX_THRESHOLD = 50;
+
+    /**
+     * The shape a customer combobox expects. The city rides along in the name so
+     * two Jansens can be told apart, and the bare name rides along beside it for
+     * whoever needs the customer's actual name rather than the list label.
+     *
+     * @return array{id: int, name: string, plain_name: string}
+     */
+    public function toComboOption(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->city ? $this->name . ' – ' . $this->city : $this->name,
+            'plain_name' => $this->name,
+        ];
+    }
 }

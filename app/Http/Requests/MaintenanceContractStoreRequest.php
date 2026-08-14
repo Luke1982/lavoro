@@ -36,6 +36,12 @@ class MaintenanceContractStoreRequest extends FormRequest
                 'required_if:frequency,' . ContractInterval::aangepast->value,
                 'nullable', 'integer', 'min:1',
             ],
+            'auto_generate' => ['boolean'],
+            'auto_generate_interval' => ['nullable', 'string', 'in:' . ContractInterval::validationString()],
+            'auto_generate_interval_days' => [
+                'required_if:auto_generate_interval,' . ContractInterval::aangepast->value,
+                'nullable', 'integer', 'min:1',
+            ],
         ];
     }
 }

@@ -61,7 +61,15 @@
                     "children": [
                         { "id": "locaties", "label": "Locaties", "href": "/locations", "permission": "location.read" },
                         { "id": "contacten", "label": "Contacten", "href": "/contacts", "permission": "contact.read" },
-                        { "id": "onderhoudscontracten", "label": "Onderhoudscontracten", "href": "/maintenancecontracts", "permission": "maintenancecontract.read" }
+                        {
+                            "id": "onderhoudscontracten",
+                            "label": "Onderhoudscontracten",
+                            "href": "/maintenancecontracts",
+                            "permission": "maintenancecontract.read",
+                            "children": [
+                                { "id": "contractsjablonen", "label": "Sjablonen", "href": "/maintenancecontracttemplates", "permission": "maintenancecontracttemplate.read" }
+                            ]
+                        }
                     ]
                 },
                 {

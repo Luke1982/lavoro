@@ -28,11 +28,14 @@ use App\Models\Customer;
 use App\Models\MaintenanceContract;
 use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
+use App\Traits\OffersContractTemplates;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class MaintenanceContractController extends Controller
 {
+    use OffersContractTemplates;
+
     public function index(MaintenanceContractReadRequest $request)
     {
         $search = trim((string) $request->input('search', ''));
@@ -66,10 +69,25 @@ class MaintenanceContractController extends Controller
 
         $maintenancecontracts = $query->orderByDesc('start_date')->paginate(20)->withQueryString();
 
+        /**
+         * Past the threshold the comboboxes on this page search server-side instead
+         * of holding every customer, which had the browser rendering thousands of
+         * options on every keystroke. Only the customer being filtered on still
+         * travels along, or the filter would show a blank where its name goes.
+         */
+        $customers_use_ajax = Customer::count() > Customer::COMBO_AJAX_THRESHOLD;
+        $customer_query = Customer::query()->orderBy('name');
+
+        if ($customers_use_ajax) {
+            $customer_query->whereKey($request->input('customer_id'));
+        }
+
         return inertia('MaintenanceContracts/IndexPage', [
             'maintenanceContracts' => $maintenancecontracts,
-            'allCustomers' => Customer::select('id', 'name')->orderBy('name')->get(),
+            'allCustomers' => $customer_query->get(['id', 'name', 'city'])->map->toComboOption(),
+            'customersUseAjax' => $customers_use_ajax,
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
+            'contractTemplates' => $this->templatesFor($request),
             'search' => $search,
             'onlyStatus' => $request->input('onlyStatus', ''),
         ]);
@@ -119,6 +137,18 @@ class MaintenanceContractController extends Controller
     {
         $maintenancecontract = MaintenanceContract::create($request->validated());
         Signals::dispatch(new ContractCreated($maintenancecontract));
+
+        /**
+         * A contract can start out generating its own work orders, straight from a
+         * template. Reported here as well as on the toggle, so the timeline never
+         * has work orders appearing out of nowhere.
+         */
+        if ($maintenancecontract->auto_generate) {
+            Signals::dispatch(new ContractAutoGenerationEnabled(
+                $maintenancecontract,
+                $this->autoGenerationLabel($maintenancecontract)
+            ));
+        }
 
         return redirect()->back()->with('success', 'Onderhoudscontract aangemaakt.');
     }
@@ -187,11 +217,10 @@ class MaintenanceContractController extends Controller
             $will_be_auto = (bool) $validated['auto_generate'];
 
             if ($will_be_auto && !$was_auto) {
-                $interval = $validated['auto_generate_interval'] ?? null;
-                $label = $interval
-                    ? $this->frequencyLabel($interval, $validated['auto_generate_interval_days'] ?? null)
-                    : 'contractfrequentie';
-                Signals::dispatch(new ContractAutoGenerationEnabled($maintenancecontract, $label));
+                Signals::dispatch(new ContractAutoGenerationEnabled(
+                    $maintenancecontract,
+                    $this->autoGenerationLabel($maintenancecontract)
+                ));
             } elseif (!$will_be_auto && $was_auto) {
                 Signals::dispatch(new ContractAutoGenerationDisabled($maintenancecontract));
             }
@@ -372,6 +401,20 @@ class MaintenanceContractController extends Controller
         }
 
         return $name !== '' ? $name : ('#' . $asset->id);
+    }
+
+    /**
+     * How often this contract will generate work orders, read off the contract
+     * itself rather than off the request: no interval of its own means it follows
+     * the contract frequency, and only the saved contract knows which it is.
+     */
+    private function autoGenerationLabel(MaintenanceContract $maintenancecontract): string
+    {
+        $interval = $maintenancecontract->auto_generate_interval?->value;
+
+        return $interval
+            ? $this->frequencyLabel($interval, $maintenancecontract->auto_generate_interval_days)
+            : 'contractfrequentie';
     }
 
     private function frequencyLabel(?string $frequency, ?int $frequency_days): string

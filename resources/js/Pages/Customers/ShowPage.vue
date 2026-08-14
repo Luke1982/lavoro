@@ -615,90 +615,8 @@
         </template>
     </DrawerComponent>
 
-    <DrawerComponent v-model="showMaintenanceContractDrawer" :title="`Nieuw onderhoudscontract voor ${form.name}`"
-        subtitle="Vul de gegevens in van het nieuwe contract.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newMaintenanceContractForm.title" type="text" placeholder="Optioneel" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Startdatum</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newMaintenanceContractForm.start_date" type="date"
-                        :hasError="Boolean(newMaintenanceContractForm.errors.start_date)"
-                        :errorMessage="newMaintenanceContractForm.errors.start_date" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einddatum</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newMaintenanceContractForm.end_date" type="date" placeholder="Optioneel" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
-                <div class="sm:col-span-2">
-                    <CurrencyInput v-model="newMaintenanceContractForm.price"
-                        :hasError="Boolean(newMaintenanceContractForm.errors.price)"
-                        :errorMessage="newMaintenanceContractForm.errors.price" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.price_interval" />
-                </div>
-            </div>
-            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
-                <div v-if="newMaintenanceContractForm.price_interval === 'Aangepast (dagen)'"
-                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                    <div class="sm:col-span-2">
-                        <TextInput v-model="newMaintenanceContractForm.price_interval_days" type="number" />
-                    </div>
-                </div>
-            </transition>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
-                <div class="sm:col-span-2">
-                    <SwitchComponent v-model="newMaintenanceContractForm.manage_frequency_per_asset" />
-                </div>
-            </div>
-            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
-                <div v-if="!newMaintenanceContractForm.manage_frequency_per_asset"
-                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Servicefrequentie</label>
-                    <div class="sm:col-span-2">
-                        <ComboBox :options="maintenanceContractIntervalOptions" v-model="newMaintenanceContractForm.frequency" />
-                    </div>
-                </div>
-            </transition>
-            <transition :css="false" @enter="collapseEnter" @after-enter="collapseAfterEnter" @enter-cancelled="collapseCancelled" @leave="collapseLeave" @leave-cancelled="collapseCancelled">
-                <div v-if="!newMaintenanceContractForm.manage_frequency_per_asset && newMaintenanceContractForm.frequency === 'Aangepast (dagen)'"
-                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                    <div class="sm:col-span-2">
-                        <TextInput v-model="newMaintenanceContractForm.frequency_days" type="number" />
-                    </div>
-                </div>
-            </transition>
-        </div>
-        <template #footer>
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="closeMaintenanceContractDrawer"
-                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
-                    Annuleren
-                </button>
-                <button type="button" @click="submitNewMaintenanceContract" :disabled="newMaintenanceContractForm.processing"
-                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
-                    Opslaan
-                </button>
-            </div>
-        </template>
-    </DrawerComponent>
+    <MaintenanceContractCreateDrawer v-model="showMaintenanceContractDrawer" :customer="customer"
+        :templates="contractTemplates" :contract-interval-options="contractIntervalOptions" />
 
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${form.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
@@ -725,11 +643,10 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue';
 import AddButton from '@/Components/UI/AddButton.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
-import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
-import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import CircularCounter from '@/Components/UI/CircularCounter.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
@@ -783,6 +700,10 @@ const props = defineProps({
         default: () => ({}),
     },
     contractIntervalOptions: {
+        type: Array,
+        default: () => [],
+    },
+    contractTemplates: {
         type: Array,
         default: () => [],
     },
@@ -932,98 +853,7 @@ const visibleContracts = computed(() => {
     return showAllContracts.value ? contracts : contracts.slice(0, contractPreviewCount)
 })
 
-const collapseDurationMs = 250
-
-function clearCollapse(el) {
-    if (el._collapseTimer) {
-        window.clearTimeout(el._collapseTimer)
-        el._collapseTimer = null
-    }
-}
-
-function resetCollapse(el) {
-    el.style.height = ''
-    el.style.opacity = ''
-    el.style.overflow = ''
-    el.style.transition = ''
-}
-
-function collapseEnter(el, done) {
-    clearCollapse(el)
-    el.style.overflow = 'hidden'
-    el.style.height = '0'
-    el.style.opacity = '0'
-    void el.offsetHeight
-    el.style.transition = `height ${collapseDurationMs}ms ease, opacity ${collapseDurationMs}ms ease`
-    el.style.height = el.scrollHeight + 'px'
-    el.style.opacity = '1'
-    el._collapseTimer = window.setTimeout(() => {
-        el._collapseTimer = null
-        done()
-    }, collapseDurationMs)
-}
-
-function collapseLeave(el, done) {
-    clearCollapse(el)
-    el.style.overflow = 'hidden'
-    el.style.height = el.scrollHeight + 'px'
-    el.style.opacity = '1'
-    void el.offsetHeight
-    el.style.transition = `height ${collapseDurationMs}ms ease, opacity ${collapseDurationMs}ms ease`
-    el.style.height = '0'
-    el.style.opacity = '0'
-    el._collapseTimer = window.setTimeout(() => {
-        el._collapseTimer = null
-        done()
-    }, collapseDurationMs)
-}
-
-function collapseCancelled(el) {
-    clearCollapse(el)
-    resetCollapse(el)
-}
-
-function collapseAfterEnter(el) {
-    resetCollapse(el)
-}
 const showMaintenanceContractDrawer = ref(false)
-
-// comboBoxArray() gives {id: case-name, name: case-value}; the model casts by
-// value, so both id and name must be the value for direct v-model binding.
-const maintenanceContractIntervalOptions = computed(() =>
-    (props.contractIntervalOptions || []).map(o => ({ id: o.name, name: o.name }))
-)
-
-const newMaintenanceContractForm = useForm({
-    customer_id: props.customer.id,
-    title: '',
-    start_date: '',
-    end_date: '',
-    price: null,
-    price_interval: 'Maandelijks',
-    price_interval_days: null,
-    manage_frequency_per_asset: false,
-    frequency: 'Jaarlijks',
-    frequency_days: null,
-})
-
-function submitNewMaintenanceContract() {
-    newMaintenanceContractForm.post('/maintenancecontracts', {
-        preserveScroll: true,
-        onSuccess: () => {
-            showMaintenanceContractDrawer.value = false
-            newMaintenanceContractForm.reset()
-            newMaintenanceContractForm.customer_id = props.customer.id
-        },
-    })
-}
-
-function closeMaintenanceContractDrawer() {
-    showMaintenanceContractDrawer.value = false
-    newMaintenanceContractForm.reset()
-    newMaintenanceContractForm.clearErrors()
-    newMaintenanceContractForm.customer_id = props.customer.id
-}
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 const canCreateProject = computed(() => hasPermission('project.create'));

@@ -244,6 +244,63 @@ export const maintenanceContractStatusClasses = (status) => {
     }
 };
 
+/** The interval that means nothing on its own; its day count carries the meaning. */
+export const CUSTOM_CONTRACT_INTERVAL = "Aangepast (dagen)";
+
+/** An interval as it is spoken: "elke 45 dagen" rather than "Aangepast (dagen)". */
+export const contractIntervalLabel = (interval, days) =>
+    interval === CUSTOM_CONTRACT_INTERVAL && days ? `elke ${days} dagen` : (interval ?? "");
+
+/**
+ * What an empty genereerinterval falls back to, which is a different frequency
+ * depending on where this contract keeps it.
+ */
+export const contractAutoGenerateFollowsLabel = (managePerAsset) =>
+    managePerAsset ? "Volgt de frequentie per machine" : "Volgt de servicefrequentie";
+
+/**
+ * The tokens a contract template's title may hold: what they are called, how they
+ * read in the hint under the field, and what they are filled with. All three in
+ * one place, so a new token is one entry and never half an implementation.
+ */
+const _contractTitlePlaceholders = [
+    {
+        token: "{klant}",
+        description: "de naam van de klant",
+        fill: ({ customerName }) => customerName,
+    },
+    {
+        token: "{jaar}",
+        description: "het jaar van de startdatum",
+        fill: ({ startDate }) => {
+            const start = startDate ? dayjs(startDate) : null;
+
+            return start?.isValid() ? String(start.year()) : "";
+        },
+    },
+];
+
+const _placeholderList = _contractTitlePlaceholders
+    .map((p) => `${p.token} voor ${p.description}`)
+    .join(" en ");
+
+/** The one wording of that list, for every field that accepts the tokens. */
+export const contractTitlePlaceholderHint =
+    `Gebruik ${_placeholderList}. Die worden ingevuld zodra het sjabloon gebruikt wordt.`;
+
+/**
+ * Fills a template title with the contract it is being applied to. A token whose
+ * value isn't known yet is left standing, so it still fills in once the customer
+ * is picked; anything that isn't a known token is left alone, which keeps a typo
+ * visible instead of silently eating it.
+ */
+export const fillContractTitlePlaceholders = (title, context = {}) =>
+    _contractTitlePlaceholders.reduce((filled, { token, fill }) => {
+        const value = fill(context);
+
+        return value ? filled.split(token).join(value) : filled;
+    }, title ?? "");
+
 export const formatProductSalePeriod = (startDate, endDate) => {
     const start = nlDateOrEmpty(startDate);
     const end = nlDateOrEmpty(endDate);
@@ -258,7 +315,11 @@ export const formatProductSalePeriod = (startDate, endDate) => {
     return `Verkocht tussen ${start} en ${end}`;
 };
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+/**
+ * Today where the user is, not in UTC: just after midnight Dutch time
+ * toISOString() still reads yesterday, which would date a record a day out.
+ */
+export const todayIso = () => dayjs().format("YYYY-MM-DD");
 
 const _dayNames = ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"];
 export const nlDayName = (date) => _dayNames[dayjs(date).day()];
