@@ -7,7 +7,11 @@
 
 <script setup>
 import { computed, watch } from 'vue'
-const props = defineProps({ disabled: { type: Boolean, default: false } })
+const props = defineProps({
+    disabled: { type: Boolean, default: false },
+    /** Replaces the bare "Ja"/"Nee" where the switch has no label of its own. */
+    title: { type: String, default: null },
+})
 const value = defineModel({ default: null })
 
 const normalized = computed(() => value.value === true ? true : (value.value === false ? false : null))
@@ -31,6 +35,9 @@ watch(normalized, (newVal) => {
 })
 
 const stateTitle = computed(() => {
+    if (props.title) {
+        return props.title
+    }
     if (normalized.value === null) {
         return 'Geen waarde'
     }

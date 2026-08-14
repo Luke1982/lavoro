@@ -1,15 +1,9 @@
 <template>
     <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto">
         <div class="flex flex-col gap-2">
-            <div class="flex flex-col gap-1.5 px-3 pt-2">
-                <div class="text-xs text-lavoro-dark dark:text-slate-200">Niet ingeplande werkbonnen</div>
-                <div class="flex items-center gap-2">
-                    <SwitchComponent v-model="showContractOrders" />
-                    <span class="text-[11px] text-gray-500 dark:text-slate-400">
-                        Contractwerkbonnen
-                        <template v-if="contractOrderCount">({{ contractOrderCount }})</template>
-                    </span>
-                </div>
+            <div class="flex items-center justify-between gap-2 px-3 pt-2">
+                <div class="text-xs text-lavoro-dark dark:text-slate-200 truncate">Niet ingeplande werkbonnen</div>
+                <SwitchComponent v-model="showContractOrders" :title="contractSwitchTitle" />
             </div>
 
             <div v-if="listedServiceOrders.length" class="px-3">
@@ -139,6 +133,11 @@ watch(showContractOrders, value => localStorage.setItem(CONTRACT_ORDERS_KEY, val
 
 const contractOrderCount = computed(() =>
     props.serviceOrders.filter(so => so.maintenance_contract_id).length
+)
+
+const contractSwitchTitle = computed(() =>
+    (showContractOrders.value ? 'Contractwerkbonnen verbergen' : 'Contractwerkbonnen tonen')
+    + (contractOrderCount.value ? ` (${contractOrderCount.value})` : '')
 )
 
 const listedServiceOrders = computed(() =>
