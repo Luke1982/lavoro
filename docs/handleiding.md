@@ -180,7 +180,7 @@ De planningspagina is een tijdbalk: monteurs als rijen, de tijd van links naar r
 
 Afspraken kunnen gekopieerd worden naar andere dagen (inclusief werkbonkoppeling en monteurs). Vanaf een afspraak kan een **afspraakbevestiging** naar de klant worden gemaild, en de beheerder kan **standaard e-mails** aan het aanmaken, wijzigen of verwijderen van afspraken hangen (zie Instellingen en beheer).
 
-Op een telefoon toont de planner één monteur tegelijk, per week, als lijst of als baanweergave, met veeggebaren om van week te wisselen. Wijzigingen in de planning verschijnen — voor wie zijn agenda gekoppeld heeft — ook in Google Agenda; zie het hoofdstuk over koppelingen.
+Op een telefoon toont de planner één monteur tegelijk, per week, als lijst of als baanweergave, met veeggebaren om van week te wisselen. Een afspraak aantikken opent hetzelfde bewerkscherm; onderaan dat scherm staat een knop om de afspraak te **verwijderen**, die eerst om een bevestiging vraagt. Die knop verschijnt alleen als je de afspraak mag verwijderen. Wijzigingen in de planning verschijnen — voor wie zijn agenda gekoppeld heeft — ook in Google Agenda; zie het hoofdstuk over koppelingen.
 
 ## Onderhoudscontracten
 

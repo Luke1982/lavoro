@@ -365,6 +365,32 @@
                         </div>
                     </div>
 
+                    <!-- Verwijderen -->
+                    <div v-if="canDelete" class="pt-4 pb-2 border-t border-gray-100 dark:border-gray-700" v-auto-animate>
+                        <button v-if="!deleteArmed" type="button" @click="deleteArmed = true"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                            <TrashIcon class="h-4 w-4" />
+                            Afspraak verwijderen
+                        </button>
+                        <div v-else
+                            class="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-900/20 p-3">
+                            <p class="text-sm text-red-700 dark:text-red-300 mb-3">
+                                Weet je zeker dat je deze afspraak wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
+                            </p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="deleteArmed = false" :disabled="deleting"
+                                    class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
+                                    Annuleren
+                                </button>
+                                <button type="button" @click="deleteEvent" :disabled="deleting"
+                                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <TrashIcon class="h-4 w-4" />
+                                    {{ deleting ? 'Verwijderen...' : 'Ja, verwijderen' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Footer -->
@@ -386,7 +412,7 @@
                                 Voorlopig
                             </label>
                         </div>
-                        <button @click="save" :disabled="saving"
+                        <button @click="save" :disabled="saving || deleting"
                             class="px-6 py-2.5 bg-lavoro-blue rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <CheckIcon class="h-4 w-4" />
                             {{ saving ? 'Opslaan...' : 'Opslaan' }}
@@ -416,7 +442,7 @@ import {
     XMarkIcon, CalendarDaysIcon, TagIcon, CheckCircleIcon, DocumentTextIcon,
     UserIcon, DocumentIcon, BuildingOffice2Icon, Bars3BottomLeftIcon,
     UsersIcon, PlusIcon, CheckIcon, ExclamationTriangleIcon, EnvelopeIcon,
-    PencilSquareIcon,
+    PencilSquareIcon, TrashIcon,
 } from '@heroicons/vue/24/outline'
 import { ClockFading as ClockFadingIcon, LocateFixed, MailQuestionMark, SendHorizontal } from '@lucide/vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -439,14 +465,18 @@ const props = defineProps({
     userRoles: { type: Array, default: () => [] },
     initial: { type: Object, required: true },
     editingExisting: { type: Boolean, default: false },
+    allowDelete: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'saved'])
+const emit = defineEmits(['close', 'saved', 'deleted'])
 const page = usePage()
+const authUserId = computed(() => page.props.auth?.user?.id ?? null)
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock()
 
 const visible = ref(false)
 const saving = ref(false)
+const deleting = ref(false)
+const deleteArmed = ref(false)
 const linkingServiceOrder = ref(false)
 const showUserSelector = ref(false)
 const userToAdd = ref(null)
@@ -912,8 +942,46 @@ function onEmailSent() {
     loadEmailHistory()
 }
 
+function standardEmailList(response, key) {
+    const list = response.data?.[key]
+    return Array.isArray(list) ? list : []
+}
+
+/**
+ * Deletion is judged on the appointment as it is stored: an unsaved edit to the
+ * executing users says nothing about who may throw the appointment away.
+ */
+const canDelete = computed(() => {
+    if (!props.allowDelete || !props.editingExisting || !form.id) return false
+    if (hasPermission('event.delete_others')) return true
+    return hasPermission('event.delete')
+        && (props.initial.executing_user_ids || []).includes(authUserId.value)
+})
+
+async function deleteEvent() {
+    if (deleting.value || saving.value) return
+
+    deleting.value = true
+    try {
+        await axios.get('/sanctum/csrf-cookie')
+        const r = await axios.delete(`/api/events/${form.id}`)
+        page.props.flash.success = 'Afspraak verwijderd'
+        // Like 'saved', this unmounts the modal, so any trigger emails the delete
+        // left pending are the parent's to handle.
+        emit('deleted', {
+            eventId: form.id,
+            pendingStandardEmails: standardEmailList(r, 'pending_standard_emails'),
+        })
+    } catch (e) {
+        deleteArmed.value = false
+        page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet verwijderen'
+    } finally {
+        deleting.value = false
+    }
+}
+
 async function save() {
-    if (saving.value) return
+    if (saving.value || deleting.value) return
 
     if (form.executing_user_ids.length === 0) {
         form.setError('executing_user_ids', 'Voeg minimaal één uitvoerende gebruiker toe.')
@@ -953,23 +1021,22 @@ async function save() {
         let savedEventId = null
         let successMessage = ''
         if (props.editingExisting && form.id) {
-            const authId = page.props.auth?.user?.id ?? null
             const canUpdate = hasPermission('event.update_others') ||
-                (hasPermission('event.update') && form.executing_user_ids.includes(authId))
+                (hasPermission('event.update') && form.executing_user_ids.includes(authUserId.value))
             if (!canUpdate) return
             const r = await axios.put(`/api/events/${form.id}`, payload)
             if (r.status !== 200) throw new Error('bad')
             successMessage = 'Afspraak succesvol bijgewerkt'
-            pendingStandardEmails = Array.isArray(r.data?.pending_standard_emails) ? r.data.pending_standard_emails : []
-            queuedStandardEmails = Array.isArray(r.data?.queued_standard_emails) ? r.data.queued_standard_emails : []
+            pendingStandardEmails = standardEmailList(r, 'pending_standard_emails')
+            queuedStandardEmails = standardEmailList(r, 'queued_standard_emails')
             savedEventId = r.data.id
         } else {
             if (!hasPermission('event.create')) return
             const r = await axios.post('/api/events', payload)
             if (r.status !== 201) throw new Error('bad')
             successMessage = 'Afspraak succesvol opgeslagen'
-            pendingStandardEmails = Array.isArray(r.data?.pending_standard_emails) ? r.data.pending_standard_emails : []
-            queuedStandardEmails = Array.isArray(r.data?.queued_standard_emails) ? r.data.queued_standard_emails : []
+            pendingStandardEmails = standardEmailList(r, 'pending_standard_emails')
+            queuedStandardEmails = standardEmailList(r, 'queued_standard_emails')
             savedEventId = r.data.id
         }
         if (queuedStandardEmails.length > 0) {

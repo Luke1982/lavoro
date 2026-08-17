@@ -201,7 +201,8 @@
         <EventEditModal v-if="modalOpen" :event-types="eventTypes" :event-statusses="eventStatusses"
             :all-customers="allCustomers" :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
             :all-users="allUsers" :user-roles="userRoles" :initial="modalInitial"
-            :editing-existing="editingExistingEvent" @close="closeModal" @saved="onSaved" />
+            :editing-existing="editingExistingEvent" allow-delete @close="closeModal" @saved="closeAndRefresh"
+            @deleted="closeAndRefresh" />
 
         <UnavailabilityOverrideDialog :open="unavailOverrideDialog.open" :users="unavailOverrideDialog.users"
             @confirm="onOverrideConfirm" @cancel="onOverrideCancel" />
@@ -670,7 +671,8 @@ function closeModal() {
     modalInitial.value = null
 }
 
-function onSaved() {
+// A save and a delete both leave the shown week stale: close and refetch either way.
+function closeAndRefresh() {
     closeModal()
     fetchEvents()
 }
