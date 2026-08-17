@@ -261,7 +261,7 @@ class Asset extends Model
             . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
             . ') SELECT id FROM asset_tree',
             $customer_ids
-        ))->pluck('id')->all();
+        ))->map(fn ($row) => (int) $row->id)->all();
     }
 
     public function maintenanceContracts()

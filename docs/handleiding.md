@@ -104,7 +104,7 @@ Belangrijke automatiek rond fases:
 
 De pagina is opgedeeld in tabbladen: **Details**, **Administratie** (alleen met recht op financiële gegevens) en **Exporteren** (met export-/mailrechten).
 
-Op Details staan: de stappenbalk, de gegevens (klant, project, locatie, datum opdracht, extern factuurnummer, externe referentie, uitvoeringslocatie), de taken, de keuringen (met een knop om een machine toe te voegen), de gekoppelde storingen (bestaande kiezen of direct een nieuwe aanmaken), de materialen, en in de zijbalk: een kaartje van de locatie, de tijdlijn, de afspraken, opmerkingen (openbaar én intern), documenten, twee fotoblokken (openbaar en intern) en het blok **Afronding en handtekening**.
+Op Details staan: de stappenbalk, de gegevens (klant, project, locatie, datum opdracht, extern factuurnummer, externe referentie, uitvoeringslocatie), de taken, de keuringen (met een knop om een machine toe te voegen), de gekoppelde storingen (bestaande kiezen of direct een nieuwe aanmaken; de keuzelijst toont alle openstaande storingen van de klant, ook die op onderdelen van een machine), de materialen, en in de zijbalk: een kaartje van de locatie, de tijdlijn, de afspraken, opmerkingen (openbaar én intern), documenten, twee fotoblokken (openbaar en intern) en het blok **Afronding en handtekening**.
 
 **Afsluiten**: onderaan zit de knop om de werkbon af te sluiten, met aankomst- en vertrektijden, afsluitende opmerkingen en de handtekening van de klant (naam plus getekende handtekening). Er kan een minimumaantal foto's vereist zijn om af te sluiten (instelbaar door de beheerder). Een werkbon kan ook heropend of als onvolledig gemarkeerd worden. Het vinkje "werk volledig afgerond" zet je uit als het werk niet af is.
 

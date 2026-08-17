@@ -193,8 +193,6 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'serviceOrderStage',
             'servicejobs.asset.product.brand',
-            'customer.tickets.asset.product.brand',
-            'customer.tickets.asset.product.productType',
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
             'materials.category',
@@ -249,6 +247,18 @@ class ServiceOrderController extends Controller
             ])
             : collect();
 
+        /**
+         * Same reasoning for the storingen behind the picker: a storing logged on a machine
+         * inside a bundle hangs on a child asset, which the customer's tickets relation
+         * never sees. Only ever read by the picker, so it stays home when the picker does.
+         */
+        $customer_tickets = $service_order->customer && $user->hasPermission('ticket.add_to_serviceorder')
+            ? $service_order->customer->ticketTree([
+                'asset.product.brand',
+                'asset.product.productType',
+            ])
+            : collect();
+
         $service_order->taskInstances->each->append('serial_slots');
 
         $all_task_instances = $service_order->taskInstances;
@@ -298,6 +308,7 @@ class ServiceOrderController extends Controller
             'documentCategories' => DocumentCategory::forPicker(),
             'mapLocation' => ServiceOrderLocationResolver::resolve($service_order),
             'customerAssets' => $customer_assets,
+            'customerTickets' => $customer_tickets,
             'allTaskInstances' => $all_task_instances,
             'combinedMaterials' => $combined_materials,
             'combinedFreeformMaterials' => $combined_freeform,

@@ -144,6 +144,10 @@ class Customer extends Model
             ->orderBy('next_service_date', 'desc');
     }
 
+    /**
+     * Storingen on the root machines only. Machines inside a bundle carry no customer_id,
+     * so their storingen fall outside this relation — use ticketTree() for the whole tree.
+     */
     public function tickets()
     {
         return $this->hasManyThrough(
@@ -154,6 +158,23 @@ class Customer extends Model
             'id',
             'id'
         );
+    }
+
+    /**
+     * Every storing on this customer's machines at any depth. A machine hanging in a
+     * bundle carries no customer_id of its own, so tickets() drops its storingen by
+     * construction — use this wherever the whole tree is meant.
+     *
+     * @param  array<int, string>  $with
+     * @return Collection<int, Ticket>
+     */
+    public function ticketTree(array $with = []): Collection
+    {
+        return Ticket::query()
+            ->whereIn('asset_id', Asset::treeIdsForCustomers([$this->id]))
+            ->with($with)
+            ->orderByDesc('created_at')
+            ->get();
     }
 
     public function openTickets()

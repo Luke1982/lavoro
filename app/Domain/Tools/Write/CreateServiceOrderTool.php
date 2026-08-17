@@ -130,10 +130,14 @@ class CreateServiceOrderTool implements Confirmable, Tool
         /**
          * Everything has to belong to this customer, and has to be something this
          * person can already see. Either way round, a werkbon that quietly picked
-         * up somebody else's machine reads exactly like a correct one.
+         * up somebody else's machine reads exactly like a correct one. Ownership is
+         * read off the whole tree: a machine inside a bundle carries no customer_id
+         * of its own, yet belongs to the customer its root hangs on.
          */
+        $customer_asset_ids = Asset::treeIdsForCustomers([$customer->id]);
+
         $assets = Asset::visibleTo($call->user)->whereIn('id', $asset_ids)->get();
-        $strays = $assets->where('customer_id', '!=', $customer->id);
+        $strays = $assets->reject(fn (Asset $asset) => in_array($asset->id, $customer_asset_ids, true));
 
         if ($assets->count() !== count($asset_ids)) {
             $missing = array_diff($asset_ids, $assets->pluck('id')->all());
@@ -166,7 +170,9 @@ class CreateServiceOrderTool implements Confirmable, Tool
             );
         }
 
-        $elsewhere = $tickets->filter(fn (Ticket $ticket) => $ticket->asset && $ticket->asset->customer_id !== $customer->id);
+        $elsewhere = $tickets->filter(
+            fn (Ticket $ticket) => $ticket->asset && !in_array($ticket->asset->id, $customer_asset_ids, true)
+        );
 
         if ($elsewhere->isNotEmpty()) {
             return ToolResult::failed(

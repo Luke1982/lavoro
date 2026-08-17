@@ -670,6 +670,7 @@ import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 
 const props = defineProps({
     customerAssets: { type: Array, default: () => [] },
+    customerTickets: { type: Array, default: () => [] },
     serviceOrder: {
         type: Object,
         required: true
@@ -737,14 +738,15 @@ const internalAssets = props.customerAssets.slice().sort((a, b) =>
 const internalTickets = ref([]);
 
 watch(
-    () => props.serviceOrder.tickets,
-    (newTickets) => {
+    () => [props.serviceOrder.tickets, props.customerTickets],
+    ([newTickets, availableTickets]) => {
         if (!hasPermission('ticket.add_to_serviceorder')) {
             internalTickets.value = [];
             return;
         }
-        internalTickets.value = props.serviceOrder.customer.tickets.slice()
-            .filter(ticket => ticket.status !== 'Gesloten' && newTickets.map(t => t.id).indexOf(ticket.id) === -1)
+        const attachedIds = new Set(newTickets.map(t => t.id));
+        internalTickets.value = availableTickets.slice()
+            .filter(ticket => ticket.status !== 'Gesloten' && !attachedIds.has(ticket.id))
             .sort((a, b) =>
                 a.asset.product.product_type.name.localeCompare(b.asset.product.product_type.name)
             )
