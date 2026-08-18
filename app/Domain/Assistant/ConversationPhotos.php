@@ -109,7 +109,7 @@ class ConversationPhotos
 
         Storage::disk('local')->deleteDirectory($this->folder($conversation));
 
-        Signals::dispatch(new ImageAttached($record, count($kept), $kept[0]->path));
+        Signals::dispatch(new ImageAttached($record, count($kept), $kept[0]->path, $kept[0]->id));
 
         return ['count' => count($kept), 'home' => $noun . ' #' . $record->id];
     }

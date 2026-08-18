@@ -3,13 +3,17 @@
         class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-800/60 shadow-sm dark:shadow-none mb-4 overflow-hidden">
         <h2 class="sr-only">Ticket statistieken</h2>
         <div
-            class="grid grid-cols-1 md:grid-cols-3 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100 dark:divide-slate-700/60">
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100 dark:divide-slate-700/60">
             <div class="p-6">
                 <StatCard label="Open" :value="openCount" :baseline="avgCount" :delta="openPctVsAvg" type="open" />
             </div>
             <div class="p-6">
                 <StatCard label="In behandeling" :value="pendingCount" :baseline="avgCount"
                     :delta="pendingPctVsAvg" type="pending" />
+            </div>
+            <div class="p-6">
+                <StatCard label="Wacht op klant" :value="waitingCount" :baseline="avgCount"
+                    :delta="waitingPctVsAvg" type="waiting" />
             </div>
             <div class="p-6">
                 <StatCard label="Gesloten" :value="closedCount" :baseline="avgCount" :delta="closedPctVsAvg"
@@ -271,10 +275,12 @@ const props = defineProps({
     search: { type: String, default: '' },
     openCount: { type: Number, required: true },
     pendingCount: { type: Number, required: true },
+    waitingCount: { type: Number, required: true },
     closedCount: { type: Number, required: true },
     avgCount: { type: Number, required: true },
     openPctVsAvg: { type: Number, required: true },
     pendingPctVsAvg: { type: Number, required: true },
+    waitingPctVsAvg: { type: Number, required: true },
     closedPctVsAvg: { type: Number, required: true },
     activeStatuses: { type: Array, default: () => [] },
     activePriorities: { type: Array, default: () => [] },

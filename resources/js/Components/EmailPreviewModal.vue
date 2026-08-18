@@ -6,7 +6,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bericht</label>
                 <TipTapEditor v-if="editable" v-model="localBody" />
-                <div v-else class="prose prose-sm max-w-none dark:prose-invert border rounded-lg px-3 py-2 dark:border-slate-600"
+                <div v-else class="rich-text text-sm border rounded-lg px-3 py-2 dark:border-slate-600"
                     v-html="localBody" />
             </div>
         </div>

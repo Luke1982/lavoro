@@ -148,6 +148,7 @@ export const ticketStatusClasses = (status) => {
     const s = (status || "").toLowerCase();
     if (s === "open") return "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-700/50";
     if (s === "in behandeling") return "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50";
+    if (s === "wacht op terugkoppeling klant") return "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:ring-purple-700/50";
     if (s === "gesloten") return "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700/50";
     return "bg-gray-50 text-gray-700 ring-gray-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-600/60";
 };

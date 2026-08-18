@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ResolveAccessToken;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'accesstoken' => ResolveAccessToken::class,
         ]);
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: ['google/webhook']);
@@ -61,7 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
-            if ($response->getStatusCode() === 403 && ! $request->expectsJson()) {
+            if ($response->getStatusCode() === 403 && !$request->expectsJson()) {
                 return redirect()->back()->with('error', 'U heeft geen toestemming om deze actie uit te voeren.');
             }
 
@@ -72,7 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             $notProd = app()->environment(['local', 'development', 'testing']);
-            if (! $notProd && in_array($response->getStatusCode(), [500, 503, 404])) {
+            if (!$notProd && in_array($response->getStatusCode(), [500, 503, 404])) {
                 $messages = [
                     500 => 'Er is een serverfout opgetreden. Probeer het later opnieuw.',
                     503 => 'De service is momenteel niet beschikbaar.',

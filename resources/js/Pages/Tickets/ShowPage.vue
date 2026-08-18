@@ -27,6 +27,21 @@
                     </div>
 
                     <div class="flex items-center gap-2 flex-none">
+                        <!-- Volgen leest van de ring om de knop, niet van het pictogram: dat
+                             blijft open, zodat de knop er hetzelfde uitziet als de rest. -->
+                        <button type="button" @click="toggleFollow" :disabled="followBusy"
+                            :title="subscriptionId ? 'Je volgt deze storing — klik om te stoppen' : 'Volg deze storing'"
+                            :aria-pressed="!!subscriptionId"
+                            :class="['inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-800 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50',
+                                subscriptionId ? 'ring-2 ring-slate-800/40 ring-offset-1 dark:ring-offset-slate-900' : '']">
+                            <BellIcon class="size-5" />
+                        </button>
+                        <button v-if="hasPermission('ticket.request_customer_info')" type="button"
+                            @click="infoRequestOpen = true"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
+                            <EnvelopeIcon class="size-4" />
+                            Informatie opvragen
+                        </button>
                         <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
                             :href="`/serviceorders/${ticket.service_order_id}`"
                             class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
@@ -300,6 +315,9 @@
                 documentable-type="\App\Models\Ticket" class="mt-6" />
         </template>
     </TwoThirdsOneThird>
+
+    <InfoRequestModal v-if="hasPermission('ticket.request_customer_info')" :open="infoRequestOpen"
+        @update:open="infoRequestOpen = $event" :ticket-id="ticket.id" @sent="router.reload()" />
 </template>
 
 <script setup>
@@ -323,6 +341,8 @@ import {
     ClockIcon,
     DocumentTextIcon,
     EllipsisHorizontalIcon,
+    BellIcon,
+    EnvelopeIcon,
     ExclamationCircleIcon,
     FlagIcon,
     HashtagIcon,
@@ -340,6 +360,8 @@ import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
+import InfoRequestModal from '@/Components/Tickets/InfoRequestModal.vue';
+import { ref } from 'vue';
 
 const props = defineProps({
     ticket: { type: Object, required: true },
@@ -347,7 +369,36 @@ const props = defineProps({
     priorities: { type: Array, required: true },
     customFields: { type: Array, default: () => [] },
     documents: { type: Array, default: () => [] },
+    subscriptionId: { type: Number, default: null },
 });
+
+const infoRequestOpen = ref(false);
+const followBusy = ref(false);
+
+/**
+ * Volgen is één schakelaar: nog eens klikken zet hem uit. Het abonnement komt als
+ * prop terug uit de controller, dus na afloop wordt de pagina bijgewerkt in plaats
+ * van hier een tweede waarheid bij te houden.
+ */
+function toggleFollow() {
+    if (followBusy.value) return;
+    followBusy.value = true;
+
+    const done = {
+        preserveScroll: true,
+        onFinish: () => (followBusy.value = false),
+    };
+
+    if (props.subscriptionId) {
+        router.delete(`/notificationsubscriptions/${props.subscriptionId}`, done);
+        return;
+    }
+
+    router.post('/notificationsubscriptions', {
+        subscribable_type: 'App\\Models\\Ticket',
+        subscribable_id: props.ticket.id,
+    }, done);
+}
 
 const initialStatus = props.statusses.find(s => s.name === props.ticket.status);
 
@@ -363,6 +414,7 @@ const statusBadgeColor = computed(() => {
     const s = props.ticket.status.toLowerCase();
     if (s === 'open') return 'red';
     if (s === 'in behandeling') return 'orange';
+    if (s === 'wacht op terugkoppeling klant') return 'purple';
     if (s === 'gesloten') return 'green';
     return 'gray';
 });
@@ -378,6 +430,7 @@ const priorityBadgeColor = computed(() => {
 const STATUS_TILES = {
     red: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400' },
     orange: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
+    purple: { bg: 'bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400' },
     green: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400' },
     gray: { bg: 'bg-gray-500/10', text: 'text-gray-600 dark:text-slate-300' },
 };

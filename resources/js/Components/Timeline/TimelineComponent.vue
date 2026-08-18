@@ -35,7 +35,7 @@
                                 </dl>
                                 <div v-if="event.actorName || event.actorType !== 'user'"
                                     class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
-                                    {{ event.actorType === 'user' ? event.actorName : 'Systeem' }}
+                                    {{ NAMED_ACTORS.includes(event.actorType) ? event.actorName : 'Systeem' }}
                                 </div>
                                 <div v-if="event.serviceOrderId" class="mt-0.5 text-[11px]">
                                     <a :href="`/serviceorders/${event.serviceOrderId}`"
@@ -96,13 +96,21 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
 
 const props = defineProps({
     activities: { type: Array, required: true },
     limit: { type: Number, default: 5 }
 });
+
+/**
+ * Wie er met naam en toenaam staat. Een klant die via een aanleverlink iets
+ * opstuurt is geen gebruiker, maar hij is ook niet het systeem: zonder naam zou de
+ * tijdlijn zeggen dat wij het zelf gedaan hebben. Werk van de assistent blijft wél
+ * als systeem lezen — dat staat al op naam van wie het vroeg.
+ */
+const NAMED_ACTORS = ['user', 'customer'];
 
 const CATEGORY_MAP = {
     created: { icon: PlusIcon, bg: 'bg-blue-500' },
@@ -116,6 +124,7 @@ const CATEGORY_MAP = {
     email: { icon: EnvelopeIcon, bg: 'bg-purple-600' },
     event: { icon: CalendarDaysIcon, bg: 'bg-slate-500' },
     image: { icon: PhotoIcon, bg: 'bg-teal-500' },
+    document: { icon: DocumentTextIcon, bg: 'bg-sky-600' },
     other: { icon: EllipsisHorizontalIcon, bg: 'bg-gray-400' },
 };
 

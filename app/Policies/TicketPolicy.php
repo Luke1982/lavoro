@@ -43,6 +43,18 @@ class TicketPolicy
     }
 
     /**
+     * Of deze persoon de klant om aanvullende informatie mag vragen.
+     *
+     * Een eigen recht en niet dat van bijwerken: hier gaat een mail uit op naam
+     * van het bedrijf, met een link erin waarmee iemand van buiten bestanden aan
+     * de storing kan hangen.
+     */
+    public function requestCustomerInfo(User $user, Ticket $ticket): bool
+    {
+        return $user->hasPermission('ticket.request_customer_info');
+    }
+
+    /**
      * Determine whether the user can attach a ticket to a service order.
      */
     public function attachToServiceOrder(User $user, Ticket $ticket): bool

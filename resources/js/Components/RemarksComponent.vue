@@ -22,12 +22,16 @@
                     <div class="flex justify-between gap-x-4 mb-2">
                         <div class="flex items-center gap-x-2 min-w-0">
                             <div
-                                class="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-slate-600 flex-none">
-                                <span class="text-xs font-medium text-gray-600 dark:text-slate-200">{{
-                                    initials(comment.user.name) }}</span>
+                                class="flex items-center justify-center w-6 h-6 rounded-full flex-none"
+                                :class="comment.user ? 'bg-gray-200 dark:bg-slate-600' : 'bg-purple-200 dark:bg-purple-900'">
+                                <span class="text-xs font-medium"
+                                    :class="comment.user ? 'text-gray-600 dark:text-slate-200' : 'text-purple-700 dark:text-purple-200'">{{
+                                        initials(authorName(comment)) }}</span>
                             </div>
                             <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{
-                                comment.user.name }}</span>
+                                authorName(comment) }}</span>
+                            <BadgeComponent v-if="!comment.user" color="purple" :hasDot="false"
+                                class="!px-2 !py-0.5 text-xs flex-none">Klant</BadgeComponent>
                             <span class="text-sm text-gray-500 dark:text-slate-400 hidden sm:inline">maakte een
                                 opmerking</span>
                         </div>
@@ -35,7 +39,7 @@
                             <time :datetime="comment.created_at" class="text-xs text-gray-400 dark:text-slate-500">
                                 {{ nlDate(comment.created_at) }} {{ nlTime(comment.created_at) }}
                             </time>
-                            <button v-if="page.props.auth.user.id === comment.user_id && !disabled"
+                            <button v-if="comment.user_id && page.props.auth.user.id === comment.user_id && !disabled"
                                 @click="deleteComment(comment.id)"
                                 class="p-0.5 rounded text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors">
                                 <Trash2Icon class="h-4 w-4 text-red-500" />
@@ -83,6 +87,7 @@ import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/vue/24/ou
 import { nlDate, nlTime, initials, subjectSubtitle } from '@/Utilities/Utilities';
 import { Trash2Icon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import axios from 'axios';
 
 const { comments, remarkableType, remarkableId, disabled, internal, apiMode, title, subtitle } = defineProps({
@@ -113,6 +118,13 @@ const { comments, remarkableType, remarkableId, disabled, internal, apiMode, tit
 })
 
 const emit = defineEmits(['created', 'deleted'])
+
+/**
+ * Een opmerking hoeft niet van een collega te zijn: wat een klant via een
+ * aanleverlink toelicht komt hier zonder gebruiker binnen, met alleen de naam die
+ * op dat moment gold.
+ */
+const authorName = (comment) => comment.user?.name || comment.author_name || 'Onbekend'
 
 const resolvedSubtitle = computed(() => subtitle || (internal
     ? subjectSubtitle(

@@ -427,7 +427,7 @@
                 @foreach ($remarks as $remark)
                     <tr>
                         <td>{{ $remark->created_at->copy()->setTimezone(config('app.display_timezone'))->format('d-m-Y H:i') }}</td>
-                        <td>{{ $remark->user->name ?? '—' }}</td>
+                        <td>{{ $remark->user->name ?? $remark->author_name ?? '—' }}</td>
                         <td>{{ $remark->content }}</td>
                     </tr>
                 @endforeach

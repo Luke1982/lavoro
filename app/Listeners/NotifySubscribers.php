@@ -8,6 +8,7 @@ use App\Jobs\SendWebPushNotificationsJob;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\WebPushSender;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -81,7 +82,7 @@ class NotifySubscribers
         $type = UserNotificationType::tryFrom($signal->eventKey());
 
         if ($type !== null && $type->shouldNotify($signal)) {
-            $subscribers = $this->subscribersFor($type, $signal->actorId())->diff($told);
+            $subscribers = $this->subscribersFor($type, $signal)->diff($told);
 
             $written = $written->merge($this->write($type, $signal, $subscribers));
         }
@@ -181,18 +182,38 @@ class NotifySubscribers
     }
 
     /**
-     * Subscribed, not the actor, and still allowed to read the thing. The
-     * permission is resolved in the query rather than per user, because this runs
-     * in the middle of somebody's save.
+     * Iedereen die dit wil horen, langs twee wegen die verschillend afgerekend
+     * worden.
+     *
+     * Op een soort intekenen is intekenen op alles van dat soort, en daar hoort
+     * het brede leesrecht bij. Eén record volgen is iets anders: dan gaat het om
+     * dat ene ding, en telt of je dát mag zien. Wie een werkbon uitvoert ziet de
+     * storingen erop en moet die kunnen volgen zonder een recht dat hem overal
+     * toegang zou geven.
      *
      * @return Collection<int, int>
      */
-    private function subscribersFor(UserNotificationType $type, ?int $actor_id): Collection
+    private function subscribersFor(UserNotificationType $type, Signal $signal): Collection
+    {
+        return $this->typeSubscribers($type, $signal->actorId())
+            ->merge($this->recordSubscribers($type, $signal))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Ingetekend op het soort, niet de veroorzaker, en met alle rechten die het
+     * soort vraagt. Het recht wordt in de query afgerekend en niet per persoon,
+     * omdat dit midden in andermans opslaan draait.
+     *
+     * @return Collection<int, int>
+     */
+    private function typeSubscribers(UserNotificationType $type, ?int $actor_id): Collection
     {
         $required = $type->requiredPermissions();
 
         return User::query()
-            ->whereHas('notificationSubscriptions', fn ($query) => $query->where('type', $type->value))
+            ->whereHas('notificationSubscriptions', fn ($query) => $query->forType($type->value))
             ->when($actor_id !== null, fn ($query) => $query->whereKeyNot($actor_id))
             ->when($required !== [], fn ($query) => $query->where(fn ($allowed) => $allowed
                 ->whereHas('roles', fn ($roles) => $roles->where('name', 'admin'))
@@ -206,6 +227,51 @@ class NotifySubscribers
                         );
                     }
                 })))
-            ->pluck('id');
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+    }
+
+    /**
+     * Wie dit ene record volgt, met of zonder soort erbij: geen soort betekent
+     * alles wat over dit record te melden valt.
+     *
+     * Het zicht wordt hier per persoon nagelopen en niet in de query, omdat elk
+     * model zijn eigen regel heeft voor wie het mag zien en die regel in dat model
+     * hoort te blijven staan. Het gaat om een handvol volgers per record, niet om
+     * een tabel.
+     *
+     * @return Collection<int, int>
+     */
+    private function recordSubscribers(UserNotificationType $type, Signal $signal): Collection
+    {
+        $subject = $signal->subject();
+        $actor_id = $signal->actorId();
+
+        return User::query()
+            ->whereHas('notificationSubscriptions', fn ($query) => $query
+                ->forRecord($subject)
+                ->where(fn ($either) => $either->whereNull('type')->orWhere('type', $type->value)))
+            ->when($actor_id !== null, fn ($query) => $query->whereKeyNot($actor_id))
+            ->get()
+            ->filter(fn (User $user) => $this->maySee($subject, $user, $type))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+    }
+
+    /**
+     * Of deze lezer het record nog mag zien. Modellen die daar een eigen regel
+     * voor hebben beslissen zelf; de rest valt terug op het recht dat het soort
+     * vraagt, want zonder eigen regel is dat het enige wat er te vragen valt.
+     */
+    private function maySee(Model $subject, User $user, UserNotificationType $type): bool
+    {
+        if (!method_exists($subject, 'scopeVisibleTo')) {
+            return $user->hasEveryPermission($type->requiredPermissions());
+        }
+
+        return $subject->newQuery()
+            ->visibleTo($user)
+            ->whereKey($subject->getKey())
+            ->exists();
     }
 }

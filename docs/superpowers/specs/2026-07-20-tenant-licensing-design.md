@@ -220,13 +220,17 @@ assertRoomFor(n) throws / returns false when usedBytes() + n > limitBytes()
 add(n) / subtract(n)   adjust the counter
 ```
 
-Enforcement is a `WithinStorageQuota` validation rule on the file-upload requests — image upload, avatar, document, company logo — so an over-quota upload fails as a normal validation error the frontend shows through `form.errors`, in Dutch:
+Enforcement is a `WithinStorageQuota` validation rule on the file-upload requests — image upload, avatar, document, company logo, and `CustomerUploadRequest` — so an over-quota upload fails as a normal validation error the frontend shows through `form.errors`, in Dutch:
 
 > Uw opslaglimiet van 50 GB is bereikt. Neem contact op om uit te breiden.
 
 After a file is stored, the upload path calls `add(bytes)`; on delete, `subtract(bytes)`. Consistent with the seat philosophy: **new uploads are blocked, existing files are never deleted.** A tenant whose limit was lowered below current usage keeps every file and simply cannot add more.
 
 Like seats, the check needs no cross-database query during a tenant request: the limit is on the already-loaded central `tenancy()->tenant`, the counter is in the tenant's own `general_settings`.
+
+**Two notes on the customer upload path** (`storing/informatie/{token}`, added to master 2026-08-18, designed in `docs/superpowers/specs/2026-08-18-ticket-customer-info-request-design.md`). It is the only upload in the app that is **not made by a seat holder**: a customer with a link fills the tenant's disk, and the tenant pays for it. That is the right outcome — the files belong to their storing — but it means the quota message is written for a colleague and would be read by a customer, so that request needs its own wording ("Wij kunnen op dit moment geen bestanden ontvangen. Neem contact met ons op."), not the sentence above.
+
+It is also the only path that **changes a file's size after it has been accounted for**: photos are downscaled in the request and video by `DownscaleVideoJob` minutes later, both replacing the stored file with a smaller one. Whatever `add()` recorded on upload is then too high until the nightly reconcile corrects it. Cheapest fix that keeps the counter honest: have the downscaler report the difference and `subtract()` it, in the job as well as inline. The reconcile makes this self-healing either way, so it is a quality-of-counter issue, not a correctness one.
 
 ### Nightly reconcile
 

@@ -15,6 +15,7 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
+use App\Models\NotificationSubscription;
 use App\Models\Ticket;
 use App\Models\User;
 use Inertia\Response;
@@ -93,12 +94,21 @@ class TicketController extends Controller
             Ticket::whereNotNull('closed_by_id')->distinct()->pluck('closed_by_id')
         )->orderBy('name')->get(['id', 'name']);
 
-        $open_count = Ticket::where('status', TicketStatusses::open->value)->count();
-        $pending_count = Ticket::where('status', TicketStatusses::in_behandeling->value)->count();
-        $closed_count = Ticket::where('status', TicketStatusses::gesloten->value)->count();
+        /**
+         * In één keer geteld en tegen de fasen aan gelegd die er zijn, zodat een
+         * fase erbij niet stilzwijgend buiten de kaarten valt.
+         */
+        $counts_per_status = Ticket::query()
+            ->selectRaw('status, count(*) as aantal')
+            ->groupBy('status')
+            ->pluck('aantal', 'status');
 
-        $total_count = $open_count + $pending_count + $closed_count;
-        $average_count = $total_count === 0 ? 0 : $total_count / 3;
+        $counts = collect(TicketStatusses::cases())
+            ->mapWithKeys(fn (TicketStatusses $status) => [
+                $status->name => (int) ($counts_per_status[$status->value] ?? 0),
+            ]);
+
+        $average_count = $counts->sum() === 0 ? 0 : $counts->sum() / $counts->count();
 
         $calc_pct_vs_avg = function ($count, $avg) {
             if ($avg == 0) {
@@ -108,8 +118,14 @@ class TicketController extends Controller
             return round((($count - $avg) / $avg) * 100, 2);
         };
 
+        $open_count = $counts[TicketStatusses::open->name];
+        $pending_count = $counts[TicketStatusses::in_behandeling->name];
+        $waiting_count = $counts[TicketStatusses::wacht_op_klant->name];
+        $closed_count = $counts[TicketStatusses::gesloten->name];
+
         $open_pct_vs_avg = $calc_pct_vs_avg($open_count, $average_count);
         $pending_pct_vs_avg = $calc_pct_vs_avg($pending_count, $average_count);
+        $waiting_pct_vs_avg = $calc_pct_vs_avg($waiting_count, $average_count);
         $closed_pct_vs_avg = $calc_pct_vs_avg($closed_count, $average_count);
 
         return inertia('Tickets/IndexPage', [
@@ -117,10 +133,12 @@ class TicketController extends Controller
             'search' => $search,
             'openCount' => $open_count,
             'pendingCount' => $pending_count,
+            'waitingCount' => $waiting_count,
             'closedCount' => $closed_count,
             'avgCount' => (int) round($average_count),
             'openPctVsAvg' => $open_pct_vs_avg,
             'pendingPctVsAvg' => $pending_pct_vs_avg,
+            'waitingPctVsAvg' => $waiting_pct_vs_avg,
             'closedPctVsAvg' => $closed_pct_vs_avg,
             'activeStatuses' => $status_key_collection->values()->all(),
             'activePriorities' => $priority_key_collection->values()->all(),
@@ -373,6 +391,11 @@ class TicketController extends Controller
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
             'customFields' => $ticket->allCustomFieldsWithValues(),
+
+            /** Null als deze storing niet gevolgd wordt; anders het abonnement om weer uit te zetten. */
+            'subscriptionId' => NotificationSubscription::where('user_id', $request->user()->id)
+                ->forRecord($ticket)
+                ->value('id'),
         ]);
     }
 

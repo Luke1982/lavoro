@@ -30,7 +30,14 @@ class NotificationSubscriptionController extends Controller
             ? User::findOrFail($request->integer('user_id'))
             : $request->user();
 
+        /**
+         * Alleen de abonnementen op een soort. Wie één storing volgt heeft een rij
+         * met een record eronder, en die hoort niet de schakelaar voor álle storingen
+         * van dat soort aan te zetten — dat scherm gaat er niet over.
+         */
         $subscribed = NotificationSubscription::where('user_id', $subject->id)
+            ->whereNull('subscribable_type')
+            ->whereNotNull('type')
             ->pluck('id', 'type');
 
         $manages_others = $request->user()->can('manageOthers', NotificationSubscription::class);
@@ -69,12 +76,16 @@ class NotificationSubscriptionController extends Controller
 
     public function store(NotificationSubscriptionStoreRequest $request): RedirectResponse
     {
+        $record = $request->record();
+
         NotificationSubscription::create([
             'user_id' => $request->subscriber()->id,
             'type' => $request->validated('type'),
+            'subscribable_type' => $record?->getMorphClass(),
+            'subscribable_id' => $record?->getKey(),
         ]);
 
-        return back()->with('success', 'Melding aangezet.');
+        return back()->with('success', $record ? 'Je volgt dit nu.' : 'Melding aangezet.');
     }
 
     public function destroy(NotificationSubscriptionDestroyRequest $request, NotificationSubscription $notificationsubscription): RedirectResponse

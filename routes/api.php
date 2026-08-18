@@ -12,6 +12,7 @@ use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProjectApiController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\ServiceOrderEventWidgetController;
+use App\Http\Controllers\TicketInfoRequestController;
 use App\Http\Controllers\UnavailabilityApiController;
 use App\Http\Controllers\UserPlanGroupController;
 use App\Http\Controllers\UserPlannableController;
@@ -40,6 +41,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::patch('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'updateFor']);
 
     Route::get('serviceorders/{service_order}/event-widget', [ServiceOrderEventWidgetController::class, 'show']);
+
+    Route::get('tickets/{ticket}/info-request', [TicketInfoRequestController::class, 'defaults']);
+    Route::post('tickets/{ticket}/info-request', [TicketInfoRequestController::class, 'send'])
+        ->middleware('throttle:20,1');
 
     Route::post('remarks', [RemarkController::class, 'store']);
     Route::delete('remarks/{remark}', [RemarkController::class, 'destroy']);

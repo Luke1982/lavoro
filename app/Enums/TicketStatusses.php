@@ -8,7 +8,8 @@ enum TicketStatusses: string
 {
     use EnumComboBoxArrayTrait;
 
-    case open           = 'Open';
+    case open = 'Open';
     case in_behandeling = 'In behandeling';
-    case gesloten       = 'Gesloten';
+    case wacht_op_klant = 'Wacht op terugkoppeling klant';
+    case gesloten = 'Gesloten';
 }

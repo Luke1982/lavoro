@@ -14,6 +14,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerImportController;
+use App\Http\Controllers\CustomerUploadController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentCategoryController;
@@ -561,6 +562,17 @@ Route::get('download/lavoro.apk', function () {
 
     return response()->download($path, 'lavoro.apk', ['Content-Type' => 'application/vnd.android.package-archive']);
 })->name('app.download');
+
+/**
+ * De aanleverpagina voor klanten. Geen inlog: de link uit de mail is de sleutel,
+ * en de middleware wisselt hem in voor het token voordat er iets gebeurt.
+ */
+Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->group(function () {
+    Route::get('storing/informatie/{token}', [CustomerUploadController::class, 'show'])
+        ->name('public.ticket.upload');
+    Route::post('storing/informatie/{token}', [CustomerUploadController::class, 'store'])
+        ->name('public.ticket.upload.store');
+});
 
 Route::get('login', [AuthController::class, 'create'])->name('login');
 Route::post('login', [AuthController::class, 'store'])->name('login.store');

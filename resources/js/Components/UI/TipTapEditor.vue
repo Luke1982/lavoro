@@ -19,7 +19,7 @@
             </button>
         </div>
         <EditorContent :editor="editor"
-            class="prose prose-sm max-w-none dark:prose-invert px-3 py-2 min-h-[10rem] focus:outline-none [&_.ProseMirror]:focus:outline-none" />
+            class="rich-text px-3 py-2 min-h-[10rem] text-sm focus:outline-none [&_.ProseMirror]:focus:outline-none" />
     </div>
 </template>
 

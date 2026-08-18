@@ -77,7 +77,12 @@ class ImageController extends Controller
         }
 
         if (count($created_images) > 0) {
-            Signals::dispatch(new ImageAttached($imageable_record, count($created_images), $created_images[0]->path));
+            Signals::dispatch(new ImageAttached(
+                $imageable_record,
+                count($created_images),
+                $created_images[0]->path,
+                $created_images[0]->id,
+            ));
         }
 
         if ($request->wantsJson()) {

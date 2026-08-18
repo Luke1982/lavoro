@@ -154,15 +154,31 @@ Elke keuring heeft een eigen PDF-rapport dat je kunt genereren en naar de klant 
 
 ## Storingen
 
-Een storing is een gemelde fout aan een machine, met een onderwerp, omschrijving, **status** (Open, In behandeling, Gesloten), **prioriteit** (Laag, Normaal, Hoog) en optioneel een storingscode.
+Een storing is een gemelde fout aan een machine, met een onderwerp, omschrijving, **status** (Open, In behandeling, Wacht op terugkoppeling klant, Gesloten), **prioriteit** (Laag, Normaal, Hoog) en optioneel een storingscode.
 
 - Sluit je een storing, dan wordt automatisch vastgelegd wie dat wanneer deed; heropenen wist dat weer.
 - Een storing hoort bij één machine en kan aan één werkbon gekoppeld worden. Alleen een losse storing (nog aan geen werkbon gekoppeld) kan aan een werkbon worden gehangen.
 - Wie een storing mag zien volgt uit de machine of de werkbon erachter: kun je die zien, dan zie je de storing.
 
-De storingenlijst heeft teltegels (Open, In behandeling, Gesloten), filters op status, prioriteit, storingscode en wie hem sloot, en bulk-bewerken van de status. Er is ook een **kaartweergave** die openstaande storingen per klant/locatie op de kaart zet.
+De storingenlijst heeft teltegels (Open, In behandeling, Wacht op klant, Gesloten), filters op status, prioriteit, storingscode en wie hem sloot, en bulk-bewerken van de status. Er is ook een **kaartweergave** die openstaande storingen per klant/locatie op de kaart zet.
 
 Storingen aanmaken kan vanaf de storingenlijst, de plus-knop, de machinepagina en direct vanaf een werkbon.
+
+### Aanvullende informatie opvragen bij de klant
+
+Ontbreekt er informatie om de storing goed in te schatten, dan vraag je die met de knop **Informatie opvragen** boven aan de storingspagina. Dat recht (`ticket.request_customer_info`) staat los van het bijwerken van storingen, want er gaat post de deur uit op naam van het bedrijf.
+
+In het venster staat het adres van de klant al ingevuld, met het onderwerp en een brief waarin de machine en het serienummer zijn ingevuld. Met de knoppen erboven kies je wat je wilt ontvangen — foto's, video's of andere aanvullende informatie; nog eens klikken zet een keuze weer uit. Wat je kiest verschijnt als lijstje in de brief, die je verder vrij mag herschrijven. De knop naar de aanleverpagina wordt onder je tekst gezet en is daarom niet stuk te maken.
+
+Na versturen:
+
+- De storing komt op **Wacht op terugkoppeling klant** te staan.
+- Er komt een regel op de tijdlijn met wat er gevraagd is en aan welk adres het ging.
+- De mail wordt bewaard in de map Verzonden van de bedrijfspostbus, net als alle andere post uit Lavoro.
+
+**Wat de klant ziet.** De link in de mail opent een eigen pagina met het bedrijfslogo, de machine, het serienummer en een lijstje van wat er gevraagd is. De klant sleept er bestanden op — foto's, video's, pdf's en documenten — en kan een toelichting typen. Er is geen inlog: de link ís de sleutel. Hij werkt **veertien dagen** en mag meerdere keren gebruikt worden, zodat een vergeten foto niet om een nieuwe mail vraagt. De pagina toont wat er via die link al verstuurd is en verder niets uit het dossier.
+
+**Wat ermee gebeurt.** Foto's komen bij de afbeeldingen van de storing, video's en documenten bij de documenten onder de categorie *Klantinformatie*, en de toelichting als opmerking met het label *Klant*. Foto's en video's worden automatisch verkleind tot een formaat dat prettig te bekijken is (foto's tot 1920 pixels, video's tot 720p); lukt dat niet, dan blijft het origineel staan. Elke inzending levert één regel op de tijdlijn op, op naam van de klant en met het adres waar de link naartoe ging. Is de storing intussen gesloten, dan neemt de pagina niets meer aan.
 
 ## Planning en afspraken
 
@@ -257,8 +273,10 @@ De beheerder kan eigen velden definiëren op klanten, machines, producten, werkb
 
 **Meldingen.** Het belletje toont meldingen in de applicatie; wie dat toestaat krijgt ze ook als pushbericht op telefoon of computer. Twee soorten:
 
-- **Abonnementen** (zelf aan te zetten onder Instellingen → Meldingen): nieuwe storing, nieuwe planning, planning gewijzigd, werkbon afgerond, materiaal toegevoegd, keuring ondertekend, nieuwe klant, en "werkbon niet te sluiten" — die laatste komt als iemand een werkbon probeert te sluiten en wordt tegengehouden door taken die diegene zelf niet mag zien, en is alleen aan te zetten door wie werkbonnen mag bijwerken. Je krijgt alleen meldingen over dingen die je mag zien.
+- **Abonnementen** (zelf aan te zetten onder Instellingen → Meldingen): nieuwe storing, storing van status gewijzigd, storing van prioriteit gewijzigd, klant leverde informatie aan, nieuwe planning, planning gewijzigd, werkbon afgerond, materiaal toegevoegd, keuring ondertekend, nieuwe klant, en "werkbon niet te sluiten" — die laatste komt als iemand een werkbon probeert te sluiten en wordt tegengehouden door taken die diegene zelf niet mag zien, en is alleen aan te zetten door wie werkbonnen mag bijwerken. Je krijgt alleen meldingen over dingen die je mag zien.
 - **Verplichte meldingen** (niet uit te zetten, over je eigen werk): je afspraak is verplaatst, je bent van een afspraak afgehaald, en je hebt nog tijden van een afgelopen afspraak niet ingevuld (dagelijkse herinnering).
+
+**Eén storing volgen.** Naast de abonnementen op een soort nieuws kun je één storing volgen met het belletje boven aan de storingspagina. Je krijgt dan alles wat over díe storing te melden valt — een gewijzigde status of prioriteit, en een klant die informatie aanlevert — zonder je op al het nieuws van dat soort in te tekenen. Nog eens klikken zet het volgen weer uit. Volgen kan van elke storing die je mag inzien: een monteur die op de werkbon staat hoeft daarvoor geen recht op álle storingen te hebben.
 
 Over je eigen handelingen krijg je nooit een melding. Een nieuwere melding over hetzelfde record vervangt de oudere.
 

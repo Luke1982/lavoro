@@ -9,6 +9,9 @@ use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Domain\Signals\Signal;
 use App\Domain\Signals\Tasks\TaskSigned;
+use App\Domain\Signals\Tickets\CustomerInfoUploaded;
+use App\Domain\Signals\Tickets\TicketPriorityChanged;
+use App\Domain\Signals\Tickets\TicketStatusChanged;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
@@ -31,6 +34,9 @@ use Illuminate\Support\Str;
 enum UserNotificationType: string
 {
     case ticket_created = 'ticket.created';
+    case ticket_status_changed = 'ticket.status_changed';
+    case ticket_priority_changed = 'ticket.priority_changed';
+    case ticket_customer_uploaded = 'ticket.customer_uploaded';
     case appointment_scheduled = 'appointment.scheduled';
     case appointment_rescheduled = 'appointment.rescheduled';
     case serviceorder_closed = 'serviceorder.stage_changed';
@@ -71,6 +77,9 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::ticket_created => 'Nieuwe storing',
+            self::ticket_status_changed => 'Storing van status gewijzigd',
+            self::ticket_priority_changed => 'Storing van prioriteit gewijzigd',
+            self::ticket_customer_uploaded => 'Klant leverde informatie aan',
             self::appointment_scheduled => 'Nieuwe planning',
             self::appointment_rescheduled => 'Planning gewijzigd',
             self::serviceorder_closed => 'Werkbon afgerond',
@@ -89,6 +98,9 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::ticket_created => 'Zodra er een storing wordt gemeld.',
+            self::ticket_status_changed => 'Zodra een storing een andere status krijgt.',
+            self::ticket_priority_changed => 'Zodra een storing een andere prioriteit krijgt.',
+            self::ticket_customer_uploaded => "Zodra een klant foto's, video's of documenten aanlevert.",
             self::appointment_scheduled => 'Zodra er een afspraak wordt ingepland.',
             self::appointment_rescheduled => 'Zodra een afspraak wordt verzet.',
             self::serviceorder_closed => 'Zodra een werkbon wordt afgerond.',
@@ -197,7 +209,8 @@ enum UserNotificationType: string
     public function requiredPermissions(): array
     {
         return match ($this) {
-            self::ticket_created => ['ticket.read'],
+            self::ticket_created, self::ticket_status_changed,
+            self::ticket_priority_changed, self::ticket_customer_uploaded => ['ticket.read'],
             self::appointment_scheduled, self::appointment_rescheduled => [
                 'event.read',
                 'event.see_all',
@@ -241,6 +254,9 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::ticket_created => 'Wrench',
+            self::ticket_status_changed => 'Flag',
+            self::ticket_priority_changed => 'TrendingUp',
+            self::ticket_customer_uploaded => 'Upload',
             self::appointment_scheduled, self::appointment_rescheduled => 'CalendarDays',
             self::serviceorder_closed => 'ClipboardCheck',
             self::material_attached => 'Box',
@@ -256,7 +272,8 @@ enum UserNotificationType: string
     public function color(): string
     {
         return match ($this) {
-            self::ticket_created => 'amber',
+            self::ticket_created, self::ticket_status_changed, self::ticket_priority_changed => 'amber',
+            self::ticket_customer_uploaded => 'blue',
             self::appointment_scheduled => 'blue',
             self::appointment_rescheduled => 'amber',
             self::serviceorder_closed, self::task_signed => 'green',
@@ -277,6 +294,10 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::ticket_created => 'Nieuwe storing #' . $this->ticket($signal)->id,
+            self::ticket_status_changed => 'Storing #' . $this->ticket($signal)->id . ' van status gewijzigd',
+            self::ticket_priority_changed => 'Storing #' . $this->ticket($signal)->id . ' van prioriteit gewijzigd',
+            self::ticket_customer_uploaded => 'Klant leverde informatie aan bij storing #'
+                . $this->ticket($signal)->id,
             self::appointment_scheduled => 'Nieuwe planning',
             self::appointment_rescheduled => 'Planning gewijzigd',
             self::serviceorder_closed => 'Werkbon #' . $this->serviceOrder($signal)->id . ' afgerond',
@@ -295,6 +316,8 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::ticket_created => $this->ticketCreatedBody($signal),
+            self::ticket_status_changed, self::ticket_priority_changed => $this->ticketChangedBody($signal),
+            self::ticket_customer_uploaded => $this->customerUploadBody($signal),
             self::appointment_scheduled, self::appointment_rescheduled => $this->appointmentBody($signal),
             self::serviceorder_closed => $this->serviceOrderClosedBody($signal),
             self::material_attached => $this->materialBody($signal),
@@ -314,7 +337,10 @@ enum UserNotificationType: string
     public function priorityFor(Signal $signal): UserNotificationPriority
     {
         return match ($this) {
-            self::ticket_created => UserNotificationPriority::fromTicketPriority($this->ticket($signal)->priority),
+            self::ticket_created, self::ticket_status_changed,
+            self::ticket_priority_changed, self::ticket_customer_uploaded => UserNotificationPriority::fromTicketPriority(
+                $this->ticket($signal)->priority
+            ),
             self::appointment_scheduled, self::appointment_rescheduled => UserNotificationPriority::normaal,
 
             /** Er staat iemand stil op een bon die diegene zelf niet vlot kan trekken. */
@@ -343,6 +369,47 @@ enum UserNotificationType: string
         return Str::limit($ticket->subject, 120)
             . ($machine ? ' — machine ' . $machine : '')
             . ', gemeld door ' . $this->actor($signal);
+    }
+
+    /**
+     * Van-naar, want een status of prioriteit zonder waar hij vandaan komt zegt
+     * niets: 'Normaal' is nieuws als het 'Hoog' was en geen nieuws als het al
+     * 'Laag' was.
+     */
+    private function ticketChangedBody(Signal $signal): string
+    {
+        $from = match (true) {
+            $signal instanceof TicketStatusChanged => $signal->previous_status,
+            $signal instanceof TicketPriorityChanged => $signal->previous_priority,
+            default => null,
+        };
+
+        $to = match (true) {
+            $signal instanceof TicketStatusChanged => $signal->new_status,
+            $signal instanceof TicketPriorityChanged => $signal->new_priority,
+            default => null,
+        };
+
+        $ticket = $this->ticket($signal);
+        $what = Str::limit($ticket->subject ?? '', 80);
+
+        return trim($what . ($what === '' ? '' : ' — ')
+            . ($from ? "van '" . $from . "' " : '')
+            . "naar '" . ($to ?? 'onbekend') . "', door " . $this->actor($signal));
+    }
+
+    /**
+     * Wat er binnengekomen is en van wie. De klant staat er als naam bij, want de
+     * afzender van deze melding is niemand in huis.
+     */
+    private function customerUploadBody(Signal $signal): string
+    {
+        if (!$signal instanceof CustomerInfoUploaded) {
+            return 'Er is informatie aangeleverd door een klant.';
+        }
+
+        return $signal->summary() . ' van ' . ($signal->customer_name ?: 'de klant')
+            . ' — ' . Str::limit($this->ticket($signal)->subject ?? '', 80);
     }
 
     /**
