@@ -28,10 +28,11 @@
 </template>
 
 <script setup>
+import { watch } from 'vue';
 import { useCurrencyInput } from 'vue-currency-input';
 import ExclamationCircleIcon from '@heroicons/vue/20/solid/ExclamationCircleIcon';
 
-defineProps({
+const props = defineProps({
     modelValue: { type: [Number, String], default: null },
     label: { type: String, default: '' },
     name: { type: String, default: '' },
@@ -44,9 +45,11 @@ defineProps({
     ring: { type: Boolean, default: true },
 });
 
-defineEmits(['update:modelValue']);
+// `change` comes out of vue-currency-input on every programmatic setValue; declared
+// so Vue doesn't warn about an event the component demonstrably emits.
+defineEmits(['update:modelValue', 'change']);
 
-const { inputRef } = useCurrencyInput({
+const { inputRef, numberValue, setValue } = useCurrencyInput({
     locale: 'nl-NL',
     currency: 'EUR',
     currencyDisplay: 'hidden',
@@ -54,5 +57,28 @@ const { inputRef } = useCurrencyInput({
     precision: 2,
     hideGroupingSeparatorOnFocus: false,
     hideNegligibleDecimalDigitsOnFocus: false,
+});
+
+const toNumberOrNull = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+
+    const number = Number(value);
+
+    return Number.isNaN(number) ? null : number;
+};
+
+/**
+ * vue-currency-input reads modelValue once, when the input mounts, and never
+ * again — a value put in from the outside (a contract template filling the form)
+ * would sit in the form while the field stayed empty. Skipped while the number
+ * already matches, or setValue would reformat the field under someone's fingers
+ * as they type in it.
+ */
+watch(() => props.modelValue, (value) => {
+    const number = toNumberOrNull(value);
+
+    if (number !== numberValue.value) {
+        setValue(number);
+    }
 });
 </script>
