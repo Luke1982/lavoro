@@ -27,14 +27,13 @@
                     </div>
 
                     <div class="flex items-center gap-2 flex-none">
-                        <!-- Volgen leest van de ring om de knop, niet van het pictogram: dat
-                             blijft open, zodat de knop er hetzelfde uitziet als de rest. -->
+                        <!-- Het pictogram zegt wat de klik doet: een belletje erbij als je nog
+                             niet volgt, een doorgestreept belletje om te stoppen. -->
                         <button type="button" @click="toggleFollow" :disabled="followBusy"
                             :title="subscriptionId ? 'Je volgt deze storing — klik om te stoppen' : 'Volg deze storing'"
                             :aria-pressed="!!subscriptionId"
-                            :class="['inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-800 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50',
-                                subscriptionId ? 'ring-2 ring-slate-800/40 ring-offset-1 dark:ring-offset-slate-900' : '']">
-                            <BellIcon class="size-5" />
+                            class="inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-800 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50">
+                            <component :is="subscriptionId ? BellOff : BellPlus" class="size-5" />
                         </button>
                         <button v-if="hasPermission('ticket.request_customer_info')" type="button"
                             @click="infoRequestOpen = true"
@@ -341,7 +340,6 @@ import {
     ClockIcon,
     DocumentTextIcon,
     EllipsisHorizontalIcon,
-    BellIcon,
     EnvelopeIcon,
     ExclamationCircleIcon,
     FlagIcon,
@@ -354,7 +352,7 @@ import {
 import { MenuItem } from '@headlessui/vue';
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
-import { Siren, TimelineIcon } from '@lucide/vue';
+import { BellOff, BellPlus, Siren, TimelineIcon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
