@@ -212,6 +212,18 @@ helps nobody, and that check belongs to this purpose, not to the token system.
 The note becomes a `Remark` attached through `remarkables`. All of it is one submission and so
 **one** activity and **one** notification, not one per file.
 
+A delivery also moves the ticket **out of** *Wacht op terugkoppeling klant* and back to *In
+behandeling* — but only from that status. Anywhere else is a decision by somebody who knows more
+than this page does, and an arriving file has no business undoing it. That transition goes through
+`TicketObserver` like any other, so it writes its own trail entry and its own notification: a
+follower who is subscribed both ways gets two messages for the one moment, which is accepted
+because the two facts have different audiences — somebody may care that a storing became
+actionable again without caring what the customer sent.
+
+This supersedes the original decision ("send sets the status, an upload does not"), taken when the
+worry was an arriving file overwriting what a colleague had just set. Restricting the move to the
+one status it came from removes that worry.
+
 Files are stored under `uploaded/ticket/{id}/` (images) and `uploaded/ticket/{id}/documents`,
 matching `ImageController`/`DocumentController`, but named `{random8}-{sanitised original}` so a
 customer cannot overwrite an existing file or steer the path.

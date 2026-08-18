@@ -85,6 +85,8 @@ class CustomerUploadController extends Controller
                 $access_token->recipient,
             ));
 
+            $this->stopWaiting($ticket);
+
             return $result;
         });
 
@@ -95,6 +97,24 @@ class CustomerUploadController extends Controller
         }
 
         return back()->with('success', 'Bedankt, wij hebben uw informatie ontvangen.');
+    }
+
+    /**
+     * Er wordt niet langer op de klant gewacht, dus de storing wacht ook niet meer.
+     *
+     * Alleen vanuit die ene fase. Heeft een collega de storing intussen ergens anders
+     * neergezet, dan is dat een beslissing van iemand die meer weet dan wij hier; een
+     * binnenkomend bestand hoort die niet ongevraagd terug te draaien. De fase komt uit
+     * de tijd dat er nog geen aparte wachtfase was: in behandeling is waar een storing
+     * staat zolang er aan gewerkt wordt.
+     */
+    private function stopWaiting(Ticket $ticket): void
+    {
+        if ($ticket->status !== TicketStatusses::wacht_op_klant->value) {
+            return;
+        }
+
+        $ticket->update(['status' => TicketStatusses::in_behandeling->value]);
     }
 
     /**

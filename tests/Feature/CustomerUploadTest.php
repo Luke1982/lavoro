@@ -201,6 +201,36 @@ class CustomerUploadTest extends TestCase
         $this->assertNull($activity->metadata['thumbnail_path']);
     }
 
+    public function test_a_delivery_takes_the_storing_off_waiting(): void
+    {
+        $this->post($this->link(), ['files' => [UploadedFile::fake()->image('a.jpg')]])
+            ->assertRedirect();
+
+        $this->assertSame(TicketStatusses::in_behandeling->value, $this->ticket->fresh()->status);
+
+        $this->assertSame(
+            1,
+            Activity::where('event_key', 'ticket.status_changed')
+                ->where('subject_id', $this->ticket->id)
+                ->count(),
+        );
+    }
+
+    /**
+     * Alleen vanuit de wachtfase. Wie de storing intussen ergens anders heeft neergezet
+     * weet meer dan deze pagina, en een binnenkomend bestand hoort dat niet terug te
+     * draaien.
+     */
+    public function test_a_delivery_leaves_a_storing_alone_that_is_not_waiting(): void
+    {
+        $this->ticket->update(['status' => TicketStatusses::open->value]);
+
+        $this->post($this->link(), ['files' => [UploadedFile::fake()->image('a.jpg')]])
+            ->assertRedirect();
+
+        $this->assertSame(TicketStatusses::open->value, $this->ticket->fresh()->status);
+    }
+
     public function test_the_followers_of_the_storing_hear_about_it(): void
     {
         $follower = $this->userWith('ticket.read');
@@ -214,11 +244,20 @@ class CustomerUploadTest extends TestCase
         $this->post($this->link(), ['files' => [UploadedFile::fake()->image('a.jpg')]])
             ->assertRedirect();
 
-        $notification = UserNotification::where('user_id', $follower->id)->sole();
+        $notification = UserNotification::where('user_id', $follower->id)
+            ->where('type', UserNotificationType::ticket_customer_uploaded->value)
+            ->sole();
 
-        $this->assertSame(UserNotificationType::ticket_customer_uploaded->value, $notification->type);
         $this->assertStringContainsString('1 foto', $notification->body);
         $this->assertStringContainsString('Van Dijk B.V.', $notification->body);
+
+        /**
+         * Twee berichten en niet één: dat de klant iets stuurde en dat de storing
+         * daardoor niet meer wacht zijn twee feiten met elk hun eigen intekenaars.
+         * Wie alleen op statuswijzigingen intekent hoort het tweede te horen, ook
+         * als hij niets van aanleveringen wil weten.
+         */
+        $this->assertSame(2, UserNotification::where('user_id', $follower->id)->count());
     }
 
     public function test_the_link_remembers_what_it_already_sent(): void
