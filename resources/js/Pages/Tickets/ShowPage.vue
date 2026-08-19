@@ -12,7 +12,7 @@
     <TwoThirdsOneThird>
         <template #main>
             <BoxComponent class="mb-4">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex items-start justify-between gap-3 sm:gap-4">
                     <div class="flex items-center gap-4 min-w-0">
                         <!-- Tile colour tracks the status, so the ticket's state reads from
                              across the room and agrees with the badge beside the title. -->
@@ -26,34 +26,62 @@
                         </div>
                     </div>
 
+                    <!--
+                        Op een telefoon past hier één knop naast de titel, niet vier. Alles
+                        zit daarom in het menu achter de drie puntjes, en op een breed scherm
+                        komen dezelfde acties als losse knoppen terug. Eén bron per actie:
+                        wat hier staat, staat hieronder als menuregel.
+                    -->
                     <div class="flex items-center gap-2 flex-none">
-                        <!-- Het pictogram zegt wat de klik doet: een belletje erbij als je nog
-                             niet volgt, een doorgestreept belletje om te stoppen. -->
-                        <button type="button" @click="toggleFollow" :disabled="followBusy"
-                            :title="subscriptionId ? 'Je volgt deze storing — klik om te stoppen' : 'Volg deze storing'"
-                            :aria-pressed="!!subscriptionId"
-                            class="inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-800 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50">
-                            <component :is="subscriptionId ? BellOff : BellPlus" class="size-5" />
-                        </button>
                         <button v-if="hasPermission('ticket.request_customer_info')" type="button"
                             @click="infoRequestOpen = true"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
+                            class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
                             <EnvelopeIcon class="size-4" />
                             Informatie opvragen
                         </button>
                         <Link v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
                             :href="`/serviceorders/${ticket.service_order_id}`"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
+                            class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
                             Werkbon openen
                             <ArrowTopRightOnSquareIcon class="size-4" />
                         </Link>
-                        <DropdownMenu v-if="hasPermission('ticket.delete')" placement="bottom-end" width-class="w-56"
-                            button-class="inline-flex items-center justify-center size-9 rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
+
+                        <!-- Het pictogram zegt wat de klik doet: een belletje erbij als je nog
+                             niet volgt, een doorgestreept belletje om te stoppen. -->
+                        <button type="button" @click="toggleFollow" :disabled="followBusy"
+                            :title="followLabel" :aria-pressed="!!subscriptionId"
+                            class="hidden sm:inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-900 shadow-sm hover:brightness-95 transition cursor-pointer disabled:opacity-50">
+                            <component :is="followIcon" class="size-5" :stroke-width="2.25" />
+                        </button>
+
+                        <DropdownMenu placement="bottom-end" width-class="w-60" :button-class="moreButtonClass"
                             title="Meer acties">
                             <template #button>
                                 <EllipsisHorizontalIcon class="size-5" />
                             </template>
                             <MenuItem v-slot="{ active }">
+                            <button type="button" @click="toggleFollow" :disabled="followBusy"
+                                :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 sm:hidden', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                <component :is="followIcon" class="size-4" />
+                                {{ followLabel }}
+                            </button>
+                            </MenuItem>
+                            <MenuItem v-if="hasPermission('ticket.request_customer_info')" v-slot="{ active }">
+                            <button type="button" @click="infoRequestOpen = true"
+                                :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-200 cursor-pointer sm:hidden', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                <EnvelopeIcon class="size-4" />
+                                Informatie opvragen
+                            </button>
+                            </MenuItem>
+                            <MenuItem v-if="ticket.service_order_id && hasPermission('serviceorder.read')"
+                                v-slot="{ active }">
+                            <Link :href="`/serviceorders/${ticket.service_order_id}`"
+                                :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-200 cursor-pointer sm:hidden', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                            <ArrowTopRightOnSquareIcon class="size-4" />
+                            Werkbon openen
+                            </Link>
+                            </MenuItem>
+                            <MenuItem v-if="hasPermission('ticket.delete')" v-slot="{ active }">
                             <button type="button" @click="deleteTicket"
                                 :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                                 <TrashIcon class="size-4" />
@@ -372,6 +400,22 @@ const props = defineProps({
 
 const infoRequestOpen = ref(false);
 const followBusy = ref(false);
+
+/** Eén woord en één pictogram voor de knop op het scherm en de regel in het menu. */
+const followIcon = computed(() => (props.subscriptionId ? BellOff : BellPlus));
+const followLabel = computed(() => (props.subscriptionId ? 'Stop met volgen' : 'Volg deze storing'));
+
+/**
+ * Op een telefoon draagt dit menu alle acties, dus dan staat het er altijd. Op een
+ * breed scherm staan die acties er als knoppen naast en blijft alleen verwijderen
+ * over — heeft iemand dat recht niet, dan zou het menu leeg opengaan.
+ */
+const moreButtonClass = computed(() => [
+    'inline-flex items-center justify-center size-9 rounded-lavoro-sm border border-gray-200',
+    'dark:border-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50',
+    'dark:hover:bg-slate-800 cursor-pointer',
+    hasPermission('ticket.delete') ? '' : 'sm:hidden',
+].join(' '));
 
 /**
  * Volgen is één schakelaar: nog eens klikken zet hem uit. Het abonnement komt als
