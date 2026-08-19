@@ -1138,16 +1138,74 @@ final class MailerState implements ForgetsTenantState
 
 - [ ] **Step 2: Implement the interface on the four stateful singletons**
 
-`ActivityBuffer`, `Signals` and `AssistantContext` already have a `reset()` that does exactly this; each gains `implements ForgetsTenantState` and a one-line delegate:
+Three of them are a rename, not an addition. `ActivityBuffer::reset()`,
+`Signals::reset()` and `AssistantContext::reset()` have **exactly one caller each**
+— the `Queue::before` block that Step 3 rewrites. Once the flush calls the
+interface method, `reset()` has no callers left, so keeping it and adding a
+delegate that forwards to it would leave a method whose only purpose is to be
+forwarded to.
+
+Rename it instead. `implements ForgetsTenantState`, and `reset()` becomes
+`forgetTenantState()` with the body untouched:
 
 ```php
+// App\Domain\Signals\ActivityBuffer
 public function forgetTenantState(): void
 {
-    $this->reset();
+    $this->entries = [];
+}
+
+// App\Domain\Signals\Signals
+public function forgetTenantState(): void
+{
+    $this->chain = [];
+    $this->raised = 0;
+    $this->correlation_id = null;
+}
+
+// App\Domain\Assistant\AssistantContext
+public function forgetTenantState(): void
+{
+    $this->on_behalf_of = null;
+    $this->depth = 0;
 }
 ```
 
-`TechnicianAvailability` delegates to its existing `forget()` instead. **Do not rename `forget()` to fit the interface.** The two names mean different things and both are wanted: `forget()` is a domain operation — booking an appointment invalidates the window, so asking again does not double-book — and it is called for that reason from code that has nothing to do with tenancy. `forgetTenantState()` is a lifecycle hook. Collapsing them would make the lifecycle hook look like a planning concern and vice versa.
+Fix the docblock on `AssistantContext` while you are in it — it says the class is
+"reset between queue jobs", which stops being the whole truth once a tenancy
+switch clears it too.
+
+**`TechnicianAvailability` is the one that keeps both methods, and it needs its
+own explicit implementation** — it has no `reset()` to forward to, and pasting the
+delegate shape above into it is a fatal:
+
+```php
+// App\Domain\Planning\TechnicianAvailability
+public function forgetTenantState(): void
+{
+    $this->forget();
+}
+```
+
+`forget()` stays because it is a domain operation with four real callers in
+`EventObserver`: booking, moving or deleting an appointment invalidates the cached
+window, so asking again does not double-book. That has nothing to do with tenancy
+and must keep its own name. `forgetTenantState()` is the lifecycle hook. Collapsing
+them would make a planning concern look like a lifecycle one and vice versa.
+
+**Why there is no trait here.** Only one class ends up forwarding, so a trait would
+have exactly one user. The other three do not share a body at all — each clears its
+own fields, and the bodies above are three different pieces of code that merely
+happen to have the same signature. A trait can share an implementation; it cannot
+share the absence of one. Had the delegate survived on all four, a trait would have
+been right — which is the tell that the delegate was the thing to remove.
+
+**Why the interface method is not simply called `reset()`**, which would have let
+three classes satisfy it with no edit at all: a name that generic is satisfied *by
+accident*. Any class with a `reset()` meaning something unrelated could be tagged
+and would silently be called at every tenancy switch. `forgetTenantState()` cannot
+be implemented by mistake, and the whole point of this registry is that it is hard
+to get wrong. The rename costs three edits, all of them in code with one caller.
 
 - [ ] **Step 3: Tag them in `AppServiceProvider::register()` and route `Queue::before` through the flush**
 
