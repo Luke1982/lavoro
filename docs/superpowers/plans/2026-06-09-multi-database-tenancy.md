@@ -716,10 +716,8 @@ return new class extends Migration
             ['key' => 'invoices',          'name' => 'Facturen',          'price_cents' => 2750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['key' => 'snelstart',         'name' => 'SnelStart',         'price_cents' => 0,    'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['key' => 'google_calendar',   'name' => 'Google Agenda',     'price_cents' => 0,    'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'projects',          'name' => 'Projecten',         'price_cents' => 0,    'sort_order' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'tickets',           'name' => 'Storingen',         'price_cents' => 0,    'sort_order' => 6, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'location_tracking', 'name' => 'Locatie volgen',    'price_cents' => 0,    'sort_order' => 7, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'assistant',         'name' => 'AI-assistent',      'price_cents' => 2250, 'sort_order' => 8, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'location_tracking', 'name' => 'Locatie volgen',    'price_cents' => 0,    'sort_order' => 5, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'assistant',         'name' => 'AI-assistent',      'price_cents' => 2250, 'sort_order' => 6, 'created_at' => $now, 'updated_at' => $now],
         ]);
 
         DB::connection('central')->table('module_bundles')->insert([
@@ -746,7 +744,20 @@ return new class extends Migration
 - [ ] **Step 4: Run the central migrations and confirm the catalogue seeded**
 
 Run: `php artisan migrate --database=central --path=database/migrations --realpath` (or the full `php artisan migrate` once the split in Task 8 is done).
-Expected: `packages` has 4 rows, `modules` has 8, `module_bundles` has 1, `pricing_settings` has 3.
+Expected: `packages` has 4 rows, `modules` has 6, `module_bundles` has 1, `pricing_settings` has 3.
+
+**Storingen and Projecten are deliberately not in this list.** They are part of the
+product rather than things to subscribe to, and a module row for either would be
+actively harmful:
+`tenant:create` (Task 21) defaults `--modules` to none, so every new tenant would
+start with those screens 403-ing and missing from the menu until somebody remembered a
+second command. A gate that everyone must pass is a gate that only ever fails by
+accident.
+
+The test to apply before adding any row here: **would a tenant created with no modules
+at all be broken without it?** If yes, it is stock and does not belong in this table.
+If it ever becomes an upsell, it is one `INSERT` and one `Route::middleware(...)->group()`
+— Task 31 makes that a one-line addition per route group, not new plumbing.
 
 `assistant` is the only module here with a non-zero price that is not a feature we have yet to build. It is priced because it costs us money every time it is used: **€22,50** charged against the **€12,50** spend ceiling Task 39 puts behind it, so the margin floor is knowable rather than estimated. `ai_allowance_micros` is that ceiling's default — `12_500_000`, in millionths of a euro — and `tenants.ai_allowance_micros` overrides it per tenant.
 
@@ -1463,7 +1474,7 @@ git commit -m "feat(tenancy): initialize tenant from session or remember-cookie 
 
 `push.vapid_public_key` reads global config and never touches a database. Leave it.
 
-One of these does want a change, but in Task 31 rather than here: `nav.open_tickets` paints the dot beside Storingen, and a tenant without the `tickets` module should not be told there are open ones. Gating it belongs with the rest of the module gating.
+Neither `nav` value needs gating. Storingen and the notification bell are both stock — every tenant has them — so there is no module to check and nothing here changes.
 
 **Files:** `app/Providers/AppServiceProvider.php` (the share is at the bottom of `boot()`), `app/Http/Middleware/HandleInertiaRequests.php` (read only, to confirm the above)
 
@@ -2102,7 +2113,7 @@ class TenantSubscriptionTest extends TestCase
 
     public function test_free_modules_add_nothing(): void
     {
-        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'modules' => ['snelstart', 'projects']])->monthlyTotalCents());
+        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'modules' => ['snelstart', 'google_calendar']])->monthlyTotalCents());
     }
 
     public function test_extra_storage_bills_the_allowance_above_the_included_amount(): void
@@ -3109,11 +3120,15 @@ git commit -m "feat(tenancy): add TenantDatabaseSeeder for company and stages"
 
 ---
 
-## Task 24: API routes — tenant from the session (header fallback)
+## Task 24: API routes — tenant from the session
 
 The API uses stateful Sanctum: `bootstrap/app.php` calls `$middleware->statefulApi()`, and there are **no bearer tokens anywhere** (`createToken` is never called) — the SPA and the Android app both authenticate with session cookies. `EnsureFrontendRequestsAreStateful` runs the session middleware for requests from stateful origins *before* route middleware, so by the time our middleware runs, `session('tenant_id')` is available. That means API tenancy works exactly like web tenancy, with **no frontend changes at all**.
 
-An `X-Tenant-ID` header is honored as a fallback so a future bearer-token client can work without touching this middleware again. Applied as a named route middleware (not a global prepend) so any future public API endpoint can skip it.
+Applied as a named route middleware rather than a global prepend, so any future public API endpoint can skip it.
+
+**There is deliberately no `X-Tenant-ID` header fallback.** It is the obvious placeholder for a future bearer-token client and it should not be built: a header is asserted by the caller, so honouring it lets the caller choose which database the request runs against. Sanctum happens to fail closed afterwards — a token from another tenant will not match a hash in the one the header named — but "safe because something downstream catches it" is not a property to design on, and everything between the two, including rate limiting and logging, would already have run against the attacker's choice.
+
+When bearer tokens do arrive, the tenant is derived *from the token* against a central lookup, the same way login derives it from an email. That is Task 41, which extends this middleware with one branch. Until then the middleware fails closed: no session, no tenant, 400.
 
 **Files:** `app/Http/Middleware/InitializeTenancyForApi.php`, `bootstrap/app.php`, `routes/api.php`
 
@@ -3135,7 +3150,6 @@ class InitializeTenancyForApi
         $tenant_id = $request->hasSession()
             ? $request->session()->get('tenant_id')
             : null;
-        $tenant_id = $tenant_id ?: $request->header('X-Tenant-ID');
 
         if (!$tenant_id) {
             return response()->json(['message' => 'Tenant kon niet worden bepaald.'], 400);
@@ -4176,8 +4190,7 @@ Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc contr
 - `bootstrap/app.php`
 - `routes/web.php`, `routes/api.php`
 - `app/Http/Controllers/ServiceOrderController.php:352` (the only remaining `snelStartEnabled` flag)
-- `resources/js/Navigation/menu.json`, `resources/js/Composables/useMenu.js`
-- `app/Http/Middleware/HandleInertiaRequests.php` (the `nav.open_tickets` badge)
+- `resources/js/Composables/useMenu.js` (`menu.json` itself needs no change — see Step 5)
 - `resources/js/Components/GoogleCalendarSection.vue`
 - `resources/js/Pages/Admin/GeneralSettingsPage.vue`
 
@@ -4246,17 +4259,8 @@ $middleware->alias([
 
 Inside the existing `auth` group:
 
-Tickets (lines ~164-168) — wrap the three ticket routes:
-
-```php
-Route::middleware('tenant.module:tickets')->group(function () {
-    Route::post('tickets/bulk-update', [TicketController::class, 'bulkUpdate'])
-        ->name('tickets.bulk-update');
-    Route::get('tickets/map', [TicketController::class, 'map'])
-        ->name('tickets.map');
-    Route::resource('tickets', TicketController::class);
-});
-```
+**Not the ticket routes.** Storingen is stock — every tenant has it — so there is no
+module to gate it on; see Task 6. Leave those three routes exactly as they are.
 
 SnelStart — there are exactly **two** SnelStart routes (lines ~230 and ~243). They are not adjacent, so either wrap each individually or apply the middleware inline:
 
@@ -4272,16 +4276,8 @@ Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderControll
 
 Note SnelStart *customer* import now happens through the generic Excel import (`CustomerImportController::looksLikeSnelStartExport`, auto-detecting a SnelStart export format from the file header). That is offline file parsing with no SnelStart API involvement, so it is deliberately **not** module-gated — gating it would block a plain spreadsheet upload.
 
-Projects (lines ~314-316) — keep the existing registration order when wrapping:
-
-```php
-Route::middleware('tenant.module:projects')->group(function () {
-    Route::resource('projects', ProjectController::class);
-    Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
-        ->name('projects.timeline');
-    Route::resource('projectmilestones', ProjectMilestoneController::class);
-});
-```
+**Not the project routes either.** Projecten is stock, like Storingen; see Task 6.
+Leave them as they are.
 
 Google Calendar (lines ~343-348):
 
@@ -4323,13 +4319,6 @@ Route::put('admin/settings/location-tracking', [GeneralSettingsController::class
 **Gating only `routes/web.php` leaves the module wide open.** The SPA does most of its real work through `routes/api.php`, so a web-only gate blocks the page but not the data behind it. Every module with an API surface needs the same middleware there, inside the `tenant.api` group from Task 24:
 
 ```php
-Route::middleware('tenant.module:projects')->group(function () {
-    Route::get('projects', [ProjectApiController::class, 'index']);
-    Route::get('projects/{project}/financial-notes/state', [ProjectApiController::class, 'financialNotesState']);
-    Route::patch('projects/{project}/financial-notes', [ProjectApiController::class, 'updateFinancialNotes']);
-    Route::get('projectmilestones', [ProjectApiController::class, 'milestones']);
-});
-
 Route::get('google/integration/status', GoogleIntegrationStatusController::class)
     ->middleware('tenant.module:google_calendar');
 
@@ -4337,7 +4326,9 @@ Route::post('location/pings', [LocationPingController::class, 'store'])
     ->middleware('tenant.module:location_tracking');
 ```
 
-The Planner reads `/api/projects` directly, so without the first group a tenant without Projecten still gets their project list. `POST /api/location/pings` is the Android app's ping endpoint — gating only the *settings* route in `routes/web.php` stops an admin turning tracking on, but does nothing about a device that is already sending pings, so an unsubscribed tenant keeps accumulating location data.
+`POST /api/location/pings` is the Android app's ping endpoint, and it is the one that shows why this half matters: gating only the *settings* route in `routes/web.php` stops an admin turning tracking on, but does nothing about a device already sending pings, so an unsubscribed tenant keeps accumulating location data.
+
+The same trap waits for every module with an API surface. When Offertes and Facturen are built, whatever they expose under `routes/api.php` needs gating in the same commit as their web routes — the SPA reads the API directly, so a web-only gate hides the page and serves the data.
 
 Check `routes/api.php` for module-owned routes each time a new module is added; the file is where the gate is easiest to forget.
 
@@ -4361,33 +4352,13 @@ This reuses the exact prop `ServiceOrders/ShowPage.vue` already gates its SnelSt
 
 **Task 32 Step 8 revises this line again**, dropping the `config()` clause once the client key is per-tenant and there is no global one left to check. If you are implementing both tasks in sequence, write the Task 32 version directly and skip the intermediate form.
 
-- [ ] **Step 5: Gate the Tickets and Projects nav items**
+- [ ] **Step 5: Teach the menu about modules — no entry needs one yet**
 
 **Navigation is declarative.** Its shape lives in **`resources/js/Navigation/menu.json`** — a tree of sections and items, each carrying the permission it needs — and `resources/js/Composables/useMenu.js` turns that into the tree the signed-in user may actually see. Six components share it. A module is therefore one more key in the JSON rather than an argument threaded through a list of component imports.
 
-Add a `"module"` key to the two gated entries in `menu.json` (in the `operatie` section):
+**Every top-level menu item today is stock**, so no `"module"` key is added in this task. That is the correct outcome rather than a gap: Storingen and Projecten are part of the product, and the remaining modules are not screens — SnelStart is a button (Step 4), Google Agenda and Locatie volgen are settings sections (Step 6), and the assistant is a panel (Step 6b).
 
-```json
-{
-    "id": "storingen",
-    "label": "Storingen",
-    "icon": "TriangleAlert",
-    "href": "/tickets",
-    "permission": "ticket.see_all",
-    "module": "tickets",
-    "indicator": "open_tickets"
-},
-{
-    "id": "projecten",
-    "label": "Projecten",
-    "icon": "FolderKanban",
-    "href": "/projects",
-    "permission": "project.read",
-    "module": "projects"
-}
-```
-
-Then extend `maySee` in `useMenu.js`. The module check goes **first**, before the `adminOnly` branch: a module is a subscription boundary, not a permission, so an admin of a tenant that doesn't pay for Projecten must not see it either. (Contrast `hasPermission`, which deliberately returns `true` for admins, and `explicitPermission`, which deliberately does not.)
+Add the `maySee` branch anyway. It is three words of code, and without it the JSON key is silently ignored — so the first person to write `"module": "quotes"` when Offertes ships gets a menu entry everyone can see and no error to explain why. The mechanism should exist before its first user, not because of them.
 
 ```js
 import { hasAnyPermission, hasModule, hasPermission, initials as getInitials } from '@/Utilities/Utilities'
@@ -4402,21 +4373,9 @@ const maySee = (item) => {
 }
 ```
 
-`maySee` is called by `resolve`, which walks the tree recursively, so this one change covers nested entries too — and `resolve` already drops a parent whose children have all disappeared and which has no page of its own, so a future module that owns a whole submenu needs nothing extra. Extend the existing import on line 3 rather than adding a second one.
+The module check goes **first**, before the `adminOnly` branch: a module is a subscription boundary, not a permission, so an admin of a tenant that does not pay for a feature must not see it either. (Contrast `hasPermission`, which deliberately returns `true` for admins, and `explicitPermission`, which deliberately does not.)
 
-- [ ] **Step 5b: Stop the Storingen dot appearing for a tenant without the module**
-
-`nav.open_tickets` in `HandleInertiaRequests` runs a `Ticket::visibleTo(...)->exists()` on every Inertia response and paints the dot beside Storingen. Hiding the menu item hides the dot with it, so this is not a visible bug — but the query still runs for a tenant that does not have the module, on every single response, to compute something nothing renders. Gate it at the source:
-
-```php
-'open_tickets' => $request->user() && tenancy()->initialized && tenancy()->tenant->hasModule('tickets')
-    ? Ticket::visibleTo($request->user())
-        ->where('status', '!=', TicketStatusses::gesloten->value)
-        ->exists()
-    : false,
-```
-
-Leave `nav.unread_notifications` alone — notifications are not a module and every tenant has them.
+`maySee` is called by `resolve`, which walks the tree recursively, so this covers nested entries too — and `resolve` already drops a parent whose children have all disappeared and which has no page of its own, so a module that owns a whole submenu will need nothing extra. Extend the existing import on line 3 rather than adding a second one.
 
 - [ ] **Step 6: Gate the Google Calendar section and location-tracking settings**
 
@@ -4438,9 +4397,10 @@ The route middleware from Step 3 is still what actually blocks access. This only
 
 - [ ] **Step 7: Verify**
 
-- As a tenant without the `tickets` module: `GET /tickets` is refused, and the "Storingen" nav item does not render, nor its dot. **Assert on the refusal, not on the status code** — unless you took option 2 or 3 above, a web request comes back as a 302 with a flash message, not a 403 (see Step 1). `assertForbidden()` will fail on a working gate. In a feature test, `$this->withoutExceptionHandling()` restores the underlying 403 and is the cleaner assertion.
-- `php artisan tenant:modules <id> --add=tickets`, reload: the route works and the nav item appears.
-- Same pattern for `projects`, `google_calendar`, `snelstart`, `location_tracking`.
+- As a tenant without the `google_calendar` module: the OAuth start route is refused and the Google Calendar section does not render. **Assert on the refusal, not on the status code** — unless you took option 2 or 3 above, a web request comes back as a 302 with a flash message, not a 403 (see Step 1). `assertForbidden()` will fail on a working gate. In a feature test, `$this->withoutExceptionHandling()` restores the underlying 403 and is the cleaner assertion.
+- `php artisan tenant:modules <id> --add=google_calendar`, reload: the route works and the section appears.
+- Same pattern for `snelstart` and `location_tracking`, and for `location_tracking` check `POST /api/location/pings` directly — that is the one a device keeps hitting regardless of what the settings page says.
+- As a tenant with **no modules at all**: Storingen and Projecten still work, with their menu entries and the Storingen dot. That is the check that stock features have not been gated by accident, and it is the one worth keeping in the suite.
 - As a tenant without the `assistant` module: the assistant panel does not open, and `POST /assistant/ask` returns 403 rather than spending anything at a supplier. Check the second half with a direct request, not through the UI — the point of the route gate is that it holds when the UI is bypassed.
 
 - [ ] **Step 8: Commit**
@@ -4448,7 +4408,7 @@ The route middleware from Step 3 is still what actually blocks access. This only
 ```bash
 git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php routes/api.php \
         app/Http/Controllers/ServiceOrderController.php app/Http/Middleware/HandleInertiaRequests.php \
-        resources/js/Navigation/menu.json resources/js/Composables/useMenu.js \
+        resources/js/Composables/useMenu.js \
         resources/js/Components/GoogleCalendarSection.vue \
         resources/js/Pages/Admin/GeneralSettingsPage.vue
 git commit -m "feat(tenancy): enforce module subscriptions on gated routes and UI"
@@ -6380,6 +6340,271 @@ git commit -m "fix(tenancy): bind assistant confirmation tokens to the tenant th
 
 ---
 
+## Task 41: Resolve a bearer token's tenant from a central lookup
+
+**Do this task when the first `createToken()` call is written, not before.** Nothing
+calls it today; Task 24 covers every client that exists. What Task 24 must *not* do
+in the meantime is keep a placeholder that guesses — see its note on `X-Tenant-ID`.
+
+### The problem
+
+A bearer token arrives with no session and no cookie. To validate it, Sanctum reads
+`personal_access_tokens` — a **tenant** table, correctly so, because a token belongs
+to one tenant's user. So the token cannot be validated until the tenant is known, and
+the tenant cannot be learned from the token, because the only thing in the token that
+looks like an identifier is `personal_access_tokens.id`, a per-tenant auto-increment.
+Token id 5 exists in every tenant.
+
+That is the same shape as logging in — an email whose tenant is unknown until it is
+looked up — and it gets the same answer. `user_tenant_lookups` is the least bad
+solution for email precisely because the alternatives are worse: asking every tenant
+database in turn is O(tenants) per request and leaks existence by timing, and letting
+the caller name its own tenant is not a lookup at all.
+
+### The design
+
+A central table maps **the hash of the token's plaintext** to a tenant.
+
+Sanctum hands out `{id}|{plaintext}` and stores `hash('sha256', $plaintext)` in
+`personal_access_tokens.token`. That hash is the one thing about a token that is
+globally unique — 40 random characters — and it is already computed and already
+stored, so the central table introduces no new secret material and no second hashing
+scheme. Given a token, the middleware hashes the plaintext, seeks one indexed row,
+and knows which database to ask.
+
+**The property that makes this safe, and the one to keep in mind when changing it:**
+
+> The lookup decides which database to ask. The tenant database decides whether the
+> token is valid.
+
+A missing, stale or outright wrong lookup row can only ever produce a 401 — tenancy
+initializes somewhere, Sanctum fails to find a matching hash there, authentication
+fails. The lookup is a routing hint, never an authorization record. That is what lets
+the sync below be best-effort without being dangerous, and it is the sentence to
+re-read before anyone is tempted to trust the lookup for anything else.
+
+**Files:**
+- `database/migrations/central/…_create_access_token_tenant_lookups_table.php` (new)
+- `app/Models/Central/AccessTokenTenantLookup.php` (new)
+- `app/Observers/PersonalAccessTokenObserver.php` (new)
+- `app/Support/AccessTokens.php` (new)
+- `app/Http/Controllers/Api/ApiAuthController.php` (new)
+- `app/Http/Middleware/InitializeTenancyForApi.php`, `app/Providers/AppServiceProvider.php`, `routes/api.php`
+- `tests/Feature/BearerTokenTenancyTest.php` (new)
+
+**Interfaces:**
+- Produces: central table `access_token_tenant_lookups` (`token_hash` char(64) primary key, `tenant_id`, `created_at`); `App\Models\Central\AccessTokenTenantLookup`; `App\Support\AccessTokens::revokeAll(User): void`.
+
+- [ ] **Step 1: The central table**
+
+```php
+Schema::connection('central')->create('access_token_tenant_lookups', function (Blueprint $table) {
+    $table->char('token_hash', 64)->primary();
+    $table->string('tenant_id');
+    $table->timestamp('created_at')->nullable();
+
+    $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+});
+```
+
+`char(64)` because a SHA-256 in hex is exactly that and never varies; as the primary
+key it gives both the seek and global uniqueness for free.
+
+**The foreign key is real here, and it is worth noticing why**, because Task 39 could
+not have one. Both tables are central, so MySQL can enforce it — and the cascade means
+`tenant:delete` (Task 22) drops a tenant's token routes without a line of code.
+`assistant_usage.user_id` points at a *tenant* table from central, which is why that
+one is a bare indexed column instead.
+
+This is the seventh central migration; adjust the counts in Task 8 when it lands.
+
+- [ ] **Step 2: The model**
+
+```php
+<?php
+
+namespace App\Models\Central;
+
+use Illuminate\Database\Eloquent\Model;
+
+class AccessTokenTenantLookup extends Model
+{
+    protected $connection = 'central';
+    protected $table = 'access_token_tenant_lookups';
+    protected $primaryKey = 'token_hash';
+    protected $keyType = 'string';
+    public $incrementing = false;
+    public const UPDATED_AT = null;
+
+    protected $fillable = ['token_hash', 'tenant_id'];
+}
+```
+
+- [ ] **Step 3: Keep it in sync from an observer on Sanctum's model**
+
+```php
+<?php
+
+namespace App\Observers;
+
+use App\Models\Central\AccessTokenTenantLookup;
+use Laravel\Sanctum\PersonalAccessToken;
+
+class PersonalAccessTokenObserver
+{
+    public function created(PersonalAccessToken $token): void
+    {
+        if (!tenancy()->initialized) {
+            return;
+        }
+
+        AccessTokenTenantLookup::on('central')->updateOrCreate(
+            ['token_hash' => $token->token],
+            ['tenant_id' => tenancy()->tenant->getTenantKey()],
+        );
+    }
+
+    public function deleted(PersonalAccessToken $token): void
+    {
+        AccessTokenTenantLookup::on('central')->where('token_hash', $token->token)->delete();
+    }
+}
+```
+
+`$token->token` is already the SHA-256 — Sanctum hashes on the way in, so the observer
+never sees or stores a plaintext.
+
+Register it in `AppServiceProvider::boot()` beside the `User` observer from Task 18:
+
+```php
+\Laravel\Sanctum\PersonalAccessToken::observe(\App\Observers\PersonalAccessTokenObserver::class);
+```
+
+- [ ] **Step 4: Route revocation through a helper, because the documented way skips the observer**
+
+`$user->tokens()->delete()` is Sanctum's documented revoke-all, and it is a **query
+builder** delete: no model events, so no `deleted` hook, so the central rows survive
+their tokens. Every mass delete on a relation has this property; it is not a Sanctum
+quirk.
+
+```php
+<?php
+
+namespace App\Support;
+
+use App\Models\User;
+
+final class AccessTokens
+{
+    /**
+     * Revoke every token a user holds.
+     *
+     * Deliberately not `$user->tokens()->delete()`. That is a query-builder delete,
+     * which fires no model events, so PersonalAccessTokenObserver never runs and the
+     * central routing rows outlive the tokens they point at. Slower by one query per
+     * token, on an operation that happens when somebody leaves the company.
+     */
+    public static function revokeAll(User $user): void
+    {
+        $user->tokens->each->delete();
+    }
+}
+```
+
+A stale row is inert rather than dangerous — it routes to a tenant whose database no
+longer holds the hash, and the request 401s. So this helper is hygiene, not the
+security boundary. Prune anything that still slips through on the same schedule as the
+other per-tenant housekeeping (Task 20): for each tenant, delete central rows whose
+`token_hash` is absent from that tenant's `personal_access_tokens`.
+
+- [ ] **Step 5: Teach the API middleware to resolve from the token**
+
+In `InitializeTenancyForApi::handle`, after the session lookup and **instead of** the
+`X-Tenant-ID` fallback Task 24 removes:
+
+```php
+$tenant_id = $request->hasSession()
+    ? $request->session()->get('tenant_id')
+    : null;
+
+if (!$tenant_id && $bearer = $request->bearerToken()) {
+    $plain = str_contains($bearer, '|') ? Str::after($bearer, '|') : $bearer;
+
+    $tenant_id = AccessTokenTenantLookup::on('central')
+        ->where('token_hash', hash('sha256', $plain))
+        ->value('tenant_id');
+}
+```
+
+The `str_contains` branch mirrors `PersonalAccessToken::findToken` exactly: Sanctum
+accepts both `{id}|{plaintext}` and a bare token, and in both cases the stored column
+is the SHA-256 of the plaintext part. Deriving the hash any other way works until
+somebody issues a token in the other format.
+
+Session first, token second. A stateful SPA request carries no bearer token, and a
+token client carries no session, so in practice they never both appear; when they do,
+the session is the already-authenticated path and Sanctum's guard will use it anyway.
+
+No `hash_equals` here, and that is not an oversight: this is an indexed equality
+lookup on a hash to pick a database, not a comparison of a secret against a stored
+one. Sanctum does the same before its own `hash_equals`, which happens afterwards in
+the tenant database where the actual decision is made.
+
+- [ ] **Step 6: A login endpoint that issues the token, outside `tenant.api`**
+
+It cannot be inside the group — there is no token yet, so there is nothing to resolve
+a tenant from. It resolves the tenant the way the web login does (Task 15), from
+`user_tenant_lookups`:
+
+```php
+Route::post('login', [ApiAuthController::class, 'store'])->middleware('throttle:5,1');
+```
+
+`store()` looks the email up in `UserTenantLookup`, initializes tenancy, verifies the
+credentials, calls `$user->createToken(...)` — which fires the observer and writes the
+central row — and returns **only** the plain-text token.
+
+**The client is never told its tenant id and never sends one.** That is the whole
+point of the exercise: the token is the credential and the credential names its own
+tenant. An API that asks a caller which database to read is asking the caller an
+authorization question.
+
+Throttled hard because it is an unauthenticated endpoint that runs a password hash and
+a central lookup.
+
+- [ ] **Step 7: Tests, including the one that encodes the security property**
+
+```php
+public function test_a_token_resolves_its_own_tenant(): void;
+public function test_an_unknown_token_is_refused(): void;
+public function test_revoking_a_token_removes_the_central_row(): void;
+```
+
+And the one that matters most, because it is what stops someone later "optimising" the
+lookup into an authorization check:
+
+```php
+public function test_a_lookup_row_pointing_at_the_wrong_tenant_still_fails(): void
+{
+    // Point tenant A's token hash at tenant B in the central table, then use it.
+    // Tenancy initializes on B, Sanctum finds no matching hash there, 401.
+    // Routing is not authorization.
+}
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add database/migrations/central/ app/Models/Central/AccessTokenTenantLookup.php \
+        app/Observers/PersonalAccessTokenObserver.php app/Support/AccessTokens.php \
+        app/Http/Controllers/Api/ApiAuthController.php \
+        app/Http/Middleware/InitializeTenancyForApi.php app/Providers/AppServiceProvider.php \
+        routes/api.php tests/Feature/BearerTokenTenancyTest.php
+git commit -m "feat(tenancy): resolve a bearer token's tenant from the central lookup"
+```
+
+---
+
 ## Known impact and follow-up work
 
 1. **The test suite moves off SQLite entirely** (Task 30). `phpunit.xml` moves from SQLite `:memory:` to a dedicated MySQL test database (`lavoro_test_landlord` plus a `lavoro_test_tenant_`-prefixed tenant database), with a hard runtime assertion and a narrowly-grants-only MySQL user as two independent layers ensuring a misconfiguration cannot make a test run reach `lavoro` or a real customer database. (Vitest frontend tests are unaffected.)
@@ -6394,7 +6619,7 @@ git commit -m "fix(tenancy): bind assistant confirmation tokens to the tenant th
 
    **The VAPID keypair (`config/webpush.php`) and the AI supplier keys (`config/assistant.php`) are global for the same reason and stay that way.** VAPID identifies this installation to a push service; the Anthropic, Deepseek, Mistral, Qwen, Moonshot and OpenAI keys identify *us* to a supplier we hold the account with. Per-tenant AI keys would move the bill to the customer, which is the opposite of what Task 39 is built for. VAPID has a further reason: its public key is baked into every browser subscription ever handed out, so rotating it per tenant would invalidate every subscription a shared browser holds.
 
-5. **Module subscriptions are enforced by route middleware** (Task 31). `tenant.module` gates tickets, projects, SnelStart imports/send, Google Calendar OAuth and the fourteen assistant routes; the `snelStartEnabled` and `auth.can.use_assistant` Inertia props and the Tickets/Projects entries in `menu.json` are gated the same way on the frontend. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing: the assistant's fourteen routes needed exactly one `Route::middleware(...)->group()` and one clause on a shared prop.
+5. **Module subscriptions are enforced by route middleware** (Task 31). `tenant.module` gates SnelStart imports/send, Google Calendar OAuth, the location-ping endpoint and the fourteen assistant routes; the `snelStartEnabled` and `auth.can.use_assistant` Inertia props are gated the same way on the frontend. Stock features — Storingen and Projecten among them — are deliberately ungated, and `menu.json` carries no `module` key today because every screen in it is stock. Extending the same middleware to further routes as new module-gated features are added is a one-line addition per route group, not new plumbing: the assistant's fourteen routes needed exactly one `Route::middleware(...)->group()` and one clause on a shared prop.
 
 6. **Scheduler cost scales with tenant count, not with tenant data** (Task 20). Every scheduled tick dispatches one queued job per tenant (a config swap plus a single `INSERT` into the central `jobs` table) rather than running a query or delete inline per tenant, so tick cost tracks tenant *count* only, which is cheap. If tenant count itself grows into the hundreds and the dispatch loop alone becomes the bottleneck, chunking the central tenant list (already using `cursor()` rather than `get()`) or splitting the loop across multiple scheduled entries are the next levers.
 
@@ -6424,7 +6649,7 @@ git commit -m "fix(tenancy): bind assistant confirmation tokens to the tenant th
 
     `push_subscriptions.endpoint` being `unique()` per tenant database is the related half and is *correct* as it stands: the same browser legitimately holds one subscription per tenant it is signed into, and each tenant's job encrypts to its own row. No change needed there.
 
-15. **Future bearer-token API clients.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. If a native client later moves to bearer tokens, add a `POST /api/login` (without `tenant.api`) that resolves the tenant from the email, issues the token, and returns the `tenant_id` for the client to send as `X-Tenant-ID` — the fallback in Task 24's middleware already accepts it.
+15. **Bearer-token API clients are designed but not built.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. **Task 41** specifies the whole path for when that changes: a central `access_token_tenant_lookups` table keyed on the SHA-256 Sanctum already stores, an observer keeping it in step, and one extra branch in `InitializeTenancyForApi`. It is written up rather than built because nothing calls it yet and dead code that cannot be exercised end-to-end is its own liability — but the *decision* is made, so nobody reaches for a caller-supplied header under deadline.
 
 16. **The assistant sends tenant data outside the tenant boundary, and every task in this plan is silent about it because none of them can fix it.** Database isolation, per-tenant MySQL users, per-tenant storage roots — all of it stops at the moment a question is answered, because answering it means sending customer names, addresses, service history and sometimes photographs to a third-party model provider. Three specific routes out, worth naming rather than leaving implied:
 
