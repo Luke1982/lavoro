@@ -1529,7 +1529,42 @@ Because files now live outside the web-served `public/storage` symlink, they are
 
 - [ ] **Step 1: Create the storage bootstrapper**
 
-This repoints the disk roots only — it deliberately does **not** call `useStoragePath`, so framework storage (logs, compiled views, framework cache, `app/releases`) stays in the normal location; only uploaded-file disks move per tenant. That is also why it is not the package's `FilesystemTenancyBootstrapper`, and why it carries a different name.
+Everything under `storage/` looks like one folder, but two unrelated kinds of thing live there:
+
+```
+storage/
+  app/public/       ← customer photos, company logos, avatars    ┐ uploaded files:
+  app/private/      ← assistant photos, files, reports           ┘ the two disks
+  app/releases/     ← lavoro.apk, the Android download           ┐
+  framework/views/  ← compiled Blade templates                   │ one per installation,
+  framework/cache/                                               │ not per customer
+  logs/             ← laravel.log                                ┘
+```
+
+The top group belongs to a customer. The bottom group belongs to the installation — one APK for everybody, one set of compiled templates, one log file.
+
+Only the top group is reached through `Storage::disk('public')` and `Storage::disk('local')`, and each of those disks has a `root` in `config/filesystems.php` saying where it starts. **This bootstrapper rewrites those two values and nothing else:**
+
+```
+storage/app/public   →   storage/tenant-<id>/public
+storage/app/private  →   storage/tenant-<id>/local
+```
+
+Then it calls `Storage::forgetDisk()` on each, because Laravel caches a resolved disk object and would otherwise keep handing back one that still points at the old folder. Changing config is not enough once the framework has built the thing — the same reason Task 10 calls `forgetDriver` for the cache and Task 11's `MailerState` calls `forgetMailers`.
+
+The payoff is that every `->store(..., 'public')` in the application starts writing into the active tenant's folder with no code change anywhere.
+
+**Why it does not simply move `storage/` wholesale.** Laravel has a method for that — `useStoragePath()` — which changes what `storage_path()` returns everywhere. Doing that per tenant would give each one its own `logs/`, its own compiled views, its own `app/releases/`, and all three are wrong:
+
+- Errors would land in `storage/tenant-<id>/logs/laravel.log`, so reading a stack trace would mean first working out which customer caused it — and anything failing outside tenant context would go somewhere else again.
+- Identical Blade templates would be compiled and cached separately per tenant: N copies of the same file, and a cold cache for every new customer.
+- `storage_path('app/releases/lavoro.apk')` (`routes/web.php:560`) would look inside the current tenant's folder, so the Android download 404s — unless you keep a copy of the same APK per customer.
+
+The customer's *files* need separating. The installation's plumbing does not.
+
+**Why the different name.** The package ships a `FilesystemTenancyBootstrapper` that does the `useStoragePath()` version. Seeing that class in the bootstrappers list, you would reasonably assume the whole storage tree moves. `TenantStorageBootstrapper` is named differently on purpose: it is not that class and does not do that.
+
+**The catch this creates** is the rest of this task. Code that goes through a disk is handled for free; code that builds a path by hand — `storage_path('app/public/' . $image->path)` — keeps pointing at the old shared tree, does not error, and simply finds no file. A PDF renders with missing photos and a smoke test says nothing. Step 7 hunts down all seven such call sites.
 
 ```php
 <?php
