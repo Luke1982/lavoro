@@ -1516,7 +1516,7 @@ Each tenant gets a completely separate storage root: `storage/tenant-<id>/public
 
 Because files now live outside the web-served `public/storage` symlink, they are no longer reachable by URL. Instead, three small authenticated routes stream them through controllers. Tenant isolation is automatic: a file id from another tenant does not exist in this tenant's database, so route-model binding returns 404.
 
-**The isolation holds; the 404 does not survive to production.** `bootstrap/app.php`'s `respond()` handler converts 404, 500 and 503 into `redirect()->back()` outside local/dev/testing, so in production a cross-tenant file id returns a 302 to the referrer rather than a 404 — and an `<img>` pointed at it follows the redirect and renders an HTML page as a broken image. Nothing leaks either way, which is why this is a diagnosis problem rather than a security one: see Known impact 17 before you spend an afternoon on it. (Documents already download through `DocumentController::download`, which uses `Storage::disk('public')` and therefore works unchanged — no document route is added here. The APK download route reads `storage_path('app/releases/lavoro.apk')` directly, not through a disk, so it intentionally stays global.)
+**The isolation holds; the 404 does not survive to production.** `bootstrap/app.php`'s `respond()` handler converts 404, 500 and 503 into `redirect()->back()` outside local/dev/testing, so in production a cross-tenant file id returns a 302 to the referrer rather than a 404 — and an `<img>` pointed at it follows the redirect and renders an HTML page as a broken image. Nothing leaks either way, which is why this is a diagnosis problem rather than a security one: see Known impact 17 before you spend an afternoon on it. (The APK download route reads `storage_path('app/releases/lavoro.apk')` directly, not through a disk, so it intentionally stays global.)
 
 **Files:**
 - `app/Tenancy/TenantStorageBootstrapper.php` (new)
@@ -1648,6 +1648,20 @@ class FileController extends Controller
     }
 }
 ```
+
+**Documents are not in that controller, and deliberately need no work at all.** They are the obvious omission — the documents widget serves more file types than anything else in the app — so here is the check, because "it is already fine" is worth being able to verify rather than assert:
+
+| | Images, avatars, logos | Documents |
+| --- | --- | --- |
+| How the browser gets them | *was* a raw `/storage/…` URL → now `FileController` | already `DocumentController::download` / `preview` |
+| Reaches the file via | `Storage::disk('public')` (after this task) | `Storage::disk('public')` (already) |
+| Behind `auth` | yes, once Step 3 lands | yes — inside the group opened at `routes/web.php:77` |
+| Cross-tenant id | 404 via route-model binding | 404 via route-model binding |
+| Permission check | none | `DocumentViewRequest` → `can('viewAny', Document::class)` |
+
+Documents were built the way this task is *making* images work: an authenticated controller reading through a disk. Because they go through the disk, Step 1's per-tenant root applies to them automatically, and because they resolve a `Document` model they inherit the same 404-on-another-tenant's-id behaviour. Nothing to add, nothing to change — and both `download` and `preview` are covered, not just `download`.
+
+Images needed a new controller only because they had no controller: the frontend built `/storage/${image.path}` by hand and the web server served it with no authentication at all. That is the hole being closed, and documents never had it.
 
 - [ ] **Step 3: Register the routes inside the authenticated web group in `routes/web.php`**
 
@@ -6646,7 +6660,7 @@ git commit -m "feat(tenancy): resolve a bearer token's tenant from the central l
 
 2. **Login page shows no per-tenant branding.** It already renders the static Lavoro logo today, so nothing regresses; but per-tenant branding before login would require a two-step login (email → resolve tenant → branded password step).
 
-3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which closes the world-readable hole. It does not apply per-resource permission checks — every authenticated user in the tenant can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
+3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which closes the world-readable hole. It does not apply per-resource permission checks, and the two file paths are gated differently: `FileController` (images, avatars, logos) checks only that you are signed in, while documents additionally require `can('viewAny', Document::class)` via `DocumentViewRequest`. Neither checks the *individual* record, so any user who clears the coarse gate can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
 4. **SnelStart and Microsoft Graph credentials are per-tenant** (Task 32), stored encrypted in the tenant's `general_settings` and edited from Beheer → Koppelingen. Graph falls back to the shared env credentials for tenants that haven't configured a mailbox; SnelStart fails closed, because there is no safe default administratie to write someone else's invoices into.
 
