@@ -41,17 +41,25 @@
                         <p v-if="instance.product" class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
                             {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
                         </p>
-                        <div v-if="serialCounts(instance).expected" class="mt-1">
+                        <p v-if="summaries[instance.id]?.parts.length"
+                            class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                            <span v-for="(part, index) in summaries[instance.id].parts" :key="part.key">
+                                <span v-if="index" class="text-gray-300 dark:text-slate-600"> · </span>{{ part.count }}×
+                                {{ part.label }}<span v-if="!part.requires_serial"
+                                    class="text-gray-400 dark:text-slate-500"> (geen serienr.)</span>
+                            </span>
+                        </p>
+                        <div v-if="summaries[instance.id]?.expected" class="mt-1">
                             <component :is="canToggle ? 'button' : 'span'" :type="canToggle ? 'button' : null"
                                 @click="canToggle && openSerialDrawer(instance)" :class="[
                                     'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors',
                                     canToggle ? 'cursor-pointer hover:opacity-80' : '',
-                                    serialCounts(instance).filled >= serialCounts(instance).expected
+                                    summaries[instance.id].filled >= summaries[instance.id].expected
                                         ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
                                         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
                                 ]">
                                 <ScanBarcodeIcon class="w-3 h-3" />
-                                {{ serialCounts(instance).filled }}/{{ serialCounts(instance).expected }} machines
+                                {{ summaries[instance.id].filled }}/{{ summaries[instance.id].expected }} machines
                             </component>
                         </div>
                         <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
@@ -812,6 +820,41 @@ function serialCounts(instance) {
         filled: slots.reduce((total, group) => total + Math.min(group.expected, group.assets.length), 0),
     }
 }
+
+/**
+ * What a bundeltaak is made of, summed back up across the bundles it sells: the slots hold
+ * the parts once per bundle machine. A taak for a plain product has no parts of its own and
+ * reads as nothing here.
+ */
+function bundleParts(instance) {
+    const totals = new Map()
+
+    for (const group of instance.serial_slots ?? []) {
+        if (group.container_index === null) continue
+
+        const seen = totals.get(group.product_id)
+
+        totals.set(group.product_id, {
+            key: group.product_id,
+            label: group.label,
+            requires_serial: group.requires_serial,
+            count: (seen?.count ?? 0) + group.expected,
+        })
+    }
+
+    return [...totals.values()]
+}
+
+/**
+ * Everything the row says about a taak's machines, worked out once per taak instead of once
+ * per mention — the row quotes the numbers several times over.
+ */
+const summaries = computed(() => Object.fromEntries(
+    internalInstances.value.map(instance => [
+        instance.id,
+        { ...serialCounts(instance), parts: bundleParts(instance) },
+    ])
+))
 
 /**
  * The server decides which machines a task expects; a row is only ever a saved asset
