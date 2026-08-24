@@ -127,6 +127,7 @@ class ComboSearchController extends Controller
                 'id' => $p->id,
                 'name' => "{$p->brand->name} {$p->model} ({$p->productType->name})",
                 'bundle' => $p->bundle,
+                'registable' => $p->registable,
                 'typical_certificate_days' => $p->typical_certificate_days,
                 'product_type_typical_certificate_days' => $p->productType->typical_certificate_days,
             ]);

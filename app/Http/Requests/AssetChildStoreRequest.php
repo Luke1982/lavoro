@@ -17,12 +17,13 @@ class AssetChildStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        $productable = Productable::find($this->input('productable_id'));
+        $productable = Productable::with('childProduct')->find($this->input('productable_id'));
+        $requires_serial = $productable?->childProduct?->requiresSerial() ?? true;
 
         return [
             'productable_id' => ['required', 'integer', 'exists:productables,id'],
             'serial_number' => [
-                'required',
+                $requires_serial ? 'required' : 'nullable',
                 'string',
                 'max:255',
                 UniqueSerialForProduct::forProduct($productable?->productable_id),
@@ -55,6 +56,14 @@ class AssetChildStoreRequest extends FormRequest
                         'Dit onderdeel hoort niet bij het product van deze machine.'
                     );
 
+                    return;
+                }
+
+                /**
+                 * A flex part has no fixed aantal — how many go in is decided when the bundle
+                 * is sold — so there is no ceiling to run into.
+                 */
+                if ($productable->flex_quantity) {
                     return;
                 }
 

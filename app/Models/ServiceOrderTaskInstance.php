@@ -25,6 +25,8 @@ class ServiceOrderTaskInstance extends Model
                 $task_instance,
                 'verwijdering taak ' . ($task_instance->effective_title ?: 'zonder titel')
             );
+
+            $task_instance->productables()->delete();
         });
     }
 
@@ -103,6 +105,16 @@ class ServiceOrderTaskInstance extends Model
     public function assets()
     {
         return $this->hasMany(Asset::class);
+    }
+
+    /**
+     * The aantallen filled in for the bundle parts that leave theirs open — one omvormer
+     * with however many panelen this roof takes. A bundle part with a fixed aantal is
+     * settled by the product and has no row here.
+     */
+    public function productables()
+    {
+        return $this->morphMany(Productable::class, 'productable');
     }
 
     public function getEffectiveDescriptionAttribute(): string

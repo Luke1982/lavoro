@@ -76,7 +76,9 @@ Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbo
 
 Een machine is een exemplaar van een product uit de catalogus, met een serienummer, een klant en meestal een locatie. Verder heeft hij een status (actief of niet actief), een datum ingebruikname en een **volgende keuringsdatum**.
 
-Machines kunnen in elkaar zitten: een machine kan onderdelen hebben die zelf ook machines zijn (met eigen serienummer). Een onderdeel hoort bij zijn moedermachine en niet rechtstreeks bij een klant. Als het product zo is ingericht dat er verplichte onderdelen bij horen, worden die bij het aanmaken automatisch meegemaakt. Je kunt ook een losse machine als onderdeel aan een andere koppelen (hij geeft dan zijn eigen klant en locatie op) of een onderdeel loskoppelen (hij erft dan de klant en locatie van de moedermachine).
+Niet elke machine heeft een serienummer. Een bundel is een omhulsel en heeft er nooit een, en een product dat niet **registreerbaar** is wordt per stuk geteld in plaats van stuk voor stuk vastgelegd — denk aan zonnepanelen. Machines van zulke producten worden gewoon aangemaakt, alleen zonder nummer; overal waar anders het serienummer staat, lees je "Bundel" of "Geen serienummer".
+
+Machines kunnen in elkaar zitten: een machine kan onderdelen hebben die zelf ook machines zijn (met eigen serienummer). Een onderdeel hoort bij zijn moedermachine en niet rechtstreeks bij een klant. Als het product zo is ingericht dat er verplichte onderdelen bij horen, worden die bij het aanmaken automatisch meegemaakt. Onderdelen met een **vrij aantal** vul je bij het aanmaken zelf in: je geeft aan hoeveel er in deze machine gaan, en typt daarna alleen de serienummers van de onderdelen die er een hebben. Je kunt ook een losse machine als onderdeel aan een andere koppelen (hij geeft dan zijn eigen klant en locatie op) of een onderdeel loskoppelen (hij erft dan de klant en locatie van de moedermachine).
 
 **Verhuizen naar een andere klant**: wijzig je op een machine, werkbon of contract de klant, dan kan de hele machineboom mee-verhuizen. Je krijgt eerst een voorbeeldscherm dat laat zien wat er gebeurt, inclusief het opnieuw kiezen van een locatie bij de nieuwe klant. Keuringen en storingen reizen met de machine mee — de historie hoort bij het apparaat. Onderhoudscontracten van de oude klant laten de machine automatisch los.
 
@@ -132,10 +134,11 @@ Taken zeggen wat er gedaan moet worden. Onder Werkbonnen → Taken beheer je **t
 
 Per taak op de werkbon kan:
 
-- **Afvinken** (gereed melden). Een geannuleerde taak kan niet gereed; hoort er een product met serienummers bij, dan moeten eerst alle serienummervakken gevuld zijn. Er wordt vastgelegd wie de taak wanneer afrondde.
+- **Afvinken** (gereed melden). Een geannuleerde taak kan niet gereed; hoort er een product bij, dan moeten eerst alle machines geregistreerd zijn. Er wordt vastgelegd wie de taak wanneer afrondde.
 - **Ondertekenen**: een afgeronde taak kan apart door de klant ondertekend worden. Heropenen wist de handtekening.
 - **Annuleren** met een reden (kan niet meer als de taak al afgerond is).
-- **Apparatuur registreren**: bij een taak die apparatuur levert, vul je de serienummers in; daarmee ontstaan de machines in het systeem, inclusief onderdelen volgens de productsamenstelling. Zodra apparatuur geregistreerd is kan de taak niet meer heropend worden.
+- **Apparatuur registreren**: bij een taak die apparatuur levert, registreer je de machines; daarmee ontstaan ze in het systeem. Levert de taak een bundel, dan krijg je per verkochte bundel een blok met de onderdelen die erin gaan: de bundelmachine zelf komt bij de klant te staan (zonder serienummer) en de onderdelen hangen eronder. Onderdelen van een registreerbaar product vul je stuk voor stuk op serienummer in; onderdelen zonder serienummer registreer je in één keer met de knop **Registreren**. Zodra apparatuur geregistreerd is kan de taak niet meer heropend worden.
+- **Vrije aantallen invullen**: kent de bundel onderdelen met een vrij aantal — één omvormer met zoveel panelen als dit dak aankan — dan vul je die aantallen in bij het aanmaken of bewerken van de taak. Het aantal kan later niet lager gezet worden dan wat er al geregistreerd is.
 - **Materialen boeken** op de taak zelf (naast materialen op de werkbon); op de bon en PDF is te zien bij welke taak materiaal hoort.
 
 Taken kunnen aan planrollen gebonden zijn, zodat monteurs alleen de taken van hun eigen rol zien; er is een recht om altijd alle taken te zien. Staan er taken op de bon die buiten jouw rollen vallen, dan meldt het takenblok dat er taken zijn die je niet kunt zien — je weet dan dat de lijst niet compleet is, ook al lees je de taken zelf niet.
@@ -237,7 +240,7 @@ Sjablonen bekijken, aanmaken, wijzigen en verwijderen zijn aparte rechten, los v
 
 De catalogus beschrijft wat het bedrijf levert en onderhoudt:
 
-- **Producten**: merk plus model, behorend bij een producttype. Een product kan een **bundel** zijn: een samenstelling van andere producten. Die samenstelling bepaalt welke onderdelen automatisch meekomen wanneer een machine of geleverde apparatuur wordt aangemaakt. Producten hebben ook een aantal "certificaatdagen": hoe lang een goedkeuring geldig is, en dus hoe ver de volgende keuringsdatum opschuift.
+- **Producten**: merk plus model, behorend bij een producttype. Een product kan een **bundel** zijn: een samenstelling van andere producten. Die samenstelling bepaalt welke onderdelen automatisch meekomen wanneer een machine of geleverde apparatuur wordt aangemaakt. Per onderdeel in een bundel leg je vast hoeveel er in gaan, of je zet het aantal op **vrij**: dan wordt het pas ingevuld op het moment dat de bundel verkocht wordt. Een product dat geen bundel is, is standaard **registreerbaar** — machines ervan worden stuk voor stuk op serienummer vastgelegd. Zet je dat uit, dan wordt het product per stuk geteld en vraagt Lavoro nergens meer om een serienummer. Producten hebben ook een aantal "certificaatdagen": hoe lang een goedkeuring geldig is, en dus hoe ver de volgende keuringsdatum opschuift.
 - **Producttypes**: het soort apparaat. Aan het producttype hangen de **keurpunten** die elke keuring van zo'n apparaat moet aflopen. Types kunnen een hiërarchie vormen.
 - **Merken**, **productkenmerken** (instelbare eigenschappen met waardes per product) en **relatietypes** (hoe producten in elkaar zitten) completeren de catalogus.
 - **Leveranciers** kunnen aan producten en materialen gekoppeld worden, met inkoopprijs. Leveranciers zijn ook uit Excel te importeren.

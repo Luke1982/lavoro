@@ -28,13 +28,14 @@ class ServiceOrderTaskInstanceAssetUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $asset = $this->route('asset');
+
         return [
             'serial_number' => [
-                'required',
+                $asset->product?->requiresSerial() ? 'required' : 'nullable',
                 'string',
                 'max:255',
-                UniqueSerialForProduct::forProduct($this->route('asset')->product_id)
-                    ->ignoring($this->route('asset')),
+                UniqueSerialForProduct::forProduct($asset->product_id)->ignoring($asset),
             ],
         ];
     }

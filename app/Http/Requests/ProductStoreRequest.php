@@ -19,6 +19,7 @@ use Illuminate\Validation\Validator;
  * @property string|null $purchase_price
  * @property string|null $part_no
  * @property bool|null $bundle
+ * @property bool|null $registable
  *
  * @method mixed input(string $key = null, mixed $default = null)
  */
@@ -27,6 +28,17 @@ class ProductStoreRequest extends ProductRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * A bundle is a container and never carries a serial of its own, so registable follows
+     * from the bundle switch rather than being asked for twice.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->boolean('bundle')) {
+            $this->merge(['registable' => false]);
+        }
     }
 
     public function rules(): array
@@ -54,6 +66,7 @@ class ProductStoreRequest extends ProductRequest
             'purchase_price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'part_no' => ['nullable', 'string', 'max:255'],
             'bundle' => ['nullable', 'boolean'],
+            'registable' => ['nullable', 'boolean'],
             'active' => ['nullable', 'boolean'],
             'warranty' => ['nullable', 'string', 'max:255'],
             'attributes' => ['sometimes', 'array'],
@@ -66,7 +79,7 @@ class ProductStoreRequest extends ProductRequest
                     $index = explode('.', $attribute)[1];
                     $attrId = $this->input("attributes.{$index}.product_attribute_id");
                     if (
-                        ! ProductAttributeValue::where('id', $value)
+                        !ProductAttributeValue::where('id', $value)
                             ->where('product_attribute_id', $attrId)
                             ->exists()
                     ) {

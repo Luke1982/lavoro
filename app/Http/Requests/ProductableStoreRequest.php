@@ -14,14 +14,26 @@ class ProductableStoreRequest extends FormRequest
         return $this->user()->can('create', Productable::class);
     }
 
+    /**
+     * A flex part settles its aantal when the bundle is sold, so the catalogue number is
+     * pinned rather than left at whatever stood in the field when the switch was flipped.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->boolean('flex_quantity')) {
+            $this->merge(['quantity' => 1]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'product_id'          => ['required', 'integer', 'exists:products,id'],
-            'child_product_id'    => ['required', 'integer', 'exists:products,id', 'different:product_id'],
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'child_product_id' => ['required', 'integer', 'exists:products,id', 'different:product_id'],
             'product_relation_id' => ['nullable', 'integer', 'exists:product_relations,id'],
-            'quantity'            => ['required', 'integer', 'min:1'],
-            'is_required'         => ['boolean'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'flex_quantity' => ['boolean'],
+            'is_required' => ['boolean'],
         ];
     }
 
@@ -39,6 +51,7 @@ class ProductableStoreRequest extends FormRequest
                         'child_product_id',
                         'Een gebundeld product kan niet als onderdeel van een ander product worden toegevoegd.'
                     );
+
                     return;
                 }
 

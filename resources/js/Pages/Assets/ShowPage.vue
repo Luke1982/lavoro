@@ -63,6 +63,8 @@
                         <div>
                             <h3 class="text-xs font-semibold mb-1 text-slate-500">Serienummer</h3>
                             <span v-if="asset.product.bundle" class="text-sm text-gray-500 italic">Bundel</span>
+                            <span v-else-if="!asset.product.registable" class="text-sm text-gray-500 italic">Geen
+                                serienummer</span>
                             <div v-else class="flex items-center gap-2">
                                 <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
                                     class="flex-1 min-w-0" :error="form.errors.serial_number"
@@ -206,7 +208,10 @@
                                     verplicht
                                 </span>
                             </div>
-                            <span class="text-xs"
+                            <span v-if="slot.flex_quantity" class="text-xs text-gray-400">
+                                {{ childAssetsForSlot(slot.id).length }} (vrij aantal)
+                            </span>
+                            <span v-else class="text-xs"
                                 :class="childAssetsForSlot(slot.id).length >= slot.quantity ? 'text-gray-400' : 'text-blue-500'">
                                 {{ childAssetsForSlot(slot.id).length }} / {{ slot.quantity }}
                             </span>
@@ -217,16 +222,14 @@
                                 <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
                                     {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
-                                    (child.serial_number ?? '—') }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
                             </div>
                             <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
                                 class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
-                        <div v-if="hasPermission('assetrelation.create') && childAssetsForSlot(slot.id).length < slot.quantity"
-                            class="mt-1.5 pl-2">
+                        <div v-if="hasPermission('assetrelation.create') && slotHasRoom(slot)" class="mt-1.5 pl-2">
                             <div v-if="creatingForSlot !== slot.id">
                                 <button @click="openNewChildForm(slot.id)"
                                     class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
@@ -235,9 +238,13 @@
                             </div>
                             <div v-else class="flex gap-2 items-start mt-1">
                                 <div class="flex-1">
-                                    <TextInput v-model="newChildForm.serial_number" label="Serienummer"
+                                    <TextInput v-if="slot.child_product?.registable !== false"
+                                        v-model="newChildForm.serial_number" label="Serienummer"
                                         :hasError="Boolean(newChildForm.errors.serial_number)"
                                         :errorMessage="newChildForm.errors.serial_number" />
+                                    <p v-else class="text-xs text-gray-400 italic mt-8">
+                                        Dit onderdeel wordt niet op serienummer geregistreerd.
+                                    </p>
                                 </div>
                                 <button @click="submitNewChild(slot.id)"
                                     class="mt-8 px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
@@ -260,8 +267,7 @@
                                 <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
                                     {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
-                                <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
-                                    child.serial_number }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
@@ -283,8 +289,7 @@
                             <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
                                 {{ child.product.brand.name }} {{ child.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ child.product?.bundle ? 'Bundel' :
-                                child.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
@@ -303,8 +308,7 @@
                             <Link :href="`/assets/${asset.parent_asset.id}`" class="text-blue-600 underline text-sm">
                                 {{ asset.parent_asset.product.brand.name }} {{ asset.parent_asset.product.model }}
                             </Link>
-                            <span class="text-xs text-gray-400 ml-2">{{ asset.parent_asset.product?.bundle ? 'Bundel' :
-                                asset.parent_asset.serial_number }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(asset.parent_asset) }}</span>
                         </div>
                         <span class="text-xs text-gray-400">{{ asset.product_relation?.name ?? '—' }}</span>
                     </div>
@@ -484,7 +488,7 @@ import dayjs from 'dayjs';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { hasPermission, nlDate, initials, ticketStatusDotClasses, ticketPriorityColor, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
+import { hasPermission, nlDate, initials, assetSerialLabel, ticketStatusDotClasses, ticketPriorityColor, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 
 const showTicketDrawer = ref(false);
@@ -598,7 +602,7 @@ const nextServiceSub = computed(() => {
 })
 
 const headerFacts = computed(() => [
-    { icon: HashtagIcon, title: 'Serienummer', value: props.asset.product.bundle ? 'Bundel' : (props.asset.serial_number ?? '—') },
+    { icon: HashtagIcon, title: 'Serienummer', value: assetSerialLabel(props.asset) },
     { icon: CubeIcon, title: 'Producttype', value: props.asset.product.product_type?.name ?? '—' },
     { icon: BuildingOffice2Icon, title: 'Klant', value: props.owningCustomer?.name ?? '—' },
     { icon: MapPinIcon, title: 'Locatie', value: props.asset.linked_location?.title ?? '—' },
@@ -699,6 +703,16 @@ const newChildForm = useForm({ productable_id: null, serial_number: '' })
 function childAssetsForSlot(productableId) {
     return props.asset.child_assets?.filter(child => child.productable_id === productableId) ?? []
 }
+
+/**
+ * A slot with a vrij aantal is filled when the bundle is sold rather than by the product,
+ * so it never runs out of room.
+ */
+function slotHasRoom(slot) {
+    return slot.flex_quantity || childAssetsForSlot(slot.id).length < slot.quantity
+}
+
+
 
 const unslottedChildAssets = computed(() =>
     props.asset.child_assets?.filter(child => !child.productable_id) ?? []

@@ -19,11 +19,10 @@
                     assetForm.errors.product_id }}</p>
 
                 <div class="flex items-start gap-2">
-                    <TextInput v-model="assetForm.serial_number" class="flex-1"
-                        :placeholder="isSelectedBundle ? 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden' : 'Serienummer'"
-                        :disabled="isSelectedBundle" :has-error="!!assetForm.errors.serial_number"
+                    <TextInput v-model="assetForm.serial_number" class="flex-1" :placeholder="serialPlaceholder"
+                        :disabled="!selectedNeedsSerial" :has-error="!!assetForm.errors.serial_number"
                         :error-message="assetForm.errors.serial_number ?? ''" />
-                    <ScanSerialButton :disabled="isSelectedBundle" class="mt-0.5"
+                    <ScanSerialButton :disabled="!selectedNeedsSerial" class="mt-0.5"
                         @picked="assetForm.serial_number = $event" />
                 </div>
             </div>
@@ -33,25 +32,8 @@
                     enter-from-class="opacity-0 translate-y-2" enter-to-class="opacity-100 translate-y-0"
                     leave-active-class="transition-all duration-200 ease-in"
                     leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-2">
-                    <div v-if="requiredParts.length">
-                        <p class="text-xs font-medium text-gray-500 mb-2">
-                            Serienummers vereiste onderdelen
-                        </p>
-                        <div v-for="slot in childAssetSlots" :key="slot.idx" class="mb-4">
-                            <label class="block text-xs text-gray-500 mb-1">
-                                {{ slot.part.relation_name }}: {{ slot.part.name }}
-                                <span v-if="slot.part.quantity > 1">({{ slot.q + 1 }}/{{ slot.part.quantity }})</span>
-                            </label>
-                            <div class="flex items-start gap-2">
-                                <TextInput v-model="assetForm.child_assets[slot.idx].serial_number"
-                                    :placeholder="'Serienummer ' + slot.part.name" class="flex-1"
-                                    :has-error="!!assetForm.errors[`child_assets.${slot.idx}.serial_number`]"
-                                    :error-message="assetForm.errors[`child_assets.${slot.idx}.serial_number`] ?? ''" />
-                                <ScanSerialButton class="mt-0.5"
-                                    @picked="assetForm.child_assets[slot.idx].serial_number = $event" />
-                            </div>
-                        </div>
-                    </div>
+                    <BundlePartsFields v-model="assetForm.child_assets" :product-id="assetForm.product_id"
+                        :bundle-parts="bundlePartsByProduct" :errors="assetForm.errors" />
                 </Transition>
 
                 <TextInput v-model="assetForm.date_in_service" type="date" label="In gebruikname"
@@ -82,6 +64,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
+import BundlePartsFields from '@/Components/BundlePartsFields.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
@@ -109,7 +92,7 @@ const props = defineProps({
         type: [Number, String],
         default: null
     },
-    requiredProductablesByProduct: {
+    bundlePartsByProduct: {
         type: Object,
         default: () => ({})
     },
@@ -118,6 +101,10 @@ const props = defineProps({
         default: false,
     },
     isBundle: {
+        type: Boolean,
+        default: null,
+    },
+    isRegistable: {
         type: Boolean,
         default: null,
     },
@@ -138,6 +125,7 @@ const initialProductOptions = (props.allProducts || []).map(p => ({
     id: p.id,
     name: `${p.brand?.name ?? ''} ${p.model} (${p.product_type?.name ?? ''})`.trim(),
     bundle: p.bundle,
+    registable: p.registable,
     typical_certificate_days: p.typical_certificate_days,
     product_type_typical_certificate_days: p.product_type_typical_certificate_days,
 }))
@@ -148,11 +136,29 @@ const { options: productComboOptions, searching: productSearching, search: searc
 const { options: customerComboOptions, searching: customerSearching, search: searchCustomers } =
     useComboSearch('customers', props.allCustomers, props.customersUseAjax)
 
+const selectedProduct = computed(() =>
+    productComboOptions.value.find(p => p.id === assetForm.product_id) ?? null
+);
+
 const isSelectedBundle = computed(() => {
     if (props.isBundle !== null) return props.isBundle;
-    const pid = assetForm.product_id;
-    const product = productComboOptions.value.find(p => p.id === pid);
-    return product?.bundle === true;
+    return selectedProduct.value?.bundle === true;
+});
+
+/**
+ * A bundel is a container and a product that is not registreerbaar is counted rather than
+ * written down, so neither offers a serienummer field.
+ */
+const selectedNeedsSerial = computed(() => {
+    if (isSelectedBundle.value) return false;
+    if (props.isRegistable !== null) return props.isRegistable;
+    return selectedProduct.value?.registable !== false;
+});
+
+const serialPlaceholder = computed(() => {
+    if (isSelectedBundle.value) return 'Dit is een gebundeld product, hier kan geen serienummer voor ingevoerd worden';
+    if (!selectedNeedsSerial.value) return 'Dit product wordt niet op serienummer geregistreerd';
+    return 'Serienummer';
 });
 
 function resolveNextServiceDate(productId) {
@@ -171,29 +177,10 @@ const assetForm = useForm({
     child_assets: [],
 });
 
-const requiredParts = computed(() => {
-    const pid = assetForm.product_id ?? props.productId
-    if (!pid) return []
-    return props.requiredProductablesByProduct[pid] ?? []
-})
-
-const childAssetSlots = computed(() => {
-    let idx = 0
-    return requiredParts.value.flatMap(part =>
-        Array.from({ length: part.quantity }, (_, q) => ({ part, idx: idx++, q }))
-    )
-})
-
 watch(() => assetForm.product_id, (productId) => {
     assetForm.serial_number = ''
     assetForm.next_service_date = resolveNextServiceDate(productId)
-    assetForm.child_assets = requiredParts.value.flatMap(part =>
-        Array.from({ length: part.quantity }, () => ({
-            productable_id: part.productable_id,
-            serial_number: '',
-        }))
-    )
-}, { immediate: true })
+})
 
 const createAsset = () => {
     assetForm.post('/assets', {

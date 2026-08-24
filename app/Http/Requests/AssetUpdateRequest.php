@@ -37,9 +37,8 @@ class AssetUpdateRequest extends FormRequest
     public function rules(): array
     {
         $product = Product::find($this->input('product_id'));
-        $is_bundle = $product?->bundle ?? false;
 
-        $serial_rules = $is_bundle
+        $serial_rules = $product && !$product->requiresSerial()
             ? ['nullable', 'string', 'max:255']
             : [
                 'required',

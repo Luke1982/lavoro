@@ -15,6 +15,7 @@ use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
 use App\Models\ServiceOrderTaskInstance;
+use App\Services\TaskInstanceBundleService;
 use App\Services\TaskInstanceSerialSlotService;
 
 class ServiceOrderTaskInstanceController extends Controller
@@ -23,16 +24,21 @@ class ServiceOrderTaskInstanceController extends Controller
     {
         $data = $request->validated();
         $user_role_ids = $data['user_role_ids'] ?? [];
-        unset($data['user_role_ids']);
+        $flex_parts = $data['flex_parts'] ?? [];
+        unset($data['user_role_ids'], $data['flex_parts']);
 
         $instance = ServiceOrderTaskInstance::create($data);
         $instance->userRoles()->sync($user_role_ids);
+        $this->syncFlexQuantities($instance, $flex_parts);
 
         return redirect()->back()->with('success', 'Taak is toegevoegd');
     }
 
-    public function update(ServiceOrderTaskInstanceUpdateRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
-    {
+    public function update(
+        ServiceOrderTaskInstanceUpdateRequest $request,
+        ServiceOrderTaskInstance $serviceordertaskinstance,
+        TaskInstanceBundleService $bundles,
+    ) {
         $data = $request->validated();
 
         if (array_key_exists('user_role_ids', $data)) {
@@ -40,9 +46,45 @@ class ServiceOrderTaskInstanceController extends Controller
             unset($data['user_role_ids']);
         }
 
+        $has_flex_parts = array_key_exists('flex_parts', $data);
+        $flex_parts = $data['flex_parts'] ?? [];
+        unset($data['flex_parts']);
+
         $serviceordertaskinstance->update($data);
 
+        if ($has_flex_parts) {
+            $this->syncFlexQuantities($serviceordertaskinstance, $flex_parts);
+        }
+
+        $serviceordertaskinstance->loadMissing(['product', 'assets']);
+        $bundles->pruneEmptyContainers($serviceordertaskinstance);
+
         return redirect()->back()->with('success', 'Taak is bijgewerkt');
+    }
+
+    /**
+     * The aantallen filled in for the bundle parts that leave theirs open, rewritten as a
+     * whole. They are productables hanging off the taak instead of off a product: same
+     * relation, different owner, because a flex part settles its number when it is sold.
+     *
+     * @param  array<int, array{product_id: int, quantity: int}>  $rows
+     */
+    private function syncFlexQuantities(ServiceOrderTaskInstance $instance, array $rows): void
+    {
+        $instance->productables()->delete();
+
+        foreach ($rows as $row) {
+            if ((int) $row['quantity'] < 1) {
+                continue;
+            }
+
+            $instance->productables()->create([
+                'product_id' => $row['product_id'],
+                'quantity' => $row['quantity'],
+            ]);
+        }
+
+        $instance->load('productables');
     }
 
     public function toggle(
@@ -60,13 +102,15 @@ class ServiceOrderTaskInstanceController extends Controller
 
         if ($data['is_complete'] && $serviceordertaskinstance->product_id) {
             $serviceordertaskinstance->loadMissing([
-                'product.productables.childProduct',
+                'product.brand',
+                'product.productables.childProduct.brand',
+                'productables',
                 'assets',
             ]);
 
             if (!$slots->allSlotsFilled($serviceordertaskinstance)) {
                 return redirect()->back()->withErrors([
-                    'task' => 'Vul eerst alle serienummers in voordat je deze taak voltooit.',
+                    'task' => 'Registreer eerst alle machines voordat je deze taak voltooit.',
                 ]);
             }
         }

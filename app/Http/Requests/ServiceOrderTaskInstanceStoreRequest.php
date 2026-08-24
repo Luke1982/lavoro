@@ -2,11 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesFlexQuantities;
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 class ServiceOrderTaskInstanceStoreRequest extends FormRequest
 {
+    use ValidatesFlexQuantities;
+
     public function authorize(): bool
     {
         $user = Auth::user();
@@ -16,7 +20,7 @@ class ServiceOrderTaskInstanceStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'service_order_id' => ['required', 'integer', 'exists:service_orders,id'],
             'service_order_task_id' => ['nullable', 'integer', 'exists:service_order_tasks,id'],
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
@@ -26,7 +30,7 @@ class ServiceOrderTaskInstanceStoreRequest extends FormRequest
             'is_complete' => ['sometimes', 'boolean'],
             'user_role_ids' => ['sometimes', 'array'],
             'user_role_ids.*' => ['integer', 'exists:user_roles,id'],
-        ];
+        ], $this->flexQuantityRules());
     }
 
     public function withValidator($validator): void
@@ -35,6 +39,15 @@ class ServiceOrderTaskInstanceStoreRequest extends FormRequest
             if (empty($this->service_order_task_id) && empty($this->description)) {
                 $v->errors()->add('description', 'Vul een omschrijving in of kies een bestaande taak.');
             }
+
+            if ($v->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $this->validateFlexQuantities(
+                $v,
+                Product::with('productables.childProduct')->find($this->input('product_id'))
+            );
         });
     }
 }

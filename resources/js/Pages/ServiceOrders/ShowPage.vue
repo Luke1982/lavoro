@@ -135,7 +135,8 @@
                             :is-closed="serviceOrder.is_closed" :type="serviceOrder.type"
                             :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
-                            :hidden-count="hiddenTaskCount" class="my-4" />
+                            :bundle-parts-by-product="bundlePartsByProduct" :hidden-count="hiddenTaskCount"
+                            class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
@@ -695,6 +696,7 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
+    bundlePartsByProduct: { type: Object, default: () => ({}) },
     userRoles: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
     snelStartEnabled: { type: Boolean, default: false },

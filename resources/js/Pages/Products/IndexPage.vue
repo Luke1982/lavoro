@@ -118,8 +118,8 @@
                                 </div>
                                 <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
                                     {{ product.product_type?.name }}
-                                    <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
-                                        {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                                    <BadgeComponent :color="productKindColor(product)">
+                                        {{ productKindLabel(product) }}
                                     </BadgeComponent>
                                 </div>
                             </div>
@@ -157,16 +157,25 @@
                         </div>
                         <div class="col-span-1 items-start sm:items-center hidden sm:flex pr-2">
                             <EditableTextField :decoration="false"
-                                @open="bundleEdits[product.id] = { bundle: product.bundle }">
+                                @open="bundleEdits[product.id] = { bundle: product.bundle, registable: product.registable }">
                                 <template #display>
-                                    <BadgeComponent :color="product.bundle ? 'green' : 'gray'">
-                                        {{ product.bundle ? 'Bundel' : 'Geen bundel' }}
+                                    <BadgeComponent :color="productKindColor(product)">
+                                        {{ productKindLabel(product) }}
                                     </BadgeComponent>
                                 </template>
                                 <template #open="{ close }">
-                                    <div class="flex flex-col gap-2" @click.stop>
-                                        <SwitchComponent v-model="bundleEdits[product.id].bundle"
-                                            @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
+                                    <div class="flex flex-col gap-3" @click.stop>
+                                        <label class="flex items-center gap-2 text-xs text-gray-500">
+                                            <SwitchComponent v-model="bundleEdits[product.id].bundle"
+                                                @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
+                                            Bundel
+                                        </label>
+                                        <label v-if="!bundleEdits[product.id].bundle"
+                                            class="flex items-center gap-2 text-xs text-gray-500">
+                                            <SwitchComponent v-model="bundleEdits[product.id].registable"
+                                                @update:modelValue="updateProduct(product.id, { registable: bundleEdits[product.id].registable }, close)" />
+                                            Registreerbaar
+                                        </label>
                                     </div>
                                 </template>
                             </EditableTextField>
@@ -292,6 +301,17 @@
                 </label>
                 <div class="sm:col-span-2">
                     <SwitchComponent v-model="newProductForm.bundle" />
+                </div>
+            </div>
+            <div v-if="!newProductForm.bundle"
+                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 flex">
+                    Registreerbaar
+                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
+                        v-tooltip="'Machines van een registreerbaar product worden stuk voor stuk op serienummer vastgelegd. Zet dit uit voor producten die per stuk geteld worden, zoals zonnepanelen.'" />
+                </label>
+                <div class="sm:col-span-2">
+                    <SwitchComponent v-model="newProductForm.registable" />
                 </div>
             </div>
             <div v-for="attr in newProductAttributes" :key="attr.id"
@@ -535,6 +555,7 @@ const newProductForm = useForm({
     retail_price: null,
     purchase_price: null,
     bundle: false,
+    registable: true,
 })
 
 const newProductAttributeValues = reactive({})
@@ -595,6 +616,7 @@ async function copyProduct(product) {
     newProductForm.retail_price = product.retail_price ?? null
     newProductForm.purchase_price = product.purchase_price ?? null
     newProductForm.bundle = Boolean(product.bundle)
+    newProductForm.registable = product.registable ?? true
 
     await nextTick()
     Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
@@ -703,6 +725,22 @@ function clearAllFilters() {
 
 const saleEdits = reactive({})
 const bundleEdits = reactive({})
+
+/**
+ * The three kinds a product can be, in one badge: a bundel that groups other products, a
+ * product whose machines are written down on serienummer, and one that is only counted.
+ */
+function productKindLabel(product) {
+    if (product.bundle) return 'Bundel'
+
+    return product.registable ? 'Registreerbaar' : 'Niet registreerbaar'
+}
+
+function productKindColor(product) {
+    if (product.bundle) return 'green'
+
+    return product.registable ? 'blue' : 'gray'
+}
 
 function updateProduct(product_id, data, close = null) {
     router.patch(`/products/${product_id}`, data, {

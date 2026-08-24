@@ -63,6 +63,7 @@ class Product extends Model
         'purchase_price',
         'part_no',
         'bundle',
+        'registable',
         'active',
         'warranty',
     ];
@@ -71,6 +72,7 @@ class Product extends Model
         'retail_price' => 'decimal:2',
         'purchase_price' => 'decimal:2',
         'bundle' => 'boolean',
+        'registable' => 'boolean',
         'active' => 'boolean',
     ];
 
@@ -135,7 +137,7 @@ class Product extends Model
     public function childProducts()
     {
         return $this->morphedByMany(Product::class, 'productable')
-            ->withPivot(['id', 'product_relation_id', 'quantity', 'is_required'])
+            ->withPivot(['id', 'product_relation_id', 'quantity', 'flex_quantity', 'is_required'])
             ->using(Productable::class)
             ->withTimestamps();
     }
@@ -143,14 +145,20 @@ class Product extends Model
     public function parentProducts()
     {
         return $this->morphToMany(Product::class, 'productable')
-            ->withPivot(['id', 'product_relation_id', 'quantity', 'is_required'])
+            ->withPivot(['id', 'product_relation_id', 'quantity', 'flex_quantity', 'is_required'])
             ->using(Productable::class)
             ->withTimestamps();
     }
 
+    /**
+     * The catalogue rows describing what this product is built out of. Scoped to the rows
+     * that point at another product: a werkbon taak records its own chosen aantallen in the
+     * same table under this product's id, and those are not part of the catalogue.
+     */
     public function productables()
     {
-        return $this->hasMany(Productable::class);
+        return $this->hasMany(Productable::class)
+            ->where('productable_type', Product::class);
     }
 
     public function suppliers()
@@ -179,6 +187,16 @@ class Product extends Model
             ->filter(fn ($item) => $item['name'] !== null && $item['value'] !== null)
             ->values()
             ->all();
+    }
+
+    /**
+     * Whether a machine of this product carries a serial number of its own. A bundle is a
+     * container and has none, and a product that is not registable is handled by the piece
+     * rather than by the item, so there is nothing to write down for either.
+     */
+    public function requiresSerial(): bool
+    {
+        return !$this->bundle && $this->registable;
     }
 
     public function effectiveCertificateDays(int $fallback = 365): int
@@ -227,6 +245,7 @@ class Product extends Model
             'id' => $this->id,
             'name' => "{$this->brand->name} {$this->model} ({$this->productType->name})",
             'bundle' => $this->bundle,
+            'registable' => $this->registable,
             'attributes' => $attributes,
             'search' => $attributes->map(fn ($a) => "{$a['name']} {$a['value']}")->implode(' '),
         ];

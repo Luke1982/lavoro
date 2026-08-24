@@ -142,9 +142,9 @@ class ServiceOrder extends Model
 
         /**
          * Task instances are cascaded away by the database, so no model event ever fires
-         * for them: their materials are released here, while the order still knows which
-         * instances it has. Materials are absent from the pivot list below because they
-         * move stock and go through MateriableService instead.
+         * for them: their materials and their chosen bundle-aantallen are released here,
+         * while the order still knows which instances it has. Materials are absent from the
+         * pivot list below because they move stock and go through MateriableService instead.
          */
         static::deleting(function (ServiceOrder $service_order) {
             $id = $service_order->id;
@@ -165,6 +165,8 @@ class ServiceOrder extends Model
                     $task_instance,
                     'verwijdering werkbon #' . $id
                 );
+
+                $task_instance->productables()->delete();
             }
 
             $materiables->release($service_order, 'verwijdering werkbon #' . $id);

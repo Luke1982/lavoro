@@ -78,13 +78,15 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
                 <div class="sm:col-span-2 flex items-start gap-2">
                     <TextInput v-model="newAssetForm.serial_number" class="flex-1"
-                        :placeholder="isNewBundle ? 'Bundel — geen serienummer' : 'Serienummer'" :disabled="isNewBundle"
+                        :placeholder="newSerialPlaceholder" :disabled="!newNeedsSerial"
                         :hasError="Boolean(newAssetForm.errors.serial_number)"
                         :errorMessage="newAssetForm.errors.serial_number" />
-                    <ScanSerialButton :disabled="isNewBundle" class="mt-0.5"
+                    <ScanSerialButton :disabled="!newNeedsSerial" class="mt-0.5"
                         @picked="newAssetForm.serial_number = $event" />
                 </div>
             </div>
+            <BundlePartsFields v-model="newAssetForm.child_assets" :product-id="newAssetForm.product_id"
+                :bundle-parts="bundlePartsByProduct" :errors="newAssetForm.errors" class="px-4 sm:px-6 py-4" />
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">In gebruikname</label>
                 <div class="sm:col-span-2">
@@ -122,32 +124,6 @@
         </template>
     </DrawerComponent>
 
-    <ModalDialog v-model:open="showChildModal" title="Vereiste serienummers" max-width-class="sm:max-w-lg">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-            Dit product vereist de volgende onderdelen. Voer voor elk onderdeel het serienummer in.
-        </p>
-        <div class="mt-4 space-y-4">
-            <div v-for="(child, index) in pendingChildren" :key="index" class="flex items-end gap-2">
-                <TextInput v-model="child.serial_number" :label="`${child.relation_name}: ${child.name}`"
-                    placeholder="Serienummer" class="flex-1" />
-                <ScanSerialButton class="mb-0.5" @picked="child.serial_number = $event" />
-            </div>
-        </div>
-        <template #footer>
-            <div class="flex gap-3 justify-end">
-                <button type="button"
-                    class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
-                    @click="cancelChildModal">
-                    Annuleren
-                </button>
-                <button type="button"
-                    class="inline-flex justify-center rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white shadow-xs hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-                    @click="confirmChildModal">
-                    Toevoegen
-                </button>
-            </div>
-        </template>
-    </ModalDialog>
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div
             class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
@@ -257,10 +233,10 @@ import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
+import BundlePartsFields from '@/Components/BundlePartsFields.vue';
 import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
@@ -277,7 +253,7 @@ const props = defineProps({
     productsUseAjax: { type: Boolean, default: false },
     allCustomers: { type: Array, default: () => [] },
     customersUseAjax: { type: Boolean, default: false },
-    requiredProductablesByProduct: { type: Object, default: () => ({}) },
+    bundlePartsByProduct: { type: Object, default: () => ({}) },
     perPage: { type: Number, default: 20 },
 });
 
@@ -371,9 +347,22 @@ watch(() => newAssetForm.customer_id, (customerId) => {
     loadNewAssetLocations(customerId)
 })
 
-const isNewBundle = computed(() => {
-    const product = productOptions.value.find(p => p.id === newAssetForm.product_id)
-    return product?.bundle === true
+const newProduct = computed(() =>
+    productOptions.value.find(p => p.id === newAssetForm.product_id) ?? null
+)
+
+/**
+ * A bundel is a container and a product that is not registreerbaar is counted rather than
+ * written down, so neither offers a serienummer field.
+ */
+const newNeedsSerial = computed(() =>
+    newProduct.value !== null && !newProduct.value.bundle && newProduct.value.registable !== false
+)
+
+const newSerialPlaceholder = computed(() => {
+    if (newProduct.value?.bundle) return 'Bundel — geen serienummer'
+    if (newProduct.value && !newNeedsSerial.value) return 'Dit product wordt niet op serienummer geregistreerd'
+    return 'Serienummer'
 })
 
 watch(() => newAssetForm.product_id, (productId) => {
@@ -389,51 +378,10 @@ function closeAssetDrawer() {
 
 const canCreate = computed(() => hasPermission('asset.create'))
 
-const showChildModal = ref(false)
-const pendingChildren = ref([])
-let resolveChildModal = null
-
-async function submitAsset() {
-    const required = props.requiredProductablesByProduct[newAssetForm.product_id]
-    if (required && required.length > 0) {
-        pendingChildren.value = required.flatMap(item =>
-            Array.from({ length: item.quantity }, () => ({
-                productable_id: item.productable_id,
-                name: item.name,
-                relation_name: item.relation_name,
-                serial_number: '',
-            }))
-        )
-        showChildModal.value = true
-        const extra = await new Promise((resolve) => { resolveChildModal = resolve })
-        if (!extra) return
-        newAssetForm.child_assets = extra.child_assets
-    }
-
+function submitAsset() {
     newAssetForm.post('/assets', {
         preserveScroll: true,
         onSuccess: () => closeAssetDrawer(),
     })
-}
-
-function confirmChildModal() {
-    if (resolveChildModal) {
-        resolveChildModal({
-            child_assets: pendingChildren.value.map(c => ({
-                productable_id: c.productable_id,
-                serial_number: c.serial_number,
-            })),
-        })
-        resolveChildModal = null
-    }
-    showChildModal.value = false
-}
-
-function cancelChildModal() {
-    if (resolveChildModal) {
-        resolveChildModal(false)
-        resolveChildModal = null
-    }
-    showChildModal.value = false
 }
 </script>

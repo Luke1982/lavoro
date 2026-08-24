@@ -149,7 +149,7 @@ class CustomerController extends Controller
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),
             'customFields' => $customer->allCustomFieldsWithValues(),
-            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
             'contractTemplates' => $this->templatesFor($request),
             'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),

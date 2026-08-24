@@ -452,6 +452,19 @@ export function assetDisplayName(asset) {
 }
 
 /**
+ * What stands where a serienummer would: a bundel is a container and carries none, a
+ * product that is not registreerbaar is counted rather than written down, and anything
+ * else shows the number it was registered under, optionally spelled out with a prefix.
+ */
+export function assetSerialLabel(asset, prefix = '') {
+    if (!asset) return '—';
+    if (asset.product?.bundle) return 'Bundel';
+    if (asset.product?.registable === false) return 'Geen serienummer';
+
+    return asset.serial_number ? prefix + asset.serial_number : '—';
+}
+
+/**
  * Shape an asset into the object AssetSelectMenu expects.
  * Exposes brand, model, serial_number and location explicitly so the
  * component's search can filter on them precisely, and the machines hanging

@@ -179,7 +179,9 @@ class ProductController extends Controller
                     . ' (' . ($typePaths[$child->product_type_id] ?? $child->productType->name) . ')',
                 'product_relation_id' => $pivot->product_relation_id,
                 'quantity' => $pivot->quantity,
+                'flex_quantity' => (bool) $pivot->flex_quantity,
                 'is_required' => $pivot->is_required,
+                'requires_serial' => $child->requiresSerial(),
             ];
         })->values()->all();
 
@@ -193,6 +195,7 @@ class ProductController extends Controller
                     . ' (' . ($typePaths[$parent->product_type_id] ?? $parent->productType->name) . ')',
                 'product_relation_id' => $pivot->product_relation_id,
                 'quantity' => $pivot->quantity,
+                'flex_quantity' => (bool) $pivot->flex_quantity,
                 'is_required' => $pivot->is_required,
             ];
         })->values()->all();
@@ -217,7 +220,7 @@ class ProductController extends Controller
             'eligibleChildProducts' => $eligibleChildProducts,
             'childProducts' => $childProductsWithPivot,
             'parentProducts' => $parentProductsWithPivot,
-            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
             'productAttributes' => $product->productType->productAttributes()
                 ->with('values')->orderBy('name')->get(),
             'selectedAttributeValues' => $product->productAttributeValueables()

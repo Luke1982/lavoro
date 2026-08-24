@@ -42,6 +42,7 @@ use App\Models\UserRole;
 use App\Services\AssetTransferService;
 use App\Services\EventLocationResolver;
 use App\Services\MateriableService;
+use App\Services\ProductableService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\ServiceOrderLocationResolver;
 use App\Services\SnelStartClient;
@@ -219,6 +220,7 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productType',
             'taskInstances.product.productables.childProduct.brand',
             'taskInstances.product.productables.childProduct.productType',
+            'taskInstances.productables',
             'taskInstances.assets',
             'project:id,title,location',
             'documents.category',
@@ -334,6 +336,7 @@ class ServiceOrderController extends Controller
                 ->orderBy('model')
                 ->get()
                 ->map->toComboOption(),
+            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
         ]);
     }
 

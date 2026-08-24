@@ -51,7 +51,7 @@
                                         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
                                 ]">
                                 <ScanBarcodeIcon class="w-3 h-3" />
-                                {{ serialCounts(instance).filled }}/{{ serialCounts(instance).expected }} serienummers
+                                {{ serialCounts(instance).filled }}/{{ serialCounts(instance).expected }} machines
                             </component>
                         </div>
                         <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
@@ -144,6 +144,9 @@
                     <input type="number" v-model.number="newQuantity" min="1" max="999"
                         class="w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm" />
                 </div>
+                <FlexPartsFieldset v-if="newFlexParts.length" :parts="newFlexParts" :quantities="newFlexQuantities"
+                    :error="addForm.errors.flex_parts" :bundle-count="newQuantity"
+                    @change="(id, value) => newFlexQuantities[id] = value" />
                 <div v-if="userRoles.length">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
@@ -207,6 +210,9 @@
                     <input type="number" v-model.number="editQuantity" min="1" max="999"
                         class="w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm" />
                 </div>
+                <FlexPartsFieldset v-if="editFlexParts.length" :parts="editFlexParts" :quantities="editFlexQuantities"
+                    :error="editForm.errors.flex_parts" :bundle-count="editQuantity"
+                    @change="(id, value) => editFlexQuantities[id] = value" />
                 <div v-if="userRoles.length">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
@@ -241,41 +247,66 @@
         </DrawerComponent>
 
         <!-- Serial number drawer -->
-        <DrawerComponent v-model="serialDrawerOpen" title="Serienummers invoeren"
-            :subtitle="serialInstance ? `Voer de serienummers in voor: ${taskInstanceTitle(serialInstance)}` : ''"
+        <DrawerComponent v-model="serialDrawerOpen" title="Machines registreren"
+            :subtitle="serialInstance ? `Registreer de machines voor: ${taskInstanceTitle(serialInstance)}` : ''"
             max-width-class="max-w-lg">
             <div class="p-4 sm:p-6 space-y-6">
                 <p class="text-xs text-gray-500 dark:text-slate-400">
-                    Elk serienummer wordt los opgeslagen als machine. Je kunt tussendoor stoppen en later verder gaan.
+                    Elke machine wordt los opgeslagen. Je kunt tussendoor stoppen en later verder gaan.
                 </p>
-                <template v-for="group in serialGroups" :key="group.product_id">
-                    <div>
-                        <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                            {{ group.label }}
-                            <span class="text-xs font-normal text-gray-400 ml-1">
-                                ({{ group.rows.filter(r => r.asset_id).length }}/{{ group.expected }})
-                            </span>
+                <template v-for="bundle in serialBundles" :key="bundle.key">
+                    <div :class="bundle.label
+                        ? 'rounded-lavoro-sm border border-gray-200 dark:border-slate-700 p-3 space-y-4'
+                        : 'space-y-4'">
+                        <p v-if="bundle.label"
+                            class="text-sm font-semibold text-gray-800 dark:text-slate-200 flex items-center gap-2">
+                            <PackageIcon class="w-4 h-4 text-gray-400" />
+                            {{ bundle.label }}
+                            <span class="text-xs font-normal text-gray-400">bundelmachine, geen serienummer</span>
                         </p>
-                        <div class="space-y-2">
-                            <div v-for="(row, i) in group.rows" :key="row.asset_id ?? `new-${i}`">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
-                                    <input v-model="row.serial_number" type="text"
-                                        :placeholder="`Serienummer ${i + 1}`" @input="row.error = ''"
-                                        :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', row.error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
-                                    <ScanSerialButton @picked="row.serial_number = $event; row.error = ''" />
-                                    <button v-if="rowIsDirty(row)" type="button" :disabled="serialSubmitting"
-                                        @click="saveRow(row)" v-tooltip="'Serienummer opslaan'"
-                                        class="flex-none p-1.5 rounded-md bg-lavoro-green text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                                        <CheckIcon class="w-4 h-4" />
-                                    </button>
-                                    <span v-else-if="row.asset_id" class="flex-none p-1.5"
-                                        v-tooltip="'Opgeslagen als machine'">
-                                        <CheckIcon class="w-4 h-4 text-green-500" />
-                                    </span>
-                                    <span v-else class="flex-none w-7" />
+                        <div v-for="group in bundle.groups" :key="group.key">
+                            <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                {{ group.label }}
+                                <span class="text-xs font-normal text-gray-400 ml-1">
+                                    ({{ group.rows.filter(r => r.asset_id).length }}/{{ group.expected }})
+                                </span>
+                            </p>
+                            <div v-if="!group.requires_serial" class="flex items-center gap-2">
+                                <p class="flex-1 text-xs text-gray-500 dark:text-slate-400">
+                                    Dit onderdeel heeft geen serienummer;
+                                    {{ group.rows.filter(r => !r.asset_id).length }} van
+                                    {{ group.expected }} nog te registreren.
+                                </p>
+                                <button v-if="group.rows.some(rowIsDirty)" type="button" :disabled="serialSubmitting"
+                                    @click="saveSerials({ complete: false, rows: group.rows })"
+                                    class="flex-none px-2.5 py-1 rounded-md bg-lavoro-green text-xs font-semibold text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                                    Registreren
+                                </button>
+                                <span v-else class="flex-none p-1.5" v-tooltip="'Volledig geregistreerd'">
+                                    <CheckIcon class="w-4 h-4 text-green-500" />
+                                </span>
+                            </div>
+                            <div v-else class="space-y-2">
+                                <div v-for="(row, i) in group.rows" :key="row.asset_id ?? `new-${group.key}-${i}`">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
+                                        <input v-model="row.serial_number" type="text"
+                                            :placeholder="`Serienummer ${i + 1}`" @input="row.error = ''"
+                                            :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', row.error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
+                                        <ScanSerialButton @picked="row.serial_number = $event; row.error = ''" />
+                                        <button v-if="rowIsDirty(row)" type="button" :disabled="serialSubmitting"
+                                            @click="saveRow(row)" v-tooltip="'Serienummer opslaan'"
+                                            class="flex-none p-1.5 rounded-md bg-lavoro-green text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                                            <CheckIcon class="w-4 h-4" />
+                                        </button>
+                                        <span v-else-if="row.asset_id" class="flex-none p-1.5"
+                                            v-tooltip="'Opgeslagen als machine'">
+                                            <CheckIcon class="w-4 h-4 text-green-500" />
+                                        </span>
+                                        <span v-else class="flex-none w-7" />
+                                    </div>
+                                    <p v-if="row.error" class="text-xs text-red-600 mt-1 ml-7">{{ row.error }}</p>
                                 </div>
-                                <p v-if="row.error" class="text-xs text-red-600 mt-1 ml-7">{{ row.error }}</p>
                             </div>
                         </div>
                     </div>
@@ -460,7 +491,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon } from '@lucide/vue'
 import { hasPermission, hasAnyPermission, nlDate, nlTime, taskInstanceTitle, taskInstanceDescription } from '@/Utilities/Utilities'
@@ -475,6 +506,7 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
+import FlexPartsFieldset from '@/Components/ServiceOrders/FlexPartsFieldset.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -488,6 +520,8 @@ const props = defineProps({
     materialsUseAjax: { type: Boolean, default: false },
     materialCategories: { type: Array, default: () => [] },
     materialUsageUnits: { type: Array, default: () => [] },
+    /** Every bundle's parts, keyed by the bundle product, so a taak can fill in the vrije aantallen. */
+    bundlePartsByProduct: { type: Object, default: () => ({}) },
     /** Opt out where the widget is one section among others that sit flush, rather than a card of its own. */
     boxed: { type: Boolean, default: true },
     /** Tasks on this order that fall outside the reader's roles, and so never reach the list below. */
@@ -566,6 +600,7 @@ const newDescription = ref('')
 const newProductId = ref(null)
 const newQuantity = ref(1)
 const newUserRoleIds = ref([])
+const newFlexQuantities = reactive({})
 
 const addForm = useForm({
     service_order_id: props.serviceOrderId,
@@ -576,7 +611,41 @@ const addForm = useForm({
     description: '',
     is_complete: false,
     user_role_ids: [],
+    flex_parts: [],
 })
+
+/**
+ * The parts of the chosen bundle whose aantal is not settled by the product. They are asked
+ * for on the taak, because that is where "one omvormer with 14 panelen" is first known.
+ */
+function flexPartsOf(productId) {
+    return (props.bundlePartsByProduct[productId] ?? []).filter(part => part.flex_quantity)
+}
+
+/** @param {Object} quantities the reactive map to reset, keyed by the part's own product */
+function seedFlexQuantities(quantities, parts, instance = null) {
+    Object.keys(quantities).forEach(key => delete quantities[key])
+
+    const filled_in = new Map(
+        (instance?.productables ?? []).map(row => [row.product_id, row.quantity])
+    )
+
+    parts.forEach(part => {
+        quantities[part.child_product_id] = filled_in.get(part.child_product_id)
+            ?? (part.is_required ? 1 : 0)
+    })
+}
+
+function flexPartsPayload(quantities, parts) {
+    return parts.map(part => ({
+        product_id: part.child_product_id,
+        quantity: Math.max(0, quantities[part.child_product_id] ?? 0),
+    }))
+}
+
+const newFlexParts = computed(() => flexPartsOf(newProductId.value))
+
+watch(newProductId, (productId) => seedFlexQuantities(newFlexQuantities, flexPartsOf(productId)))
 
 function onNewTaskSelected(id) {
     if (id) {
@@ -597,6 +666,7 @@ function addInstance() {
     addForm.title = newTitle.value.trim() || null
     addForm.description = newDescription.value.trim() || null
     addForm.user_role_ids = newUserRoleIds.value
+    addForm.flex_parts = flexPartsPayload(newFlexQuantities, newFlexParts.value)
 
     addForm.post('/serviceordertaskinstances', {
         preserveScroll: true,
@@ -622,8 +692,18 @@ const editDescription = ref('')
 const editProductId = ref(null)
 const editQuantity = ref(1)
 const editUserRoleIds = ref([])
+const editFlexQuantities = reactive({})
 
-const editForm = useForm({ title: '', description: '', product_id: null, quantity: 1, user_role_ids: [] })
+const editForm = useForm({
+    title: '',
+    description: '',
+    product_id: null,
+    quantity: 1,
+    user_role_ids: [],
+    flex_parts: [],
+})
+
+const editFlexParts = computed(() => flexPartsOf(editProductId.value))
 
 function openEditDrawer(instance) {
     editingInstance.value = instance
@@ -632,8 +712,24 @@ function openEditDrawer(instance) {
     editProductId.value = instance.product_id ?? null
     editQuantity.value = instance.quantity ?? 1
     editUserRoleIds.value = (instance.user_roles ?? []).map(r => r.id)
+    seedFlexQuantities(editFlexQuantities, flexPartsOf(instance.product_id), instance)
     editDrawerOpen.value = true
 }
+
+/**
+ * Idempotent on purpose: opening the drawer sets the product, which fires this a tick later
+ * with exactly what openEditDrawer already seeded. Switching away and back restores the
+ * aantallen the taak was saved with rather than leaving the other product's behind.
+ */
+watch(editProductId, (productId) => {
+    const instance = editingInstance.value
+
+    seedFlexQuantities(
+        editFlexQuantities,
+        flexPartsOf(productId),
+        productId === (instance?.product_id ?? null) ? instance : null,
+    )
+})
 
 function saveEdit() {
     editForm.title = editTitle.value.trim() || null
@@ -641,6 +737,7 @@ function saveEdit() {
     editForm.product_id = editProductId.value
     editForm.quantity = editProductId.value ? editQuantity.value : 1
     editForm.user_role_ids = editUserRoleIds.value
+    editForm.flex_parts = flexPartsPayload(editFlexQuantities, editFlexParts.value)
 
     editForm.patch(`/serviceordertaskinstances/${editingInstance.value.id}`, {
         preserveScroll: true,
@@ -722,29 +819,53 @@ function serialCounts(instance) {
  */
 function buildSerialGroups(instance) {
     return (instance.serial_slots ?? []).map(group => {
-        const saved = group.assets.map(asset => ({
-            asset_id: asset.id,
+        const rowFor = (asset) => ({
+            asset_id: asset?.id ?? null,
+            key: group.key,
             product_id: group.product_id,
-            serial_number: asset.serial_number ?? '',
-            saved_serial: asset.serial_number ?? '',
+            container_index: group.container_index,
+            requires_serial: group.requires_serial,
+            serial_number: asset?.serial_number ?? '',
+            saved_serial: asset?.serial_number ?? '',
             error: '',
-        }))
-        const empty = Array.from({ length: Math.max(0, group.expected - saved.length) }, () => ({
-            asset_id: null,
-            product_id: group.product_id,
-            serial_number: '',
-            saved_serial: '',
-            error: '',
-        }))
+        })
+
+        const saved = group.assets.map(rowFor)
+        const empty = Array.from({ length: Math.max(0, group.expected - saved.length) }, () => rowFor(null))
 
         return {
+            key: group.key,
             product_id: group.product_id,
+            container_index: group.container_index,
+            container_label: group.container_label,
+            requires_serial: group.requires_serial,
             label: group.label,
             expected: group.expected,
             rows: [...saved, ...empty],
         }
     })
 }
+
+/**
+ * A bundle taak delivers the bundle itself with its parts underneath, so its slots are
+ * shown per bundle machine rather than in one long list. A plain product has no bundle to
+ * group under and lands in a single unnamed block.
+ */
+const serialBundles = computed(() => {
+    const bundles = new Map()
+
+    serialGroups.value.forEach(group => {
+        const key = group.container_index ?? 'none'
+
+        if (!bundles.has(key)) {
+            bundles.set(key, { key, label: group.container_label, groups: [] })
+        }
+
+        bundles.get(key).groups.push(group)
+    })
+
+    return [...bundles.values()]
+})
 
 function openSerialDrawer(instance) {
     serialInstance.value = instance
@@ -767,7 +888,13 @@ function serialRows() {
     return serialGroups.value.flatMap(g => g.rows)
 }
 
+/**
+ * A row is pending as long as it has not become a machine yet. A part that carries no
+ * serienummer has nothing to type, so it counts the moment its slot is still empty.
+ */
 function rowIsDirty(row) {
+    if (!row.requires_serial) return !row.asset_id
+
     return row.serial_number.trim() !== '' && row.serial_number.trim() !== row.saved_serial
 }
 
@@ -776,7 +903,7 @@ const serialHasDirty = computed(() => serialRows().some(rowIsDirty))
 const serialCanComplete = computed(() => {
     if (!serialInstance.value || serialInstance.value.is_complete || serialInstance.value.is_cancelled) return false
 
-    return serialRows().every(row => row.serial_number.trim() !== '')
+    return serialRows().every(row => row.asset_id || !row.requires_serial || row.serial_number.trim() !== '')
 })
 
 const serialPrimaryLabel = computed(() => {
@@ -814,7 +941,7 @@ async function syncSerialGroups(sent = []) {
 
     const leftovers = {}
     serialGroups.value.forEach(group => {
-        leftovers[group.product_id] = group.rows
+        leftovers[group.key] = group.rows
             .filter(row => !row.asset_id && row.serial_number.trim() !== '' && !sent.includes(row))
             .map(row => row.serial_number)
     })
@@ -822,7 +949,7 @@ async function syncSerialGroups(sent = []) {
     serialInstance.value = fresh
     serialGroups.value = buildSerialGroups(fresh)
     serialGroups.value.forEach(group => {
-        const queue = leftovers[group.product_id] ?? []
+        const queue = leftovers[group.key] ?? []
         group.rows.filter(row => !row.asset_id).forEach((row, i) => {
             if (queue[i] !== undefined) row.serial_number = queue[i]
         })
@@ -864,7 +991,8 @@ async function saveSerials({ complete, rows = null }) {
             {
                 assets: created.map(row => ({
                     product_id: row.product_id,
-                    serial_number: row.serial_number.trim(),
+                    container_index: row.container_index,
+                    serial_number: row.requires_serial ? row.serial_number.trim() : null,
                 })),
             },
         )

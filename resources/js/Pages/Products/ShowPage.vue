@@ -100,6 +100,20 @@
                                         <p v-if="form.errors.bundle" class="text-sm text-red-600 mt-1">{{
                                             form.errors.bundle }}</p>
                                     </div>
+                                    <div v-if="!form.bundle">
+                                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Registreerbaar</h3>
+                                        <div class="flex items-center gap-3">
+                                            <SwitchComponent v-model="form.registable" />
+                                            <span class="text-sm text-gray-600 dark:text-slate-400">
+                                                <template v-if="form.registable">Machines van dit product krijgen een
+                                                    serienummer</template>
+                                                <template v-else>Machines van dit product hebben geen
+                                                    serienummer</template>
+                                            </span>
+                                        </div>
+                                        <p v-if="form.errors.registable" class="text-sm text-red-600 mt-1">{{
+                                            form.errors.registable }}</p>
+                                    </div>
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70">
@@ -226,7 +240,15 @@
                                     <div class="w-20">
                                         <label class="block text-xs text-gray-500 mb-1">Aantal</label>
                                         <input type="number" min="1" v-model.number="newRelation.quantity"
-                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                            :disabled="newRelation.flex_quantity"
+                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm sm:leading-6" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label class="block text-xs text-gray-500 mb-1"
+                                            v-tooltip="'Het aantal wordt pas ingevuld als de bundel verkocht wordt, bijvoorbeeld het aantal zonnepanelen bij één omvormer.'">
+                                            Vrij aantal
+                                        </label>
+                                        <SwitchComponent v-model="newRelation.flex_quantity" />
                                     </div>
                                     <div class="flex flex-col">
                                         <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
@@ -256,6 +278,7 @@
                                     <th class="text-left py-1 font-medium">Product</th>
                                     <th class="text-left py-1 font-medium">Type</th>
                                     <th class="text-left py-1 font-medium">Aantal</th>
+                                    <th class="text-center py-1 font-medium">Serienr.</th>
                                     <th class="text-center py-1 font-medium">Verplicht</th>
                                     <th class="py-1"></th>
                                 </tr>
@@ -270,8 +293,17 @@
                                                 placeholder="Selecteer type" />
                                         </td>
                                         <td class="py-1.5 pr-2">
-                                            <input type="number" min="1" v-model.number="editForm.quantity"
-                                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" min="1" v-model.number="editForm.quantity"
+                                                    :disabled="editForm.flex_quantity"
+                                                    class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm" />
+                                                <SwitchComponent v-model="editForm.flex_quantity"
+                                                    v-tooltip="'Vrij aantal: pas invullen bij verkoop'" />
+                                            </div>
+                                        </td>
+                                        <td class="py-1.5 text-center">
+                                            <span v-if="rel.requires_serial" class="text-green-600 text-xs">✓</span>
+                                            <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                         <td class="py-1.5 text-center">
                                             <SwitchComponent v-model="editForm.is_required" />
@@ -291,7 +323,15 @@
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
                                                 '—'}}
                                         </td>
-                                        <td class="py-1.5">{{ rel.quantity }}</td>
+                                        <td class="py-1.5">
+                                            <span v-if="rel.flex_quantity"
+                                                class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Vrij</span>
+                                            <span v-else>{{ rel.quantity }}</span>
+                                        </td>
+                                        <td class="py-1.5 text-center">
+                                            <span v-if="rel.requires_serial" class="text-green-600 text-xs">✓</span>
+                                            <span v-else class="text-gray-300 text-xs">—</span>
+                                        </td>
                                         <td class="py-1.5 text-center">
                                             <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
@@ -342,7 +382,11 @@
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
                                                 '—'}}
                                         </td>
-                                        <td class="py-1.5">{{ rel.quantity }}</td>
+                                        <td class="py-1.5">
+                                            <span v-if="rel.flex_quantity"
+                                                class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Vrij</span>
+                                            <span v-else>{{ rel.quantity }}</span>
+                                        </td>
                                         <td class="py-1.5 text-center">
                                             <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
@@ -533,9 +577,10 @@
     <!-- Add asset drawer -->
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
         <AddAssetForm :allCustomers="allCustomers" :customersUseAjax="customersUseAjax" :productId="product.id"
-            :isBundle="product.bundle" :productTypicalDays="product.typical_certificate_days"
+            :isBundle="product.bundle" :isRegistable="product.registable"
+            :productTypicalDays="product.typical_certificate_days"
             :productTypeTypicalDays="product.product_type?.typical_certificate_days"
-            :required-productables-by-product="requiredProductablesByProduct" :bare="true"
+            :bundle-parts-by-product="bundlePartsByProduct" :bare="true"
             @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
@@ -588,7 +633,7 @@ const props = defineProps({
     eligibleChildProducts: { type: Array, default: () => [] },
     childProducts: { type: Array, default: () => [] },
     parentProducts: { type: Array, default: () => [] },
-    requiredProductablesByProduct: { type: Object, default: () => ({}) },
+    bundlePartsByProduct: { type: Object, default: () => ({}) },
     productAttributes: { type: Array, default: () => [] },
     selectedAttributeValues: { type: Object, default: () => ({}) },
     productSuppliers: { type: Array, default: () => [] },
@@ -612,6 +657,7 @@ const form = useForm({
     purchase_price: props.product.purchase_price,
     part_no: props.product.part_no,
     bundle: props.product.bundle ?? false,
+    registable: props.product.registable ?? true,
     active: props.product.active ?? true,
     warranty: props.product.warranty,
 });
@@ -632,6 +678,7 @@ watch([
     () => form.part_no,
     () => form.product_type_id,
     () => form.bundle,
+    () => form.registable,
     () => form.active,
     () => form.warranty,
 ], () => {
@@ -656,8 +703,11 @@ const newRelation = reactive({
     child_product_id: null,
     product_relation_id: null,
     quantity: 1,
+    flex_quantity: false,
     is_required: false,
 })
+
+
 
 function submitNewRelation() {
     router.post('/productables', {
@@ -665,6 +715,7 @@ function submitNewRelation() {
         child_product_id: newRelation.child_product_id,
         product_relation_id: newRelation.product_relation_id,
         quantity: newRelation.quantity,
+        flex_quantity: newRelation.flex_quantity,
         is_required: newRelation.is_required,
     }, {
         preserveScroll: true,
@@ -673,6 +724,7 @@ function submitNewRelation() {
             newRelation.child_product_id = null
             newRelation.product_relation_id = null
             newRelation.quantity = 1
+            newRelation.flex_quantity = false
             newRelation.is_required = false
         },
     })
@@ -683,12 +735,13 @@ function removeRelation(productableId) {
 }
 
 const editingId = ref(null)
-const editForm = reactive({ product_relation_id: null, quantity: 1, is_required: false })
+const editForm = reactive({ product_relation_id: null, quantity: 1, flex_quantity: false, is_required: false })
 
 function startEdit(rel) {
     editingId.value = rel.productable_id
     editForm.product_relation_id = rel.product_relation_id
     editForm.quantity = rel.quantity
+    editForm.flex_quantity = rel.flex_quantity
     editForm.is_required = rel.is_required
 }
 
@@ -700,6 +753,7 @@ function saveEdit() {
     router.patch(`/productables/${editingId.value}`, {
         product_relation_id: editForm.product_relation_id,
         quantity: editForm.quantity,
+        flex_quantity: editForm.flex_quantity,
         is_required: editForm.is_required,
     }, {
         preserveScroll: true,

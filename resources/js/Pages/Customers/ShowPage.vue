@@ -620,7 +620,7 @@
 
     <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${form.name}`">
         <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
-            :bare="true" :required-productables-by-product="requiredProductablesByProduct"
+            :bare="true" :bundle-parts-by-product="bundlePartsByProduct"
             @created="addAssetDrawerOpen = false" />
     </DrawerComponent>
 </template>
@@ -695,7 +695,7 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    requiredProductablesByProduct: {
+    bundlePartsByProduct: {
         type: Object,
         default: () => ({}),
     },

@@ -37,8 +37,7 @@
                         <HashtagIcon class="h-3.5 w-3.5 text-gray-500 dark:text-slate-500" />
                         <span
                             class="bg-yellow-100 dark:bg-yellow-900/40 text-gray-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium tracking-tight">
-                            <template v-if="asset.product.bundle">Bundel</template>
-                            <template v-else>SN {{ asset.serial_number }}</template>
+                            {{ assetSerialLabel(asset, 'SN ') }}
                         </span>
                     </div>
                     <div v-if="customerId && asset.linked_location" class="flex items-center gap-1 text-lavoro-blue dark:text-lavoro-blue">
@@ -78,7 +77,7 @@
                                 {{ child.product.brand.name }} {{ child.product.model }}
                             </Link>
                             <span class="text-gray-500 dark:text-slate-500">
-                                {{ child.product.bundle ? 'Bundel' : (child.serial_number ?? '—') }}
+                                {{ assetSerialLabel(child) }}
                             </span>
                         </li>
                     </ul>
@@ -125,7 +124,7 @@ import { CalendarDaysIcon, HashtagIcon, TrashIcon } from '@heroicons/vue/24/outl
 import { LocateFixed } from '@lucide/vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
-import { formatAddress } from '@/Utilities/Utilities';
+import { assetSerialLabel, formatAddress } from '@/Utilities/Utilities';
 
 const props = defineProps({
     assets: {

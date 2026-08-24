@@ -22,6 +22,7 @@ use App\Services\AssetTransferService;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
@@ -81,21 +82,7 @@ class AssetController extends Controller
 
         $this->attachOwningCustomers($assets->getCollection());
 
-        $all_products = Product::with(['brand', 'productType'])
-            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
-            ->orderBy('product_types.name', 'ASC')
-            ->select('products.*')
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->brand->name . ' ' . $product->model .
-                        ' (' . $product->productType->name . ')',
-                    'bundle' => $product->bundle,
-                    'typical_certificate_days' => $product->typical_certificate_days,
-                    'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
-                ];
-            });
+        $all_products = $this->productOptions();
 
         $customer_count = Customer::count();
         $product_count = Product::count();
@@ -109,7 +96,7 @@ class AssetController extends Controller
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'requiredProductablesByProduct' => ProductableService::requiredProductablesMap(),
+            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
             'perPage' => $this->perPage($request),
         ]);
     }
@@ -140,9 +127,10 @@ class AssetController extends Controller
                 'status' => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
             ]);
 
-            foreach ($validated['child_assets'] ?? [] as $childData) {
-                $productable = Productable::find($childData['productable_id']);
-                if (!$productable || !$productable->is_required) {
+            foreach ($validated['child_assets'] ?? [] as $child_data) {
+                $productable = Productable::find($child_data['productable_id']);
+
+                if (!$productable || !($productable->is_required || $productable->flex_quantity)) {
                     continue;
                 }
 
@@ -152,7 +140,7 @@ class AssetController extends Controller
                     'parent_asset_id' => $asset->id,
                     'productable_id' => $productable->id,
                     'product_relation_id' => $productable->product_relation_id,
-                    'serial_number' => $childData['serial_number'],
+                    'serial_number' => trim((string) ($child_data['serial_number'] ?? '')) ?: null,
                     'next_service_date' => $validated['next_service_date'] ?? null,
                     'status' => ($validated['is_active'] ?? true) ? 'Actief' : 'Niet actief',
                 ]);
@@ -180,21 +168,7 @@ class AssetController extends Controller
      */
     public function show(AssetReadRequest $request, Asset $asset)
     {
-        $all_products = Product::with(['brand', 'productType'])
-            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
-            ->orderBy('product_types.name', 'ASC')
-            ->select('products.*')
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->brand->name . ' ' .
-                        $product->model . ' (' . $product->productType->name . ')',
-                    'bundle' => $product->bundle,
-                    'typical_certificate_days' => $product->typical_certificate_days,
-                    'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
-                ];
-            });
+        $all_products = $this->productOptions();
         $relations = [
             'images',
             'tickets.asset.product.brand',
@@ -295,7 +269,7 @@ class AssetController extends Controller
             'parent_asset_id' => $asset->id,
             'productable_id' => $productable->id,
             'product_relation_id' => $productable->product_relation_id,
-            'serial_number' => $request->serial_number,
+            'serial_number' => trim((string) $request->serial_number) ?: null,
             'next_service_date' => null,
             'status' => 'Actief',
         ]);
@@ -440,6 +414,30 @@ class AssetController extends Controller
         return redirect()
             ->route('assets.index')
             ->with('success', 'Machine verwijderd.');
+    }
+
+    /**
+     * Every product as the machine forms offer it, ordered by type. Bundle and registable
+     * ride along because they decide whether the form asks for a serienummer at all.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function productOptions(): Collection
+    {
+        return Product::with(['brand', 'productType'])
+            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
+            ->orderBy('product_types.name', 'ASC')
+            ->select('products.*')
+            ->get()
+            ->map(fn (Product $product) => [
+                'id' => $product->id,
+                'name' => $product->brand->name . ' ' . $product->model
+                    . ' (' . $product->productType->name . ')',
+                'bundle' => $product->bundle,
+                'registable' => $product->registable,
+                'typical_certificate_days' => $product->typical_certificate_days,
+                'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
+            ]);
     }
 
     /**

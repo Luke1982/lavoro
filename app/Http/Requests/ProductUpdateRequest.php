@@ -19,6 +19,7 @@ use Illuminate\Validation\Validator;
  * @property string|null $purchase_price
  * @property string|null $part_no
  * @property bool|null $bundle
+ * @property bool|null $registable
  *
  * @method \App\Models\Product route(string $key = null)
  * @method mixed input(string $key = null, mixed $default = null)
@@ -28,6 +29,18 @@ class ProductUpdateRequest extends ProductRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * A bundle is a container and never carries a serial of its own, so registable follows
+     * the bundle switch. Only a request that actually turns the switch on derives it — a
+     * patch of something else leaves it alone.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('bundle') && $this->boolean('bundle')) {
+            $this->merge(['registable' => false]);
+        }
     }
 
     public function rules(): array
@@ -60,6 +73,7 @@ class ProductUpdateRequest extends ProductRequest
             'purchase_price' => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'part_no' => ['sometimes', 'nullable', 'string', 'max:255'],
             'bundle' => ['sometimes', 'nullable', 'boolean'],
+            'registable' => ['sometimes', 'nullable', 'boolean'],
             'active' => ['sometimes', 'nullable', 'boolean'],
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
@@ -74,7 +88,7 @@ class ProductUpdateRequest extends ProductRequest
                 }
 
                 $product = $this->route('product');
-                if (! $product) {
+                if (!$product) {
                     return;
                 }
 
@@ -101,12 +115,12 @@ class ProductUpdateRequest extends ProductRequest
                     return;
                 }
 
-                if (! $this->boolean('bundle')) {
+                if (!$this->boolean('bundle')) {
                     return;
                 }
 
                 $productId = $this->route('product')?->id;
-                if (! $productId) {
+                if (!$productId) {
                     return;
                 }
 
