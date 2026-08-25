@@ -162,7 +162,8 @@
                     "icon": "Mail",
                     "children": [
                         { "id": "standaardemails", "label": "Standaard e-mails", "href": "/standard-emails", "permission": "standardemail.manage" },
-                        { "id": "standaardbijlagen", "label": "Standaard bijlagen", "href": "/standard-attachments", "permission": "standardattachment.manage" }
+                        { "id": "standaardbijlagen", "label": "Standaard bijlagen", "href": "/standard-attachments", "permission": "standardattachment.manage" },
+                        { "id": "aankondigingen", "label": "Aankondigingen", "icon": "Megaphone", "href": "/internalannouncements", "permission": "internalannouncement.read" }
                     ]
                 },
                 {

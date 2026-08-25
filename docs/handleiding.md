@@ -283,6 +283,22 @@ De beheerder kan eigen velden definiëren op klanten, machines, producten, werkb
 
 Over je eigen handelingen krijg je nooit een melding. Een nieuwere melding over hetzelfde record vervangt de oudere.
 
+## Aankondigingen
+
+Een **aankondiging** is een bericht aan de eigen mensen dat gelezen moet worden. Het verschijnt onder in beeld, op elke pagina, en gaat pas weg als de ontvanger op **Begrepen** drukt. Wie dat wanneer deed wordt vastgelegd. Dat is het verschil met een melding: een melding vertelt iets, een aankondiging vraagt om een bevestiging.
+
+Beheer staat onder Communicatie → Aankondigingen.
+
+**Een aankondiging maken.** Je geeft een titel en een bericht, en kiest de doelgroep: aan iedereen, of aan bepaalde gebruikers. Opslaan is versturen — er is geen conceptstand. Optioneel vul je **zichtbaar tot en met** in: op de dag erna verdwijnt de balk, ook bij wie niet bevestigde. Laat je dat leeg, dan blijft de aankondiging staan tot iedereen hem bevestigd heeft.
+
+**De doelgroep is een momentopname.** "Aan iedereen" betekent iedereen die er op het moment van opslaan is. Wie later in dienst komt krijgt oude aankondigingen dus niet; wil je dat wel, dan open je de aankondiging en voeg je die persoon toe aan de doelgroep. Iemand uit de doelgroep halen kan ook, maar wie al bevestigd heeft blijft staan: die bevestiging is een vastgelegd feit.
+
+**Eén tegelijk.** Heeft iemand meerdere aankondigingen openstaan, dan ziet die de oudste. Na Begrepen schuift de volgende in beeld.
+
+**Terugkijken.** De lijst toont per aankondiging de doelgroep, hoeveel ontvangers al bevestigd hebben en of hij nog loopt. Op de aankondiging zelf staat wie hem kreeg, met per persoon de datum en tijd van bevestiging of "nog niet bevestigd", plus de tijdlijn met wat er aan de aankondiging veranderd is.
+
+**Rechten.** Aankondigingen bekijken, aanmaken, wijzigen en verwijderen zijn losse rechten. Bevestigen vraagt geen recht: wie de aankondiging krijgt mag hem bevestigen, en niemand anders. Wijzigen omvat het bepalen van de doelgroep.
+
 ## Gebruikers, rollen en rechten
 
 **Rechten** bepalen wat iemand mag. Ze zijn gebundeld in **rollen** (beheer onder Gebruikers → Rollen): een rol krijgt een set rechten en een set gebruikers. Eén rol is bijzonder: **admin** — een admin mag alles, ongeacht rechten, en is de enige die rollen kan toekennen en het admin-gedeelte (Bedrijf, Rollen, Instellingen) kan openen.

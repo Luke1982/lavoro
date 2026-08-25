@@ -19,6 +19,7 @@ export const CHAPTER_COLORS = {
     events: 'orange',
     milestones: 'orange',
     frequency: 'orange',
+    audience: 'violet',
     remarks: 'violet',
     products: 'violet',
     documents: 'blue',

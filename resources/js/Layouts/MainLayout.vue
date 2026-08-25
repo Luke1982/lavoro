@@ -85,6 +85,7 @@
     </div>
     <MobileTabBar v-if="page.props.auth?.user" :menu-open="sidebarOpen" @menu="sidebarOpen = !sidebarOpen" />
     <GlobalNotification />
+    <InternalAnnouncementBar v-if="page.props.auth?.user" />
 
         <!--
             Mounted once for the whole application: the shortcut has to work on
@@ -106,6 +107,7 @@ import { hasPermission } from '@/Utilities/Utilities'
 import { useMenu } from '@/Composables/useMenu.js'
 import MenuSidebar from '@/Components/Layout/MenuSidebar.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
+import InternalAnnouncementBar from '@/Components/InternalAnnouncementBar.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import PushPermissionBanner from '@/Components/UI/PushPermissionBanner.vue'

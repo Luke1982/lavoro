@@ -239,5 +239,10 @@ return [
         'auto_generate' => 'automatisch genereren',
         'auto_generate_interval' => 'genereerinterval',
         'auto_generate_interval_days' => 'genereerinterval in dagen',
+        'body' => 'bericht',
+        'expires_on' => 'zichtbaar tot en met',
+        'is_for_everyone' => 'aan iedereen',
+        'user_ids' => 'gebruikers',
+        'user_ids.*' => 'gebruiker',
     ],
 ];

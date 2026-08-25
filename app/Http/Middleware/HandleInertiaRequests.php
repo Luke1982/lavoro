@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Enums\TicketStatusses;
 use App\Models\Assistant;
 use App\Models\GeneralSetting;
+use App\Models\InternalAnnouncement;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -100,6 +101,28 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->userNotifications()->unread()->count()
                     : 0,
             ],
+            /**
+             * De aankondiging die deze gebruiker nu moet bevestigen, of null.
+             *
+             * De naam is met opzet lang. Een paginaprop overschrijft een
+             * gedeelde prop met dezelfde sleutel, en 'announcement' is precies
+             * hoe de detailpagina zijn eigen record noemt: daar las de balk dan
+             * de aankondiging van de pagina en ging hij nooit meer weg.
+             *
+             * Hier en niet in een eigen route: elke Inertia-navigatie ververst
+             * dit al, en na een bevestiging stuurt de controller terug naar
+             * dezelfde pagina, waarna de volgende openstaande aankondiging
+             * vanzelf in deze prop staat. Alleen wat de balk tekent, want de
+             * rest van het record gaat niemand aan die het moet lezen.
+             *
+             * Als functie, zodat de zoekopdracht alleen draait als er een
+             * Inertia-pagina getekend wordt. Elk formulier dat opslaat eindigt
+             * in een redirect, en die hoeft hier niet voor te betalen.
+             */
+            'pendingAnnouncement' => fn () => $request->user()
+                ? InternalAnnouncement::openFor($request->user())
+                    ?->only(['id', 'title', 'body'])
+                : null,
             /**
              * The public half of the VAPID keypair, which the browser needs in
              * hand to subscribe at all. Null when the installation has no keys,

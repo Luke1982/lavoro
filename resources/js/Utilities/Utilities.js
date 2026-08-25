@@ -530,3 +530,31 @@ export function subjectSubtitle(morph_type, with_subject, without_subject) {
 
     return subject ? with_subject(subject) : without_subject;
 }
+
+/**
+ * Hoe een aankondiging zich laat samenvatten. Doelgroep en voortgang leunen op
+ * de tellingen die de index meestuurt, zodat de lijst niets hoeft uit te rekenen
+ * wat de database al geteld heeft.
+ */
+export const announcementAudienceLabel = (announcement) => {
+    if (announcement.is_for_everyone) return "Iedereen";
+
+    const count = announcement.recipient_count ?? 0;
+
+    return count === 1 ? "1 gebruiker" : `${count} gebruikers`;
+};
+
+export const announcementProgressLabel = (announcement) =>
+    `${announcement.acknowledged_count ?? 0} van de ${announcement.recipient_count ?? 0}`;
+
+/**
+ * "Tot en met" telt de einddag mee, dus verlopen is pas de dag erna.
+ */
+export const announcementIsExpired = (announcement) =>
+    Boolean(announcement.expires_on) && dayjs(announcement.expires_on).isBefore(dayjs(), "day");
+
+/** Tekst en kleur voor de BadgeComponent, in één zet met v-bind te gebruiken. */
+export const announcementStatus = (announcement) =>
+    announcementIsExpired(announcement)
+        ? { text: "Verlopen", color: "gray" }
+        : { text: "Loopt", color: "green" };

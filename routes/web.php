@@ -27,6 +27,7 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
+use App\Http\Controllers\InternalAnnouncementController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceContractTemplateController;
@@ -435,6 +436,14 @@ Route::group(
             ->except(['show', 'create', 'edit']);
         Route::resource('standard-attachments', StandardAttachmentController::class)
             ->except(['show', 'create', 'edit']);
+        Route::resource('internalannouncements', InternalAnnouncementController::class)
+            ->except(['create', 'edit']);
+        // Buiten de resource om, want bevestigen vraagt geen recht op de
+        // aankondiging: iedereen die hem kreeg mag het, en niemand anders.
+        Route::post(
+            'internalannouncements/{internalannouncement}/acknowledge',
+            [InternalAnnouncementController::class, 'acknowledge']
+        )->name('internalannouncements.acknowledge');
         Route::resource('projects', ProjectController::class);
         Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
             ->name('projects.timeline');
