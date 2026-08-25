@@ -40,6 +40,14 @@ const store = (key, value) => {
 const open_ids = ref(new Set(readStored(OPEN_STATE_KEY, [])))
 
 /**
+ * Afmelden duurt merkbaar lang: het stopt de plaatsbepaling, zegt de pushdienst
+ * op, schrijft de service worker uit en gooit alle caches weg. Buiten de
+ * composable, zodat elke uitlogknop — de kaart, het smalle spoor, het mobiele
+ * paneel — dezelfde stand toont zonder dat iemand hem doorgeeft.
+ */
+const logging_out = ref(false)
+
+/**
  * Zes componenten gebruiken deze composable, en zonder deze grens zou elk van hen
  * bij iedere navigatie dezelfde tak opnieuw openklappen. Eén keer per pad is
  * genoeg; wie later komt, treft het al gedaan aan.
@@ -234,5 +242,7 @@ export function useMenu() {
         userRoles,
         companyName,
         companyLogo,
+        loggingOut: logging_out,
+        setLoggingOut: (value) => { logging_out.value = value },
     }
 }

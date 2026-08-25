@@ -92,10 +92,11 @@
                             </div>
                         </div>
                         <div class="rail-item relative">
-                            <button type="button" @click="$emit('logout')"
-                                class="flex size-10 items-center justify-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text">
-                                <LogOut class="size-4" />
-                                <span class="sr-only">Uitloggen</span>
+                            <button type="button" :disabled="loggingOut" @click="$emit('logout')"
+                                class="flex size-10 items-center justify-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text disabled:cursor-wait disabled:hover:bg-transparent">
+                                <LoaderCircle v-if="loggingOut" class="size-4 animate-spin" />
+                                <LogOut v-else class="size-4" />
+                                <span class="sr-only">{{ loggingOut ? 'Bezig met afmelden' : 'Uitloggen' }}</span>
                             </button>
                             <div class="rail-flyout">
                                 <span
@@ -114,7 +115,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { ChevronsLeft, LogOut, Search } from '@lucide/vue'
+import { ChevronsLeft, LoaderCircle, LogOut, Search } from '@lucide/vue'
 import MenuRow from '@/Components/Layout/MenuRow.vue'
 import MenuCards from '@/Components/Layout/MenuCards.vue'
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
@@ -135,6 +136,7 @@ defineEmits(['navigate', 'logout'])
 
 const {
     pinned, sections, cards, search, collapsed, setCollapsed, isOpen, toggle, authUser, initials,
+    loggingOut,
 } = useMenu()
 
 /**

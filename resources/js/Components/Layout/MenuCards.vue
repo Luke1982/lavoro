@@ -50,18 +50,19 @@
             <ChevronRight class="size-4 shrink-0 text-sidebar-muted transition-colors group-hover:text-sidebar-text" />
         </Link>
 
-        <button v-else-if="card.type === 'logout'" type="button" @click="$emit('logout')"
-            class="group flex w-full items-center gap-x-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text">
-            <component :is="navIcon(card.icon)" class="size-5 shrink-0" />
-            <span class="flex-1 text-left">{{ card.label }}</span>
-            <ChevronRight class="size-4 shrink-0 opacity-40" />
+        <button v-else-if="card.type === 'logout'" type="button" :disabled="loggingOut" @click="$emit('logout')"
+            class="group flex w-full items-center gap-x-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text disabled:cursor-wait disabled:hover:bg-transparent">
+            <LoaderCircle v-if="loggingOut" class="size-5 shrink-0 animate-spin" />
+            <component v-else :is="navIcon(card.icon)" class="size-5 shrink-0" />
+            <span class="flex-1 text-left">{{ loggingOut ? 'Bezig met afmelden…' : card.label }}</span>
+            <ChevronRight v-if="!loggingOut" class="size-4 shrink-0 opacity-40" />
         </button>
     </template>
 </template>
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import { ChevronRight, ExternalLink, Phone } from '@lucide/vue'
+import { ChevronRight, ExternalLink, LoaderCircle, Phone } from '@lucide/vue'
 import { navIcon } from '@/Navigation/icons.js'
 import { useMenu } from '@/Composables/useMenu.js'
 
@@ -76,5 +77,5 @@ defineProps({
 
 defineEmits(['navigate', 'logout'])
 
-const { authUser, initials, userRoles, companyName, companyLogo } = useMenu()
+const { authUser, initials, userRoles, companyName, companyLogo, loggingOut } = useMenu()
 </script>

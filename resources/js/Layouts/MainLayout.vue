@@ -86,6 +86,7 @@
     <MobileTabBar v-if="page.props.auth?.user" :menu-open="sidebarOpen" @menu="sidebarOpen = !sidebarOpen" />
     <GlobalNotification />
     <InternalAnnouncementBar v-if="page.props.auth?.user" />
+    <LogoutOverlay />
 
         <!--
             Mounted once for the whole application: the shortcut has to work on
@@ -111,6 +112,7 @@ import InternalAnnouncementBar from '@/Components/InternalAnnouncementBar.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
 import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import PushPermissionBanner from '@/Components/UI/PushPermissionBanner.vue'
+import LogoutOverlay from '@/Components/UI/LogoutOverlay.vue'
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
 import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
@@ -141,9 +143,15 @@ const { check: check_update } = useAppUpdate()
 const { init: init_deep_links } = useDeepLinks()
 
 const page = usePage()
-const { authUser, collapsed } = useMenu()
+const { authUser, collapsed, loggingOut, setLoggingOut } = useMenu()
 
 onMounted(async () => {
+    /**
+     * De vlag leeft buiten dit onderdeel en overleeft dus een afmelding. Staat
+     * deze laag er weer, dan zijn we ingelogd en is er niets meer gaande.
+     */
+    setLoggingOut(false)
+
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
         try { await init_deep_links() } catch (e) { console.error('Deep link init failed:', e) }
@@ -179,7 +187,17 @@ const dismissGoogleBanner = () => {
 
 const sidebarOpen = ref(false)
 
+/**
+ * Duurt merkbaar lang, want er wordt van alles afgebroken voordat we weggaan.
+ * Zonder terugkoppeling lijkt de knop kapot en drukt iedereen twee keer, dus de
+ * stand gaat aan voordat het eerste trage stuk begint en gaat niet meer uit:
+ * hierna verlaten we de pagina toch.
+ */
 const logout = async () => {
+    if (loggingOut.value) return
+
+    setLoggingOut(true)
+
     await stop_tracking()
 
     // Voor het afmelden, want daarna is de service worker weg en kan het
