@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +14,7 @@ class UserUpdateRequest extends FormRequest
         if ($route_user) {
             return $this->user()->can('update', $route_user);
         }
+
         return $this->user() !== null;
     }
 
@@ -35,9 +37,11 @@ class UserUpdateRequest extends FormRequest
         ];
 
         $request_user = request()->user();
-        if ($request_user && method_exists($request_user, 'isAdmin') && $request_user->isAdmin()) {
+        if ($request_user && $request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
             $rules['role_ids.*'] = 'integer|exists:roles,id';
+        }
+        if ($request_user && method_exists($request_user, 'isAdmin') && $request_user->isAdmin()) {
             $rules['plannable'] = 'sometimes|boolean';
         }
 

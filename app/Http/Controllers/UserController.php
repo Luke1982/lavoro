@@ -32,7 +32,7 @@ class UserController extends Controller
 
         return inertia('Users/EditPage', [
             'user' => null,
-            'allRoles' => Role::orderBy('name')->get(['id', 'name']),
+            'allRoles' => $this->assignableRoles(),
         ]);
     }
 
@@ -43,7 +43,7 @@ class UserController extends Controller
 
         return inertia('Users/EditPage', [
             'user' => $user,
-            'allRoles' => Role::orderBy('name')->get(['id', 'name']),
+            'allRoles' => $this->assignableRoles(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
@@ -55,10 +55,12 @@ class UserController extends Controller
     public function store(UserStoreRequest $request)
     {
         $data = $request->validated();
-        unset($data['avatar']);
+        $role_ids = $data['role_ids'] ?? null;
+        unset($data['avatar'], $data['role_ids']);
         $user = User::create($data);
-        $role_ids = $data['role_ids'] ?? [];
-        $user->roles()->sync($role_ids);
+        if ($role_ids !== null) {
+            $user->roles()->sync($role_ids);
+        }
 
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
 
@@ -95,6 +97,16 @@ class UserController extends Controller
     }
 
     /**
+     * Roles the current user may hand out; empty when they may not.
+     */
+    private function assignableRoles()
+    {
+        return auth()->user()?->can('assignRoles', User::class)
+            ? Role::orderBy('name')->get(['id', 'name'])
+            : [];
+    }
+
+    /**
      * Edit the currently authenticated user's profile (non-admins allowed).
      */
     public function editSelf()
@@ -105,7 +117,7 @@ class UserController extends Controller
 
         return inertia('Users/EditPage', [
             'user' => $user,
-            'allRoles' => $user->isAdmin() ? Role::orderBy('name')->get(['id', 'name']) : [],
+            'allRoles' => $this->assignableRoles(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')

@@ -56,7 +56,7 @@
                         <TextInput v-model="form.password" type="password" label="Nieuw wachtwoord (optioneel)"
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
-                    <div v-if="isAdmin">
+                    <div v-if="canAssignRoles">
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rollen</label>
                         <ComboBox v-model="form.role_ids" :options="allRoles" multiple />
                         <div v-if="form.errors.role_ids" class="text-xs text-red-600 mt-1">{{ form.errors.role_ids }}
@@ -102,7 +102,7 @@
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { initials } from '@/Utilities/Utilities'
+import { initials, hasPermission } from '@/Utilities/Utilities'
 import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -113,6 +113,7 @@ const props = defineProps({ user: Object, allRoles: { type: Array, default: () =
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
+const canAssignRoles = computed(() => hasPermission('user.assign_roles'))
 
 const isEdit = computed(() => !!props.user)
 const isSelfEdit = computed(() =>

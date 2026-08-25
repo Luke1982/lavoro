@@ -26,6 +26,15 @@ class UserPolicy
         return $user->hasPermission('user.update');
     }
 
+    /**
+     * Wie rollen uitdeelt deelt indirect alle rechten uit, dus dit staat los
+     * van user.update.
+     */
+    public function assignRoles(User $user): bool
+    {
+        return $user->hasPermission('user.assign_roles');
+    }
+
     public function delete(User $user, User $model): bool
     {
         return $user->id !== $model->id && $user->hasPermission('user.delete');
