@@ -1746,15 +1746,30 @@ Note `/build/` is in the *cacheable* list here, where the current code has it in
 
 Bump `CACHE_NAME` in the same commit. Existing installs already hold cached responses from before this change, and nothing else evicts them. (The convention is to set it to the short hash of the commit that ships the change — `lavoro-cache-<sha>` — so it is bumped by whoever last touched the file rather than by remembering to.)
 
-**The service worker is not only a cache.** It also receives web push and routes the click, and the routing half has a tenancy hazard the caching half does not:
+**`public/service-worker.js` does two unrelated jobs, and the second one has a tenancy problem of its own.**
+
+The first job is caching, which is what everything above is about. The second: it receives push notifications, and when somebody taps one, it decides which page to open. That second job is the problem.
+
+On a tap, the worker opens whatever path the server put in the notification:
 
 ```js
 const url = data?.url ? data.url : (…) ? `/serviceorders/${data.id}` : '/';
 ```
 
-That is a bare path, and a bare path means "whatever tenant this browser is currently signed in to". A push written for tenant A, tapped after the person has signed into tenant B on the same browser, opens tenant B's `/serviceorders/123` — a real record, belonging to someone else, presented as the thing they were just notified about. Route-model binding cannot catch it, because nothing is wrong with the request; it is a correct page reached from the wrong reason.
+`/serviceorders/123` names no company. Ids are per-tenant auto-increments, so werkbon 123 exists in *every* tenant and means something different in each — the path alone resolves to "werkbon 123 of whichever company this browser is signed into right now."
 
-Do not solve this in Task 14 — the fix belongs with the tenant-aware push work and is sketched in Known impact 14. Two things do belong here: leave `/files/` and every other controller-served path out of the cache as above, and be aware while testing push that the two mechanisms now share this file, so a change to one ships in the same worker as the other.
+So:
+
+1. A notification arrives for Spee BV about werkbon 123.
+2. The person later signs into Jansen BV on the same browser — a support engineer, a shared phone in the van.
+3. They tap the old notification.
+4. They are shown **Jansen BV's** werkbon 123: a real record belonging to a different company, presented as the thing they were notified about.
+
+Route-model binding cannot catch this. Nothing is wrong with the request — it is a valid page, correctly authorised, reached for the wrong reason.
+
+**Do not fix it in this task.** The fix — putting the tenant in the push payload and checking it before navigating — belongs with the push feature, and is written up in Known impact 14.
+
+Two things do belong here. Keep `/files/` and every other controller-served path out of the cache, as above. And remember that the caching code and the push code sit in the same file: bump `CACHE_NAME` for a cache change and you ship whatever push changes are in the working tree along with it, and vice versa.
 
 - [ ] **Step 6: Update the frontend to use the file routes instead of `/storage/`**
 
@@ -6690,13 +6705,13 @@ git commit -m "feat(tenancy): resolve a bearer token's tenant from the central l
 
     *Caching.* Task 14 Step 5 narrows the cache to static assets, which closes the file routes. What it does not change: the cache itself is one bucket per browser origin, and top-level navigations are still cached (network-first, so only served when offline). On a shared browser, tenant B could be shown tenant A's cached page shell while offline. Bumping `CACHE_NAME` on login, or keying the cache by tenant, would close it if this ever matters.
 
-    *Push routing, and this one is sharper.* `notificationclick` navigates to `data.url` — a bare path like `/serviceorders/123`, written by the tenant that raised the notification. Ids are per-tenant auto-increments, so if the person has since signed into another tenant on that browser, the tap lands on a real record belonging to someone else, presented as the thing they were notified about. Nothing errors; route-model binding is satisfied, because the request is well-formed and merely wrong.
+    *Push notifications — the worse of the two.* Tapping a notification makes the worker open `data.url`, a bare path like `/serviceorders/123`. That path names no company, and ids are per-tenant auto-increments, so werkbon 123 exists in every tenant. If the person has signed into a different company on that browser since the notification arrived, the tap opens **that** company's werkbon 123 — a real record belonging to someone else, shown as the thing they were notified about. Nothing errors and nothing is unauthorised; the page is simply the wrong one, reached for the wrong reason. Task 14 Step 5 walks through it.
 
-    Two properties keep this narrow today: it needs one human with accounts in two tenants on one browser, and it needs a notification to survive the switch. Neither is exotic — a support engineer, a phone left signed in — so this is "unlikely" rather than "prevented".
+    Two things have to line up for it to happen: one person using two companies on one browser, and an old notification still sitting there when they switch. Neither is exotic — a support engineer, a phone left signed in in the van — so treat this as unlikely rather than prevented.
 
     Closing it means carrying the tenant on the notification and checking it before navigating: put `tenant_id` in the push payload when `SendWebPushNotificationsJob` builds it, expose the current tenant to the worker (a `/whoami` fetch, or a value written into the cache at login), and fall back to `/` on a mismatch rather than opening the wrong record. That is a self-contained piece of work, it belongs with the push feature rather than with any task in this plan, and it should be done before push is enabled for a second tenant.
 
-    `push_subscriptions.endpoint` being `unique()` per tenant database is the related half and is *correct* as it stands: the same browser legitimately holds one subscription per tenant it is signed into, and each tenant's job encrypts to its own row. No change needed there.
+    One nearby thing that looks wrong and is not: `push_subscriptions.endpoint` is `unique()` within each tenant database, so the same browser can hold one subscription row per company it is signed into. That is correct — each company's job encrypts to its own row. Leave it alone.
 
 15. **Bearer-token API clients are designed but not built.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. **Task 41** specifies the whole path for when that changes: a central `access_token_tenant_lookups` table keyed on the SHA-256 Sanctum already stores, an observer keeping it in step, and one extra branch in `InitializeTenancyForApi`. It is written up rather than built because nothing calls it yet and dead code that cannot be exercised end-to-end is its own liability — but the *decision* is made, so nobody reaches for a caller-supplied header under deadline.
 
