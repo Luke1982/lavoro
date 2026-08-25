@@ -33,7 +33,7 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 
 1. **Email must be globally unique across all tenants.** Because we find the tenant *from* the email at login, the same email cannot belong to two different companies. This is enforced at user creation (Task 19) and the central lookup table (Task 6).
 2. **Sessions stay on the database driver but pinned to the central connection** (`SESSION_CONNECTION=central`, Task 7). The session is read before tenancy is initialized, so it cannot live in a tenant database.
-3. **Cache stays on the database driver, pinned to the central connection, and isolated by a per-tenant key prefix** (Task 10). Both halves are required and they are independent: pinning the connection is what stops the store looking for a `cache` table inside the tenant database, where there is none; the prefix is what keeps tenants out of each other's entries in the one shared table. We do *not* use the package's tag-based cache bootstrapper because the `database` cache store does not support tagging. The prefix approach is **cache-driver-agnostic** — it works identically on `file`, `database`, and `redis`, so adopting Redis later is a `CACHE_STORE=redis` change with no tenancy code touched (the connection pin becomes moot at that point, since Redis is not a database connection).
+3. **Cache stays on the database driver, pinned to the central connection, and isolated by a per-tenant key prefix** (Task 10). Both changes are needed and they do different jobs. Pinning the connection stops the store looking for a `cache` table inside the tenant database, where there is none. The prefix stops tenants reading each other's entries in the one shared table. We do *not* use the package's tag-based cache bootstrapper because the `database` cache store does not support tagging. The prefix approach is **cache-driver-agnostic** — it works identically on `file`, `database`, and `redis`, so adopting Redis later is a `CACHE_STORE=redis` change with no tenancy code touched (the connection pin becomes moot at that point, since Redis is not a database connection).
 
 **Current environment (verified):** `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database`. This plan keeps all of those drivers — no Redis required.
 
@@ -144,7 +144,7 @@ The default `mysql` connection gets switched to the tenant's database on every t
 | `lavoro_provisioner@localhost` | **no password** — Unix socket | all `lavoro_tenant_%` databases and `lavoro_landlord`, plus `CREATE USER` | `tenant:create` / `tenant:delete`, run from the CLI as a specific Linux user |
 | `lavoro_tenant_<id>@%` | generated password, stored encrypted on the tenant row | **only that tenant's own database** | tenant requests, via the per-tenant connection |
 
-Why this shape:
+Why it is split three ways:
 
 - **The web app can no longer reach any tenant database with its own credentials.** Tenant queries authenticate as that tenant's user. A bug that fails to switch tenant context now hits a MySQL permission error instead of returning another customer's data — the isolation stops depending on the application being correct.
 - **The privileged account has no password to steal.** MySQL's `auth_socket` plugin authenticates by *operating-system user identity* over the local socket. Only the Linux user named `lavoro_provisioner` can use it. There is no secret in `.env`, no secret on disk. The web server runs as `www-data`, so even a fully compromised app cannot create or drop databases or users.
@@ -264,7 +264,7 @@ That fails in the least helpful way available. Over a socket MySQL sees the clie
 
 A separate key avoids the collision outright and says what it is for. Nothing but the provisioner connection should ever read it.
 
-If you would rather keep `DB_SOCKET` (a shared `.env` with other tooling, say), the alternative is to add `'unix_socket' => ''` to the `mysql` connection block as well, exactly as the `central` block below already does — but then the safety lives in a line that looks like boilerplate, and the next person to regenerate `config/database.php` from a Laravel skeleton removes it without noticing. Prefer the distinct key.
+If you would rather keep `DB_SOCKET` (a shared `.env` with other tooling, say), the alternative is to add `'unix_socket' => ''` to the `mysql` connection block as well, exactly as the `central` block below already does — but then the thing keeping you safe is a line that looks like boilerplate. The next person to regenerate `config/database.php` from a Laravel skeleton deletes it without noticing. Prefer the distinct key.
 
 - [ ] **Step 5: Add the `central` and `provisioner` connections after the `mysql` block**
 
@@ -325,7 +325,20 @@ git commit -m "feat(tenancy): add central and provisioner database connections"
 
 ## Task 3: Replace `config/tenancy.php`
 
-The bootstrappers list is deliberate: the package's `DatabaseTenancyBootstrapper` and `QueueTenancyBootstrapper` are used as-is, but instead of the package's tag-based cache bootstrapper we register our own prefix-based one (built in Task 10), and we do not use the package filesystem bootstrapper (file isolation is done by disk-root repointing in Task 14 — our class is named `TenantStorageBootstrapper` precisely so it is never confused with the package's `FilesystemTenancyBootstrapper`, which additionally suffixes `storage_path()` and which we deliberately avoid).
+Four bootstrappers run when a tenant is initialized. Two come from the package and two are ours:
+
+| Bootstrapper | Source | What it does |
+| --- | --- | --- |
+| `DatabaseTenancyBootstrapper` | package | switches the database connection |
+| `QueueTenancyBootstrapper` | package | tags queued jobs with the tenant |
+| `PrefixCacheBootstrapper` | ours (Task 10) | prefixes cache keys per tenant |
+| `TenantStorageBootstrapper` | ours (Task 14) | repoints the `public` and `local` disk roots |
+
+The package has its own cache and filesystem bootstrappers. Neither is used, for a different reason each.
+
+Its cache bootstrapper isolates tenants using cache *tags*, and the `database` cache store does not support tags at all.
+
+Its `FilesystemTenancyBootstrapper` moves the whole storage tree by suffixing `storage_path()`, which would give every tenant its own logs and compiled views — see Task 14 Step 1 for why that is unwanted. Ours repoints two disk roots and nothing else, and carries a different name so the two are never mistaken for each other.
 
 **The `mysql` manager is `PermissionControlledMySQLDatabaseManager`** (namespace `Stancl\Tenancy\TenantDatabaseManagers\`, verified against the v3.10 source — note it is *not* under `Database\Drivers`, which does not exist). It extends the plain `MySQLDatabaseManager` and additionally implements `ManagesDatabaseUsers`, so creating a tenant also creates a MySQL user scoped to that tenant's database, and deleting a tenant drops it. Its default grant list is data-manipulation only:
 
@@ -765,7 +778,9 @@ Two things follow from those numbers and both belong here rather than in Task 39
 
 It is the dearest module in the catalogue by a distance — €22,50 against €27,50 for the entire Starter package — so for a one-or-two-person tenant it very nearly doubles the bill. That is the conversation sales will have rather than a technical problem.
 
-And the split is **€12,50 of allowance against a €10,00 margin floor**, which is a deliberate choice to sell a generous limit rather than a wide margin. It is the right way round for this product: an assistant people stop using in the third week of the month is worth less than the margin it protects, and at today's measured costs €12,50 is roughly 830 cached questions — enough that a normal tenant never thinks about it, which is the whole point of charging a flat fee instead of metering. What it does mean is that the worst case is now €12,50 of supplier spend per tenant per month rather than €5, and that the unmetered web-search cost in Task 39 eats a real fraction of the €10,00 floor rather than a token one. Both of those are consequences to accept knowingly, not reasons to reconsider.
+The split is **€12,50 of allowance against a €10,00 margin floor**. That sells a generous limit rather than a wide margin, which is the right way round here: an assistant people stop using in week three is worth less than the margin it protects. At today's costs €12,50 is roughly 830 cached questions — enough that a normal tenant never thinks about it, which is the point of a flat fee.
+
+Two consequences to accept knowingly rather than rediscover. The worst case is €12,50 of supplier spend per tenant per month. And the unmetered web-search cost in Task 39 now eats a real slice of the €10,00 floor rather than a token one.
 
 - [ ] **Step 5: Commit**
 
@@ -915,7 +930,11 @@ git commit -m "feat(tenancy): split migrations into central and tenant directori
 
 Jobs must always be stored centrally so the worker finds them regardless of tenant context. The `QueueTenancyBootstrapper` records the active tenant in each job payload and re-initializes it on the worker, so queued jobs still run in the right tenant.
 
-The full queued set today: Google sync (`app/Jobs/Google/*`), FCM notifications, the customer/supplier imports, `SendStandardEmailJob`, `BulkMoveServiceOrderStageJob` (added with the signal layer — a bulk stage move of more than 40 orders goes to the queue, and its Eloquent saves fire signals whose listeners then write to whichever database the job's tenant tag resolved), `SendWebPushNotificationsJob` and `GeocodeMissingCoordinatesJob`. All are dispatched from tenant context, so all are tagged; none needs a manual `tenancy()->initialize()`.
+Everything queued today: Google sync (`app/Jobs/Google/*`), FCM notifications, the customer and supplier imports, `SendStandardEmailJob`, `BulkMoveServiceOrderStageJob`, `SendWebPushNotificationsJob` and `GeocodeMissingCoordinatesJob`.
+
+All of them are dispatched from inside tenant context, so all of them are tagged, and none needs a manual `tenancy()->initialize()`.
+
+`BulkMoveServiceOrderStageJob` is the one to keep an eye on. A bulk stage move of more than 40 orders goes to the queue, and its Eloquent saves fire signals whose listeners write to the database — so the job's tenant tag decides where an entire batch of audit rows lands.
 
 The two newest are worth a second's thought each, and both come out fine. `SendWebPushNotificationsJob` reads `push_subscriptions` — a tenant table — and deletes rows the push service reports as gone, so it must resolve the tenant before it reads anything, which the tag does. `GeocodeMissingCoordinatesJob` writes coordinates back onto `customers`, likewise tenant. Task 20 adds two more (`assistant:prune` and `notifications:missing-times`), and those are the ones that *would* have run against the central database, because a schedule has no tenant to be tagged with.
 
@@ -990,7 +1009,7 @@ The first of those is the one to think about. `ConfirmationToken::claim()` is wh
 
 - [ ] **Step 1: Pin the cache and its locks to the central connection**
 
-Same reasoning and same shape as Task 9's queue pinning — and for the same reason it is done in config rather than left to an env var nobody sets:
+Same reasoning as Task 9's queue pinning, and the same fix — written into config rather than left to an env var nobody sets:
 
 ```php
 'database' => [
@@ -1209,7 +1228,7 @@ have exactly one user. The other three do not share a body at all — each clear
 own fields, and the bodies above are three different pieces of code that merely
 happen to have the same signature. A trait can share an implementation; it cannot
 share the absence of one. Had the delegate survived on all four, a trait would have
-been right — which is the tell that the delegate was the thing to remove.
+been right. That it is not is the sign that the delegate itself was the mistake.
 
 **Why the interface method is not simply called `reset()`**, which would have let
 three classes satisfy it with no edit at all: a name that generic is satisfied *by
@@ -1298,7 +1317,11 @@ class TenancyServiceProvider extends ServiceProvider
 
 Listening on both events double-flushes when switching straight from one tenant to another — `TenancyEnded` then `TenancyInitialized`. That is harmless and cheaper than reasoning about which of the two is guaranteed to fire in every path the package takes.
 
-Without this reset, a **console command that loops tenants in one process** — `tenants:migrate`, `tenant:overview`, the per-tenant schedule dispatch in Task 20, any future backfill — merges the second tenant's save into the first tenant's remembered activity id, and `RecordActivity::mergeInto()` rewrites *that tenant's* row in its own database. Rare, silent, and it corrupts an audit trail. PHP-FPM covers the web path by giving each request a fresh container; nothing covers the console path but this.
+The case this protects is a **console command that loops tenants in one process**: `tenants:migrate`, `tenant:overview`, the per-tenant schedule dispatch in Task 20, any future backfill.
+
+Without the reset, the second tenant's save merges into the activity id remembered from the first, and `RecordActivity::mergeInto()` then rewrites *that* tenant's row in *that* tenant's database. Rare, silent, and it corrupts an audit trail.
+
+The web path is already safe — PHP-FPM gives each request a fresh container. Nothing else covers the console path.
 
 - [ ] **Step 5: Register the provider in `bootstrap/providers.php`**
 
@@ -1350,7 +1373,11 @@ git commit -m "feat(tenancy): clear tenant-scoped container state from one regis
 
 ## Task 12: Session-based tenancy middleware (with remember-me cookie fallback)
 
-On every web request, after the session is read, switch to the tenant stored in the session. If the session has no tenant (fresh session revived by the remember-me recaller), fall back to the long-lived `tenant_id` cookie set at login (Task 15) — this is what keeps `Auth::attempt(..., remember: true)` working, because the auth guard resolves the recaller *after* this middleware has already switched the database. Always end tenancy after the response so the connection is not left switched (matters for long-running workers like Octane).
+On every web request, once the session has been read, switch to the tenant stored in it.
+
+If the session has no tenant — a fresh session revived by the remember-me recaller — fall back to the long-lived `tenant_id` cookie set at login (Task 15). That fallback is what keeps `Auth::attempt(..., remember: true)` working: the auth guard resolves the recaller *after* this middleware has already picked a database, so without the cookie there would be nothing to pick.
+
+End tenancy after the response, so the connection is not left switched. That matters for long-running workers such as Octane.
 
 The cookie is encrypted/decrypted automatically by the web group's `EncryptCookies` middleware.
 
@@ -1409,7 +1436,9 @@ This is the single most order-sensitive change in the plan. The middleware must 
 - **before** `SubstituteBindings`, or every route-model binding (`{serviceorder}`, `{customer}`, …) resolves against the **central** database and 404s;
 - **before** the `auth` middleware and `HandleInertiaRequests`, both of which touch `Auth::user()` and therefore query the tenant database.
 
-`$middleware->web(append: [...])` does **not** achieve this. Laravel 12's default web group is `EncryptCookies, AddQueuedCookiesToResponse, StartSession, ShareErrorsFromSession, ValidateCsrfToken, SubstituteBindings` (`vendor/laravel/framework/src/Illuminate/Foundation/Configuration/Middleware.php:485-491`) — appending lands the middleware *after* `SubstituteBindings`, which is exactly the failure above. And relative order between group and route middleware is decided by the framework's priority list anyway, so appending is not even deterministic against `auth`.
+`$middleware->web(append: [...])` does **not** achieve this. Laravel 12's default web group is `EncryptCookies, AddQueuedCookiesToResponse, StartSession, ShareErrorsFromSession, ValidateCsrfToken, SubstituteBindings` (`vendor/laravel/framework/src/Illuminate/Foundation/Configuration/Middleware.php:485-491`).
+
+Appending therefore lands the middleware *after* `SubstituteBindings` — the exact failure described above. And it would not help anyway: the order between group middleware and route middleware is settled by the framework's priority list, so appending decides nothing about where this ends up relative to `auth`.
 
 Register it in the group **and** pin its position in the priority list:
 
@@ -1508,7 +1537,9 @@ git commit -m "fix: guard company Inertia share when tenancy not initialized"
 
 ## Task 14: Per-tenant storage isolation + authenticated file serving
 
-Each tenant gets a completely separate storage root: `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`. A custom filesystem bootstrapper repoints the `public` and `local` disk roots into the active tenant's folder whenever tenancy is initialized, so **code that goes through `Storage::disk(...)` needs no changes** — `->store('uploaded/...', 'public')` automatically lands inside the tenant's folder, and the stored `path` stays relative (no tenant prefix in the database).
+Each tenant gets a completely separate storage root: `storage/tenant-<id>/public/...` and `storage/tenant-<id>/local/...`. A custom filesystem bootstrapper repoints the `public` and `local` disk roots into that folder whenever tenancy is initialized.
+
+The consequence worth knowing up front: **code that goes through `Storage::disk(...)` needs no changes.** A call like `->store('uploaded/...', 'public')` lands inside the tenant's folder by itself, and the `path` written to the database stays relative — no tenant prefix is stored anywhere.
 
 **Code that does *not* go through a disk does need changing, and it is easy to miss.** Seven call sites build an absolute path or a public URL by hand. These bypass the disk root entirely, so after this task they would keep pointing at the shared central storage tree — silently, with no error: PDFs would render with missing photos and no logo, and imported images would be written where nothing can read them. Step 7 fixes all seven. Re-run the greps in Step 7 before implementing, in case more have appeared.
 
@@ -1712,7 +1743,7 @@ The two existence checks stay for the reason they were written: `null` is what m
 
 `public/service-worker.js` serves same-origin GETs cache-first. Every id in this app is a per-tenant auto-increment, so `/files/images/5` is a *different file* in each tenant; a cached copy could be shown to a user of another tenant on a shared browser, and stale copies would survive image replacement.
 
-**`/files/` is not the only route with this shape.** The same reasoning covers every controller-served file:
+**`/files/` is not the only route that streams a file through a controller.** The same reasoning covers all of them:
 
 | Route | Origin |
 | --- | --- |
@@ -1769,7 +1800,9 @@ Route-model binding cannot catch this. Nothing is wrong with the request — it 
 
 **Do not fix it in this task.** The fix — putting the tenant in the push payload and checking it before navigating — belongs with the push feature, and is written up in Known impact 14.
 
-Two things do belong here. Keep `/files/` and every other controller-served path out of the cache, as above. And remember that the caching code and the push code sit in the same file: bump `CACHE_NAME` for a cache change and you ship whatever push changes are in the working tree along with it, and vice versa.
+So this step changes one thing only: the cache. Keep `/files/` and every other controller-served path out of it, as set out above.
+
+One practical warning while you are in that file. A browser only installs a new service worker when the file's contents change, and bumping `CACHE_NAME` is how you force that. Both features live in this one file, so you cannot ship a cache change without also shipping whatever push code is currently in it. Check you are not about to release half-finished push work along with this fix.
 
 - [ ] **Step 6: Update the frontend to use the file routes instead of `/storage/`**
 
@@ -2551,7 +2584,7 @@ git commit -m "feat(tenancy): sync central user lookup on user changes"
 
 The lookup table's email primary key would throw a raw SQL error if an admin created a user whose email already exists in another tenant. Validate it cleanly instead. The routes use `UserStoreRequest` (store) and `UserUpdateRequest` (update **and** `me.update` via `updateSelf`, where there is no `{user}` route parameter — verified at `UserController.php:55,68,120`). `StoreUserRequest`/`UpdateUserRequest` also exist in `app/Http/Requests/` but are not referenced by the user routes; leave those untouched.
 
-Both requests already have exactly the shape this task assumes: `UserStoreRequest::rules()` has the flat `'email' => 'required|email|unique:users,email'` string, and `UserUpdateRequest::rules()` already computes `$route_user` / `$route_user_id` / `$current_user_id` / `$ignore_id` in that order, so the `$ignore_email` snippet below drops in directly after them.
+Both requests are already written the way this task assumes: `UserStoreRequest::rules()` has the flat `'email' => 'required|email|unique:users,email'` string, and `UserUpdateRequest::rules()` already computes `$route_user` / `$route_user_id` / `$current_user_id` / `$ignore_id` in that order, so the `$ignore_email` snippet below drops in directly after them.
 
 Consistency note tying this to Task 18: `unique:users,email` counts soft-deleted users — the rule queries the table through the presence verifier, which applies no Eloquent global scopes — and the central lookup keeps a row for soft-deleted users. The two checks therefore agree: an email belonging to a trashed user is rejected by both, not one.
 
@@ -2626,7 +2659,7 @@ The maintenance-contract one is the most important of the six to convert: `gener
 
 **The assistant prune is the most interesting of the six, because it is the only one that deletes files as well as rows.** `PruneAssistantQuestionsCommand` clears `assistant_questions` and `assistant_conversation_facts`, then calls `ConversationPhotos::pruneOlderThan()`, `ConversationFiles::pruneOlderThan()` and deletes the reports — all three through `Storage::disk('local')`, whose root Task 14 has repointed at the active tenant. Run outside tenant context it does two wrong things at once: `DELETE` against a central database that has no such tables, and a directory sweep of a storage root that belongs to nobody. Inside tenant context, both halves land where they should with no change to the command itself.
 
-`notifications:missing-times` is the plainest of the six and needs no commentary beyond the shape: it reads `events` and writes `user_notifications`, both tenant tables, and pushes through `push_subscriptions`, likewise.
+`notifications:missing-times` is the plainest of the six. It reads `events`, writes `user_notifications` and pushes through `push_subscriptions` — all three tenant tables, so it simply has to run inside a tenant.
 
 **Files:**
 - `app/Jobs/Google/DispatchTenantCalendarPullsJob.php` (new)
@@ -2778,7 +2811,7 @@ Both commands keep working by hand, and by hand is now the *only* way to reach t
 
 - [ ] **Step 5: Rewrite `routes/console.php` so every tick only dispatches**
 
-`cursor()` replaces `get()` so the central tenant list is streamed rather than loaded into memory in one array — cheap either way at today's tenant count, but it's the free half of the "chunking" mitigation Known impact point 6 calls for.
+`cursor()` replaces `get()` so the central tenant list is streamed rather than loaded into memory in one array — cheap either way at today's tenant count, and it is the cheap part of the chunking that Known impact 6 asks for, so there is no reason not to.
 
 ```php
 <?php
@@ -4127,7 +4160,11 @@ trait RefreshesTenantDatabase
 
 **The connection name is `tenant`, not `mysql`.** stancl's `DatabaseManager::connectToTenant()` creates a connection literally named `tenant` and calls `setDefaultConnection('tenant')`; the name is hardcoded in v3 and not configurable (see Task 3). Using `DB::connection('mysql')` here would begin a transaction on a *different, non-tenant* connection — tenant writes would commit for real and leak into every subsequent test, while the rollback silently succeeded against an untouched connection. Getting this wrong produces order-dependent test failures that look like flakiness.
 
-The two `str_contains(..., 'test')` checks are layer (2) from the description above — they run before any migration or query, on every single test, and throw rather than silently proceeding. `Tenant::create()` synchronously runs the full `TenantCreated` pipeline from Task 11 (`CreateDatabase`, `MigrateDatabase`, `SeedDatabase` — `shouldBeQueued(false)`), so the first test that runs creates a real `lavoro_test_tenant_test-tenant` MySQL database, migrates it with the tenant migrations from Task 8, and seeds it with `TenantDatabaseSeeder` (Task 23). It is left behind after the run — cheap to keep, and `migrate:fresh` on the next run only refreshes the central schema, so a stale tenant database from a previous run is simply reused (its migrations already match, since `MigrateDatabase` is idempotent per the framework's migration tracking). If the tenant migrations change between runs and you want a fully clean slate, drop `lavoro_test_tenant_test-tenant` manually — it is a throwaway.
+The two `str_contains(..., 'test')` checks are layer (2) from the description above — they run before any migration or query, on every single test, and throw rather than silently proceeding. `Tenant::create()` runs the full `TenantCreated` pipeline from Task 11 synchronously (`shouldBeQueued(false)`). So the very first test of a run creates a real `lavoro_test_tenant_test-tenant` MySQL database, migrates it with the tenant migrations from Task 8, and seeds it with `TenantDatabaseSeeder` (Task 23).
+
+That database is left behind when the run ends. Keeping it is cheap: `migrate:fresh` on the next run only rebuilds the central schema, so the stale tenant database is simply reused, and its migrations already match because `MigrateDatabase` tracks what it has run.
+
+If the tenant migrations change and you want a clean slate, drop `lavoro_test_tenant_test-tenant` by hand. It is a throwaway.
 
 - [ ] **Step 4: Use the trait in the base `TestCase`**
 
@@ -4206,7 +4243,9 @@ Some churn is expected — these are the causes to check first, roughly in likel
 
 1. **Everything after the first HTTP request in a test fails.** The `$initialized_here` guard in the Task 12 / Task 24 middleware is missing, so the request ended the tenancy `TestCase` set up. 30 test files make requests, so this presents as mass failure.
 2. **Hardcoded id assertions.** Transaction rollback does not reset `AUTO_INCREMENT`. Assert against `$model->id`, not `1`.
-3. **Tests asserting on `users` uniqueness or user deletion.** `UserSoftDeleteTest`, `UserSoftDeleteVisibilityTest`, `UserDeletionAuthorizationTest`, and `UserHistoricalReferenceTest` now also exercise the Task 18 observer, which writes to the central `user_tenant_lookups` table on create/restore/force-delete. 28 test files create users via factory. If a factory generates a duplicate email the observer will throw a `RuntimeException` rather than a validation error — make the factory email unique if this shows up.
+3. **Tests asserting on `users` uniqueness or user deletion.** `UserSoftDeleteTest`, `UserSoftDeleteVisibilityTest`, `UserDeletionAuthorizationTest` and `UserHistoricalReferenceTest` now also exercise the Task 18 observer, which writes to the central `user_tenant_lookups` table on create, restore and force-delete.
+
+28 test files create users via factory. If a factory ever generates a duplicate email, the observer throws a `RuntimeException` instead of failing validation — make the factory email unique if that shows up.
 4. **`ProjectFinancialNotesMigrationTest`.** Exercises a data migration; DDL implicitly commits in MySQL and escapes the transaction wrapper. May need `RefreshDatabase`-style handling of its own.
 5. **`tests/Feature/Signals/ModelHistoryTest::test_work_rolled_back_leaves_no_trace`.** The only test in the suite that deliberately rolls a transaction back, to prove the audit trail rolls back with it. Under this task's wrapper it becomes a *nested* transaction, which Laravel implements as a savepoint — supported on MySQL, so it should pass unchanged, but it is the first thing to check if the signal tests go red, because a rollback that escaped to the wrapper would take the whole test's isolation with it.
 6. **The rest of `tests/Feature/Signals/`.** These assert on rows in `activities` and `activity_changes` — both tenant tables, so they only pass if the `TestCase` really did switch to the tenant connection. A signal test failing with "table not found" means tenancy did not initialize, not that the signal broke. `ControllerDispatchTest` and `EventApiSignalsTest` use `Event::fake()`, which suppresses `RecordActivity` but not the tenancy listeners in Task 11 — faking events does not un-initialize a tenant. `SignalLoopGuardTest` asserts on the `Signals` singleton's chain and per-request counter, which the Task 11 reset clears on every tenancy switch; if it goes red, check that nothing in the test path re-initializes a tenant mid-chain.
@@ -4247,7 +4286,9 @@ git commit -m "test(tenancy): run the suite against isolated, clearly-named MySQ
 
 Task 16 built the data model (`tenants.modules`), the `Tenant::hasModule()` check, the shared `tenant` Inertia prop, and the `hasModule()` JS helper — but nothing consumed them, so a tenant without e.g. the `tickets` module could still use every ticket route. This task wires the actual gates: a backend route middleware (authoritative — this is what actually blocks access) plus frontend nav/UI hiding using the existing helper (a UX nicety, not the security boundary).
 
-Per CLAUDE.md, authorization belongs in Form Requests/policies, not ad-hoc controller checks — module gating is a tenancy/subscription concern that sits a layer above per-user permissions, so it's implemented as route middleware (the same pattern already used for `tenant.api` in Task 24), applied on top of the existing `auth` group and permission checks, not instead of them.
+CLAUDE.md says authorization belongs in Form Requests and policies rather than in ad-hoc controller checks. Module gating is neither: it asks whether the *company* pays for a feature, which sits a layer above whether *this user* may use it.
+
+So it is route middleware, the same pattern as `tenant.api` in Task 24. It runs **on top of** the existing `auth` group and permission checks, never instead of them.
 
 **Files:**
 - `app/Http/Middleware/EnsureTenantHasModule.php` (new)
@@ -4390,7 +4431,7 @@ Route::post('location/pings', [LocationPingController::class, 'store'])
     ->middleware('tenant.module:location_tracking');
 ```
 
-`POST /api/location/pings` is the Android app's ping endpoint, and it is the one that shows why this half matters: gating only the *settings* route in `routes/web.php` stops an admin turning tracking on, but does nothing about a device already sending pings, so an unsubscribed tenant keeps accumulating location data.
+`POST /api/location/pings` shows why the API routes need gating too. It is the Android app's ping endpoint. Gating only the *settings* route in `routes/web.php` stops an admin switching tracking on — but does nothing about a phone that is already sending pings, so an unsubscribed tenant carries on accumulating location data.
 
 The same trap waits for every module with an API surface. When Offertes and Facturen are built, whatever they expose under `routes/api.php` needs gating in the same commit as their web routes — the SPA reads the API directly, so a web-only gate hides the page and serves the data.
 
@@ -4465,7 +4506,7 @@ The route middleware from Step 3 is still what actually blocks access. This only
 - `php artisan tenant:modules <id> --add=google_calendar`, reload: the route works and the section appears.
 - Same pattern for `snelstart` and `location_tracking`, and for `location_tracking` check `POST /api/location/pings` directly — that is the one a device keeps hitting regardless of what the settings page says.
 - As a tenant with **no modules at all**: Storingen and Projecten still work, with their menu entries and the Storingen dot. That is the check that stock features have not been gated by accident, and it is the one worth keeping in the suite.
-- As a tenant without the `assistant` module: the assistant panel does not open, and `POST /assistant/ask` returns 403 rather than spending anything at a supplier. Check the second half with a direct request, not through the UI — the point of the route gate is that it holds when the UI is bypassed.
+- As a tenant without the `assistant` module: the assistant panel does not open, and `POST /assistant/ask` returns 403 rather than spending anything at a supplier. Check that 403 with a direct request rather than through the UI — the point of the route gate is that it holds when the UI is bypassed.
 
 - [ ] **Step 8: Commit**
 
@@ -6391,7 +6432,7 @@ Two existing users of `Crypt` are fine and it is worth knowing why, so nobody
 "fixes" them too. `GoogleCalendarIntegration`'s access and refresh tokens
 (`:49-64`) are ciphertext *at rest in a tenant table* — reaching them already means
 reaching that tenant's database, so the key adds confidentiality, not authority.
-`Tenant::$casts['tenancy_db_password']` (Task 4) is the same shape in the central
+`Tenant::$casts['tenancy_db_password']` (Task 4) does the same thing in the central
 table. Neither is a bearer credential handed to a browser, which is the property
 that makes `ConfirmationToken` different.
 
@@ -6419,7 +6460,7 @@ the tenant cannot be learned from the token, because the only thing in the token
 looks like an identifier is `personal_access_tokens.id`, a per-tenant auto-increment.
 Token id 5 exists in every tenant.
 
-That is the same shape as logging in — an email whose tenant is unknown until it is
+This is the same problem as logging in — an email whose tenant is unknown until it is
 looked up — and it gets the same answer. `user_tenant_lookups` is the least bad
 solution for email precisely because the alternatives are worse: asking every tenant
 database in turn is O(tenants) per request and leaks existence by timing, and letting
@@ -6471,7 +6512,7 @@ Schema::connection('central')->create('access_token_tenant_lookups', function (B
 });
 ```
 
-`char(64)` because a SHA-256 in hex is exactly that and never varies; as the primary
+`char(64)` because a SHA-256 written in hex is always exactly 64 characters; as the primary
 key it gives both the seek and global uniqueness for free.
 
 **The foreign key is real here, and it is worth noticing why**, because Task 39 could
@@ -6671,7 +6712,7 @@ git commit -m "feat(tenancy): resolve a bearer token's tenant from the central l
 
 ## Known impact and follow-up work
 
-1. **The test suite moves off SQLite entirely** (Task 30). `phpunit.xml` moves from SQLite `:memory:` to a dedicated MySQL test database (`lavoro_test_landlord` plus a `lavoro_test_tenant_`-prefixed tenant database), with a hard runtime assertion and a narrowly-grants-only MySQL user as two independent layers ensuring a misconfiguration cannot make a test run reach `lavoro` or a real customer database. (Vitest frontend tests are unaffected.)
+1. **The test suite moves off SQLite entirely** (Task 30). `phpunit.xml` moves from SQLite `:memory:` to a dedicated MySQL test database — `lavoro_test_landlord`, plus a `lavoro_test_tenant_`-prefixed tenant database. Two independent things then stop a misconfigured run reaching `lavoro` or a real customer database: a hard runtime assertion, and a MySQL user granted on nothing else. Vitest frontend tests are unaffected.
 
 2. **Login page shows no per-tenant branding.** It already renders the static Lavoro logo today, so nothing regresses; but per-tenant branding before login would require a two-step login (email → resolve tenant → branded password step).
 
@@ -6691,7 +6732,7 @@ git commit -m "feat(tenancy): resolve a bearer token's tenant from the central l
 
 8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
-9. **Test isolation has a different shape.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn across the converted test files.
+9. **Test isolation works differently after this.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn across the converted test files.
 
 10. **Per-tenant database credentials are not exercised by the test suite.** Tests run on the plain `MySQLDatabaseManager` (Task 30) so the narrow test grant stays narrow, which means `TenantUserProvisioner` and the `encrypted` password cast are only verified manually (Task 21 Step 3, Task 26 Step 4). Re-run those after touching provisioning.
 
@@ -6715,13 +6756,23 @@ git commit -m "feat(tenancy): resolve a bearer token's tenant from the central l
 
 15. **Bearer-token API clients are designed but not built.** No `createToken()` call exists today — all API auth is stateful Sanctum cookies, which Task 24 covers via the session. **Task 41** specifies the whole path for when that changes: a central `access_token_tenant_lookups` table keyed on the SHA-256 Sanctum already stores, an observer keeping it in step, and one extra branch in `InitializeTenancyForApi`. It is written up rather than built because nothing calls it yet and dead code that cannot be exercised end-to-end is its own liability — but the *decision* is made, so nobody reaches for a caller-supplied header under deadline.
 
-16. **The assistant sends tenant data outside the tenant boundary, and every task in this plan is silent about it because none of them can fix it.** Database isolation, per-tenant MySQL users, per-tenant storage roots — all of it stops at the moment a question is answered, because answering it means sending customer names, addresses, service history and sometimes photographs to a third-party model provider. Three specific routes out, worth naming rather than leaving implied:
+16. **The assistant sends tenant data outside the tenant boundary, and no task in this plan can fix it.**
+
+    Everything this plan builds — database isolation, per-tenant MySQL users, per-tenant storage roots — stops at the moment a question is answered. Answering it means sending customer names, addresses, service history and sometimes photographs to a third-party model provider.
+
+    Three specific routes out, named rather than left implied:
 
     - **The supplier.** Whichever of the five `config/assistant.php` providers is active receives whatever the tools returned. `ASSISTANT_PROVIDER` is a single global setting, so a tenant cannot choose, cannot see which supplier answered them, and cannot decline. Anthropic, Deepseek, Mistral, Qwen, Moonshot and OpenAI are not the same jurisdiction, the same retention policy or the same processing agreement.
     - **Web search.** `ANTHROPIC_WEB_SEARCH` defaults to on. The query the model composes may contain a model number, a fault description, and whatever else it thought relevant.
     - **The reports mailbox.** `ASSISTANT_REPORTS_MAIL` defaults to `info@majorlabel.nl` — ours. A reported conversation is a full transcript *including what every tool was handed and returned*, so it is the richest single export of a tenant's data the application produces, and it lands in the vendor's inbox by design, from every tenant, into one place.
 
-    None of this is a bug and none of it should be "fixed" here. What it is, is a set of facts that a single-tenant installation could leave undocumented and a multi-tenant one cannot, because the customer's processing agreement is now with us rather than about their own machine. The concrete follow-ups, in the order they will be asked for: name the sub-processors in the terms; make `ASSISTANT_PROVIDER` a per-tenant setting (the Task 32 pattern applies directly, and unlike API keys the *choice* genuinely is the tenant's); and either move reports to a per-tenant retention on disk only, or make the mail opt-in per tenant rather than defaulting on. `assistant:prune` already deletes reports on the same clock as the transcripts (Task 20) — the copy that has been mailed is the one nothing sweeps.
+    None of this is a bug, and none of it should be "fixed" here. It is a set of facts that a single-tenant install could leave undocumented and a multi-tenant one cannot: the processing agreement is now with us, rather than about the customer's own machine.
+
+    The follow-ups, in the order they will be asked for:
+
+    1. Name the sub-processors in the terms.
+    2. Make `ASSISTANT_PROVIDER` a per-tenant setting. The Task 32 pattern applies directly, and unlike the API keys, the *choice* of supplier genuinely is the tenant's.
+    3. Either keep reports on disk under a per-tenant retention, or make the mail opt-in rather than on by default. `assistant:prune` already deletes reports on the same clock as the transcripts (Task 20); the copy that has been e-mailed is the one nothing sweeps.
 
 17. **The global exception responder hides the status codes this plan diagnoses by.** `bootstrap/app.php` ends with a `respond()` handler that rewrites 403 into a redirect with a fixed message, and — outside local/dev/testing only — rewrites 404, 500 and 503 into `redirect()->back()` with a friendly sentence.
 
