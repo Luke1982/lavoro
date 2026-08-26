@@ -6,7 +6,7 @@
     <title>Werkbon {{ $serviceOrder->id }}</title>
     <style>
         @page {
-            margin: 16mm 18mm 18mm 18mm;
+            margin: 16mm 18mm 26mm 18mm;
         }
 
         body {
@@ -96,8 +96,7 @@
             position: fixed;
             left: 0;
             right: 0;
-            bottom: 0;
-            padding: 0 18mm 4mm 18mm;
+            bottom: -22mm;
             font-size: 10px;
             color: #666;
             text-align: center;
