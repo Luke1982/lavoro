@@ -3164,9 +3164,24 @@ git commit -m "feat(tenancy): add tenant:delete for cleanup"
 
 ## Task 23: `TenantDatabaseSeeder`
 
-Runs automatically when a new tenant database is created. It only seeds what the tenant migrations do not: the company record and default service order stages. Roles and permissions are already created by the existing `seed_*_permissions` migrations, so they must not be duplicated here.
+Runs automatically when a new tenant database is created. It seeds only what the tenant migrations do not: the company record and a starting set of service order stages. Roles and permissions already come from the `seed_*_permissions` migrations and must not be duplicated here.
 
-The stage rows carry all six semantic flags on `service_order_stages`: `is_plannable_state`, `is_planned_state`, `is_closed_state`, `is_planning_cancelled_state`, `is_invoiced_state`, `is_incomplete_state`.
+**Seed a stage for all six flags, not just the three obvious ones.** Three of them are looked up by code that null-guards and returns:
+
+| Flag | Looked up by | If no stage has it |
+| --- | --- | --- |
+| `is_planning_cancelled_state` | `ServiceOrder::revertToPlanningCancelledStage()` | Deleting an appointment leaves the order sitting in Gepland |
+| `is_invoiced_state` | `AdvanceOrderToInvoicedStage` listener | Recording an external invoice number moves nothing |
+| `is_incomplete_state` | `ServiceOrderController` (`incompleteStageId` prop) | Marking a werkbon partially complete is dead |
+
+Each of those call sites does `if (!$stage) { return; }`. Nothing throws, nothing logs — the feature simply never happens, and a new customer has three broken things nobody can explain. The names below can be changed afterwards; the flags are what has to exist on day one.
+
+**Two ordering rules, both enforced somewhere and neither obvious:**
+
+- **Gefactureerd must sort after Gesloten.** `ChecksStageOrdering` rejects any edit that puts the invoiced stage before the closed one, so seeding them the wrong way round makes the reorder screen refuse valid changes.
+- **Planning geannuleerd must sort before Gepland.** `advanceToPlannedStage()` refuses to move an order whose current stage `order` is `>=` the planned stage's. Put cancelled after planned and a cancelled order can never be re-planned — it just stops moving.
+
+`is_plannable_state` is the **only** one of the six the stage controller does not force to be unique, so more than one stage may carry it. Give it to Planning geannuleerd as well as Nieuw, so a cancelled order returns to the planner's to-plan list instead of disappearing.
 
 **Files:** `database/seeders/TenantDatabaseSeeder.php`
 
@@ -3200,9 +3215,12 @@ class TenantDatabaseSeeder extends Seeder
         ];
 
         $stages = [
-            ['name' => 'Nieuw',    'order' => 1, 'is_plannable_state' => true],
-            ['name' => 'Gepland',  'order' => 2, 'is_planned_state' => true],
-            ['name' => 'Gesloten', 'order' => 3, 'is_closed_state' => true],
+            ['name' => 'Nieuw',                'order' => 1, 'is_plannable_state' => true],
+            ['name' => 'Planning geannuleerd', 'order' => 2, 'is_plannable_state' => true, 'is_planning_cancelled_state' => true],
+            ['name' => 'Gepland',              'order' => 3, 'is_planned_state' => true],
+            ['name' => 'Niet afgerond',        'order' => 4, 'is_incomplete_state' => true],
+            ['name' => 'Gesloten',             'order' => 5, 'is_closed_state' => true],
+            ['name' => 'Gefactureerd',         'order' => 6, 'is_invoiced_state' => true],
         ];
 
         foreach ($stages as $stage) {
@@ -3215,11 +3233,27 @@ class TenantDatabaseSeeder extends Seeder
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Check a fresh tenant has all six**
+
+```bash
+php artisan tenant:create "Seed Test BV" seed@test.nl --admin-password=secret123
+```
+
+Then, in that tenant, confirm each flag is held by exactly one stage — except `is_plannable_state`, which two stages hold:
+
+```sql
+SELECT name, `order`, is_plannable_state, is_planned_state, is_planning_cancelled_state,
+       is_incomplete_state, is_closed_state, is_invoiced_state
+FROM service_order_stages ORDER BY `order`;
+```
+
+Task 43's `tenancy:doctor` is the place for this check long-term; do it by hand here.
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add database/seeders/TenantDatabaseSeeder.php
-git commit -m "feat(tenancy): add TenantDatabaseSeeder for company and stages"
+git commit -m "feat(tenancy): seed a stage for every semantic flag on a new tenant"
 ```
 
 ---
@@ -6864,6 +6898,7 @@ Per tenant, from `Tenant::on('central')->cursor()`:
 | No pending tenant migrations | `tenants:migrate` was missed after a deploy |
 | `storage/tenant-<id>/public` and `/local` exist and are writable | Uploads fail, or land where nothing serves them |
 | Every user has a `user_tenant_lookups` row | That user cannot log in, and there is no error anywhere |
+| A stage exists for each of the six `service_order_stages` flags | Three features null-guard and silently do nothing (Task 23) |
 
 And two orphan checks, which is where a botched `tenant:create` or `tenant:delete` shows up:
 
