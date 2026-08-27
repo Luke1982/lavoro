@@ -1,9 +1,13 @@
 <?php
 
+/**
+ * Rechten voor de rol Verkoop, als startpunt voor een nieuwe tenant.
+ * Namen worden opgezocht; een recht dat in deze installatie niet bestaat wordt overgeslagen.
+ */
 return [
-    'product.read',
     'customer.read',
+    'product.read',
     'product.view_prices',
-    'productrelation.read',
     'productable.read',
+    'productrelation.read',
 ];

@@ -1,69 +1,52 @@
 <?php
 
+/**
+ * Rechten voor de rol Administratie, als startpunt voor een nieuwe tenant.
+ * Namen worden opgezocht; een recht dat in deze installatie niet bestaat wordt overgeslagen.
+ */
 return [
-    // Service orders — invoicing flow (no close/reopen)
-    'serviceorder.read',
-    'serviceorder.see_financials',
-    'serviceorder.export_pdf',
-    'serviceorder.email_pdf',
-    'serviceorder.email_pdf_with_jobs',
-
-    // Service jobs — read + PDF
-    'servicejob.read',
-    'servicejob.export_pdf',
-    'servicejob.mail_pdf',
-
-    // Snelstart accounting integration
-    'snelstart.send_serviceorder',
-    'snelstart.get_customers',
-    'snelstart.get_articles',
-
-    // Customers — read + billing edits
-    'customer.read',
-    'customer.update',
-
-    // Read-only context for invoicing
-    'material.read',
-    'product.read',
-    'asset.read',
-    'ticket.read',
-    'ticket.see_all',
-    'event.read',
-    'google_calendar.connect',
-
-    // Documents — see + upload invoices + update (no delete)
-    'document.see',
-    'document.upload',
-    'document.update',
-
-    'image.see',
-
-    // Activity list
     'activitylist.read',
-
-    // Pricing
-    'product.view_prices',
-
-    // Product relations
-    'productrelation.read',
-    'productrelation.create',
-    'productrelation.update',
-    'productrelation.delete',
-
-    // Productables
-    'productable.read',
-    'productable.create',
-    'productable.update',
-    'productable.delete',
-
-    // Asset relations
+    'asset.read',
     'assetrelation.create',
     'assetrelation.delete',
-
-    // Dashboard — financial widgets
-    'dashboard.see_stats',
+    'customer.read',
+    'customer.see_sensitive',
+    'customer.update',
+    'dashboard.see_open_serviceorders.all',
     'dashboard.see_open_serviceorders.not_sent',
     'dashboard.see_open_serviceorders.sent_administration',
     'dashboard.see_open_serviceorders.sent_customer',
-    'dashboard.see_open_serviceorders.all',
+    'dashboard.see_stats',
+    'document.see',
+    'document.update',
+    'document.upload',
+    'event.create',
+    'event.export',
+    'event.read',
+    'google_calendar.connect',
+    'image.see',
+    'material.read',
+    'product.read',
+    'product.view_prices',
+    'productable.create',
+    'productable.delete',
+    'productable.read',
+    'productable.update',
+    'productrelation.create',
+    'productrelation.delete',
+    'productrelation.read',
+    'productrelation.update',
+    'servicejob.export_pdf',
+    'servicejob.mail_pdf',
+    'servicejob.read',
+    'serviceorder.email_pdf',
+    'serviceorder.email_pdf_with_jobs',
+    'serviceorder.export_pdf',
+    'serviceorder.read',
+    'serviceorder.see_financials',
+    'snelstart.get_articles',
+    'snelstart.get_customers',
+    'snelstart.send_serviceorder',
+    'ticket.read',
+    'ticket.see_all',
 ];

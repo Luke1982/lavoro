@@ -3164,7 +3164,7 @@ git commit -m "feat(tenancy): add tenant:delete for cleanup"
 
 ## Task 23: `TenantDatabaseSeeder`
 
-Runs automatically when a new tenant database is created. It seeds only what the tenant migrations do not: the company record and a starting set of service order stages. Roles and permissions already come from the `seed_*_permissions` migrations and must not be duplicated here.
+Runs automatically when a new tenant database is created. It seeds only what the tenant migrations do not: the company record, a starting set of service order stages, and the roles with their permissions. Roles and permissions already come from the `seed_*_permissions` migrations and must not be duplicated here.
 
 **Seed a stage for all six flags, not just the three obvious ones.** Three of them are looked up by code that null-guards and returns:
 
@@ -3233,7 +3233,60 @@ class TenantDatabaseSeeder extends Seeder
 }
 ```
 
-- [ ] **Step 2: Check a fresh tenant has all six**
+- [ ] **Step 2: Seed the roles and attach their permissions**
+
+Permissions themselves come from the `seed_*_permissions` migrations — the seeder
+must never create one. It creates **roles** and attaches existing permissions
+**by name**.
+
+The starting set is eleven roles, taken from a live install and kept in
+`database/seeders/data/{slug}_permissions.php` (the convention
+`AutomotiveEquipmentSeeder` already uses):
+
+| Role | Permissions | Notes |
+| --- | --- | --- |
+| admin | 1 | Only `assistant.use` — admins bypass every other check, and that is the one permission `AssistantPolicy` deliberately does not grant them |
+| Monteur | 32 | Field role. Uses `serviceorder.read_own`, not `serviceorder.read` |
+| Binnendienst | 137 | The broad office role |
+| Planner | 50 | |
+| Administratie | 44 | |
+| Projectleider | 7 | |
+| Projectmanager | 9 | Adds `project.manage_financials` |
+| Verkoop | 5 | |
+| Gebruikersbeheer | 8 | User administration without the rest of Beheer |
+| technisch beheer | 1 | `technical.management`, the `explicitPermission` in `useMenu.js` that admins do not inherit |
+| HR | 1 | `roster.manage_all` |
+
+```php
+$roles = [
+    'admin' => 'admin', 'Monteur' => 'monteur', 'Binnendienst' => 'binnendienst',
+    'Planner' => 'planner', 'Administratie' => 'administratie', 'Verkoop' => 'verkoop',
+    'Projectleider' => 'projectleider', 'Projectmanager' => 'projectmanager',
+    'Gebruikersbeheer' => 'gebruikersbeheer', 'technisch beheer' => 'technisch_beheer', 'HR' => 'hr',
+];
+
+foreach ($roles as $name => $slug) {
+    $role = Role::firstOrCreate(['name' => $name]);
+
+    $names = include base_path("database/seeders/data/{$slug}_permissions.php");
+
+    $role->permissions()->syncWithoutDetaching(
+        Permission::whereIn('name', $names)->pluck('id')
+    );
+}
+```
+
+**Look up by name and let unknown names fall through.** Permission ids differ
+between installs, and the set drifts as migrations add to it — `whereIn` on names
+simply attaches what exists. A role referencing a permission this installation
+does not have gets it silently skipped, which is the right outcome: the
+alternative is a failed `tenant:create` because one data file is a week ahead of
+one migration.
+
+`syncWithoutDetaching` rather than `sync`, so re-running the seeder never strips
+a permission an operator added by hand.
+
+- [ ] **Step 3: Check a fresh tenant has all six**
 
 ```bash
 php artisan tenant:create "Seed Test BV" seed@test.nl --admin-password=secret123
@@ -3249,11 +3302,11 @@ FROM service_order_stages ORDER BY `order`;
 
 Task 43's `tenancy:doctor` is the place for this check long-term; do it by hand here.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add database/seeders/TenantDatabaseSeeder.php
-git commit -m "feat(tenancy): seed a stage for every semantic flag on a new tenant"
+git add database/seeders/TenantDatabaseSeeder.php database/seeders/data/
+git commit -m "feat(tenancy): seed stages, roles and permissions for a new tenant"
 ```
 
 ---
@@ -5534,7 +5587,14 @@ git commit -m "feat(tenancy): enforce seat limits and seat-type capability"
 
 ## Task 36: Per-tenant storage quota
 
-Each tenant has a `storage_limit_gb` allowance (default 50, Task 6). A `StorageQuota` service tracks bytes used via a running counter in the tenant's `general_settings`, enforced as a `WithinStorageQuota` validation rule on the upload paths, and corrected nightly from disk. New uploads over the limit are blocked; existing files are never deleted.
+Each tenant has a `storage_limit_gb` allowance (default 50, Task 6). A `StorageQuota` service enforces it as a `WithinStorageQuota` rule on the upload paths. New uploads over the limit are blocked; existing files are never deleted.
+
+**Usage is files plus the database**, and the two are measured differently:
+
+- **Files** are a running counter in the tenant's `general_settings`, incremented on upload and corrected nightly from disk.
+- **The database** is queried live from `information_schema`. No counter — a tenant's row growth has no single place to hook.
+
+Counting the database matters because the file total is not the whole bill. `activities`, `activity_changes`, `location_pings` and `assistant_questions` all grow on their own, without anybody uploading anything, and a busy tenant's audit trail is not small.
 
 **Files:**
 - `app/Services/StorageQuota.php` (new)
@@ -5571,7 +5631,7 @@ class StorageQuotaTest extends TestCase
         $this->assertSame(50 * (1024 ** 3), (new StorageQuota())->limitBytes());
     }
 
-    public function test_add_and_subtract_move_the_counter(): void
+    public function test_add_and_subtract_move_the_file_counter(): void
     {
         $quota = new StorageQuota();
         $quota->add(1000);
@@ -5579,6 +5639,15 @@ class StorageQuotaTest extends TestCase
         $quota->subtract(200);
 
         $this->assertSame(1300, (int) GeneralSetting::get('storage_used_bytes', 0));
+        $this->assertSame(1300, $quota->fileBytes());
+    }
+
+    public function test_used_bytes_includes_the_database(): void
+    {
+        $quota = new StorageQuota();
+        $quota->add(1000);
+
+        $this->assertGreaterThan(1000, $quota->usedBytes());
     }
 
     public function test_has_room_for_respects_the_limit(): void
@@ -5610,7 +5679,31 @@ class StorageQuota
 {
     public function usedBytes(): int
     {
+        return $this->fileBytes() + $this->databaseBytes();
+    }
+
+    public function fileBytes(): int
+    {
         return (int) GeneralSetting::get('storage_used_bytes', 0);
+    }
+
+    /**
+     * Cached for five minutes: this runs on every upload validation, and the
+     * number moves slowly. The cache key is per-tenant already (Task 10).
+     */
+    public function databaseBytes(): int
+    {
+        return Cache::remember('storage_database_bytes', 300, function () {
+            $connection = DB::connection('tenant');
+
+            $row = $connection->selectOne(
+                'SELECT SUM(data_length + index_length) AS bytes
+                 FROM information_schema.tables WHERE table_schema = ?',
+                [$connection->getDatabaseName()],
+            );
+
+            return (int) ($row->bytes ?? 0);
+        });
     }
 
     public function limitBytes(): int
@@ -5630,12 +5723,12 @@ class StorageQuota
 
     public function add(int $bytes): void
     {
-        GeneralSetting::set('storage_used_bytes', $this->usedBytes() + max(0, $bytes));
+        GeneralSetting::set('storage_used_bytes', $this->fileBytes() + max(0, $bytes));
     }
 
     public function subtract(int $bytes): void
     {
-        GeneralSetting::set('storage_used_bytes', max(0, $this->usedBytes() - max(0, $bytes)));
+        GeneralSetting::set('storage_used_bytes', max(0, $this->fileBytes() - max(0, $bytes)));
     }
 
     public function reconcile(): int
@@ -5731,6 +5824,23 @@ In `ImageController::destroy` / `DocumentController::destroy`, before deleting t
 
 If drift ever becomes visible to customers, the fix is an atomic `UPDATE general_settings SET value = value + ? WHERE key = ?` rather than a lock — but that requires the column to be numeric, so it is a migration, not a one-liner. Not worth doing pre-emptively.
 
+**Two things about the database half that will otherwise surprise somebody.**
+
+`data_length` and `index_length` come from InnoDB's cached table statistics, so
+they are an estimate. Good enough to enforce a quota; not good enough to bill on.
+The same warning as the file counter: bill from a measurement, not from this.
+
+And **deleting rows does not shrink it.** InnoDB keeps the freed pages for reuse
+inside the tablespace, so a tenant who clears a year of location pings sees no
+change until the table is rebuilt with `OPTIMIZE TABLE`. Anyone told "delete some
+data to get under your limit" will report that as a bug, so either say so in the
+message or run the rebuild for them.
+
+One consequence to accept: a tenant near the limit can now be blocked from
+uploading by growth they did not cause — the audit trail and the ping table grow
+whether or not anybody touches a file. The nightly ping prune (Task 20) is what
+keeps the largest of those bounded.
+
 **A fourth writer of tenant storage deliberately does not call `add()`.** The assistant parks photos and files a question carried (`assistant-photos/`, `assistant-files/`) and writes reported conversations (`assistant-reports/`) on the `local` disk. None of these paths goes through an upload Form Request, so there is nothing to attach `WithinStorageQuota` to, and none of them calls `add()`.
 
 Leave it that way. All three are short-lived by design — `assistant.photo_days` defaults to 7 and `assistant:prune` sweeps them — so charging a tenant's allowance for a photo that will be gone within the week bills them for their own working memory. The nightly reconcile counts whatever is genuinely still there, which is the honest number. What this does mean is that `reconcile()` and `usedBytes()` can disagree by more than they used to, in the direction of the counter being low; that is the same direction the concurrency drift already goes, so nothing new is needed to handle it.
@@ -5780,8 +5890,10 @@ Extend the `tenant` share (Task 16/35) with storage, so a usage bar can be shown
 
 ```php
 'storage' => [
-    'used_bytes'  => (int) \App\Models\GeneralSetting::get('storage_used_bytes', 0),
-    'limit_bytes' => (int) tenancy()->tenant->storage_limit_gb * (1024 ** 3),
+    'file_bytes'     => $quota->fileBytes(),
+    'database_bytes' => $quota->databaseBytes(),
+    'used_bytes'     => $quota->usedBytes(),
+    'limit_bytes'    => $quota->limitBytes(),
 ],
 ```
 

@@ -1,57 +1,58 @@
 <?php
 
+/**
+ * Rechten voor de rol Planner, als startpunt voor een nieuwe tenant.
+ * Namen worden opgezocht; een recht dat in deze installatie niet bestaat wordt overgeslagen.
+ */
 return [
-    // Calendar / events
-    'event.read',
-    'event.create',
-    'event.update',
-    'event.delete',
-    'event.see_all',
-    'google_calendar.connect',
-
-    // Service orders
-    'serviceorder.read',
-    'serviceorder.create',
-    'serviceorder.update',
-    'serviceorder.delete',
-    'serviceorder.close',
-    'serviceorder.reopen',
-
-    // Service jobs (periodic checks)
-    'servicejob.read',
-    'servicejob.create',
-    'servicejob.update',
-    'servicejob.delete',
-
-    // Tickets (storingen)
-    'ticket.read',
-    'ticket.see_all',
-    'ticket.add_to_serviceorder',
-    'ticket.detach_from_serviceorder',
-    'ticket.change_status',
-    'ticket.alter_priority',
-
-    // Customers
-    'customer.read',
-
-    // Assets and products (planning context)
-    'asset.read',
-    'product.read',
-    'productrelation.read',
-    'productable.read',
-
-    // Activity list
     'activitylist.read',
-
-    // Dashboard
-    'dashboard.see_stats',
+    'asset.read',
+    'customer.read',
     'dashboard.see_events',
-    'dashboard.see_upcoming_servicejobs',
-    'dashboard.see_pending_tickets',
     'dashboard.see_map',
     'dashboard.see_open_serviceorders.all',
-
-    // Documents and images (read-only)
+    'dashboard.see_pending_tickets',
+    'dashboard.see_stats',
+    'dashboard.see_upcoming_servicejobs',
     'document.see',
+    'event.create',
+    'event.create_others',
+    'event.delete',
+    'event.delete_others',
+    'event.execute_others',
+    'event.read',
+    'event.release_times',
+    'event.see_all',
+    'event.see_beyond_current_week',
+    'event.update',
+    'event.update_others',
+    'google_calendar.connect',
     'image.see',
+    'planner.manage_settings',
+    'product.read',
+    'productable.read',
+    'productrelation.read',
+    'roster.manage_all',
+    'servicejob.create',
+    'servicejob.delete',
+    'servicejob.read',
+    'servicejob.update',
+    'serviceorder.close',
+    'serviceorder.create',
+    'serviceorder.delete',
+    'serviceorder.plan',
+    'serviceorder.read',
+    'serviceorder.reopen',
+    'serviceorder.see_events_widget',
+    'serviceorder.update',
+    'serviceordertaskinstance.create',
+    'serviceordertaskinstance.delete',
+    'serviceordertaskinstance.read',
+    'serviceordertaskinstance.update',
+    'ticket.add_to_serviceorder',
+    'ticket.alter_priority',
+    'ticket.change_status',
+    'ticket.detach_from_serviceorder',
+    'ticket.read',
+    'ticket.see_all',
 ];

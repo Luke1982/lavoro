@@ -1,11 +1,15 @@
 <?php
 
+/**
+ * Rechten voor de rol Projectleider, als startpunt voor een nieuwe tenant.
+ * Namen worden opgezocht; een recht dat in deze installatie niet bestaat wordt overgeslagen.
+ */
 return [
-    'projects.lead',
     'project.read',
     'project.update',
-    'projectmilestone.read',
     'projectmilestone.create',
-    'projectmilestone.update',
     'projectmilestone.delete',
+    'projectmilestone.read',
+    'projectmilestone.update',
+    'projects.lead',
 ];
