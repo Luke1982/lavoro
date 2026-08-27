@@ -1812,6 +1812,12 @@ Find every hardcoded reference:
 grep -rn "/storage/" resources/js/
 ```
 
+**Only one thing needs backfilling, and it is not the images.** `images` has always had both `id` and `path`, so switching the frontend from one column to the other works on every row ever written — old installs included. The files do not move in the database either: Task 27 Step 5 physically moves `storage/app/public/*` into the tenant root, and the stored `path` is relative to the disk root, so it resolves against the new one unchanged.
+
+Company logos are served by company id, avatars by user id, and documents already went through a controller by id. The rich-text editor has no image extension, so no user-typed content contains a `/storage/` URL either.
+
+The exception is `activities.metadata.thumbnail_path` — see the first bullet below.
+
 Apply these conversions across the matching files (12 files, 20 occurrences; re-run the grep first — this list drifts):
 
 | File | Occurrences |
