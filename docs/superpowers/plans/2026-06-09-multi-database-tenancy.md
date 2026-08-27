@@ -3785,10 +3785,17 @@ migration to the wrong directory.
 
 - [ ] **Step 7c: Run `php artisan tenancy:doctor` (Task 43)**
 
-Before the manual smoke test, not instead of it. The doctor checks what a
-smoke test cannot see — that every tenant's password still decrypts, that no
-lookup row points at a dead tenant, that the storage roots are writable — and
-it does it for every tenant rather than the one you happen to click through.
+Before the manual smoke test, not instead of it. The doctor checks what a smoke
+test cannot see — that every tenant's password still decrypts, that no lookup
+row points at a dead tenant, that the storage roots are writable — and it does
+it for every tenant rather than the one you happen to click through.
+
+**The scheduler heartbeat will be absent on this run, and that is expected.**
+You restored the crontab a minute ago and the heartbeat is written every five.
+Ignore it here, and **re-run the doctor fifteen minutes later** for that one
+check. If it is still absent then, the crontab entry is not firing — which is
+the failure this whole deployment is most likely to leave behind unnoticed,
+because every scheduled task fails by simply never happening.
 
 - [ ] **Step 8: Smoke test**
 
@@ -6843,7 +6850,8 @@ Global, once:
 | `SESSION_CONNECTION=central` | Sessions land in whichever database is active; login breaks intermittently |
 | Cache write-then-read succeeds | Catches the Task 10 misconfiguration directly |
 | Age of the oldest pending row in `jobs` | A stopped worker looks exactly like a quiet day |
-| Age of the scheduler heartbeat (below) | No cron means nothing scheduled has ever run |
+| Crontab contains `schedule:run` (best effort) | Direct answer when it works, see Step 2 |
+| Age of the scheduler heartbeat (below) | Authoritative: nothing scheduled has actually run |
 | `public/storage` symlink present | The static fallback logo on PDFs |
 
 Per tenant, from `Tenant::on('central')->cursor()`:
@@ -6862,11 +6870,19 @@ And two orphan checks, which is where a botched `tenant:create` or `tenant:delet
 - lookup rows naming a tenant id that no longer exists
 - `lavoro_tenant_*` databases on the server with no matching `tenants` row
 
-- [ ] **Step 2: A scheduler heartbeat, so the cron can be checked at all**
+- [ ] **Step 2: Check the scheduler two ways, because neither is sufficient alone**
 
-There is no way to ask PHP whether a crontab entry exists. Have the scheduler
-prove it instead — one more entry in `routes/console.php` that writes a
-timestamp, and a doctor check that reports its age:
+**Neither check answers "is cron configured correctly". Say so in the output
+rather than implying otherwise.**
+
+*Directly, best effort.* Shell out to `crontab -l -u <web user>` and grep for
+`schedule:run`. When it finds the entry, you have an immediate answer at deploy
+time. When it does not, that is **not** a failure: the entry may live in
+`/etc/cron.d`, in root's crontab, or in a systemd timer, and the command may not
+be permitted to read it at all. Report it as PASS or SKIP, never FAIL.
+
+*Authoritatively, after the fact.* Have the scheduler prove it is running by
+writing a timestamp:
 
 ```php
 Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))
@@ -6874,10 +6890,22 @@ Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp
     ->name('scheduler-heartbeat');
 ```
 
-Central-context and one cache write, so it costs nothing and needs no tenant
-loop. A heartbeat older than fifteen minutes means the cron is not running —
-which is worth knowing, because **nothing else in this application tells you.**
-Every scheduled task simply stops happening.
+Central context and one cache write, so it costs nothing and needs no tenant
+loop. A heartbeat older than fifteen minutes means the scheduler is not running,
+which is worth knowing because **nothing else in this application tells you** —
+every scheduled task simply stops happening.
+
+Three limits on the heartbeat, all worth printing beside it:
+
+- It lags. Cron dies now, this reports in fifteen minutes.
+- It cannot say *why*. A missing entry, a dead daemon, the wrong user and a PHP
+  error all look the same.
+- One manual `php artisan schedule:run` makes it read healthy while cron is
+  still dead.
+
+An **absent** heartbeat is different from a stale one: it means the scheduler has
+never run here. On a fresh install that is expected, not broken — report it as
+such rather than as a failure.
 
 - [ ] **Step 3: Report like `verify-mysql.sh` does**
 
