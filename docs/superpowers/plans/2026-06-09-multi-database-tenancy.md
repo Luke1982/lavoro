@@ -3319,7 +3319,7 @@ Applied as a named route middleware rather than a global prepend, so any future 
 
 **There is deliberately no `X-Tenant-ID` header fallback**, and one should not be added later either.
 
-A header is set by whoever sends the request. Accept it and the caller picks which company's database we read.
+A header is set by whoever sends the request. Accept it and the client picks which company's database we read.
 
 Here is what that looks like. Somebody has a working API token for company A. They send it with `X-Tenant-ID: B`. We switch to company B's database, Sanctum looks for their token there, does not find it, and returns 401. No data comes back, so nothing leaks.
 
@@ -6645,9 +6645,10 @@ Token id 5 exists in every tenant.
 
 This is the same problem as logging in — an email whose tenant is unknown until it is
 looked up — and it gets the same answer. `user_tenant_lookups` is the least bad
-solution for email precisely because the alternatives are worse: asking every tenant
-database in turn is O(tenants) per request and leaks existence by timing, and letting
-the caller name its own tenant is not a lookup at all.
+solution for e-mail because the two alternatives are worse. Searching every tenant
+database in turn means one query per company on every single login, and the time it
+takes tells an attacker whether an address exists. And letting the client tell us
+which company it belongs to is not a lookup — it is just believing whatever it says.
 
 ### The design
 
@@ -6852,10 +6853,9 @@ Route::post('login', [ApiAuthController::class, 'store'])->middleware('throttle:
 credentials, calls `$user->createToken(...)` — which fires the observer and writes the
 central row — and returns **only** the plain-text token.
 
-**The client is never told its tenant id and never sends one.** That is the whole
-point of the exercise: the token is the credential and the credential names its own
-tenant. An API that asks a caller which database to read is asking the caller an
-authorization question.
+**The client is never told its tenant id and never sends one.** The token is the
+credential, and the token is what tells us the company. If instead we ask the client
+which database to read, the client is deciding what it gets to see.
 
 Throttled hard because it is an unauthenticated endpoint that runs a password hash and
 a central lookup.
@@ -6934,7 +6934,7 @@ do not throw.
 -   Scheduled tasks never query inline. Loop tenants in `routes/console.php`, dispatch one job per tenant, and do the work in the job.
 -   Queued jobs are tagged with the active tenant at dispatch. Dispatch from tenant context or the job runs against central.
 -   Anything encrypted or signed with `APP_KEY` that names a record must also name the tenant. Record ids are per-tenant auto-increments and `APP_KEY` is global, so an id alone is valid in every tenant.
--   Never accept a tenant id from the caller — no header, query parameter or body field. Resolve it from the session, or from a central lookup keyed on a credential.
+-   Never take a tenant id from the client — no header, query parameter or body field. Resolve it from the session, or from a central lookup keyed on a credential.
 -   Email addresses are unique across all tenants, not just within one (`user_tenant_lookups`).
 -   A feature is only a module if a customer could reasonably not have it. `tenant:create` defaults to no modules, so gating a stock feature breaks every new customer.
 -   Tests run on MySQL, never SQLite. The shared `TestCase` creates one tenant per run and wraps each test in transactions on both connections — do not add `RefreshDatabase`.
