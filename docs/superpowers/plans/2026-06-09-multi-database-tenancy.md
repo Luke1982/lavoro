@@ -272,7 +272,7 @@ It exits non-zero on any failure, so it can gate a deploy. The assertions, each 
 | `lavoro_app` cannot create databases | A compromised app cannot provision |
 | Every existing tenant account holds no `*.*` grant and no `GRANT OPTION` | Per-tenant credentials stay low-value |
 
-**A skipped check is never reported as a pass.** Each negative assertion ("cannot see X") is satisfied trivially by a connection that failed, so the script confirms the connection first and skips the rest with a visible `SKIP` if it can't. A run against a server where nothing exists yet reports failures and skips — never a clean sheet. That distinction is the whole value of the script over eyeballing the output of four `mysql` commands.
+**A skipped check is never reported as a pass.** A check like "cannot see X" passes automatically when the connection failed, so the script confirms the connection first and skips the rest with a visible `SKIP` if it can't. A run against a server where nothing exists yet reports failures and skips — never a clean sheet. That distinction is the whole value of the script over eyeballing the output of four `mysql` commands.
 
 Run it again after the first `tenant:create` (Task 21), when the tenant-account assertions have something to check.
 
@@ -1512,9 +1512,11 @@ Note the Google webhook route lives in the web group too; it carries no session 
 
 **A second sessionless pair of routes landed on master after this plan was written**, and it is harder than the webhook. `storing/informatie/{token}` (GET and POST, `routes/web.php`) is the page where a customer delivers photos and video for a storing, opened from a link in an e-mail by somebody who has no account and never logs in — so no session, no cookie, no tenant. The link is resolved by the `accesstoken` middleware against `access_tokens`, which is a **tenant** table: without a tenant there is nothing to resolve it against, and the page 404s for every customer of every tenant.
 
-It cannot resolve its tenant the way the webhook does, because the only thing the request carries *is* the token, and the token is in the database it cannot reach yet. The shape that fits this plan is the one Task 5 already uses for users: a **central lookup table**, `access_token_lookups` (`token_hash` unique, `tenant_id`), written alongside every `AccessToken::issue()` and deleted with the row. The public routes then get their own middleware that reads the hash, finds the tenant centrally, calls `tenancy()->initialize()`, and hands over to `accesstoken` as it stands. Two alternatives, both worse: put the tenant id in the URL (leaks which tenant a customer belongs to, and lets a guessed id point the resolver anywhere), or move `access_tokens` to central (a tenant table full of tenant records, with the morph target living in another database).
+It cannot resolve its tenant the way the webhook does, because the only thing the request carries *is* the token, and the token is in the database it cannot reach yet. The approach that fits this plan is the one Task 5 already uses for users: a **central lookup table**, `access_token_lookups` (`token_hash` unique, `tenant_id`), written alongside every `AccessToken::issue()` and deleted with the row. The public routes then get their own middleware that reads the hash, finds the tenant centrally, calls `tenancy()->initialize()`, and hands over to `accesstoken` as it stands. Two alternatives, both worse: put the tenant id in the URL (leaks which tenant a customer belongs to, and lets a guessed id point the resolver anywhere), or move `access_tokens` to central (a tenant table full of tenant records, with the morph target living in another database).
 
 Whoever executes this must also check `App\Models\AccessToken::issue()` and `revoke()` for the lookup writes, and `App\Http\Middleware\ResolveAccessToken` for the ordering. The feature is designed in `docs/superpowers/specs/2026-08-18-ticket-customer-info-request-design.md`.
+
+**Read Task 41 before building this.** It solves the same problem for a different kind of token — a Sanctum bearer token from an API client — and lands on the same answer: a central table mapping a token hash to a tenant. Two tables would be `access_token_lookups` here and `access_token_tenant_lookups` there, which is one letter apart in the schema and two different things in the head. Decide up front whether they are one table with a `kind` column or two with names nobody can confuse, because the second person to touch this will assume there is only one.
 
 - [ ] **Step 4: Commit**
 
@@ -1625,7 +1627,7 @@ The customer's *files* need separating. The installation's plumbing does not.
 
 **Why the different name.** The package ships a `FilesystemTenancyBootstrapper` that does the `useStoragePath()` version. Seeing that class in the bootstrappers list, you would reasonably assume the whole storage tree moves. `TenantStorageBootstrapper` is named differently on purpose: it is not that class and does not do that.
 
-**The catch this creates** is the rest of this task. Code that goes through a disk is handled for free; code that builds a path by hand — `storage_path('app/public/' . $image->path)` — keeps pointing at the old shared tree, does not error, and simply finds no file. A PDF renders with missing photos and a smoke test says nothing. Step 7 hunts down all seven such call sites.
+**The catch this creates** is the rest of this task. Code that goes through a disk needs no change at all; code that builds a path by hand — `storage_path('app/public/' . $image->path)` — keeps pointing at the old shared tree, does not error, and simply finds no file. A PDF renders with missing photos and a smoke test says nothing. Step 7 hunts down all seven such call sites.
 
 ```php
 <?php
@@ -2149,7 +2151,7 @@ class PricingSetting extends Model
 }
 ```
 
-- [ ] **Step 2: Write the failing pricing-catalogue invariant tests**
+- [ ] **Step 2: Write the failing pricing-catalogue tests**
 
 These read the seeded catalogue. They encode the two rules the price list must satisfy — a future price change that breaks either turns the suite red.
 
@@ -4252,9 +4254,9 @@ Once the customer confirms everything works — suggest two weeks — remove the
 
 ---
 
-## Task 30: Tenant-aware test suite — MySQL only, and it must be structurally impossible to hit a live database
+## Task 30: Tenant-aware test suite — MySQL only, and it must be impossible to run against a live database by accident
 
-`phpunit.xml` currently pins tests to SQLite `:memory:`, which is fast, trivially isolated (a throwaway in-process database per run), and — critically — physically cannot be a live database. Multi-database tenancy does not work on SQLite (see Prerequisites), so tests must move to MySQL. Moving to MySQL removes the "physically cannot be live" guarantee SQLite gave us for free, so this task rebuilds that guarantee explicitly, in three independent layers, rather than trusting a correctly-set env var:
+`phpunit.xml` currently pins tests to SQLite `:memory:`, which is fast, isolated by default (a throwaway in-process database per run), and — critically — physically cannot be a live database. Multi-database tenancy does not work on SQLite (see Prerequisites), so tests must move to MySQL. Moving to MySQL removes the "physically cannot be live" guarantee SQLite gave us for free, so this task rebuilds that guarantee explicitly, in three independent layers, rather than trusting a correctly-set env var:
 
 1. **Distinct database names.** The central test database is `lavoro_test_landlord`, never `lavoro` (the dev/prod name from Task 2). Tenant test databases get their own prefix, `lavoro_test_tenant_` (Task 3 set `lavoro_tenant_`), configured via a new env var so it can differ from the runtime prefix without touching `config/tenancy.php` again per environment.
 2. **A hard runtime assertion.** The test bootstrap refuses to run — throws before a single query executes — if the resolved central database name doesn't contain `test`. This is the layer that survives someone fat-fingering `.env` or copy-pasting production values into `phpunit.xml` later.
@@ -4627,7 +4629,7 @@ Route::middleware('tenant.module:assistant')->group(function () {
 });
 ```
 
-This one is a subscription boundary in the fullest sense — it is the only module whose absence saves us money rather than merely withholding a feature, because every route in it spends at a supplier. Gate all fourteen, not just `ask`: `confirm` carries out a write that a previous `ask` proposed, `report` hands back a transcript, and `history` and `prompts` are the conversation's own furniture. A half-gated module is a module that still costs and still leaks.
+This is the one module where not having it actually saves us money rather than just withholding a feature, because every route in it spends real money at a supplier. Gate all fourteen, not just `ask`: `confirm` carries out a write that a previous `ask` proposed, `report` hands back a transcript, and `history` and `prompts` are the conversation's own furniture. A half-gated module is a module that still costs and still leaks.
 
 Note the assistant does **not** appear in `menu.json` — it is a panel, not a page — so Step 5 has nothing to add for it. Its visibility comes from `auth.can.use_assistant`, handled in Step 6b.
 
@@ -6804,7 +6806,7 @@ Schema::connection('central')->create('access_token_tenant_lookups', function (B
 ```
 
 `char(64)` because a SHA-256 written in hex is always exactly 64 characters; as the primary
-key it gives both the seek and global uniqueness for free.
+key it makes the lookup a single seek and enforces global uniqueness at the same time.
 
 **The foreign key is real here, and it is worth noticing why**, because Task 39 could
 not have one. Both tables are central, so MySQL can enforce it — and the cascade means
@@ -7217,8 +7219,8 @@ such rather than as a failure.
 
 PASS / FAIL / **SKIP**, and a skip is never counted as a pass. Half these checks
 are negative ("cannot reach", "no orphans"), and a negative check is satisfied
-trivially by a connection that failed — so a run against a broken install must
-report skips, never a clean sheet. That distinction is the whole value of the
+automatically when the connection failed — so a run against a broken install
+must report skips, never a clean sheet. That distinction is the whole value of the
 script version, and it is worth copying rather than reinventing.
 
 End with a summary line and `exit(1)` if anything failed.
@@ -7300,6 +7302,6 @@ git commit -m "feat(tenancy): add tenancy:doctor for the checks git cannot hold"
 
     That is a reasonable thing for a human-facing app to do and it should stay. What it costs is every diagnostic this plan phrases as a status code, and the affected instructions have been corrected in place rather than left to mislead: Task 12 Step 3 ("a 404 on a record that exists means the middleware order is wrong") is a *local* check, where the rewrite does not apply, and is sound as written. Task 31's module gate and Task 14's cross-tenant file ids are the two that change shape in production.
 
-    The practical rule while cutting over: **read `storage/logs/laravel.log`, not the screen.** A tenancy misconfiguration in production presents as redirects and friendly Dutch, not as errors — and a redirect loop is what "every page 404s" looks like from the outside. If Task 27's smoke test goes wrong in a way that makes no sense, the first move is `php artisan down` and tailing the log, not clicking further.
+    The practical rule while cutting over: **read `storage/logs/laravel.log`, not the screen.** A tenancy misconfiguration in production looks like redirects and friendly Dutch, not like errors — and a redirect loop is what "every page 404s" looks like from the outside. If Task 27's smoke test goes wrong in a way that makes no sense, the first move is `php artisan down` and tailing the log, not clicking further.
 
     Worth considering independently of tenancy: exclude `/files/` and the other controller-served paths from the 404 rewrite. A redirect is a sensible answer for a person who mistyped a URL and a nonsensical one for an `<img>` tag.
