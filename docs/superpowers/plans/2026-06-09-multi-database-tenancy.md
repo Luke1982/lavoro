@@ -223,6 +223,36 @@ Note what is *not* covered: a database that is neither the landlord nor a tenant
 
 If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
 
+- [ ] **Step 2b: Let the operator's own account become the provisioner**
+
+Provisioning commands elevate themselves (Task 21), so the operator runs
+`php artisan tenant:create …` and the command re-execs under the provisioner.
+That needs one rule, naming a real person's account:
+
+```
+# /etc/sudoers.d/lavoro-admin
+<admin-user> ALL=(lavoro_provisioner) NOPASSWD: /usr/bin/php
+```
+
+**This is a separate file from `/etc/sudoers.d/lavoro-deploy` (Task 39), and the
+two must not be merged.** The deploy rule is scoped to `/usr/bin/mysqldump` on
+purpose: an unattended deploy may take backups and may not create databases or
+users. This rule is the opposite — `NOPASSWD` on the PHP binary is a grant of
+everything, because PHP can exec anything, so it is `sudo -u lavoro_provisioner`
+with the typing removed and nothing less than that.
+
+That is defensible for a named human, who could already run
+`sudo -u lavoro_provisioner` at will and who — per the threat model above —
+can already decrypt every tenant password from `APP_KEY` and the landlord
+database. It is **not** defensible for the deploy user or for `www-data`, and
+neither belongs in this file. Adding either turns "provisioning is impossible
+from a web request" into a false statement, and nothing in the application will
+object: `RunsAsProvisioner` elevates for whoever holds the rule.
+
+Skipping this step entirely is a supported choice. Without it the elevation
+finds no passwordless path, falls back to the error message it prints today, and
+the operator types `sudo -u lavoro_provisioner` as before.
+
 - [ ] **Step 3: Verify the identities behave as intended**
 
 ```bash
@@ -289,8 +319,8 @@ If you would rather keep `DB_SOCKET` (a shared `.env` with other tooling, say), 
     ]) : [],
 ],
 
-// Used only by tenant:create / tenant:delete / tenant:provision-user, which must be
-// run as: sudo -u lavoro_provisioner php artisan <command>
+// Used only by tenant:create / tenant:delete / tenant:provision-user, which run
+// as the lavoro_provisioner Linux user — RunsAsProvisioner elevates them there.
 // Authenticates by OS user over the Unix socket — deliberately has no password.
 'provisioner' => [
     'driver'      => 'mysql',
@@ -2911,17 +2941,23 @@ Creates the tenant record (which fires the create→migrate→seed pipeline), th
 
 The package is validated against the seeded `packages` catalogue (Task 6/16) and defaults to `starter` — the smallest thing that works, so an under-provisioned tenant complains immediately rather than silently costing money. Modules default to none. The derived database name is `'lavoro_tenant_' . Str::slug($name, '_')`, which cannot collide with `lavoro_landlord` — the namespaces do not overlap. It *can* collide with an existing **tenant**: two customers whose names slug identically ("Spee BV" and "Spee B.V." both slug to `spee_bv`) would derive the same database, and the second `tenant:create` would run the tenant migrations straight over the first customer's live data. The guard below therefore refuses any database name that already exists on the server, which covers that case and any other pre-existing schema. Cheap check, unrecoverable failure without it. Creating the user fires the observer, which writes the central lookup row. The admin user is created without an explicit `seat_type`, so it takes the column default `office` (Task 33); the operator can promote it to `field` afterwards.
 
-**This command must run as the provisioner Linux user** (Task 2), because creating a database and a MySQL user is the one thing the web app's credentials deliberately cannot do:
+**This command runs as the provisioner Linux user** (Task 2), because creating a database and a MySQL user is the one thing the web app's credentials deliberately cannot do. It gets there itself — the trait below re-execs under `sudo` when the rule from Task 2 Step 2b is present:
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:create "Klant BV" admin@klant.nl
+php artisan tenant:create "Klant BV" admin@klant.nl
 ```
+
+Without that rule it prints the `sudo -u lavoro_provisioner …` line to run by hand, so both installs work; only one of them makes you type it.
 
 **Files:** `app/Console/Commands/Concerns/RunsAsProvisioner.php` (new), `app/Console/Commands/CreateTenant.php`
 
 - [ ] **Step 1: Create the `RunsAsProvisioner` trait**
 
-Provisioning writes the tenant row *and* issues `CREATE DATABASE` / `CREATE USER`, so both must happen on the `provisioner` connection. This trait repoints `central` at the provisioner connection for the life of the command, and fails with a clear message when the command is run as the wrong Linux user — otherwise the failure surfaces as an opaque MySQL access-denied error.
+Provisioning writes the tenant row *and* issues `CREATE DATABASE` / `CREATE USER`, so both must happen on the `provisioner` connection. This trait does two things: it gets the process running as the provisioner Linux user, and it repoints `central` at the provisioner connection for the life of the command.
+
+Call `elevateToProvisioner()` as the **first statement in `handle()`**, before any
+output and before any work. It replaces the process, so anything done before it
+is done twice.
 
 ```php
 <?php
@@ -2932,6 +2968,30 @@ use Illuminate\Support\Facades\DB;
 
 trait RunsAsProvisioner
 {
+    protected function elevateToProvisioner(): void
+    {
+        if ($this->linuxUser() === 'lavoro_provisioner') {
+            return;
+        }
+
+        $sudo = trim((string) shell_exec('command -v sudo 2>/dev/null'));
+
+        if (!$sudo || !function_exists('pcntl_exec')) {
+            return;
+        }
+
+        exec($sudo . ' -n -u lavoro_provisioner true 2>/dev/null', $ignored, $status);
+
+        if ($status !== 0) {
+            return;
+        }
+
+        pcntl_exec($sudo, array_merge(
+            ['-n', '-u', 'lavoro_provisioner', PHP_BINARY, base_path('artisan')],
+            array_slice($_SERVER['argv'], 1)
+        ));
+    }
+
     protected function useProvisionerConnection(): bool
     {
         config(['database.connections.central' => config('database.connections.provisioner')]);
@@ -2940,20 +3000,53 @@ trait RunsAsProvisioner
         try {
             DB::connection('central')->select('select 1');
         } catch (\Throwable $e) {
-            $user = function_exists('posix_getpwuid') && function_exists('posix_geteuid')
-                ? (posix_getpwuid(posix_geteuid())['name'] ?? 'unknown')
-                : 'unknown';
+            $user = $this->linuxUser();
 
             $this->error("Could not connect as the provisioner (running as Linux user '{$user}').");
             $this->error('Run this command as: sudo -u lavoro_provisioner php artisan ' . $this->getName() . ' ...');
+            $this->error('Or install /etc/sudoers.d/lavoro-admin (Task 2, Step 2b) and it will elevate itself.');
 
             return false;
         }
 
         return true;
     }
+
+    protected function linuxUser(): string
+    {
+        return function_exists('posix_getpwuid') && function_exists('posix_geteuid')
+            ? (posix_getpwuid(posix_geteuid())['name'] ?? 'unknown')
+            : 'unknown';
+    }
 }
 ```
+
+Five things this shape is buying, none of them optional:
+
+- **`pcntl_exec`, not `passthru` or `system`.** argv passes through as an array, so
+  a tenant named `"Spee B.V."` survives without quoting every element through
+  `escapeshellarg`. It also *replaces* the process rather than nesting one, so the
+  exit code is the real one and `Ctrl-C` reaches the right thing.
+- **No loop guard is needed, and adding one would be worse.** After `sudo` the
+  euid *is* the provisioner, so the first check short-circuits on the second pass.
+  The obvious guard — a sentinel environment variable — does not survive `sudo`
+  at all, because sudoers defaults to `env_reset`. It would look like a
+  safeguard and be nothing.
+- **`sudo -n`.** Non-interactive, so on a machine without the rule it fails in
+  milliseconds instead of prompting for a password inside what may be a deploy
+  script. Every early `return` falls through to `useProvisionerConnection()`,
+  which prints the manual command. Elevation is an optimisation, never a
+  precondition.
+- **`pcntl_exec` returning means it failed** — there is no success path past it.
+  Falling through to the same error is right.
+- **`command -v sudo` rather than a hardcoded `/usr/bin/sudo`.** `pcntl_exec` does
+  no `PATH` lookup, and the path differs across distributions.
+
+**What this does not do is make the command safe to run unattended.** It removes
+typing, not judgement — `tenant:delete` drops a customer's database and now needs
+one fewer deliberate act to get there. The `--force`/confirmation prompts on the
+destructive commands are load-bearing after this change in a way they were not
+before.
 
 - [ ] **Step 2: Create the command**
 
@@ -3053,7 +3146,7 @@ class CreateTenant extends Command
 - [ ] **Step 3: Verify the tenant got its own confined MySQL user**
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:create "Test BV" test@test.nl --package=starter
+php artisan tenant:create "Test BV" test@test.nl --package=starter
 
 # The generated user exists and reaches only its own database:
 mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-username>'@'%';"
@@ -3085,7 +3178,7 @@ Dropping the user matters: leaving it behind accumulates orphaned MySQL accounts
 Like `tenant:create`, this runs as the provisioner:
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:delete <id>
+php artisan tenant:delete <id>
 ```
 
 **Files:** `app/Console/Commands/DeleteTenant.php`
@@ -3481,10 +3574,10 @@ That is why Tasks 27 and 29 restore the old dump *into* a `lavoro_tenant_<slug>`
 
 You will get a clear error, not quiet corruption. But you will get it halfway through the deployment, with the app already down and users locked out while you work out what to do. Sort the name out first.
 
-**Provisioning the MySQL user is not optional here.** After Task 2, `lavoro_app` can reach only the landlord database. A tenant registered without its own credentials is therefore unreachable by the web app — every request for it fails with an access-denied error. So this command runs as the provisioner and creates the user in the same breath:
+**Provisioning the MySQL user is not optional here.** After Task 2, `lavoro_app` can reach only the landlord database. A tenant registered without its own credentials is therefore unreachable by the web app — every request for it fails with an access-denied error. So this command runs as the provisioner (elevating itself, Task 21) and creates the tenant's MySQL user in the same breath:
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
+php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
 ```
 
 The standalone `tenant:provision-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose MySQL user was lost.
@@ -3694,7 +3787,7 @@ Rotating a live tenant's password briefly breaks in-flight connections; do it in
 - [ ] **Step 4: Verify**
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:provision-user <id>
+php artisan tenant:provision-user <id>
 mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-username>'@'%';"
 ```
 
@@ -3803,7 +3896,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" -e "DROP TABLE I
 This both registers the tenant and creates its dedicated MySQL user, so it must run as the provisioner Linux user (Task 2):
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_tenant_acme
+php artisan tenant:setup-existing "Naam van het bedrijf" lavoro_tenant_acme
 ```
 
 Confirm the tenant can actually be reached with its own credentials before going further — `lavoro_app` deliberately cannot reach it, so a missing user shows up as a site-wide access-denied error after `php artisan up`:
@@ -4050,7 +4143,7 @@ A collision on a *soft-deleted* row on either side is the easy case: force-delet
 If this returns rows, resolve them with the customer first (change the email in the source database). Then register — the command aborts and rolls back by itself if a collision slipped through:
 
 ```bash
-sudo -u lavoro_provisioner php artisan tenant:setup-existing "Spee" lavoro_tenant_spee
+php artisan tenant:setup-existing "Spee" lavoro_tenant_spee
 ```
 
 (As provisioner — this also creates Spee's own MySQL user, without which the app cannot reach the imported database.)
@@ -6245,7 +6338,15 @@ The tenant dumps run as `lavoro_provisioner`. Allow exactly that, and nothing el
 <deploy-user> ALL=(lavoro_provisioner) NOPASSWD: /usr/bin/mysqldump
 ```
 
-`NOPASSWD` is scoped to a single binary as one specific user, so an unattended deploy can back up but cannot use this entry to create databases or users — `tenant:create` still requires an interactive `sudo`.
+`NOPASSWD` is scoped to a single binary as one specific user, so an unattended deploy can back up but cannot use this entry to create databases or users.
+
+**Keep this separate from `/etc/sudoers.d/lavoro-admin` (Task 2, Step 2b), which
+grants a named human `NOPASSWD` on the PHP binary so provisioning commands can
+elevate themselves.** That is a grant of everything as the provisioner. Merging
+the two files, or widening this one to `/usr/bin/php`, hands an unattended
+process the ability to create and drop tenant databases — and because
+`RunsAsProvisioner` elevates for whoever holds a rule, nothing in the
+application would report the change.
 
 - [ ] **Step 3: Verify against a real run**
 
