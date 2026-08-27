@@ -219,7 +219,7 @@ Do not drop the backslashes before the underscores in either grant. An unescaped
 
 Note what is *not* covered: a database that is neither the landlord nor a tenant — a pre-tenancy install, another app's schema — falls outside both patterns, so this account cannot read or drop it. That is what makes the pre-cutover database safe from provisioning mistakes rather than merely untouched by convention.
 
-`WITH GRANT OPTION` is required on the tenant pattern because this account grants each new tenant user rights on its own database. `CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
+`WITH GRANT OPTION` is required on the tenant pattern because this account grants each new tenant's **MySQL login** rights on its own database. `CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
 
 If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
 
@@ -319,7 +319,7 @@ If you would rather keep `DB_SOCKET` (a shared `.env` with other tooling, say), 
     ]) : [],
 ],
 
-// Used only by tenant:create / tenant:delete / tenant:provision-user, which run
+// Used only by tenant:create / tenant:delete / tenant:provision-db-user, which run
 // as the lavoro_provisioner Linux user — RunsAsProvisioner elevates them there.
 // Authenticates by OS user over the Unix socket — deliberately has no password.
 'provisioner' => [
@@ -623,7 +623,7 @@ ls database/migrations/*.php | tail -3
 
 `storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
-`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database has none until `tenant:setup-existing` / `tenant:provision-user` (Task 26) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
+`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database has none until `tenant:setup-existing` / `tenant:provision-db-user` (Task 26) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
 
 ```php
 <?php
@@ -3582,7 +3582,7 @@ You will get a clear error, not quiet corruption. But you will get it halfway th
 php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
 ```
 
-The standalone `tenant:provision-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose MySQL user was lost.
+The standalone `tenant:provision-db-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose MySQL user was lost.
 
 Note `User::withTrashed()` on the `pluck` below. What is copied is **emails, not user rows** — application users never leave the tenant's own database; `user_tenant_lookups` is a registry of which tenant owns which email, one row per email. A trashed user's email still occupies `users.email` and still blocks `unique:users,email` (the presence verifier applies no global scopes), so it is still *taken* in this tenant. Plucking only live users would leave it absent from `user_tenant_lookups` while unusable in the tenant — free for a *later* tenant to claim, after which the original tenant could never restore that user and have them log in, because login resolves the tenant *from* the email. And `$emails` also feeds the `$conflicts` query below, so the one check that exists to catch this collision would be blind to it and onboarding would report success. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
 
@@ -3603,7 +3603,7 @@ use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\TenantUserProvisioner;
+use App\Services\TenantDbUserProvisioner;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -3652,7 +3652,7 @@ class SetupExistingTenant extends Command
 
         // Give the tenant its own confined MySQL user before anything tries to
         // reach its database — lavoro_app cannot, by design.
-        app(TenantUserProvisioner::class)->provision($tenant);
+        app(TenantDbUserProvisioner::class)->provision($tenant);
         $this->info("Created MySQL user {$tenant->fresh()->tenancy_db_username} for {$this->argument('database')}.");
 
         tenancy()->initialize($tenant->fresh());
@@ -3700,7 +3700,7 @@ class SetupExistingTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Create the `TenantUserProvisioner` service**
+- [ ] **Step 2: Create the `TenantDbUserProvisioner` service**
 
 This is the one place that creates a tenant's MySQL user, so `tenant:setup-existing`, the standalone command below, and any future rotation all behave identically. It reuses the package's own generators and grant list rather than duplicating them, so a tenant provisioned here is indistinguishable from one created by `tenant:create`.
 
@@ -3713,7 +3713,7 @@ use App\Models\Tenant;
 use Stancl\Tenancy\DatabaseConfig;
 use Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager;
 
-class TenantUserProvisioner
+class TenantDbUserProvisioner
 {
     public function provision(Tenant $tenant): void
     {
@@ -3742,9 +3742,11 @@ class TenantUserProvisioner
 
 `$tenant->database()` returns a fresh `DatabaseConfig` that reads the credentials just saved, which is what `createUser()` grants against. Saving before creating is deliberate — if the grant fails, the stored credentials and the MySQL state are reconciled by re-running the command rather than left silently diverged.
 
-- [ ] **Step 3: Create the standalone `tenant:provision-user` command**
+- [ ] **Step 3: Create the standalone `tenant:provision-db-user` command**
 
-For the first tenant during deployment (Task 27), for password rotation, and for repairing a tenant whose user was lost.
+Creates the MySQL login a tenant uses to reach its own database, grants it access to that database only, and stores the username and encrypted password on the tenant's row.
+
+`tenant:create` already does this for a new tenant. This standalone version is for the three cases it does not cover: the first tenant during the cutover (Task 27), whose database existed before tenancy and so never got a login; rotating a password; and repairing a tenant whose MySQL login was deleted or no longer works.
 
 ```php
 <?php
@@ -3753,17 +3755,17 @@ namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Tenant;
-use App\Services\TenantUserProvisioner;
+use App\Services\TenantDbUserProvisioner;
 use Illuminate\Console\Command;
 
-class ProvisionTenantUser extends Command
+class ProvisionTenantDbUser extends Command
 {
     use RunsAsProvisioner;
 
-    protected $signature = 'tenant:provision-user {id}';
+    protected $signature = 'tenant:provision-db-user {id}';
     protected $description = 'Create or rotate the dedicated MySQL user for a tenant';
 
-    public function handle(TenantUserProvisioner $provisioner): int
+    public function handle(TenantDbUserProvisioner $provisioner): int
     {
         if (!$this->useProvisionerConnection()) {
             return self::FAILURE;
@@ -3789,7 +3791,7 @@ Rotating a live tenant's password briefly breaks in-flight connections; do it in
 - [ ] **Step 4: Verify**
 
 ```bash
-php artisan tenant:provision-user <id>
+php artisan tenant:provision-db-user <id>
 mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-username>'@'%';"
 ```
 
@@ -3798,8 +3800,8 @@ Expected: grants on that tenant's database only.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/Console/Commands/SetupExistingTenant.php app/Console/Commands/ProvisionTenantUser.php \
-        app/Services/TenantUserProvisioner.php
+git add app/Console/Commands/SetupExistingTenant.php app/Console/Commands/ProvisionTenantDbUser.php \
+        app/Services/TenantDbUserProvisioner.php
 git commit -m "feat(tenancy): provision a dedicated MySQL user per tenant"
 ```
 
@@ -4322,7 +4324,7 @@ with:
 
 **Tests deliberately use the plain `MySQLDatabaseManager`, not the permission-controlled one** (Task 3 made this env-overridable for exactly this reason). Creating a MySQL user per test run would require granting `lavoro_test` the `CREATE USER` privilege — server-wide, since MySQL will not scope it to a database pattern — which directly undermines the narrow grant this task exists to establish. The test tenant therefore connects with the `lavoro_test` credentials rather than its own.
 
-The cost, stated plainly: the per-tenant credential path is **not** covered by the suite. If `TenantUserProvisioner` or the encrypted-password cast breaks, tests stay green and you find out on the server. The Task 21 Step 3 and Task 26 Step 4 manual verifications are the compensating control — run them after any change to tenant provisioning.
+The cost, stated plainly: the per-tenant credential path is **not** covered by the suite. If `TenantDbUserProvisioner` or the encrypted-password cast breaks, tests stay green and you find out on the server. The Task 21 Step 3 and Task 26 Step 4 manual verifications are the compensating control — run them after any change to tenant provisioning.
 
 Also remove `SESSION_DRIVER` value `array` is fine to keep — the session table itself is never touched by tests that don't explicitly exercise auth, and `SESSION_CONNECTION=central` only matters when the `database` driver is used. Leave `SESSION_DRIVER=array` as-is.
 
@@ -7258,9 +7260,9 @@ git commit -m "feat(tenancy): add tenancy:doctor for the checks git cannot hold"
 
 9. **Test isolation works differently after this.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn across the converted test files.
 
-10. **Per-tenant database credentials are not exercised by the test suite.** Tests run on the plain `MySQLDatabaseManager` (Task 30) so the narrow test grant stays narrow, which means `TenantUserProvisioner` and the `encrypted` password cast are only verified manually (Task 21 Step 3, Task 26 Step 4). Re-run those after touching provisioning.
+10. **Per-tenant database credentials are not exercised by the test suite.** Tests run on the plain `MySQLDatabaseManager` (Task 30) so the narrow test grant stays narrow, which means `TenantDbUserProvisioner` and the `encrypted` password cast are only verified manually (Task 21 Step 3, Task 26 Step 4). Re-run those after touching provisioning.
 
-11. **`APP_KEY` is backup-critical.** Tenant database passwords are stored encrypted with it (Task 4). Losing or rotating `APP_KEY` without re-encrypting makes every tenant database unreachable. Rotation means: decrypt with the old key, re-run `tenant:provision-user` per tenant, or keep the old key in `APP_PREVIOUS_KEYS`.
+11. **`APP_KEY` is backup-critical.** Tenant database passwords are stored encrypted with it (Task 4). Losing or rotating `APP_KEY` without re-encrypting makes every tenant database unreachable. Rotation means: decrypt with the old key, re-run `tenant:provision-db-user` per tenant, or keep the old key in `APP_PREVIOUS_KEYS`.
 
 12. **The provisioner is tied to this machine.** `auth_socket` authenticates by Unix socket, so it only works while MySQL runs on the same host as the app. Moving the database to its own server breaks provisioning and requires a different mechanism (client certificates, or a root-readable credentials file). Ordinary tenant traffic is unaffected — those users authenticate by password over TCP.
 
