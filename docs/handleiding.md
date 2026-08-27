@@ -329,6 +329,8 @@ Het beheergedeelte (alleen voor admins, tenzij anders vermeld):
 - **Technisch beheer** (eigen recht): de status van de mailkoppeling bekijken en een testmail sturen.
 - In de planner zelf: standaardduur van een afspraak en de leidende kleur (afspraaktype of monteurrol).
 
+**Onderhoud.** Bij werk aan de applicatie kan Lavoro tijdelijk op onderhoud worden gezet. Iedereen krijgt dan een onderhoudspagina te zien in plaats van de applicatie, met — als die zijn ingevuld — een korte toelichting en het tijdstip waarop Lavoro weer verwacht wordt. Die pagina ververst zichzelf, dus zodra het onderhoud klaar is kom je vanzelf weer in de applicatie; je hoeft niets te doen en niets opnieuw te laden. Er gaat geen werk verloren: wat al opgeslagen was staat er na het onderhoud gewoon weer. Onderhoud wordt door de beheerder van buiten de applicatie aan- en uitgezet, dus je vindt er geen knop voor in het menu.
+
 Vaste automatische taken op de achtergrond: elk uur werkbonnen genereren uit onderhoudscontracten, dagelijks klanten en artikelen ophalen uit SnelStart ('s nachts), elke ochtend monteurs herinneren aan ontbrekende tijden, en het dagelijks opruimen van oude assistent-gesprekken en oude locatiepings.
 
 ## Koppelingen
