@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveAccessToken;
+use App\Support\DatabaseErrorMessage;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -42,24 +43,40 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->back()->with('error', $message);
         });
 
-        // Safety net: convert MySQL "Numeric value out of range" (SQLSTATE
-        // 22003 / errno 1264) into a 422 validation error so users see a
-        // meaningful message instead of a 500. The DbRange rule catches
-        // this proactively, but this guards against any field we forgot.
+        /**
+         * Safety net for constraint violations: a duplicate unique value, a
+         * foreign key that no longer resolves, a NOT NULL column left empty.
+         * Validation should catch these first, but every table has indexes no
+         * form request knows about, so they end as a field error and a
+         * notification here instead of as a 500 in the user's face.
+         *
+         * Only for requests that write. A GET that the database refuses is a bug
+         * in the route and keeps its 500 — and sending a page load back to where
+         * it came from is how a reload turns into a redirect loop.
+         */
         $exceptions->render(function (QueryException $e, Request $request) {
-            $sqlState = $e->getCode();
-            $errno = $e->errorInfo[1] ?? null;
-            if ($sqlState !== '22003' && $errno !== 1264) {
+            if ($request->isMethodSafe()) {
                 return null;
             }
-            preg_match("/column '([^']+)'/i", $e->getMessage(), $m);
-            $field = $m[1] ?? 'value';
-            $message = "De waarde voor '{$field}' is buiten het toegestane bereik.";
 
-            return back()
-                ->withErrors([$field => $message])
-                ->with('error', $message)
-                ->withInput();
+            $error = DatabaseErrorMessage::for($e);
+
+            if (!$error) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $error->message,
+                    'errors' => $error->field ? [$error->field => [$error->message]] : [],
+                ], 422);
+            }
+
+            $response = back()->with('error', $error->message);
+
+            return $error->field
+                ? $response->withErrors([$error->field => $error->message])
+                : $response;
         });
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {

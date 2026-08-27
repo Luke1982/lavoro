@@ -30,6 +30,7 @@ Een paar vaste gewoontes in de hele applicatie:
 - **Filters blijven staan.** Zoektermen en filters op lijstpagina's worden onthouden (ook na verversen) en staan in de adresbalk, dus een gefilterde lijst is deelbaar als link.
 - **Bulk-acties.** In veel lijsten kun je rijen aanvinken; onderin verschijnt dan een balk om ze in één keer te bewerken (bijvoorbeeld werkbonnen naar een andere fase zetten of storingen van status wisselen).
 - **Fases als stappenbalk.** Op een werkbon staat de fase als een rij genummerde rondjes; klikken op een stap verzet de werkbon naar die fase.
+- **Als opslaan niet lukt.** Lukt bewaren niet, dan verschijnt rechtsboven een rode melding met de reden en blijft staan wat je hebt ingevuld. Namen en codes die maar één keer mogen voorkomen (een merk, een categorie, een serienummer bij een product) leveren "is al in gebruik" op bij het veld zelf. Iets verwijderen dat nog ergens aan hangt, wordt geweigerd met de melding dat het nog in gebruik is: maak eerst die koppeling los.
 
 ## Dashboard
 

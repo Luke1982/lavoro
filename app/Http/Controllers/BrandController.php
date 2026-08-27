@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BrandReadRequest;
 use App\Models\Brand;
 use Illuminate\Http\Request;
-use App\Http\Requests\BrandReadRequest;
+use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
@@ -52,7 +53,7 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')],
         ]);
 
         $brand = Brand::create([
@@ -68,7 +69,7 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->ignore($brand)],
         ]);
 
         $brand->update([
