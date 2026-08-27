@@ -3487,9 +3487,9 @@ You will get a clear error, not quiet corruption. But you will get it halfway th
 sudo -u lavoro_provisioner php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
 ```
 
-The standalone `tenant:provision-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose user was lost.
+The standalone `tenant:provision-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose MySQL user was lost.
 
-Note `User::withTrashed()` — `User` soft-deletes, and a trashed user's email still occupies `users.email` and still blocks `unique:users,email`. Copying only live users would leave those emails free centrally while unusable in the tenant, and let a *later* tenant claim them; the collision check below would then pass and the invariant would already be broken. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
+Note `User::withTrashed()` on the `pluck` below. What is copied is **emails, not user rows** — application users never leave the tenant's own database; `user_tenant_lookups` is a registry of which tenant owns which email, one row per email. A trashed user's email still occupies `users.email` and still blocks `unique:users,email` (the presence verifier applies no global scopes), so it is still *taken* in this tenant. Plucking only live users would leave it absent from `user_tenant_lookups` while unusable in the tenant — free for a *later* tenant to claim, after which the original tenant could never restore that user and have them log in, because login resolves the tenant *from* the email. And `$emails` also feeds the `$conflicts` query below, so the one check that exists to catch this collision would be blind to it and onboarding would report success. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
 
 This command is used twice: for the main install's database during deployment (Task 27), and again for every dedicated-subdomain install that gets absorbed later (Task 29).
 
@@ -7014,6 +7014,7 @@ Global, once:
 | Crontab contains `schedule:run` (best effort) | Direct answer when it works, see Step 2 |
 | Age of the scheduler heartbeat (below) | Authoritative: nothing scheduled has actually run |
 | `public/storage` symlink present | The static fallback logo on PDFs |
+| `storage/logs` and `storage/framework` writable by **both** `www-data` and `lavoro_provisioner` | Provisioning commands run as the provisioner (Task 21). One provisioner-owned `laravel.log` and every web request that logs starts throwing |
 
 Per tenant, from `Tenant::on('central')->cursor()`:
 
@@ -7023,7 +7024,7 @@ Per tenant, from `Tenant::on('central')->cursor()`:
 | `tenancy_db_password` decrypts | An `APP_KEY` rotation makes every tenant unreachable (Known impact 11) |
 | Can connect with the tenant's own credentials | The two above, proven together rather than inferred |
 | No pending tenant migrations | `tenants:migrate` was missed after a deploy |
-| `storage/tenant-<id>/public` and `/local` exist and are writable | Uploads fail, or land where nothing serves them |
+| `storage/tenant-<id>/public` and `/local` exist, are group-writable and setgid | Uploads fail, or land where nothing serves them. Not `is_writable()` — see Step 1b |
 | Every user has a `user_tenant_lookups` row | That user cannot log in, and there is no error anywhere |
 | A stage exists for each of the six `service_order_stages` flags | Three features null-guard and silently do nothing (Task 23) |
 
@@ -7031,6 +7032,48 @@ And two orphan checks, which is where a botched `tenant:create` or `tenant:delet
 
 - lookup rows naming a tenant id that no longer exists
 - `lavoro_tenant_*` databases on the server with no matching `tenants` row
+
+- [ ] **Step 1b: Check storage by ownership and mode, not `is_writable`**
+
+Two identities write into `storage/`. `www-data` serves every request, and
+`lavoro_provisioner` runs `tenant:create`, `tenant:delete` and
+`tenant:setup-existing` — and will run them far more often once Task 21
+elevates to it automatically. Both write logs, both compile views, both touch
+the cache directory.
+
+`is_writable()` cannot check that. It answers for the process that asks: run the
+doctor as root and every storage check passes no matter what `www-data` can do;
+run it as the provisioner and it answers for the provisioner. The question is
+whether **both** accounts can write, and no single-identity probe reaches it.
+
+So read the mode and the group instead:
+
+```php
+$stat  = stat($path);
+$group = posix_getgrgid($stat['gid'])['name'] ?? null;
+$group_writable = ($stat['mode'] & 0020) !== 0;
+$setgid         = ($stat['mode'] & 02000) !== 0;
+```
+
+Check `storage/logs`, `storage/logs/laravel.log` when it exists,
+`storage/framework/cache/data` and `storage/framework/views`. PASS when the path
+is group-writable **and** both `www-data` and `lavoro_provisioner` are members of
+that group (`posix_getgrnam($group)['members']`, plus each account's primary
+group from `posix_getpwnam`). FAIL naming both accounts, the group and the
+missing half — the remedy is `usermod -aG` and `chmod g+w`, and an operator
+should not have to derive that from a bare boolean.
+
+**Check the setgid bit on the directories separately, and fail without it.** A
+directory that is group-writable but not setgid passes the first check and still
+breaks: a file the provisioner creates there takes the provisioner's primary
+group, and the next `www-data` write to it fails. The install would read healthy
+today and break on the next `tenant:create` — which is exactly the class of
+failure this command exists to catch before it happens.
+
+This belongs here rather than in `verify-mysql.sh` because it is about the
+application's own storage tree, which that script deliberately knows nothing
+about — and because the account it concerns is the one Task 21 made easy to
+run as without noticing.
 
 - [ ] **Step 2: Check the scheduler two ways, because neither is sufficient alone**
 
