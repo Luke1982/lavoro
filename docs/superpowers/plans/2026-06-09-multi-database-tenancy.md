@@ -1266,7 +1266,7 @@ Queue::before(function () {
 });
 ```
 
-**`Auth::forgetUser()` stays here and does not move into the flush**, and this is the one asymmetry worth being deliberate about. "Start with nobody" is right for a queue job, which may follow a job that restored an actor. It is wrong for a tenancy switch: on a web request the tenancy middleware runs *before* the auth guard resolves a user, so forgetting is a no-op going in — but `tenancy()->end()` fires on the way out, and any future flow that initializes tenancy while somebody is authenticated would silently sign them out mid-request. Authentication is not tenant-scoped state; it is request-scoped state that happens to be cleared at one of the same moments.
+**`Auth::forgetUser()` stays here and does not move into the flush.** It is the one thing on this list that is treated differently, so it is worth saying why. "Start with nobody" is right for a queue job, which may follow a job that restored an actor. It is wrong for a tenancy switch: on a web request the tenancy middleware runs *before* the auth guard resolves a user, so forgetting is a no-op going in — but `tenancy()->end()` fires on the way out, and any future flow that initializes tenancy while somebody is authenticated would silently sign them out mid-request. Authentication is not tenant-scoped state; it is request-scoped state that happens to be cleared at one of the same moments.
 
 Two things get cleared per queue job that were not before, both improvements rather than regressions. `TechnicianAvailability` was previously saved only by the scoped-binding lifecycle, which is real but incidental. And mailers are now forgotten between jobs, which is precisely the bug Task 32 Step 3 exists to fix — consolidating makes that fix stronger, not weaker.
 
@@ -1478,7 +1478,7 @@ php artisan route:list --path=serviceorders -v | head -40
 
 `InitializeTenancyBySession` must appear before `SubstituteBindings` and before `auth` in the listed middleware for the route. Then log in and open a detail page (`/serviceorders/{id}`) — a 404 on a record that exists means the order is still wrong.
 
-Note the Google webhook route lives in the web group too; it carries no session or cookie, so this middleware is a no-op there (the webhook resolves its tenant itself, Task 25).
+Note the Google webhook route lives in the web group too; it carries no session or cookie, so this middleware does nothing there and passes the request straight on (the webhook works out its own tenant, Task 25).
 
 **A second sessionless pair of routes landed on master after this plan was written**, and it is harder than the webhook. `storing/informatie/{token}` (GET and POST, `routes/web.php`) is the page where a customer delivers photos and video for a storing, opened from a link in an e-mail by somebody who has no account and never logs in — so no session, no cookie, no tenant. The link is resolved by the `accesstoken` middleware against `access_tokens`, which is a **tenant** table: without a tenant there is nothing to resolve it against, and the page 404s for every customer of every tenant.
 
@@ -2563,7 +2563,7 @@ class UserObserver
 
 There is deliberately **no `deleted` hook**. On a soft-deleting model `deleted` fires for soft deletes, and the lookup must survive those — see the explanation above. `forceDeleted` fires only on a true `forceDelete()`, which is when the email genuinely becomes free again.
 
-Also note `updated` fires on the soft-delete write (`deleted_at` changes), but its `isDirty('email')` guard makes that a no-op.
+Note that `updated` also fires when a user is soft-deleted, because `deleted_at` changes. The `isDirty('email')` check means nothing happens in that case.
 
 **The split between `creating` and `created` is the whole point of the pair.** Task 19's validation is the friendly guard and this is the backstop, but a backstop that fires *after* the insert leaves the exact wreckage it exists to prevent: a user in the tenant database that cannot log in, cannot be deleted by anyone who does not know it is there, and cannot be recreated because `unique:users,email` now matches it. Refusing in `creating` costs one extra central query per user creation — a few of those a month — and leaves nothing behind.
 
@@ -7108,7 +7108,7 @@ git commit -m "feat(tenancy): add tenancy:doctor for the checks git cannot hold"
 
 7. **Middleware ordering matters and nothing shows you when it is wrong.** Task 12 pins the tenancy initializers into `$middleware->priority()`. Nothing enforces that a future middleware addition preserves it, and getting it wrong presents as mass 404s that look like a routing bug. If this bites twice, a cheap feature test — hit a bound-model route as a tenant user and assert 200 — is worth more than a comment.
 
-8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
+8. **`storage_path()` will keep catching people out.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
 9. **Test isolation works differently after this.** Task 30 swaps `RefreshDatabase`'s truncate-and-remigrate for transaction rollback across two connections. Auto-increment ids no longer reset between tests, and any code under test that commits (DDL, explicit transactions) escapes the wrapper. Expect some churn across the converted test files.
 
