@@ -3582,11 +3582,21 @@ You will get a clear error, not quiet corruption. But you will get it halfway th
 php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
 ```
 
-The standalone `tenant:provision-db-user` command below exists for the cases this one does not cover: rotating a tenant's password, or repairing a tenant whose MySQL user was lost.
+`tenant:setup-existing` creates the MySQL login as part of its work. The separate `tenant:provision-db-user` command below is for afterwards — rotating a password, or repairing a tenant whose login was deleted.
 
-Note `User::withTrashed()` on the `pluck` below. What is copied is **emails, not user rows** — application users never leave the tenant's own database; `user_tenant_lookups` is a registry of which tenant owns which email, one row per email. A trashed user's email still occupies `users.email` and still blocks `unique:users,email` (the presence verifier applies no global scopes), so it is still *taken* in this tenant. Plucking only live users would leave it absent from `user_tenant_lookups` while unusable in the tenant — free for a *later* tenant to claim, after which the original tenant could never restore that user and have them log in, because login resolves the tenant *from* the email. And `$emails` also feeds the `$conflicts` query below, so the one check that exists to catch this collision would be blind to it and onboarding would report success. This matches the Task 18 observer, which keeps the lookup row through a soft delete.
+**Note the `User::withTrashed()` on the `pluck` below — deleted users are included on purpose.**
 
-This command is used twice: for the main install's database during deployment (Task 27), and again for every dedicated-subdomain install that gets absorbed later (Task 29).
+Only e-mail addresses are copied, never user rows. People stay in their own company's database. `user_tenant_lookups` is just a list of which company owns which e-mail address, one row per address.
+
+A soft-deleted user still has their address sitting in `users.email`, and `unique:users,email` still refuses to reuse it — the validator queries the table directly and ignores the "deleted" flag. So the address is still taken here.
+
+Copy only the live users and that address goes missing from the central list while still being unusable in this company. Another company can then claim it. And now the first company can never bring that person back, because logging in works out the company **from** the e-mail address, and the address now points somewhere else.
+
+It gets worse: `$emails` is also what the `$conflicts` check below reads. So the one thing that would have caught the clash never sees it, and onboarding reports success.
+
+The Task 18 observer keeps the lookup row through a soft delete for the same reason.
+
+`tenant:setup-existing` gets run twice in this project: once on the main install's database during the cutover (Task 27), and again for each dedicated-subdomain install absorbed later (Task 29).
 
 **Files:** `app/Console/Commands/SetupExistingTenant.php`
 
