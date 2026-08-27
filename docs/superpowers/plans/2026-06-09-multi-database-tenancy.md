@@ -215,7 +215,7 @@ FLUSH PRIVILEGES;
 
 **Two grants, deliberately.** The wildcard one covers every tenant database. The landlord grant is by exact name and is needed because provisioning writes the tenant row itself: `RunsAsProvisioner` (Task 21) repoints the `central` connection at this account for the life of the command, so `tenant:create` inserts into `lavoro_landlord.tenants` as the provisioner, not as `lavoro_app`. It also lets this account create the landlord database in Task 27 Step 1 — in MySQL, `GRANT ALL ON db.*` includes the `CREATE` privilege at database level, which is what permits `CREATE DATABASE db`.
 
-The escaped underscores are load-bearing in both: an unescaped `_` is a MySQL single-character wildcard, so `lavoro_tenant_%` would also match `lavoroXtenantY…` and `lavoro_landlord` would also match `lavoroXlandlord`, widening each grant beyond its namespace.
+Do not drop the backslashes before the underscores in either grant. An unescaped `_` is a MySQL single-character wildcard, so `lavoro_tenant_%` would also match `lavoroXtenantY…` and `lavoro_landlord` would also match `lavoroXlandlord`, widening each grant beyond its namespace.
 
 Note what is *not* covered: a database that is neither the landlord nor a tenant — a pre-tenancy install, another app's schema — falls outside both patterns, so this account cannot read or drop it. That is what makes the pre-cutover database safe from provisioning mistakes rather than merely untouched by convention.
 
@@ -2012,7 +2012,7 @@ class AuthController extends Controller
 }
 ```
 
-Three details in that method are load-bearing and one is a loose end:
+Three details in that method are easy to get wrong, and one is a loose end:
 
 - **`session(['tenant_id' => ...])` before `regenerate()` is safe.** `Store::regenerate()` defaults to `$destroy = false` and migrates the session data to the new id, so the tenant survives the rotation. Do not "tidy" this by moving the write after the regenerate and assuming it makes no difference — it happens not to, and the reason is one framework default deep.
 - **`tenancy()->initialize()` here is never ended.** `InitializeTenancyBySession` (Task 12) only ends tenancy it started itself, and on a login POST the session has no `tenant_id` yet, so `$initialized_here` is false and the middleware leaves this alone. Under PHP-FPM the process ends and nothing notices. Under Octane it is a switched connection leaking into the next request, which is the exact failure Task 12's `tenancy()->end()` exists to prevent — so if Octane is ever adopted, this method needs a `finally` and this sentence is the reminder.
@@ -2564,7 +2564,7 @@ Also note `updated` fires on the soft-delete write (`deleted_at` changes), but i
 Two honest limits on it, neither worth more code today:
 
 - **Between the check and the write there is a race.** Two tenants creating the same email at the same instant both pass `creating`, and the second `updateOrCreate` repoints the lookup — no duplicate row, because `email` is the primary key, but the first tenant's user quietly loses the ability to log in. The primary key is the only real arbiter here; if this ever needs to be authoritative rather than merely good, make `created` an insert and catch the duplicate-key `QueryException` into the same `RuntimeException`. At the volume of user creation this application sees, the race is theoretical.
-- **`updated` is not similarly protected.** Changing a user's email to one held by another tenant is caught by Task 19's `Rule::unique('central.user_tenant_lookups', 'email')` and by nothing here; the observer's `updated` hook deletes the old row and writes the new one unconditionally. That is deliberate — an observer is a poor place for a second validation layer — but it means Task 19 is load-bearing rather than cosmetic on the update path.
+- **`updated` is not similarly protected.** Changing a user's email to one held by another tenant is caught by Task 19's `Rule::unique('central.user_tenant_lookups', 'email')` and by nothing here; the observer's `updated` hook deletes the old row and writes the new one unconditionally. That is deliberate — an observer is a poor place for a second validation layer — but it means Task 19's validation is the only thing guarding the update path.
 
 - [ ] **Step 2: Register it in `AppServiceProvider::boot()`** (next to the existing `EventModel::observe` / `Ticket::observe` calls)
 
@@ -4619,7 +4619,7 @@ public static function set(string $key, mixed $value): void
 }
 ```
 
-The `DecryptException` catch is load-bearing. After an `APP_KEY` rotation every stored secret becomes undecryptable; returning the default degrades that to "not configured" — a settings screen asking to re-enter the credentials — instead of a 500 on every page that touches mail or SnelStart. See Known impact 11: `APP_KEY` was already backup-critical for tenant database passwords, and this widens what it protects.
+Do not remove the `DecryptException` catch. After an `APP_KEY` rotation every stored secret becomes undecryptable; returning the default turns that into "not configured" — a settings screen asking to re-enter the credentials — instead of a 500 on every page that touches mail or SnelStart. See Known impact 11: `APP_KEY` was already backup-critical for tenant database passwords, and this widens what it protects.
 
 - [ ] **Step 2: Rewrite the `Mail::extend('graph', ...)` closure — fall back as a set, not per key**
 
@@ -6145,8 +6145,8 @@ it.
 **Prerequisite already in the tree:** `assistant_usage` and `App\Domain\Assistant\UsageCost`
 exist and record every call in millionths of a euro, with all four token counts
 and the rates applied. This task moves that table to central and puts a ceiling
-on it. Read the migration's docblock before changing any of it — the unit and the
-four separate counts are both load-bearing, and the reasons are not obvious.
+on it. Read the migration's docblock before changing any of it. Both the unit and the
+four separate token counts are there for reasons that are not obvious.
 
 `UsageCost` is supplier-neutral: it takes a `Contracts\TokenUsage`
 rather than Anthropic's own `Usage`, and looks rates up through `App\Domain\Assistant\Pricing`
@@ -6817,7 +6817,7 @@ git commit -m "docs: record the tenancy rules and the limits customers can hit"
 
 6. **Scheduler cost scales with tenant count, not with tenant data** (Task 20). Every scheduled tick dispatches one queued job per tenant (a config swap plus a single `INSERT` into the central `jobs` table) rather than running a query or delete inline per tenant, so tick cost tracks tenant *count* only, which is cheap. If tenant count itself grows into the hundreds and the dispatch loop alone becomes the bottleneck, chunking the central tenant list (already using `cursor()` rather than `get()`) or splitting the loop across multiple scheduled entries are the next levers.
 
-7. **Middleware ordering is load-bearing and invisible.** Task 12 pins the tenancy initializers into `$middleware->priority()`. Nothing enforces that a future middleware addition preserves it, and getting it wrong presents as mass 404s that look like a routing bug. If this bites twice, a cheap feature test — hit a bound-model route as a tenant user and assert 200 — is worth more than a comment.
+7. **Middleware ordering matters and nothing shows you when it is wrong.** Task 12 pins the tenancy initializers into `$middleware->priority()`. Nothing enforces that a future middleware addition preserves it, and getting it wrong presents as mass 404s that look like a routing bug. If this bites twice, a cheap feature test — hit a bound-model route as a tenant user and assert 200 — is worth more than a comment.
 
 8. **`storage_path()` is a footgun for the lifetime of this codebase.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
