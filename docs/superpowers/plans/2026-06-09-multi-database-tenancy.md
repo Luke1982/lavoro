@@ -82,8 +82,8 @@ What this does *not* protect against, stated plainly so nobody assumes otherwise
 
 Two consequences of this naming scheme worth knowing up front:
 
-- **Tenant databases live in their own namespace.** Every tenant database starts with `lavoro_tenant_`, so the provisioner's grant can be scoped to `` `lavoro\_tenant\_%` `` — a pattern that matches *only* tenant databases. Any other database on the server (the landlord database, a pre-tenancy install, an unrelated app) is outside it and cannot be touched by that account. The landlord database is granted separately and by exact name.
-- **A tenant can never collide with the landlord database**, because the two namespaces do not overlap. Two tenants *can* still collide with each other if their names slug identically, so Tasks 21 and 26 refuse any database name that already exists on the server.
+- **Every tenant database name starts with `lavoro_tenant_`.** That shared prefix is what lets the provisioner's grant be limited to `` `lavoro\_tenant\_%` `` — a pattern that matches *only* tenant databases. Any other database on the server (the landlord database, a pre-tenancy install, an unrelated app) is outside it and cannot be touched by that account. The landlord database is granted separately and by exact name.
+- **A tenant can never collide with the landlord database**, because no name can start with `lavoro_tenant_` and also be `lavoro_landlord`. Two tenants *can* still collide with each other if their names slug identically, so Tasks 21 and 26 refuse any database name that already exists on the server.
 
 **Database isolation is enforced by MySQL, not only by the application.** Each tenant gets its own MySQL user that can reach only its own database (Task 2/3). The web app's own credentials reach only the central database. So a bug that fails to switch tenant context produces a permission error rather than another customer's data. The account that can create databases and users authenticates by Unix socket as a dedicated Linux user (`auth_socket`) and has **no password stored anywhere** — provisioning is a deliberate CLI action, impossible from a web request.
 
@@ -237,7 +237,7 @@ It exits non-zero on any failure, so it can gate a deploy. The assertions, each 
 | `lavoro_provisioner` authenticates as itself over the socket, with no password | Proves the privilege is tied to OS identity |
 | The same account is **unreachable over TCP** | Proves there is no password to steal or copy |
 | It can create a database inside `lavoro_tenant_*` | Tenant creation will work |
-| It **cannot** create one outside that namespace | It really can only touch tenant databases, nothing else on the server |
+| It **cannot** create one whose name lacks that prefix | It really can only touch tenant databases, nothing else on the server |
 | `lavoro_app` sees only the landlord database | The web app cannot read customer data with its own credentials |
 | `lavoro_app` cannot create databases | A compromised app cannot provision |
 | Every existing tenant account holds no `*.*` grant and no `GRANT OPTION` | Per-tenant credentials stay low-value |
@@ -3473,7 +3473,13 @@ git commit -m "feat(tenancy): route Google webhook to tenant via prefixed channe
 
 Registers an already-existing, already-migrated database as a tenant, **gives it its own MySQL user**, and copies its user emails into the central lookup. Uses a direct insert to skip the `TenantCreated` pipeline, since the database already exists and is already migrated. The package and modules for this tenant are set afterwards with `tenant:package` and `tenant:modules` (Task 34).
 
-**The database must already sit in the `lavoro_tenant_` namespace before you run this.** The provisioner's grants (Task 2) cover `` `lavoro\_tenant\_%` `` and the landlord database — nothing else. Registering a database that kept its pre-tenancy name (`lavoro_fsm`, `spee_production`, …) fails at the `createUser` grant, because the provisioner has no `GRANT OPTION` outside the namespace. This is why Tasks 27 and 29 restore the legacy dump *into* a `lavoro_tenant_<slug>` database rather than registering the original in place. The failure is loud, not silent, but it costs a maintenance window if you hit it late.
+**Rename the database to `lavoro_tenant_<something>` before you run this.**
+
+The provisioner account can only touch databases whose name starts with `lavoro_tenant_`, plus the landlord database (Task 2). Point this command at a database that still has its old name — `lavoro_fsm`, `spee_production` — and it gets as far as creating the tenant's MySQL user and then stops, because the provisioner is not allowed to grant that user rights on a database outside the prefix.
+
+That is why Tasks 27 and 29 restore the old dump *into* a `lavoro_tenant_<slug>` database instead of registering the original where it stands.
+
+You will get a clear error, not quiet corruption. But you will get it halfway through the deployment, with the app already down and users locked out while you work out what to do. Sort the name out first.
 
 **Provisioning the MySQL user is not optional here.** After Task 2, `lavoro_app` can reach only the landlord database. A tenant registered without its own credentials is therefore unreachable by the web app — every request for it fails with an access-denied error. So this command runs as the provisioner and creates the user in the same breath:
 
@@ -3742,7 +3748,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW PROCESSLIST;"
 
 MySQL has no rename-database command, so copy via dump/restore. The existing database is **not** modified — it stays exactly as it is, untouched, as the fastest possible rollback.
 
-Run the dump as an admin account: the existing database predates tenancy, so its name is almost certainly outside the `lavoro_tenant_%` namespace and the provisioner cannot read it. The creates and the restore then run as **`lavoro_provisioner`** — `lavoro_app` is confined to the landlord database after Task 2 and cannot create databases or write to a tenant database.
+Run the dump as an admin account: the existing database predates tenancy, so its name almost certainly does not start with `lavoro_tenant_` and the provisioner cannot read it. The creates and the restore then run as **`lavoro_provisioner`** — `lavoro_app` is confined to the landlord database after Task 2 and cannot create databases or write to a tenant database.
 
 ```bash
 EXISTING=<paste from the .env check above>   # the current production database, left intact
@@ -6977,7 +6983,7 @@ git commit -m "docs: record the tenancy rules and the limits customers can hit"
 ## Task 43: `tenancy:doctor` — check the things git does not hold
 
 `scripts/tenancy/verify-mysql.sh` (Task 2) checks the MySQL identity layer: the
-socket plugin, the Linux user, the provisioner's namespace boundary, the app
+socket plugin, the Linux user, the databases the provisioner can and cannot reach, the app
 account's confinement, and each tenant account's grants. Run as root, before or
 independently of the app.
 
