@@ -76,7 +76,7 @@ The claim this design actually makes is therefore narrower, and worth stating ex
 
 That holds. `lavoro_app` reaches only the landlord database; a tenant request authenticates as that tenant's own user, which reaches only its own database; and the provisioner has no password to leak, is bound to a Linux user by `auth_socket`, and is unusable by `www-data`.
 
-The provisioner also does not widen the real blast radius, because **root on the application server already implies access to every tenant**: `.env` holds `APP_KEY`, the landlord database holds every tenant's encrypted MySQL password, and `APP_KEY` decrypts them. Anyone who can `sudo -u lavoro_provisioner` can already do that. The grant makes an existing capability explicit rather than adding one.
+Giving the provisioner that grant does not make a break-in any worse than it already would be, because **anyone with root on the application server can already reach every tenant**: `.env` holds `APP_KEY`, the landlord database holds every tenant's encrypted MySQL password, and `APP_KEY` decrypts them. Anyone who can `sudo -u lavoro_provisioner` can already do that. The grant makes an existing capability explicit rather than adding one.
 
 What this does *not* protect against, stated plainly so nobody assumes otherwise: a compromise of the host, of `APP_KEY`, or of a backup containing both. Those are single points of failure for every tenant at once, and no arrangement of MySQL grants changes that.
 
@@ -237,7 +237,7 @@ It exits non-zero on any failure, so it can gate a deploy. The assertions, each 
 | `lavoro_provisioner` authenticates as itself over the socket, with no password | Proves the privilege is tied to OS identity |
 | The same account is **unreachable over TCP** | Proves there is no password to steal or copy |
 | It can create a database inside `lavoro_tenant_*` | Tenant creation will work |
-| It **cannot** create one outside that namespace | The blast radius really is the tenant namespace |
+| It **cannot** create one outside that namespace | It really can only touch tenant databases, nothing else on the server |
 | `lavoro_app` sees only the landlord database | The web app cannot read customer data with its own credentials |
 | `lavoro_app` cannot create databases | A compromised app cannot provision |
 | Every existing tenant account holds no `*.*` grant and no `GRANT OPTION` | Per-tenant credentials stay low-value |
@@ -3317,9 +3317,15 @@ The API uses stateful Sanctum: `bootstrap/app.php` calls `$middleware->statefulA
 
 Applied as a named route middleware rather than a global prepend, so any future public API endpoint can skip it.
 
-**There is deliberately no `X-Tenant-ID` header fallback.** It is the obvious placeholder for a future bearer-token client and it should not be built: a header is asserted by the caller, so honouring it lets the caller choose which database the request runs against. Sanctum happens to fail closed afterwards — a token from another tenant will not match a hash in the one the header named — but "safe because something downstream catches it" is not a property to design on, and everything between the two, including rate limiting and logging, would already have run against the attacker's choice.
+**There is deliberately no `X-Tenant-ID` header fallback**, and one should not be added later either.
 
-When bearer tokens do arrive, the tenant is derived *from the token* against a central lookup, the same way login derives it from an email. That is Task 41, which extends this middleware with one branch. Until then the middleware fails closed: no session, no tenant, 400.
+A header is set by whoever sends the request. Accept it and the caller picks which company's database we read.
+
+Here is what that looks like. Somebody has a working API token for company A. They send it with `X-Tenant-ID: B`. We switch to company B's database, Sanctum looks for their token there, does not find it, and returns 401. No data comes back, so nothing leaks.
+
+But look at what already happened before that 401. We opened a connection to company B's database. We counted the request against company B's rate limit. We wrote company B into the log. And the only thing that stopped it was Sanctum checking afterwards — so the day someone adds a route that does not use Sanctum, or a middleware that runs before it, the header is in charge and nobody notices.
+
+When bearer tokens do arrive, work out the company **from the token** instead, the same way login works it out from the e-mail address. That is Task 41, which adds one branch to this middleware. Until then the rule here is simple: no session, no tenant, 400.
 
 **Files:** `app/Http/Middleware/InitializeTenancyForApi.php`, `bootstrap/app.php`, `routes/api.php`
 
@@ -5817,7 +5823,7 @@ app(\App\Services\StorageQuota::class)->add($image->getSize());
 
 In `ImageController::destroy` / `DocumentController::destroy`, before deleting the file, capture its size and `subtract()` it. `documents` carries a `size` column, so the document paths can read it off the row instead of stat-ing the disk. Do the same for avatar replacement and company-logo upload/replace.
 
-**The counter is best-effort by construction — say so rather than discovering it.** `GeneralSetting::set` is a read-modify-write of a `varchar` (`SELECT` current value, add, `updateOrCreate`), with no lock and no atomic increment. Image uploads now arrive as *concurrent batches* — the browser-side upload queue fires several requests in parallel — so two overlapping `add()` calls will read the same starting value and one will be lost. Under-counting, never over-counting, which is the safe direction for a quota. Two consequences to accept deliberately:
+**The counter will always run a little low, and it is better to know that now than to find out.** `GeneralSetting::set` is a read-modify-write of a `varchar` (`SELECT` current value, add, `updateOrCreate`), with no lock and no atomic increment. Image uploads now arrive as *concurrent batches* — the browser-side upload queue fires several requests in parallel — so two overlapping `add()` calls will read the same starting value and one will be lost. Under-counting, never over-counting, which is the safe direction for a quota. Two consequences to accept deliberately:
 
 - The nightly reconcile (Step 7) is not merely a backstop for missed call sites; it is what makes the number *correct*. Do not remove it as an optimisation.
 - Do not build billing on the live counter. Bill from the reconciled figure.
@@ -6565,7 +6571,7 @@ coinciding is not a coincidence — the first admin of every tenant is user 1.
 
 In `encoded()`, add `'tenant' => tenancy()->initialized ? tenancy()->tenant->getTenantKey() : null`.
 
-- [ ] **Step 2: Check it in `decode()`, and fail closed**
+- [ ] **Step 2: Check it in `decode()`, and refuse anything that does not match**
 
 Beside the existing `user_id` check:
 
@@ -6577,13 +6583,14 @@ if (($payload['tenant'] ?? null) !== $tenant) {
 }
 ```
 
-Strict comparison against the *current* tenant, with `null` on both sides being the
-only way an untenanted token passes in an untenanted context. Do not write this as
-`isset($payload['tenant']) && ...` — a token minted before this change has no
-`tenant` key, and a check that skips when the key is absent accepts exactly the
-tokens it was added to reject. Tokens live fifteen minutes; letting every
-pre-existing one expire costs nothing and is the whole reason this can fail closed
-without a migration.
+Compare strictly against the tenant that is active right now. `null` on both sides
+is the only way a token minted outside any tenant passes outside any tenant.
+
+Do not write it as `isset($payload['tenant']) && ...`. Tokens issued before this
+change have no `tenant` key at all, so a check that skips when the key is missing
+waves through exactly the tokens it was added to stop. Tokens last fifteen
+minutes, so the old ones all expire within the hour — which is why this can
+simply reject them instead of needing a migration.
 
 `decode()` already returns `null` for everything wrong and the caller already
 treats `null` as "no approval at all", so there is no new failure path to handle.
@@ -6602,13 +6609,15 @@ The rule is worth more than this one class: **anything encrypted or signed with
 `APP_KEY` that names a record must also name the tenant.** Applies to
 `Crypt::encrypt*`, to Laravel's signed URLs, and to any future token.
 
-Two existing users of `Crypt` are fine and it is worth knowing why, so nobody
-"fixes" them too. `GoogleCalendarIntegration`'s access and refresh tokens
-(`:49-64`) are ciphertext *at rest in a tenant table* — reaching them already means
-reaching that tenant's database, so the key adds confidentiality, not authority.
-`Tenant::$casts['tenancy_db_password']` (Task 4) does the same thing in the central
-table. Neither is a bearer credential handed to a browser, which is the property
-that makes `ConfirmationToken` different.
+Two places already use `Crypt` and both are fine. It is worth knowing why, so
+nobody "fixes" those as well. `GoogleCalendarIntegration` encrypts its Google
+access and refresh tokens (`:49-64`), and `Tenant` encrypts each tenant's database
+password (Task 4). Both sit in a database column, and to read either one you must
+already be inside that database. The encryption protects the value where it is
+stored; it is not what decides whether a request is allowed.
+
+`ConfirmationToken` is different because we hand it to a browser and later accept
+it back as proof. That is why it needs the tenant check.
 
 - [ ] **Step 5: Commit**
 
