@@ -3770,6 +3770,13 @@ sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavo
 sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW TABLES IN lavoro_tenant_acme;" | head
 ```
 
+- [ ] **Step 7b: Land the CLAUDE.md and handleiding.md updates (Task 42)**
+
+Tenancy is live from this point, so the rules in Task 42 become true from this
+point. Ship them now rather than as a follow-up: the window between "tenancy is
+live" and "the conventions are written down" is exactly when somebody adds a
+migration to the wrong directory.
+
 - [ ] **Step 8: Smoke test**
 
 Log in as an existing user, then walk this list. The first four are the failure modes most likely to survive to production, because each of them fails *silently* rather than with an error page:
@@ -6178,8 +6185,8 @@ Everything else the assistant does is already priced: photos and documents arriv
 as input tokens, tool results as input tokens, thinking as output tokens.
 
 **Files:**
-- `database/migrations/central/…_add_ai_allowance_to_tenants_table.php` (new)
-- `database/migrations/central/…_create_assistant_usage_table.php` (new — the central copy)
+- `database/migrations/…_add_ai_allowance_to_tenants_table.php` (new — central migrations stay in the root directory, Task 8)
+- `database/migrations/…_create_assistant_usage_table.php` (new — the central copy)
 - `database/migrations/tenant/…_drop_assistant_usage_table.php` (new — after the copy across)
 - `app/Models/Central/AssistantUsage.php` (new; replaces `App\Models\AssistantUsage`)
 - `app/Services/AssistantAllowance.php` (new)
@@ -6490,7 +6497,7 @@ the sync below be best-effort without being dangerous, and it is the sentence to
 re-read before anyone is tempted to trust the lookup for anything else.
 
 **Files:**
-- `database/migrations/central/…_create_access_token_tenant_lookups_table.php` (new)
+- `database/migrations/…_create_access_token_tenant_lookups_table.php` (new — central migrations stay in the root directory, Task 8)
 - `app/Models/Central/AccessTokenTenantLookup.php` (new)
 - `app/Observers/PersonalAccessTokenObserver.php` (new)
 - `app/Support/AccessTokens.php` (new)
@@ -6701,12 +6708,93 @@ public function test_a_lookup_row_pointing_at_the_wrong_tenant_still_fails(): vo
 - [ ] **Step 8: Commit**
 
 ```bash
-git add database/migrations/central/ app/Models/Central/AccessTokenTenantLookup.php \
+git add database/migrations/ app/Models/Central/AccessTokenTenantLookup.php \
         app/Observers/PersonalAccessTokenObserver.php app/Support/AccessTokens.php \
         app/Http/Controllers/Api/ApiAuthController.php \
         app/Http/Middleware/InitializeTenancyForApi.php app/Providers/AppServiceProvider.php \
         routes/api.php tests/Feature/BearerTokenTenancyTest.php
 git commit -m "feat(tenancy): resolve a bearer token's tenant from the central lookup"
+```
+
+---
+
+## Task 42: Write the rules down where the next person will read them
+
+Every task before this one changes the code. This one changes what anyone — a
+colleague, or Claude in a later session — is told about the code, because most
+of what tenancy imposes is **invisible from reading it**.
+
+Nothing in `ImageController` says a hand-built `storage_path()` will silently
+write outside the tenant's folder. Nothing in `AppServiceProvider` says a new
+singleton holding a `User` needs an interface and a tag. Nothing in
+`routes/console.php` says a schedule that queries inline will run against the
+central database. Each of those reads as ordinary Laravel and fails without an
+error.
+
+**Do this in the same commit as Task 27 Step 7**, when tenancy actually goes
+live. Earlier and the rules are false — a `database/migrations/tenant/`
+instruction is wrong until Task 8 has run. If the migration is going to span
+weeks, land the section early with a one-line "not live until <date>" marker
+rather than leaving it out.
+
+**Files:** `CLAUDE.md`, `docs/handleiding.md`
+
+- [ ] **Step 1: Add a `## Multi-tenancy` section to `CLAUDE.md`**
+
+Place it after `## Coding rules`. Match that section's register — terse
+imperatives, no rationale. The reasoning lives in this plan, and the last line
+points at it.
+
+The admission test for a rule here: **does breaking it fail silently?** A rule
+whose violation throws does not need writing down; the exception says it. These
+do not throw.
+
+```markdown
+## Multi-tenancy
+
+-   Two databases: central (`lavoro_landlord`) and one per customer. `App\Models\Central\*` set `protected $connection = 'central'`; every other model uses the default connection, which is switched per request.
+-   New migrations go in `database/migrations/tenant/` (`make:migration --path=database/migrations/tenant`). A migration belongs in `database/migrations/` only if it declares `protected $connection = 'central';`.
+-   Never build a path to an uploaded file by hand. `storage_path('app/public/…')` and `Storage::url()` bypass the per-tenant disk root and fail silently — a missing file reads as "no image". Use `Storage::disk('public'|'local')`, and serve files through an authenticated controller by id, never a `/storage/` URL.
+-   A container singleton that holds tenant state must implement `App\Support\ForgetsTenantState` and be tagged in `AppServiceProvider`. `TenantStateTest` fails if you implement it without tagging.
+-   Scheduled tasks never query inline. Loop tenants in `routes/console.php`, dispatch one job per tenant, and do the work in the job.
+-   Queued jobs are tagged with the active tenant at dispatch. Dispatch from tenant context or the job runs against central.
+-   Anything encrypted or signed with `APP_KEY` that names a record must also name the tenant. Record ids are per-tenant auto-increments and `APP_KEY` is global, so an id alone is valid in every tenant.
+-   Never accept a tenant id from the caller — no header, query parameter or body field. Resolve it from the session, or from a central lookup keyed on a credential.
+-   Email addresses are unique across all tenants, not just within one (`user_tenant_lookups`).
+-   A feature is only a module if a customer could reasonably not have it. `tenant:create` defaults to no modules, so gating a stock feature breaks every new customer.
+-   Tests run on MySQL, never SQLite. The shared `TestCase` creates one tenant per run and wraps each test in transactions on both connections — do not add `RefreshDatabase`.
+
+Full reasoning: `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
+```
+
+- [ ] **Step 2: Update the chapters of `docs/handleiding.md` that describe a limit**
+
+**The manual must not explain multi-tenancy.** It is written for somebody using
+one company's Lavoro, and that person does not know they are a tenant, should
+not have to, and gains nothing from the word. What changes for them is not the
+architecture — it is that some things now have a ceiling.
+
+| Chapter | What to add |
+| --- | --- |
+| `## De AI-assistent` | The monthly allowance, the meter, the warning at 80%, and what happens when it runs out |
+| `## Documenten, foto's en opmerkingen` | That an upload is refused when the storage limit is reached, and who to contact to extend it |
+| `## Gebruikers, rollen en rechten` | Buiten- and binnendienst seats, what happens when one is full, and that a binnendienst user cannot be made plannable |
+| `## Instellingen en beheer` | Where storage and seat usage are shown |
+| `## Koppelingen` | SnelStart and mail credentials are now entered per company under Beheer → Koppelingen |
+| `## Navigatie en zoeken` | One line: a feature not in the subscription is simply absent from the menu |
+
+**The assistant chapter is the one that pays for itself.** The assistant answers
+questions from this file through its `read_manual` tool. Leave the allowance
+undocumented and the first person to hit the ceiling asks the assistant why it
+has stopped working — and it cannot tell them, because the only description of
+the limit is in a config file it cannot read. Documenting it is what makes the
+feature able to explain its own refusal.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add CLAUDE.md docs/handleiding.md
+git commit -m "docs: record the tenancy rules and the limits customers can hit"
 ```
 
 ---
