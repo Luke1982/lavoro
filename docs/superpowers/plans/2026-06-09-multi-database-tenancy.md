@@ -3783,6 +3783,13 @@ point. Ship them now rather than as a follow-up: the window between "tenancy is
 live" and "the conventions are written down" is exactly when somebody adds a
 migration to the wrong directory.
 
+- [ ] **Step 7c: Run `php artisan tenancy:doctor` (Task 43)**
+
+Before the manual smoke test, not instead of it. The doctor checks what a
+smoke test cannot see — that every tenant's password still decrypts, that no
+lookup row points at a dead tenant, that the storage roots are writable — and
+it does it for every tenant rather than the one you happen to click through.
+
 - [ ] **Step 8: Smoke test**
 
 Log in as an existing user, then walk this list. The first four are the failure modes most likely to survive to production, because each of them fails *silently* rather than with an error page:
@@ -6801,6 +6808,92 @@ feature able to explain its own refusal.
 ```bash
 git add CLAUDE.md docs/handleiding.md
 git commit -m "docs: record the tenancy rules and the limits customers can hit"
+```
+
+---
+
+## Task 43: `tenancy:doctor` — check the things git does not hold
+
+`scripts/tenancy/verify-mysql.sh` (Task 2) checks the MySQL identity layer: the
+socket plugin, the Linux user, the provisioner's namespace boundary, the app
+account's confinement, and each tenant account's grants. Run as root, before or
+independently of the app.
+
+It cannot check anything above that line, because those need the app: Eloquent,
+`APP_KEY`, the config. And those are the failures that do not announce
+themselves — a tenant whose password no longer decrypts looks fine until
+somebody tries to log in.
+
+One command, read-only, non-zero exit on any failure so it can gate a deploy.
+
+**It must never fix anything.** A doctor that repairs is a doctor whose output
+people stop reading, and every repair here — recreating a database, rewriting a
+lookup row — is destructive if the diagnosis was wrong.
+
+**Files:** `app/Console/Commands/TenancyDoctor.php` (new), `routes/console.php`
+
+- [ ] **Step 1: The checks**
+
+Global, once:
+
+| Check | Why it matters if it fails |
+| --- | --- |
+| Central connection reachable and pointing at `lavoro_landlord` | Nothing works |
+| Central tables present (`tenants`, `user_tenant_lookups`, `cache`, `jobs`, `sessions`, catalogue) | `migrate` was never run against central |
+| `SESSION_CONNECTION=central` | Sessions land in whichever database is active; login breaks intermittently |
+| Cache write-then-read succeeds | Catches the Task 10 misconfiguration directly |
+| Age of the oldest pending row in `jobs` | A stopped worker looks exactly like a quiet day |
+| Age of the scheduler heartbeat (below) | No cron means nothing scheduled has ever run |
+| `public/storage` symlink present | The static fallback logo on PDFs |
+
+Per tenant, from `Tenant::on('central')->cursor()`:
+
+| Check | Why it matters if it fails |
+| --- | --- |
+| Database exists | A half-finished `tenant:create` leaves a row with no database |
+| `tenancy_db_password` decrypts | An `APP_KEY` rotation makes every tenant unreachable (Known impact 11) |
+| Can connect with the tenant's own credentials | The two above, proven together rather than inferred |
+| No pending tenant migrations | `tenants:migrate` was missed after a deploy |
+| `storage/tenant-<id>/public` and `/local` exist and are writable | Uploads fail, or land where nothing serves them |
+| Every user has a `user_tenant_lookups` row | That user cannot log in, and there is no error anywhere |
+
+And two orphan checks, which is where a botched `tenant:create` or `tenant:delete` shows up:
+
+- lookup rows naming a tenant id that no longer exists
+- `lavoro_tenant_*` databases on the server with no matching `tenants` row
+
+- [ ] **Step 2: A scheduler heartbeat, so the cron can be checked at all**
+
+There is no way to ask PHP whether a crontab entry exists. Have the scheduler
+prove it instead — one more entry in `routes/console.php` that writes a
+timestamp, and a doctor check that reports its age:
+
+```php
+Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))
+    ->everyFiveMinutes()
+    ->name('scheduler-heartbeat');
+```
+
+Central-context and one cache write, so it costs nothing and needs no tenant
+loop. A heartbeat older than fifteen minutes means the cron is not running —
+which is worth knowing, because **nothing else in this application tells you.**
+Every scheduled task simply stops happening.
+
+- [ ] **Step 3: Report like `verify-mysql.sh` does**
+
+PASS / FAIL / **SKIP**, and a skip is never counted as a pass. Half these checks
+are negative ("cannot reach", "no orphans"), and a negative check is satisfied
+trivially by a connection that failed — so a run against a broken install must
+report skips, never a clean sheet. That distinction is the whole value of the
+script version, and it is worth copying rather than reinventing.
+
+End with a summary line and `exit(1)` if anything failed.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/Console/Commands/TenancyDoctor.php routes/console.php
+git commit -m "feat(tenancy): add tenancy:doctor for the checks git cannot hold"
 ```
 
 ---
