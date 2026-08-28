@@ -101,7 +101,7 @@ Two consequences of this naming scheme worth knowing up front:
 
 **Files:** `composer.json`, `config/tenancy.php` (published, replaced in Task 3), `app/Providers/TenancyServiceProvider.php` (published, replaced in Task 11)
 
-- [ ] **Step 1: Add the package**
+### Task 1, Step 1: Add the package
 
 ```bash
 composer require stancl/tenancy:"^3.0"
@@ -109,7 +109,7 @@ composer require stancl/tenancy:"^3.0"
 
 If composer reports a Laravel 12 conflict, check the package's GitHub releases for the newest compatible tag and require that instead.
 
-- [ ] **Step 2: Run the installer**
+### Task 1, Step 2: Run the installer
 
 ```bash
 php artisan tenancy:install
@@ -117,13 +117,13 @@ php artisan tenancy:install
 
 This publishes `config/tenancy.php`, `app/Providers/TenancyServiceProvider.php`, and a stub tenants migration. We replace all three.
 
-- [ ] **Step 3: Delete the stub tenants migration (we write our own in Task 6)**
+### Task 1, Step 3: Delete the stub tenants migration (we write our own in Task 6)
 
 ```bash
 rm database/migrations/*_create_tenants_table.php 2>/dev/null; true
 ```
 
-- [ ] **Step 4: Commit**
+### Task 1, Step 4: Commit
 
 ```bash
 git add composer.json composer.lock config/tenancy.php app/Providers/TenancyServiceProvider.php
@@ -189,7 +189,7 @@ The test account's password stays the fixed, weak `lavoro_test`: `phpunit.xml` h
 
 `teardown-mysql.sh` drops the landlord database, every `lavoro_tenant_*` database and account, and the two accounts. It refuses to run unless `APP_ENV=local` and requires both `--yes-really` and typing `destroy` at a prompt. It exists so a local install can be rebuilt from scratch while iterating on this plan.
 
-- [ ] **Step 1: Create the app user, restricted to the landlord database (run once as root, per environment)**
+### Task 2, Step 1: Create the app user, restricted to the landlord database (run once as root, per environment)
 
 ```sql
 CREATE USER IF NOT EXISTS 'lavoro_app'@'127.0.0.1' IDENTIFIED BY '<strong-password>';
@@ -199,7 +199,7 @@ FLUSH PRIVILEGES;
 
 Note this is **not** a wildcard grant. `lavoro_app` gets the landlord database and nothing else. The underscore is escaped for the same reason as in Step 2 — unescaped, `lavoro_landlord` is a *pattern* that would also match `lavoroXlandlord`.
 
-- [ ] **Step 2: Create the provisioner — Linux user first, then a passwordless MySQL user bound to it**
+### Task 2, Step 2: Create the provisioner — Linux user first, then a passwordless MySQL user bound to it
 
 ```bash
 sudo adduser --system --group --no-create-home lavoro_provisioner
@@ -223,7 +223,7 @@ Note what is *not* covered: a database that is neither the landlord nor a tenant
 
 If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
 
-- [ ] **Step 2b: Let the operator's own account become the provisioner**
+### Task 2, Step 2b: Let the operator's own account become the provisioner
 
 Provisioning commands elevate themselves (Task 21), so the operator runs
 `php artisan tenant:create …` and the command re-execs under the provisioner.
@@ -253,7 +253,7 @@ Skipping this step entirely is a supported choice. Without it the elevation
 finds no passwordless path, falls back to the error message it prints today, and
 the operator types `sudo -u lavoro_provisioner` as before.
 
-- [ ] **Step 3: Verify the identities behave as intended**
+### Task 2, Step 3: Verify the identities behave as intended
 
 ```bash
 sudo scripts/tenancy/verify-mysql.sh
@@ -276,7 +276,7 @@ It exits non-zero on any failure, so it can gate a deploy. The assertions, each 
 
 Run it again after the first `tenant:create` (Task 21), when the tenant-account assertions have something to check.
 
-- [ ] **Step 4: Point `.env` at the central database and the app user**
+### Task 2, Step 4: Point `.env` at the central database and the app user
 
 ```
 DB_CONNECTION=mysql
@@ -296,7 +296,7 @@ A separate key avoids the collision outright and says what it is for. Nothing bu
 
 If you would rather keep `DB_SOCKET` (a shared `.env` with other tooling, say), the alternative is to add `'unix_socket' => ''` to the `mysql` connection block as well, exactly as the `central` block below already does — but then the thing keeping you safe is a line that looks like boilerplate. The next person to regenerate `config/database.php` from a Laravel skeleton deletes it without noticing. Prefer the distinct key.
 
-- [ ] **Step 5: Add the `central` and `provisioner` connections after the `mysql` block**
+### Task 2, Step 5: Add the `central` and `provisioner` connections after the `mysql` block
 
 ```php
 'central' => [
@@ -344,7 +344,7 @@ A TCP connection here would authenticate as `lavoro_provisioner@127.0.0.1`, a *d
 
 The corollary is the one that bites. A connection with a host and an *empty* `unix_socket` silently uses TCP, which is why the `central` block above sets `'unix_socket' => ''` explicitly instead of omitting the key and inheriting `env('DB_SOCKET', '')` from a skeleton regeneration.
 
-- [ ] **Step 6: Commit**
+### Task 2, Step 6: Commit
 
 ```bash
 git add config/database.php .env.example scripts/tenancy/
@@ -391,7 +391,7 @@ Note there is **no** `queue.connections.database.central` flag set in Task 9. Th
 
 **Files:** `config/tenancy.php`
 
-- [ ] **Step 1: Replace the entire file**
+### Task 3, Step 1: Replace the entire file
 
 ```php
 <?php
@@ -439,7 +439,7 @@ return [
 ];
 ```
 
-- [ ] **Step 2: Commit**
+### Task 3, Step 2: Commit
 
 ```bash
 git add config/tenancy.php
@@ -461,7 +461,7 @@ Note the cast requires `APP_KEY` to be stable: rotating it without re-encrypting
 **Interfaces:**
 - Produces: `Tenant` (central-connection Eloquent model) with integer-cast columns `extra_field_seats`, `extra_office_seats`, `price_override_cents` (nullable), `storage_limit_gb`, array-cast `modules`, and `hasModule(string): bool`.
 
-- [ ] **Step 1: Write the failing test**
+### Task 4, Step 1: Write the failing test
 
 ```php
 <?php
@@ -490,12 +490,12 @@ class TenantModelTest extends TestCase
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+### Task 4, Step 2: Run the test to verify it fails
 
 Run: `php artisan test --filter=TenantModelTest`
 Expected: FAIL — `Class "App\Models\Tenant" not found`.
 
-- [ ] **Step 3: Create the model**
+### Task 4, Step 3: Create the model
 
 ```php
 <?php
@@ -545,12 +545,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+### Task 4, Step 4: Run the test to verify it passes
 
 Run: `php artisan test --filter=TenantModelTest`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+### Task 4, Step 5: Commit
 
 ```bash
 git add app/Models/Tenant.php tests/Feature/TenantModelTest.php
@@ -565,7 +565,7 @@ A small central table: given an email, which tenant owns it. Queried only at log
 
 **Files:** `app/Models/Central/UserTenantLookup.php`
 
-- [ ] **Step 1: Create the file**
+### Task 5, Step 1: Create the file
 
 ```php
 <?php
@@ -587,7 +587,7 @@ class UserTenantLookup extends Model
 }
 ```
 
-- [ ] **Step 2: Commit**
+### Task 5, Step 2: Commit
 
 ```bash
 git add app/Models/Central/UserTenantLookup.php
@@ -619,7 +619,7 @@ ls database/migrations/*.php | tail -3
 **Interfaces:**
 - Produces: central tables `tenants` (columns `id`, `name`, `package_key`, `extra_field_seats`, `extra_office_seats`, `modules`, `price_override_cents`, `storage_limit_gb`, `data`, timestamps), `packages`, `modules`, `module_bundles`, `pricing_settings` — all seeded with the price list below.
 
-- [ ] **Step 1: Create the tenants migration**
+### Task 6, Step 1: Create the tenants migration
 
 `storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
@@ -661,7 +661,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 2: Create the user_tenant_lookups migration**
+### Task 6, Step 2: Create the user_tenant_lookups migration
 
 ```php
 <?php
@@ -690,7 +690,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 3: Create the licensing-catalogue migration (create + seed)**
+### Task 6, Step 3: Create the licensing-catalogue migration (create + seed)
 
 Four tables, seeded inline with the price list. All money is integer cents. The free feature toggles are `modules` rows at `price_cents = 0`, so there is one module list and one `hasModule()` check. `included_storage_gb` and `storage_extra_per_gb_cents` are the two storage scalars.
 
@@ -784,7 +784,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 4: Run the central migrations and confirm the catalogue seeded**
+### Task 6, Step 4: Run the central migrations and confirm the catalogue seeded
 
 Run: `php artisan migrate --database=central --path=database/migrations --realpath` (or the full `php artisan migrate` once the split in Task 8 is done).
 Expected: `packages` has 4 rows, `modules` has 6, `module_bundles` has 1, `pricing_settings` has 3.
@@ -812,7 +812,7 @@ The split is **€12,50 of allowance against a €10,00 margin floor**. That sel
 
 Two consequences to accept knowingly rather than rediscover. The worst case is €12,50 of supplier spend per tenant per month. And the unmetered web-search cost in Task 39 now eats a real slice of the €10,00 floor rather than a token one.
 
-- [ ] **Step 5: Commit**
+### Task 6, Step 5: Commit
 
 ```bash
 git add database/migrations/
@@ -832,11 +832,11 @@ The `sessions` table is currently created inside the framework users migration. 
 - a new central sessions migration (`php artisan make:migration create_sessions_table`)
 - `.env` / `.env.example`
 
-- [ ] **Step 1: Remove the `sessions` block from the users migration**
+### Task 7, Step 1: Remove the `sessions` block from the users migration
 
 Open `database/migrations/0001_01_01_000000_create_users_table.php`. It creates three tables: `users`, `password_reset_tokens`, and `sessions`. Delete the entire `Schema::create('sessions', function (Blueprint $table) { ... });` block (and the matching `Schema::dropIfExists('sessions');` in `down()`). Leave `users` and `password_reset_tokens` intact — those belong to the tenant database.
 
-- [ ] **Step 2: Create the central sessions migration**
+### Task 7, Step 2: Create the central sessions migration
 
 ```php
 <?php
@@ -868,7 +868,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 3: Point the session driver at the central connection**
+### Task 7, Step 3: Point the session driver at the central connection
 
 Add to `.env` and `.env.example`:
 
@@ -878,7 +878,7 @@ SESSION_CONNECTION=central
 
 `config/session.php` already reads `'connection' => env('SESSION_CONNECTION')` (verified, line 76), so no config edit is needed. `SESSION_DRIVER=database` stays as-is.
 
-- [ ] **Step 4: Commit**
+### Task 7, Step 4: Commit
 
 ```bash
 git add database/migrations/0001_01_01_000000_create_users_table.php \
@@ -901,7 +901,7 @@ After this:
 
 **Files:** move ~231 migration files (237 total after Tasks 6–7, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
 
-- [ ] **Step 1: Move the files**
+### Task 8, Step 1: Move the files
 
 **The rule is content, not filename.** Every central migration this plan adds declares `protected $connection = 'central';` — that is what makes it central, so that is what the split reads. The only central migrations *without* that declaration are the two framework ones (`cache`, `jobs`), which run against the default connection and are named identically in every Laravel install, so they are the sole hardcoded exception.
 
@@ -929,7 +929,7 @@ for f in database/migrations/*.php; do
 done
 ```
 
-- [ ] **Step 2: Verify**
+### Task 8, Step 2: Verify
 
 ```bash
 # Central: the two framework migrations plus the ones Tasks 6-7 created.
@@ -947,7 +947,7 @@ grep -l "connection = 'central'" database/migrations/tenant/*.php   # expect no 
 
 The two `grep` checks are the ones that matter. The file count only tells you something moved; these tell you the *right* things moved, and they keep working no matter what the migrations are called.
 
-- [ ] **Step 3: Commit**
+### Task 8, Step 3: Commit
 
 ```bash
 git add database/migrations/
@@ -970,7 +970,7 @@ The two newest are worth a second's thought each, and both come out fine. `SendW
 
 **Files:** `config/queue.php`
 
-- [ ] **Step 1: Set all three database references to `central`**
+### Task 9, Step 1: Set all three database references to `central`
 
 ```php
 'database' => [
@@ -998,7 +998,7 @@ The two newest are worth a second's thought each, and both come out fine. `SendW
 ],
 ```
 
-- [ ] **Step 2: Commit**
+### Task 9, Step 2: Commit
 
 ```bash
 git add config/queue.php
@@ -1037,7 +1037,7 @@ The first of those is the one to think about. `ConfirmationToken::claim()` is wh
 
 **Files:** `config/cache.php`, `.env`, `.env.example`, `app/Tenancy/PrefixCacheBootstrapper.php`
 
-- [ ] **Step 1: Pin the cache and its locks to the central connection**
+### Task 10, Step 1: Pin the cache and its locks to the central connection
 
 Same reasoning as Task 9's queue pinning, and the same fix — written into config rather than left to an env var nobody sets:
 
@@ -1055,7 +1055,7 @@ Hardcoded rather than `env('DB_CACHE_CONNECTION', 'central')`, deliberately. An 
 
 **This makes `PrefixCacheBootstrapper` the only thing separating tenants in the cache.** That is the design, not a regression — but it changes the consequence of a bug in it from "cache misses" to "one tenant reads another's entries", and one of those entries is a SnelStart OAuth token (Task 32 makes those per-tenant). Treat Step 2 as isolation code, not as a convenience.
 
-- [ ] **Step 2: Create the bootstrapper**
+### Task 10, Step 2: Create the bootstrapper
 
 ```php
 <?php
@@ -1096,7 +1096,7 @@ class PrefixCacheBootstrapper implements TenancyBootstrapper
 
 This does not need solving now, and deliberately is not: leaving it prefixed is *correct* and merely wasteful, whereas an unprefixed shared key needs deciding what happens when one tenant's cached miss becomes another's, and that is a question with no urgency behind it. What it needs is to be written down, so that when someone investigates why geocoding got slower after the fifth tenant they find this paragraph rather than the rate limiter. If it does become a problem, the fix is a second store — `cache.stores.shared`, on the `central` connection and without the prefix — and having `Geocoder` ask for that one by name.
 
-- [ ] **Step 3: Know what `forgetDriver` does not reach**
+### Task 10, Step 3: Know what `forgetDriver` does not reach
 
 `forgetDriver` clears `CacheManager`'s resolved-store map. It cannot reach a store that something else has already been handed and kept.
 
@@ -1106,7 +1106,7 @@ Under PHP-FPM this is harmless and needs nothing: each request gets a fresh cont
 
 Under a long-lived process — Octane, or anything that resolves `RateLimiter` before switching tenants — it is not harmless, and the failure is specific: `ThrottleRequests::resolveRequestSignature` keys on `$user->getAuthIdentifier()`, a bare per-tenant auto-increment id. With one shared bucket, **user 5 in tenant A and user 5 in tenant B throttle each other** — on the assistant routes above all, since those are the ones carrying `throttle:20,1`. If this application ever adopts Octane, `RateLimiter` needs an adapter alongside `MailerState` — implement `ForgetsTenantState`, tag it, and Task 11's registry clears it at both moments without either call site changing. Until then this paragraph is the record of why it is absent.
 
-- [ ] **Step 4: Commit**
+### Task 10, Step 4: Commit
 
 ```bash
 git add config/cache.php .env.example app/Tenancy/PrefixCacheBootstrapper.php
@@ -1136,7 +1136,7 @@ The two moments are **between two queue jobs** and **on a tenancy switch**. They
 **Interfaces:**
 - Produces: `App\Support\ForgetsTenantState` — `forgetTenantState(): void`; `App\Support\TenantState::flush(): void`, which clears everything tagged with the interface name.
 
-- [ ] **Step 1: Create the interface, the adapter and the flush**
+### Task 11, Step 1: Create the interface, the adapter and the flush
 
 ```php
 <?php
@@ -1196,7 +1196,7 @@ final class MailerState implements ForgetsTenantState
 }
 ```
 
-- [ ] **Step 2: Implement the interface on the four stateful singletons**
+### Task 11, Step 2: Implement the interface on the four stateful singletons
 
 Three of them are a rename, not an addition. `ActivityBuffer::reset()`,
 `Signals::reset()` and `AssistantContext::reset()` have **exactly one caller each**
@@ -1267,7 +1267,7 @@ and would silently be called at every tenancy switch. `forgetTenantState()` cann
 be implemented by mistake, and the whole point of this registry is that it is hard
 to get wrong. The rename costs three edits, all of them in code with one caller.
 
-- [ ] **Step 3: Tag them in `AppServiceProvider::register()` and route `Queue::before` through the flush**
+### Task 11, Step 3: Tag them in `AppServiceProvider::register()` and route `Queue::before` through the flush
 
 Next to the existing `singleton()` / `scoped()` bindings:
 
@@ -1300,7 +1300,7 @@ Queue::before(function () {
 
 Two things get cleared per queue job that were not before, both improvements rather than regressions. `TechnicianAvailability` was previously saved only by the scoped-binding lifecycle, which is real but incidental. And mailers are now forgotten between jobs, which is precisely the bug Task 32 Step 3 exists to fix — consolidating makes that fix stronger, not weaker.
 
-- [ ] **Step 4: Replace `app/Providers/TenancyServiceProvider.php`**
+### Task 11, Step 4: Replace `app/Providers/TenancyServiceProvider.php`
 
 ```php
 <?php
@@ -1353,7 +1353,7 @@ Without the reset, the second tenant's save merges into the activity id remember
 
 The web path is already safe — PHP-FPM gives each request a fresh container. Nothing else covers the console path.
 
-- [ ] **Step 5: Register the provider in `bootstrap/providers.php`**
+### Task 11, Step 5: Register the provider in `bootstrap/providers.php`
 
 ```php
 <?php
@@ -1364,7 +1364,7 @@ return [
 ];
 ```
 
-- [ ] **Step 6: Make forgetting to tag a class fail a test, not production**
+### Task 11, Step 6: Make forgetting to tag a class fail a test, not production
 
 The interface cannot enforce the tag, so a class can implement it and be silently skipped — the same class of bug as the two hand-maintained lists this task replaced, just smaller. Close it with a test that makes the container and the codebase agree:
 
@@ -1388,7 +1388,7 @@ public function test_every_stateful_class_is_tagged(): void
 
 Assert in that direction only. The reverse — tagged but not implementing — is already impossible to get wrong quietly, because `flush()` would fatal on the first tenancy switch.
 
-- [ ] **Step 7: Commit**
+### Task 11, Step 7: Commit
 
 ```bash
 git add app/Support/ForgetsTenantState.php app/Support/TenantState.php app/Support/MailerState.php \
@@ -1413,7 +1413,7 @@ The cookie is encrypted/decrypted automatically by the web group's `EncryptCooki
 
 **Files:** `app/Http/Middleware/InitializeTenancyBySession.php`, `bootstrap/app.php`
 
-- [ ] **Step 1: Create the middleware**
+### Task 12, Step 1: Create the middleware
 
 ```php
 <?php
@@ -1458,7 +1458,7 @@ class InitializeTenancyBySession
 
 **`$initialized_here` is not defensive padding — without it the test suite breaks.** The naive version ends tenancy unconditionally after the response, including tenancy that something *else* established. In tests (Task 30) the `TestCase` initializes tenancy once in `setUp()` and holds an open transaction on the `tenant` connection; the first `$this->get(...)` in a test would then tear that down on the way out, and every assertion after it — `assertDatabaseHas`, a second request, the rollback in `tearDown` — would run against the central database instead. 30 of the current test files make HTTP requests, so this would have looked like a mass, baffling failure. The same guard keeps the middleware from ending tenancy that `GoogleWebhookController` established for itself (Task 25), since that route lives in the web group too.
 
-- [ ] **Step 2: Add to the web stack in `bootstrap/app.php` — with an explicit priority, not `append`**
+### Task 12, Step 2: Add to the web stack in `bootstrap/app.php` — with an explicit priority, not `append`
 
 This is the single most order-sensitive change in the plan. The middleware must run:
 
@@ -1498,7 +1498,7 @@ $middleware->priority([
 
 This is Laravel 12's stock priority array (`Illuminate\Foundation\Http\Kernel::$middlewarePriority`, lines 103–115) with three insertions: the two tenancy initializers right after `StartSession`, and `EnsureTenantHasModule` (Task 31) after `SubstituteBindings` so a module check can rely on a resolved tenant. `InitializeTenancyForApi` (Task 24) and `EnsureTenantHasModule` (Task 31) do not exist yet — either add this block once both classes exist, or add the entries incrementally as each task lands.
 
-- [ ] **Step 3: Verify the resulting order before moving on**
+### Task 12, Step 3: Verify the resulting order before moving on
 
 Do not take this on faith — a wrong order here fails as mass 404s that look like a routing problem, not a tenancy problem:
 
@@ -1518,7 +1518,7 @@ Whoever executes this must also check `App\Models\AccessToken::issue()` and `rev
 
 **Read Task 41 before building this.** It solves the same problem for a different kind of token — a Sanctum bearer token from an API client — and lands on the same answer: a central table mapping a token hash to a tenant. Two tables would be `access_token_lookups` here and `access_token_tenant_lookups` there, which is one letter apart in the schema and two different things in the head. Decide up front whether they are one table with a `kind` column or two with names nobody can confuse, because the second person to touch this will assume there is only one.
 
-- [ ] **Step 4: Commit**
+### Task 12, Step 4: Commit
 
 ```bash
 git add app/Http/Middleware/InitializeTenancyBySession.php bootstrap/app.php
@@ -1539,7 +1539,7 @@ Neither `nav` value needs gating. Storingen and the notification bell are both s
 
 **Files:** `app/Providers/AppServiceProvider.php` (the share is at the bottom of `boot()`), `app/Http/Middleware/HandleInertiaRequests.php` (read only, to confirm the above)
 
-- [ ] **Step 1: Replace the `Inertia::share('company', ...)` closure**
+### Task 13, Step 1: Replace the `Inertia::share('company', ...)` closure
 
 ```php
 Inertia::share('company', function () {
@@ -1558,7 +1558,7 @@ Inertia::share('company', function () {
 });
 ```
 
-- [ ] **Step 2: Commit**
+### Task 13, Step 2: Commit
 
 ```bash
 git add app/Providers/AppServiceProvider.php
@@ -1590,7 +1590,7 @@ Because files now live outside the web-served `public/storage` symlink, they are
 - The 12 Vue/JS files that hardcode `/storage/${...}` (images and company logos)
 - The 7 non-disk path builders: `app/Http/Controllers/ServiceOrderController.php:816`, `app/Http/Controllers/ImageController.php:57` and `:260`, `app/Models/Company.php:52`, `resources/views/pdf/servicejob.blade.php:232`, `resources/views/emails/event/appointment_confirmation.blade.php:102`, `app/Domain/Tools/Read/ViewImagesTool.php:164` (line numbers move with almost every commit — grep rather than trusting them)
 
-- [ ] **Step 1: Create the storage bootstrapper**
+### Task 14, Step 1: Create the storage bootstrapper
 
 Everything under `storage/` looks like one folder, but two unrelated kinds of thing live there:
 
@@ -1672,7 +1672,7 @@ class TenantStorageBootstrapper implements TenancyBootstrapper
 }
 ```
 
-- [ ] **Step 2: Create the file-serving controller**
+### Task 14, Step 2: Create the file-serving controller
 
 ```php
 <?php
@@ -1726,7 +1726,7 @@ Documents were built the way this task is *making* images work: an authenticated
 
 Images needed a new controller only because they had no controller: the frontend built `/storage/${image.path}` by hand and the web server served it with no authentication at all. That is the hole being closed, and documents never had it.
 
-- [ ] **Step 3: Register the routes inside the authenticated web group in `routes/web.php`**
+### Task 14, Step 3: Register the routes inside the authenticated web group in `routes/web.php`
 
 Add inside the `auth` middleware group (tenancy is already initialized for these requests by the session middleware):
 
@@ -1736,7 +1736,7 @@ Route::get('files/avatars/{user}', [\App\Http\Controllers\FileController::class,
 Route::get('files/companies/{company}/logo/{variant?}', [\App\Http\Controllers\FileController::class, 'companyLogo'])->name('files.companyLogo');
 ```
 
-- [ ] **Step 4: Change the `User` avatar accessor to return the route URL**
+### Task 14, Step 4: Change the `User` avatar accessor to return the route URL
 
 In `app/Models/User.php`, `getAvatarAttribute()` currently ends with `return Storage::url($files[0]);` (line 86). **Change that one line and nothing else:**
 
@@ -1771,7 +1771,7 @@ return url("/files/avatars/{$this->id}");
 
 The two existence checks stay for the reason they were written: `null` is what makes the UI fall back to initials, and an avatar route that 404s instead would render a broken image on every user without a photo.
 
-- [ ] **Step 5: Exclude `/files/` from service-worker caching**
+### Task 14, Step 5: Exclude `/files/` from service-worker caching
 
 `public/service-worker.js` serves same-origin GETs cache-first. Every id in this app is a per-tenant auto-increment, so `/files/images/5` is a *different file* in each tenant; a cached copy could be shown to a user of another tenant on a shared browser, and stale copies would survive image replacement.
 
@@ -1836,7 +1836,7 @@ So this step changes one thing only: the cache. Keep `/files/` and every other c
 
 One practical warning while you are in that file. A browser only installs a new service worker when the file's contents change, and bumping `CACHE_NAME` is how you force that. Both features live in this one file, so you cannot ship a cache change without also shipping whatever push code is currently in it. Check you are not about to release half-finished push work along with this fix.
 
-- [ ] **Step 6: Update the frontend to use the file routes instead of `/storage/`**
+### Task 14, Step 6: Update the frontend to use the file routes instead of `/storage/`
 
 Find every hardcoded reference:
 
@@ -1903,7 +1903,7 @@ Three of these need more than a mechanical swap:
 
 - In `ImageUploadComponent.vue`, a *freshly uploaded* preview may use a local object URL or a path returned from the upload response before an `Image` id exists. Leave object-URL previews as-is; for previews of already-saved images, use `/files/images/${image.id}`. Check each usage in this file specifically. Note the occurrence at line ~525 feeds an image *editor* (`loadImage: { path, name }`), not an `<img>` — verify the editor accepts the route URL.
 
-- [ ] **Step 7: Fix the seven backend path builders that bypass the disk**
+### Task 14, Step 7: Fix the seven backend path builders that bypass the disk
 
 Each of these constructs an absolute path or a public URL by hand and therefore ignores the per-tenant disk root set in Step 1. All of them fail *silently* — a missing file is treated as "no image" — so they will not surface in a smoke test unless you look at a rendered PDF and an appointment e-mail specifically.
 
@@ -1958,7 +1958,7 @@ The `exists()` check stays: the tool is reading images off records that may have
 
 The `asset('storage/logo.png')` / `public_path('storage/logo.png')` references in the three PDF blades are a different case: that is a single static fallback logo, not tenant data. It resolves through the untouched `public/storage` symlink and stays global by design — leave it, but be aware it is the same image for every tenant.
 
-- [ ] **Step 8: Commit**
+### Task 14, Step 8: Commit
 
 ```bash
 git add app/Tenancy/TenantStorageBootstrapper.php \
@@ -1983,7 +1983,7 @@ Look up the tenant from the email, switch to its database, then authenticate. Ke
 
 **Files:** `app/Http/Controllers/AuthController.php`, `app/Http/Requests/StoreUpdateAuthRequest.php`
 
-- [ ] **Step 1: Remove the `exists` rule**
+### Task 15, Step 1: Remove the `exists` rule
 
 ```php
 public function rules(): array
@@ -1995,7 +1995,7 @@ public function rules(): array
 }
 ```
 
-- [ ] **Step 2: Rewrite `AuthController`**
+### Task 15, Step 2: Rewrite `AuthController`
 
 ```php
 <?php
@@ -2057,7 +2057,7 @@ Three details in that method are easy to get wrong, and one is a loose end:
 - **`findOrFail` is the wrong verb on a login POST.** A lookup row pointing at a deleted tenant throws a 404, which in production the global responder turns into `redirect()->back()` (Known impact 17) — a login form that bounces with no message, forever, for one user. Use `first()` and fall into the same `ValidationException` as a missing lookup: the user cannot act on the difference between "no such email" and "your company's database is gone", and support can read the log.
 - **Failing before the password check is an enumeration oracle** — a missing lookup returns without running bcrypt, so a wrong email answers measurably faster than a wrong password. This is not a regression: the `exists:users,email` rule being removed in Step 1 was a louder version of the same thing. Worth knowing it is still there rather than believing the rewrite closed it.
 
-- [ ] **Step 3: Commit**
+### Task 15, Step 3: Commit
 
 ```bash
 git add app/Http/Controllers/AuthController.php app/Http/Requests/StoreUpdateAuthRequest.php
@@ -2086,7 +2086,7 @@ The catalogue tables exist and are seeded (Task 6). This task adds the Eloquent 
   - `App\Models\Central\PricingSetting` — `key`, `value`; central; static `value(string $key, int $default = 0): int`.
   - `App\Services\TenantSubscription` — `__construct(Tenant $tenant)`; `monthlyTotalCents(): int`.
 
-- [ ] **Step 1: Create the four catalogue models**
+### Task 16, Step 1: Create the four catalogue models
 
 ```php
 <?php
@@ -2151,7 +2151,7 @@ class PricingSetting extends Model
 }
 ```
 
-- [ ] **Step 2: Write the failing pricing-catalogue tests**
+### Task 16, Step 2: Write the failing pricing-catalogue tests
 
 These read the seeded catalogue. They encode the two rules the price list must satisfy — a future price change that breaks either turns the suite red.
 
@@ -2197,12 +2197,12 @@ class PricingCatalogueTest extends TestCase
 }
 ```
 
-- [ ] **Step 3: Run to verify they fail, then pass**
+### Task 16, Step 3: Run to verify they fail, then pass
 
 Run: `php artisan test --filter=PricingCatalogueTest`
 Expected first: FAIL — `Class "App\Models\Central\Package" not found`. After Step 1 is in place and the catalogue migration (Task 6) has run against the test central database, both tests PASS with the seeded numbers.
 
-- [ ] **Step 4: Write the failing `TenantSubscription` tests**
+### Task 16, Step 4: Write the failing `TenantSubscription` tests
 
 ```php
 <?php
@@ -2271,12 +2271,12 @@ class TenantSubscriptionTest extends TestCase
 }
 ```
 
-- [ ] **Step 5: Run to verify they fail**
+### Task 16, Step 5: Run to verify they fail
 
 Run: `php artisan test --filter=TenantSubscriptionTest`
 Expected: FAIL — `Class "App\Services\TenantSubscription" not found`.
 
-- [ ] **Step 6: Implement the `TenantSubscription` service**
+### Task 16, Step 6: Implement the `TenantSubscription` service
 
 ```php
 <?php
@@ -2347,12 +2347,12 @@ class TenantSubscription
 }
 ```
 
-- [ ] **Step 7: Run the subscription tests to verify they pass**
+### Task 16, Step 7: Run the subscription tests to verify they pass
 
 Run: `php artisan test --filter=TenantSubscriptionTest`
 Expected: PASS.
 
-- [ ] **Step 8: Share the tenant's package and modules with the frontend**
+### Task 16, Step 8: Share the tenant's package and modules with the frontend
 
 In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by `share()` (next to the existing `auth` key). Seat and storage usage are added to this same prop by their own tasks (Tasks 34 and 35) — keep it to package and modules here.
 
@@ -2363,7 +2363,7 @@ In `app/Http/Middleware/HandleInertiaRequests.php`, add to the array returned by
 ] : null,
 ```
 
-- [ ] **Step 9: Add a `hasModule` helper to `resources/js/Utilities/Utilities.js`**
+### Task 16, Step 9: Add a `hasModule` helper to `resources/js/Utilities/Utilities.js`
 
 Follow the same pattern as the existing `hasPermission` helper (which reads `usePage().props.auth.permissions`):
 
@@ -2377,7 +2377,7 @@ export const hasModule = (name) => {
 
 Two deliberate differences from `hasPermission`: it is **not** bypassed for admins (a module is a subscription boundary, not a permission), and it returns `false` rather than throwing when `tenant` is absent — which is the case on the login page, where no tenancy is initialized.
 
-- [ ] **Step 10: Commit**
+### Task 16, Step 10: Commit
 
 ```bash
 git add app/Models/Central/Package.php app/Models/Central/Module.php \
@@ -2396,7 +2396,7 @@ Password reset runs before login, so do the same tenant lookup before calling th
 
 **Files:** `app/Http/Controllers/PasswordResetController.php`
 
-- [ ] **Step 1: Rewrite the controller**
+### Task 17, Step 1: Rewrite the controller
 
 ```php
 <?php
@@ -2488,7 +2488,7 @@ class PasswordResetController extends Controller
 }
 ```
 
-- [ ] **Step 2: Commit**
+### Task 17, Step 2: Commit
 
 ```bash
 git add app/Http/Controllers/PasswordResetController.php
@@ -2510,7 +2510,7 @@ A soft-deleted user cannot log in (the `SoftDeletingScope` hides them from the a
 
 **Files:** `app/Observers/UserObserver.php`, `app/Providers/AppServiceProvider.php`
 
-- [ ] **Step 1: Create the observer**
+### Task 18, Step 1: Create the observer
 
 ```php
 <?php
@@ -2604,13 +2604,13 @@ Two honest limits on it, neither worth more code today:
 - **Between the check and the write there is a race.** Two tenants creating the same email at the same instant both pass `creating`, and the second `updateOrCreate` repoints the lookup — no duplicate row, because `email` is the primary key, but the first tenant's user quietly loses the ability to log in. The primary key is the only real arbiter here; if this ever needs to be authoritative rather than merely good, make `created` an insert and catch the duplicate-key `QueryException` into the same `RuntimeException`. At the volume of user creation this application sees, the race is theoretical.
 - **`updated` is not similarly protected.** Changing a user's email to one held by another tenant is caught by Task 19's `Rule::unique('central.user_tenant_lookups', 'email')` and by nothing here; the observer's `updated` hook deletes the old row and writes the new one unconditionally. That is deliberate — an observer is a poor place for a second validation layer — but it means Task 19's validation is the only thing guarding the update path.
 
-- [ ] **Step 2: Register it in `AppServiceProvider::boot()`** (next to the existing `EventModel::observe` / `Ticket::observe` calls)
+### Task 18, Step 2: Register it in `AppServiceProvider::boot()` (next to the existing `EventModel::observe` / `Ticket::observe` calls)
 
 ```php
 \App\Models\User::observe(\App\Observers\UserObserver::class);
 ```
 
-- [ ] **Step 3: Commit**
+### Task 18, Step 3: Commit
 
 ```bash
 git add app/Observers/UserObserver.php app/Providers/AppServiceProvider.php
@@ -2633,7 +2633,7 @@ The `central.` prefix on the unique rule tells the validator to query the centra
 
 **Files:** `app/Http/Requests/UserStoreRequest.php`, `app/Http/Requests/UserUpdateRequest.php`
 
-- [ ] **Step 1: Add a global-uniqueness rule to `UserStoreRequest::rules()`**
+### Task 19, Step 1: Add a global-uniqueness rule to `UserStoreRequest::rules()`
 
 Replace the current `'email' => 'required|email|unique:users,email',` line:
 
@@ -2648,7 +2648,7 @@ use Illuminate\Validation\Rule;
 ],
 ```
 
-- [ ] **Step 2: Add the same rule to `UserUpdateRequest`, ignoring the user's current email**
+### Task 19, Step 2: Add the same rule to `UserUpdateRequest`, ignoring the user's current email
 
 The request already derives `$ignore_id` from the route user or the authenticated user; mirror that logic for the email. Inside `rules()`, after the existing `$ignore_id` computation, add:
 
@@ -2670,7 +2670,7 @@ and extend the email rules:
 ],
 ```
 
-- [ ] **Step 3: Commit**
+### Task 19, Step 3: Commit
 
 ```bash
 git add app/Http/Requests/UserStoreRequest.php app/Http/Requests/UserUpdateRequest.php
@@ -2710,7 +2710,7 @@ The maintenance-contract one is the most important of the six to convert: `gener
 
 > **Precondition, easy to forget:** none of this runs at all until a server-level cron invokes `php artisan schedule:run` — there is currently no crontab entry wired up, and `app/Console/Kernel.php`'s `schedule()` is dead code under Laravel 12's `routes/console.php` setup. Confirm the cron exists on the target server before treating any scheduled behaviour as working.
 
-- [ ] **Step 1: Create the calendar-pull dispatch job**
+### Task 20, Step 1: Create the calendar-pull dispatch job
 
 ```php
 <?php
@@ -2740,7 +2740,7 @@ class DispatchTenantCalendarPullsJob implements ShouldQueue
 
 This runs on the worker with tenancy already initialized (tagged by `QueueTenancyBootstrapper` at dispatch time, same as any other tenant-context job), so the `whereHas` query and the `PullCalendarChangesJob` dispatches it makes both land against the correct tenant database automatically.
 
-- [ ] **Step 2: Create the location-ping pruning job**
+### Task 20, Step 2: Create the location-ping pruning job
 
 ```php
 <?php
@@ -2765,7 +2765,7 @@ class PruneLocationPingsJob implements ShouldQueue
 }
 ```
 
-- [ ] **Step 3: Create the maintenance-contract generation job**
+### Task 20, Step 3: Create the maintenance-contract generation job
 
 ```php
 <?php
@@ -2792,7 +2792,7 @@ class GenerateMaintenanceContractServiceOrdersJob implements ShouldQueue
 
 Leave `App\Console\Commands\GenerateMaintenanceContractServiceOrders` in place for manual runs; only the schedule changes.
 
-- [ ] **Step 4: Create the two jobs that wrap the newer commands**
+### Task 20, Step 4: Create the two jobs that wrap the newer commands
 
 These two differ from the three above: their logic lives *in the command*, not in a service the job could call. `PruneAssistantQuestionsCommand` holds the retention arithmetic, the three-way file sweep and the dry-run branch; `NotifyMissingExecutionTimes` holds the query, the one-per-appointment-per-person rule and the push. Reimplementing either in a job would be two copies of a retention rule, which is exactly the sort of thing that drifts apart and then deletes the wrong month.
 
@@ -2848,7 +2848,7 @@ class NotifyMissingExecutionTimesJob implements ShouldQueue
 
 Both commands keep working by hand, and by hand is now the *only* way to reach their options (`--months`, `--dry-run`, `--days`, `--no-push`) — the schedule always takes the defaults. If a per-tenant retention period is ever wanted, it belongs as a column read inside the command, not as an argument threaded through the job.
 
-- [ ] **Step 5: Rewrite `routes/console.php` so every tick only dispatches**
+### Task 20, Step 5: Rewrite `routes/console.php` so every tick only dispatches
 
 `cursor()` replaces `get()` so the central tenant list is streamed rather than loaded into memory in one array — cheap either way at today's tenant count, and it is the cheap part of the chunking that Known impact 6 asks for, so there is no reason not to.
 
@@ -2925,7 +2925,7 @@ Keep the times the schedules already carry (03:20 and 07:00). The 07:00 one is c
 
 **Two of these now loop tenants in one process every night, which is precisely the case Task 11's reset exists for.** Before this task there was no such loop outside `tenants:migrate`. Do not implement Task 20 without Task 11 in place.
 
-- [ ] **Step 6: Commit**
+### Task 20, Step 6: Commit
 
 ```bash
 git add app/Jobs/Google/DispatchTenantCalendarPullsJob.php app/Jobs/PruneLocationPingsJob.php \
@@ -2953,7 +2953,7 @@ Without that rule it prints the `sudo -u lavoro_provisioner …` line to run by 
 
 **Files:** `app/Console/Commands/Concerns/RunsAsProvisioner.php` (new), `app/Console/Commands/CreateTenant.php`
 
-- [ ] **Step 1: Create the `RunsAsProvisioner` trait**
+### Task 21, Step 1: Create the `RunsAsProvisioner` trait
 
 Provisioning writes the tenant row *and* issues `CREATE DATABASE` / `CREATE USER`, so both must happen on the `provisioner` connection. This trait does two things: it gets the process running as the provisioner Linux user, and it repoints `central` at the provisioner connection for the life of the command.
 
@@ -3050,7 +3050,7 @@ one fewer deliberate act to get there. The `--force`/confirmation prompts on the
 destructive commands are load-bearing after this change in a way they were not
 before.
 
-- [ ] **Step 2: Create the command**
+### Task 21, Step 2: Create the command
 
 ```php
 <?php
@@ -3145,7 +3145,7 @@ class CreateTenant extends Command
 }
 ```
 
-- [ ] **Step 3: Verify the tenant got its own confined MySQL user**
+### Task 21, Step 3: Verify the tenant got its own confined MySQL user
 
 ```bash
 php artisan tenant:create "Test BV" test@test.nl --package=starter
@@ -3162,7 +3162,7 @@ mysql -u lavoro_app -p -e "SELECT tenancy_db_username, LEFT(tenancy_db_password,
 
 Expected: the password column shows base64-looking ciphertext (`eyJpdiI6...`), not a usable password.
 
-- [ ] **Step 4: Commit**
+### Task 21, Step 4: Commit
 
 ```bash
 git add app/Console/Commands/Concerns/RunsAsProvisioner.php app/Console/Commands/CreateTenant.php
@@ -3185,7 +3185,7 @@ php artisan tenant:delete <id>
 
 **Files:** `app/Console/Commands/DeleteTenant.php`
 
-- [ ] **Step 1: Create the command**
+### Task 22, Step 1: Create the command
 
 ```php
 <?php
@@ -3240,7 +3240,7 @@ class DeleteTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Verify no orphaned user remains**
+### Task 22, Step 2: Verify no orphaned user remains
 
 ```bash
 mysql -u lavoro_provisioner --protocol=socket -e "SELECT user, host FROM mysql.user WHERE user LIKE 'lavoro%';"
@@ -3248,7 +3248,7 @@ mysql -u lavoro_provisioner --protocol=socket -e "SELECT user, host FROM mysql.u
 
 Expected: no row for the deleted tenant.
 
-- [ ] **Step 3: Commit**
+### Task 22, Step 3: Commit
 
 ```bash
 git add app/Console/Commands/DeleteTenant.php
@@ -3280,7 +3280,7 @@ Each of those call sites does `if (!$stage) { return; }`. Nothing throws, nothin
 
 **Files:** `database/seeders/TenantDatabaseSeeder.php`
 
-- [ ] **Step 1: Create the seeder**
+### Task 23, Step 1: Create the seeder
 
 ```php
 <?php
@@ -3328,7 +3328,7 @@ class TenantDatabaseSeeder extends Seeder
 }
 ```
 
-- [ ] **Step 2: Seed the roles and attach their permissions**
+### Task 23, Step 2: Seed the roles and attach their permissions
 
 Permissions themselves come from the `seed_*_permissions` migrations — the seeder
 must never create one. It creates **roles** and attaches existing permissions
@@ -3381,7 +3381,7 @@ one migration.
 `syncWithoutDetaching` rather than `sync`, so re-running the seeder never strips
 a permission an operator added by hand.
 
-- [ ] **Step 3: Check a fresh tenant has all six**
+### Task 23, Step 3: Check a fresh tenant has all six
 
 ```bash
 php artisan tenant:create "Seed Test BV" seed@test.nl --admin-password=secret123
@@ -3397,7 +3397,7 @@ FROM service_order_stages ORDER BY `order`;
 
 Task 43's `tenancy:doctor` is the place for this check long-term; do it by hand here.
 
-- [ ] **Step 4: Commit**
+### Task 23, Step 4: Commit
 
 ```bash
 git add database/seeders/TenantDatabaseSeeder.php database/seeders/data/
@@ -3424,7 +3424,7 @@ When bearer tokens do arrive, work out the company **from the token** instead, t
 
 **Files:** `app/Http/Middleware/InitializeTenancyForApi.php`, `bootstrap/app.php`, `routes/api.php`
 
-- [ ] **Step 1: Create the middleware**
+### Task 24, Step 1: Create the middleware
 
 ```php
 <?php
@@ -3471,7 +3471,7 @@ class InitializeTenancyForApi
 
 Same `$initialized_here` guard as Task 12, for the same reason — several API tests drive these routes with tenancy already established by the `TestCase`.
 
-- [ ] **Step 2: Register the alias in `bootstrap/app.php`**
+### Task 24, Step 2: Register the alias in `bootstrap/app.php`
 
 ```php
 $middleware->alias([
@@ -3480,7 +3480,7 @@ $middleware->alias([
 ]);
 ```
 
-- [ ] **Step 3: Apply it to the authenticated API group in `routes/api.php`**
+### Task 24, Step 3: Apply it to the authenticated API group in `routes/api.php`
 
 The whole file is currently one `Route::group(['middleware' => 'auth:sanctum'], ...)`; add `tenant.api` before it:
 
@@ -3498,7 +3498,7 @@ php artisan route:list --path=api/events -v | head -20
 
 `InitializeTenancyForApi` must appear before both `SubstituteBindings` and `auth:sanctum`.
 
-- [ ] **Step 4: Commit**
+### Task 24, Step 4: Commit
 
 ```bash
 git add app/Http/Middleware/InitializeTenancyForApi.php bootstrap/app.php routes/api.php
@@ -3515,7 +3515,7 @@ Channels created before this change carry unprefixed tokens and cannot be routed
 
 **Files:** `app/Jobs/Google/RenewWatchChannelsJob.php`, `app/Jobs/Google/BackfillCalendarJob.php`, `app/Http/Controllers/GoogleWebhookController.php`
 
-- [ ] **Step 1: Prefix the token in `RenewWatchChannelsJob`**
+### Task 25, Step 1: Prefix the token in `RenewWatchChannelsJob`
 
 In `handle()`, the loop currently builds `$token = Str::random(40);`. Change it to:
 
@@ -3523,7 +3523,7 @@ In `handle()`, the loop currently builds `$token = Str::random(40);`. Change it 
 $token = tenancy()->tenant->getTenantKey() . '|' . Str::random(40);
 ```
 
-- [ ] **Step 2: Prefix the token in `BackfillCalendarJob::registerWatch()`**
+### Task 25, Step 2: Prefix the token in `BackfillCalendarJob::registerWatch()`
 
 Same change — replace `$token = \Illuminate\Support\Str::random(40);` with:
 
@@ -3533,7 +3533,7 @@ $token = tenancy()->tenant->getTenantKey() . '|' . \Illuminate\Support\Str::rand
 
 Both jobs are always dispatched from tenant context (scheduler loop or a tenant web request), so `tenancy()->tenant` is set when they run on the worker via the `QueueTenancyBootstrapper`.
 
-- [ ] **Step 3: Initialize tenancy from the token prefix in `GoogleWebhookController::handle()`**
+### Task 25, Step 3: Initialize tenancy from the token prefix in `GoogleWebhookController::handle()`
 
 After the four `$request->header(...)` reads and the `if (!$channel_id || !$resource_id)` guard, and before the `GoogleSyncedCalendar::where('watch_channel_id', $channel_id)->first()` lookup, add:
 
@@ -3553,7 +3553,7 @@ tenancy()->initialize($tenant);
 
 The rest of the method (channel lookup, full-token `hash_equals`, resource-id check, `PullCalendarChangesJob::dispatch`) stays exactly as it is — the dispatch happens inside tenant context, so the queue bootstrapper tags the job with the right tenant.
 
-- [ ] **Step 4: Commit**
+### Task 25, Step 4: Commit
 
 ```bash
 git add app/Jobs/Google/RenewWatchChannelsJob.php \
@@ -3600,7 +3600,7 @@ The Task 18 observer keeps the lookup row through a soft delete for the same rea
 
 **Files:** `app/Console/Commands/SetupExistingTenant.php`
 
-- [ ] **Step 1: Create the command**
+### Task 26, Step 1: Create the command
 
 The tenant is registered on the `starter` package (the safe default; raise it with `tenant:package` once you know the customer's real subscription). `extra_field_seats`, `extra_office_seats` and `storage_limit_gb` fall to their column defaults (0, 0, 50) on the raw insert. Seat-type counts are reported only once the tenant migrations have added `users.seat_type`; on a legacy database that column may not exist yet, so the command detects it and otherwise reminds the operator to migrate first.
 
@@ -3710,7 +3710,7 @@ class SetupExistingTenant extends Command
 }
 ```
 
-- [ ] **Step 2: Create the `TenantDbUserProvisioner` service**
+### Task 26, Step 2: Create the `TenantDbUserProvisioner` service
 
 This is the one place that creates a tenant's MySQL user, so `tenant:setup-existing`, the standalone command below, and any future rotation all behave identically. It reuses the package's own generators and grant list rather than duplicating them, so a tenant provisioned here is indistinguishable from one created by `tenant:create`.
 
@@ -3752,7 +3752,7 @@ class TenantDbUserProvisioner
 
 `$tenant->database()` returns a fresh `DatabaseConfig` that reads the credentials just saved, which is what `createUser()` grants against. Saving before creating is deliberate — if the grant fails, the stored credentials and the MySQL state are reconciled by re-running the command rather than left silently diverged.
 
-- [ ] **Step 3: Create the standalone `tenant:provision-db-user` command**
+### Task 26, Step 3: Create the standalone `tenant:provision-db-user` command
 
 Creates the MySQL login a tenant uses to reach its own database, grants it access to that database only, and stores the username and encrypted password on the tenant's row.
 
@@ -3800,7 +3800,7 @@ class ProvisionTenantDbUser extends Command
 
 Rotating a live tenant's password briefly breaks in-flight connections; do it in a quiet window and restart workers afterwards.
 
-- [ ] **Step 4: Verify**
+### Task 26, Step 4: Verify
 
 ```bash
 php artisan tenant:provision-db-user <id>
@@ -3809,7 +3809,7 @@ mysql -u lavoro_provisioner --protocol=socket -e "SHOW GRANTS FOR '<printed-user
 
 Expected: grants on that tenant's database only.
 
-- [ ] **Step 5: Commit**
+### Task 26, Step 5: Commit
 
 ```bash
 git add app/Console/Commands/SetupExistingTenant.php app/Console/Commands/ProvisionTenantDbUser.php \
@@ -3835,7 +3835,7 @@ grep '^DB_DATABASE=' .env
 
 > **Do not run `./deploy.sh` between this cutover and Task 38.** The current script backs up only the database named in `DB_DATABASE` (now the small central registry) and runs only central migrations — both silently. Until Task 38 lands, a routine deploy would rotate your real backups out and skip every tenant migration without printing an error. This cutover is performed by hand; the script is not used here.
 
-- [ ] **Step 0: Take the app down and stop everything that writes**
+### Task 27, Step 0: Take the app down and stop everything that writes
 
 Step 1 drops and recreates the database the running application is connected to. Anything still writing during that window loses data silently, and a queue worker holding a booted container will keep serving stale config afterwards.
 
@@ -3853,7 +3853,7 @@ Confirm nothing is connected before continuing:
 sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW PROCESSLIST;"
 ```
 
-- [ ] **Step 1: Copy the existing database to the tenant name, and create an empty central**
+### Task 27, Step 1: Copy the existing database to the tenant name, and create an empty central
 
 MySQL has no rename-database command, so copy via dump/restore. The existing database is **not** modified — it stays exactly as it is, untouched, as the fastest possible rollback.
 
@@ -3882,7 +3882,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket -N -e "SELECT COUNT(*) FROM i
 
 The two table counts must match.
 
-- [ ] **Step 2: Clear every cached config, then run the central migrations**
+### Task 27, Step 2: Clear every cached config, then run the central migrations
 
 `.env` gained `SESSION_CONNECTION=central` and `config/database.php`, `config/queue.php`, `config/tenancy.php` all changed. A cached config bundle from before the deploy would quietly override all of it — including pointing sessions and the queue at the wrong database.
 
@@ -3899,7 +3899,7 @@ Sanity-check that `migrate` did **not** pick up tenant migrations (Task 8 moved 
 sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavoro_landlord.migrations;"
 ```
 
-- [ ] **Step 3: Drop the now-unused `sessions` table from the tenant copy (optional tidy)**
+### Task 27, Step 3: Drop the now-unused `sessions` table from the tenant copy (optional tidy)
 
 The restored tenant database still contains a `sessions` table from before the split. It is unused (sessions are central now) and harmless; drop it if you want a clean schema:
 
@@ -3907,7 +3907,7 @@ The restored tenant database still contains a `sessions` table from before the s
 sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" -e "DROP TABLE IF EXISTS sessions;"
 ```
 
-- [ ] **Step 4: Register the existing database as tenant #1 and set its package/modules**
+### Task 27, Step 4: Register the existing database as tenant #1 and set its package/modules
 
 This both registers the tenant and creates its dedicated MySQL user, so it must run as the provisioner Linux user (Task 2):
 
@@ -3933,7 +3933,7 @@ php artisan tenant:storage "$TENANT_ID" --limit=100
 
 (Pick the package, extra seats, modules and storage limit that match the customer's actual subscription. Seed the seats and storage limit from their real usage so they do not start over limit — `tenant:setup-existing` printed the seat counts, and `du -sh storage/tenant-$TENANT_ID` shows the storage.)
 
-- [ ] **Step 5: Move existing uploaded files into the tenant storage root**
+### Task 27, Step 5: Move existing uploaded files into the tenant storage root
 
 Task 14 puts each tenant's files under `storage/tenant-<id>/public/...`. Existing files currently sit in `storage/app/public/...` (locally: `uploaded/` and `company-logos/`; production may also have `users/` avatar folders). Move them into the new root. **No database path rewrite is needed** — the stored `path` values are relative to the disk root, which is exactly what the per-tenant disk root now resolves against. The `app/releases/` folder (APK) stays where it is.
 
@@ -3958,7 +3958,7 @@ Do not skim the `app/private` branch. That directory holds `assistant-photos/`, 
 
 After this, e.g. an image whose stored `path` is `uploaded/customer/5/documents/x.jpg` resolves to `storage/tenant-<id>/public/uploaded/customer/5/documents/x.jpg`, served via `/files/images/<id>`.
 
-- [ ] **Step 6: Force-renew the Google watch channels**
+### Task 27, Step 6: Force-renew the Google watch channels
 
 Existing watch channels carry tokens without the tenant prefix (Task 25), so the webhook cannot route them. Expire them so the hourly renewal recreates them with prefixed tokens on the next run (the 5-minute polling schedule keeps sync working meanwhile):
 
@@ -3967,7 +3967,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket "$TENANT_DB" \
   -e "UPDATE google_synced_calendars SET watch_expires_at = NOW() WHERE watch_channel_id IS NOT NULL;"
 ```
 
-- [ ] **Step 7: Build front-end assets, bring everything back up, and verify**
+### Task 27, Step 7: Build front-end assets, bring everything back up, and verify
 
 ```bash
 npm run build
@@ -3984,14 +3984,14 @@ sudo -u lavoro_provisioner mysql --protocol=socket -e "SELECT COUNT(*) FROM lavo
 sudo -u lavoro_provisioner mysql --protocol=socket -e "SHOW TABLES IN lavoro_tenant_acme;" | head
 ```
 
-- [ ] **Step 7b: Land the CLAUDE.md and handleiding.md updates (Task 42)**
+### Task 27, Step 7b: Land the CLAUDE.md and handleiding.md updates (Task 42)
 
 Tenancy is live from this point, so the rules in Task 42 become true from this
 point. Ship them now rather than as a follow-up: the window between "tenancy is
 live" and "the conventions are written down" is exactly when somebody adds a
 migration to the wrong directory.
 
-- [ ] **Step 7c: Run `php artisan tenancy:doctor` (Task 43)**
+### Task 27, Step 7c: Run `php artisan tenancy:doctor` (Task 43)
 
 Before the manual smoke test, not instead of it. The doctor checks what a smoke
 test cannot see — that every tenant's password still decrypts, that no lookup
@@ -4005,7 +4005,7 @@ check. If it is still absent then, the crontab entry is not firing — which is
 the failure this whole deployment is most likely to leave behind unnoticed,
 because every scheduled task fails by simply never happening.
 
-- [ ] **Step 8: Smoke test**
+### Task 27, Step 8: Smoke test
 
 Log in as an existing user, then walk this list. The first four are the failure modes most likely to survive to production, because each of them fails *silently* rather than with an error page:
 
@@ -4023,7 +4023,7 @@ Log in as an existing user, then walk this list. The first four are the failure 
 
 Existing sessions are gone (the central `sessions` table is fresh), so everyone re-logs in once — expected.
 
-- [ ] **Step 9: Rollback plan**
+### Task 27, Step 9: Rollback plan
 
 If the smoke test fails in a way you cannot fix inside the maintenance window, roll back rather than debug in production. **No database restore is involved** — `$EXISTING` was never modified, so rolling back is only a code and config revert plus moving the files back.
 
@@ -4054,7 +4054,7 @@ Leave `lavoro_tenant_acme`, `lavoro_landlord`, and `/tmp/tenant_backup.sql` in p
 
 ## Task 28: Verify isolation with a second tenant
 
-- [ ] **Step 1: Create a second tenant with an admin**
+### Task 28, Step 1: Create a second tenant with an admin
 
 ```bash
 php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --package=team --modules=google_calendar
@@ -4062,11 +4062,11 @@ php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=sec
 
 Confirm it prints a tenant ID, package, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
 
-- [ ] **Step 2: Confirm web isolation**
+### Task 28, Step 2: Confirm web isolation
 
 Log in as `admin@tweede.nl`. Confirm you see an empty data set (only the seeded stages), not the first tenant's data. Upload an image and confirm it lands under `storage/tenant-<second-id>/public/...` and displays via `/files/images/<id>`. Confirm that requesting another tenant's image id returns 404.
 
-- [ ] **Step 3: Confirm the API resolves the tenant from the session**
+### Task 28, Step 3: Confirm the API resolves the tenant from the session
 
 While logged in as each tenant's user in the browser, open `/api/events?start=...&end=...` (or watch the Planner's own XHR calls) and confirm each tenant only sees their own events. Then confirm the fallback path:
 
@@ -4075,7 +4075,7 @@ While logged in as each tenant's user in the browser, open `/api/events?start=..
 curl http://localhost/api/events -H "Accept: application/json"
 ```
 
-- [ ] **Step 4: Confirm a queued job runs in the right tenant**
+### Task 28, Step 4: Confirm a queued job runs in the right tenant
 
 ```bash
 php artisan queue:work --once --verbose
@@ -4083,7 +4083,7 @@ php artisan queue:work --once --verbose
 
 Trigger a Google sync (or any queued import) from one tenant and confirm the data lands in that tenant's database, not the other's or the central one.
 
-- [ ] **Step 4a: Confirm the audit trail follows the tenant**
+### Task 28, Step 4a: Confirm the audit trail follows the tenant
 
 The signal layer writes on nearly every action, so a tenancy mistake here shows up as another tenant's history rather than as an error. Two checks, one per path:
 
@@ -4094,7 +4094,7 @@ php artisan queue:work --once --verbose
 1. **In-request.** As each tenant, change a service order's stage, then confirm the new `activities` row (and its `activity_changes` rows) exist in that tenant's database and are absent from the other's and from `lavoro_landlord`.
 2. **On the worker.** As one tenant, bulk-move more than 40 orders so `BulkMoveServiceOrderStageJob` queues, run the worker, and confirm the same. This is the path that exercises the `ActivityBuffer` reset from Task 11 together with the queue tenant tag from Task 9.
 
-- [ ] **Step 5: Confirm package/module data round-trips**
+### Task 28, Step 5: Confirm package/module data round-trips
 
 ```bash
 php artisan tenant:overview                            # the row shows Team, 1/5 field, 1/2 office, google_calendar
@@ -4114,7 +4114,7 @@ Some customers run their own standalone copy of Lavoro on a dedicated subdomain 
 - The legacy install is upgraded to the **latest pre-tenancy release** so its schema matches the files now in `database/migrations/tenant/`. Verify: `php artisan migrate:status` on the legacy host must show every migration Ran and none Pending.
 - SSH access to the legacy host, and the central MySQL user has `CREATE DATABASE`.
 
-- [ ] **Step 1: Freeze the legacy install and take a final backup**
+### Task 29, Step 1: Freeze the legacy install and take a final backup
 
 On the legacy host:
 
@@ -4125,7 +4125,7 @@ mysqldump -u "$OLD_DB_USER" -p"$OLD_DB_PASS" "$OLD_DB_NAME" > /tmp/spee_final.sq
 
 Also stop the legacy queue worker and scheduler cron so nothing writes to the database after the dump.
 
-- [ ] **Step 2: Transfer the dump and restore it as a tenant database**
+### Task 29, Step 2: Transfer the dump and restore it as a tenant database
 
 On the central server:
 
@@ -4135,7 +4135,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket -e "CREATE DATABASE lavoro_te
 sudo -u lavoro_provisioner mysql --protocol=socket lavoro_tenant_spee < /tmp/spee_final.sql
 ```
 
-- [ ] **Step 3: Drop the infrastructure tables from the copy**
+### Task 29, Step 3: Drop the infrastructure tables from the copy
 
 Sessions are central now; the queue/cache tables in the copy are unused (jobs live centrally). Only `sessions` matters — the rest is optional tidying:
 
@@ -4144,7 +4144,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket lavoro_tenant_spee \
   -e "DROP TABLE IF EXISTS sessions, cache, cache_locks, jobs, job_batches, failed_jobs;"
 ```
 
-- [ ] **Step 4: Check for email collisions, then register the tenant**
+### Task 29, Step 4: Check for email collisions, then register the tenant
 
 Every user email must be globally unique across tenants. Check up front — and include **soft-deleted** users, because their emails still occupy `users.email` and are still copied into the lookup by `tenant:setup-existing` (see Task 26):
 
@@ -4175,7 +4175,7 @@ php artisan tenant:storage "$TENANT_ID" --limit=100
 
 Seed the seats and storage from Spee's real usage so they do not import over limit — `tenant:setup-existing` printed the seat counts (after Step 5 migrates `seat_type`), and `du -sh storage/tenant-$TENANT_ID` shows the storage.
 
-- [ ] **Step 5: Copy the uploaded files into the tenant storage root**
+### Task 29, Step 5: Copy the uploaded files into the tenant storage root
 
 **This must happen before Step 6 migrates the schema.** Migrations are not guaranteed to be pure schema changes — some read the filesystem to backfill a column. `2026_07_24_000002_add_category_size_and_user_to_documents_table.php` is exactly that: it walks every `documents` row and calls `Storage::disk('public')->size($document->path)` to populate the new `size` column. Run it against a tenant whose files are not in place yet and every row silently gets `NULL` — no error, no failed migration, just a storage quota (Task 36) that under-counts every imported document forever. Copy first, migrate second.
 
@@ -4187,7 +4187,7 @@ rsync -av legacy-host:/path/to/lavoro/storage/app/public/ "storage/tenant-$TENAN
 rsync -av legacy-host:/path/to/lavoro/storage/app/private/ "storage/tenant-$TENANT_ID/local/"
 ```
 
-- [ ] **Step 6: Bring the imported schema up to date**
+### Task 29, Step 6: Bring the imported schema up to date
 
 If the central app has gained tenant migrations newer than the legacy release, apply them (already-run migrations are recorded by filename in the imported `migrations` table, so only the new ones execute):
 
@@ -4224,7 +4224,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket lavoro_tenant_spee \
 
 `sized` should equal `total`, minus however many rows genuinely point at a missing file. A `sized` of 0 means Step 5 was skipped or rsynced to the wrong path.
 
-- [ ] **Step 7: Re-home the Google Calendar integration**
+### Task 29, Step 7: Re-home the Google Calendar integration
 
 The imported `google_synced_calendars` rows hold watch channels registered against `https://spee.lavorofsm.nl/google/webhook` with unprefixed tokens. Expire them so the hourly renewal re-registers them against the central webhook URL with tenant-prefixed tokens (5-minute polling covers the gap):
 
@@ -4235,7 +4235,7 @@ sudo -u lavoro_provisioner mysql --protocol=socket lavoro_tenant_spee \
 
 The stored OAuth refresh tokens keep working — they are not domain-bound. But if the legacy install used its **own** Google Cloud OAuth client, reconnecting later from `app.lavorofsm.nl` requires the central OAuth client instead; in that case expect the customer to redo the Google connection once (Beheer → Google koppeling) and tell them so up front.
 
-- [ ] **Step 8: Redirect the old subdomain**
+### Task 29, Step 8: Redirect the old subdomain
 
 Keep `spee.lavorofsm.nl` DNS and its TLS certificate alive, but replace the vhost with a permanent redirect so bookmarks, the installed PWA, and password-reset links in old emails all land correctly:
 
@@ -4249,14 +4249,14 @@ server {
 }
 ```
 
-- [ ] **Step 9: Verify**
+### Task 29, Step 9: Verify
 
 - Log in at `app.lavorofsm.nl` with a Spee user's existing email and password (passwords migrate as-is — same hashes). Confirm their customers, service orders, images, and documents all show.
 - Confirm `https://spee.lavorofsm.nl` redirects to `https://app.lavorofsm.nl`.
 - Confirm a calendar event created in the Planner still syncs to Google.
 - Confirm the first tenant's data is untouched and Spee users see none of it.
 
-- [ ] **Step 10: Decommission the legacy install (after a grace period)**
+### Task 29, Step 10: Decommission the legacy install (after a grace period)
 
 Once the customer confirms everything works — suggest two weeks — remove the legacy app directory, drop its database on the old host, and remove its cron entries and queue worker. Keep the redirect vhost indefinitely; it costs nothing.
 
@@ -4289,7 +4289,7 @@ Two consequences of transaction-rollback isolation that `RefreshDatabase`'s trun
 - `tests/TestCase.php`
 - The 94 existing test files using `RefreshDatabase`
 
-- [ ] **Step 0: Record the baseline before changing anything**
+### Task 30, Step 0: Record the baseline before changing anything
 
 The success criterion for this task is "the same tests pass as before, on MySQL". That is only checkable against a recorded baseline — do this on the pre-tenancy commit, before Task 1:
 
@@ -4307,11 +4307,11 @@ The assistant tests are the one group with a wrinkle of their own: they bind a f
 
 **Settle any existing flake before you start, or you will misread it as tenancy fallout.** `tests/Feature/Location/LocationDeletionTest.php:50` has been seen failing roughly one run in four and passing in isolation — order- or random-data-dependent, on SQLite, with nothing from this plan applied. Track that down first. Otherwise the first red run after the MySQL switch sends you hunting through transaction isolation and `AUTO_INCREMENT` behaviour for a bug that was already there, and the "pass count must equal the baseline" gate stops meaning anything once the baseline is a range.
 
-- [ ] **Step 1: Confirm the tenant database prefix is env-overridable**
+### Task 30, Step 1: Confirm the tenant database prefix is env-overridable
 
 Already handled — `config/tenancy.php` in Task 3 sets `'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_tenant_')`. Nothing to change here; just verify it reads from the env var before continuing, since Step 3's guard depends on it.
 
-- [ ] **Step 2: Point `phpunit.xml` at a dedicated, clearly-named MySQL test database**
+### Task 30, Step 2: Point `phpunit.xml` at a dedicated, clearly-named MySQL test database
 
 Replace the sqlite block:
 
@@ -4340,7 +4340,7 @@ The cost, stated plainly: the per-tenant credential path is **not** covered by t
 
 Also remove `SESSION_DRIVER` value `array` is fine to keep — the session table itself is never touched by tests that don't explicitly exercise auth, and `SESSION_CONNECTION=central` only matters when the `database` driver is used. Leave `SESSION_DRIVER=array` as-is.
 
-- [ ] **Step 3: Create the tenancy test-setup trait**
+### Task 30, Step 3: Create the tenancy test-setup trait
 
 ```php
 <?php
@@ -4402,7 +4402,7 @@ That database is left behind when the run ends. Keeping it is cheap: `migrate:fr
 
 If the tenant migrations change and you want a clean slate, drop `lavoro_test_tenant_test-tenant` by hand. It is a throwaway.
 
-- [ ] **Step 4: Use the trait in the base `TestCase`**
+### Task 30, Step 4: Use the trait in the base `TestCase`
 
 Replace `tests/TestCase.php`:
 
@@ -4432,7 +4432,7 @@ abstract class TestCase extends BaseTestCase
 }
 ```
 
-- [ ] **Step 5: Remove `RefreshDatabase` from the existing test files**
+### Task 30, Step 5: Remove `RefreshDatabase` from the existing test files
 
 Tenant-database refresh is now handled centrally by `TestCase`, so the per-file trait is redundant (and would try to migrate/refresh the single default connection using Laravel's normal single-connection logic, which doesn't know about the `central` connection at all).
 
@@ -4444,7 +4444,7 @@ In each matching file, remove the `use Illuminate\Foundation\Testing\RefreshData
 
 Expect to run the suite iteratively here rather than in one pass — see the two isolation caveats at the top of this task. Convert the files, run `composer test`, and fix fallout in the tests rather than weakening the isolation in `TestCase`.
 
-- [ ] **Step 6: Set up the local/CI test database and user (operational, run once)**
+### Task 30, Step 6: Set up the local/CI test database and user (operational, run once)
 
 ```sql
 CREATE DATABASE IF NOT EXISTS lavoro_test_landlord CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -4455,7 +4455,7 @@ FLUSH PRIVILEGES;
 
 The escaped underscores in `lavoro\_test\_%` matter — an unescaped `_` is a MySQL wildcard that would also match e.g. `lavoroXtest_evil`. This user cannot create, read, or drop `lavoro` or any `lavoro_tenant_<id>` database — that is layer (3) from the description above, and it holds even if every application-level check in Step 3 were somehow bypassed.
 
-- [ ] **Step 7: Run the suite and verify against the baseline**
+### Task 30, Step 7: Run the suite and verify against the baseline
 
 ```bash
 php artisan test 2>&1 | tail -3 | tee /tmp/test-after.txt
@@ -4473,7 +4473,7 @@ mysql -u lavoro_test -p -e "SHOW DATABASES LIKE 'lavoro%';"
 
 You should see only `lavoro_test_landlord` and `lavoro_test_tenant_test-tenant`. `lavoro_landlord` and any `lavoro_tenant_<slug>` database must be **absent from this list entirely** — not merely untouched, but invisible, because the `lavoro_test` user has no grant on them. If you can see them here, the grant in Step 6 is too wide; fix it before trusting any of the above.
 
-- [ ] **Step 7a: Work through failures in this order**
+### Task 30, Step 7a: Work through failures in this order
 
 Some churn is expected — these are the causes to check first, roughly in likelihood order. Fix the *test*, not the isolation.
 
@@ -4488,7 +4488,7 @@ Some churn is expected — these are the causes to check first, roughly in likel
 7. **MySQL strict-mode differences from SQLite.** SQLite is permissive about types, string lengths, and invalid dates; MySQL is not. A test that passed on SQLite with an over-long string or a zero date will now fail legitimately — that is a real bug the old suite was hiding, so fix the code, not the test.
 8. **Timezone assertions.** `StandardEmailRenderingTest` already asserts Amsterdam wall-clock times . Confirm the MySQL session timezone does not shift these.
 
-- [ ] **Step 7b: Add one test that would have caught the ordering bug**
+### Task 30, Step 7b: Add one test that would have caught the ordering bug
 
 The most expensive failure mode in this plan (Task 12) is invisible to the existing suite, because tests initialize tenancy directly rather than through the middleware. One test closes that gap permanently:
 
@@ -4507,7 +4507,7 @@ public function test_a_bound_model_route_resolves_against_the_tenant_database():
 
 If `InitializeTenancyBySession` ever drifts after `SubstituteBindings` in the priority list, this goes red with a 404 instead of the whole app going quietly broken in production.
 
-- [ ] **Step 8: Commit**
+### Task 30, Step 8: Commit
 
 ```bash
 git add phpunit.xml tests/Concerns/RefreshesTenantDatabase.php tests/TestCase.php tests/
@@ -4537,7 +4537,7 @@ So it is route middleware, the same pattern as `tenant.api` in Task 24. It runs 
 
 > **Line numbers below are indicative only — this file moves constantly.** Locate each route by its name/controller rather than by line number.
 
-- [ ] **Step 1: Create the middleware**
+### Task 31, Step 1: Create the middleware
 
 ```php
 <?php
@@ -4586,7 +4586,7 @@ Three options, in the order I would consider them:
 
 Pick one deliberately. What is not acceptable is writing the message, believing it is shown, and discovering otherwise from a support call about a permissions error nobody can grant.
 
-- [ ] **Step 2: Register the alias in `bootstrap/app.php`**, next to `tenant.api` from Task 24
+### Task 31, Step 2: Register the alias in `bootstrap/app.php`, next to `tenant.api` from Task 24
 
 ```php
 $middleware->alias([
@@ -4596,7 +4596,7 @@ $middleware->alias([
 ]);
 ```
 
-- [ ] **Step 3: Apply it to the module-gated route groups in `routes/web.php`**
+### Task 31, Step 3: Apply it to the module-gated route groups in `routes/web.php`
 
 Inside the existing `auth` group:
 
@@ -4673,7 +4673,7 @@ The same trap waits for every module with an API surface. When Offertes and Fact
 
 Check `routes/api.php` for module-owned routes each time a new module is added; the file is where the gate is easiest to forget.
 
-- [ ] **Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag**
+### Task 31, Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag
 
 There is exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:352`:
 
@@ -4693,7 +4693,7 @@ This reuses the exact prop `ServiceOrders/ShowPage.vue` already gates its SnelSt
 
 **Task 32 Step 8 revises this line again**, dropping the `config()` clause once the client key is per-tenant and there is no global one left to check. If you are implementing both tasks in sequence, write the Task 32 version directly and skip the intermediate form.
 
-- [ ] **Step 5: Teach the menu about modules — no entry needs one yet**
+### Task 31, Step 5: Teach the menu about modules — no entry needs one yet
 
 **Navigation is declarative.** Its shape lives in **`resources/js/Navigation/menu.json`** — a tree of sections and items, each carrying the permission it needs — and `resources/js/Composables/useMenu.js` turns that into the tree the signed-in user may actually see. Six components share it. A module is therefore one more key in the JSON rather than an argument threaded through a list of component imports.
 
@@ -4718,13 +4718,13 @@ The module check goes **first**, before the `adminOnly` branch: a module is a su
 
 `maySee` is called by `resolve`, which walks the tree recursively, so this covers nested entries too — and `resolve` already drops a parent whose children have all disappeared and which has no page of its own, so a module that owns a whole submenu will need nothing extra. Extend the existing import on line 3 rather than adding a second one.
 
-- [ ] **Step 6: Gate the Google Calendar section and location-tracking settings**
+### Task 31, Step 6: Gate the Google Calendar section and location-tracking settings
 
 In `resources/js/Components/GoogleCalendarSection.vue`, import `hasModule` from `@/Utilities/Utilities` and wrap the section's root template element in `v-if="hasModule('google_calendar')"`.
 
 In `resources/js/Pages/Admin/GeneralSettingsPage.vue`, do the same around the location-tracking settings block, using `hasModule('location_tracking')`.
 
-- [ ] **Step 6b: Fold the module into the assistant's shared verdict**
+### Task 31, Step 6b: Fold the module into the assistant's shared verdict
 
 `HandleInertiaRequests` shares `auth.can.use_assistant`, and the frontend opens the assistant panel on it. The comment above that share is worth reading before changing it: it exists so that permission reasoning happens in one place and the frontend never assembles a verdict of its own. Adding the module check to the *share* keeps that promise; adding it to the Vue side would break it.
 
@@ -4736,7 +4736,7 @@ In `resources/js/Pages/Admin/GeneralSettingsPage.vue`, do the same around the lo
 
 The route middleware from Step 3 is still what actually blocks access. This only stops a tenant without the module being shown a box that would answer every question with a 403.
 
-- [ ] **Step 7: Verify**
+### Task 31, Step 7: Verify
 
 - As a tenant without the `google_calendar` module: the OAuth start route is refused and the Google Calendar section does not render. **Assert on the refusal, not on the status code** — unless you took option 2 or 3 above, a web request comes back as a 302 with a flash message, not a 403 (see Step 1). `assertForbidden()` will fail on a working gate. In a feature test, `$this->withoutExceptionHandling()` restores the underlying 403 and is the cleaner assertion.
 - `php artisan tenant:modules <id> --add=google_calendar`, reload: the route works and the section appears.
@@ -4744,7 +4744,7 @@ The route middleware from Step 3 is still what actually blocks access. This only
 - As a tenant with **no modules at all**: Storingen and Projecten still work, with their menu entries and the Storingen dot. That is the check that stock features have not been gated by accident, and it is the one worth keeping in the suite.
 - As a tenant without the `assistant` module: the assistant panel does not open, and `POST /assistant/ask` returns 403 rather than spending anything at a supplier. Check that 403 with a direct request rather than through the UI — the point of the route gate is that it holds when the UI is bypassed.
 
-- [ ] **Step 8: Commit**
+### Task 31, Step 8: Commit
 
 ```bash
 git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php routes/api.php \
@@ -4785,7 +4785,7 @@ They share storage, encryption, and one settings screen, so they are one task. T
 **Interfaces:**
 - Produces: `GeneralSetting::get`/`set` transparently encrypting the keys in `GeneralSetting::SECRET_KEYS`; `SnelStartClient` resolving per tenant and throwing `SnelStartNotConfigured` when unconfigured; `admin/settings/integrations` behind `auth` + `admin`.
 
-- [ ] **Step 1: Widen `general_settings.value` and encrypt the secret keys**
+### Task 32, Step 1: Widen `general_settings.value` and encrypt the secret keys
 
 The column is `varchar(255)` today. A Laravel-encrypted 40-character key serialises to roughly 220–260 characters of base64 — at the ceiling, and over it for a longer key. Storing ciphertext there would truncate silently on a non-strict server and error on a strict one, so widen it first. No index exists on `value`, so this is a plain `MODIFY`.
 
@@ -4849,7 +4849,7 @@ public static function set(string $key, mixed $value): void
 
 Do not remove the `DecryptException` catch. After an `APP_KEY` rotation every stored secret becomes undecryptable; returning the default turns that into "not configured" — a settings screen asking to re-enter the credentials — instead of a 500 on every page that touches mail or SnelStart. See Known impact 11: `APP_KEY` was already backup-critical for tenant database passwords, and this widens what it protects.
 
-- [ ] **Step 2: Rewrite the `Mail::extend('graph', ...)` closure — fall back as a set, not per key**
+### Task 32, Step 2: Rewrite the `Mail::extend('graph', ...)` closure — fall back as a set, not per key
 
 The obvious implementation resolves each key independently, falling back to env per key. That produces a state that cannot work. `GraphTransport.php:52` is `$user = $this->userId ?: $this->fromAddress;`, and it posts to `/users/{$user}/sendMail`. So a tenant that configures its own `graph_client_id` and `graph_client_secret` but leaves the mailbox unset authenticates against **its own** Azure app registration and then asks it to send as `MAIL_FROM_ADDRESS` — a mailbox that exists in *Lavoro's* Azure tenant and not in theirs. Every send fails with an unhelpful Graph error.
 
@@ -4897,7 +4897,7 @@ The setting is named `graph_azure_tenant_id`, not `graph_tenant_id`. In a codeba
 
 Add `use App\Models\GeneralSetting;` to the file's imports.
 
-- [ ] **Step 3: Forget the cached mailer whenever tenancy switches**
+### Task 32, Step 3: Forget the cached mailer whenever tenancy switches
 
 `Illuminate\Mail\MailManager` caches a resolved `graph` transport for the lifetime of the container. In PHP-FPM that is harmless — one tenant per request. On a queue worker processing jobs for several tenants without restarting, the *first* tenant's credentials get cached and silently reused for a later tenant's queued mail (`SendStandardEmailJob`).
 
@@ -4911,7 +4911,7 @@ The registry exists precisely so this task does not have to remember. Anything t
 
 **`SnelStartClient` needs no equivalent.** It reads config in its constructor and is not bound as a singleton, so every injection (`handle(SnelStartClient $client)`, `sendToSnelStart(ServiceOrder $order, SnelStartClient $client)`) builds a fresh instance against the current tenant. Verify that stays true if anyone ever adds a `singleton()` binding for it.
 
-- [ ] **Step 4: Resolve `SnelStartClient` per tenant, failing closed**
+### Task 32, Step 4: Resolve `SnelStartClient` per tenant, failing closed
 
 ```php
 public function __construct()
@@ -4945,7 +4945,7 @@ $exceptions->render(function (SnelStartNotConfigured $e, Request $request) {
 });
 ```
 
-- [ ] **Step 5: Fingerprint the SnelStart token cache key**
+### Task 32, Step 5: Fingerprint the SnelStart token cache key
 
 `getAccessToken()` caches under the flat key `snelstart.token`. Task 10's `PrefixCacheBootstrapper` already namespaces that per tenant, so cross-tenant reuse is handled. The remaining problem is *within* a tenant: rotating the client key leaves a valid cached token for up to 58 minutes, so a wrong key appears to work and the real failure surfaces later, somewhere else.
 
@@ -4957,7 +4957,7 @@ return Cache::remember('snelstart.token.' . $fingerprint, now()->addSeconds(3500
 
 The `snelstart.land.*` reference lookups need no change — they are already per-tenant by prefix, and duplicating a country list per tenant costs nothing.
 
-- [ ] **Step 6: Make the SnelStart fetch commands tenant-aware**
+### Task 32, Step 6: Make the SnelStart fetch commands tenant-aware
 
 `FetchSnelStartArtikelen` and `FetchSnelStartRelaties` are manual commands today and would run against whatever connection happens to be default. Give both a `{--tenant=}` option. Without it, iterate every tenant using the Task 20 pattern, skipping any tenant that lacks the module or the credentials:
 
@@ -4983,7 +4983,7 @@ foreach ($tenants as $tenant) {
 }
 ```
 
-- [ ] **Step 7: Build the integration settings screen**
+### Task 32, Step 7: Build the integration settings screen
 
 One page with a section per integration, at `admin/settings/integrations`, registered inside the existing `auth` → `admin` group in `routes/web.php`. Do **not** gate the whole page on `tenant.module:snelstart` — the Graph section belongs to every tenant. Gate the SnelStart *section* on `hasModule('snelstart')` in the template, and the SnelStart fields in `IntegrationSettingsRequest::rules()` with `required_if` on the same condition.
 
@@ -5008,7 +5008,7 @@ return inertia('Admin/IntegrationSettingsPage', [
 
 where `hint()` returns the last four characters or `null`. Identifiers (`client_id`, `user_id`, the Azure directory id) are not secret and are sent in full so the form can show what is set. Secrets come back only as `configured` plus a hint, and an empty submitted secret means "leave unchanged" rather than "clear it" — otherwise every save of an unrelated field wipes the credential.
 
-- [ ] **Step 8: Update the `snelStartEnabled` prop**
+### Task 32, Step 8: Update the `snelStartEnabled` prop
 
 Task 31 Step 4 set it to `filled(config('services.snelstart.client_key')) && tenancy()->initialized && tenancy()->tenant->hasModule('snelstart')`. There is no global client key any more, so drop that clause and check the tenant's own credentials instead:
 
@@ -5020,7 +5020,7 @@ Task 31 Step 4 set it to `filled(config('services.snelstart.client_key')) && ten
 
 A tenant that subscribes to the module but has not entered credentials now correctly sees no SnelStart button, rather than a button that throws.
 
-- [ ] **Step 9: Tests**
+### Task 32, Step 9: Tests
 
 ```php
 public function test_two_tenants_resolve_different_snelstart_credentials(): void
@@ -5032,13 +5032,13 @@ public function test_the_settings_endpoint_response_contains_no_secret(): void
 
 The fourth is the regression test for the bug in Step 2, and the fifth greps the rendered Inertia props for the stored secret string.
 
-- [ ] **Step 10: Verify by hand**
+### Task 32, Step 10: Verify by hand
 
 - Set Graph credentials for the Task 28 second tenant, send a test mail, confirm it authenticates against that tenant's Azure app registration (check the Entra sign-in log, or deliberately break the secret and confirm the failure is that tenant's, not a silent success via the global credentials).
 - Dispatch two queued `SendStandardEmailJob`s for two tenants with different credentials back-to-back on one worker; confirm each uses its own. Without Task 11's `MailerState` the second silently reuses the first's transport — this is the end-to-end check that the registry is wired, not just tagged.
 - Confirm a `mysqldump` of a tenant database shows ciphertext for `snelstart_client_key`, not the key.
 
-- [ ] **Step 11: Commit**
+### Task 32, Step 11: Commit
 
 ```bash
 git add database/migrations/tenant/ \
@@ -5066,7 +5066,7 @@ Every user is a `field` (buitendienst) or `office` (kantoor) seat. This is a ten
 **Interfaces:**
 - Produces: `users.seat_type` (`field`|`office`, default `office`); `UserFactory` default `seat_type = 'office'` with a `field()` state; `seat_type` required (`in:field,office`) in the user store/update requests.
 
-- [ ] **Step 1: Create the tenant migration**
+### Task 33, Step 1: Create the tenant migration
 
 ```php
 <?php
@@ -5098,7 +5098,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 2: Give the factory a seat type**
+### Task 33, Step 2: Give the factory a seat type
 
 In `database/factories/UserFactory.php`, add `'seat_type' => 'office'` to the `definition()` array, and add a state below it:
 
@@ -5109,7 +5109,7 @@ public function field(): static
 }
 ```
 
-- [ ] **Step 3: Require `seat_type` in the store request**
+### Task 33, Step 3: Require `seat_type` in the store request
 
 In `UserStoreRequest::rules()`, add:
 
@@ -5117,7 +5117,7 @@ In `UserStoreRequest::rules()`, add:
 'seat_type' => 'required|in:field,office',
 ```
 
-- [ ] **Step 4: Require `seat_type` in the update request — inside the admin branch, not the flat rules**
+### Task 33, Step 4: Require `seat_type` in the update request — inside the admin branch, not the flat rules
 
 `UserUpdateRequest` serves **three** routes: `users.update`, and also `me.update` via `UserController::updateSelf` (verified at `UserController.php:55,68,120`). That is why `role_ids` and `plannable` are added only inside the `isAdmin()` branch of `rules()` rather than to the base `$rules` array. `seat_type` must follow exactly the same pattern, for two reasons:
 
@@ -5145,7 +5145,7 @@ unset($data['role_ids'], $data['seat_type']);
 
 (The `unset` is belt-and-braces — a non-admin's `seat_type` never reaches `validated()` because it was never a rule — but `role_ids` is stripped the same way, and matching that pattern means the next person to touch either does not have to re-derive why one is stripped and the other is not.)
 
-- [ ] **Step 5: Add the seat-type field to the user form, admin-only**
+### Task 33, Step 5: Add the seat-type field to the user form, admin-only
 
 `resources/js/Pages/Users/EditPage.vue` renders **both** the admin user form and the self-profile form; it already distinguishes them with an `isSelfEdit` computed. Add `seat_type` to the `useForm({...})` call:
 
@@ -5163,12 +5163,12 @@ and render the select next to the `plannable` checkbox, gated the same way `plan
 <div v-if="form.errors.seat_type" class="text-xs text-red-600 mt-1">{{ form.errors.seat_type }}</div>
 ```
 
-- [ ] **Step 6: Run the suite — existing user tests must still pass**
+### Task 33, Step 6: Run the suite — existing user tests must still pass
 
 Run: `php artisan test --filter=User`
 Expected: PASS. The factory now supplies `seat_type`, so inserts satisfy the column; the store/update requests now require it, so any test that POSTs a user must include `seat_type` (update those tests to pass `'seat_type' => 'office'`).
 
-- [ ] **Step 7: Commit**
+### Task 33, Step 7: Commit
 
 ```bash
 git add database/migrations/tenant/ \
@@ -5192,7 +5192,7 @@ The commands that manage the price catalogue and each tenant's subscription. All
 **Interfaces:**
 - Consumes: `Package`, `Module`, `ModuleBundle`, `PricingSetting`, `TenantSubscription` (Task 16); `Tenant` (Task 4).
 
-- [ ] **Step 1: Write the failing referential-integrity test**
+### Task 34, Step 1: Write the failing referential-integrity test
 
 ```php
 <?php
@@ -5226,12 +5226,12 @@ class LicensingCommandsTest extends TestCase
 }
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+### Task 34, Step 2: Run to verify it fails
 
 Run: `php artisan test --filter=LicensingCommandsTest`
 Expected: FAIL — command `package:delete` / `package:set` not defined.
 
-- [ ] **Step 3: Implement `package:list|set|delete`**
+### Task 34, Step 3: Implement `package:list|set|delete`
 
 ```php
 <?php
@@ -5343,7 +5343,7 @@ class PackageListCommand extends Command
 }
 ```
 
-- [ ] **Step 4: Implement `module:list|set|delete` and `bundle:list|set|delete`**
+### Task 34, Step 4: Implement `module:list|set|delete` and `bundle:list|set|delete`
 
 Mirror the package commands. `module:set {key} {--name=} {--price=}` upserts a `Module`; `module:delete {key}` refuses while any tenant's `modules` JSON contains the key:
 
@@ -5357,7 +5357,7 @@ if ($in_use->isNotEmpty()) {
 
 `bundle:set {name} {--modules=} {--price=}` upserts a `ModuleBundle` (splitting `--modules=quotes,invoices` on commas into the `module_keys` array); `bundle:delete {name}` deletes by name.
 
-- [ ] **Step 5: Implement `pricing:list|set` for the storage scalars**
+### Task 34, Step 5: Implement `pricing:list|set` for the storage scalars
 
 ```php
 <?php
@@ -5391,7 +5391,7 @@ class PricingCommand extends Command
 }
 ```
 
-- [ ] **Step 6: Implement the per-tenant subscription commands**
+### Task 34, Step 6: Implement the per-tenant subscription commands
 
 `tenant:package {id} {key}` validates the key against `packages` and sets `package_key`. `tenant:seats {id} {--field=} {--office=}` accepts signed deltas (`+5`, `-2`) or absolute values and clamps at 0. `tenant:modules {id} {--add=*} {--remove=*}` validates against `modules` and edits the JSON. `tenant:storage {id} {--limit=}` sets `storage_limit_gb`. `tenant:override {id} {--price=} {--clear}` sets or nulls `price_override_cents`. Each prints the tenant's new monthly total via `(new TenantSubscription($tenant))->monthlyTotalCents()`.
 
@@ -5428,7 +5428,7 @@ class TenantStorageCommand extends Command
 }
 ```
 
-- [ ] **Step 7: Implement `tenant:overview`**
+### Task 34, Step 7: Implement `tenant:overview`
 
 For each tenant it switches into tenant context, counts users by `seat_type` and reads `storage_used_bytes` (default 0 until Task 36 populates it), then computes the monthly total in central context. Follows the scheduler's per-tenant pattern (Task 20). Flags a `⚠` when usage exceeds a limit.
 
@@ -5469,12 +5469,12 @@ public function handle(): int
 }
 ```
 
-- [ ] **Step 8: Run the command tests to verify they pass**
+### Task 34, Step 8: Run the command tests to verify they pass
 
 Run: `php artisan test --filter=LicensingCommandsTest`
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+### Task 34, Step 9: Commit
 
 ```bash
 git add app/Console/Commands/Licensing/ tests/Feature/LicensingCommandsTest.php
@@ -5498,7 +5498,7 @@ Two enforcement layers, both validation. **Seat limits:** a `SeatAvailable` rule
 - Consumes: `Package` (Task 16), `users.seat_type` (Task 33), `tenancy()->tenant` (Task 4/12).
 - Produces: `App\Rules\SeatAvailable` — `new SeatAvailable(?int $ignore_user_id = null)`. The seat type it checks is the attribute value the validator passes in, not a constructor argument.
 
-- [ ] **Step 1: Write the failing seat-limit test**
+### Task 35, Step 1: Write the failing seat-limit test
 
 ```php
 <?php
@@ -5549,12 +5549,12 @@ class SeatLimitTest extends TestCase
 
 (Add an `office()` factory state alongside `field()` in Task 33's factory edit, or use the default.)
 
-- [ ] **Step 2: Run to verify it fails**
+### Task 35, Step 2: Run to verify it fails
 
 Run: `php artisan test --filter=SeatLimitTest`
 Expected: FAIL — a third field user is allowed because no rule enforces the limit.
 
-- [ ] **Step 3: Implement the `SeatAvailable` rule**
+### Task 35, Step 3: Implement the `SeatAvailable` rule
 
 ```php
 <?php
@@ -5604,7 +5604,7 @@ class SeatAvailable implements ValidationRule
 }
 ```
 
-- [ ] **Step 4: Apply the rule in the user requests**
+### Task 35, Step 4: Apply the rule in the user requests
 
 In `UserStoreRequest::rules()`, change the `seat_type` line (added in Task 33) to:
 
@@ -5620,7 +5620,7 @@ $rules['seat_type'] = ['required', 'in:field,office', new \App\Rules\SeatAvailab
 
 (`$ignore_id` is already computed in that request for the email rule.) In `UserRestoreRequest`, add an `after` validation hook or a `rules()` entry that runs `SeatAvailable` against the trashed user's `seat_type`, so restoring into a full seat type is refused.
 
-- [ ] **Step 5: Write and pass the capability test**
+### Task 35, Step 5: Write and pass the capability test
 
 ```php
 <?php
@@ -5644,7 +5644,7 @@ class SeatCapabilityTest extends TestCase
 }
 ```
 
-- [ ] **Step 6: Enforce capability in the requests**
+### Task 35, Step 6: Enforce capability in the requests
 
 In `UpdateUserPlannableRequest`, reject `plannable = true` when the target user (the route `{user}`) is an office seat:
 
@@ -5674,7 +5674,7 @@ $validator->after(function ($validator) {
 
 Confirm the executing-user field name against the current request (Task interfaces note it may be `executing_user_ids` or nested) before wiring.
 
-- [ ] **Step 7: Share seat usage with the frontend**
+### Task 35, Step 7: Share seat usage with the frontend
 
 Extend the `tenant` share added in Task 16 (`HandleInertiaRequests`) with seat usage, so the user page can show "5 van 10":
 
@@ -5691,12 +5691,12 @@ Extend the `tenant` share added in Task 16 (`HandleInertiaRequests`) with seat u
 
 where `$field_limit` / `$office_limit` are `package.field_seats + tenant.extra_field_seats` (look the package up once from `tenancy()->tenant->package_key`). Show these counts on `Users/IndexPage.vue` next to the "add user" button.
 
-- [ ] **Step 8: Run all seat tests to verify they pass**
+### Task 35, Step 8: Run all seat tests to verify they pass
 
 Run: `php artisan test --filter=Seat`
 Expected: PASS. Fix any pre-existing user/event/planner test broken by the new rules by giving its users the correct seat type (`->field()` for anyone made plannable or assigned to an event).
 
-- [ ] **Step 9: Commit**
+### Task 35, Step 9: Commit
 
 ```bash
 git add app/Rules/SeatAvailable.php app/Http/Requests/ app/Http/Middleware/HandleInertiaRequests.php \
@@ -5730,7 +5730,7 @@ Counting the database matters because the file total is not the whole bill. `act
 **Interfaces:**
 - Produces: `App\Services\StorageQuota` — `usedBytes(): int`, `limitBytes(): int`, `remainingBytes(): int`, `hasRoomFor(int $bytes): bool`, `add(int $bytes): void`, `subtract(int $bytes): void`, `reconcile(): int`. Backed by `GeneralSetting` key `storage_used_bytes` and `tenancy()->tenant->storage_limit_gb`.
 
-- [ ] **Step 1: Write the failing service test**
+### Task 36, Step 1: Write the failing service test
 
 ```php
 <?php
@@ -5781,12 +5781,12 @@ class StorageQuotaTest extends TestCase
 }
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+### Task 36, Step 2: Run to verify it fails
 
 Run: `php artisan test --filter=StorageQuotaTest`
 Expected: FAIL — `App\Services\StorageQuota` not found.
 
-- [ ] **Step 3: Implement the `StorageQuota` service**
+### Task 36, Step 3: Implement the `StorageQuota` service
 
 ```php
 <?php
@@ -5867,12 +5867,12 @@ class StorageQuota
 }
 ```
 
-- [ ] **Step 4: Run the service test to verify it passes**
+### Task 36, Step 4: Run the service test to verify it passes
 
 Run: `php artisan test --filter=StorageQuotaTest`
 Expected: PASS.
 
-- [ ] **Step 5: Implement the `WithinStorageQuota` rule and apply it to the upload requests**
+### Task 36, Step 5: Implement the `WithinStorageQuota` rule and apply it to the upload requests
 
 ```php
 <?php
@@ -5928,7 +5928,7 @@ Adding `required|array` to `images` is a small behaviour change beyond the quota
 
 For the single-file paths (`avatar` on the user requests, the company-logo request), attach the rule directly to the file field — the rule already wraps a non-array value in an array.
 
-- [ ] **Step 6: Account for stored bytes on upload and delete**
+### Task 36, Step 6: Account for stored bytes on upload and delete
 
 After a successful store in each upload path, add the bytes; on delete, subtract. In `ImageController::store`, after `storePubliclyAs`:
 
@@ -5968,7 +5968,7 @@ Leave it that way. All three are short-lived by design — `assistant.photo_days
 
 The one case that *does* need `add()` is `ConversationPhotos::keep()`, which copies a parked photo from `local` onto the `public` disk as a real `Image` record. That is a deliberate decision to keep a file for good, it goes through the same storage as any other image, and it should cost the same.
 
-- [ ] **Step 7: Add the nightly reconcile job and schedule it per tenant**
+### Task 36, Step 7: Add the nightly reconcile job and schedule it per tenant
 
 ```php
 <?php
@@ -6005,7 +6005,7 @@ Schedule::call(function () {
 })->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
 ```
 
-- [ ] **Step 8: Share storage usage with the frontend**
+### Task 36, Step 8: Share storage usage with the frontend
 
 Extend the `tenant` share (Task 16/35) with storage, so a usage bar can be shown:
 
@@ -6018,7 +6018,7 @@ Extend the `tenant` share (Task 16/35) with storage, so a usage bar can be shown
 ],
 ```
 
-- [ ] **Step 9: Write the enforcement test and confirm the suite is green**
+### Task 36, Step 9: Write the enforcement test and confirm the suite is green
 
 ```php
 public function test_an_upload_over_the_limit_is_rejected(): void
@@ -6040,7 +6040,7 @@ public function test_an_upload_over_the_limit_is_rejected(): void
 Run: `php artisan test --filter=StorageQuotaTest`
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+### Task 36, Step 10: Commit
 
 ```bash
 git add app/Services/StorageQuota.php app/Rules/WithinStorageQuota.php \
@@ -6072,7 +6072,7 @@ Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 3
 - Consumes: everything above.
 - Produces: `App\Models\Central\LandlordUser`; `landlord` auth guard; routes under the `beheer` subdomain.
 
-- [ ] **Step 1: Create the `landlord_users` central migration and model**
+### Task 37, Step 1: Create the `landlord_users` central migration and model
 
 ```php
 return new class extends Migration
@@ -6115,7 +6115,7 @@ class LandlordUser extends Authenticatable
 }
 ```
 
-- [ ] **Step 2: Register the `landlord` guard**
+### Task 37, Step 2: Register the `landlord` guard
 
 In `config/auth.php`, add a guard and provider:
 
@@ -6131,7 +6131,7 @@ In `config/auth.php`, add a guard and provider:
 ],
 ```
 
-- [ ] **Step 3: Add the `landlord:create` command**
+### Task 37, Step 3: Add the `landlord:create` command
 
 ```php
 protected $signature = 'landlord:create {name} {email} {--password=}';
@@ -6148,7 +6148,7 @@ public function handle(): int
 }
 ```
 
-- [ ] **Step 4: Register the landlord route file on the subdomain, without tenancy middleware**
+### Task 37, Step 4: Register the landlord route file on the subdomain, without tenancy middleware
 
 In `bootstrap/app.php`, load `routes/landlord.php` in `withRouting` via a `then:` closure, wrapping it in the `web` group **minus** `InitializeTenancyBySession`, scoped to the `beheer` domain:
 
@@ -6168,7 +6168,7 @@ In `bootstrap/app.php`, load `routes/landlord.php` in `withRouting` via a `then:
 
 Add `'landlord_domain' => env('LANDLORD_DOMAIN', 'beheer.lavorofsm.nl')` to `config/app.php`. Because these routes are registered in the `web` group but **not** appended with `InitializeTenancyBySession` (Task 12 appends that only to the main web group), they never initialize tenancy. Add a feature test asserting the default connection stays `central` through a landlord request.
 
-- [ ] **Step 5: Write the failing access test**
+### Task 37, Step 5: Write the failing access test
 
 ```php
 <?php
@@ -6201,7 +6201,7 @@ class LandlordAccessTest extends TestCase
 }
 ```
 
-- [ ] **Step 6: Build the login screen and guard the group**
+### Task 37, Step 6: Build the login screen and guard the group
 
 Landlord `login`/`logout` controllers authenticate against the `landlord` guard; every other landlord route sits behind `auth:landlord`. Reuse the app's Inertia setup with a distinct `LandlordLayout.vue` (no tenant branding, no `company` share). Routes:
 
@@ -6218,24 +6218,24 @@ Route::middleware('auth:landlord')->group(function () {
 });
 ```
 
-- [ ] **Step 7: Build the tenant overview and tenant-edit screens**
+### Task 37, Step 7: Build the tenant overview and tenant-edit screens
 
 The overview reuses the exact computation from `tenant:overview` (Task 34 Step 7) — extract that loop into a shared method (e.g. a `TenantOverviewController` calling a small helper) so the CLI and the UI produce identical figures. The tenant-edit screen posts package, extra seats, storage limit, modules and price override; on a catalogue price edit that re-prices tenants, show the same blast-radius list the CLI shows and require a confirm.
 
-- [ ] **Step 8: Build the catalogue screens**
+### Task 37, Step 8: Build the catalogue screens
 
 Package/module/bundle/pricing screens are thin CRUD over the Task 16 models, reusing `ComboBox`/`TextInput`/`ModalDialog`. All money shown and entered in euros, stored in cents.
 
-- [ ] **Step 9: Run the landlord tests and the full suite**
+### Task 37, Step 9: Run the landlord tests and the full suite
 
 Run: `php artisan test --filter=Landlord` then `composer test`
 Expected: PASS, including the assertion that a landlord request never initializes tenancy.
 
-- [ ] **Step 10: Operational notes**
+### Task 37, Step 10: Operational notes
 
 Add the `beheer.lavorofsm.nl` DNS record and a vhost pointing at the same app; it shares the codebase and central database. Create the first landlord with `php artisan landlord:create "Naam" ops@lavoro.nl`.
 
-- [ ] **Step 11: Commit**
+### Task 37, Step 11: Commit
 
 ```bash
 git add database/migrations/ \
@@ -6259,7 +6259,7 @@ A third, narrower problem bites exactly once: `migrate` runs **before** `compose
 
 **Files:** `deploy.sh`
 
-- [ ] **Step 1: Rewrite `deploy.sh`**
+### Task 38, Step 1: Rewrite `deploy.sh`
 
 Changes from the current script: dependencies install before migrations; the backup enumerates every tenant database and dumps each one; backups rotate as timestamped *sets* rather than individual files; tenant migrations run after central ones. Tenant dumps use the provisioner over the socket, so no password is read from `.env` for them.
 
@@ -6345,7 +6345,7 @@ Notes on the specifics:
 - `php artisan tenants:migrate` needs no `--force`: `config/tenancy.php` already supplies `'--force' => true` through `migration_parameters` (Task 3).
 - `cache:clear` truncates the shared cache table, which clears every tenant's entries at once (they share the table, separated by key prefix — Task 10). That is correct and intended on deploy.
 
-- [ ] **Step 2: Grant the deploy user permission to become the provisioner**
+### Task 38, Step 2: Grant the deploy user permission to become the provisioner
 
 The tenant dumps run as `lavoro_provisioner`. Allow exactly that, and nothing else:
 
@@ -6364,7 +6364,7 @@ process the ability to create and drop tenant databases — and because
 `RunsAsProvisioner` elevates for whoever holds a rule, nothing in the
 application would report the change.
 
-- [ ] **Step 3: Verify against a real run**
+### Task 38, Step 3: Verify against a real run
 
 ```bash
 ./deploy.sh
@@ -6383,7 +6383,7 @@ Expected: a number in the thousands, not 0. Then confirm tenant migrations ran:
 php artisan tenants:migrate --dry-run 2>/dev/null || php artisan tenants:list
 ```
 
-- [ ] **Step 4: Commit**
+### Task 38, Step 4: Commit
 
 ```bash
 git add deploy.sh
@@ -6524,7 +6524,7 @@ accepting deliberately rather than discovering:
 
 Same columns otherwise, same units.
 
-- [ ] **Step 1: Add the allowance column and the central table**
+### Task 39, Step 1: Add the allowance column and the central table
 
 ```php
 Schema::connection('central')->table('tenants', function (Blueprint $table) {
@@ -6543,14 +6543,14 @@ on every call. Keep a second index on `['tenant_id', 'user_id']`: "who is spendi
 it" is the first question anyone asks after "how much is left", and the tenant
 column has to lead both.
 
-- [ ] **Step 2: Copy existing rows across, then drop the tenant table**
+### Task 39, Step 2: Copy existing rows across, then drop the tenant table
 
 In the Task 27 deployment window, per tenant: read `assistant_usage`, insert into
 central with the tenant id, verify counts match, then drop. Do not drop before
 verifying — the rows are the only record of what has been spent, and there is no
 way to recompute them from anything else.
 
-- [ ] **Step 3: The gate the loop asks**
+### Task 39, Step 3: The gate the loop asks
 
 The loop must not reach for `tenancy()`. It takes an `AllowanceGate`, and the
 binding decides what that means — a real ceiling in the app, a permissive one in
@@ -6565,7 +6565,7 @@ interface AllowanceGate
 }
 ```
 
-- [ ] **Step 4: Check before every call, not once per question**
+### Task 39, Step 4: Check before every call, not once per question
 
 In `AssistantLoop::ask`, inside the loop and before `$this->model->send(...)`:
 
@@ -6595,14 +6595,14 @@ allowance.
 The overshoot cannot be removed entirely: what a call costs is only known once it
 has returned.
 
-- [ ] **Step 5: Show it before they hit it**
+### Task 39, Step 5: Show it before they hit it
 
 Share `used`, `allowance` and `remaining` through `HandleInertiaRequests` so the
 assistant panel can show "€3,20 van €12,50 verbruikt" and warn at 80%. A hard stop
 nobody saw coming reads as a bug; the same stop after two warnings reads as a
 limit.
 
-- [ ] **Step 6: Tests**
+### Task 39, Step 6: Tests
 
 Cover the ceiling holding (spend at the limit, next call refused), the month
 boundary (last month's spend does not count), the fallback to the catalogue
@@ -6619,7 +6619,7 @@ re-prices old rows at today's rate, is wrong in a way no single-model test can s
 The assistant suite already binds a fake `TalksToModel` (see Task 30), so these
 tests cost nothing and need no supplier.
 
-- [ ] **Step 7: Price it**
+### Task 39, Step 7: Price it
 
 `ai_allowance_micros` is seeded in `pricing_settings` by Task 6 and the `assistant`
 module is in the catalogue at **€22,50** — so `TenantSubscription::monthlyTotalCents()`
@@ -6690,11 +6690,11 @@ coinciding is not a coincidence — the first admin of every tenant is user 1.
 
 **Files:** `app/Domain/Tools/ConfirmationToken.php`, `tests/Feature/Assistant/WriteToolGateTest.php`
 
-- [ ] **Step 1: Put the tenant in the payload**
+### Task 40, Step 1: Put the tenant in the payload
 
 In `encoded()`, add `'tenant' => tenancy()->initialized ? tenancy()->tenant->getTenantKey() : null`.
 
-- [ ] **Step 2: Check it in `decode()`, and refuse anything that does not match**
+### Task 40, Step 2: Check it in `decode()`, and refuse anything that does not match
 
 Beside the existing `user_id` check:
 
@@ -6718,7 +6718,7 @@ simply reject them instead of needing a migration.
 `decode()` already returns `null` for everything wrong and the caller already
 treats `null` as "no approval at all", so there is no new failure path to handle.
 
-- [ ] **Step 3: Test the replay directly**
+### Task 40, Step 3: Test the replay directly
 
 The existing `WriteToolGateTest` holds the gate across every tool. Add the case it
 cannot currently express: mint a token as user 1 of tenant A, switch to tenant B,
@@ -6726,7 +6726,7 @@ and assert `decode()` returns `null` for user 1 there. Assert on `decode()` rath
 than on the route, so the test says *why* it is refused rather than only that a
 403 came back.
 
-- [ ] **Step 4: Keep the rule, not just the fix**
+### Task 40, Step 4: Keep the rule, not just the fix
 
 The rule is worth more than this one class: **anything encrypted or signed with
 `APP_KEY` that names a record must also name the tenant.** Applies to
@@ -6742,7 +6742,7 @@ stored; it is not what decides whether a request is allowed.
 `ConfirmationToken` is different because we hand it to a browser and later accept
 it back as proof. That is why it needs the tenant check.
 
-- [ ] **Step 5: Commit**
+### Task 40, Step 5: Commit
 
 ```bash
 git add app/Domain/Tools/ConfirmationToken.php tests/Feature/Assistant/WriteToolGateTest.php
@@ -6807,7 +6807,7 @@ re-read before anyone is tempted to trust the lookup for anything else.
 **Interfaces:**
 - Produces: central table `access_token_tenant_lookups` (`token_hash` char(64) primary key, `tenant_id`, `created_at`); `App\Models\Central\AccessTokenTenantLookup`; `App\Support\AccessTokens::revokeAll(User): void`.
 
-- [ ] **Step 1: The central table**
+### Task 41, Step 1: The central table
 
 ```php
 Schema::connection('central')->create('access_token_tenant_lookups', function (Blueprint $table) {
@@ -6830,7 +6830,7 @@ one is a bare indexed column instead.
 
 This is the seventh central migration; adjust the counts in Task 8 when it lands.
 
-- [ ] **Step 2: The model**
+### Task 41, Step 2: The model
 
 ```php
 <?php
@@ -6852,7 +6852,7 @@ class AccessTokenTenantLookup extends Model
 }
 ```
 
-- [ ] **Step 3: Keep it in sync from an observer on Sanctum's model**
+### Task 41, Step 3: Keep it in sync from an observer on Sanctum's model
 
 ```php
 <?php
@@ -6892,7 +6892,7 @@ Register it in `AppServiceProvider::boot()` beside the `User` observer from Task
 \Laravel\Sanctum\PersonalAccessToken::observe(\App\Observers\PersonalAccessTokenObserver::class);
 ```
 
-- [ ] **Step 4: Route revocation through a helper, because the documented way skips the observer**
+### Task 41, Step 4: Route revocation through a helper, because the documented way skips the observer
 
 `$user->tokens()->delete()` is Sanctum's documented revoke-all, and it is a **query
 builder** delete: no model events, so no `deleted` hook, so the central rows survive
@@ -6929,7 +6929,7 @@ security boundary. Prune anything that still slips through on the same schedule 
 other per-tenant housekeeping (Task 20): for each tenant, delete central rows whose
 `token_hash` is absent from that tenant's `personal_access_tokens`.
 
-- [ ] **Step 5: Teach the API middleware to resolve from the token**
+### Task 41, Step 5: Teach the API middleware to resolve from the token
 
 In `InitializeTenancyForApi::handle`, after the session lookup and **instead of** the
 `X-Tenant-ID` fallback Task 24 removes:
@@ -6962,7 +6962,7 @@ lookup on a hash to pick a database, not a comparison of a secret against a stor
 one. Sanctum does the same before its own `hash_equals`, which happens afterwards in
 the tenant database where the actual decision is made.
 
-- [ ] **Step 6: A login endpoint that issues the token, outside `tenant.api`**
+### Task 41, Step 6: A login endpoint that issues the token, outside `tenant.api`
 
 It cannot be inside the group — there is no token yet, so there is nothing to resolve
 a tenant from. It resolves the tenant the way the web login does (Task 15), from
@@ -6983,7 +6983,7 @@ which database to read, the client is deciding what it gets to see.
 Throttled hard because it is an unauthenticated endpoint that runs a password hash and
 a central lookup.
 
-- [ ] **Step 7: Tests, including the one that encodes the security property**
+### Task 41, Step 7: Tests, including the one that encodes the security property
 
 ```php
 public function test_a_token_resolves_its_own_tenant(): void;
@@ -7003,7 +7003,7 @@ public function test_a_lookup_row_pointing_at_the_wrong_tenant_still_fails(): vo
 }
 ```
 
-- [ ] **Step 8: Commit**
+### Task 41, Step 8: Commit
 
 ```bash
 git add database/migrations/ app/Models/Central/AccessTokenTenantLookup.php \
@@ -7037,7 +7037,7 @@ rather than leaving it out.
 
 **Files:** `CLAUDE.md`, `docs/handleiding.md`
 
-- [ ] **Step 1: Add a `## Multi-tenancy` section to `CLAUDE.md`**
+### Task 42, Step 1: Add a `## Multi-tenancy` section to `CLAUDE.md`
 
 Place it after `## Coding rules`. Match that section's register — terse
 imperatives, no rationale. The reasoning lives in this plan, and the last line
@@ -7065,7 +7065,7 @@ do not throw.
 Full reasoning: `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
 ```
 
-- [ ] **Step 2: Update the chapters of `docs/handleiding.md` that describe a limit**
+### Task 42, Step 2: Update the chapters of `docs/handleiding.md` that describe a limit
 
 **The manual must not explain multi-tenancy.** It is written for somebody using
 one company's Lavoro, and that person does not know they are a tenant, should
@@ -7088,7 +7088,7 @@ has stopped working — and it cannot tell them, because the only description of
 the limit is in a config file it cannot read. Documenting it is what makes the
 feature able to explain its own refusal.
 
-- [ ] **Step 3: Commit**
+### Task 42, Step 3: Commit
 
 ```bash
 git add CLAUDE.md docs/handleiding.md
@@ -7117,7 +7117,7 @@ lookup row — is destructive if the diagnosis was wrong.
 
 **Files:** `app/Console/Commands/TenancyDoctor.php` (new), `routes/console.php`
 
-- [ ] **Step 1: The checks**
+### Task 43, Step 1: The checks
 
 Global, once:
 
@@ -7150,7 +7150,7 @@ And two orphan checks, which is where a botched `tenant:create` or `tenant:delet
 - lookup rows naming a tenant id that no longer exists
 - `lavoro_tenant_*` databases on the server with no matching `tenants` row
 
-- [ ] **Step 1b: Check storage by ownership and mode, not `is_writable`**
+### Task 43, Step 1b: Check storage by ownership and mode, not `is_writable`
 
 Two identities write into `storage/`. `www-data` serves every request, and
 `lavoro_provisioner` runs `tenant:create`, `tenant:delete` and
@@ -7192,7 +7192,7 @@ application's own storage tree, which that script deliberately knows nothing
 about — and because the account it concerns is the one Task 21 made easy to
 run as without noticing.
 
-- [ ] **Step 2: Check the scheduler two ways, because neither is sufficient alone**
+### Task 43, Step 2: Check the scheduler two ways, because neither is sufficient alone
 
 **Neither check answers "is cron configured correctly". Say so in the output
 rather than implying otherwise.**
@@ -7229,7 +7229,7 @@ An **absent** heartbeat is different from a stale one: it means the scheduler ha
 never run here. On a fresh install that is expected, not broken — report it as
 such rather than as a failure.
 
-- [ ] **Step 3: Report like `verify-mysql.sh` does**
+### Task 43, Step 3: Report like `verify-mysql.sh` does
 
 PASS / FAIL / **SKIP**, and a skip is never counted as a pass. Half these checks
 are negative ("cannot reach", "no orphans"), and a negative check is satisfied
@@ -7239,7 +7239,7 @@ script version, and it is worth copying rather than reinventing.
 
 End with a summary line and `exit(1)` if anything failed.
 
-- [ ] **Step 4: Commit**
+### Task 43, Step 4: Commit
 
 ```bash
 git add app/Console/Commands/TenancyDoctor.php routes/console.php
