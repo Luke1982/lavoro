@@ -623,7 +623,7 @@ ls database/migrations/*.php | tail -3
 
 `storage_limit_gb` defaults to 50 (the included allowance). `package_key` is nullable at the column level so `tenant:setup-existing` (Task 26) can insert a row before the package is assigned; `tenant:create` (Task 21) always sets it.
 
-`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database has none until `tenant:setup-existing` / `tenant:provision-db-user` (Task 26) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
+`tenancy_db_username` and `tenancy_db_password` hold the tenant's own MySQL credentials (Task 4). They are nullable because a tenant registered from an existing database has none until `tenant:setup-existing` (Task 26) creates one. `tenancy_db_password` is `text` rather than `string` because the `encrypted` cast stores ciphertext, which is substantially longer than the plaintext password.
 
 ```php
 <?php
@@ -3582,7 +3582,7 @@ You will get a clear error, not quiet corruption. But you will get it halfway th
 php artisan tenant:setup-existing "Naam" lavoro_tenant_acme
 ```
 
-`tenant:setup-existing` creates the MySQL login as part of its work. The separate `tenant:provision-db-user` command below is for afterwards — rotating a password, or repairing a tenant whose login was deleted.
+**You do not have to create the MySQL login first — this command does it.** `handle()` calls `TenantDbUserProvisioner` itself (Step 1). The separate `tenant:provision-db-user` command in Step 3 is only for afterwards: rotating a password, or repairing a login that was deleted.
 
 **Note the `User::withTrashed()` on the `pluck` below — deleted users are included on purpose.**
 
@@ -3756,7 +3756,9 @@ class TenantDbUserProvisioner
 
 Creates the MySQL login a tenant uses to reach its own database, grants it access to that database only, and stores the username and encrypted password on the tenant's row.
 
-`tenant:create` already does this for a new tenant. This standalone version is for the three cases it does not cover: the first tenant during the cutover (Task 27), whose database existed before tenancy and so never got a login; rotating a password; and repairing a tenant whose MySQL login was deleted or no longer works.
+**You never need to run this before `tenant:setup-existing` or `tenant:create`.** Both create the login themselves, and both are the normal way a tenant comes into existence — including the first one during the cutover (Task 27).
+
+This standalone version is for afterwards, and there are only two reasons to reach for it: rotating a tenant's password, or repairing a tenant whose MySQL login was deleted or has stopped working.
 
 ```php
 <?php
