@@ -55,6 +55,26 @@ Uploaded files are fully separated on disk too: each tenant's files live under t
 
 **Notifications** — `user_notifications`, `notification_subscriptions`, `push_subscriptions`, a subscriptions page, a web-push sender, and a service worker that shows and routes notifications. All three tables are tenant tables. The VAPID keypair is one global application identity, correctly global for the same reason Firebase is (Known impact 4), but the *routing* of a push carries a tenancy hazard Firebase never had: the service worker navigates to a bare path like `/serviceorders/123`. See Known impact 14.
 
+**Where this work happens.** All of it is built and tested here, on a development
+machine, against a restored copy of the production database. Nothing in this plan
+is developed by typing into a production server.
+
+That splits the tasks in two:
+
+- **Tasks 1–26 and 30–43 are ordinary development.** Code, migrations, artisan
+  commands, tests. They run locally and ship through the normal deploy.
+- **Tasks 27 and 29 describe a cutover that happens once on production.** What
+  those tasks produce is a **script**, written and rehearsed here against a
+  production dump until it runs clean start to finish. The steps in them are the
+  script's contents, not a checklist somebody follows over SSH at two in the
+  morning.
+
+Task 2 is the model to copy: the MySQL account setup could have been eight
+statements in a runbook, and instead it is `scripts/tenancy/setup-mysql.sh` with a
+`--dry-run` flag and a matching `verify-mysql.sh`. Every operation this plan puts
+on a production server should end up looking like that — a script you have already
+watched work.
+
 **Database naming and credentials:**
 
 | | Name |
@@ -3821,11 +3841,24 @@ git commit -m "feat(tenancy): provision a dedicated MySQL user per tenant"
 
 ---
 
-## Task 27: One-time deployment
+## Task 27: The cutover script
 
-Destructive and irreversible — run on a backup first. Do this in a maintenance window; all users will be logged out and must log in again.
+The one-time move of the live install into a tenant. **Build this as a script here
+and rehearse it locally before it goes anywhere near production.**
 
-**Prerequisites:** full MySQL dump taken; the `lavoro_app` account exists granted on `lavoro_landlord` only, and the `lavoro_provisioner` Linux user and its `auth_socket` MySQL account exist (Task 2, Steps 1–3); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_landlord`, `DB_USERNAME=lavoro_app`, `DB_SOCKET=/var/run/mysqld/mysqld.sock`, `SESSION_CONNECTION=central`.
+Restore a production dump onto your machine, run the script against it end to end,
+throw the result away, fix what broke, and repeat until it runs clean. A cutover
+you have watched succeed three times locally is a different thing from a list of
+commands you are reading for the first time with the app offline.
+
+The steps below are what the script does, in order. Keep them as separate
+functions with their own output so a failure names the step it happened in.
+
+Destructive and irreversible on the machine it runs against — which is why the
+machine is your own until it isn't. On production: take a full backup first, run
+it in a maintenance window, and expect every user to be logged out.
+
+**Prerequisites:** full MySQL dump taken; the `lavoro_app` account exists granted on `lavoro_landlord` only, and the `lavoro_provisioner` Linux user and its `auth_socket` MySQL account exist (Task 2, Steps 1–3); `.env` has `DB_CONNECTION=mysql`, `DB_DATABASE=lavoro_landlord`, `DB_USERNAME=lavoro_app`, `DB_PROVISIONER_SOCKET=/var/run/mysqld/mysqld.sock`, `SESSION_CONNECTION=central`.
 
 **This is less destructive than it looks.** Both new databases — the landlord registry and the tenant copy — are *new names*, so nothing is dropped or recreated in place. The existing database is copied to the tenant name and then simply **left alone** as a rollback artefact until the smoke test passes.
 
@@ -3835,7 +3868,7 @@ Read the existing database's name off the server rather than assuming it; every 
 grep '^DB_DATABASE=' .env
 ```
 
-> **Do not run `./deploy.sh` between this cutover and Task 38.** The current script backs up only the database named in `DB_DATABASE` (now the small central registry) and runs only central migrations — both silently. Until Task 38 lands, a routine deploy would rotate your real backups out and skip every tenant migration without printing an error. This cutover is performed by hand; the script is not used here.
+> **Do not run `./deploy.sh` between this cutover and Task 38.** The current script backs up only the database named in `DB_DATABASE` (now the small central registry) and runs only central migrations — both silently. Until Task 38 lands, a routine deploy would rotate your real backups out and skip every tenant migration without printing an error. This cutover runs its own script; `deploy.sh` is not involved.
 
 ### Task 27, Step 0: Take the app down and stop everything that writes
 
@@ -4110,6 +4143,14 @@ And in the browser as the second tenant's user, check the Inertia page props inc
 ## Task 29: Migrate a dedicated-subdomain install into the multi-tenant app
 
 Some customers run their own standalone copy of Lavoro on a dedicated subdomain — currently one at `spee.lavorofsm.nl` — each with its own database, storage, and `.env`. This task absorbs such an install into the multi-tenant app at `app.lavorofsm.nl` as a new tenant. It is a **repeatable runbook**: run it once per legacy install, in a maintenance window agreed with that customer. The steps below use the Spee install as the concrete example; substitute names for the next customer.
+
+**Build this as a script too, and rehearse it the same way.** Restore the legacy
+install's dump onto your machine alongside a local copy of the multi-tenant app,
+run the absorption end to end, and check the result before doing it for real. This
+one runs once per customer being absorbed, so unlike Task 27 you get to reuse it —
+which is exactly why it should not be a list of commands somebody retypes.
+
+The steps below are its contents.
 
 **Prerequisites:**
 - Task 27 is complete: `app.lavorofsm.nl` is live and multi-tenant.
