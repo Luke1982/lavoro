@@ -5940,10 +5940,12 @@ app(\App\Services\StorageQuota::class)->add($image->getSize());
 
 In `ImageController::destroy` / `DocumentController::destroy`, before deleting the file, capture its size and `subtract()` it. `documents` carries a `size` column, so the document paths can read it off the row instead of stat-ing the disk. Do the same for avatar replacement and company-logo upload/replace.
 
-**The counter will always run a little low, and it is better to know that now than to find out.** `GeneralSetting::set` is a read-modify-write of a `varchar` (`SELECT` current value, add, `updateOrCreate`), with no lock and no atomic increment. Image uploads now arrive as *concurrent batches* — the browser-side upload queue fires several requests in parallel — so two overlapping `add()` calls will read the same starting value and one will be lost. Under-counting, never over-counting, which is the safe direction for a quota. Two consequences to accept deliberately:
+**The counter will always run a little low.** `GeneralSetting::set` reads the current value, adds to it and writes it back. There is no lock and no atomic increment, and the browser uploads images several at a time, so two `add()` calls can read the same starting number and one of them is lost. It only ever undercounts, never overcounts, which is the safe direction for a limit.
 
-- The nightly reconcile (Step 7) is not merely a backstop for missed call sites; it is what makes the number *correct*. Do not remove it as an optimisation.
-- Do not build billing on the live counter. Bill from the reconciled figure.
+Two things follow:
+
+- The nightly job (Step 7) is not just a safety net for call sites somebody forgot to update. It is the only thing that makes the number right. Do not delete it to save a query.
+- Never bill anyone from the running counter. Bill from what the nightly job measured.
 
 If drift ever becomes visible to customers, the fix is an atomic `UPDATE general_settings SET value = value + ? WHERE key = ?` rather than a lock — but that requires the column to be numeric, so it is a migration, not a one-liner. Not worth doing pre-emptively.
 
