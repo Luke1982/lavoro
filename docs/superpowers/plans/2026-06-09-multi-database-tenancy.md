@@ -3750,7 +3750,9 @@ class TenantDbUserProvisioner
 }
 ```
 
-`$tenant->database()` returns a fresh `DatabaseConfig` that reads the credentials just saved, which is what `createUser()` grants against. Saving before creating is deliberate — if the grant fails, the stored credentials and the MySQL state are reconciled by re-running the command rather than left silently diverged.
+`createUser()` takes no username or password. It reads them off the tenant row, which is what `$tenant->database()` builds a fresh config from — so the row has to be saved first. Save it afterwards instead and you create a MySQL login with the previous password, or with none at all.
+
+Saving first also makes a failure recoverable. If MySQL refuses, the row already holds the username and password, so running the command again finishes the job. The other way round leaves MySQL with a login the application has no record of.
 
 ### Task 26, Step 3: Create the standalone `tenant:provision-db-user` command
 
