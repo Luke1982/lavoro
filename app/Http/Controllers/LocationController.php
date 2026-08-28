@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Search\SearchTerm;
 use App\Http\Requests\LocationDestroyRequest;
 use App\Http\Requests\LocationReadRequest;
 use App\Http\Requests\LocationStoreRequest;
@@ -15,16 +16,14 @@ class LocationController extends Controller
     {
         $search = $request->input('search');
         $customer_id = $request->input('customer_id');
+        $like = filled($search) ? SearchTerm::like($search) : null;
 
         $locations = Location::with('customer:id,name')
             ->withCount(['assets', 'serviceOrders', 'events'])
             ->when($customer_id, fn ($query) => $query->where('customer_id', $customer_id))
-            ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('location_code', 'like', "%{$search}%")
-                ->orWhere('address', 'like', "%{$search}%")
-                ->orWhere('city', 'like', "%{$search}%")
-                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"))))
+            ->when($like, fn ($query) => $query->where(fn ($q) => $q
+                ->matchesText($like)
+                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $like))))
             ->orderBy('title')
             ->paginate(25)
             ->appends(['search' => $search, 'customer_id' => $customer_id]);

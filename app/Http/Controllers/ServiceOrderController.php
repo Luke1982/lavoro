@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
+use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
@@ -90,22 +91,19 @@ class ServiceOrderController extends Controller
 
         $query->visibleTo($user);
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                    ->orWhere('external_purchaseorder_no', 'like', "%{$search}%")
-                    ->orWhere('external_invoice_no', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search) {
-                        $cq->where('name', 'like', "%{$search}%")
-                            ->orWhere('city', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('serviceOrderStage', function ($sq) use ($search) {
-                        $sq->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('events.executingUsers', function ($uq) use ($search) {
-                        $uq->where('users.name', 'like', "%{$search}%");
-                    });
-            });
+        if (filled($search)) {
+            $like = SearchTerm::like($search);
+
+            $query->where(fn ($q) => $q
+                ->where('description', 'like', $like)
+                ->orWhere('external_purchaseorder_no', 'like', $like)
+                ->orWhere('external_invoice_no', 'like', $like)
+                ->orWhereHas('customer', fn ($cq) => $cq
+                    ->where('name', 'like', $like)
+                    ->orWhere('city', 'like', $like))
+                ->orWhere(fn ($oq) => $oq->locationMatchesText($like))
+                ->orWhereHas('serviceOrderStage', fn ($sq) => $sq->where('name', 'like', $like))
+                ->orWhereHas('events.executingUsers', fn ($uq) => $uq->where('users.name', 'like', $like)));
         }
 
         $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');

@@ -42,6 +42,27 @@ class Location extends Model
         return $this->hasMany(Event::class);
     }
 
+    /**
+     * Locaties waar de zoekterm ergens in past.
+     *
+     * Alles wat een locatie aanwijst telt mee, het hele adres inbegrepen: een
+     * locatie wordt net zo vaak op de straat of de postcode gezocht als op de
+     * naam. De kolommen staan hier één keer, zodat elke zoekingang dezelfde
+     * locatie vindt.
+     *
+     * @param  string  $like  Patroon uit SearchTerm::like(), dus met de jokertekens er al uit.
+     */
+    public function scopeMatchesText($query, string $like)
+    {
+        return $query->where(fn ($q) => $q
+            ->where('title', 'like', $like)
+            ->orWhere('location_code', 'like', $like)
+            ->orWhere('address', 'like', $like)
+            ->orWhere('postal_code', 'like', $like)
+            ->orWhere('city', 'like', $like)
+            ->orWhere('country', 'like', $like));
+    }
+
     public function addressLine(): string
     {
         return AddressFormatter::format($this->address, $this->postal_code, $this->city) ?? '';

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools;
 
+use App\Domain\Search\SearchTerm;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -58,23 +59,11 @@ final class ToolCall
     }
 
     /**
-     * Text to search for, wrapped for a LIKE and with its wildcards defanged.
+     * Text to search for as a LIKE pattern, or nothing when the argument is empty.
      *
-     * Per cent and underscore mean "anything" to LIKE, and nothing was escaping
-     * them: a search for "%" became %%% and matched every row in the table, which
-     * came back looking like a list of results rather than a search that meant
-     * nothing. "50%" or "MSZ_25" would have quietly matched too much in the same way.
-     *
-     * Not a security hole — the values are bound — but a search that lies about
-     * what it found is worse than one that finds nothing.
-     *
-     * Escaped with a backslash, which MySQL treats as the escape character by
-     * default. SQLite does not, unless a query says ESCAPE explicitly, so there a
-     * term containing a real per cent sign finds nothing rather than finding the
-     * row that genuinely has one in its name. Both drivers end up refusing to
-     * match everything, which is the half that matters; only MySQL also matches a
-     * literal wildcard. Worth knowing, since the tests run on SQLite and the
-     * customers run on MySQL.
+     * What the escaping does and what it costs per database is SearchTerm::like's
+     * business; an empty argument becoming null is this method's, so a caller can
+     * hand it straight to a when() and leave the filter off.
      */
     public function likeArgument(string $key): ?string
     {
@@ -82,7 +71,7 @@ final class ToolCall
 
         return $value === null || $value === ''
             ? null
-            : '%' . addcslashes($value, '%_\\') . '%';
+            : SearchTerm::like($value);
     }
 
     /**

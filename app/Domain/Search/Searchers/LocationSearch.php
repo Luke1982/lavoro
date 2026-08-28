@@ -24,11 +24,7 @@ class LocationSearch implements Searchable
         $like = SearchTerm::like($term);
 
         return Location::query()
-            ->where(fn ($q) => $q
-                ->where('title', 'like', $like)
-                ->orWhere('location_code', 'like', $like)
-                ->orWhere('city', 'like', $like)
-                ->orWhere('address', 'like', $like))
+            ->matchesText($like)
             ->with('customer:id,name')
             ->orderBy('title')
             ->limit($limit)

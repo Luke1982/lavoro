@@ -232,6 +232,23 @@ class ServiceOrder extends Model
     }
 
     /**
+     * Werkbonnen waarvan het adres op de zoekterm past.
+     *
+     * Waar een werkbon uitgevoerd wordt staat op twee plekken: als gekoppelde
+     * locatie van de klant, of als los ingetypt uitvoeringsadres. Wie op een
+     * straat zoekt hoort ze allebei te vinden, anders bepaalt de manier van
+     * invoeren of een werkbon boven komt.
+     *
+     * @param  string  $like  Patroon uit SearchTerm::like(), dus met de jokertekens er al uit.
+     */
+    public function scopeLocationMatchesText($query, string $like)
+    {
+        return $query->where(fn ($q) => $q
+            ->whereHas('linkedLocation', fn ($lq) => $lq->matchesText($like))
+            ->orWhere('execution_location', 'like', $like));
+    }
+
+    /**
      * Het nummer zoals iedereen het kent: WB gevolgd door vier cijfers. De vorm
      * stond op drie plaatsen los uitgeschreven en hoort bij de werkbon zelf, niet
      * bij wie hem toevallig afdrukt.

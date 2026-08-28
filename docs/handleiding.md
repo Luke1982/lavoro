@@ -68,7 +68,7 @@ Een klant heeft adresgegevens (bezoek- en postadres), meerdere e-mailadressen (a
 
 Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbonnen & Projecten en Afspraken. Vanaf de klant maak je direct een nieuw contact, onderhoudscontract of nieuwe machine aan. Onder Machines staat elke machine als kaartje; is de machine een bundel, dan staan de onderdelen die eronder hangen op het kaartje zelf vermeld, met hun serienummer en een link naar de onderdeelmachine. Onder Werkbonnen & Projecten staan de werkbonnen als kaartjes met nummer, klant en locatie, geplande afspraken, fase, monteurs en taakvoortgang (zie het hoofdstuk Projecten voor de details van die weergave).
 
-- **Locaties** zijn de vestigingen of adressen van een klant. Machines, werkbonnen en afspraken kunnen aan een locatie hangen.
+- **Locaties** zijn de vestigingen of adressen van een klant. Machines, werkbonnen en afspraken kunnen aan een locatie hangen. Waar je een locatie kiest of zoekt, kijkt het zoekveld naar de naam, de locatiecode en het hele adres — straat, postcode, plaats en land.
 - **Contactpersonen** horen bij een klant en kunnen bij meerdere klanten tegelijk horen.
 - **Importeren uit Excel**: via de klantenlijst kun je een Excel-bestand uploaden. Je krijgt eerst een voorbeeldweergave ter controle (de kolom "Naam" is verplicht), daarna wordt de import op de achtergrond verwerkt. Er is een voorbeeldbestand om te downloaden. Voor leveranciers bestaat dezelfde import.
 - Klanten kunnen ook automatisch uit **SnelStart** komen; zie het hoofdstuk over koppelingen.
@@ -127,7 +127,7 @@ Op **Exporteren** staan de werkbon-PDF en de keuring-PDF's met een voorbeeldweer
 
 ### Zoeken en filteren
 
-De werkbonnenlijst zoekt op klant, plaats, beschrijving, fase, factuurnummer, inkoopordernummer en uitvoerder. Er is een fasefilter en een schakelaar **"Alleen te sluiten"**: werkbonnen waarvan alle afspraken voorbij zijn maar die nog niet gesloten zijn. Wie geen recht heeft om alle werkbonnen te zien, ziet alleen de werkbonnen waar hij zelf als uitvoerder op staat.
+De werkbonnenlijst zoekt op klant, plaats, beschrijving, fase, factuurnummer, inkoopordernummer en uitvoerder. Het adres waar het werk gebeurt telt ook mee: van een gekoppelde locatie tellen naam, locatiecode, adres, postcode, plaats en land, en van een los ingetypt uitvoeringsadres de tekst zelf. Zoeken op een straat vindt de werkbon dus, of het adres nu gekozen of getypt is — ook in het zoekvenster bovenin en via de assistent. Er is een fasefilter en een schakelaar **"Alleen te sluiten"**: werkbonnen waarvan alle afspraken voorbij zijn maar die nog niet gesloten zijn. Wie geen recht heeft om alle werkbonnen te zien, ziet alleen de werkbonnen waar hij zelf als uitvoerder op staat.
 
 ## Taken op een werkbon
 

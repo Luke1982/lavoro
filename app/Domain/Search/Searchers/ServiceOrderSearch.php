@@ -29,6 +29,7 @@ class ServiceOrderSearch implements Searchable
                 ->orWhere('external_purchaseorder_no', 'like', $like)
                 ->orWhere('external_invoice_no', 'like', $like)
                 ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', $like))
+                ->orWhere(fn ($oq) => $oq->locationMatchesText($like))
                 ->when(ctype_digit($term), fn ($nq) => $nq->orWhere('id', (int) $term)))
             ->with([
                 'customer:id,name',
@@ -38,7 +39,8 @@ class ServiceOrderSearch implements Searchable
             /**
              * ServiceOrder::$with also pulls linkedLocation on every query. A hit
              * does not show it and its foreign key is not even selected here, so
-             * it would cost a query to fetch nothing.
+             * it would cost a query to fetch nothing. Matching on the address does
+             * not need the relation either: that runs as a subquery.
              */
             ->without(['linkedLocation'])
             ->orderByDesc('id')

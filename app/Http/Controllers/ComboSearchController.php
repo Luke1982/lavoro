@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Search\SearchTerm;
 use App\Http\Requests\AssetSearchRequest;
 use App\Http\Requests\CustomerSearchRequest;
 use App\Http\Requests\EventTypeSearchRequest;
@@ -177,13 +178,10 @@ class ComboSearchController extends Controller
 
     public function locationsForCustomer(LocationSearchRequest $request, Customer $customer): JsonResponse
     {
-        $q = trim((string) $request->query('q', ''));
+        $term = trim((string) $request->query('q', ''));
 
         $results = $customer->locations()
-            ->when($q !== '', fn ($query) => $query->where(fn ($sub) => $sub
-                ->where('title', 'like', "%{$q}%")
-                ->orWhere('location_code', 'like', "%{$q}%")
-                ->orWhere('city', 'like', "%{$q}%")))
+            ->when($term !== '', fn ($query) => $query->matchesText(SearchTerm::like($term)))
             ->orderBy('title')
             ->limit(50)
             ->get(['id', 'title', 'address', 'postal_code', 'city'])
