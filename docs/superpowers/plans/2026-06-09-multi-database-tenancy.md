@@ -3628,6 +3628,63 @@ class InitializeTenancyForApi
 
 Same `$initialized_here` guard as Task 12, for the same reason — several API tests drive these routes with tenancy already established by the `TestCase`.
 
+### Task 24, Step 1a: Route middleware does not work here — use Sanctum's own pipeline
+
+**This is the correction that matters, and it was found by running it.** Putting
+the tenancy middleware on the API routes — as route middleware via a `tenant.api`
+alias, or appended to the `api` group — **does not run in time, and in testing did
+not run at all.**
+
+The reason is how `EnsureFrontendRequestsAreStateful` works. It does not sit in
+the pipeline as a normal middleware and hand over; it builds a **nested pipeline**
+of its own (`EncryptCookies`, `AddQueuedCookiesToResponse`, `StartSession`,
+`ValidateCsrfToken`, `authenticate_session`) and only then calls `$next`. The
+session — and therefore `session('tenant_id')` — does not exist until inside that
+nested run.
+
+What does work is hooking the last step of that nested pipeline, which Sanctum
+exposes as config. It is the first moment where the session exists and the user
+has not yet been resolved:
+
+```php
+// config/sanctum.php
+'authenticate_session' => App\Http\Middleware\TenancyForStatefulApi::class,
+```
+
+```php
+class TenancyForStatefulApi
+{
+    public function handle(Request $request, Closure $next): mixed
+    {
+        $tenant_id = $request->hasSession() ? $request->session()->get('tenant_id') : null;
+        $tenant_id = $tenant_id ?: $request->cookie('tenant_id');
+
+        if ($tenant_id && !tenancy()->initialized) {
+            $tenant = Tenant::on('central')->find($tenant_id);
+
+            if ($tenant) {
+                tenancy()->initialize($tenant);
+            }
+        }
+
+        // Hand back to the middleware we are standing in for.
+        return app(AuthenticateSession::class)->handle($request, $next);
+    }
+}
+```
+
+Delegating to `AuthenticateSession` at the end is what keeps Sanctum's own
+behaviour — replace the config value without it and you silently drop the
+middleware that logs other sessions out on a password change.
+
+**The symptom, so it is recognisable:** every page renders correctly and every API
+call returns `500 Table 'lavoro_landlord.users' doesn't exist`. The planner loads
+with no appointments. Web requests work because they go through the web group,
+where the ordinary session middleware does run.
+
+The `X-Tenant-ID`-free bearer-token path in Task 41 is unaffected — that has no
+session and no Sanctum stateful pipeline.
+
 ### Task 24, Step 1b: Two things that make this fail silently
 
 **Register the alias, or the middleware sorts last and nothing says so.** If
