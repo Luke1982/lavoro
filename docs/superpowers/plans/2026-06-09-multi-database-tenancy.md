@@ -3628,6 +3628,43 @@ class InitializeTenancyForApi
 
 Same `$initialized_here` guard as Task 12, for the same reason — several API tests drive these routes with tenancy already established by the `TestCase`.
 
+### Task 24, Step 1b: Two things that make this fail silently
+
+**Register the alias, or the middleware sorts last and nothing says so.** If
+`tenant.api` is not in `$middleware->alias([...])`, Laravel cannot resolve the
+string, leaves it as-is, and the priority sort has nothing to match — so it lands
+*after* `auth:sanctum` and `SubstituteBindings` instead of before them. No error,
+no warning. Verified: position 3 instead of 1, and every API request then queries
+the central database for `users`.
+
+Check it rather than assuming, the same way Task 12 Step 4 does:
+
+```bash
+php artisan tinker --execute='
+$r = collect(Route::getRoutes())->first(fn($x) => $x->uri() === "api/events" && in_array("GET", $x->methods()));
+collect(app(Illuminate\Routing\Router::class)->gatherRouteMiddleware($r))
+    ->map(fn($m) => is_string($m) ? $m : $m::class)->each(fn($m, $i) => print("  $i $m\n"));'
+```
+
+`InitializeTenancyForApi` must appear before `Authenticate` and before
+`SubstituteBindings`. A raw `tenant.api` string in that output means the alias is
+missing.
+
+**`SANCTUM_STATEFUL_DOMAINS` must list the exact host *and port* the app is served
+on.** Sanctum decides whether a request is stateful by matching the `Origin` or
+`Referer` header against that list. Miss it and the session is never started for
+API requests, so there is no `tenant_id` to read and no authenticated user: every
+call redirects to the login page or 400s, while the web pages work perfectly.
+
+The default is `localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1` plus
+`APP_URL`'s host. Serving on any other port — a second install for testing, a
+staging box — needs it set explicitly.
+
+**This matters at cutover, not just locally.** Task 29 Step 8 moves a customer
+from `spee.lavorofsm.nl` to `app.lavorofsm.nl`. If `SANCTUM_STATEFUL_DOMAINS`
+still names the old subdomain, the pages render and every API call fails — the
+planner loads with no appointments, and nothing in the log says why.
+
 ### Task 24, Step 2: Register the alias in `bootstrap/app.php`
 
 ```php
@@ -7527,7 +7564,9 @@ Then assert the table count is non-zero before going further, because nothing el
 4. **Check for e-mail collisions** against `user_tenant_lookups`, including soft-deleted users on both sides. **Stop here and print the clashes if there are any.** This is the last point at which nothing has been registered centrally, so it is the cheapest place to fail.
 5. **`tenant:setup-existing`** — registers the tenant, creates its MySQL login, copies the e-mail addresses into the central lookup. Capture the printed tenant id.
 6. **`tenants:migrate`** for that tenant, to bring the imported schema up to the current one.
-7. **Copy the files** into `storage/tenant-<id>/public` and `/local`.
+7. **Copy the files** into `storage/tenant-<id>/public` and `/local`. Check the byte count afterwards, not just the exit code — an empty or wrong `--from` copies nothing and reports success. The images are the largest thing being moved and the easiest to leave behind.
+
+   **Images still will not display until Task 14 is done.** The frontend builds `/storage/${image.path}` by hand, and once files live under a tenant root there is no `public/storage` symlink pointing at them. Copying the files is necessary and not sufficient; if you are testing an import before Task 14 lands, expect broken thumbnails and do not go hunting for a permissions problem.
 8. **Set the subscription** — package, seats, modules, storage limit. After the migrate, not before: seat counts need the `seat_type` column that migration adds.
 9. **Expire the Google watch channels** so they are recreated with a tenant-prefixed token (Task 25).
 10. **`tenancy:doctor`** for the new tenant, and stop non-zero if it complains.
