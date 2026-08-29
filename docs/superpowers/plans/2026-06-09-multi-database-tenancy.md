@@ -1498,6 +1498,22 @@ class InitializeTenancyBySession
             }
         }
 
+        /**
+         * Without a tenant nothing can be logged in, because `users` lives in
+         * the tenant database. Laravel's remember-me recaller runs *after* this
+         * middleware, so without this it resurrects a user anyway and
+         * `Auth::user()` asks the central database for a table that is not
+         * there — a 500 instead of the login page.
+         */
+        if (!tenancy()->initialized) {
+            Auth::forgetUser();
+
+            $recaller = Auth::guard()->getRecallerName();
+
+            $request->cookies->remove($recaller);
+            cookie()->queue(cookie()->forget($recaller));
+        }
+
         $response = $next($request);
 
         if ($initialized_here && tenancy()->initialized) {
@@ -1508,6 +1524,25 @@ class InitializeTenancyBySession
     }
 }
 ```
+
+**That last block is not defensive padding either.** It was found by loading the
+app in a browser that also had another Lavoro open on the same host, and it is
+worth understanding because the same thing happens in production for less exotic
+reasons: any request that arrives with a valid remember-me cookie and no tenant.
+A tenant that has been deleted, a cookie that outlived a session, a second
+install on the same domain. In every case the recaller hands the guard a user id,
+the guard queries `lavoro_landlord.users`, and the customer gets a stack trace
+rather than a login form.
+
+`Auth::forgetUser()` alone is not enough — the recaller cookie is read from the
+request each time, so it has to be removed from this request and cleared from the
+browser.
+
+**While testing locally, give each install its own `SESSION_COOKIE`.** Browser
+cookies are scoped by host and **not by port**, so two Laravel apps on
+`127.0.0.1` share their session and remember-me cookies. Testing a tenancy branch
+alongside the ordinary app on another port means each one keeps logging the other
+out, or worse, silently handing it a user id from the wrong database.
 
 **`$initialized_here` is not defensive padding — without it the test suite breaks.** The naive version ends tenancy unconditionally after the response, including tenancy that something *else* established. In tests (Task 30) the `TestCase` initializes tenancy once in `setUp()` and holds an open transaction on the `tenant` connection; the first `$this->get(...)` in a test would then tear that down on the way out, and every assertion after it — `assertDatabaseHas`, a second request, the rollback in `tearDown` — would run against the central database instead. 30 of the current test files make HTTP requests, so this would have looked like a mass, baffling failure. The same guard keeps the middleware from ending tenancy that `GoogleWebhookController` established for itself (Task 25), since that route lives in the web group too.
 
