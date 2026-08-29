@@ -1608,7 +1608,7 @@ Because files now live outside the web-served `public/storage` symlink, they are
 - `app/Models/User.php` (avatar accessor, `getAvatarAttribute`)
 - `public/service-worker.js` (exclude `/files/` from caching)
 - The 12 Vue/JS files that hardcode `/storage/${...}` (images and company logos)
-- The 7 non-disk path builders: `app/Http/Controllers/ServiceOrderController.php:816`, `app/Http/Controllers/ImageController.php:57` and `:260`, `app/Models/Company.php:52`, `resources/views/pdf/servicejob.blade.php:232`, `resources/views/emails/event/appointment_confirmation.blade.php:102`, `app/Domain/Tools/Read/ViewImagesTool.php:164` (line numbers move with almost every commit — grep rather than trusting them)
+- The 7 non-disk path builders, in `ServiceOrderController`, `ImageController` (twice), `Company`, `pdf/servicejob.blade.php`, `emails/event/appointment_confirmation.blade.php` and `ViewImagesTool` — **found by the two greps in Step 7, which are the authoritative list**
 
 ### Task 14, Step 1: Create the storage bootstrapper
 
@@ -1641,7 +1641,7 @@ The payoff is that every `->store(..., 'public')` in the application starts writ
 
 - Errors would land in `storage/tenant-<id>/logs/laravel.log`, so reading a stack trace would mean first working out which customer caused it — and anything failing outside tenant context would go somewhere else again.
 - Identical Blade templates would be compiled and cached separately per tenant: N copies of the same file, and a cold cache for every new customer.
-- `storage_path('app/releases/lavoro.apk')` (`routes/web.php:560`) would look inside the current tenant's folder, so the Android download 404s — unless you keep a copy of the same APK per customer.
+- `storage_path('app/releases/lavoro.apk')` (`routes/web.php:569`) would look inside the current tenant's folder, so the Android download 404s — unless you keep a copy of the same APK per customer.
 
 The customer's *files* need separating. The installation's plumbing does not.
 
@@ -1934,9 +1934,24 @@ grep -rn "Storage::url\|disk('public')->url" app/
 
 **Two greps, because there are two ways to bypass the root and only one of them says `storage_path`.** The second catches `Storage::url()` and `->url()`, which build a public `/storage/…` URL from the disk's *configured* `url` key rather than from its root — tenant-aware in neither direction.
 
-The first grep returns more than the six below. Two of the extras are handled by other tasks and should **not** be fixed here, or you will do the work twice and diverge: `AppServiceProvider.php:212` (the `company` Inertia share) is rewritten in Task 13, and `AuthController.php:19` (the login page's company logo) is deleted outright in Task 15. The three `asset('storage/logo.png')` / `public_path('storage/logo.png')` hits in the PDF blades are the static fallback logo and stay global — see the note at the end of this step. The second grep returns `User.php:86`, which Step 4 has already rewritten by the time you get here.
+**The greps are the list. Do not trust the one below.** These call sites move with
+almost every commit — the line numbers in this plan have already drifted three
+times — so run the greps, then use the notes below to classify what comes back by
+*file*, not by line.
 
-1. **`app/Http/Controllers/ServiceOrderController.php:816`** — builds `storage_path('app/public/' . $image->path)` to base64-embed werkbon photos in the PDF. Read through the disk instead, which respects the tenant root:
+Some hits are deliberately not fixed here:
+
+| File | What to do |
+| --- | --- |
+| `AppServiceProvider` (the `company` Inertia share) | Rewritten in Task 13 — leave it |
+| `AuthController` (the login page logo) | Deleted outright in Task 15 — leave it |
+| The three PDF blades' `storage/logo.png` | A static fallback logo, not tenant data — stays global, see the end of this step |
+| `User::getAvatarAttribute` | Already rewritten in Step 4 |
+
+Everything else the greps return is yours to fix, and there are six of them at the
+time of writing:
+
+1. **`app/Http/Controllers/ServiceOrderController.php:817`** — builds `storage_path('app/public/' . $image->path)` to base64-embed werkbon photos in the PDF. Read through the disk instead, which respects the tenant root:
 
 ```php
 if (!Storage::disk('public')->exists($image->path)) {
@@ -3354,31 +3369,12 @@ Permissions themselves come from the `seed_*_permissions` migrations — the see
 must never create one. It creates **roles** and attaches existing permissions
 **by name**.
 
-The starting set is eleven roles, taken from a live install and kept in
-`database/seeders/data/{slug}_permissions.php` (the convention
-`AutomotiveEquipmentSeeder` already uses):
-
-| Role | Permissions | Notes |
-| --- | --- | --- |
-| admin | 1 | Only `assistant.use` — admins bypass every other check, and that is the one permission `AssistantPolicy` deliberately does not grant them |
-| Monteur | 32 | Field role. Uses `serviceorder.read_own`, not `serviceorder.read` |
-| Binnendienst | 137 | The broad office role |
-| Planner | 50 | |
-| Administratie | 44 | |
-| Projectleider | 7 | |
-| Projectmanager | 9 | Adds `project.manage_financials` |
-| Verkoop | 5 | |
-| Gebruikersbeheer | 8 | User administration without the rest of Beheer |
-| technisch beheer | 1 | `technical.management`, the `explicitPermission` in `useMenu.js` that admins do not inherit |
-| HR | 1 | `roster.manage_all` |
+The role list lives in **one file**, `database/seeders/data/tenant_roles.php`, which
+maps each role to the file holding its permissions. Adding a role is a line there
+and a file beside it, and nothing else changes:
 
 ```php
-$roles = [
-    'admin' => 'admin', 'Monteur' => 'monteur', 'Binnendienst' => 'binnendienst',
-    'Planner' => 'planner', 'Administratie' => 'administratie', 'Verkoop' => 'verkoop',
-    'Projectleider' => 'projectleider', 'Projectmanager' => 'projectmanager',
-    'Gebruikersbeheer' => 'gebruikersbeheer', 'technisch beheer' => 'technisch_beheer', 'HR' => 'hr',
-];
+$roles = include base_path('database/seeders/data/tenant_roles.php');
 
 foreach ($roles as $name => $slug) {
     $role = Role::firstOrCreate(['name' => $name]);
@@ -3390,6 +3386,16 @@ foreach ($roles as $name => $slug) {
     );
 }
 ```
+
+The eleven roles it starts with come from a live install. Two look wrong and are
+not: `admin` holds only `assistant.use`, because admins bypass every other check
+and that is the one permission `AssistantPolicy` deliberately withholds from them;
+`technisch beheer` holds only `technical.management`, the `explicitPermission` in
+`useMenu.js` that admins likewise do not inherit. Those two roles exist to grant
+the app's two deliberate exceptions to admin-sees-everything.
+
+`Monteur` uses `serviceorder.read_own` rather than `serviceorder.read`, so a
+mechanic sees their own werkbonnen instead of the whole company's.
 
 **Look up by name and let unknown names fall through.** Permission ids differ
 between installs, and the set drifts as migrations add to it — `whereIn` on names
@@ -3876,6 +3882,8 @@ grep '^DB_DATABASE=' .env
 > **Do not run `./deploy.sh` between this cutover and Task 38.** The current script backs up only the database named in `DB_DATABASE` (now the small central registry) and runs only central migrations — both silently. Until Task 38 lands, a routine deploy would rotate your real backups out and skip every tenant migration without printing an error. This cutover runs its own script; `deploy.sh` is not involved.
 
 ### Task 27, Step 0: Take the app down and stop everything that writes
+
+**Use `php artisan app:maintenance`, not `php artisan down`.** The project has its own toggle that renders a proper page with a message and an expected end time, served before Composer loads. `down` on its own gives customers a bare framework error page.
 
 Step 1 drops and recreates the database the running application is connected to. Anything still writing during that window loses data silently, and a queue worker holding a booted container will keep serving stale config afterwards.
 
