@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class InitializeTenancyBySession
 {
@@ -28,6 +29,22 @@ class InitializeTenancyBySession
                 $request->hasSession() && $request->session()->forget('tenant_id');
                 cookie()->queue(cookie()->forget('tenant_id'));
             }
+        }
+
+        /**
+         * Zonder tenant kan er niets ingelogd zijn: de users-tabel staat in de
+         * tenantdatabase. Laravel's remember-me herstelt de gebruiker pas na
+         * deze middleware, dus zonder dit haalt hij er alsnog eentje terug en
+         * vraagt Auth::user() de centrale database om een tabel die daar niet
+         * staat -- een 500 in plaats van het inlogscherm.
+         */
+        if (! tenancy()->initialized) {
+            Auth::forgetUser();
+
+            $recaller = Auth::guard()->getRecallerName();
+
+            $request->cookies->remove($recaller);
+            cookie()->queue(cookie()->forget($recaller));
         }
 
         $response = $next($request);
