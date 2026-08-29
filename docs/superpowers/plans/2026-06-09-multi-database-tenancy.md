@@ -913,13 +913,13 @@ git commit -m "feat(tenancy): move sessions table to central connection"
 
 After this:
 - `database/migrations/` holds only central migrations: cache, jobs, tenants, user_tenant_lookups, sessions, and the licensing catalogue. `php artisan migrate` runs these against the central database.
-- `database/migrations/tenant/` holds everything else (about 231 files: the users migration plus every dated one). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
+- `database/migrations/tenant/` holds everything else (about 244 files: the users migration plus every dated one). `php artisan tenants:migrate` runs these against each tenant database. Plain `migrate` does not descend into subdirectories, so these are correctly excluded from the central run.
 
 `assistant_usage` moves the other way, but not here: it is a tenant migration today, and Task 39 replaces it with a central copy plus a tenant drop, *after* the rows have been carried across in the Task 27 window. Leave it in `tenant/` at this point — moving it early would drop the only record of what has been spent.
 
 `0001_01_01_000000_create_users_table.php` (now just users + password_reset_tokens after Task 7) moves to tenant. The cache and jobs framework migrations, and every central migration from Tasks 6–7, stay put.
 
-**Files:** move ~231 migration files (237 total after Tasks 6–7, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
+**Files:** move ~244 migration files (250 total after Tasks 6–7, of which 6 stay central). Counts drift with every feature branch — treat them as a sanity check, not a target.
 
 ### Task 8, Step 1: Move the files
 
@@ -959,7 +959,7 @@ ls database/migrations/*.php
 # framework ones excepted) — anything else here is misfiled.
 grep -L "connection = 'central'" database/migrations/*.php
 
-ls database/migrations/tenant/ | wc -l   # ~231
+ls database/migrations/tenant/ | wc -l   # ~244
 
 # Nothing in tenant/ should claim the central connection.
 grep -l "connection = 'central'" database/migrations/tenant/*.php   # expect no output
@@ -1551,7 +1551,7 @@ git commit -m "feat(tenancy): initialize tenant from session or remember-cookie 
 
 `AppServiceProvider` shares company data on every Inertia response, including the login page where no tenant is active. Querying `Company` then hits the central database, which has no `companies` table, and crashes. Return `null` when tenancy is not initialized. The logo URL points at the authenticated file route from Task 14 (not a public `/storage` path), so it resolves per tenant.
 
-**Three further shares in `HandleInertiaRequests` need checking rather than changing.** `auth.can.use_assistant` calls a policy; `nav.open_tickets` runs a `Ticket::visibleTo(...)->exists()`; `nav.unread_notifications` counts the user's unread rows. All three query the tenant database on **every Inertia response in the application**, which sounds exactly like the bug this task exists to fix — but each is already wrapped in `$request->user() ? … : default`, and on the login page there is no user, so none of them fires. They are safe as written. Confirm that when you get here; if a future share drops the `$request->user()` guard, it crashes the login page the same way `company` did.
+**Four further shares in `HandleInertiaRequests` need checking rather than changing.** `auth.can.use_assistant` calls a policy; `pendingAnnouncement` runs `InternalAnnouncement::openFor($user)`; `nav.open_tickets` runs a `Ticket::visibleTo(...)->exists()`; `nav.unread_notifications` counts the user's unread rows. All four query the tenant database on **every Inertia response in the application**, which sounds exactly like the bug this task exists to fix — but each is already wrapped in `$request->user() ? … : default`, and on the login page there is no user, so none of them fires. They are safe as written. `pendingAnnouncement` is additionally a closure, so it only runs when a page is actually rendered rather than on every redirect. Confirm that when you get here; if a future share drops the `$request->user()` guard, it crashes the login page the same way `company` did.
 
 `push.vapid_public_key` reads global config and never touches a database. Leave it.
 
