@@ -218,7 +218,7 @@ class AppServiceProvider extends ServiceProvider
             if (!$company) {
                 return null;
             }
-            $logo_url = $company->logo_path ? asset('storage/' . $company->logo_path) : null;
+            $logo_url = $company->logo_path ? url("/files/companies/{$company->id}/logo") : null;
 
             return [
                 'name' => $company->name,

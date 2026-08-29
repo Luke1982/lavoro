@@ -63,7 +63,7 @@
                                         <input type="file" @change="onFile"
                                             class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
                                         <div v-if="company.logo_path" class="mt-2 bg-gray-50 dark:bg-slate-700 p-2 rounded">
-                                            <img :src="`/storage/${company.logo_path}`" class="h-12 object-contain" />
+                                            <img :src="`/files/companies/${company.id}/logo`" class="h-12 object-contain" />
                                         </div>
                                     </div>
                                     <div>
@@ -72,7 +72,7 @@
                                         <input type="file" @change="onFileNegative"
                                             class="block w-full text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded" />
                                         <div v-if="company.logo_negative_path" class="mt-2 bg-slate-800 p-2 rounded">
-                                            <img :src="`/storage/${company.logo_negative_path}`" class="h-12 object-contain" />
+                                            <img :src="`/files/companies/${company.id}/logo/negative`" class="h-12 object-contain" />
                                         </div>
                                     </div>
                                 </div>

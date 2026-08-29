@@ -56,7 +56,7 @@
                                     </div>
                                 </div>
                                 <div v-if="event.thumbnailPath" class="mt-2">
-                                    <img :src="`/storage/${event.thumbnailPath}`" alt=""
+                                    <img :src="`/files/images/${event.thumbnailImageId}`" alt=""
                                         class="h-16 w-24 object-cover rounded-md border border-gray-200 dark:border-slate-700" />
                                 </div>
                             </div>

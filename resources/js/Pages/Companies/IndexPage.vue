@@ -11,7 +11,7 @@
                 <li v-for="company in companies" :key="company.id"
                     class="border-b border-gray-200 dark:border-slate-800/60 p-4">
                     <div class="flex items-center gap-3">
-                        <img v-if="company.logo_path" :src="`/storage/${company.logo_path}`"
+                        <img v-if="company.logo_path" :src="`/files/companies/${company.id}/logo`"
                             class="h-10 w-10 object-contain rounded" />
                         <div class="flex-1">
                             <div class="font-semibold text-gray-900 dark:text-slate-100">{{ company.name }}</div>
@@ -79,7 +79,7 @@
                     <td class="px-4 py-2 text-gray-900 dark:text-slate-100">{{ company.city }}</td>
                     <td class="px-4 py-2 text-gray-900 dark:text-slate-100">{{ company.country }}</td>
                     <td class="px-4 py-2">
-                        <img v-if="company.logo_path" :src="`/storage/${company.logo_path}`"
+                        <img v-if="company.logo_path" :src="`/files/companies/${company.id}/logo`"
                             class="h-10 w-10 object-contain rounded" />
                         <span v-else class="text-xs text-gray-400 dark:text-slate-500">Geen</span>
                     </td>

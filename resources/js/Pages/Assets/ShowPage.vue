@@ -373,7 +373,7 @@
                     <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">product</Link>
                 </SectionHeader>
                 <div class="grid grid-cols-2 gap-6 items-center mt-4">
-                    <img v-for="image in asset.product.images" :key="image.id" :src="`/storage/${image.path}`"
+                    <img v-for="image in asset.product.images" :key="image.id" :src="`/files/images/${image.id}`"
                         alt="{{ image.name }}" class="w-full h-auto rounded-lg mb-4" />
                 </div>
             </BoxComponent>
@@ -577,9 +577,9 @@ const statusBadgeColor = computed(() => (props.asset.status === 'Actief' ? 'gree
 
 const headerImage = computed(() => {
     const assetMain = props.asset.images?.find(image => image.pivot?.main) ?? props.asset.images?.[0]
-    if (assetMain) return `/storage/${assetMain.path}`
+    if (assetMain) return `/files/images/${assetMain.id}`
     const productImage = props.asset.product?.images?.find(image => image.pivot?.main) ?? props.asset.product?.images?.[0]
-    if (productImage) return `/storage/${productImage.path}`
+    if (productImage) return `/files/images/${productImage.id}`
     return null
 })
 

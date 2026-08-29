@@ -141,7 +141,7 @@
                 class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
                 <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
                     <img class="size-10 flex-none rounded-full bg-gray-50 object-cover"
-                        :src="asset.product.images.length > 0 ? `/storage/${asset.product.images[0].path}` : '/img/placeholder.png'"
+                        :src="asset.product.images.length > 0 ? `/files/images/${asset.product.images[0].id}` : '/img/placeholder.png'"
                         alt="" />
                     <div class="min-w-0">
                         <Link :href="`/assets/${asset.id}`"

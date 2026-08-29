@@ -83,7 +83,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return Storage::url($files[0]);
+        return url("/files/avatars/{$this->id}");
     }
 
     /**

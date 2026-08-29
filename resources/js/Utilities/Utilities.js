@@ -491,7 +491,7 @@ export function mapAssetForSelect(asset) {
         location: asset.linked_location
             ? { id: asset.linked_location.id, title: asset.linked_location.title, city: asset.linked_location.city }
             : null,
-        thumbnail_url: asset.product?.images?.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
+        thumbnail_url: asset.product?.images?.length > 0 ? `/files/images/${asset.product.images[0]?.id}` : null,
     };
 }
 

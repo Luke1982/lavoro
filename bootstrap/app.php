@@ -42,8 +42,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'accesstoken' => ResolveAccessToken::class,
+            'tenant.api' => \App\Http\Middleware\InitializeTenancyForApi::class,
         ]);
         $middleware->statefulApi();
+
         $middleware->validateCsrfTokens(except: ['google/webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
