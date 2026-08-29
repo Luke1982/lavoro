@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  * when people are actually busy, because an empty diary is answered on the
  * first day and stops.
  */
-class TechnicianAvailability
+class TechnicianAvailability implements \App\Support\ForgetsTenantState
 {
     private const MINUTES_PER_DAY = 1440;
 
@@ -44,6 +44,11 @@ class TechnicianAvailability
      * then asking whether that mechanic is free would otherwise be answered out
      * of the copy read before the booking, and cheerfully double-book them.
      */
+    public function forgetTenantState(): void
+    {
+        $this->forget();
+    }
+
     public function forget(): void
     {
         $this->diary = [];

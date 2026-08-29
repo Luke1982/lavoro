@@ -15,7 +15,7 @@ use App\Models\Activity;
  * Registered as a singleton and reset between queue jobs, so a long-running
  * worker never merges two unrelated jobs into one entry.
  */
-class ActivityBuffer
+class ActivityBuffer implements \App\Support\ForgetsTenantState
 {
     /** @var array<string, int> */
     private array $entries = [];
@@ -45,7 +45,7 @@ class ActivityBuffer
         $this->entries[$this->key($subject_type, $subject_id, $action, $actor_type)] = $activity_id;
     }
 
-    public function reset(): void
+    public function forgetTenantState(): void
     {
         $this->entries = [];
     }
