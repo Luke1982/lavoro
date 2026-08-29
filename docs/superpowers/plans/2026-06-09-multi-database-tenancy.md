@@ -217,7 +217,17 @@ GRANT ALL PRIVILEGES ON `lavoro\_landlord`.* TO 'lavoro_app'@'127.0.0.1';
 FLUSH PRIVILEGES;
 ```
 
-Note this is **not** a wildcard grant. `lavoro_app` gets the landlord database and nothing else. The underscore is escaped for the same reason as in Step 2 — unescaped, `lavoro_landlord` is a *pattern* that would also match `lavoroXlandlord`.
+Note this is **not** a wildcard grant. `lavoro_app` gets the landlord database and nothing else.
+
+**Add one more grant, or local development does not work at all:**
+
+```sql
+GRANT SHOW DATABASES ON *.* TO 'lavoro_app'@'127.0.0.1';
+```
+
+`DatabaseTenancyBootstrapper` runs a `databaseExists()` check on every tenancy switch — but **only when `APP_ENV=local`** (the package's own comment says "better debugging, but breaks cached lookup in prod"). It reads `INFORMATION_SCHEMA.SCHEMATA` on the app's connection, and `INFORMATION_SCHEMA.SCHEMATA` only lists schemas you hold a privilege on. Without this grant `lavoro_app` sees nothing, and every tenant request in development dies with `Database lavoro_tenant_x does not exist` while the database is sitting right there.
+
+`SHOW DATABASES` exposes database *names* server-wide and no data. Verified: with it granted, `SELECT ... FROM lavoro_tenant_spee.users` as `lavoro_app` is still refused. The underscore is escaped for the same reason as in Step 2 — unescaped, `lavoro_landlord` is a *pattern* that would also match `lavoroXlandlord`.
 
 ### Task 2, Step 2: Create the provisioner — Linux user first, then a passwordless MySQL user bound to it
 
@@ -239,7 +249,30 @@ Do not drop the backslashes before the underscores in either grant. An unescaped
 
 Note what is *not* covered: a database that is neither the landlord nor a tenant — a pre-tenancy install, another app's schema — falls outside both patterns, so this account cannot read or drop it. That is what makes the pre-cutover database safe from provisioning mistakes rather than merely untouched by convention.
 
-`WITH GRANT OPTION` is required on the tenant pattern because this account grants each new tenant's **MySQL login** rights on its own database. `CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
+**Those two grants are not enough, and the reason is a MySQL rule that is easy to miss.** A *wildcard* database grant with `WITH GRANT OPTION` lets the account **use** every matching database, but it does **not** let it `GRANT` privileges on one. Tested on MySQL 8.0.46:
+
+```
+GRANT ALL ON `lavoro\_tenant\_%`.* TO provisioner WITH GRANT OPTION;   -- held
+GRANT SELECT ON `lavoro_tenant_spee`.* TO 'sometenant'@'%';           -- ERROR 1044
+```
+
+The same statement succeeds the moment the provisioner is granted on `lavoro_tenant_spee` *by exact name*. So the pattern grant is fine for reading and writing, and useless for the one thing provisioning has to do: hand each new tenant's login rights on its own database.
+
+There is no narrower grant that fixes this. The provisioner needs:
+
+```sql
+GRANT ALL PRIVILEGES ON *.* TO 'lavoro_provisioner'@'localhost' WITH GRANT OPTION;
+```
+
+**Say plainly what that costs.** The provisioner is now an administrative account, not a scoped one. The claim this design can still make is the one that was always the real one:
+
+> No credential reachable from a web request can read more than one tenant's data.
+
+That still holds exactly as before — `lavoro_app` reaches only the landlord database, and a tenant request authenticates as that tenant's own login. What is gone is the idea that the provisioner itself is confined to the tenant prefix. It is not, and it cannot be. Its protection is that it has **no password**, is bound to a Linux user by `auth_socket`, and is unusable by `www-data` or over TCP — which is what the verification in Step 3 checks.
+
+**Re-test this on MariaDB before trusting it there.** The finding above is from MySQL 8.0.46; production runs MariaDB, whose privilege checking for wildcard grants may differ. If MariaDB accepts the pattern grant, keep the narrower one there.
+
+`CREATE USER` must be granted at `*.*` regardless — MySQL does not accept it scoped to a database pattern.
 
 If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
 
@@ -1338,7 +1371,7 @@ use Stancl\Tenancy\Jobs\MigrateDatabase;
 use Stancl\Tenancy\Jobs\SeedDatabase;
 use Stancl\Tenancy\Listeners\BootstrapTenancy;
 use Stancl\Tenancy\Listeners\RevertToCentralContext;
-use Stancl\Tenancy\Support\JobPipeline;
+use Stancl\JobPipeline\JobPipeline;
 
 class TenancyServiceProvider extends ServiceProvider
 {
@@ -1538,7 +1571,70 @@ Whoever executes this must also check `App\Models\AccessToken::issue()` and `rev
 
 **Read Task 41 before building this.** It solves the same problem for a different kind of token — a Sanctum bearer token from an API client — and lands on the same answer: a central table mapping a token hash to a tenant. Two tables would be `access_token_lookups` here and `access_token_tenant_lookups` there, which is one letter apart in the schema and two different things in the head. Decide up front whether they are one table with a `kind` column or two with names nobody can confuse, because the second person to touch this will assume there is only one.
 
-### Task 12, Step 4: Commit
+### Task 12, Step 4: Pin the order with a test, because nothing else will
+
+Middleware order is decided by an array in `bootstrap/app.php` that nothing
+validates. Get it wrong and every route with a bound model 404s — which reads as
+a routing bug, not a tenancy one, and sends you looking in the wrong file.
+
+Assert the order directly rather than testing a symptom. This names the problem in
+its failure message:
+
+```php
+<?php
+
+namespace Tests\Feature;
+
+use App\Http\Middleware\InitializeTenancyBySession;
+use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Route;
+use Tests\TestCase;
+
+class MiddlewareOrderTest extends TestCase
+{
+    public function test_tenancy_is_initialized_before_bindings_and_auth(): void
+    {
+        $route = collect(Route::getRoutes())
+            ->first(fn ($r) => $r->uri() === 'serviceorders/{serviceorder}');
+
+        $this->assertNotNull($route, 'The route this test pins no longer exists.');
+
+        $order = collect(app(Router::class)->gatherRouteMiddleware($route))
+            ->map(fn ($m) => is_string($m) ? $m : $m::class)
+            ->values();
+
+        $at = fn (string $needle) => $order->search(
+            fn ($m) => str_starts_with($m, $needle)
+        );
+
+        $tenancy  = $at(InitializeTenancyBySession::class);
+        $bindings = $at(\Illuminate\Routing\Middleware\SubstituteBindings::class);
+        $auth     = $at(\Illuminate\Auth\Middleware\Authenticate::class);
+
+        $this->assertNotFalse($tenancy, 'InitializeTenancyBySession is not on this route at all.');
+
+        $this->assertLessThan($bindings, $tenancy,
+            'Tenancy must initialize before SubstituteBindings, or every bound model resolves against the central database and 404s.');
+
+        $this->assertLessThan($auth, $tenancy,
+            'Tenancy must initialize before auth, which queries the tenant database for the user.');
+    }
+}
+```
+
+`gatherRouteMiddleware` is what the framework itself calls to build the pipeline,
+and it applies the priority sorting — so this tests the order that will actually
+run, not the order the arrays were written in.
+
+Add the same three assertions for an API route against `InitializeTenancyForApi`
+once Task 24 lands.
+
+**Do not replace this with a "hit the route and assert 200" test.** That one also
+passes when the route is 200 for some unrelated reason, and when it fails it tells
+you a page did not load rather than which middleware is in the wrong place. A
+functional test alongside is fine; a functional test instead is a worse trade.
+
+### Task 12, Step 5: Commit
 
 ```bash
 git add app/Http/Middleware/InitializeTenancyBySession.php bootstrap/app.php
@@ -3776,6 +3872,19 @@ class TenantDbUserProvisioner
 }
 ```
 
+**`RunsAsProvisioner` has to repoint two connections, not one.** `DatabaseConfig::manager()` ends with `setConnection($this->getTemplateConnectionName())`, and that name is `DB_CONNECTION` — the plain `mysql` connection. Switch only `central` to the provisioner's credentials and every database and user operation still runs as `lavoro_app`, which fails with `Access denied`. Switch both, and `DB::purge()` each so the old credentials are not reused from the connection pool.
+
+**Do not call `$manager->userExists()`.** It runs `SELECT count(*) FROM mysql.user`, so making it work means granting the provisioner `SELECT` on `mysql.user` — every password hash on the server. `DROP USER IF EXISTS` does the same job and needs only the `CREATE USER` privilege the account already has:
+
+```php
+DB::connection(config('tenancy.database.template_tenant_connection', 'mysql'))
+    ->statement("DROP USER IF EXISTS '{$username}'@'%'");
+
+$manager->createUser($tenant->database());
+```
+
+**Wrap the whole command in a transaction, and refuse a database that is already registered.** Without it, a failure anywhere after the `tenants` insert leaves a tenant row with no MySQL login, and every later `tenants:migrate` dies on it. Running the command four times while debugging produced four tenant rows all claiming the same database, and only the last had lookup rows. Check `tenants` for the database name before inserting, and roll back on any failure.
+
 `createUser()` takes no username or password. It reads them off the tenant row, which is what `$tenant->database()` builds a fresh config from — so the row has to be saved first. Save it afterwards instead and you create a MySQL login with the previous password, or with none at all.
 
 Saving first also makes a failure recoverable. If MySQL refuses, the row already holds the username and password, so running the command again finishes the job. The other way round leaves MySQL with a login the application has no record of.
@@ -4905,9 +5014,9 @@ public static function set(string $key, mixed $value): void
 
 Do not remove the `DecryptException` catch. After an `APP_KEY` rotation every stored secret becomes undecryptable; returning the default turns that into "not configured" — a settings screen asking to re-enter the credentials — instead of a 500 on every page that touches mail or SnelStart. See Known impact 11: `APP_KEY` was already backup-critical for tenant database passwords, and this widens what it protects.
 
-### Task 32, Step 2: Rewrite the `Mail::extend('graph', ...)` closure — fall back as a set, not per key
+### Task 32, Step 2: Rewrite the `Mail::extend('graph', ...)` closure — all four settings or nothing
 
-The obvious implementation resolves each key independently, falling back to env per key. That produces a state that cannot work. `GraphTransport.php:52` is `$user = $this->userId ?: $this->fromAddress;`, and it posts to `/users/{$user}/sendMail`. So a tenant that configures its own `graph_client_id` and `graph_client_secret` but leaves the mailbox unset authenticates against **its own** Azure app registration and then asks it to send as `MAIL_FROM_ADDRESS` — a mailbox that exists in *Lavoro's* Azure tenant and not in theirs. Every send fails with an unhelpful Graph error.
+The obvious implementation resolves each key independently, taking whatever the tenant has set and filling the gaps from `.env`. That produces a state that cannot work. `GraphTransport.php:52` is `$user = $this->userId ?: $this->fromAddress;`, and it posts to `/users/{$user}/sendMail`. So a tenant that configures its own `graph_client_id` and `graph_client_secret` but leaves the mailbox unset authenticates against **its own** Azure app registration and then asks it to send as `MAIL_FROM_ADDRESS` — a mailbox that exists in *Lavoro's* Azure tenant and not in theirs. Every send fails with an unhelpful Graph error.
 
 So the tenant either supplies the whole set or none of it:
 
@@ -4934,18 +5043,25 @@ Mail::extend('graph', function () {
         );
     }
 
-    return new GraphTransport(
-        tenantId: config('services.graph.tenant_id'),
-        clientId: config('services.graph.client_id'),
-        clientSecret: config('services.graph.client_secret'),
-        fromAddress: config('mail.from.address'),
-        userId: config('services.graph.user_id'),
-        graphEndpoint: config('services.graph.endpoint'),
-        dispatcher: app('events'),
-        logger: app('log')->channel()
-    );
+    throw new GraphNotConfigured();
 });
 ```
+
+**There is no fallback to the env credentials, and there must not be one.** A
+tenant that has not entered its Azure details does not send mail — it fails, the
+same way SnelStart does.
+
+The tempting version falls back to the shared mailbox from `.env` so that mail
+"still works". What it actually does is send one customer's appointment
+confirmations from another company's mailbox, to that customer's own clients,
+with the wrong sender on them. That is worse than not sending: nothing is queued
+for a human to notice, the mail simply arrives looking like it came from someone
+else. Failing closed puts a failed job in the queue and an error in the log, which
+is a support ticket rather than a data leak.
+
+`GraphNotConfigured` should carry a message an administrator can act on — which
+mailbox is missing, and where to enter it — and Task 32 Step 9 renders it as a
+notification rather than a 500.
 
 Note `graph_user_id` is **required** in the tenant branch, where the pre-tenancy design called it optional. Once credentials are per tenant, the mailbox must belong to the same Azure tenant as the credentials that authenticate to it; there is no coherent "own app registration, shared mailbox" configuration. The from-address defaults to the mailbox itself rather than the global `MAIL_FROM_ADDRESS`, for the same reason.
 
@@ -7364,7 +7480,14 @@ have that, its steps are the same with `scp` in the middle.
 ### Task 44, Step 2: What it does, in order
 
 1. **Preflight, before anything is written.** Refuse if `lavoro_tenant_<slug>` already exists, if the dump is unreadable, if the provisioner cannot connect, or if `--package` is not in the catalogue. A typo in the package name should stop the run in the first second, not after the restore.
-2. **Create the database and restore the dump.**
+2. **Create the database and restore the dump — stripping the dump's own database name.** A dump taken with `mysqldump --databases` (or from most GUI tools) begins with `CREATE DATABASE \`spee_production\`` and `USE \`spee_production\``. Feed that to `mysql lavoro_tenant_spee` and it **ignores the database you named**, recreates the original, and exits 0. You get a silent success and an empty tenant.
+
+```bash
+sed -e '/^CREATE DATABASE .*`OLDNAME`/d' -e '/^USE `OLDNAME`/d' "$DUMP" \
+    | mysql "lavoro_tenant_${SLUG}"
+```
+
+Then assert the table count is non-zero before going further, because nothing else will tell you.
 3. **Drop the tables that are central now** — `sessions`, and optionally `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`.
 4. **Check for e-mail collisions** against `user_tenant_lookups`, including soft-deleted users on both sides. **Stop here and print the clashes if there are any.** This is the last point at which nothing has been registered centrally, so it is the cheapest place to fail.
 5. **`tenant:setup-existing`** — registers the tenant, creates its MySQL login, copies the e-mail addresses into the central lookup. Capture the printed tenant id.
@@ -7450,7 +7573,7 @@ git commit -m "feat(tenancy): script the import of an existing installation"
 
 3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which closes the world-readable hole. It does not apply per-resource permission checks, and the two file paths are gated differently: `FileController` (images, avatars, logos) checks only that you are signed in, while documents additionally require `can('viewAny', Document::class)` via `DocumentViewRequest`. Neither checks the *individual* record, so any user who clears the coarse gate can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
-4. **SnelStart and Microsoft Graph credentials are per-tenant** (Task 32), stored encrypted in the tenant's `general_settings` and edited from Beheer → Koppelingen. Graph falls back to the shared env credentials for tenants that haven't configured a mailbox; SnelStart fails closed, because there is no safe default administratie to write someone else's invoices into.
+4. **SnelStart and Microsoft Graph credentials are per-tenant** (Task 32), stored encrypted in the tenant's `general_settings` and edited from Beheer → Koppelingen. Neither falls back to shared credentials: a tenant that has not configured its mailbox does not send mail, because sending it from another company's mailbox would put the wrong sender on a customer's own correspondence.
 
    **Firebase (FCM) is still global**, and unlike the other two that is probably correct: the FCM credential identifies the *Lavoro app* to Google, not the customer, and device tokens are app-instance-bound rather than tenant-bound. Revisit only if tenants ever ship their own branded builds — at which point the Task 32 pattern applies directly.
 
@@ -7460,7 +7583,7 @@ git commit -m "feat(tenancy): script the import of an existing installation"
 
 6. **Scheduler cost scales with tenant count, not with tenant data** (Task 20). Every scheduled tick dispatches one queued job per tenant (a config swap plus a single `INSERT` into the central `jobs` table) rather than running a query or delete inline per tenant, so tick cost tracks tenant *count* only, which is cheap. If tenant count itself grows into the hundreds and the dispatch loop alone becomes the bottleneck, chunking the central tenant list (already using `cursor()` rather than `get()`) or splitting the loop across multiple scheduled entries are the next levers.
 
-7. **Middleware ordering matters and nothing shows you when it is wrong.** Task 12 pins the tenancy initializers into `$middleware->priority()`. Nothing enforces that a future middleware addition preserves it, and getting it wrong presents as mass 404s that look like a routing bug. If this bites twice, a cheap feature test — hit a bound-model route as a tenant user and assert 200 — is worth more than a comment.
+7. ~~Middleware ordering is unenforced.~~ **Covered by Task 12 Step 4.** `MiddlewareOrderTest` reads the pipeline the framework would actually build for a bound-model route and asserts that tenancy initializes before both `SubstituteBindings` and `auth`. A future middleware addition that breaks the order fails that test with a message naming the cause, rather than producing mass 404s that look like a routing bug.
 
 8. **`storage_path()` will keep catching people out.** Task 14 fixes the six current offenders, but nothing prevents new code from writing `storage_path('app/public/…')` again, and the failure is silent (a missing file reads as "no image"). Consider a Pint/PHPStan rule or a grep in CI over `app/` and `resources/views/` for `storage_path('app/` once tenancy is live.
 
