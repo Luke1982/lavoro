@@ -3843,6 +3843,11 @@ git commit -m "feat(tenancy): provision a dedicated MySQL user per tenant"
 
 ## Task 27: The cutover script
 
+**Read Task 44 first.** If you can stand up a fresh multi-tenant installation on
+production and import the existing customers into it, do that instead — the old
+install keeps running throughout and rollback is a DNS change. This task is the
+in-place alternative, for when a second installation is not practical.
+
 The one-time move of the live install into a tenant. **Build this as a script here
 and rehearse it locally before it goes anywhere near production.**
 
@@ -7289,6 +7294,142 @@ End with a summary line and `exit(1)` if anything failed.
 ```bash
 git add app/Console/Commands/TenancyDoctor.php routes/console.php
 git commit -m "feat(tenancy): add tenancy:doctor for the checks git cannot hold"
+```
+
+---
+
+## Task 44: `import-install.sh` — move one old installation into a fresh multi-tenant install
+
+Tasks 27 and 29 describe two different moves. This one turns the second into a
+script with parameters, and in doing so makes the first optional.
+
+### Two routes onto production
+
+| | Task 27, in place | Fresh install + import |
+| --- | --- | --- |
+| What happens | The live database is converted where it stands | A new multi-tenant install is set up beside it, and each old install is imported |
+| Old install during the move | Down | Up and serving customers |
+| If it goes wrong | Restore code, config and files from the rollback step | Point DNS back at the old install; nothing was touched |
+| Rehearsals | One, on a copy | As many as you like |
+| Cost | None | A second install running for a while |
+
+**The second is safer and it is the one to prefer.** The old installation is never
+modified — you take a dump, import it, and the only irreversible moment is the DNS
+switch. Task 27 exists for the case where standing up a second install is not
+practical; if you can, skip it.
+
+This script is what makes the second route routine rather than a project per
+customer.
+
+**Files:** `scripts/tenancy/import-install.sh` (new)
+
+### Task 44, Step 1: The parameters
+
+Run it from the multi-tenant install, pointing at the old one's directory:
+
+```bash
+cd /home/lavoro/app
+
+scripts/tenancy/import-install.sh \
+    --from /home/spee/lavorofsm \
+    --name "Spee Totaaltechniek" \
+    --slug spee \
+    --package business \
+    --modules google_calendar,snelstart \
+    --storage-gb 100 \
+    --dry-run
+```
+
+`--from` is the old installation's root directory, and it is the only thing that
+needs to be worked out by hand. The script reads `<from>/.env` for its database
+name and credentials, and takes its files from `<from>/storage/app`. Nothing is
+written to that directory at any point — it is read and left alone.
+
+`--slug` becomes `lavoro_tenant_spee`. `--dry-run` prints every command and changes
+nothing, the same as `setup-mysql.sh`.
+
+**Both installations are on one machine, so there is no transfer step.** The dump
+is written to a temporary file and restored on the spot. Task 29 covers the harder
+case of a legacy install on its own host, where the dump has to travel; if you ever
+have that, its steps are the same with `scp` in the middle.
+
+### Task 44, Step 2: What it does, in order
+
+1. **Preflight, before anything is written.** Refuse if `lavoro_tenant_<slug>` already exists, if the dump is unreadable, if the provisioner cannot connect, or if `--package` is not in the catalogue. A typo in the package name should stop the run in the first second, not after the restore.
+2. **Create the database and restore the dump.**
+3. **Drop the tables that are central now** — `sessions`, and optionally `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`.
+4. **Check for e-mail collisions** against `user_tenant_lookups`, including soft-deleted users on both sides. **Stop here and print the clashes if there are any.** This is the last point at which nothing has been registered centrally, so it is the cheapest place to fail.
+5. **`tenant:setup-existing`** — registers the tenant, creates its MySQL login, copies the e-mail addresses into the central lookup. Capture the printed tenant id.
+6. **`tenants:migrate`** for that tenant, to bring the imported schema up to the current one.
+7. **Copy the files** into `storage/tenant-<id>/public` and `/local`.
+8. **Set the subscription** — package, seats, modules, storage limit. After the migrate, not before: seat counts need the `seat_type` column that migration adds.
+9. **Expire the Google watch channels** so they are recreated with a tenant-prefixed token (Task 25).
+10. **`tenancy:doctor`** for the new tenant, and stop non-zero if it complains.
+
+### Task 44, Step 3: Who runs what
+
+The script needs `sudo`, but it must not run everything as root. Three different
+identities, for three different reasons:
+
+| Part | Runs as | Why |
+| --- | --- | --- |
+| Reading `/home/spee/lavorofsm/.env` and `storage/app` | root | Another user's home directory, and `.env` is `0600` |
+| Creating the database, restoring, creating the tenant's MySQL login | `lavoro_provisioner` | The only account allowed to create `lavoro_tenant_*` databases and grant on them (Task 2) |
+| Every `php artisan` command | the web user (`www-data`) | Artisan writes to `storage/logs` and `bootstrap/cache` |
+
+```bash
+sudo scripts/tenancy/import-install.sh --from /home/spee/lavorofsm …
+```
+
+**Run artisan as root once and the install is subtly broken afterwards.** Laravel
+writes a log line and a cached view as root, `www-data` cannot then write to those
+same files, and the app starts failing on things unrelated to this import. The
+symptom arrives days later and looks like nothing to do with tenancy.
+
+**The copied files must be chowned.** `cp` as root produces root-owned files under
+`storage/tenant-<id>/`, and uploads into those directories then fail. End the copy
+step with:
+
+```bash
+chown -R www-data:www-data "storage/tenant-${TENANT_ID}"
+```
+
+Check the actual user your PHP-FPM pool runs as rather than assuming `www-data`;
+`ps aux | grep php-fpm` settles it.
+
+Have the script refuse to start if it is not root (`[ "$(id -u)" -eq 0 ]`), so it
+fails on the first line instead of halfway through a restore.
+
+### Task 44, Step 4: The one thing the script cannot do for you
+
+A dump taken with `--single-transaction` is internally consistent, so the old
+install does not have to be down while you take it. But anything written to the
+old install **after** the dump is lost, because the tenant is now a copy.
+
+So the real run is: take the old install down (`php artisan down` in
+`/home/spee/lavorofsm`), run the import, check it, then point the domain at
+`/home/lavoro/app`. The window is however long the import takes, which is why you
+want to have timed it beforehand.
+
+Rehearsing does not need the downtime. Dump the live install as often as you like
+and import it into a throwaway tenant — the old install never notices.
+
+### Task 44, Step 5: Rehearse it, repeatedly
+
+Restore a customer's dump on your own machine, run the script, look at the result,
+drop the database, run it again. The point of a script over a runbook is that the
+tenth run is identical to the first; the point of rehearsing is that the first run
+on production is the eleventh.
+
+Test the failure paths too, because they are the ones nobody exercises: a dump
+containing an e-mail that already exists centrally, and a slug whose database is
+already there. Both should stop cleanly and leave nothing behind.
+
+### Task 44, Step 6: Commit
+
+```bash
+git add scripts/tenancy/import-install.sh
+git commit -m "feat(tenancy): script the import of an existing installation"
 ```
 
 ---
