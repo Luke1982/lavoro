@@ -43,7 +43,7 @@
                     class="cursor-pointer size-4 accent-lavoro-blue dark:accent-lavoro-blue">
                 <div
                     class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 items-center justify-center ml-2 hidden sm:flex">
-                    <img :src="asset.product.main_image?.[0] ? `/storage/${asset.product.main_image[0].path}` : '/img/placeholder.png'"
+                    <img :src="asset.product.main_image?.[0] ? `/files/images/${asset.product.main_image[0].id}` : '/img/placeholder.png'"
                         alt="">
                 </div>
             </div>
@@ -51,7 +51,7 @@
                 <label :for="`assetcheckbox-${asset.id}`" class="cursor-pointer dark:text-slate-100">
                     <div class="flex">
                         <div class="w-20 min-w-15 justify-center items-start mr-2 flex sm:hidden">
-                            <img :src="asset.product.main_image?.[0] ? `/storage/${asset.product.main_image[0].path}` : '/img/placeholder.png'"
+                            <img :src="asset.product.main_image?.[0] ? `/files/images/${asset.product.main_image[0].id}` : '/img/placeholder.png'"
                                 alt="">
                         </div>
                         <div class="flex flex-col">

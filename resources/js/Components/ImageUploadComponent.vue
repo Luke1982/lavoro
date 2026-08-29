@@ -56,9 +56,9 @@
                         'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2',
                         image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
                     ]">
-                        <a :href="`/storage/${image.path}`" class="glightbox block size-full"
+                        <a :href="`/files/images/${image.id}`" class="glightbox block size-full"
                             @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="mayUpdate() && changeTitle(image.name, image.id)">
-                            <img :src="`/storage/${image.path}`" :alt="image.name" class="size-full object-cover">
+                            <img :src="`/files/images/${image.id}`" :alt="image.name" class="size-full object-cover">
                         </a>
                         <div v-if="image.pivot?.main"
                             class="pointer-events-none absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-yellow-400 p-1 shadow-md">
@@ -546,7 +546,7 @@ const initEditor = () => {
     if (editorContainer.value && !editorInstance.value) {
         editorInstance.value = new ImageEditor(editorContainer.value, {
             includeUI: {
-                loadImage: { path: `/storage/${imageToEdit.value.path}`, name: imageToEdit.value.path },
+                loadImage: { path: `/files/images/${imageToEdit.value.id}`, name: imageToEdit.value.path },
                 menu: ['crop', 'flip', 'rotate', 'draw', 'text', 'shape', 'icon'],
                 initMenu: 'draw',
                 uiSize: { width: '100%', height: '100%' }

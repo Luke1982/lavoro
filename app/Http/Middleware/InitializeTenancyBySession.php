@@ -11,6 +11,7 @@ class InitializeTenancyBySession
 {
     public function handle(Request $request, Closure $next): mixed
     {
+        \Illuminate\Support\Facades\Log::info('WEB MW ENTER');
         $initialized_here = false;
         $tenant_id = $request->hasSession() ? $request->session()->get('tenant_id') : null;
         $tenant_id = $tenant_id ?: $request->cookie('tenant_id');

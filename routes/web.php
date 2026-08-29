@@ -77,6 +77,11 @@ use Illuminate\Support\Facades\Route;
 Route::group(
     ['middleware' => 'auth'],
     function () {
+
+        Route::get('files/images/{image}', [\App\Http\Controllers\FileController::class, 'image'])->name('files.image');
+        Route::get('files/avatars/{user}', [\App\Http\Controllers\FileController::class, 'avatar'])->name('files.avatar');
+        Route::get('files/companies/{company}/logo/{variant?}', [\App\Http\Controllers\FileController::class, 'companyLogo'])->name('files.companyLogo');
+
         Route::get('/', DashboardController::class);
 
         /**
