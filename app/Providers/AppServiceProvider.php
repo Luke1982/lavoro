@@ -210,6 +210,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
         Inertia::share('company', function () {
+            if (! tenancy()->initialized) {
+                return null;
+            }
+
             $company = Company::where('is_main', true)->first();
             if (!$company) {
                 return null;

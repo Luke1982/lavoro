@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUpdateAuthRequest;
-use App\Models\Company;
+use App\Models\Central\UserTenantLookup;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -12,24 +13,31 @@ class AuthController extends Controller
 {
     public function create()
     {
-        $company = Company::where('is_main', true)->first();
-        return inertia('Auth/LoginPage', [
-            'company' => $company ? [
-                'name' => $company->name,
-                'logo_url' => $company->logo_path ? asset('storage/' . $company->logo_path) : null,
-            ] : null
-        ]);
+        return inertia('Auth/LoginPage');
     }
 
     public function store(StoreUpdateAuthRequest $request)
     {
-        if (!Auth::attempt($request->validated(), true)) {
-            throw ValidationException::withMessages([
-                'email' => 'Kon niet inloggen'
-            ]);
+        $lookup = UserTenantLookup::on('central')->where('email', $request->email)->first();
+
+        $tenant = $lookup ? Tenant::on('central')->find($lookup->tenant_id) : null;
+
+        if (! $tenant) {
+            throw ValidationException::withMessages(['email' => 'Kon niet inloggen']);
         }
 
+        tenancy()->initialize($tenant);
+
+        if (! Auth::attempt($request->only('email', 'password'), true)) {
+            tenancy()->end();
+
+            throw ValidationException::withMessages(['email' => 'Kon niet inloggen']);
+        }
+
+        $request->session()->put('tenant_id', $tenant->id);
+        cookie()->queue(cookie()->forever('tenant_id', $tenant->id));
         $request->session()->regenerate();
+
         return redirect()->intended();
     }
 
@@ -37,6 +45,8 @@ class AuthController extends Controller
     {
         Auth::logout();
         $request->session()->invalidate();
+        cookie()->queue(cookie()->forget('tenant_id'));
+
         return redirect()->route('login');
     }
 }
