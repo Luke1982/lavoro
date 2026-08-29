@@ -18,7 +18,7 @@ use App\Models\User;
  * handles an assistant job followed by an ordinary one does not mislabel the
  * second.
  */
-class AssistantContext
+class AssistantContext implements \App\Support\ForgetsTenantState
 {
     private ?User $on_behalf_of = null;
 
@@ -64,7 +64,7 @@ class AssistantContext
         }
     }
 
-    public function reset(): void
+    public function forgetTenantState(): void
     {
         $this->on_behalf_of = null;
         $this->depth = 0;

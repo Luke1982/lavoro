@@ -65,6 +65,14 @@ class AppServiceProvider extends ServiceProvider
          */
         $this->app->scoped(TechnicianAvailability::class);
 
+        $this->app->tag([
+            ActivityBuffer::class,
+            Signals::class,
+            AssistantContext::class,
+            TechnicianAvailability::class,
+            \App\Support\MailerState::class,
+        ], \App\Support\ForgetsTenantState::class);
+
         $this->app->singleton(
             ToolRegistry::class,
             fn () => new ToolRegistry(config('assistant.tools', [])),
@@ -151,10 +159,7 @@ class AppServiceProvider extends ServiceProvider
              */
             Auth::forgetUser();
 
-            app(ActivityBuffer::class)->reset();
-            app(Signals::class)->reset();
-
-            app(AssistantContext::class)->reset();
+            \App\Support\TenantState::flush();
         });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {

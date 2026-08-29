@@ -25,7 +25,7 @@ use Illuminate\Support\Str;
  * Every signal in one chain also shares a correlation id, so the whole cascade
  * from a single user action can be read back as one story.
  */
-class Signals
+class Signals implements \App\Support\ForgetsTenantState
 {
     public const MAX_DEPTH = 10;
 
@@ -82,7 +82,7 @@ class Signals
         }
     }
 
-    public function reset(): void
+    public function forgetTenantState(): void
     {
         $this->chain = [];
         $this->raised = 0;
