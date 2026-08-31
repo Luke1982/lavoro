@@ -16,9 +16,17 @@
         <tr><td>BTW {{ $preview['vat_percent'] }}%</td><td style="text-align:right">&euro; {{ number_format($preview['vat_cents'] / 100, 2, ',', '.') }}</td></tr>
         <tr><td><strong>Te betalen</strong></td><td style="text-align:right"><strong>&euro; {{ number_format($preview['gross_cents'] / 100, 2, ',', '.') }}</strong></td></tr>
     </table>
-    <form method="post" action="{{ route('landlord.invoice.issue', $tenant->id) }}" style="margin-top:14px">@csrf
-        <button type="submit">Factuur aanmaken</button>
-    </form>
+    @if($is_due)
+        <form method="post" action="{{ route('landlord.invoice.issue', $tenant->id) }}" style="margin-top:14px">@csrf
+            <button type="submit">Factuur aanmaken</button>
+        </form>
+    @else
+        <p class="muted" style="margin-top:14px">
+            Deze periode is al gefactureerd en er staat niets nieuws open. De volgende factuur kan
+            vanaf <strong>{{ $next_period_starts_on->format('d-m-Y') }}</strong>, of eerder zodra er
+            iets verandert &mdash; een pakketwissel of bijgekocht AI-tegoed.
+        </p>
+    @endif
 </div>
 
 <div class="card" style="max-width:100%;margin-top:20px">

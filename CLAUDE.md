@@ -55,6 +55,8 @@ npm run fix:eslint
 -   A feature is only a module if a customer could reasonably not have it. `tenant:create` defaults to no modules, so gating a stock feature breaks every new customer.
 -   Anything running without a tenant must not let the `web` guard resolve a user: the database session driver writes `user_id` by asking the default guard, and that query hits the central database. See `UseLandlordGuard`.
 -   Tests run on MySQL, never SQLite. The shared `TestCase` creates one tenant per run and wraps each test in transactions on both connections — do not add `RefreshDatabase`.
+-   Creating or deleting a tenant needs the `lavoro_provisioner` MySQL account, which is bound to its own Linux user. A web request runs as `lavoro_app` and cannot do it. The panel writes a `tenant_provisioning_requests` row and a **second worker** does the work: `queue:work --queue=provisioning`, run as `lavoro_provisioner`. Never widen `lavoro_app`'s rights to skip that hop.
+-   `User::$fillable` decides what `User::create()` keeps. An attribute that is validated but not fillable is dropped in silence — that is how `seat_type` and `is_admin` were both lost.
 
 Full reasoning: `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
 

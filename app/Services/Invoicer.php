@@ -47,25 +47,30 @@ class Invoicer
         $on = $on ?? CarbonImmutable::now();
         [$start, $end] = $this->periodFor($on);
 
-        $subscription = new TenantSubscription($this->tenant);
         $months = $this->isYearly() ? 12 : 1;
         $period = $start->format('d-m-Y') . ' t/m ' . $end->format('d-m-Y');
 
-        /**
-         * Het abonnement per post en niet als één bedrag: op de factuur hoort
-         * te staan waarvoor betaald wordt. De periode staat alleen achter de
-         * eerste regel; hij geldt voor het hele blok en staat ook in de kop.
-         */
         $lines = [];
 
-        foreach ($subscription->breakdown() as $index => $line) {
-            $lines[] = [
-                'description' => $index === 0
-                    ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
-                    : $line['description'],
-                'kind' => $line['kind'],
-                'amount_cents' => $line['amount_cents'] * $months,
-            ];
+        /**
+         * Het abonnement alleen als deze periode nog niet in rekening is
+         * gebracht. Zonder die voorwaarde zet een tussentijdse factuur voor
+         * bijgekocht tegoed de hele maand er nog een keer bij.
+         *
+         * Per post en niet als één bedrag: op de factuur hoort te staan
+         * waarvoor betaald wordt. De periode staat alleen achter de eerste
+         * regel; hij geldt voor het hele blok en staat ook in de kop.
+         */
+        if ($this->subscriptionIsDue($on)) {
+            foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
+                $lines[] = [
+                    'description' => $index === 0
+                        ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
+                        : $line['description'],
+                    'kind' => $line['kind'],
+                    'amount_cents' => $line['amount_cents'] * $months,
+                ];
+            }
         }
 
         foreach ($this->pendingCharges() as $charge) {
@@ -80,11 +85,14 @@ class Invoicer
     }
 
     /**
-     * Een periode die begonnen is en nog geen factuur heeft. Er wordt op
-     * period_start gezocht en niet geteld: dan levert een handmatig gemaakte
-     * factuur geen tweede op, en een verwijderde factuur wel weer een nieuwe.
+     * Is het abonnement voor de lopende periode al in rekening gebracht?
+     *
+     * Er wordt gezocht op een factuur voor deze periode die het abonnement
+     * ook echt bevat, en niet alleen op het bestaan van een factuur. Een
+     * tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode;
+     * die mag de maandfactuur niet wegdrukken.
      */
-    public function isDue(?CarbonImmutable $on = null): bool
+    public function subscriptionIsDue(?CarbonImmutable $on = null): bool
     {
         $on = $on ?? CarbonImmutable::now();
 
@@ -101,7 +109,19 @@ class Invoicer
         return !Invoice::on('central')
             ->where('tenant_id', $this->tenant->id)
             ->whereDate('period_start', $start->toDateString())
+            ->whereHas('lines', fn ($query) => $query->where('kind', 'subscription'))
             ->exists();
+    }
+
+    /**
+     * Valt er iets te factureren? Het abonnement van een nieuwe periode, of
+     * losse posten die sinds de vorige factuur zijn ontstaan -- een
+     * pakketwissel, bijgekocht AI-tegoed. Is er niets van beide, dan levert
+     * factureren een lege factuur op en dat hoort niet te kunnen.
+     */
+    public function isDue(?CarbonImmutable $on = null): bool
+    {
+        return $this->subscriptionIsDue($on) || $this->pendingCharges()->isNotEmpty();
     }
 
     public function pendingCharges()
@@ -133,7 +153,7 @@ class Invoicer
          * krijgen omdat hij toevallig per jaar betaalt.
          */
         $subscription_cents = array_sum(array_map(
-            fn ($line) => $line['kind'] === 'topup' ? 0 : $line['amount_cents'],
+            fn ($line) => in_array($line['kind'], ['topup', 'proration'], true) ? 0 : $line['amount_cents'],
             $lines,
         ));
 
@@ -159,6 +179,15 @@ class Invoicer
         $on = $on ?? CarbonImmutable::now();
         [$start, $end] = $this->periodFor($on);
         $preview = $this->preview($on);
+
+        /**
+         * Geen lege facturen. Zonder deze grens levert elke klik op "factuur
+         * aanmaken" een nieuw nummer op met niets erop, en die nummers zitten
+         * in een doorlopende reeks die de boekhouding niet kan overslaan.
+         */
+        if ($preview['lines'] === []) {
+            throw new \RuntimeException('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
+        }
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {
             /**

@@ -28,6 +28,13 @@ class User extends Authenticatable
         'email',
         'password',
         'plannable',
+        /**
+         * Buiten- of binnendienst. Zonder dit hier viel het bij het aanmaken
+         * stil weg -- het formulier vroeg erom, de validatie keurde het goed en
+         * iedereen belandde op de standaard, waardoor de buitendienstplekken
+         * nooit vol raakten.
+         */
+        'seat_type',
     ];
 
     /**

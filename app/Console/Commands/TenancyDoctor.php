@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -33,6 +34,9 @@ class TenancyDoctor extends Command
             $this->line($tenant->name);
             $this->checkTenant($tenant);
         }
+
+        $this->newLine();
+        $this->checkProvisioning();
 
         $this->newLine();
         $this->checkOrphans();
@@ -103,7 +107,7 @@ class TenancyDoctor extends Command
 
         $beat = Cache::get('scheduler_heartbeat');
 
-        if (! $beat) {
+        if (!$beat) {
             $this->skip('planner-hartslag nog nooit geschreven (nieuwe installatie, of cron draait niet)');
         } elseif ($beat < now()->subMinutes(15)->timestamp) {
             $this->bad('planner-hartslag is ouder dan 15 minuten -- cron draait niet');
@@ -132,7 +136,7 @@ class TenancyDoctor extends Command
             return;
         }
 
-        if (! $exists) {
+        if (!$exists) {
             $this->skip('overige controles voor deze tenant');
 
             return;
@@ -173,6 +177,38 @@ class TenancyDoctor extends Command
             tenancy()->end();
             $this->bad('verbinden mislukt: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Het beheerpaneel legt aanvragen neer die alleen de provisioner-worker kan
+     * uitvoeren. Draait die niet, dan blijft een aanvraag stilletjes staan en
+     * lijkt het paneel kapot. Dit is de plek waar dat opvalt.
+     */
+    private function checkProvisioning(): void
+    {
+        $this->line('Provisioning');
+
+        $requests = TenantProvisioningRequest::on('central')
+            ->whereIn('status', ['queued', 'running'])
+            ->get();
+
+        $stuck = $requests->filter(fn ($request) => $request->created_at?->lt(now()->subMinutes(15)));
+
+        if ($stuck->isNotEmpty()) {
+            $this->bad($stuck->count() . ' aanvraag(en) staan langer dan een kwartier stil. Draait'
+                . ' "php artisan queue:work --queue=provisioning" als lavoro_provisioner?');
+        } elseif ($requests->isNotEmpty()) {
+            $this->pass($requests->count() . ' aanvraag(en) onderweg.');
+        } else {
+            $this->pass('Geen aanvragen in de wacht.');
+        }
+
+        $failed = TenantProvisioningRequest::on('central')
+            ->where('status', 'failed')->count();
+
+        $failed
+            ? $this->bad($failed . ' mislukte aanvraag(en); zie het beheerpaneel voor de reden.')
+            : $this->pass('Geen mislukte aanvragen.');
     }
 
     private function checkOrphans(): void
