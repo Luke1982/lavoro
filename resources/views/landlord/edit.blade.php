@@ -58,14 +58,21 @@
 
         <label>Korting</label>
         @php($type = $tenant->discount_percent ? 'percent' : ($tenant->discount_cents ? 'euro' : 'none'))
-        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-            <label style="font-weight:400"><input type="radio" name="discount_type" value="none" @checked($type === 'none')> geen</label>
-            <label style="font-weight:400"><input type="radio" name="discount_type" value="euro" @checked($type === 'euro')> bedrag</label>
-            <input type="number" step="0.01" min="0" name="discount_euro" style="width:110px"
-                value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}" placeholder="&euro; p/m">
-            <label style="font-weight:400"><input type="radio" name="discount_type" value="percent" @checked($type === 'percent')> percentage</label>
-            <input type="number" min="0" max="100" name="discount_percent" style="width:80px"
-                value="{{ $tenant->discount_percent }}" placeholder="%">
+        <div class="choice">
+            <label><input type="radio" name="discount_type" value="none" @checked($type === 'none')>
+                <span class="choice-label">Geen korting</span></label>
+
+            <label><input type="radio" name="discount_type" value="euro" @checked($type === 'euro')>
+                <span class="choice-label">Vast bedrag</span>
+                <input type="number" step="0.01" min="0" name="discount_euro" placeholder="0,00"
+                    value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}">
+                <span class="muted">&euro; per maand</span></label>
+
+            <label><input type="radio" name="discount_type" value="percent" @checked($type === 'percent')>
+                <span class="choice-label">Percentage</span>
+                <input type="number" min="0" max="100" name="discount_percent" placeholder="0"
+                    value="{{ $tenant->discount_percent }}">
+                <span class="muted">%</span></label>
         </div>
 
         <label>Vaste maandprijs (&euro;) <span class="muted">(leeg = berekenen)</span></label>
