@@ -22,22 +22,34 @@
 </div>
 
 <div class="card" style="max-width:100%;margin-top:20px">
-    <h3>Verstuurd</h3>
+    <h3>Aangemaakt</h3>
     @forelse($invoices as $invoice)
         <table style="margin-bottom:14px">
             <tr>
                 <th>{{ $invoice->number }}</th>
                 <th>{{ $invoice->issued_on->format('d-m-Y') }}</th>
                 <th style="text-align:right">&euro; {{ number_format($invoice->gross_cents / 100, 2, ',', '.') }}</th>
-                <th style="text-align:right;width:120px">
+                <th style="text-align:right;width:240px">
                     <a href="{{ route('landlord.invoice.pdf', [$tenant->id, $invoice->id]) }}">pdf</a> &middot;
                     <a href="{{ route('landlord.invoice.xml', [$tenant->id, $invoice->id]) }}">xml</a>
+                    @if($invoice->mailed_at)
+                        &middot; <span class="muted">verstuurd {{ $invoice->mailed_at->format('d-m-Y H:i') }}</span>
+                    @else
+                        &middot;
+                        <form method="post" style="display:inline"
+                            action="{{ route('landlord.invoice.mail', [$tenant->id, $invoice->id]) }}">@csrf
+                            <button type="submit" class="linkish">versturen</button>
+                        </form>
+                    @endif
                 </th>
             </tr>
             @foreach($invoice->lines as $line)
                 <tr><td colspan="2" class="muted">{{ $line->description }}</td>
                     <td style="text-align:right" class="muted">&euro; {{ number_format($line->amount_cents / 100, 2, ',', '.') }}</td></tr>
             @endforeach
+            @if($invoice->mail_error)
+                <tr><td colspan="4" style="color:#b91c1c">Versturen mislukt: {{ $invoice->mail_error }}</td></tr>
+            @endif
         </table>
     @empty
         <p class="muted">Nog geen facturen.</p>

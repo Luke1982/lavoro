@@ -15,9 +15,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class AssistantUsage extends Model
 {
+    /**
+     * Centraal en niet in de database van de klant. Het tegoed wordt hier
+     * afgemeten en het beheer telt hem over alle klanten heen op; dat kan niet
+     * uit een tabel die per klant apart staat. De klant zelf komt er niet bij.
+     */
+    protected $connection = 'central';
+
     protected $table = 'assistant_usage';
 
     protected $fillable = [
+        'tenant_id',
         'user_id',
         'model',
         'input_tokens',
@@ -39,6 +47,27 @@ class AssistantUsage extends Model
         'eur_per_usd' => 'float',
     ];
 
+    protected static function booted(): void
+    {
+        /**
+         * De klant erbij zetten en er ook weer op filteren, zodat geen enkele
+         * telling per ongeluk over het verbruik van een ander bedrijf gaat.
+         */
+        static::creating(function (self $usage) {
+            $usage->tenant_id ??= static::tenantKey();
+        });
+
+        static::addGlobalScope('tenant', function (Builder $query) {
+            $query->where('assistant_usage.tenant_id', static::tenantKey());
+        });
+    }
+
+    public static function tenantKey(): string
+    {
+        return (string) (tenancy()->initialized ? tenancy()->tenant->getTenantKey() : '');
+    }
+
+    /** De gebruiker staat in de database van de klant, het verbruik centraal. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -51,6 +51,17 @@ Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::
 Schedule::call(fn () => $forEachTenant(fn () => ReconcileStorageUsageJob::dispatch()))
     ->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
 
+/**
+ * Uurlijks en niet dagelijks: een klant die op de 12e begon hoort op de 12e
+ * zijn factuur te krijgen, en met één ronde per dag verschuift dat naar het
+ * uur waarop de cron toevallig staat. De ronde slaat over wat al een factuur
+ * heeft, dus 24 tikken per dag kosten 23 keer niets.
+ *
+ * Alleen aanmaken, niet versturen: er hoort eerst iemand naar te kijken.
+ */
+Schedule::command('invoices:issue')
+    ->hourly()->name('invoices-issue')->withoutOverlapping();
+
 /** De cron kan niet vanuit PHP gecontroleerd worden; de planner bewijst het zelf. */
 Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))
     ->everyFiveMinutes()->name('scheduler-heartbeat');

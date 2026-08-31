@@ -12,28 +12,39 @@ use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
+use App\Exceptions\GraphNotConfigured;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
+use App\Listeners\ApplyTenantSender;
 use App\Listeners\CopyMailToSentFolder;
 use App\Mail\Transports\GraphTransport;
 use App\Models\Assistant;
 use App\Models\CalendarGrant;
 use App\Models\Company;
 use App\Models\Event as EventModel;
+use App\Models\GeneralSetting;
 use App\Models\GoogleSyncedEvent;
 use App\Models\StandardAttachment;
 use App\Models\StandardEmail;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Models\UserUnavailability;
 use App\Observers\EventObserver;
+use App\Observers\PersonalAccessTokenObserver;
 use App\Observers\TicketObserver;
+use App\Observers\UserObserver;
 use App\Policies\AssistantPolicy;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
+use App\Support\ForgetsTenantState;
+use App\Support\MailerState;
+use App\Support\TenantMailTransport;
+use App\Support\TenantState;
 use Illuminate\Foundation\Console\ServeCommand;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
@@ -42,6 +53,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -70,8 +82,8 @@ class AppServiceProvider extends ServiceProvider
             Signals::class,
             AssistantContext::class,
             TechnicianAvailability::class,
-            \App\Support\MailerState::class,
-        ], \App\Support\ForgetsTenantState::class);
+            MailerState::class,
+        ], ForgetsTenantState::class);
 
         $this->app->singleton(
             ToolRegistry::class,
@@ -141,8 +153,15 @@ class AppServiceProvider extends ServiceProvider
             ServeCommand::$passthroughVariables[] = 'PHP_INI_SCAN_DIR';
         }
 
-        \App\Models\User::observe(\App\Observers\UserObserver::class);
-        \Laravel\Sanctum\PersonalAccessToken::observe(\App\Observers\PersonalAccessTokenObserver::class);
+        User::observe(UserObserver::class);
+        PersonalAccessToken::observe(PersonalAccessTokenObserver::class);
+
+        /**
+         * Geen model om een policy aan te hangen, wel iets om af te schermen:
+         * de sleutels van de koppelingen zitten achter dezelfde toestemming als
+         * de rest van het technisch beheer.
+         */
+        Gate::define('technical.management', fn ($user) => $user->hasPermission('technical.management'));
 
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
@@ -162,7 +181,7 @@ class AppServiceProvider extends ServiceProvider
              */
             Auth::forgetUser();
 
-            \App\Support\TenantState::flush();
+            TenantState::flush();
         });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
@@ -197,9 +216,16 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        /**
+         * De mailer van de klant. Welke server erachter zit — Microsoft 365 of
+         * een eigen SMTP — staat in de instellingen van die klant. Lui
+         * opgebouwd, dus pas op het moment van versturen, als de tenant vaststaat.
+         */
+        Mail::extend('tenant', fn () => app(TenantMailTransport::class)->make());
+
         Mail::extend('graph', function () {
             $setting = fn (string $key) => tenancy()->initialized
-                ? \App\Models\GeneralSetting::get($key)
+                ? GeneralSetting::get($key)
                 : null;
 
             $azure_tenant = $setting('graph_azure_tenant_id');
@@ -213,15 +239,15 @@ class AppServiceProvider extends ServiceProvider
              * van een klant, en dat is erger dan niet versturen: er komt geen
              * foutmelding, het bericht komt gewoon van iemand anders.
              */
-            if (! filled($azure_tenant) || ! filled($client_id) || ! filled($secret) || ! filled($user_id)) {
-                throw new \App\Exceptions\GraphNotConfigured();
+            if (!filled($azure_tenant) || !filled($client_id) || !filled($secret) || !filled($user_id)) {
+                throw new GraphNotConfigured;
             }
 
             return new GraphTransport(
                 tenantId: $azure_tenant,
                 clientId: $client_id,
                 clientSecret: $secret,
-                fromAddress: \App\Models\GeneralSetting::get('mail_from_address', $user_id),
+                fromAddress: GeneralSetting::get('mail_from_address', $user_id),
                 userId: $user_id,
                 graphEndpoint: config('services.graph.endpoint'),
                 dispatcher: app('events'),
@@ -229,10 +255,11 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        Event::listen(MessageSending::class, ApplyTenantSender::class);
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
         Inertia::share('company', function () {
-            if (! tenancy()->initialized) {
+            if (!tenancy()->initialized) {
                 return null;
             }
 
