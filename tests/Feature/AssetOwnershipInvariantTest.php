@@ -7,12 +7,10 @@ use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Product;
 use DomainException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AssetOwnershipInvariantTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Customer $customer;
 

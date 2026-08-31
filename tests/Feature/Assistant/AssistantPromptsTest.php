@@ -3,7 +3,6 @@
 namespace Tests\Feature\Assistant;
 
 use App\Models\AssistantPrompt;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -16,7 +15,6 @@ use Tests\TestCase;
 class AssistantPromptsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_a_page_only_offers_the_questions_that_belong_on_it(): void
     {

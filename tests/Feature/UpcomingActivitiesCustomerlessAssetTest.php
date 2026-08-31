@@ -8,14 +8,12 @@ use App\Models\Location;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class UpcomingActivitiesCustomerlessAssetTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Product $product;
 

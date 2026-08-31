@@ -9,7 +9,6 @@ use App\Models\MaintenanceContract;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Services\MaintenanceContractServiceOrderGenerator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class ServiceOrderLocationTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_resolved_location_prefers_the_linked_location(): void
     {

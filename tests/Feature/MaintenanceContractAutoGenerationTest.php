@@ -8,13 +8,11 @@ use App\Models\Customer;
 use App\Models\MaintenanceContract;
 use App\Models\Product;
 use App\Services\MaintenanceContractServiceOrderGenerator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class MaintenanceContractAutoGenerationTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function contractWithAsset(array $contract_attributes = []): MaintenanceContract
     {

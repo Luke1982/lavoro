@@ -7,7 +7,6 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -17,7 +16,6 @@ use Tests\TestCase;
  */
 class TicketSignalsTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function ticket(): Ticket
     {

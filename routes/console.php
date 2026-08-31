@@ -22,34 +22,33 @@ Artisan::command('inspire', function () {
  * hoeveel data een klant heeft. Het werk zelf gebeurt in de job, die door
  * QueueTenancyBootstrapper de juiste tenant meekrijgt.
  */
-function forEachTenant(callable $dispatch): void
-{
+$forEachTenant = function (callable $dispatch): void {
     Tenant::on('central')->cursor()->each(function (Tenant $tenant) use ($dispatch) {
         tenancy()->initialize($tenant);
         $dispatch();
         tenancy()->end();
     });
-}
+};
 
-Schedule::call(fn () => forEachTenant(fn () => DispatchTenantCalendarPullsJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => DispatchTenantCalendarPullsJob::dispatch()))
     ->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => RenewWatchChannelsJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => RenewWatchChannelsJob::dispatch()))
     ->hourly()->name('google-renew-watches')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => PruneLocationPingsJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => PruneLocationPingsJob::dispatch()))
     ->hourly()->name('prune-location-pings')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => GenerateMaintenanceContractServiceOrdersJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => GenerateMaintenanceContractServiceOrdersJob::dispatch()))
     ->hourly()->name('maintenancecontracts-generate-serviceorders')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
     ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
     ->dailyAt('07:00')->name('notifications-missing-times')->withoutOverlapping();
 
-Schedule::call(fn () => forEachTenant(fn () => ReconcileStorageUsageJob::dispatch()))
+Schedule::call(fn () => $forEachTenant(fn () => ReconcileStorageUsageJob::dispatch()))
     ->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
 
 /** De cron kan niet vanuit PHP gecontroleerd worden; de planner bewijst het zelf. */

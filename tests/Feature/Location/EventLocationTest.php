@@ -7,7 +7,6 @@ use App\Models\Event;
 use App\Models\Location;
 use App\Models\ServiceOrder;
 use App\Services\Google\EventPayloadBuilder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -19,7 +18,6 @@ use Tests\TestCase;
 class EventLocationTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function customerWithOrder(array $customer_attributes = []): array
     {

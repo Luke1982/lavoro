@@ -15,7 +15,6 @@ use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class ReadToolScopeTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function invoke(string $tool, User $user, array $arguments = []): ToolResult
     {

@@ -7,7 +7,6 @@ use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -15,7 +14,6 @@ use Tests\TestCase;
 class ProjectFinancialNotesTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function accountant(): User
     {

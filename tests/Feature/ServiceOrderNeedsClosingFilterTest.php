@@ -9,12 +9,10 @@ use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ServiceOrderNeedsClosingFilterTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function admin_user(): User
     {

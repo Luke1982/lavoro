@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class SerialOcrTest extends TestCase
 {
-    use RefreshDatabase;
 
     /** @var array<int, string> */
     private array $temp_files = [];

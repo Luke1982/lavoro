@@ -4,14 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class UserSoftDeleteTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_soft_deleting_a_user_keeps_the_record_but_hides_it_from_default_queries(): void
     {

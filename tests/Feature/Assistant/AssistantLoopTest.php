@@ -18,7 +18,6 @@ use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantToolCall;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -34,7 +33,6 @@ use Tests\TestCase;
 class AssistantLoopTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function loop(FakeModel $model): AssistantLoop
     {

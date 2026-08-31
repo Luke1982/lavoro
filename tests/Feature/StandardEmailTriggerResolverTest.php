@@ -7,12 +7,10 @@ use App\Enums\StandardEmailTriggerType;
 use App\Models\Event;
 use App\Models\StandardEmail;
 use App\Services\StandardEmailTriggerResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class StandardEmailTriggerResolverTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function template_with_trigger(string $trigger, string $trigger_type): StandardEmail
     {

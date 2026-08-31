@@ -7,7 +7,6 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
 use App\Models\Customer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -22,7 +21,6 @@ use Tests\TestCase;
 class ChoiceToolTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function offer(array $arguments): ToolResult
     {

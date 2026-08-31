@@ -5,12 +5,10 @@ namespace Tests\Feature;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class CustomerAssetTreeTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Product $product;
 

@@ -12,7 +12,6 @@ use App\Models\Event;
 use App\Models\EventType;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -28,7 +27,6 @@ use Tests\TestCase;
 class AppointmentActionsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

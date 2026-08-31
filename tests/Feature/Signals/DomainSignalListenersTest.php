@@ -13,7 +13,6 @@ use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -25,7 +24,6 @@ use Tests\TestCase;
 class DomainSignalListenersTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

@@ -13,7 +13,6 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -32,7 +31,6 @@ use Tests\TestCase;
 class WriteToolGateTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /**
      * The tables a write tool can reach. Counted before and after rather than

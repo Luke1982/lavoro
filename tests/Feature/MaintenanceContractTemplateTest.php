@@ -8,7 +8,6 @@ use App\Models\MaintenanceContractTemplate;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -18,7 +17,6 @@ use Tests\TestCase;
  */
 class MaintenanceContractTemplateTest extends TestCase
 {
-    use RefreshDatabase;
 
     private int $roles_made = 0;
 

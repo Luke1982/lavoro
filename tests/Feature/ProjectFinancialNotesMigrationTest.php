@@ -5,13 +5,11 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ProjectFinancialNotesMigrationTest extends TestCase
 {
-    use RefreshDatabase;
 
     private string $migration = 'database/migrations/2026_07_20_000003_convert_project_financial_notes_to_snapshot_shape.php';
 

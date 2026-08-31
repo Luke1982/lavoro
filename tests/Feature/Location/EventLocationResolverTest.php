@@ -9,7 +9,6 @@ use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Services\EventLocationResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -33,7 +32,6 @@ use Tests\TestCase;
  */
 class EventLocationResolverTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function resolve(Event $event): ?string
     {

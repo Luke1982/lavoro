@@ -10,14 +10,12 @@ use App\Models\EventType;
 use App\Models\Role;
 use App\Models\StandardEmail;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class EventStandardEmailApiTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function admin_user(): User
     {

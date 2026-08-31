@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
  * anders de landlord uitlogt zodra er geen tenant is.
  */
 Route::prefix('beheer')
+    ->middleware(\App\Http\Middleware\UseLandlordGuard::class)
     ->withoutMiddleware([
         \App\Http\Middleware\InitializeTenancyBySession::class,
         \App\Http\Middleware\HandleInertiaRequests::class,

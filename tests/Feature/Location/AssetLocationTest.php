@@ -6,7 +6,6 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -16,7 +15,6 @@ use Tests\TestCase;
 class AssetLocationTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_a_location_can_be_assigned_to_an_asset(): void
     {

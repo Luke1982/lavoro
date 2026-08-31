@@ -8,7 +8,6 @@ use App\Models\Event;
 use App\Models\Location;
 use App\Models\Product;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -19,7 +18,6 @@ use Tests\TestCase;
 class LocationDeletionTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_detaching_clears_the_location_on_assets_and_service_orders(): void
     {

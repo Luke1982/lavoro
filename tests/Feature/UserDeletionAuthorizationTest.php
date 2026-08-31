@@ -5,12 +5,10 @@ namespace Tests\Feature;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class UserDeletionAuthorizationTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function givePermission(User $user, string $permission_name): void
     {

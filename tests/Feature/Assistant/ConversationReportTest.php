@@ -14,7 +14,6 @@ use App\Mail\AssistantConversationReportedMail;
 use App\Models\AssistantQuestion;
 use App\Models\AssistantToolCall;
 use App\Models\Customer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -30,7 +29,6 @@ use Tests\TestCase;
 class ConversationReportTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private const THREAD = '7c1e0f44-1111-4222-8333-444444444444';
 

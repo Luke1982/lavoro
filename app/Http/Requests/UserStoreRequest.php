@@ -16,6 +16,7 @@ class UserStoreRequest extends FormRequest
     {
         $rules = [
             'name' => 'required|string|max:255',
+            'seat_type' => ['required', 'in:field,office', new \App\Rules\SeatAvailable()],
             'email' => ['required', 'email', 'unique:users,email', \Illuminate\Validation\Rule::unique('central.user_tenant_lookups', 'email')],
             'password' => 'required|string|min:8',
             'avatar' => 'nullable|image|max:3072',

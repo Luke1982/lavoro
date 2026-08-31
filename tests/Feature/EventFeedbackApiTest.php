@@ -6,12 +6,10 @@ use App\Models\Event;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EventFeedbackApiTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function feedback_user(): User
     {

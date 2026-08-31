@@ -13,7 +13,6 @@ use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTaskInstance;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -23,7 +22,6 @@ use Tests\TestCase;
  */
 class ActivityLabelsTest extends TestCase
 {
-    use RefreshDatabase;
 
     /** Models that record history and therefore need a label for every field. */
     private const MODELS = [

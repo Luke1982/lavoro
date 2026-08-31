@@ -16,7 +16,6 @@ use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -34,7 +33,6 @@ use Tests\TestCase;
 class ProviderSwitchingTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /** @return array<string, array{0: string, 1: class-string}> */
     public static function providers(): array

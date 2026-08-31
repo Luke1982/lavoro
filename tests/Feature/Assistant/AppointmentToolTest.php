@@ -12,7 +12,6 @@ use App\Models\EventType;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class AppointmentToolTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private ?EventType $type = null;
 

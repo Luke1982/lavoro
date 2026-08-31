@@ -7,7 +7,6 @@ use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class ResilienceTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function orders(int $count): array
     {

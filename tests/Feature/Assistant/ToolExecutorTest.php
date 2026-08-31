@@ -11,7 +11,6 @@ use App\Domain\Tools\ToolRegistry;
 use App\Domain\Tools\ToolResult;
 use App\Models\AssistantToolCall;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -24,7 +23,6 @@ use Tests\TestCase;
 class ToolExecutorTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /**
      * The fakes record what happened on themselves, and PHP keeps statics for the

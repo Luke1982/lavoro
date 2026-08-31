@@ -9,7 +9,6 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -21,7 +20,6 @@ use Tests\TestCase;
  */
 class AccessTokenTest extends TestCase
 {
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

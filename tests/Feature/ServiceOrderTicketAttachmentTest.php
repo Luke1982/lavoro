@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class ServiceOrderTicketAttachmentTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ticketOn(ServiceOrder $order, ?int $service_order_id = null): Ticket
     {

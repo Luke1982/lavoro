@@ -7,7 +7,6 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class TicketWaitingStatusTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ticketWithStatus(string $status): Ticket
     {

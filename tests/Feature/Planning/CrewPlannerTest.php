@@ -9,7 +9,6 @@ use App\Models\EventType;
 use App\Models\User;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
@@ -23,7 +22,6 @@ use Tests\TestCase;
  */
 class CrewPlannerTest extends TestCase
 {
-    use RefreshDatabase;
 
     private const WORK_DAY = 660;
 
