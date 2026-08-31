@@ -316,6 +316,21 @@ Rechten heten steeds "onderdeel punt actie" — bijvoorbeeld: werkbonnen lezen, 
 
 Iedereen kan op zijn eigen profielpagina zijn naam, wachtwoord en avatar wijzigen en daar zijn Google Agenda koppelen.
 
+### Grenzen aan uw abonnement
+
+Uw abonnement bepaalt hoeveel u kunt opslaan en hoeveel mensen er kunnen werken.
+
+**Opslag.** Foto's, documenten en de gegevens zelf tellen samen mee. Bereikt u de
+limiet, dan wordt een upload geweigerd met een melding; bestaande bestanden
+blijven altijd staan. Neem contact op om uit te breiden.
+
+**Gebruikers.** Er is een aantal plaatsen voor buitendienst en voor binnendienst.
+Zijn ze bezet, dan kan er geen nieuwe gebruiker van die soort bij. Een gebruiker
+die u op non-actief zet geeft zijn plaats meteen weer vrij.
+
+**Onderdelen.** Wat niet in uw abonnement zit, staat ook niet in het menu. Mist u
+iets dat u wel verwacht, dan is het waarschijnlijk niet afgenomen.
+
 ## Instellingen en beheer
 
 Het beheergedeelte (alleen voor admins, tenzij anders vermeld):
@@ -367,3 +382,13 @@ Wat je ervan mag verwachten:
 - **Ging een gesprek mis?** Klik onder het invoerveld op **Melden** en zeg erbij wat er misging of wat je verwacht had (mag ook leeg blijven). Het hele gesprek wordt dan — met wat er achter de schermen is opgezocht — als bestand bewaard, zodat de fout onderzocht kan worden. Alleen je eigen gesprekken zijn te melden.
 
 Wat de assistent doet wordt vastgelegd: de gestelde vragen, de gebruikte opzoekacties en de kosten per vraag. Handelingen die je via de assistent bevestigt staan op de tijdlijn op jouw naam, herkenbaar als via de assistent gedaan.
+
+### Wat de assistent per maand mag kosten
+
+De assistent kost geld bij de leverancier, dus er zit een tegoed per maand op.
+U ziet in het venster hoeveel daarvan op is, en bij tachtig procent verschijnt
+een waarschuwing.
+
+Is het tegoed op, dan beantwoordt de assistent geen vragen meer tot de volgende
+maand. De rest van Lavoro werkt gewoon door. Heeft u structureel meer nodig, dan
+kan het tegoed verhoogd worden -- neem daarvoor contact op.
