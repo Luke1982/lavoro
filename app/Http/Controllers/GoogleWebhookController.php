@@ -13,6 +13,25 @@ class GoogleWebhookController extends Controller
     {
         $channel_id = $request->header('X-Goog-Channel-Id');
         $channel_token = $request->header('X-Goog-Channel-Token');
+
+        /**
+         * Google stuurt geen sessie en geen cookie mee. Het enige dat de tenant
+         * kan aanwijzen is het token dat wijzelf hebben uitgedeeld, dus daar zit
+         * het tenant-id voorop.
+         */
+        $parts = explode('|', (string) $channel_token, 2);
+
+        if (count($parts) !== 2) {
+            return response('', 204);
+        }
+
+        $tenant = \App\Models\Tenant::on('central')->find($parts[0]);
+
+        if (! $tenant) {
+            return response('', 204);
+        }
+
+        tenancy()->initialize($tenant);
         $resource_id = $request->header('X-Goog-Resource-Id');
         $state = $request->header('X-Goog-Resource-State');
 
