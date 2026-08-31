@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\DestroyTenantRequest;
 use App\Http\Requests\Landlord\ExportCollectionRequest;
+use App\Http\Requests\Landlord\ForgetProvisioningPasswordRequest;
+use App\Http\Requests\Landlord\StoreTenantRequest;
+use App\Jobs\RunTenantProvisioningRequestJob;
 use App\Models\Central\AiTopup;
 use App\Models\Central\Coupon;
 use App\Models\Central\Invoice;
@@ -14,6 +18,7 @@ use App\Models\Central\Package;
 use App\Models\Central\PendingCharge;
 use App\Models\Central\PricingSetting;
 use App\Models\Central\Reseller;
+use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Rules\Iban;
@@ -84,6 +89,14 @@ class LandlordController extends Controller
         return view('landlord.index', [
             'rows' => $rows,
             'monthly' => $rows->sum('total'),
+            'packages' => Package::on('central')->orderBy('sort_order')->get(),
+            'modules' => Module::on('central')->orderBy('sort_order')->get(),
+            /** Openstaand werk en wat er onlangs misging; geslaagde aanvragen zijn de tenant zelf. */
+            'requests' => TenantProvisioningRequest::on('central')
+                ->where(fn ($query) => $query->whereIn('status', ['queued', 'running', 'failed'])
+                    ->orWhereNotNull('generated_password'))
+                ->orderByDesc('id')
+                ->get(),
         ]);
     }
 
@@ -245,11 +258,16 @@ class LandlordController extends Controller
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
+        $invoicer = new Invoicer($tenant);
+        [$start, $end] = $invoicer->periodFor(CarbonImmutable::now());
+
         return view('landlord.invoices', [
             'tenant' => $tenant,
             'invoices' => Invoice::on('central')->with('lines')
                 ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),
-            'preview' => (new Invoicer($tenant))->preview(),
+            'preview' => $invoicer->preview(),
+            'is_due' => $invoicer->isDue(),
+            'next_period_starts_on' => $end->addDay(),
         ]);
     }
 
@@ -276,6 +294,53 @@ class LandlordController extends Controller
     }
 
     /** Alles wat geïncasseerd mag worden en nog niet in een bestand zat. */
+    public function storeTenant(StoreTenantRequest $request)
+    {
+        $data = $request->validated();
+
+        $provisioning = TenantProvisioningRequest::on('central')->create([
+            'action' => 'create',
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'package_key' => $data['package_key'],
+            'modules' => $data['modules'] ?? [],
+        ]);
+
+        RunTenantProvisioningRequestJob::dispatch($provisioning->id)->onQueue('provisioning');
+
+        return back()->with('status', 'Aanvraag klaargezet. Zodra de provisioner klaar is verschijnt '
+            . $data['name'] . ' in de lijst, met het wachtwoord erbij.');
+    }
+
+    /**
+     * Het paneel mag geen database weggooien -- dat doet de provisioner. Hier
+     * wordt alleen de opdracht neergelegd, na een naam die letterlijk klopt.
+     */
+    public function destroyTenant(DestroyTenantRequest $request, string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $provisioning = TenantProvisioningRequest::on('central')->create([
+            'action' => 'delete',
+            'tenant_id' => $tenant->id,
+            'name' => $tenant->name,
+        ]);
+
+        RunTenantProvisioningRequestJob::dispatch($provisioning->id)->onQueue('provisioning');
+
+        return redirect()->route('landlord.index')
+            ->with('status', $tenant->name . ' staat klaar om verwijderd te worden.');
+    }
+
+    /** Het wachtwoord van een nieuwe tenant: één keer tonen, dan weg. */
+    public function forgetProvisioningPassword(ForgetProvisioningPasswordRequest $request, int $id)
+    {
+        TenantProvisioningRequest::on('central')
+            ->where('id', $id)->update(['generated_password' => null]);
+
+        return back()->with('status', 'Wachtwoord gewist.');
+    }
+
     public function collections()
     {
         return view('landlord.collections', [

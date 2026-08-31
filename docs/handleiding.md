@@ -324,7 +324,8 @@ Uw abonnement bepaalt hoeveel u kunt opslaan en hoeveel mensen er kunnen werken.
 limiet, dan wordt een upload geweigerd met een melding; bestaande bestanden
 blijven altijd staan. Neem contact op om uit te breiden.
 
-**Gebruikers.** Er is een aantal plaatsen voor buitendienst en voor binnendienst.
+**Gebruikers.** Bij het aanmaken kiest u per gebruiker buitendienst of binnendienst;
+die keuze bepaalt welke plaats hij bezet. Er is een aantal plaatsen voor buitendienst en voor binnendienst.
 Zijn ze bezet, dan kan er geen nieuwe gebruiker van die soort bij. Een gebruiker
 die u op non-actief zet geeft zijn plaats meteen weer vrij.
 

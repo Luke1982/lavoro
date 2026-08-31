@@ -26,6 +26,10 @@ Route::prefix('beheer')
             Route::post('resellers', [LandlordController::class, 'storeReseller'])->name('landlord.reseller.store');
             Route::post('coupons', [LandlordController::class, 'storeCoupon'])->name('landlord.coupon.store');
             Route::post('{tenant}/coupon', [LandlordController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
+            Route::post('tenants', [LandlordController::class, 'storeTenant'])->name('landlord.tenant.store');
+            Route::delete('tenants/{tenant}', [LandlordController::class, 'destroyTenant'])->name('landlord.tenant.destroy');
+            Route::delete('aanvraag/{request}/wachtwoord', [LandlordController::class, 'forgetProvisioningPassword'])
+                ->name('landlord.provisioning.forget-password');
             Route::get('incasso', [LandlordController::class, 'collections'])->name('landlord.collections');
             Route::post('incasso', [LandlordController::class, 'exportCollection'])->name('landlord.collections.export');
             Route::get('{tenant}/facturen', [LandlordController::class, 'invoices'])->name('landlord.invoices');

@@ -13,7 +13,8 @@ main{max-width:1100px;margin:24px auto;padding:0 24px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 @media(max-width:900px){.cols{grid-template-columns:1fr}}
 .card h3{margin-top:0}
-.linkish{background:none;border:0;padding:0;font:inherit;color:#2563eb;cursor:pointer;text-decoration:underline}
+.flash-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .linkish{background:none;border:0;padding:0;font:inherit;color:#2563eb;cursor:pointer;text-decoration:underline}
     .choice{border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .choice label{display:flex;align-items:center;gap:10px;margin:0;padding:9px 12px;font-weight:400;cursor:pointer}
 .choice label+label{border-top:1px solid var(--line)}
@@ -46,6 +47,7 @@ button{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radi
 </header>
 <main>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @if(session('error'))<div class="flash flash-bad">{{ session('error') }}</div>@endif
     @if($errors->any())<div class="err">{{ $errors->first() }}</div>@endif
     @yield('content')
 </main>

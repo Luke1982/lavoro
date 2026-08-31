@@ -15,4 +15,89 @@
         </tr>
     @endforeach
 </table>
+
+@if($requests->isNotEmpty())
+    <div class="card" style="max-width:100%;margin-top:22px">
+        <h3>Aanvragen</h3>
+        <p class="muted" style="margin:0 0 10px">
+            Aanmaken en verwijderen doet de provisioner op de achtergrond. Blijft een regel
+            hier staan, dan draait die worker niet.
+        </p>
+        <table>
+            @foreach($requests as $request)
+                <tr>
+                    <td style="width:90px">
+                        @if($request->status === 'failed')
+                            <span class="warn">mislukt</span>
+                        @elseif($request->status === 'done')
+                            <span class="muted">klaar</span>
+                        @else
+                            <span class="muted">{{ $request->status === 'running' ? 'bezig' : 'in de wacht' }}</span>
+                        @endif
+                    </td>
+                    <td>
+                        {{ $request->action === 'delete' ? 'Verwijderen' : 'Aanmaken' }}: <strong>{{ $request->name }}</strong>
+                        @if($request->error)<br><span class="warn">{{ $request->error }}</span>@endif
+                        @if($request->generated_password)
+                            <br>Beheerder <strong>{{ $request->email }}</strong>,
+                            wachtwoord <code>{{ $request->generated_password }}</code>
+                        @endif
+                    </td>
+                    <td style="text-align:right;width:120px">
+                        @if($request->generated_password)
+                            <form method="post" action="{{ route('landlord.provisioning.forget-password', $request->id) }}">
+                                @csrf @method('delete')
+                                <button type="submit" class="linkish">wachtwoord wissen</button>
+                            </form>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </table>
+    </div>
+@endif
+
+<div class="card" style="max-width:100%;margin-top:22px">
+    <h3>Nieuwe tenant</h3>
+    <form method="post" action="{{ route('landlord.tenant.store') }}">@csrf
+        <div class="grid">
+            <div>
+                <label>Bedrijfsnaam</label>
+                <input type="text" name="name" value="{{ old('name') }}" required>
+                <span class="muted">De databasenaam volgt hieruit en ligt daarna vast.</span>
+                @error('name')<p class="warn">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label>E-mail van de eerste beheerder</label>
+                <input type="email" name="email" value="{{ old('email') }}" required>
+                @error('email')<p class="warn">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        <label>Pakket</label>
+        <select name="package_key">
+            @foreach($packages as $package)
+                <option value="{{ $package->key }}" @selected(old('package_key') === $package->key)>
+                    {{ $package->name }} &mdash; &euro; {{ number_format($package->price_cents / 100, 2, ',', '.') }}
+                </option>
+            @endforeach
+        </select>
+        @error('package_key')<p class="warn">{{ $message }}</p>@enderror
+
+        <label>Modules</label>
+        @foreach($modules as $module)
+            <div><label style="font-weight:400">
+                <input type="checkbox" name="modules[]" value="{{ $module->key }}"
+                    @checked(in_array($module->key, old('modules', []), true))>
+                {{ $module->name }}
+                <span class="muted">&euro; {{ number_format($module->price_cents / 100, 2, ',', '.') }}</span>
+            </label></div>
+        @endforeach
+
+        <p style="margin-top:14px"><button type="submit">Aanmaken</button></p>
+        <p class="muted" style="margin:0">
+            Het wachtwoord van de beheerder wordt gegenereerd en hierboven getoond zodra de tenant klaar is.
+        </p>
+    </form>
+</div>
 @endsection
