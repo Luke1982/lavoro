@@ -25,8 +25,10 @@
                     placeholder="{{ number_format($ai_allowance_euro, 2, ',', '') }} (standaard)">
                 <p class="muted" style="margin:4px 0 0">
                     Deze maand verbruikt: &euro; {{ number_format($ai_spent_euro, 2, ',', '.') }}
-                    van &euro; {{ number_format($ai_allowance_euro, 2, ',', '.') }}@if($ai_topup_euro > 0),
-                    plus &euro; {{ number_format($ai_topup_euro, 2, ',', '.') }} bijgekocht@endif.
+                    van &euro; {{ number_format($ai_allowance_euro, 2, ',', '.') }}.
+                    @if ($ai_topup_euro > 0)
+                        Bijgekocht tegoed: &euro; {{ number_format($ai_topup_euro, 2, ',', '.') }}.
+                    @endif
                     Leeg laten volgt de standaard uit de catalogus.
                 </p>
             </div>
@@ -65,6 +67,23 @@
         @endforeach
         <p><button type="submit">Opslaan</button> &nbsp; <a href="{{ route('landlord.index') }}">annuleren</a></p>
     </form>
+</div>
+
+<div class="card" style="margin-top:20px">
+    <h3 style="margin-top:0">Coupon</h3>
+    @if($tenant->coupon_discount_percent)
+        <p>
+            {{ $tenant->coupon_discount_percent }}% korting tot
+            {{ \Carbon\Carbon::parse($tenant->coupon_discount_until)->format('d-m-Y') }}
+            @if($reseller) &middot; via {{ $reseller->name }} ({{ $reseller->commission_percent }}% commissie) @endif
+        </p>
+        <p class="muted">Deze maand commissie: &euro; {{ number_format($sub->commissionCents() / 100, 2, ',', '.') }}</p>
+    @else
+        <form method="post" action="{{ route('landlord.coupon.redeem', $tenant->id) }}">@csrf
+            <label>Couponcode</label>
+            <div style="display:flex;gap:8px"><input type="text" name="code" placeholder="ZOMER2026" style="max-width:220px"><button type="submit">Verzilveren</button></div>
+        </form>
+    @endif
 </div>
 
 <div class="card" style="margin-top:20px">
