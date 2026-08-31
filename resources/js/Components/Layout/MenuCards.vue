@@ -7,13 +7,10 @@
             <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-semibold text-sidebar-text">{{ companyName }}</p>
             </div>
-            <!--
-                Vast op Team zolang er één bedrijf per installatie draait. Zodra
-                dat er meer worden hoort de licentie bij het bedrijf en niet meer
-                bij het menu.
-            -->
-            <span class="shrink-0 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
-                {{ card.license }}
+            <!-- Het pakket komt van de tenant; card.license is alleen nog de terugval. -->
+            <span v-if="licenseLabel"
+                class="shrink-0 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+                {{ licenseLabel }}
             </span>
         </div>
 
@@ -61,6 +58,8 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import { Link } from '@inertiajs/vue3'
 import { ChevronRight, ExternalLink, LoaderCircle, Phone } from '@lucide/vue'
 import { navIcon } from '@/Navigation/icons.js'
@@ -78,4 +77,11 @@ defineProps({
 defineEmits(['navigate', 'logout'])
 
 const { authUser, initials, userRoles, companyName, companyLogo, loggingOut } = useMenu()
+
+/**
+ * Het pakket van deze klant, gedeeld door HandleInertiaRequests. Valt terug op
+ * wat in menu.json staat, zodat een installatie zonder pakket geen leeg vakje
+ * laat zien maar gewoon niets.
+ */
+const licenseLabel = computed(() => usePage().props.tenant?.package ?? null)
 </script>
