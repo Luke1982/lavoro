@@ -36,6 +36,12 @@ return [
     */
 
     'guards' => [
+
+        'landlord' => [
+            'driver' => 'session',
+            'provider' => 'landlord_users',
+        ],
+
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
@@ -60,6 +66,12 @@ return [
     */
 
     'providers' => [
+
+        'landlord_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Central\LandlordUser::class,
+        ],
+
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
