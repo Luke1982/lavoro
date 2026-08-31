@@ -55,6 +55,18 @@ class CreateTenant extends Command
             'tenancy_db_name' => $database,
         ]);
 
+
+        /**
+         * De bootstrapper wijst de schijven naar deze mappen, maar maakt ze niet
+         * aan. Zonder dit mislukt de eerste upload van een nieuwe tenant, en het
+         * is een lege map die niemand mist tot dat gebeurt.
+         */
+        foreach (['public', 'local'] as $disk) {
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(
+                storage_path("tenant-{$tenant->id}/{$disk}"), 0775
+            );
+        }
+
         tenancy()->initialize($tenant);
 
         $admin = User::create([

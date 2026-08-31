@@ -24,6 +24,14 @@ class TenancyForStatefulApi
         $tenant_id = $request->hasSession() ? $request->session()->get('tenant_id') : null;
         $tenant_id = $tenant_id ?: $request->cookie('tenant_id');
 
+        if (! $tenant_id && $bearer = $request->bearerToken()) {
+            $plain = str_contains($bearer, '|') ? \Illuminate\Support\Str::after($bearer, '|') : $bearer;
+
+            $tenant_id = \App\Models\Central\AccessTokenTenantLookup::on('central')
+                ->where('token_hash', hash('sha256', $plain))
+                ->value('tenant_id');
+        }
+
         if ($tenant_id && ! tenancy()->initialized) {
             $tenant = Tenant::on('central')->find($tenant_id);
 
