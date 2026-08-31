@@ -807,13 +807,16 @@ return new class extends Migration
             ['key' => 'enterprise', 'name' => 'Enterprise', 'field_seats' => 15, 'office_seats' => 6, 'price_cents' => 23000, 'extra_field_cents' => 950,  'extra_office_cents' => 650, 'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
         ]);
 
+        /**
+         * Only what a customer can actually opt in or out of. SnelStart,
+         * Google Agenda and Locatie volgen are part of the product for
+         * everyone -- they are configuration, not merchandise -- so they are
+         * not modules and never appear in this table.
+         */
         DB::connection('central')->table('modules')->insert([
-            ['key' => 'quotes',            'name' => 'Offertes',          'price_cents' => 2750, 'sort_order' => 1, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'invoices',          'name' => 'Facturen',          'price_cents' => 2750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'snelstart',         'name' => 'SnelStart',         'price_cents' => 0,    'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'google_calendar',   'name' => 'Google Agenda',     'price_cents' => 0,    'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'location_tracking', 'name' => 'Locatie volgen',    'price_cents' => 0,    'sort_order' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'assistant',         'name' => 'AI-assistent',      'price_cents' => 2250, 'sort_order' => 6, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'quotes',   'name' => 'Offertes',     'price_cents' => 2750, 'sort_order' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'invoices', 'name' => 'Facturen',     'price_cents' => 2750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'assistant', 'name' => 'AI-assistent', 'price_cents' => 2250, 'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
         ]);
 
         DB::connection('central')->table('module_bundles')->insert([
@@ -823,7 +826,7 @@ return new class extends Migration
         DB::connection('central')->table('pricing_settings')->insert([
             ['key' => 'included_storage_gb',        'value' => 50,        'created_at' => $now, 'updated_at' => $now],
             ['key' => 'storage_extra_per_gb_cents', 'value' => 50,        'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'ai_allowance_micros',        'value' => 12_500_000, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'ai_allowance_micros',        'value' => 22_500_000, 'created_at' => $now, 'updated_at' => $now],
         ]);
     }
 
@@ -2415,7 +2418,7 @@ class TenantSubscriptionTest extends TestCase
 
     public function test_free_modules_add_nothing(): void
     {
-        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'modules' => ['snelstart', 'google_calendar']])->monthlyTotalCents());
+        $this->assertSame(16000, $this->subscription(['package_key' => 'business', 'modules' => []])->monthlyTotalCents());
     }
 
     public function test_extra_storage_bills_the_allowance_above_the_included_amount(): void
@@ -4213,7 +4216,7 @@ Record the printed tenant ID — call it `TENANT_ID` for the next steps. Then:
 ```bash
 php artisan tenant:package "$TENANT_ID" business
 php artisan tenant:seats "$TENANT_ID" --field=+2 --office=+1
-php artisan tenant:modules "$TENANT_ID" --add=snelstart --add=google_calendar
+php artisan tenant:modules "$TENANT_ID" --add=assistant
 php artisan tenant:storage "$TENANT_ID" --limit=100
 ```
 
@@ -4343,7 +4346,7 @@ Leave `lavoro_tenant_acme`, `lavoro_landlord`, and `/tmp/tenant_backup.sql` in p
 ### Task 28, Step 1: Create a second tenant with an admin
 
 ```bash
-php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --package=team --modules=google_calendar
+php artisan tenant:create "Tweede Klant BV" admin@tweede.nl --admin-password=secret123 --package=team --modules=assistant
 ```
 
 Confirm it prints a tenant ID, package, admin email, and password, and does not error. If it hangs, check the MySQL user has `CREATE DATABASE` and that no queue worker is needed (the pipeline runs inline via `shouldBeQueued(false)`).
@@ -4383,11 +4386,11 @@ php artisan queue:work --once --verbose
 ### Task 28, Step 5: Confirm package/module data round-trips
 
 ```bash
-php artisan tenant:overview                            # the row shows Team, 1/5 field, 1/2 office, google_calendar
-php artisan tenant:modules <second-id>                 # prints: google_calendar
+php artisan tenant:overview                            # the row shows Team, 1/5 field, 1/2 office, assistant
+php artisan tenant:modules <second-id>                 # prints: assistant
 ```
 
-And in the browser as the second tenant's user, check the Inertia page props include `tenant: { package: 'team', modules: ['google_calendar'] }`.
+And in the browser as the second tenant's user, check the Inertia page props include `tenant: { package: 'team', modules: ['assistant'] }`.
 
 ---
 
@@ -4463,7 +4466,7 @@ Record the printed tenant ID as `TENANT_ID`, then set the subscription:
 ```bash
 php artisan tenant:package "$TENANT_ID" business
 php artisan tenant:seats "$TENANT_ID" --field=+7 --office=+1
-php artisan tenant:modules "$TENANT_ID" --add=google_calendar
+php artisan tenant:modules "$TENANT_ID" --add=assistant
 php artisan tenant:storage "$TENANT_ID" --limit=100
 ```
 
@@ -4823,11 +4826,9 @@ So it is route middleware, the same pattern as `tenant.api` in Task 24. It runs 
 **Files:**
 - `app/Http/Middleware/EnsureTenantHasModule.php` (new)
 - `bootstrap/app.php`
-- `routes/web.php`, `routes/api.php`
-- `app/Http/Controllers/ServiceOrderController.php:352` (the only remaining `snelStartEnabled` flag)
-- `resources/js/Composables/useMenu.js` (`menu.json` itself needs no change — see Step 5)
-- `resources/js/Components/GoogleCalendarSection.vue`
-- `resources/js/Pages/Admin/GeneralSettingsPage.vue`
+- `routes/web.php`
+- `app/Http/Controllers/ServiceOrderController.php` (the `snelStartEnabled` flag)
+- `app/Http/Middleware/HandleInertiaRequests.php` (the `use_assistant` verdict)
 
 > **Line numbers below are indicative only — this file moves constantly.** Locate each route by its name/controller rather than by line number.
 
@@ -4890,133 +4891,56 @@ $middleware->alias([
 ]);
 ```
 
-### Task 31, Step 3: Apply it to the module-gated route groups in `routes/web.php`
+### Task 31, Step 3: Apply it to the module-gated routes in `routes/web.php`
 
-Inside the existing `auth` group:
+There are three modules a customer can buy — `quotes`, `invoices`, `assistant` —
+and everything else is stock. That makes this step small on purpose:
 
-**Not the ticket routes.** Storingen is stock — every tenant has it — so there is no
-module to gate it on; see Task 6. Leave those three routes exactly as they are.
+**Not the ticket or project routes.** Storingen and Projecten are stock — every
+tenant has them; see Task 6. **Not SnelStart, Google Agenda or Locatie volgen
+either**: those are part of the product for everyone. What switches them on or
+off is whether the customer configured them (Task 32), not whether they paid.
 
-SnelStart — there are exactly **two** SnelStart routes (lines ~230 and ~243). They are not adjacent, so either wrap each individually or apply the middleware inline:
-
-```php
-Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
-    ->middleware('tenant.module:snelstart')
-    ->name('imports.snelstart.materials');
-
-Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
-    ->middleware('tenant.module:snelstart')
-    ->name('serviceorders.sendToSnelStart');
-```
-
-Note SnelStart *customer* import now happens through the generic Excel import (`CustomerImportController::looksLikeSnelStartExport`, auto-detecting a SnelStart export format from the file header). That is offline file parsing with no SnelStart API involvement, so it is deliberately **not** module-gated — gating it would block a plain spreadsheet upload.
-
-**Not the project routes either.** Projecten is stock, like Storingen; see Task 6.
-Leave them as they are.
-
-Google Calendar (lines ~343-348):
+**The assistant, everywhere it spends money or carries out writes.** Three
+routes call the model or execute an approved tool, and all three carry the gate:
 
 ```php
-Route::middleware('tenant.module:google_calendar')->group(function () {
-    Route::get('google/oauth/start', [GoogleOAuthController::class, 'start'])
-        ->name('google.oauth.start');
-    Route::get('google/oauth/callback', [GoogleOAuthController::class, 'callback'])
-        ->name('google.oauth.callback');
-    Route::delete('google/integration', [GoogleOAuthController::class, 'destroy'])
-        ->name('google.integration.destroy');
-});
+Route::post('assistant/ask', ...)->middleware('tenant.module:assistant');
+Route::post('assistant/continue', ...)->middleware('tenant.module:assistant');
+Route::post('assistant/confirm', ...)->middleware('tenant.module:assistant');
 ```
 
-The assistant — **fourteen routes**, all in the `auth` group, each already carrying its own `throttle`. Wrap the lot; the throttles survive, because route middleware composes:
+Gating `ask` alone looks complete and is not: `continue` resumes a conversation
+at the same supplier for the same money, and `confirm` executes a write that was
+approved earlier. The history and prompt routes stay open — they read what was
+already paid for.
+
+**Offertes and Facturen have no routes yet.** The modules are sold ahead of the
+features. When those screens land, their route groups get
+`tenant.module:quotes` / `tenant.module:invoices` the same way — that is the
+whole reason the middleware takes a parameter.
+
+### Task 31, Step 4: Gate the SnelStart UI on configuration, not on a module
+
+`ServiceOrderController` shares `snelStartEnabled`, and `ShowPage.vue` already
+hides the button on it. Since Task 32 the truthful expression is:
 
 ```php
-Route::middleware('tenant.module:assistant')->group(function () {
-    // assistant.ask, assistant.continue, assistant.confirm, assistant.report,
-    // assistant.history, assistant.conversation, assistant.prompts{,.store,.update,.destroy},
-    // assistant.photos.keep, assistant.photos.discard
-});
+'snelStartEnabled' => \App\Services\SnelStartClient::isConfigured(),
 ```
 
-This is the one module where not having it actually saves us money rather than just withholding a feature, because every route in it spends real money at a supplier. Gate all fourteen, not just `ask`: `confirm` carries out a write that a previous `ask` proposed, `report` hands back a transcript, and `history` and `prompts` are the conversation's own furniture. A half-gated module is a module that still costs and still leaks.
-
-Note the assistant does **not** appear in `menu.json` — it is a panel, not a page — so Step 5 has nothing to add for it. Its visibility comes from `auth.can.use_assistant`, handled in Step 6b.
-
-Location tracking — inside the nested `admin` group (line ~354), wrap the settings route at lines ~381-384:
-
-```php
-Route::put('admin/settings/location-tracking', [GeneralSettingsController::class, 'updateLocationTracking'])
-    ->middleware('tenant.module:location_tracking')
-    ->name('admin.settings.location-tracking');
-```
-
-(Use the controller/action already on that route — copy it from the current lines 381-384 rather than retyping the signature from scratch, since the exact method name should match what's there today.)
-
-**Gating only `routes/web.php` leaves the module wide open.** The SPA does most of its real work through `routes/api.php`, so a web-only gate blocks the page but not the data behind it. Every module with an API surface needs the same middleware there, inside the `tenant.api` group from Task 24:
-
-```php
-Route::get('google/integration/status', GoogleIntegrationStatusController::class)
-    ->middleware('tenant.module:google_calendar');
-
-Route::post('location/pings', [LocationPingController::class, 'store'])
-    ->middleware('tenant.module:location_tracking');
-```
-
-`POST /api/location/pings` shows why the API routes need gating too. It is the Android app's ping endpoint. Gating only the *settings* route in `routes/web.php` stops an admin switching tracking on — but does nothing about a phone that is already sending pings, so an unsubscribed tenant carries on accumulating location data.
-
-The same trap waits for every module with an API surface. When Offertes and Facturen are built, whatever they expose under `routes/api.php` needs gating in the same commit as their web routes — the SPA reads the API directly, so a web-only gate hides the page and serves the data.
-
-Check `routes/api.php` for module-owned routes each time a new module is added; the file is where the gate is easiest to forget.
-
-### Task 31, Step 4: Gate the SnelStart UI at the source — extend the existing `snelStartEnabled` flag
-
-There is exactly **one** `snelStartEnabled` producer, `ServiceOrderController.php:352`:
-
-```php
-'snelStartEnabled' => filled(config('services.snelstart.client_key')),
-```
-
-Change it to also require the module:
-
-```php
-'snelStartEnabled' => filled(config('services.snelstart.client_key'))
-    && tenancy()->initialized
-    && tenancy()->tenant->hasModule('snelstart'),
-```
-
-This reuses the exact prop `ServiceOrders/ShowPage.vue` already gates its SnelStart button on (`v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"`, line 448) — no frontend changes needed for SnelStart. The materials-import button is gated by the route middleware from Step 3 alone.
-
-**Task 32 Step 8 revises this line again**, dropping the `config()` clause once the client key is per-tenant and there is no global one left to check. If you are implementing both tasks in sequence, write the Task 32 version directly and skip the intermediate form.
+No `hasModule('snelstart')` — there is no such module. A customer without keys
+simply sees no SnelStart buttons; the route behind them throws
+`SnelStartNotConfigured` if called anyway.
 
 ### Task 31, Step 5: Teach the menu about modules — no entry needs one yet
 
-**Navigation is declarative.** Its shape lives in **`resources/js/Navigation/menu.json`** — a tree of sections and items, each carrying the permission it needs — and `resources/js/Composables/useMenu.js` turns that into the tree the signed-in user may actually see. Six components share it. A module is therefore one more key in the JSON rather than an argument threaded through a list of component imports.
+**Navigation is declarative.** Its shape lives in **`resources/js/Navigation/menu.json`** — a tree of sections and items, each carrying the permission it needs — and `resources/js/Composables/useMenu.js` turns that into the tree the signed-in user may actually see. A module is one more key in the JSON rather than an argument threaded through component imports.
 
-**Every top-level menu item today is stock**, so no `"module"` key is added in this task. That is the correct outcome rather than a gap: Storingen and Projecten are part of the product, and the remaining modules are not screens — SnelStart is a button (Step 4), Google Agenda and Locatie volgen are settings sections (Step 6), and the assistant is a panel (Step 6b).
-
-Add the `maySee` branch anyway. It is three words of code, and without it the JSON key is silently ignored — so the first person to write `"module": "quotes"` when Offertes ships gets a menu entry everyone can see and no error to explain why. The mechanism should exist before its first user, not because of them.
-
-```js
-import { hasAnyPermission, hasModule, hasPermission, initials as getInitials } from '@/Utilities/Utilities'
-
-const maySee = (item) => {
-    if (item.module && !hasModule(item.module)) return false
-    if (item.adminOnly) return isAdmin.value
-    if (item.explicitPermission) return (page.props.auth?.permissions || []).includes(item.explicitPermission)
-    if (item.anyPermission) return hasAnyPermission(item.anyPermission)
-    if (item.permission) return hasPermission(item.permission)
-    return true
-}
-```
-
-The module check goes **first**, before the `adminOnly` branch: a module is a subscription boundary, not a permission, so an admin of a tenant that does not pay for a feature must not see it either. (Contrast `hasPermission`, which deliberately returns `true` for admins, and `explicitPermission`, which deliberately does not.)
-
-`maySee` is called by `resolve`, which walks the tree recursively, so this covers nested entries too — and `resolve` already drops a parent whose children have all disappeared and which has no page of its own, so a module that owns a whole submenu will need nothing extra. Extend the existing import on line 3 rather than adding a second one.
-
-### Task 31, Step 6: Gate the Google Calendar section and location-tracking settings
-
-In `resources/js/Components/GoogleCalendarSection.vue`, import `hasModule` from `@/Utilities/Utilities` and wrap the section's root template element in `v-if="hasModule('google_calendar')"`.
-
-In `resources/js/Pages/Admin/GeneralSettingsPage.vue`, do the same around the location-tracking settings block, using `hasModule('location_tracking')`.
+**Every top-level menu item today is stock**, so no `"module"` key exists yet.
+The assistant is a panel rather than a page (Step 6b), and Offertes/Facturen
+have no screens yet. When they do, their menu entries carry the module key and
+`useMenu.js` filters on `page.props.tenant.modules`.
 
 ### Task 31, Step 6b: Fold the module into the assistant's shared verdict
 
@@ -5032,20 +4956,24 @@ The route middleware from Step 3 is still what actually blocks access. This only
 
 ### Task 31, Step 7: Verify
 
-- As a tenant without the `google_calendar` module: the OAuth start route is refused and the Google Calendar section does not render. **Assert on the refusal, not on the status code** — unless you took option 2 or 3 above, a web request comes back as a 302 with a flash message, not a 403 (see Step 1). `assertForbidden()` will fail on a working gate. In a feature test, `$this->withoutExceptionHandling()` restores the underlying 403 and is the cleaner assertion.
-- `php artisan tenant:modules <id> --add=google_calendar`, reload: the route works and the section appears.
-- Same pattern for `snelstart` and `location_tracking`, and for `location_tracking` check `POST /api/location/pings` directly — that is the one a device keeps hitting regardless of what the settings page says.
-- As a tenant with **no modules at all**: Storingen and Projecten still work, with their menu entries and the Storingen dot. That is the check that stock features have not been gated by accident, and it is the one worth keeping in the suite.
-- As a tenant without the `assistant` module: the assistant panel does not open, and `POST /assistant/ask` returns 403 rather than spending anything at a supplier. Check that 403 with a direct request rather than through the UI — the point of the route gate is that it holds when the UI is bypassed.
+- As a tenant with **no modules at all**: Storingen, Projecten, Google Agenda,
+  Locatie volgen and de SnelStart-knoppen (mits geconfigureerd) all still work.
+  That is the check that stock features have not been gated by accident, and it
+  is the one worth keeping in the suite.
+- As a tenant without the `assistant` module: the assistant panel does not open,
+  and `POST /assistant/ask`, `/assistant/continue` and `/assistant/confirm`
+  return 403 rather than spending anything at a supplier. Check those with a
+  direct request rather than through the UI — the point of the route gate is
+  that it holds when the UI is bypassed. **Assert on the refusal, not on the
+  status code** — a web request comes back as a 302 with a flash message unless
+  you took option 2 or 3 under Step 1; `$this->withoutExceptionHandling()`
+  restores the underlying 403 and is the cleaner assertion.
 
 ### Task 31, Step 8: Commit
 
 ```bash
-git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php routes/api.php \
-        app/Http/Controllers/ServiceOrderController.php app/Http/Middleware/HandleInertiaRequests.php \
-        resources/js/Composables/useMenu.js \
-        resources/js/Components/GoogleCalendarSection.vue \
-        resources/js/Pages/Admin/GeneralSettingsPage.vue
+git add app/Http/Middleware/EnsureTenantHasModule.php bootstrap/app.php routes/web.php \
+        app/Http/Controllers/ServiceOrderController.php app/Http/Middleware/HandleInertiaRequests.php
 git commit -m "feat(tenancy): enforce module subscriptions on gated routes and UI"
 ```
 
@@ -5072,12 +5000,14 @@ They share storage, encryption, and one settings screen, so they are one task. T
 - `app/Exceptions/SnelStartNotConfigured.php` (new)
 - `app/Providers/AppServiceProvider.php`, `app/Providers/TenancyServiceProvider.php`, `bootstrap/app.php`
 - `app/Console/Commands/FetchSnelStartArtikelen.php`, `FetchSnelStartRelaties.php`
-- `app/Http/Controllers/Admin/IntegrationSettingsController.php` (new), `app/Http/Requests/IntegrationSettingsRequest.php` (new)
-- `resources/js/Pages/Admin/IntegrationSettingsPage.vue` (new), `routes/web.php`
-- `tests/Feature/IntegrationCredentialsTest.php` (new)
+- `app/Support/TenantMailTransport.php` (new), `app/Exceptions/MailNotConfigured.php` (new)
+- `app/Listeners/ApplyTenantSender.php` (new)
+- `app/Http/Controllers/TechnicalManagementController.php` (the screen lives on the existing Technisch beheer page)
+- `app/Http/Requests/UpdateIntegrationSettingsRequest.php` (new), `app/Http/Requests/ForgetIntegrationSecretRequest.php` (new)
+- `resources/js/Pages/TechnischBeheer/IndexPage.vue`, `resources/js/Components/UI/SecretField.vue` (new), `routes/web.php`
 
 **Interfaces:**
-- Produces: `GeneralSetting::get`/`set` transparently encrypting the keys in `GeneralSetting::SECRET_KEYS`; `SnelStartClient` resolving per tenant and throwing `SnelStartNotConfigured` when unconfigured; `admin/settings/integrations` behind `auth` + `admin`.
+- Produces: `GeneralSetting::get`/`set` transparently encrypting the keys in `GeneralSetting::SECRET_KEYS`; `SnelStartClient` resolving per tenant and throwing `SnelStartNotConfigured` when unconfigured; the settings sections on Technisch beheer, behind the `technical.management` permission.
 
 ### Task 32, Step 1: Widen `general_settings.value` and encrypt the secret keys
 
@@ -5236,7 +5166,7 @@ The constructor throws, which means it throws during container resolution, befor
 
 ```php
 $exceptions->render(function (SnelStartNotConfigured $e, Request $request) {
-    $message = 'De SnelStart-koppeling is nog niet ingesteld. Ga naar Beheer → Koppelingen.';
+    $message = 'SnelStart is nog niet gekoppeld. Vul de sleutels in bij Technisch beheer.';
 
     if ($request->expectsJson()) {
         return response()->json(['message' => $message], 422);
@@ -5260,7 +5190,7 @@ The `snelstart.land.*` reference lookups need no change — they are already per
 
 ### Task 32, Step 6: Make the SnelStart fetch commands tenant-aware
 
-`FetchSnelStartArtikelen` and `FetchSnelStartRelaties` are manual commands today and would run against whatever connection happens to be default. Give both a `{--tenant=}` option. Without it, iterate every tenant using the Task 20 pattern, skipping any tenant that lacks the module or the credentials:
+`FetchSnelStartArtikelen` and `FetchSnelStartRelaties` are manual commands today and would run against whatever connection happens to be default. Give both a `{--tenant=}` option. Without it, iterate every tenant using the Task 20 pattern, skipping any tenant without credentials (there is no snelstart module to check -- SnelStart is stock):
 
 ```php
 $tenants = $this->option('tenant')
@@ -5268,10 +5198,6 @@ $tenants = $this->option('tenant')
     : Tenant::on('central')->cursor();
 
 foreach ($tenants as $tenant) {
-    if (!$tenant->hasModule('snelstart')) {
-        continue;
-    }
-
     tenancy()->initialize($tenant);
 
     try {
@@ -5284,54 +5210,64 @@ foreach ($tenants as $tenant) {
 }
 ```
 
-### Task 32, Step 7: Build the integration settings screen
+### Task 32, Step 7: Put the settings on the existing Technisch beheer page
 
-One page with a section per integration, at `admin/settings/integrations`, registered inside the existing `auth` → `admin` group in `routes/web.php`. Do **not** gate the whole page on `tenant.module:snelstart` — the Graph section belongs to every tenant. Gate the SnelStart *section* on `hasModule('snelstart')` in the template, and the SnelStart fields in `IntegrationSettingsRequest::rules()` with `required_if` on the same condition.
+The app already had a Technisch beheer page (test mail, `technical.management`
+permission) — the integration settings live there rather than on a page of their
+own, so there is one place where "does the mail work" is asked and answered.
+Guarded by the same permission: this is operator work, not daily admin work, and
+in practice that permission is held by MajorLabel's own account inside each
+tenant.
 
-`IntegrationSettingsRequest::authorize()` calls the policy, per CLAUDE.md; validation lives in `rules()`; the frontend renders `form.errors` only.
+The mail section starts with a choice of transport, stored as
+`mail_transport` (`graph` or `smtp`):
 
-**The page must never receive the stored secrets.** An Inertia prop carrying a client secret ships it to every browser that loads the settings page and into every browser devtools session. Send status, not values:
+- **Microsoft 365** — the four Graph fields from Step 2.
+- **Eigen mailserver** — `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_scheme`
+  (empty = derived from the port: 465 speaks TLS at once, everything else
+  STARTTLS), `mail_smtp_username`, `mail_smtp_password`.
 
-```php
-return inertia('Admin/IntegrationSettingsPage', [
-    'graph' => [
-        'configured'      => filled(GeneralSetting::get('graph_client_secret')),
-        'azure_tenant_id' => GeneralSetting::get('graph_azure_tenant_id'),
-        'client_id'       => GeneralSetting::get('graph_client_id'),
-        'user_id'         => GeneralSetting::get('graph_user_id'),
-    ],
-    'snelstart' => [
-        'configured'       => filled(GeneralSetting::get('snelstart_client_key')),
-        'client_key_hint'  => $this->hint(GeneralSetting::get('snelstart_client_key')),
-    ],
-]);
-```
+`App\Support\TenantMailTransport` builds the transport for whichever choice is
+stored; it is registered as the `tenant` mailer and `MAIL_MAILER=tenant` makes
+it the default. It throws `MailNotConfigured` / `GraphNotConfigured` when the
+chosen transport misses fields — **no `.env` fallback, per tenant or nothing**.
+`ApplyTenantSender` stamps the tenant's own `mail_from_address`/`mail_from_name`
+on outgoing mail so nothing ever leaves under another company's name.
 
-where `hint()` returns the last four characters or `null`. Identifiers (`client_id`, `user_id`, the Azure directory id) are not secret and are sent in full so the form can show what is set. Secrets come back only as `configured` plus a hint, and an empty submitted secret means "leave unchanged" rather than "clear it" — otherwise every save of an unrelated field wipes the credential.
+The SnelStart section is **not** module-gated — SnelStart is stock (Task 6);
+without keys the buttons simply stay hidden.
+
+**The page must never receive the stored secrets.** A prop carrying a client
+secret ships it to every browser that loads the page. The controller sends
+`storedSecrets` — booleans per key — and `SecretField.vue` renders "staat
+opgeslagen, laat leeg om te laten staan" with a wis-knop. An empty submitted
+secret means "leave unchanged" rather than "clear it" — otherwise every save of
+an unrelated field wipes the credential. Clearing is its own DELETE route.
 
 ### Task 32, Step 8: Update the `snelStartEnabled` prop
 
-Task 31 Step 4 set it to `filled(config('services.snelstart.client_key')) && tenancy()->initialized && tenancy()->tenant->hasModule('snelstart')`. There is no global client key any more, so drop that clause and check the tenant's own credentials instead:
+There is no global client key and no snelstart module, so the prop reads the
+tenant's own credentials and nothing else:
 
 ```php
-'snelStartEnabled' => tenancy()->initialized
-    && tenancy()->tenant->hasModule('snelstart')
-    && filled(\App\Models\GeneralSetting::get('snelstart_client_key')),
+'snelStartEnabled' => \App\Services\SnelStartClient::isConfigured(),
 ```
 
-A tenant that subscribes to the module but has not entered credentials now correctly sees no SnelStart button, rather than a button that throws.
+`isConfigured()` is true only inside a tenant with both keys stored. A customer
+who has not entered credentials sees no SnelStart button, rather than a button
+that throws.
 
 ### Task 32, Step 9: Tests
 
 ```php
 public function test_two_tenants_resolve_different_snelstart_credentials(): void
 public function test_snelstart_without_credentials_throws_rather_than_falling_back(): void
-public function test_graph_falls_back_to_env_only_when_no_tenant_key_is_set(): void
+public function test_mail_without_credentials_throws_rather_than_falling_back(): void
 public function test_a_partially_configured_graph_tenant_does_not_mix_in_env_values(): void
 public function test_the_settings_endpoint_response_contains_no_secret(): void
 ```
 
-The fourth is the regression test for the bug in Step 2, and the fifth greps the rendered Inertia props for the stored secret string.
+The third holds the per-tenant-or-nothing rule for mail as a whole (Graph and SMTP alike), the fourth is the regression test for the bug in Step 2, and the fifth greps the rendered Inertia props for the stored secret string.
 
 ### Task 32, Step 10: Verify by hand
 
@@ -5346,9 +5282,10 @@ git add database/migrations/tenant/ \
         app/Models/GeneralSetting.php app/Services/SnelStartClient.php \
         app/Exceptions/SnelStartNotConfigured.php \
         app/Providers/AppServiceProvider.php app/Providers/TenancyServiceProvider.php bootstrap/app.php \
-        app/Console/Commands/ app/Http/Controllers/Admin/ app/Http/Requests/ \
-        resources/js/Pages/Admin/IntegrationSettingsPage.vue routes/web.php \
-        config/services.php .env.example tests/Feature/IntegrationCredentialsTest.php
+        app/Console/Commands/ app/Http/Controllers/TechnicalManagementController.php app/Http/Requests/ \
+        app/Support/TenantMailTransport.php app/Listeners/ApplyTenantSender.php \
+        resources/js/Pages/TechnischBeheer/IndexPage.vue resources/js/Components/UI/SecretField.vue routes/web.php \
+        config/services.php config/mail.php .env.example
 git commit -m "feat(tenancy): resolve Graph and SnelStart credentials per tenant"
 ```
 
@@ -6360,6 +6297,18 @@ git commit -m "feat(tenancy): per-tenant storage quota with nightly reconcile"
 A small internal admin on its own subdomain (`beheer.lavorofsm.nl`) for managing the catalogue and every tenant's subscription in a browser. It runs **central-only** — its routes never carry the tenancy middleware — with its own `landlord` guard and `landlord_users` table. It is a thin visual layer over the Task 34 logic and the `TenantSubscription` service; controllers hold no pricing logic.
 
 Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 34), seat counting (Task 35) and the storage counter (Task 36).
+
+As built it runs under `/beheer` on the main domain (no separate subdomain) and
+renders Blade rather than Inertia -- it is an internal tool for one pair of
+hands. Beyond this task's scope it grew the commercial side of the product:
+packages/modules/prices editable in the browser, discounts (bedrag of
+percentage, nooit allebei), resellers with single-use coupons and commission,
+AI-bijkopen, and full invoicing -- hourly `invoices:issue` (aanmaken, nooit
+vanzelf versturen), invoice mail with PDF + UBL 2.1 XML through the
+`LANDLORD_MAIL_*` mailer, proration bij pakketwissel, jaarbetaling met korting,
+and SEPA-incasso (pain.008) with per-tenant machtigingen. See
+`app/Services/Invoicer.php`, `TenantSubscription::breakdown()`,
+`InvoiceMailer`, `SepaDirectDebit` and `routes/landlord.php` for the shape.
 
 **Files:**
 - a new central migration for `landlord_users` (`php artisan make:migration create_landlord_users_table`)
@@ -7381,7 +7330,7 @@ architecture — it is that some things now have a ceiling.
 | `## Documenten, foto's en opmerkingen` | That an upload is refused when the storage limit is reached, and who to contact to extend it |
 | `## Gebruikers, rollen en rechten` | Buiten- and binnendienst seats, what happens when one is full, and that a binnendienst user cannot be made plannable |
 | `## Instellingen en beheer` | Where storage and seat usage are shown |
-| `## Koppelingen` | SnelStart and mail credentials are now entered per company under Beheer → Koppelingen |
+| `## Koppelingen` | SnelStart and mail credentials are now entered per company under Technisch beheer |
 | `## Navigatie en zoeken` | One line: a feature not in the subscription is simply absent from the menu |
 
 **The assistant chapter is the one that pays for itself.** The assistant answers
@@ -7588,7 +7537,7 @@ scripts/tenancy/import-install.sh \
     --name "Spee Totaaltechniek" \
     --slug spee \
     --package business \
-    --modules google_calendar,snelstart \
+    --modules assistant \
     --storage-gb 100 \
     --dry-run
 ```
@@ -7704,7 +7653,7 @@ git commit -m "feat(tenancy): script the import of an existing installation"
 
 3. **File access is authenticated but not permission-scoped.** Task 14 serves files only to logged-in users of the owning tenant (cross-tenant ids 404 via model binding), which closes the world-readable hole. It does not apply per-resource permission checks, and the two file paths are gated differently: `FileController` (images, avatars, logos) checks only that you are signed in, while documents additionally require `can('viewAny', Document::class)` via `DocumentViewRequest`. Neither checks the *individual* record, so any user who clears the coarse gate can fetch any file id in that tenant. Adding policy checks in `FileController` is a reasonable follow-up if finer-grained access is required. Relatedly, `Storage::response()` sends no cache-control headers; if browser caching of served files ever becomes a concern, add `Cache-Control: private` in `FileController`.
 
-4. **SnelStart and Microsoft Graph credentials are per-tenant** (Task 32), stored encrypted in the tenant's `general_settings` and edited from Beheer → Koppelingen. Neither falls back to shared credentials: a tenant that has not configured its mailbox does not send mail, because sending it from another company's mailbox would put the wrong sender on a customer's own correspondence.
+4. **SnelStart and Microsoft Graph credentials are per-tenant** (Task 32), stored encrypted in the tenant's `general_settings` and edited from Technisch beheer. Neither falls back to shared credentials: a tenant that has not configured its mailbox does not send mail, because sending it from another company's mailbox would put the wrong sender on a customer's own correspondence.
 
    **Firebase (FCM) is still global**, and unlike the other two that is probably correct: the FCM credential identifies the *Lavoro app* to Google, not the customer, and device tokens are app-instance-bound rather than tenant-bound. Revisit only if tenants ever ship their own branded builds — at which point the Task 32 pattern applies directly.
 
