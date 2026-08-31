@@ -3,14 +3,32 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\ExportCollectionRequest;
+use App\Models\Central\AiTopup;
+use App\Models\Central\Coupon;
+use App\Models\Central\Invoice;
+use App\Models\Central\IssuerSetting;
 use App\Models\Central\Module;
+use App\Models\Central\ModuleBundle;
 use App\Models\Central\Package;
+use App\Models\Central\PendingCharge;
+use App\Models\Central\PricingSetting;
+use App\Models\Central\Reseller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\CouponRedeemer;
+use App\Services\InvoiceMailer;
+use App\Services\Invoicer;
+use App\Services\InvoiceUbl;
+use App\Services\SepaDirectDebit;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class LandlordController extends Controller
 {
@@ -23,7 +41,7 @@ class LandlordController extends Controller
     {
         $data = $request->validate(['email' => 'required|email', 'password' => 'required']);
 
-        if (! Auth::guard('landlord')->attempt($data, true)) {
+        if (!Auth::guard('landlord')->attempt($data, true)) {
             return back()->withErrors(['email' => 'Kon niet inloggen'])->withInput();
         }
 
@@ -73,9 +91,9 @@ class LandlordController extends Controller
         return view('landlord.catalogue', [
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
-            'bundles' => \App\Models\Central\ModuleBundle::on('central')->get(),
-            'settings' => \App\Models\Central\PricingSetting::on('central')->orderBy('key')->get(),
-            'usage' => \Illuminate\Support\Facades\DB::connection('central')->table('tenants')
+            'bundles' => ModuleBundle::on('central')->get(),
+            'settings' => PricingSetting::on('central')->orderBy('key')->get(),
+            'usage' => DB::connection('central')->table('tenants')
                 ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')->pluck('aantal', 'package_key'),
         ]);
     }
@@ -109,7 +127,7 @@ class LandlordController extends Controller
     {
         $data = $request->validate(['value' => 'required|integer|min:0']);
 
-        \App\Models\Central\PricingSetting::on('central')->findOrFail($id)->update($data);
+        PricingSetting::on('central')->findOrFail($id)->update($data);
 
         return back()->with('status', 'Instelling bijgewerkt.');
     }
@@ -120,10 +138,10 @@ class LandlordController extends Controller
 
         $data = $request->validate(['paid_euro' => 'required|numeric|min:0.01', 'note' => 'nullable|string']);
 
-        $rate = \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200);
+        $rate = PricingSetting::value('ai_topup_cents_per_euro_granted', 200);
         $paid_cents = (int) round((float) $data['paid_euro'] * 100);
 
-        \App\Models\Central\AiTopup::on('central')->create([
+        AiTopup::on('central')->create([
             'tenant_id' => $tenant->id,
             'paid_cents' => $paid_cents,
             'granted_micros' => (int) round($paid_cents / max(1, $rate) * 1_000_000),
@@ -131,9 +149,10 @@ class LandlordController extends Controller
         ]);
 
         /** Het tegoed is meteen bruikbaar; het geld gaat op de eerstvolgende factuur. */
-        \App\Models\Central\PendingCharge::on('central')->create([
+        PendingCharge::on('central')->create([
             'tenant_id' => $tenant->id,
             'description' => 'Extra AI-tegoed' . (($data['note'] ?? null) ? ' (' . $data['note'] . ')' : ''),
+            'kind' => 'topup',
             'amount_cents' => $paid_cents,
         ]);
 
@@ -142,12 +161,12 @@ class LandlordController extends Controller
 
     public function resellers()
     {
-        $resellers = \App\Models\Central\Reseller::on('central')->orderBy('name')->get()->map(function ($reseller) {
+        $resellers = Reseller::on('central')->orderBy('name')->get()->map(function ($reseller) {
             $tenants = Tenant::on('central')->where('reseller_id', $reseller->id)->get();
 
             return [
                 'reseller' => $reseller,
-                'coupons' => \App\Models\Central\Coupon::on('central')->where('reseller_id', $reseller->id)->latest()->get(),
+                'coupons' => Coupon::on('central')->where('reseller_id', $reseller->id)->latest()->get(),
                 'tenants' => $tenants,
                 'commission' => $tenants->sum(fn ($t) => (new TenantSubscription($t))->commissionCents()),
             ];
@@ -158,7 +177,7 @@ class LandlordController extends Controller
 
     public function storeReseller(Request $request)
     {
-        \App\Models\Central\Reseller::on('central')->create($request->validate([
+        Reseller::on('central')->create($request->validate([
             'name' => 'required|string',
             'email' => 'nullable|email',
             'commission_percent' => 'required|integer|min:0|max:100',
@@ -178,8 +197,8 @@ class LandlordController extends Controller
         ]);
 
         for ($i = 0; $i < $data['aantal']; $i++) {
-            \App\Models\Central\Coupon::on('central')->create([
-                'code' => strtoupper($data['code'] ?: \Illuminate\Support\Str::random(4) . '-' . \Illuminate\Support\Str::random(4)),
+            Coupon::on('central')->create([
+                'code' => strtoupper($data['code'] ?: Str::random(4) . '-' . Str::random(4)),
                 'reseller_id' => $data['reseller_id'],
                 'discount_percent' => $data['discount_percent'],
                 'discount_months' => $data['discount_months'],
@@ -194,7 +213,7 @@ class LandlordController extends Controller
         $tenant = Tenant::on('central')->findOrFail($id);
 
         try {
-            $coupon = app(\App\Services\CouponRedeemer::class)
+            $coupon = app(CouponRedeemer::class)
                 ->redeem(strtoupper(trim($request->input('code'))), $tenant);
         } catch (\RuntimeException $e) {
             return back()->withErrors(['code' => $e->getMessage()]);
@@ -209,9 +228,9 @@ class LandlordController extends Controller
 
         return view('landlord.invoices', [
             'tenant' => $tenant,
-            'invoices' => \App\Models\Central\Invoice::on('central')->with('lines')
+            'invoices' => Invoice::on('central')->with('lines')
                 ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),
-            'preview' => (new \App\Services\Invoicer($tenant))->preview(),
+            'preview' => (new Invoicer($tenant))->preview(),
         ]);
     }
 
@@ -219,21 +238,96 @@ class LandlordController extends Controller
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $invoice = (new \App\Services\Invoicer($tenant))->issue();
+        $invoice = (new Invoicer($tenant))->issue();
 
         return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
             . number_format($invoice->total_cents / 100, 2, ',', '.'));
+    }
+
+    /** Handmatig: er hoort eerst iemand naar de factuur gekeken te hebben. */
+    public function mailInvoice(string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+
+        if (!(new InvoiceMailer)->send($invoice, $tenant)) {
+            return back()->with('error', 'Versturen mislukt: ' . $invoice->fresh()->mail_error);
+        }
+
+        return back()->with('status', "Factuur {$invoice->number} verstuurd naar {$tenant->invoice_email}.");
+    }
+
+    /** Alles wat geïncasseerd mag worden en nog niet in een bestand zat. */
+    public function collections()
+    {
+        return view('landlord.collections', [
+            'invoices' => $this->collectable()->get(),
+            'issuer' => IssuerSetting::all_values(),
+            'collect_on' => now()->addWeekdays(6)->toDateString(),
+        ]);
+    }
+
+    public function exportCollection(ExportCollectionRequest $request)
+    {
+        $data = $request->validated();
+
+        $invoices = $this->collectable()
+            ->whereIn('id', $data['invoices'])
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return back()->with('error', 'Niets te incasseren.');
+        }
+
+        $batch = 'LVR-' . now()->format('YmdHis');
+
+        $xml = (new SepaDirectDebit(
+            $invoices,
+            CarbonImmutable::parse($data['collect_on']),
+            $batch,
+        ))->toXml();
+
+        /**
+         * Pas afstempelen als het bestand er is. Een klant die al op
+         * "geïncasseerd" staat terwijl de bank niets gekregen heeft, wordt
+         * nooit meer meegenomen.
+         */
+        Invoice::on('central')
+            ->whereIn('id', $invoices->pluck('id'))
+            ->update(['collected_at' => now(), 'collection_batch' => $batch]);
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml',
+            'Content-Disposition' => 'attachment; filename="' . $batch . '.xml"',
+        ]);
+    }
+
+    /**
+     * Een factuur mag mee als de klant een machtiging heeft afgegeven en hij
+     * nog niet eerder in een bestand zat.
+     */
+    private function collectable()
+    {
+        return Invoice::on('central')
+            ->with('tenant')
+            ->whereNull('collected_at')
+            ->whereHas('tenant', fn ($query) => $query
+                ->where('payment_method', 'direct_debit')
+                ->whereNotNull('iban')
+                ->whereNotNull('mandate_reference')
+                ->whereNotNull('mandate_signed_on'))
+            ->orderBy('number');
     }
 
     public function invoicePdf(string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('landlord.invoice.pdf', [
+        return Pdf::loadView('landlord.invoice.pdf', [
             'invoice' => $invoice,
             'tenant' => $tenant,
-            'issuer' => \App\Models\Central\IssuerSetting::all_values(),
+            'issuer' => IssuerSetting::all_values(),
             'logo' => $this->issuerLogo(),
+            'script_font' => 'file://' . resource_path('fonts/DancingScript.ttf'),
         ])->download($invoice->number . '.pdf');
     }
 
@@ -241,7 +335,7 @@ class LandlordController extends Controller
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 
-        return response((new \App\Services\InvoiceUbl($invoice, $tenant))->toXml(), 200, [
+        return response((new InvoiceUbl($invoice, $tenant))->toXml(), 200, [
             'Content-Type' => 'application/xml',
             'Content-Disposition' => 'attachment; filename="' . $invoice->number . '.xml"',
         ]);
@@ -256,7 +350,7 @@ class LandlordController extends Controller
     {
         $file = public_path('img/majorlabel-logo.jpg');
 
-        if (! is_readable($file)) {
+        if (!is_readable($file)) {
             return null;
         }
 
@@ -267,7 +361,7 @@ class LandlordController extends Controller
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $invoice = \App\Models\Central\Invoice::on('central')->with('lines')
+        $invoice = Invoice::on('central')->with('lines')
             ->where('tenant_id', $tenant->id)->findOrFail($invoice_id);
 
         return [$tenant, $invoice];
@@ -277,26 +371,26 @@ class LandlordController extends Controller
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $spent = (int) \Illuminate\Support\Facades\DB::connection('central')->table('assistant_usage')
+        $spent = (int) DB::connection('central')->table('assistant_usage')
             ->where('tenant_id', $tenant->id)
             ->where('created_at', '>=', now()->startOfMonth())
             ->sum('cost_micros');
 
         $allowance = (int) ($tenant->ai_allowance_micros
-            ?? \App\Models\Central\PricingSetting::value('ai_allowance_micros', 12_500_000));
+            ?? PricingSetting::value('ai_allowance_micros', 12_500_000));
 
         return view('landlord.edit', [
             'tenant' => $tenant,
             'ai_spent_euro' => $spent / 1_000_000,
             'ai_allowance_euro' => $allowance / 1_000_000,
             'ai_is_default' => $tenant->ai_allowance_micros === null,
-            'ai_topup_euro' => \App\Models\Central\AiTopup::on('central')
+            'ai_topup_euro' => AiTopup::on('central')
                 ->where('tenant_id', $tenant->id)->sum('granted_micros') / 1_000_000,
             'sub' => new TenantSubscription($tenant),
-            'invoicer' => new \App\Services\Invoicer($tenant),
-            'topups' => \App\Models\Central\AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
-            'topup_rate' => \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
-            'reseller' => $tenant->reseller_id ? \App\Models\Central\Reseller::on('central')->find($tenant->reseller_id) : null,
+            'invoicer' => new Invoicer($tenant),
+            'topups' => AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
+            'topup_rate' => PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
+            'reseller' => $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
         ]);
@@ -327,11 +421,11 @@ class LandlordController extends Controller
             'modules' => 'array',
         ]);
 
-        $money = fn (?string $key) => ($data[$key] ?? '') === '' || ! isset($data[$key])
+        $money = fn (?string $key) => ($data[$key] ?? '') === '' || !isset($data[$key])
             ? null
             : (int) round((float) $data[$key] * 100);
 
-        $ai = ($data['ai_allowance_euro'] ?? '') === '' || ! isset($data['ai_allowance_euro'])
+        $ai = ($data['ai_allowance_euro'] ?? '') === '' || !isset($data['ai_allowance_euro'])
             ? null
             : (int) round((float) $data['ai_allowance_euro'] * 1_000_000);
 
@@ -352,7 +446,7 @@ class LandlordController extends Controller
 
         $after = (new TenantSubscription($tenant->refresh()))->monthlyTotalCents();
 
-        $charge = (new \App\Services\Invoicer($tenant))->prorate($before, $after);
+        $charge = (new Invoicer($tenant))->prorate($before, $after);
 
         return redirect()->route('landlord.edit', $tenant->id)->with('status', $tenant->name . ' is bijgewerkt.'
             . ($charge ? ' Verrekening van € ' . number_format($charge->amount_cents / 100, 2, ',', '.') . ' staat klaar voor de volgende factuur.' : ''));

@@ -2,23 +2,45 @@
 
 namespace App\Services;
 
+use App\Exceptions\SnelStartNotConfigured;
+use App\Models\GeneralSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class SnelStartClient
 {
     protected string $authUrl;
+
     protected string $apiBase;
+
     protected string $clientKey;
+
     protected string $subscriptionKey;
 
+    /**
+     * De sleutels komen van de klant en niet uit de .env. Er is hier geen
+     * terugval: een SnelStart-aanroep zonder eigen sleutels zou de facturen van
+     * de ene klant in de boekhouding van de andere zetten. Het adres van de
+     * dienst zelf staat wel gewoon in de config — dat is voor iedereen gelijk.
+     */
     public function __construct()
     {
         $cfg = config('services.snelstart');
-        $this->authUrl         = $cfg['auth_url'];
-        $this->apiBase         = $cfg['api_base'];
-        $this->clientKey       = $cfg['client_key'];
-        $this->subscriptionKey = $cfg['subscription_key'];
+        $this->authUrl = $cfg['auth_url'];
+        $this->apiBase = $cfg['api_base'];
+        $this->clientKey = (string) GeneralSetting::get('snelstart_client_key', '');
+        $this->subscriptionKey = (string) GeneralSetting::get('snelstart_subscription_key', '');
+
+        if (!filled($this->clientKey) || !filled($this->subscriptionKey)) {
+            throw new SnelStartNotConfigured;
+        }
+    }
+
+    public static function isConfigured(): bool
+    {
+        return tenancy()->initialized
+            && filled(GeneralSetting::get('snelstart_client_key'))
+            && filled(GeneralSetting::get('snelstart_subscription_key'));
     }
 
     protected function getAccessToken(): string
@@ -26,7 +48,7 @@ class SnelStartClient
         return Cache::remember('snelstart.token', now()->addSeconds(3500), function () {
             $response = Http::asForm()->post($this->authUrl, [
                 'grant_type' => 'clientkey',
-                'clientkey'  => $this->clientKey,
+                'clientkey' => $this->clientKey,
             ])->throw();
 
             return $response->json('access_token');
@@ -36,12 +58,12 @@ class SnelStartClient
     public function get(string $uri, array $query = [])
     {
         return Http::withToken($this->getAccessToken())
-                    ->withHeaders([
-                        'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
-                    ])
-                    ->get($this->apiBase . $uri, $query)
-                    ->throw()
-                    ->json();
+            ->withHeaders([
+                'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
+            ])
+            ->get($this->apiBase . $uri, $query)
+            ->throw()
+            ->json();
     }
 
     public function post(string $uri, array $payload = [])
@@ -70,6 +92,7 @@ class SnelStartClient
     public function getCountryByIso(string $iso): ?array
     {
         $iso = strtoupper(trim($iso));
+
         return Cache::remember("snelstart.land.iso.{$iso}", now()->addDay(), function () use ($iso) {
             $response = Http::withToken($this->getAccessToken())
                 ->withHeaders([
@@ -83,6 +106,7 @@ class SnelStartClient
                     return $item;
                 }
             }
+
             return null;
         });
     }

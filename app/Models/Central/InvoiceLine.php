@@ -10,5 +10,5 @@ class InvoiceLine extends Model
 
     protected $table = 'invoice_lines';
 
-    protected $fillable = ['invoice_id', 'description', 'amount_cents'];
+    protected $fillable = ['invoice_id', 'description', 'kind', 'amount_cents'];
 }

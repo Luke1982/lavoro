@@ -28,6 +28,7 @@ Route::prefix('beheer')
             Route::post('{tenant}/coupon', [LandlordController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
             Route::get('{tenant}/facturen', [LandlordController::class, 'invoices'])->name('landlord.invoices');
             Route::post('{tenant}/facturen', [LandlordController::class, 'issueInvoice'])->name('landlord.invoice.issue');
+            Route::post('{tenant}/facturen/{invoice}/mail', [LandlordController::class, 'mailInvoice'])->name('landlord.invoice.mail');
             Route::get('{tenant}/facturen/{invoice}/pdf', [LandlordController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
             Route::get('{tenant}/facturen/{invoice}/xml', [LandlordController::class, 'invoiceXml'])->name('landlord.invoice.xml');
             Route::put('pakket/{package}', [LandlordController::class, 'updatePackage'])->name('landlord.package.update');

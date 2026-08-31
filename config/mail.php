@@ -40,6 +40,36 @@ return [
             'transport' => 'graph',
         ],
 
+        /**
+         * De post van de klant. Welke server erachter zit staat per tenant in
+         * general_settings, niet hier: één server in de .env zou de mail van
+         * elke klant uit de mailbox van de eerste laten vertrekken.
+         */
+        'tenant' => [
+            'transport' => 'tenant',
+        ],
+
+        /**
+         * Onze eigen post: facturen aan de tenants. Bewust los van de mailer
+         * van de klant, zodat een klant die zijn mailserver sloopt onze
+         * facturen niet tegenhoudt.
+         */
+        'landlord' => [
+            'transport' => 'smtp',
+            'scheme' => env('LANDLORD_MAIL_SCHEME'),
+            'url' => env('LANDLORD_MAIL_URL'),
+            'host' => env('LANDLORD_MAIL_HOST', '127.0.0.1'),
+            'port' => env('LANDLORD_MAIL_PORT', 2525),
+            'username' => env('LANDLORD_MAIL_USERNAME'),
+            'password' => env('LANDLORD_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'from' => [
+                'address' => env('LANDLORD_MAIL_FROM_ADDRESS', 'info@majorlabel.nl'),
+                'name' => env('LANDLORD_MAIL_FROM_NAME', 'MajorLabel'),
+            ],
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

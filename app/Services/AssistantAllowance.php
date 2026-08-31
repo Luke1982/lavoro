@@ -43,17 +43,30 @@ class AssistantAllowance implements AllowanceGate
     /**
      * Bijgekocht tegoed gaat er pas aan zodra het maandtegoed op is, en wat
      * daarvan over is blijft staan voor de volgende maand.
+     *
+     * Er wordt per maand gekeken naar wat er bóven het maandtegoed uit ging, en
+     * niet naar het totaal. Anders eet een klant die drie maanden netjes onder
+     * zijn tegoed bleef zijn bijkoop op zonder hem ooit gebruikt te hebben.
+     *
+     * Het maandtegoed van nu geldt daarbij ook voor eerdere maanden. Wat het
+     * toen precies was is niet vastgelegd, en dat achteraf reconstrueren is
+     * meer werk dan het verschil waard is.
      */
     public function topupRemainingMicros(): int
     {
-        $spent_all_time = (int) DB::connection('central')->table('assistant_usage')
+        $monthly = $this->monthlyMicros();
+
+        /** In PHP gegroepeerd en niet in SQL: de tests draaien op sqlite. */
+        $per_month = DB::connection('central')->table('assistant_usage')
             ->where('tenant_id', (string) tenancy()->tenant->getTenantKey())
-            ->sum('cost_micros');
+            ->where('created_at', '<', now()->startOfMonth())
+            ->get(['created_at', 'cost_micros'])
+            ->groupBy(fn ($row) => substr((string) $row->created_at, 0, 7))
+            ->map(fn ($rows) => (int) $rows->sum('cost_micros'));
 
-        $spent_this_month = $this->spentMicros();
-        $months_before = max(0, $spent_all_time - $spent_this_month);
+        $over_the_top = $per_month->sum(fn (int $spent) => max(0, $spent - $monthly));
 
-        return max(0, $this->topupMicros() - $months_before);
+        return max(0, $this->topupMicros() - (int) $over_the_top);
     }
 
     public function remainingMicros(): int

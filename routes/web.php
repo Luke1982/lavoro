@@ -505,6 +505,10 @@ Route::group(
             ->name('technical-management.index');
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
             ->name('technical-management.sendTestMail');
+        Route::put('technical-management/integrations', [TechnicalManagementController::class, 'updateIntegrations'])
+            ->name('technical-management.integrations');
+        Route::delete('technical-management/integrations/secrets/{key}', [TechnicalManagementController::class, 'forgetSecret'])
+            ->name('technical-management.forgetSecret');
 
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])

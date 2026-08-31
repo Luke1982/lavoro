@@ -329,7 +329,7 @@ class ServiceOrderController extends Controller
             'incompleteStageId' => ServiceOrderStage::where('is_incomplete_state', true)->value('id'),
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
-            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
+            'snelStartEnabled' => SnelStartClient::isConfigured(),
             'products' => Product::withAttributeData()
                 ->orderBy('model')
                 ->get()
