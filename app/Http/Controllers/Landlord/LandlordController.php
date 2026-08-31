@@ -225,6 +225,37 @@ class LandlordController extends Controller
             . number_format($invoice->total_cents / 100, 2, ',', '.'));
     }
 
+    public function invoicePdf(string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('landlord.invoice.pdf', [
+            'invoice' => $invoice,
+            'tenant' => $tenant,
+            'issuer' => \App\Models\Central\IssuerSetting::all_values(),
+        ])->download($invoice->number . '.pdf');
+    }
+
+    public function invoiceXml(string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+
+        return response((new \App\Services\InvoiceUbl($invoice, $tenant))->toXml(), 200, [
+            'Content-Type' => 'application/xml',
+            'Content-Disposition' => 'attachment; filename="' . $invoice->number . '.xml"',
+        ]);
+    }
+
+    private function invoiceOf(string $id, int $invoice_id): array
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $invoice = \App\Models\Central\Invoice::on('central')->with('lines')
+            ->where('tenant_id', $tenant->id)->findOrFail($invoice_id);
+
+        return [$tenant, $invoice];
+    }
+
     public function edit(string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
@@ -262,6 +293,12 @@ class LandlordController extends Controller
             'package_key' => 'nullable|string',
             'subscription_started_on' => 'nullable|date',
             'billing_period' => 'required|in:monthly,yearly',
+            'invoice_email' => 'nullable|email',
+            'invoice_address' => 'nullable|string',
+            'invoice_postcode' => 'nullable|string|max:16',
+            'invoice_city' => 'nullable|string',
+            'vat_number' => 'nullable|string|max:32',
+            'coc_number' => 'nullable|string|max:32',
             'extra_field_seats' => 'required|integer|min:0',
             'extra_office_seats' => 'required|integer|min:0',
             'storage_limit_gb' => 'required|integer|min:0',

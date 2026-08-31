@@ -14,6 +14,7 @@ class Invoice extends Model
         'period_start' => 'date',
         'period_end' => 'date',
         'issued_on' => 'date',
+        'due_on' => 'date',
     ];
 
     public function lines()
@@ -21,5 +22,5 @@ class Invoice extends Model
         return $this->hasMany(InvoiceLine::class);
     }
 
-    protected $fillable = ['number', 'tenant_id', 'period_start', 'period_end', 'issued_on', 'subtotal_cents', 'discount_cents', 'total_cents'];
+    protected $fillable = ['number', 'tenant_id', 'period_start', 'period_end', 'issued_on', 'due_on', 'subtotal_cents', 'discount_cents', 'total_cents', 'vat_percent', 'vat_cents', 'gross_cents'];
 }

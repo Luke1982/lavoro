@@ -12,7 +12,9 @@
         @if($preview['discount_cents'])
             <tr><td>Jaarkorting</td><td style="text-align:right;color:#b91c1c">&minus; &euro; {{ number_format($preview['discount_cents'] / 100, 2, ',', '.') }}</td></tr>
         @endif
-        <tr><td><strong>Totaal</strong></td><td style="text-align:right"><strong>&euro; {{ number_format($preview['total_cents'] / 100, 2, ',', '.') }}</strong></td></tr>
+        <tr><td>Netto</td><td style="text-align:right">&euro; {{ number_format($preview['total_cents'] / 100, 2, ',', '.') }}</td></tr>
+        <tr><td>BTW {{ $preview['vat_percent'] }}%</td><td style="text-align:right">&euro; {{ number_format($preview['vat_cents'] / 100, 2, ',', '.') }}</td></tr>
+        <tr><td><strong>Te betalen</strong></td><td style="text-align:right"><strong>&euro; {{ number_format($preview['gross_cents'] / 100, 2, ',', '.') }}</strong></td></tr>
     </table>
     <form method="post" action="{{ route('landlord.invoice.issue', $tenant->id) }}" style="margin-top:14px">@csrf
         <button type="submit">Factuur aanmaken</button>
@@ -26,7 +28,11 @@
             <tr>
                 <th>{{ $invoice->number }}</th>
                 <th>{{ $invoice->issued_on->format('d-m-Y') }}</th>
-                <th style="text-align:right">&euro; {{ number_format($invoice->total_cents / 100, 2, ',', '.') }}</th>
+                <th style="text-align:right">&euro; {{ number_format($invoice->gross_cents / 100, 2, ',', '.') }}</th>
+                <th style="text-align:right;width:120px">
+                    <a href="{{ route('landlord.invoice.pdf', [$tenant->id, $invoice->id]) }}">pdf</a> &middot;
+                    <a href="{{ route('landlord.invoice.xml', [$tenant->id, $invoice->id]) }}">xml</a>
+                </th>
             </tr>
             @foreach($invoice->lines as $line)
                 <tr><td colspan="2" class="muted">{{ $line->description }}</td>

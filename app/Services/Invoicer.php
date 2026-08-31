@@ -93,11 +93,18 @@ class Invoicer
          */
         $discount = $this->yearlyDiscountCents($lines[0]['amount_cents']);
 
+        $net = max(0, $subtotal - $discount);
+        $vat_percent = (int) PricingSetting::value('vat_percent', 21);
+        $vat = (int) round($net * $vat_percent / 100);
+
         return [
             'lines' => $lines,
             'subtotal_cents' => $subtotal,
             'discount_cents' => $discount,
-            'total_cents' => max(0, $subtotal - $discount),
+            'total_cents' => $net,
+            'vat_percent' => $vat_percent,
+            'vat_cents' => $vat,
+            'gross_cents' => $net + $vat,
         ];
     }
 
@@ -117,9 +124,13 @@ class Invoicer
                 'period_start' => $start->toDateString(),
                 'period_end' => $end->toDateString(),
                 'issued_on' => $on->toDateString(),
+                'due_on' => $on->addDays((int) \App\Models\Central\IssuerSetting::value('payment_days', '14'))->toDateString(),
                 'subtotal_cents' => $preview['subtotal_cents'],
                 'discount_cents' => $preview['discount_cents'],
                 'total_cents' => $preview['total_cents'],
+                'vat_percent' => $preview['vat_percent'],
+                'vat_cents' => $preview['vat_cents'],
+                'gross_cents' => $preview['gross_cents'],
             ]);
 
             foreach ($preview['lines'] as $line) {
