@@ -48,7 +48,10 @@
     </td>
     <td class="r">
         Factuurdatum: {{ $invoice->issued_on->format('d-m-Y') }}<br>
-        @if($invoice->due_on) Vervaldatum: {{ $invoice->due_on->format('d-m-Y') }}<br>@endif
+        @if($invoice->due_on)
+            Vervaldatum: {{ $invoice->due_on->format('d-m-Y') }}
+            <span class="muted">({{ $invoice->issued_on->diffInDays($invoice->due_on) }} dagen)</span><br>
+        @endif
         Periode: {{ $invoice->period_start->format('d-m-Y') }} t/m {{ $invoice->period_end->format('d-m-Y') }}
     </td>
 </tr></table>
