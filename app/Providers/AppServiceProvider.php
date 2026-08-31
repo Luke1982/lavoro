@@ -142,6 +142,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         \App\Models\User::observe(\App\Observers\UserObserver::class);
+        \Laravel\Sanctum\PersonalAccessToken::observe(\App\Observers\PersonalAccessTokenObserver::class);
 
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
@@ -197,12 +198,31 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Mail::extend('graph', function () {
+            $setting = fn (string $key) => tenancy()->initialized
+                ? \App\Models\GeneralSetting::get($key)
+                : null;
+
+            $azure_tenant = $setting('graph_azure_tenant_id');
+            $client_id = $setting('graph_client_id');
+            $secret = $setting('graph_client_secret');
+            $user_id = $setting('graph_user_id');
+
+            /**
+             * Alle vier of niets, en geen terugval op .env. Mail sturen uit de
+             * mailbox van een ander bedrijf zet de verkeerde afzender op de post
+             * van een klant, en dat is erger dan niet versturen: er komt geen
+             * foutmelding, het bericht komt gewoon van iemand anders.
+             */
+            if (! filled($azure_tenant) || ! filled($client_id) || ! filled($secret) || ! filled($user_id)) {
+                throw new \App\Exceptions\GraphNotConfigured();
+            }
+
             return new GraphTransport(
-                tenantId: config('services.graph.tenant_id'),
-                clientId: config('services.graph.client_id'),
-                clientSecret: config('services.graph.client_secret'),
-                fromAddress: config('mail.from.address'),
-                userId: config('services.graph.user_id'),
+                tenantId: $azure_tenant,
+                clientId: $client_id,
+                clientSecret: $secret,
+                fromAddress: \App\Models\GeneralSetting::get('mail_from_address', $user_id),
+                userId: $user_id,
                 graphEndpoint: config('services.graph.endpoint'),
                 dispatcher: app('events'),
                 logger: app('log')->channel()

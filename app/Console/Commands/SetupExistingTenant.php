@@ -59,6 +59,18 @@ class SetupExistingTenant extends Command
 
         $provisioner->provision($tenant);
 
+        /**
+         * De bootstrapper wijst de schijven naar deze mappen, maar maakt ze niet
+         * aan. Zonder dit mislukt de eerste upload van een nieuwe tenant, en het
+         * is een lege map die niemand mist tot dat gebeurt.
+         */
+        foreach (['public', 'local'] as $disk) {
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(
+                storage_path("tenant-{$tenant->id}/{$disk}"), 0775
+            );
+        }
+
+
         $rows = array_map(fn ($e) => ['email' => $e, 'tenant_id' => $id], $emails);
 
         foreach (array_chunk($rows, 500) as $chunk) {
