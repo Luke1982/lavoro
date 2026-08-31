@@ -71,6 +71,16 @@
         <label>Vaste maandprijs (&euro;) <span class="muted">(leeg = berekenen)</span></label>
         <input type="number" step="0.01" name="price_override_euro" min="0"
             value="{{ $tenant->price_override_cents ? number_format($tenant->price_override_cents / 100, 2, '.', '') : '' }}">
+        <label>Factuurgegevens</label>
+        <div class="grid">
+            <div><input type="text" name="invoice_address" placeholder="Straat en nummer" value="{{ $tenant->invoice_address }}"></div>
+            <div><input type="email" name="invoice_email" placeholder="Factuur-e-mail" value="{{ $tenant->invoice_email }}"></div>
+            <div><input type="text" name="invoice_postcode" placeholder="Postcode" value="{{ $tenant->invoice_postcode }}"></div>
+            <div><input type="text" name="invoice_city" placeholder="Plaats" value="{{ $tenant->invoice_city }}"></div>
+            <div><input type="text" name="vat_number" placeholder="BTW-nummer" value="{{ $tenant->vat_number }}"></div>
+            <div><input type="text" name="coc_number" placeholder="KvK-nummer" value="{{ $tenant->coc_number }}"></div>
+        </div>
+
         <label>Modules</label>
         @foreach($modules as $module)
             <div><label style="font-weight:400">
