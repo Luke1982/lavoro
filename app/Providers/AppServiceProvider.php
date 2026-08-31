@@ -141,6 +141,8 @@ class AppServiceProvider extends ServiceProvider
             ServeCommand::$passthroughVariables[] = 'PHP_INI_SCAN_DIR';
         }
 
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
+
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
