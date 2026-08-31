@@ -1,9 +1,13 @@
 <?php
 
-use App\Jobs\Google\PullCalendarChangesJob;
+use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
+use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
-use App\Models\GoogleSyncedCalendar;
-use App\Models\LocationPing;
+use App\Jobs\NotifyMissingExecutionTimesJob;
+use App\Jobs\PruneAssistantQuestionsJob;
+use App\Jobs\PruneLocationPingsJob;
+use App\Jobs\ReconcileStorageUsageJob;
+use App\Models\Tenant;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -12,43 +16,42 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::call(function () {
-    GoogleSyncedCalendar::query()
-        ->whereHas('integration', fn ($q) => $q->whereNull('disabled_at'))
-        ->pluck('id')
-        ->each(fn ($id) => PullCalendarChangesJob::dispatch($id));
-})->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();
-
-Schedule::job(new RenewWatchChannelsJob)
-    ->hourly()
-    ->name('google-renew-watches')
-    ->withoutOverlapping();
-
-Schedule::call(function () {
-    LocationPing::where('recorded_at', '<', now()->subDay())->delete();
-})->hourly()->name('prune-location-pings')->withoutOverlapping();
-
-Schedule::command('maintenancecontracts:generate-serviceorders')
-    ->hourly()
-    ->name('maintenancecontracts-generate-serviceorders')
-    ->withoutOverlapping();
-
 /**
- * The command has existed since the assistant did and was scheduled nowhere, so
- * a transcript of everybody's working day was kept for ever while the thing that
- * trims them was never once invoked. Its own default says six months, which was
- * an intention rather than a fact.
+ * Elke tik doet per tenant één ding: config omzetten en één rij in de centrale
+ * jobs-tabel. Geen query, geen delete, niets waarvan de kosten meegroeien met
+ * hoeveel data een klant heeft. Het werk zelf gebeurt in de job, die door
+ * QueueTenancyBootstrapper de juiste tenant meekrijgt.
  */
-Schedule::command('assistant:prune')
-    ->dailyAt('03:20')
-    ->name('assistant-prune-questions')
-    ->withoutOverlapping();
+function forEachTenant(callable $dispatch): void
+{
+    Tenant::on('central')->cursor()->each(function (Tenant $tenant) use ($dispatch) {
+        tenancy()->initialize($tenant);
+        $dispatch();
+        tenancy()->end();
+    });
+}
 
-/**
- * Kijkt of er nog uren openstaan van afspraken van gisteren of eerder. 's Ochtends
- * vroeg, zodat het een herinnering is voor vandaag en geen storing van gisteravond.
- */
-Schedule::command('notifications:missing-times')
-    ->dailyAt('07:00')
-    ->name('notifications-missing-times')
-    ->withoutOverlapping();
+Schedule::call(fn () => forEachTenant(fn () => DispatchTenantCalendarPullsJob::dispatch()))
+    ->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => RenewWatchChannelsJob::dispatch()))
+    ->hourly()->name('google-renew-watches')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => PruneLocationPingsJob::dispatch()))
+    ->hourly()->name('prune-location-pings')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => GenerateMaintenanceContractServiceOrdersJob::dispatch()))
+    ->hourly()->name('maintenancecontracts-generate-serviceorders')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
+    ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
+    ->dailyAt('07:00')->name('notifications-missing-times')->withoutOverlapping();
+
+Schedule::call(fn () => forEachTenant(fn () => ReconcileStorageUsageJob::dispatch()))
+    ->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
+
+/** De cron kan niet vanuit PHP gecontroleerd worden; de planner bewijst het zelf. */
+Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))
+    ->everyFiveMinutes()->name('scheduler-heartbeat');
