@@ -114,6 +114,25 @@ class LandlordController extends Controller
         return back()->with('status', 'Instelling bijgewerkt.');
     }
 
+    public function addTopup(Request $request, string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $data = $request->validate(['paid_euro' => 'required|numeric|min:0.01', 'note' => 'nullable|string']);
+
+        $rate = \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200);
+        $paid_cents = (int) round((float) $data['paid_euro'] * 100);
+
+        \App\Models\Central\AiTopup::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'paid_cents' => $paid_cents,
+            'granted_micros' => (int) round($paid_cents / max(1, $rate) * 1_000_000),
+            'note' => $data['note'] ?? null,
+        ]);
+
+        return back()->with('status', 'Bijkoop toegevoegd.');
+    }
+
     public function edit(string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
@@ -131,7 +150,11 @@ class LandlordController extends Controller
             'ai_spent_euro' => $spent / 1_000_000,
             'ai_allowance_euro' => $allowance / 1_000_000,
             'ai_is_default' => $tenant->ai_allowance_micros === null,
+            'ai_topup_euro' => \App\Models\Central\AiTopup::on('central')
+                ->where('tenant_id', $tenant->id)->sum('granted_micros') / 1_000_000,
             'sub' => new TenantSubscription($tenant),
+            'topups' => \App\Models\Central\AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
+            'topup_rate' => \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
         ]);
@@ -148,6 +171,7 @@ class LandlordController extends Controller
             'storage_limit_gb' => 'required|integer|min:0',
             'ai_allowance_euro' => 'nullable|numeric|min:0',
             'price_override_euro' => 'nullable|numeric|min:0',
+            'discount_type' => 'required|in:none,euro,percent',
             'discount_euro' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|integer|min:0|max:100',
             'modules' => 'array',
@@ -161,16 +185,17 @@ class LandlordController extends Controller
             ? null
             : (int) round((float) $data['ai_allowance_euro'] * 1_000_000);
 
-        $percent = ($data['discount_percent'] ?? '') === '' ? null : (int) $data['discount_percent'];
+        $type = $data['discount_type'];
 
-        unset($data['ai_allowance_euro'], $data['price_override_euro'], $data['discount_euro'], $data['discount_percent']);
+        unset($data['ai_allowance_euro'], $data['price_override_euro'],
+            $data['discount_euro'], $data['discount_percent'], $data['discount_type']);
 
         $tenant->update($data + [
             'modules' => $data['modules'] ?? [],
             'ai_allowance_micros' => $ai,
             'price_override_cents' => $money('price_override_euro'),
-            'discount_cents' => $money('discount_euro'),
-            'discount_percent' => $percent,
+            'discount_cents' => $type === 'euro' ? $money('discount_euro') : null,
+            'discount_percent' => $type === 'percent' ? (int) ($request->input('discount_percent') ?: 0) : null,
         ]);
 
         return redirect()->route('landlord.index')->with('status', $tenant->name . ' is bijgewerkt.');

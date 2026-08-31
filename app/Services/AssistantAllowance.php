@@ -17,10 +17,43 @@ class AssistantAllowance implements AllowanceGate
             ->sum('cost_micros');
     }
 
-    public function allowanceMicros(): int
+    /** Het maandtegoed. Begint elke maand opnieuw. */
+    public function monthlyMicros(): int
     {
         return (int) (tenancy()->tenant->ai_allowance_micros
-            ?? PricingSetting::value('ai_allowance_micros', 12_500_000));
+            ?? PricingSetting::value('ai_allowance_micros', 22_500_000));
+    }
+
+    /**
+     * Wat er ooit is bijgekocht, min wat er in eerdere maanden overheen ging.
+     * Bijkopen verloopt niet, dus het telt over de hele looptijd.
+     */
+    public function topupMicros(): int
+    {
+        return (int) DB::connection('central')->table('ai_topups')
+            ->where('tenant_id', (string) tenancy()->tenant->getTenantKey())
+            ->sum('granted_micros');
+    }
+
+    public function allowanceMicros(): int
+    {
+        return $this->monthlyMicros() + $this->topupRemainingMicros();
+    }
+
+    /**
+     * Bijgekocht tegoed gaat er pas aan zodra het maandtegoed op is, en wat
+     * daarvan over is blijft staan voor de volgende maand.
+     */
+    public function topupRemainingMicros(): int
+    {
+        $spent_all_time = (int) DB::connection('central')->table('assistant_usage')
+            ->where('tenant_id', (string) tenancy()->tenant->getTenantKey())
+            ->sum('cost_micros');
+
+        $spent_this_month = $this->spentMicros();
+        $months_before = max(0, $spent_all_time - $spent_this_month);
+
+        return max(0, $this->topupMicros() - $months_before);
     }
 
     public function remainingMicros(): int

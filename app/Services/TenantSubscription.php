@@ -41,10 +41,12 @@ class TenantSubscription
     {
         $before = $this->beforeDiscountCents();
 
-        $percent = (int) ($this->tenant->discount_percent ?? 0);
-        $fixed = (int) ($this->tenant->discount_cents ?? 0);
+        /** Een korting is een bedrag of een percentage, nooit allebei. */
+        if ($this->tenant->discount_percent) {
+            return min($before, (int) round($before * (int) $this->tenant->discount_percent / 100));
+        }
 
-        return min($before, (int) round($before * $percent / 100) + $fixed);
+        return min($before, (int) ($this->tenant->discount_cents ?? 0));
     }
 
     /**

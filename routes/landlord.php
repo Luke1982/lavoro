@@ -27,5 +27,6 @@ Route::prefix('beheer')
             Route::put('instelling/{setting}', [LandlordController::class, 'updateSetting'])->name('landlord.setting.update');
             Route::get('{tenant}', [LandlordController::class, 'edit'])->name('landlord.edit');
             Route::put('{tenant}', [LandlordController::class, 'update'])->name('landlord.update');
+            Route::post('{tenant}/bijkoop', [LandlordController::class, 'addTopup'])->name('landlord.topup');
         });
     });
