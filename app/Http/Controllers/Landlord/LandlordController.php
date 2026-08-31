@@ -68,6 +68,52 @@ class LandlordController extends Controller
         ]);
     }
 
+    public function catalogue()
+    {
+        return view('landlord.catalogue', [
+            'packages' => Package::on('central')->orderBy('sort_order')->get(),
+            'modules' => Module::on('central')->orderBy('sort_order')->get(),
+            'bundles' => \App\Models\Central\ModuleBundle::on('central')->get(),
+            'settings' => \App\Models\Central\PricingSetting::on('central')->orderBy('key')->get(),
+            'usage' => \Illuminate\Support\Facades\DB::connection('central')->table('tenants')
+                ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')->pluck('aantal', 'package_key'),
+        ]);
+    }
+
+    public function updatePackage(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'name' => 'required|string',
+            'field_seats' => 'required|integer|min:0',
+            'office_seats' => 'required|integer|min:0',
+            'price_cents' => 'required|integer|min:0',
+            'extra_field_cents' => 'required|integer|min:0',
+            'extra_office_cents' => 'required|integer|min:0',
+        ]);
+
+        Package::on('central')->findOrFail($id)->update($data);
+
+        return back()->with('status', 'Pakket bijgewerkt.');
+    }
+
+    public function updateModule(Request $request, int $id)
+    {
+        $data = $request->validate(['name' => 'required|string', 'price_cents' => 'required|integer|min:0']);
+
+        Module::on('central')->findOrFail($id)->update($data);
+
+        return back()->with('status', 'Module bijgewerkt.');
+    }
+
+    public function updateSetting(Request $request, int $id)
+    {
+        $data = $request->validate(['value' => 'required|integer|min:0']);
+
+        \App\Models\Central\PricingSetting::on('central')->findOrFail($id)->update($data);
+
+        return back()->with('status', 'Instelling bijgewerkt.');
+    }
+
     public function edit(string $id)
     {
         return view('landlord.edit', [

@@ -36,6 +36,14 @@ class TenantDatabaseSeeder extends Seeder
             ServiceOrderStage::firstOrCreate(['name' => $stage['name']], array_merge($default_flags, $stage));
         }
 
+        /**
+         * De testsuite maakt haar eigen rollen aan; die botsen op naam met deze.
+         * Fases en het bedrijf zijn wel altijd nodig.
+         */
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
         foreach (include base_path('database/seeders/data/tenant_roles.php') as $name => $slug) {
             $role = Role::firstOrCreate(['name' => $name]);
 

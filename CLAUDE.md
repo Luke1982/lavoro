@@ -41,6 +41,23 @@ npm run fix:eslint
 -   String concatenation should always be done with spaces: $string . ' some other string'
 -   `docs/handleiding.md` is the user manual the AI assistant answers from (`read_manual` tool). When user-facing behavior changes, update the relevant chapter in the same change.
 
+## Multi-tenancy
+
+-   Two databases: central (`lavoro_landlord`) and one per customer. `App\Models\Central\*` set `protected $connection = 'central'`; every other model uses the default connection, which is switched per request.
+-   New migrations go in `database/migrations/tenant/` (`make:migration --path=database/migrations/tenant`). A migration belongs in `database/migrations/` only if it declares `protected $connection = 'central';`.
+-   Never build a path to an uploaded file by hand. `storage_path('app/public/…')` and `Storage::url()` bypass the per-tenant disk root and fail silently — a missing file reads as "no image". Use `Storage::disk('public'|'local')`, and serve files through `/files/...` by id, never a `/storage/` URL.
+-   A container singleton holding tenant state must implement `App\Support\ForgetsTenantState` and be tagged in `AppServiceProvider`. `TenantStateTest` fails if you implement it without tagging.
+-   Scheduled tasks never query inline. Loop tenants in `routes/console.php`, dispatch one job per tenant, do the work in the job.
+-   Queued jobs are tagged with the active tenant at dispatch. Dispatch from tenant context or the job runs against central.
+-   Anything encrypted or signed with `APP_KEY` that names a record must also name the tenant. Record ids are per-tenant auto-increments and `APP_KEY` is global, so an id alone is valid in every tenant.
+-   Never take a tenant id from the client — no header, query parameter or body field. Resolve it from the session, or from a central lookup keyed on a credential.
+-   Email addresses are unique across all tenants, not just within one (`user_tenant_lookups`).
+-   A feature is only a module if a customer could reasonably not have it. `tenant:create` defaults to no modules, so gating a stock feature breaks every new customer.
+-   Anything running without a tenant must not let the `web` guard resolve a user: the database session driver writes `user_id` by asking the default guard, and that query hits the central database. See `UseLandlordGuard`.
+-   Tests run on MySQL, never SQLite. The shared `TestCase` creates one tenant per run and wraps each test in transactions on both connections — do not add `RefreshDatabase`.
+
+Full reasoning: `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
+
 ## Project overview
 
 Laravel 12 + Inertia + Vue 3 field-service management app (in Dutch, "Lavoro"). Tracks customers, assets, service orders, jobs, checks, tickets, materials, events/appointments, projects with milestones, documents, images and remarks.

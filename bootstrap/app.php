@@ -50,6 +50,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.api' => \App\Http\Middleware\InitializeTenancyForApi::class,
             'tenant.module' => \App\Http\Middleware\EnsureTenantHasModule::class,
         ]);
+        /**
+         * Een gast op het beheerpaneel hoort naar het inlogscherm van het
+         * paneel, niet naar dat van de app: Authenticate stuurt standaard naar
+         * de route 'login', ongeacht welke guard hem tegenhield.
+         */
+        $middleware->redirectGuestsTo(fn (\Illuminate\Http\Request $request) => $request->is('beheer', 'beheer/*')
+            ? route('landlord.login')
+            : route('login'));
+
         $middleware->statefulApi();
 
         $middleware->validateCsrfTokens(except: ['google/webhook']);

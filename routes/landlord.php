@@ -21,6 +21,10 @@ Route::prefix('beheer')
         Route::middleware('auth:landlord')->group(function () {
             Route::post('logout', [LandlordController::class, 'logout'])->name('landlord.logout');
             Route::get('/', [LandlordController::class, 'index'])->name('landlord.index');
+            Route::get('catalogus', [LandlordController::class, 'catalogue'])->name('landlord.catalogue');
+            Route::put('pakket/{package}', [LandlordController::class, 'updatePackage'])->name('landlord.package.update');
+            Route::put('module/{module}', [LandlordController::class, 'updateModule'])->name('landlord.module.update');
+            Route::put('instelling/{setting}', [LandlordController::class, 'updateSetting'])->name('landlord.setting.update');
             Route::get('{tenant}', [LandlordController::class, 'edit'])->name('landlord.edit');
             Route::put('{tenant}', [LandlordController::class, 'update'])->name('landlord.update');
         });
