@@ -24,7 +24,11 @@
         <div class="muted">{{ $invoice->number }}</div>
     </td>
     <td class="r">
-        <strong>{{ $issuer['name'] ?? '' }}</strong><br>
+        @if($logo)
+            <img src="{{ $logo }}" alt="{{ $issuer['name'] ?? '' }}" style="height:52px;margin-bottom:8px"><br>
+        @else
+            <strong>{{ $issuer['name'] ?? '' }}</strong><br>
+        @endif
         {{ $issuer['address'] ?? '' }}<br>
         {{ $issuer['postcode'] ?? '' }} {{ $issuer['city'] ?? '' }}<br>
         @if(!empty($issuer['vat_number'])) BTW {{ $issuer['vat_number'] }}<br>@endif

@@ -233,6 +233,7 @@ class LandlordController extends Controller
             'invoice' => $invoice,
             'tenant' => $tenant,
             'issuer' => \App\Models\Central\IssuerSetting::all_values(),
+            'logo' => $this->issuerLogo(),
         ])->download($invoice->number . '.pdf');
     }
 
@@ -244,6 +245,22 @@ class LandlordController extends Controller
             'Content-Type' => 'application/xml',
             'Content-Disposition' => 'attachment; filename="' . $invoice->number . '.xml"',
         ]);
+    }
+
+    /**
+     * Als data-URI en niet als pad: dompdf haalt een bestand alleen op als het
+     * dat mag, en een factuur die stil zonder logo uitrolt is lastiger te
+     * merken dan een die niet rendert.
+     */
+    private function issuerLogo(): ?string
+    {
+        $file = public_path('img/majorlabel-logo.jpg');
+
+        if (! is_readable($file)) {
+            return null;
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode((string) file_get_contents($file));
     }
 
     private function invoiceOf(string $id, int $invoice_id): array
