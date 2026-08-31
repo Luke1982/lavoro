@@ -22,6 +22,10 @@ Route::prefix('beheer')
             Route::post('logout', [LandlordController::class, 'logout'])->name('landlord.logout');
             Route::get('/', [LandlordController::class, 'index'])->name('landlord.index');
             Route::get('catalogus', [LandlordController::class, 'catalogue'])->name('landlord.catalogue');
+            Route::get('resellers', [LandlordController::class, 'resellers'])->name('landlord.resellers');
+            Route::post('resellers', [LandlordController::class, 'storeReseller'])->name('landlord.reseller.store');
+            Route::post('coupons', [LandlordController::class, 'storeCoupon'])->name('landlord.coupon.store');
+            Route::post('{tenant}/coupon', [LandlordController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
             Route::put('pakket/{package}', [LandlordController::class, 'updatePackage'])->name('landlord.package.update');
             Route::put('module/{module}', [LandlordController::class, 'updateModule'])->name('landlord.module.update');
             Route::put('instelling/{setting}', [LandlordController::class, 'updateSetting'])->name('landlord.setting.update');

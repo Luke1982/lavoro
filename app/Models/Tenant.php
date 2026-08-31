@@ -33,6 +33,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'ai_allowance_micros',
             'discount_cents',
             'discount_percent',
+            'coupon_discount_percent',
+            'coupon_discount_until',
+            'reseller_id',
             'tenancy_db_username', 'tenancy_db_password',
         ];
     }

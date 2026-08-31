@@ -14,7 +14,37 @@ class TenantSubscription
 
     public function monthlyTotalCents(): int
     {
-        return max(0, $this->beforeDiscountCents() - $this->discountCents());
+        return max(0, $this->beforeDiscountCents() - $this->discountCents() - $this->couponDiscountCents());
+    }
+
+    /**
+     * De kortingsbon loopt af, de handmatige korting niet. Ze staan naast
+     * elkaar: een klant die met een bon binnenkwam kan daarnaast nog iets
+     * toegezegd hebben gekregen.
+     */
+    public function couponDiscountCents(): int
+    {
+        $until = $this->tenant->coupon_discount_until;
+        $percent = (int) ($this->tenant->coupon_discount_percent ?? 0);
+
+        if (! $percent || ! $until || now()->startOfDay()->gt(\Carbon\Carbon::parse($until))) {
+            return 0;
+        }
+
+        return (int) round($this->beforeDiscountCents() * $percent / 100);
+    }
+
+    /** Wat de reseller deze maand verdient aan deze klant. */
+    public function commissionCents(): int
+    {
+        if (! $this->tenant->reseller_id) {
+            return 0;
+        }
+
+        $percent = (int) (\App\Models\Central\Reseller::on('central')
+            ->find($this->tenant->reseller_id)?->commission_percent ?? 0);
+
+        return (int) round($this->monthlyTotalCents() * $percent / 100);
     }
 
     /** Wat het zou kosten zonder korting -- het bedrag waar de korting op rekent. */

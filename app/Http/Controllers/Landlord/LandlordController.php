@@ -133,6 +133,69 @@ class LandlordController extends Controller
         return back()->with('status', 'Bijkoop toegevoegd.');
     }
 
+    public function resellers()
+    {
+        $resellers = \App\Models\Central\Reseller::on('central')->orderBy('name')->get()->map(function ($reseller) {
+            $tenants = Tenant::on('central')->where('reseller_id', $reseller->id)->get();
+
+            return [
+                'reseller' => $reseller,
+                'coupons' => \App\Models\Central\Coupon::on('central')->where('reseller_id', $reseller->id)->latest()->get(),
+                'tenants' => $tenants,
+                'commission' => $tenants->sum(fn ($t) => (new TenantSubscription($t))->commissionCents()),
+            ];
+        });
+
+        return view('landlord.resellers', ['rows' => $resellers]);
+    }
+
+    public function storeReseller(Request $request)
+    {
+        \App\Models\Central\Reseller::on('central')->create($request->validate([
+            'name' => 'required|string',
+            'email' => 'nullable|email',
+            'commission_percent' => 'required|integer|min:0|max:100',
+        ]));
+
+        return back()->with('status', 'Reseller toegevoegd.');
+    }
+
+    public function storeCoupon(Request $request)
+    {
+        $data = $request->validate([
+            'reseller_id' => 'required|integer',
+            'code' => 'nullable|string|max:40',
+            'discount_percent' => 'required|integer|min:1|max:100',
+            'discount_months' => 'required|integer|min:1|max:60',
+            'aantal' => 'required|integer|min:1|max:50',
+        ]);
+
+        for ($i = 0; $i < $data['aantal']; $i++) {
+            \App\Models\Central\Coupon::on('central')->create([
+                'code' => strtoupper($data['code'] ?: \Illuminate\Support\Str::random(4) . '-' . \Illuminate\Support\Str::random(4)),
+                'reseller_id' => $data['reseller_id'],
+                'discount_percent' => $data['discount_percent'],
+                'discount_months' => $data['discount_months'],
+            ]);
+        }
+
+        return back()->with('status', $data['aantal'] . ' coupon(s) aangemaakt.');
+    }
+
+    public function redeemCoupon(Request $request, string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        try {
+            $coupon = app(\App\Services\CouponRedeemer::class)
+                ->redeem(strtoupper(trim($request->input('code'))), $tenant);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['code' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "Coupon {$coupon->code} verzilverd.");
+    }
+
     public function edit(string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
@@ -155,6 +218,7 @@ class LandlordController extends Controller
             'sub' => new TenantSubscription($tenant),
             'topups' => \App\Models\Central\AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
             'topup_rate' => \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
+            'reseller' => $tenant->reseller_id ? \App\Models\Central\Reseller::on('central')->find($tenant->reseller_id) : null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
         ]);
