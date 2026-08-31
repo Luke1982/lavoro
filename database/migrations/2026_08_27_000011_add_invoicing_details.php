@@ -39,9 +39,17 @@ return new class extends Migration
         $now = now();
 
         foreach ([
-            'name' => 'Major Label', 'address' => '', 'postcode' => '', 'city' => '',
-            'country' => 'NL', 'vat_number' => '', 'coc_number' => '', 'iban' => '',
-            'email' => 'info@majorlabel.nl', 'payment_days' => '14',
+            'name' => 'MajorLabel',
+            'address' => 'Koeweide 28',
+            'postcode' => '4194CK',
+            'city' => 'Meteren',
+            'country' => 'NL',
+            'vat_number' => 'NL001913744B85',
+            'coc_number' => '64121720',
+            'iban' => '',
+            'email' => 'info@majorlabel.nl',
+            'phone' => '0345 - 246023',
+            'payment_days' => '14',
         ] as $key => $value) {
             DB::connection('central')->table('issuer_settings')->insert([
                 'key' => $key, 'value' => $value, 'created_at' => $now, 'updated_at' => $now,
