@@ -25,7 +25,8 @@
                     placeholder="{{ number_format($ai_allowance_euro, 2, ',', '') }} (standaard)">
                 <p class="muted" style="margin:4px 0 0">
                     Deze maand verbruikt: &euro; {{ number_format($ai_spent_euro, 2, ',', '.') }}
-                    van &euro; {{ number_format($ai_allowance_euro, 2, ',', '.') }}.
+                    van &euro; {{ number_format($ai_allowance_euro, 2, ',', '.') }}@if($ai_topup_euro > 0),
+                    plus &euro; {{ number_format($ai_topup_euro, 2, ',', '.') }} bijgekocht@endif.
                     Leeg laten volgt de standaard uit de catalogus.
                 </p>
             </div>
@@ -40,18 +41,17 @@
             </div>
         </div>
 
-        <div class="grid">
-            <div>
-                <label>Korting (&euro; per maand)</label>
-                <input type="number" step="0.01" min="0" name="discount_euro"
-                    value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}">
-            </div>
-            <div>
-                <label>Korting (%)</label>
-                <input type="number" min="0" max="100" name="discount_percent" value="{{ $tenant->discount_percent }}">
-            </div>
+        <label>Korting</label>
+        @php($type = $tenant->discount_percent ? 'percent' : ($tenant->discount_cents ? 'euro' : 'none'))
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <label style="font-weight:400"><input type="radio" name="discount_type" value="none" @checked($type === 'none')> geen</label>
+            <label style="font-weight:400"><input type="radio" name="discount_type" value="euro" @checked($type === 'euro')> bedrag</label>
+            <input type="number" step="0.01" min="0" name="discount_euro" style="width:110px"
+                value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}" placeholder="&euro; p/m">
+            <label style="font-weight:400"><input type="radio" name="discount_type" value="percent" @checked($type === 'percent')> percentage</label>
+            <input type="number" min="0" max="100" name="discount_percent" style="width:80px"
+                value="{{ $tenant->discount_percent }}" placeholder="%">
         </div>
-        <p class="muted" style="margin:4px 0 0">Procent gaat er eerst af, daarna het vaste bedrag.</p>
 
         <label>Vaste maandprijs (&euro;) <span class="muted">(leeg = berekenen)</span></label>
         <input type="number" step="0.01" name="price_override_euro" min="0"
@@ -65,5 +65,35 @@
         @endforeach
         <p><button type="submit">Opslaan</button> &nbsp; <a href="{{ route('landlord.index') }}">annuleren</a></p>
     </form>
+</div>
+
+<div class="card" style="margin-top:20px">
+    <h3 style="margin-top:0">AI bijkopen</h3>
+    <p class="muted">
+        Eenmalig en niet aan een maand gebonden: wat er niet op gaat blijft staan.
+        Het maandtegoed gaat er eerst af.<br>
+        Tarief: &euro; {{ number_format($topup_rate / 100, 2, ',', '.') }} betaald geeft &euro; 1,00 aan tegoed.
+    </p>
+    <form method="post" action="{{ route('landlord.topup', $tenant->id) }}">
+        @csrf
+        <div class="grid">
+            <div><label>Bedrag betaald (&euro;)</label><input type="number" step="0.01" min="0.01" name="paid_euro" placeholder="10.00"></div>
+            <div><label>Notitie</label><input type="text" name="note" placeholder="factuurnummer"></div>
+        </div>
+        <p><button type="submit">Toevoegen</button></p>
+    </form>
+    @if($topups->isNotEmpty())
+        <table>
+            <tr><th>Datum</th><th>Betaald</th><th>Tegoed</th><th>Notitie</th></tr>
+            @foreach($topups as $t)
+                <tr>
+                    <td>{{ $t->created_at->format('d-m-Y') }}</td>
+                    <td>&euro; {{ number_format($t->paid_cents / 100, 2, ',', '.') }}</td>
+                    <td>&euro; {{ number_format($t->granted_micros / 1000000, 2, ',', '.') }}</td>
+                    <td class="muted">{{ $t->note }}</td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
 </div>
 @endsection

@@ -54,7 +54,19 @@ trait RefreshesTenantDatabase
                 $stale->delete();
             });
 
-            Tenant::create(['id' => 'test-tenant', 'name' => 'Test', 'tenancy_db_name' => $database]);
+            /**
+             * De testtenant krijgt elk pakket en elke module. De poortjes zelf
+             * hebben hun eigen tests; alle andere tests gaan over wat erachter
+             * zit en horen niet op een abonnement te stranden.
+             */
+            Tenant::create([
+                'id' => 'test-tenant',
+                'name' => 'Test',
+                'tenancy_db_name' => $database,
+                'package_key' => 'enterprise',
+                'modules' => ['quotes', 'invoices', 'assistant'],
+                'storage_limit_gb' => 500,
+            ]);
 
             static::$prepared = true;
         }
