@@ -8,6 +8,16 @@
     <h3>Abonnement</h3>
     <form method="post" action="{{ route('landlord.update', $tenant->id) }}">
         @csrf @method('put')
+        <div class="grid">
+            <div><label>Startdatum abonnement</label>
+                <input type="date" name="subscription_started_on" value="{{ optional($tenant->subscription_started_on)->format('Y-m-d') ?? $tenant->subscription_started_on }}"></div>
+            <div><label>Facturatie</label>
+                <select name="billing_period">
+                    <option value="monthly" @selected($tenant->billing_period !== 'yearly')>Per maand</option>
+                    <option value="yearly" @selected($tenant->billing_period === 'yearly')>Per jaar (2% korting)</option>
+                </select></div>
+        </div>
+
         <label>Pakket</label>
         <select name="package_key">
             <option value="">— geen —</option>
@@ -74,6 +84,24 @@
 
 <div>
 <div class="card" style="max-width:100%">
+    <h3>Facturatie</h3>
+    <p>
+        Volgende factuur: <strong>&euro; {{ number_format($invoicer->preview()['total_cents'] / 100, 2, ',', '.') }}</strong>
+        <span class="muted">({{ $tenant->billing_period === 'yearly' ? 'per jaar' : 'per maand' }})</span>
+    </p>
+    @php($pending = $invoicer->pendingCharges())
+    @if($pending->isNotEmpty())
+        <p class="muted">Nog te verrekenen:</p>
+        <table>
+            @foreach($pending as $charge)
+                <tr><td>{{ $charge->description }}</td><td style="text-align:right">&euro; {{ number_format($charge->amount_cents / 100, 2, ',', '.') }}</td></tr>
+            @endforeach
+        </table>
+    @endif
+    <p><a href="{{ route('landlord.invoices', $tenant->id) }}">Facturen bekijken</a></p>
+</div>
+
+<div class="card" style="max-width:100%;margin-top:20px">
     <h3>Coupon</h3>
     @if($tenant->coupon_discount_percent)
         <p>
