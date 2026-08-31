@@ -46,7 +46,7 @@ return new class extends Migration
             'country' => 'NL',
             'vat_number' => 'NL001913744B85',
             'coc_number' => '64121720',
-            'iban' => '',
+            'iban' => 'NL39ASNB0932392881',
             'email' => 'info@majorlabel.nl',
             'phone' => '0345 - 246023',
             'payment_days' => '14',
