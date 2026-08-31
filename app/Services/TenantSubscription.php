@@ -14,6 +14,12 @@ class TenantSubscription
 
     public function monthlyTotalCents(): int
     {
+        return max(0, $this->beforeDiscountCents() - $this->discountCents());
+    }
+
+    /** Wat het zou kosten zonder korting -- het bedrag waar de korting op rekent. */
+    public function beforeDiscountCents(): int
+    {
         if ($this->tenant->price_override_cents !== null) {
             return (int) $this->tenant->price_override_cents;
         }
@@ -25,6 +31,20 @@ class TenantSubscription
             + (int) $this->tenant->extra_office_seats * (int) ($package->extra_office_cents ?? 0);
 
         return $total + $this->moduleCents() + $this->storageCents();
+    }
+
+    /**
+     * Procent eerst, dan het vaste bedrag. Andersom zou een korting van tien
+     * euro plus tien procent minder opleveren dan de klant is toegezegd.
+     */
+    public function discountCents(): int
+    {
+        $before = $this->beforeDiscountCents();
+
+        $percent = (int) ($this->tenant->discount_percent ?? 0);
+        $fixed = (int) ($this->tenant->discount_cents ?? 0);
+
+        return min($before, (int) round($before * $percent / 100) + $fixed);
     }
 
     /**

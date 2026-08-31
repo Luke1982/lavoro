@@ -131,6 +131,7 @@ class LandlordController extends Controller
             'ai_spent_euro' => $spent / 1_000_000,
             'ai_allowance_euro' => $allowance / 1_000_000,
             'ai_is_default' => $tenant->ai_allowance_micros === null,
+            'sub' => new TenantSubscription($tenant),
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
         ]);
@@ -146,16 +147,30 @@ class LandlordController extends Controller
             'extra_office_seats' => 'required|integer|min:0',
             'storage_limit_gb' => 'required|integer|min:0',
             'ai_allowance_euro' => 'nullable|numeric|min:0',
-            'price_override_cents' => 'nullable|integer|min:0',
+            'price_override_euro' => 'nullable|numeric|min:0',
+            'discount_euro' => 'nullable|numeric|min:0',
+            'discount_percent' => 'nullable|integer|min:0|max:100',
             'modules' => 'array',
         ]);
 
-        $euro = $data['ai_allowance_euro'] ?? null;
-        unset($data['ai_allowance_euro']);
+        $money = fn (?string $key) => ($data[$key] ?? '') === '' || ! isset($data[$key])
+            ? null
+            : (int) round((float) $data[$key] * 100);
+
+        $ai = ($data['ai_allowance_euro'] ?? '') === '' || ! isset($data['ai_allowance_euro'])
+            ? null
+            : (int) round((float) $data['ai_allowance_euro'] * 1_000_000);
+
+        $percent = ($data['discount_percent'] ?? '') === '' ? null : (int) $data['discount_percent'];
+
+        unset($data['ai_allowance_euro'], $data['price_override_euro'], $data['discount_euro'], $data['discount_percent']);
 
         $tenant->update($data + [
             'modules' => $data['modules'] ?? [],
-            'ai_allowance_micros' => $euro === null || $euro === '' ? null : (int) round((float) $euro * 1_000_000),
+            'ai_allowance_micros' => $ai,
+            'price_override_cents' => $money('price_override_euro'),
+            'discount_cents' => $money('discount_euro'),
+            'discount_percent' => $percent,
         ]);
 
         return redirect()->route('landlord.index')->with('status', $tenant->name . ' is bijgewerkt.');
