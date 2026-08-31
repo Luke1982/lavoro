@@ -26,6 +26,8 @@ Route::prefix('beheer')
             Route::post('resellers', [LandlordController::class, 'storeReseller'])->name('landlord.reseller.store');
             Route::post('coupons', [LandlordController::class, 'storeCoupon'])->name('landlord.coupon.store');
             Route::post('{tenant}/coupon', [LandlordController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
+            Route::get('{tenant}/facturen', [LandlordController::class, 'invoices'])->name('landlord.invoices');
+            Route::post('{tenant}/facturen', [LandlordController::class, 'issueInvoice'])->name('landlord.invoice.issue');
             Route::put('pakket/{package}', [LandlordController::class, 'updatePackage'])->name('landlord.package.update');
             Route::put('module/{module}', [LandlordController::class, 'updateModule'])->name('landlord.module.update');
             Route::put('instelling/{setting}', [LandlordController::class, 'updateSetting'])->name('landlord.setting.update');

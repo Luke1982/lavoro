@@ -130,6 +130,13 @@ class LandlordController extends Controller
             'note' => $data['note'] ?? null,
         ]);
 
+        /** Het tegoed is meteen bruikbaar; het geld gaat op de eerstvolgende factuur. */
+        \App\Models\Central\PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Extra AI-tegoed' . (($data['note'] ?? null) ? ' (' . $data['note'] . ')' : ''),
+            'amount_cents' => $paid_cents,
+        ]);
+
         return back()->with('status', 'Bijkoop toegevoegd.');
     }
 
@@ -196,6 +203,28 @@ class LandlordController extends Controller
         return back()->with('status', "Coupon {$coupon->code} verzilverd.");
     }
 
+    public function invoices(string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        return view('landlord.invoices', [
+            'tenant' => $tenant,
+            'invoices' => \App\Models\Central\Invoice::on('central')->with('lines')
+                ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),
+            'preview' => (new \App\Services\Invoicer($tenant))->preview(),
+        ]);
+    }
+
+    public function issueInvoice(string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $invoice = (new \App\Services\Invoicer($tenant))->issue();
+
+        return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
+            . number_format($invoice->total_cents / 100, 2, ',', '.'));
+    }
+
     public function edit(string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
@@ -216,6 +245,7 @@ class LandlordController extends Controller
             'ai_topup_euro' => \App\Models\Central\AiTopup::on('central')
                 ->where('tenant_id', $tenant->id)->sum('granted_micros') / 1_000_000,
             'sub' => new TenantSubscription($tenant),
+            'invoicer' => new \App\Services\Invoicer($tenant),
             'topups' => \App\Models\Central\AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
             'topup_rate' => \App\Models\Central\PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
             'reseller' => $tenant->reseller_id ? \App\Models\Central\Reseller::on('central')->find($tenant->reseller_id) : null,
@@ -230,6 +260,8 @@ class LandlordController extends Controller
 
         $data = $request->validate([
             'package_key' => 'nullable|string',
+            'subscription_started_on' => 'nullable|date',
+            'billing_period' => 'required|in:monthly,yearly',
             'extra_field_seats' => 'required|integer|min:0',
             'extra_office_seats' => 'required|integer|min:0',
             'storage_limit_gb' => 'required|integer|min:0',
@@ -254,6 +286,8 @@ class LandlordController extends Controller
         unset($data['ai_allowance_euro'], $data['price_override_euro'],
             $data['discount_euro'], $data['discount_percent'], $data['discount_type']);
 
+        $before = (new TenantSubscription($tenant))->monthlyTotalCents();
+
         $tenant->update($data + [
             'modules' => $data['modules'] ?? [],
             'ai_allowance_micros' => $ai,
@@ -262,6 +296,11 @@ class LandlordController extends Controller
             'discount_percent' => $type === 'percent' ? (int) ($request->input('discount_percent') ?: 0) : null,
         ]);
 
-        return redirect()->route('landlord.index')->with('status', $tenant->name . ' is bijgewerkt.');
+        $after = (new TenantSubscription($tenant->refresh()))->monthlyTotalCents();
+
+        $charge = (new \App\Services\Invoicer($tenant))->prorate($before, $after);
+
+        return redirect()->route('landlord.edit', $tenant->id)->with('status', $tenant->name . ' is bijgewerkt.'
+            . ($charge ? ' Verrekening van € ' . number_format($charge->amount_cents / 100, 2, ',', '.') . ' staat klaar voor de volgende factuur.' : ''));
     }
 }

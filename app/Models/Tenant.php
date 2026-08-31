@@ -28,7 +28,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public static function getCustomColumns(): array
     {
         return [
-            'id', 'name', 'package_key', 'extra_field_seats', 'extra_office_seats',
+            'id', 'name', 'package_key',
+            'subscription_started_on',
+            'billing_period', 'extra_field_seats', 'extra_office_seats',
             'modules', 'price_override_cents', 'storage_limit_gb',
             'ai_allowance_micros',
             'discount_cents',
