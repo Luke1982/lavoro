@@ -8,7 +8,6 @@ use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class ControllerDispatchTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

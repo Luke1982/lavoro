@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Document;
 use App\Models\Remark;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class AttachmentSignalsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

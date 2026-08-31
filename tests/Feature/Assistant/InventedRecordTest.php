@@ -11,7 +11,6 @@ use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductAttributeValue;
 use App\Models\ProductType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -32,7 +31,6 @@ use Tests\TestCase;
 class InventedRecordTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function check(): ReferenceCheck
     {

@@ -10,12 +10,10 @@ use App\Models\Product;
 use App\Models\ProductRelation;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AssetParentDetachTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Customer $customer;
 

@@ -10,12 +10,10 @@ use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTaskInstance;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class UserHistoricalReferenceTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_ticket_created_by_and_closed_by_resolve_after_user_is_soft_deleted(): void
     {

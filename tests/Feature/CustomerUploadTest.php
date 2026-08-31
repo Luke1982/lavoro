@@ -15,7 +15,6 @@ use App\Models\NotificationSubscription;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\UserNotification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -30,7 +29,6 @@ use Tests\TestCase;
 class CustomerUploadTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private Ticket $ticket;
 

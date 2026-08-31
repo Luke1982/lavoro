@@ -9,11 +9,9 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Role;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class AssetDeletionTest extends TestCase
 {
-    use RefreshDatabase;
 
     /** @test */
     public function authenticatedUserCanDeleteAnAsset()

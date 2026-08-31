@@ -7,7 +7,6 @@ use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -43,7 +42,6 @@ class UnregisteredProbeSignal extends BaseSignal
  */
 class SignalContractTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

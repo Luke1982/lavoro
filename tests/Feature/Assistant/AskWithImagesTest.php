@@ -10,7 +10,6 @@ use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ModelPicker;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class AskWithImagesTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /** A one-pixel PNG: real base64, no weight. */
     private function photo(): string

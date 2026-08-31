@@ -4,7 +4,6 @@ namespace Tests\Feature\Assistant;
 
 use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class ToolContractTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /** @return array<int, class-string<Tool>> */
     private function tools(): array

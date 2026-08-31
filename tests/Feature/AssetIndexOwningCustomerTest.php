@@ -8,13 +8,11 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class AssetIndexOwningCustomerTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Product $product;
 

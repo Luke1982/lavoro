@@ -14,7 +14,6 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -27,7 +26,6 @@ use Tests\TestCase;
 class TicketInfoRequestTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ticket(string $customer_email = 'klant@example.nl'): Ticket
     {

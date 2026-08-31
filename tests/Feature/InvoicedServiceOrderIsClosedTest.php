@@ -6,12 +6,10 @@ use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InvoicedServiceOrderIsClosedTest extends TestCase
 {
-    use RefreshDatabase;
 
     private ServiceOrderStage $open_stage;
 

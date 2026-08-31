@@ -8,12 +8,10 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EventFeedbackPermissionTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_user_with_permission_can_provide_feedback(): void
     {

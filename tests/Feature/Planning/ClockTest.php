@@ -15,7 +15,6 @@ use App\Models\EventType;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -33,7 +32,6 @@ use Tests\TestCase;
 class ClockTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

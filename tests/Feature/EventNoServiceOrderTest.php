@@ -7,12 +7,10 @@ use App\Models\Event;
 use App\Models\EventType;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EventNoServiceOrderTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function admin_user(): User
     {

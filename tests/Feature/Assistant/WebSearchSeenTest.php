@@ -9,7 +9,6 @@ use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\ModelPicker;
 use App\Models\Brand;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -24,7 +23,6 @@ use Tests\TestCase;
 class WebSearchSeenTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function askedWith(array $searched): array
     {

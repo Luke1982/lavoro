@@ -3,7 +3,6 @@
 namespace Tests\Feature\Assistant;
 
 use App\Http\Requests\AssistantContinueRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -17,7 +16,6 @@ use Tests\TestCase;
 class AssistantContinuationTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function history(): array
     {

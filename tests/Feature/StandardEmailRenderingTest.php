@@ -6,12 +6,10 @@ use App\Models\Customer;
 use App\Models\Event;
 use App\Services\StandardEmailRenderer;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class StandardEmailRenderingTest extends TestCase
 {
-    use RefreshDatabase;
 
     /**
      * Event times are stored in UTC and rendered as Europe/Amsterdam

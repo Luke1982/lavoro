@@ -11,12 +11,10 @@ use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Services\AssetTransferService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AssetTransferServiceTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Customer $old_customer;
 

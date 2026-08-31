@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \App\Http\Middleware\InitializeTenancyBySession::class,
+            \App\Http\Middleware\UseLandlordGuard::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class,
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'accesstoken' => ResolveAccessToken::class,
             'tenant.api' => \App\Http\Middleware\InitializeTenancyForApi::class,
+            'tenant.module' => \App\Http\Middleware\EnsureTenantHasModule::class,
         ]);
         $middleware->statefulApi();
 

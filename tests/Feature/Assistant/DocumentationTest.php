@@ -11,7 +11,6 @@ use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class DocumentationTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

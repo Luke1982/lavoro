@@ -11,7 +11,6 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -23,7 +22,6 @@ use Tests\TestCase;
 class TicketScopeTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /**
      * The factories for machines and storingen pick an existing product and an

@@ -12,7 +12,6 @@ use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\UserNotification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -28,7 +27,6 @@ use Tests\TestCase;
 class TicketFollowSubscriptionTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ticket(): Ticket
     {

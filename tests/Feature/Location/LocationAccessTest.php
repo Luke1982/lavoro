@@ -5,7 +5,6 @@ namespace Tests\Feature\Location;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -16,7 +15,6 @@ use Tests\TestCase;
 class LocationAccessTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_the_picker_is_allowed_with_customer_read(): void
     {

@@ -16,7 +16,6 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -32,7 +31,6 @@ use Tests\TestCase;
 class CreateEventToolTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function mechanic(string $name = 'Jeremy'): User
     {

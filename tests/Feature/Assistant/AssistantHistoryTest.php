@@ -5,7 +5,6 @@ namespace Tests\Feature\Assistant;
 use App\Models\AssistantQuestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class AssistantHistoryTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ask(string $question, ?int $user_id = null, ?string $conversation = null): AssistantQuestion
     {

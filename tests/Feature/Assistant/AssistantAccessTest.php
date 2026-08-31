@@ -3,7 +3,6 @@
 namespace Tests\Feature\Assistant;
 
 use App\Models\Assistant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -14,7 +13,6 @@ use Tests\TestCase;
 class AssistantAccessTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_an_admin_does_not_get_the_assistant_for_free(): void
     {

@@ -44,6 +44,7 @@ class ImageStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'images' => ['required', 'array', new \App\Rules\WithinStorageQuota()],
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'imageable_id' => 'required|integer',
             'imageable_type' => 'required|string',

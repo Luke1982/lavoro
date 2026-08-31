@@ -19,7 +19,8 @@ use App\Http\Controllers\UserPlannableController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::post('location/pings', [LocationPingController::class, 'store']);
+    Route::post('location/pings', [LocationPingController::class, 'store'])
+        ->middleware('tenant.module:location_tracking');
 
     Route::post('device-tokens', [DeviceTokenController::class, 'upsert']);
     Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);

@@ -9,12 +9,10 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EventSearchApiTest extends TestCase
 {
-    use RefreshDatabase;
 
     private ?EventType $event_type = null;
 

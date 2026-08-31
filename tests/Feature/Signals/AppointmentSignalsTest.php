@@ -9,7 +9,6 @@ use App\Models\Event;
 use App\Models\EventType;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -19,7 +18,6 @@ use Tests\TestCase;
  */
 class AppointmentSignalsTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function appointment(): Event
     {

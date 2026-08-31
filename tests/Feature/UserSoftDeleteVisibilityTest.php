@@ -4,13 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Arr;
 use Tests\TestCase;
 
 class UserSoftDeleteVisibilityTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function makeAdmin(): User
     {
