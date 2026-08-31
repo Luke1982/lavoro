@@ -11,7 +11,7 @@ use Tests\TestCase;
 class ProjectFinancialNotesMigrationTest extends TestCase
 {
 
-    private string $migration = 'database/migrations/2026_07_20_000003_convert_project_financial_notes_to_snapshot_shape.php';
+    private string $migration = 'database/migrations/tenant/2026_07_20_000003_convert_project_financial_notes_to_snapshot_shape.php';
 
     private function project(): Project
     {
@@ -47,7 +47,13 @@ class ProjectFinancialNotesMigrationTest extends TestCase
 
         $this->runMigration()->up();
 
-        $this->assertSame([
+        /**
+         * assertEquals en niet assertSame: MySQL herschikt de sleutels van een
+         * JSON-object naar eigen inzicht. De volgorde is geen onderdeel van de
+         * afspraak -- de frontend leest op naam -- dus de test kijkt naar de
+         * paren en niet naar de volgorde.
+         */
+        $this->assertEquals([
             'data' => [['Oud', 'formaat'], ['x', 1]],
             'style' => [],
             'mergeCells' => [],
@@ -68,7 +74,7 @@ class ProjectFinancialNotesMigrationTest extends TestCase
 
         $this->runMigration()->up();
 
-        $this->assertSame($snapshot, $this->raw($project->id));
+        $this->assertEquals($snapshot, $this->raw($project->id));
     }
 
     public function test_null_rows_are_untouched(): void

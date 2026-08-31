@@ -16,6 +16,7 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Domain\Tools\ToolResult;
+use App\Exceptions\AssistantAllowanceSpent;
 use App\Models\AssistantUsage;
 use App\Models\User;
 use Closure;
@@ -64,6 +65,15 @@ class AssistantLoop
         bool $needs_vision = false,
         bool $needs_documents = false,
     ): AssistantAnswer {
+        /**
+         * Eerst de meter, dan pas het model. De vraag kost niets zolang hij
+         * niet gesteld is, en een klant zonder tegoed hoort een nette melding
+         * te krijgen in plaats van een antwoord dat stiekem toch geld kostte.
+         */
+        if (tenancy()->initialized && !app(AllowanceGate::class)->hasRoom()) {
+            throw new AssistantAllowanceSpent;
+        }
+
         $tools = $this->registry->definitionsFor($user);
 
         /**

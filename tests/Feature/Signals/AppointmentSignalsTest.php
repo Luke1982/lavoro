@@ -53,6 +53,13 @@ class AppointmentSignalsTest extends TestCase
 
     public function test_cancelling_an_appointment_releases_its_werkbonnen_back_to_planning(): void
     {
+        /**
+         * De gezaaide testtenant heeft zelf al een geannuleerd-fase, en de
+         * listener pakt "de" fase met die vlag. Deze test rekent op precies
+         * een, dus hij begint leeg; de transactie draait het terug.
+         */
+        ServiceOrderStage::query()->delete();
+
         $planned = ServiceOrderStage::create([
             'name' => 'Ingepland', 'order' => 2, 'is_planned_state' => true,
         ]);

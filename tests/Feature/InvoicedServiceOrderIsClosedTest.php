@@ -21,6 +21,14 @@ class InvoicedServiceOrderIsClosedTest extends TestCase
     {
         parent::setUp();
 
+        /**
+         * De testtenant is gezaaid en heeft dus al een gesloten en een
+         * gefactureerde fase. Deze test gaat juist over de volgorderegels
+         * tussen die vlaggen en rekent op precies één van elk, dus hij begint
+         * met een lege tabel; de transactie om elke test draait het terug.
+         */
+        ServiceOrderStage::query()->delete();
+
         $this->open_stage = ServiceOrderStage::create(['name' => 'Open', 'order' => 1]);
         $this->closed_stage = ServiceOrderStage::create([
             'name' => 'Gesloten',

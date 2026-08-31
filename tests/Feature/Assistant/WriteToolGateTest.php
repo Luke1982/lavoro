@@ -3,6 +3,7 @@
 namespace Tests\Feature\Assistant;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
@@ -47,6 +48,37 @@ class WriteToolGateTest extends TestCase
             'tasks' => ServiceOrderTask::count(),
             'activities' => DB::table('activities')->count(),
         ];
+    }
+
+    /**
+     * Een token is met APP_KEY versleuteld en APP_KEY is er maar een voor de
+     * hele installatie, dus zonder de tenantcontrole is een goedkeuring uit de
+     * ene tenant een goedkeuring in elke andere -- de eerste admin heet overal
+     * gebruiker 1. De controle zit in decode(); hier wordt de herhaal-aanval
+     * zelf nagespeeld in plaats van alleen dat er "iets" geweigerd wordt.
+     */
+    public function test_a_confirmation_token_dies_with_its_tenant(): void
+    {
+        $user = $this->admin();
+
+        $token = ConfirmationToken::for('create_ticket', ['title' => 'x'], $user)->encoded();
+
+        $this->assertNotNull(
+            ConfirmationToken::decode($token, $user),
+            'Een token hoort geldig te zijn in de tenant die hem uitgaf.',
+        );
+
+        $home = tenancy()->tenant;
+        tenancy()->end();
+
+        try {
+            $this->assertNull(
+                ConfirmationToken::decode($token, $user),
+                'Een token uit een tenant mag buiten die tenant niets waard zijn.',
+            );
+        } finally {
+            tenancy()->initialize($home);
+        }
     }
 
     public function test_no_argument_gets_a_write_past_the_gate(): void

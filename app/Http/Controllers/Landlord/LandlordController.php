@@ -16,6 +16,7 @@ use App\Models\Central\PricingSetting;
 use App\Models\Central\Reseller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Rules\Iban;
 use App\Services\CouponRedeemer;
 use App\Services\InvoiceMailer;
 use App\Services\Invoicer;
@@ -95,7 +96,25 @@ class LandlordController extends Controller
             'settings' => PricingSetting::on('central')->orderBy('key')->get(),
             'usage' => DB::connection('central')->table('tenants')
                 ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')->pluck('aantal', 'package_key'),
+            'issuer_rows' => IssuerSetting::on('central')->orderBy('key')->get(),
         ]);
+    }
+
+    public function updateIssuer(Request $request)
+    {
+        $data = $request->validate([
+            'issuer' => 'required|array',
+            'issuer.email' => 'nullable|email',
+            'issuer.iban' => ['nullable', new Iban],
+            'issuer.payment_days' => 'nullable|integer|min:0|max:120',
+            'issuer.*' => 'nullable|string|max:255',
+        ]);
+
+        foreach ($data['issuer'] as $key => $value) {
+            IssuerSetting::on('central')->where('key', $key)->update(['value' => (string) $value]);
+        }
+
+        return back()->with('status', 'Facturatiegegevens opgeslagen.');
     }
 
     public function updatePackage(Request $request, int $id)
@@ -410,6 +429,11 @@ class LandlordController extends Controller
             'invoice_city' => 'nullable|string',
             'vat_number' => 'nullable|string|max:32',
             'coc_number' => 'nullable|string|max:32',
+            'payment_method' => 'required|in:transfer,direct_debit',
+            'iban' => ['nullable', 'string', 'max:34', new Iban, 'required_if:payment_method,direct_debit'],
+            'account_holder' => 'nullable|string|max:70',
+            'mandate_reference' => ['nullable', 'string', 'max:35', 'required_if:payment_method,direct_debit'],
+            'mandate_signed_on' => ['nullable', 'date', 'required_if:payment_method,direct_debit'],
             'extra_field_seats' => 'required|integer|min:0',
             'extra_office_seats' => 'required|integer|min:0',
             'storage_limit_gb' => 'required|integer|min:0',

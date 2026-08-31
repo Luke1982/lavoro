@@ -50,6 +50,9 @@ class DomainSignalListenersTest extends TestCase
 
     public function test_recording_an_invoice_number_moves_the_order_to_the_invoiced_stage(): void
     {
+        /** Zelfde verhaal als hierboven: de zaai-fases weg, deze test wil er precies een met de vlag. */
+        ServiceOrderStage::query()->delete();
+
         ServiceOrderStage::create(['name' => 'Open', 'order' => 1]);
         $invoiced = ServiceOrderStage::create([
             'name' => 'Gefactureerd',
