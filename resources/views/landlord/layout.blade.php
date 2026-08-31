@@ -13,6 +13,12 @@ main{max-width:1100px;margin:24px auto;padding:0 24px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 @media(max-width:900px){.cols{grid-template-columns:1fr}}
 .card h3{margin-top:0}
+.choice{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.choice label{display:flex;align-items:center;gap:10px;margin:0;padding:9px 12px;font-weight:400;cursor:pointer}
+.choice label+label{border-top:1px solid var(--line)}
+.choice label:has(input:checked){background:#eff6ff}
+.choice .choice-label{width:110px;font-weight:600}
+.choice input[type=number]{width:110px}
 table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
 th{background:#f1f5f9;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
