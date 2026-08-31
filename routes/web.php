@@ -94,7 +94,8 @@ Route::group(
          */
         Route::post('assistant/ask', [AssistantController::class, 'ask'])
             ->middleware('throttle:20,1')
-            ->name('assistant.ask');
+            ->name('assistant.ask')
+            ->middleware('tenant.module:assistant');
 
         /**
          * Throttled like the rest. It costs nothing at a supplier, but it hands
@@ -349,8 +350,7 @@ Route::group(
             ->only(['store', 'update', 'destroy']);
         // Manual SnelStart imports
         Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
-            ->name('imports.snelstart.materials')
-            ->middleware('tenant.module:snelstart');
+            ->name('imports.snelstart.materials');
         Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])
             ->name('serviceorders.bulk-update');
         Route::resource('serviceorders', ServiceOrderController::class);
@@ -363,8 +363,7 @@ Route::group(
             [ServiceOrderController::class, 'emailPdfWithJobs']
         )->name('serviceorders.emailPdfWithJobs');
         Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
-            ->name('serviceorders.sendToSnelStart')
-            ->middleware('tenant.module:snelstart');
+            ->name('serviceorders.sendToSnelStart');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
         Route::get(
@@ -497,11 +496,9 @@ Route::group(
         )->name('users.unavailabilities.destroy');
 
         Route::get('google/oauth/start', [GoogleOAuthController::class, 'start'])
-            ->name('google.oauth.start')
-            ->middleware('tenant.module:google_calendar');
+            ->name('google.oauth.start');
         Route::get('google/oauth/callback', [GoogleOAuthController::class, 'callback'])
-            ->name('google.oauth.callback')
-            ->middleware('tenant.module:google_calendar');
+            ->name('google.oauth.callback');
         Route::delete('google/integration', [GoogleOAuthController::class, 'destroy'])
             ->name('google.integration.destroy');
         Route::get('technical-management', [TechnicalManagementController::class, 'index'])

@@ -60,10 +60,7 @@ return new class extends Migration
         DB::connection('central')->table('modules')->insert([
             ['key' => 'quotes', 'name' => 'Offertes', 'price_cents' => 2750, 'sort_order' => 1, 'created_at' => $now, 'updated_at' => $now],
             ['key' => 'invoices', 'name' => 'Facturen', 'price_cents' => 2750, 'sort_order' => 2, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'snelstart', 'name' => 'SnelStart', 'price_cents' => 0, 'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'google_calendar', 'name' => 'Google Agenda', 'price_cents' => 0, 'sort_order' => 4, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'location_tracking', 'name' => 'Locatie volgen', 'price_cents' => 0, 'sort_order' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['key' => 'assistant', 'name' => 'AI-assistent', 'price_cents' => 2250, 'sort_order' => 6, 'created_at' => $now, 'updated_at' => $now],
+            ['key' => 'assistant', 'name' => 'AI-assistent', 'price_cents' => 2250, 'sort_order' => 3, 'created_at' => $now, 'updated_at' => $now],
         ]);
 
         DB::connection('central')->table('module_bundles')->insert([

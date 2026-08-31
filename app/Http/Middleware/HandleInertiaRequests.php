@@ -129,6 +129,12 @@ class HandleInertiaRequests extends Middleware
              * which is the front end's cue not to ask for permission it could
              * never act on.
              */
+            /** Het pakket dat deze klant afneemt, voor de licentiekaart in het menu. */
+            'tenant' => tenancy()->initialized ? [
+                'package' => optional(\App\Models\Central\Package::on('central')
+                    ->where('key', tenancy()->tenant->package_key)->first())->name,
+                'modules' => tenancy()->tenant->modules ?? [],
+            ] : null,
             'push' => [
                 'vapid_public_key' => $request->user() ? config('webpush.public_key') : null,
             ],
