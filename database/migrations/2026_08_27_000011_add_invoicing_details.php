@@ -49,7 +49,7 @@ return new class extends Migration
             'iban' => 'NL39ASNB0932392881',
             'email' => 'info@majorlabel.nl',
             'phone' => '0345 - 246023',
-            'payment_days' => '14',
+            'payment_days' => '30',
         ] as $key => $value) {
             DB::connection('central')->table('issuer_settings')->insert([
                 'key' => $key, 'value' => $value, 'created_at' => $now, 'updated_at' => $now,
