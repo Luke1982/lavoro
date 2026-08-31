@@ -31,6 +31,9 @@ class UserUpdateRequest extends FormRequest
                 'required',
                 'email',
                 Rule::unique('users', 'email')->ignore($ignore_id),
+                Rule::unique('central.user_tenant_lookups', 'email')->ignore(
+                    optional(\App\Models\User::find($ignore_id))->email, 'email'
+                ),
             ],
             'password' => 'nullable|string|min:8',
             'avatar' => 'nullable|image|max:3072',

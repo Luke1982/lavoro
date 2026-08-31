@@ -78,6 +78,7 @@ final class ConfirmationToken
     public function encoded(): string
     {
         return Crypt::encryptString(json_encode([
+            'tenant' => tenancy()->initialized ? (string) tenancy()->tenant->getTenantKey() : null,
             'tool' => $this->tool,
             'arguments' => $this->arguments,
             'user_id' => $this->user_id,
@@ -107,6 +108,18 @@ final class ConfirmationToken
         }
 
         if ((int) $payload['user_id'] !== $user->id) {
+            return null;
+        }
+
+        /**
+         * APP_KEY is voor de hele installatie en gebruikers-id's zijn per
+         * tenant, dus zonder deze controle is een token uit de ene tenant
+         * geldig in de andere. Strikt vergelijken: een token van voor deze
+         * wijziging heeft de sleutel niet en hoort geweigerd te worden.
+         */
+        $tenant = tenancy()->initialized ? (string) tenancy()->tenant->getTenantKey() : null;
+
+        if (($payload['tenant'] ?? null) !== $tenant) {
             return null;
         }
 
