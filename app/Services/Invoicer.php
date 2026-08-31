@@ -115,8 +115,20 @@ class Invoicer
         $preview = $this->preview($on);
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {
-            $number = sprintf('%s-%04d', $on->format('Y'),
-                Invoice::on('central')->whereYear('issued_on', $on->year)->count() + 1);
+            /**
+             * Doorlopend per jaar over alle klanten heen, niet per klant: de
+             * boekhouding wil één reeks. De teller kijkt naar het hoogste
+             * nummer van dit jaar en niet naar het aantal, zodat een verwijderde
+             * factuur geen nummer laat hergebruiken.
+             */
+            $prefix = $on->format('Y') . '-LVR-';
+
+            $last = (int) str_replace($prefix, '', (string) Invoice::on('central')
+                ->where('number', 'like', $prefix . '%')
+                ->orderByRaw('CAST(REPLACE(number, ?, "") AS UNSIGNED) DESC', [$prefix])
+                ->value('number'));
+
+            $number = $prefix . ($last + 1);
 
             $invoice = Invoice::on('central')->create([
                 'number' => $number,
