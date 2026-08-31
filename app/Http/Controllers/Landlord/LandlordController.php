@@ -116,8 +116,21 @@ class LandlordController extends Controller
 
     public function edit(string $id)
     {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $spent = (int) \Illuminate\Support\Facades\DB::connection('central')->table('assistant_usage')
+            ->where('tenant_id', $tenant->id)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->sum('cost_micros');
+
+        $allowance = (int) ($tenant->ai_allowance_micros
+            ?? \App\Models\Central\PricingSetting::value('ai_allowance_micros', 12_500_000));
+
         return view('landlord.edit', [
-            'tenant' => Tenant::on('central')->findOrFail($id),
+            'tenant' => $tenant,
+            'ai_spent_euro' => $spent / 1_000_000,
+            'ai_allowance_euro' => $allowance / 1_000_000,
+            'ai_is_default' => $tenant->ai_allowance_micros === null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
         ]);
@@ -132,12 +145,18 @@ class LandlordController extends Controller
             'extra_field_seats' => 'required|integer|min:0',
             'extra_office_seats' => 'required|integer|min:0',
             'storage_limit_gb' => 'required|integer|min:0',
-            'ai_allowance_micros' => 'nullable|integer|min:0',
+            'ai_allowance_euro' => 'nullable|numeric|min:0',
             'price_override_cents' => 'nullable|integer|min:0',
             'modules' => 'array',
         ]);
 
-        $tenant->update($data + ['modules' => $data['modules'] ?? []]);
+        $euro = $data['ai_allowance_euro'] ?? null;
+        unset($data['ai_allowance_euro']);
+
+        $tenant->update($data + [
+            'modules' => $data['modules'] ?? [],
+            'ai_allowance_micros' => $euro === null || $euro === '' ? null : (int) round((float) $euro * 1_000_000),
+        ]);
 
         return redirect()->route('landlord.index')->with('status', $tenant->name . ' is bijgewerkt.');
     }
