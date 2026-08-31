@@ -28,7 +28,9 @@
         {{ $issuer['address'] ?? '' }}<br>
         {{ $issuer['postcode'] ?? '' }} {{ $issuer['city'] ?? '' }}<br>
         @if(!empty($issuer['vat_number'])) BTW {{ $issuer['vat_number'] }}<br>@endif
-        @if(!empty($issuer['coc_number'])) KvK {{ $issuer['coc_number'] }}@endif
+        @if(!empty($issuer['coc_number'])) KvK {{ $issuer['coc_number'] }}<br>@endif
+        @if(!empty($issuer['phone'])) {{ $issuer['phone'] }}<br>@endif
+        @if(!empty($issuer['email'])) {{ $issuer['email'] }}@endif
     </td>
 </tr></table>
 
@@ -65,8 +67,13 @@
 </table>
 
 <footer>
-    @if(!empty($issuer['iban'])) Betaling op IBAN {{ $issuer['iban'] }} onder vermelding van {{ $invoice->number }}. @endif
-    @if(!empty($issuer['email'])) Vragen? {{ $issuer['email'] }} @endif
+    @if(!empty($issuer['iban']))
+        Betaling op IBAN {{ $issuer['iban'] }} onder vermelding van {{ $invoice->number }}.
+    @else
+        Betaalgegevens volgen apart onder vermelding van {{ $invoice->number }}.
+    @endif
+    @if(!empty($issuer['phone'])) &middot; {{ $issuer['phone'] }}@endif
+    @if(!empty($issuer['email'])) &middot; {{ $issuer['email'] }}@endif
 </footer>
 
 </div></body></html>
