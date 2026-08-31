@@ -30,8 +30,32 @@
                 </p>
             </div>
         </div>
-        <label>Vaste maandprijs in centen <span class="muted">(leeg = berekenen)</span></label>
-        <input type="number" name="price_override_cents" min="0" value="{{ $tenant->price_override_cents }}">
+        <div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:12px;margin:14px 0">
+            <div>Berekend: &euro; {{ number_format($sub->beforeDiscountCents() / 100, 2, ',', '.') }}</div>
+            @if($sub->discountCents())
+                <div style="color:#b91c1c">Korting: &minus; &euro; {{ number_format($sub->discountCents() / 100, 2, ',', '.') }}</div>
+            @endif
+            <div style="font-size:18px;font-weight:700;margin-top:4px">
+                Totaal: &euro; {{ number_format($sub->monthlyTotalCents() / 100, 2, ',', '.') }} per maand
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label>Korting (&euro; per maand)</label>
+                <input type="number" step="0.01" min="0" name="discount_euro"
+                    value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}">
+            </div>
+            <div>
+                <label>Korting (%)</label>
+                <input type="number" min="0" max="100" name="discount_percent" value="{{ $tenant->discount_percent }}">
+            </div>
+        </div>
+        <p class="muted" style="margin:4px 0 0">Procent gaat er eerst af, daarna het vaste bedrag.</p>
+
+        <label>Vaste maandprijs (&euro;) <span class="muted">(leeg = berekenen)</span></label>
+        <input type="number" step="0.01" name="price_override_euro" min="0"
+            value="{{ $tenant->price_override_cents ? number_format($tenant->price_override_cents / 100, 2, '.', '') : '' }}">
         <label>Modules</label>
         @foreach($modules as $module)
             <div><label style="font-weight:400">

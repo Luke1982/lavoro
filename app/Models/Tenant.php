@@ -19,6 +19,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'extra_office_seats' => 'integer',
         'price_override_cents' => 'integer',
         'storage_limit_gb' => 'integer',
+        'ai_allowance_micros' => 'integer',
+        'discount_cents' => 'integer',
+        'discount_percent' => 'integer',
         'tenancy_db_password' => 'encrypted',
     ];
 
@@ -27,6 +30,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'id', 'name', 'package_key', 'extra_field_seats', 'extra_office_seats',
             'modules', 'price_override_cents', 'storage_limit_gb',
+            'ai_allowance_micros',
+            'discount_cents',
+            'discount_percent',
             'tenancy_db_username', 'tenancy_db_password',
         ];
     }
