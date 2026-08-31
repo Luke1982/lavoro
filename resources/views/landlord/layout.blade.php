@@ -10,6 +10,9 @@ body{margin:0;font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:#0f1
 header{background:#0f172a;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
 header a{color:#cbd5e1;text-decoration:none}
 main{max-width:1100px;margin:24px auto;padding:0 24px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.card h3{margin-top:0}
 table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
 th{background:#f1f5f9;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}

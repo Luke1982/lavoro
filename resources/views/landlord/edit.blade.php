@@ -1,8 +1,11 @@
 @extends('landlord.layout')
 @section('content')
-<div class="card">
-    <h2 style="margin-top:0">{{ $tenant->name }}</h2>
-    <p class="muted">{{ $tenant->getInternal('db_name') }} &middot; {{ $tenant->id }}</p>
+<h2 style="margin:0 0 4px">{{ $tenant->name }}</h2>
+<p class="muted" style="margin:0 0 18px">{{ $tenant->getInternal('db_name') }} &middot; {{ $tenant->id }}</p>
+
+<div class="cols">
+<div class="card" style="max-width:100%">
+    <h3>Abonnement</h3>
     <form method="post" action="{{ route('landlord.update', $tenant->id) }}">
         @csrf @method('put')
         <label>Pakket</label>
@@ -69,8 +72,9 @@
     </form>
 </div>
 
-<div class="card" style="margin-top:20px">
-    <h3 style="margin-top:0">Coupon</h3>
+<div>
+<div class="card" style="max-width:100%">
+    <h3>Coupon</h3>
     @if($tenant->coupon_discount_percent)
         <p>
             {{ $tenant->coupon_discount_percent }}% korting tot
@@ -86,8 +90,8 @@
     @endif
 </div>
 
-<div class="card" style="margin-top:20px">
-    <h3 style="margin-top:0">AI bijkopen</h3>
+<div class="card" style="max-width:100%;margin-top:20px">
+    <h3>AI bijkopen</h3>
     <p class="muted">
         Eenmalig en niet aan een maand gebonden: wat er niet op gaat blijft staan.
         Het maandtegoed gaat er eerst af.<br>
@@ -114,5 +118,7 @@
             @endforeach
         </table>
     @endif
+</div>
+</div>
 </div>
 @endsection
