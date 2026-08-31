@@ -3,6 +3,7 @@
 namespace Tests\Concerns;
 
 use App\Models\Tenant;
+use Illuminate\Foundation\Testing\DatabaseTransactionsManager;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -21,11 +22,11 @@ trait RefreshesTenantDatabase
     {
         $central = config('database.connections.central.database');
 
-        if (! str_contains($central, 'test')) {
+        if (!str_contains($central, 'test')) {
             throw new \RuntimeException("Weigeren te draaien: '{$central}' ziet er niet uit als een testdatabase.");
         }
 
-        if (! static::$prepared) {
+        if (!static::$prepared) {
             Artisan::call('migrate:fresh', ['--force' => true, '--database' => 'central']);
 
             /**
@@ -73,15 +74,40 @@ trait RefreshesTenantDatabase
 
         tenancy()->initialize(Tenant::on('central')->find('test-tenant'));
 
-        DB::connection('central')->beginTransaction();
-        DB::connection('tenant')->beginTransaction();
+        /**
+         * Dezelfde beheerder die Laravels eigen RefreshDatabase gebruikt.
+         * Zonder deze blijft alles wat "na de commit" hoort te gebeuren --
+         * ShouldHandleEventsAfterCommit-listeners, afterCommit-jobs -- eeuwig
+         * wachten, want de omhullende testtransactie commit nooit. Deze
+         * beheerder weet dat en voert zulke callbacks meteen uit zolang alleen
+         * de testtransactie openstaat.
+         */
+        $manager = new DatabaseTransactionsManager(['central', 'tenant']);
+        app()->instance('db.transactions', $manager);
+
+        foreach (['central', 'tenant'] as $name) {
+            $connection = DB::connection($name);
+            $connection->setTransactionManager($manager);
+
+            $dispatcher = $connection->getEventDispatcher();
+            $connection->unsetEventDispatcher();
+            $connection->beginTransaction();
+            $connection->setEventDispatcher($dispatcher);
+        }
     }
 
     protected function tearDownTenancy(): void
     {
         if (tenancy()->initialized) {
-            DB::connection('tenant')->rollBack();
-            DB::connection('central')->rollBack();
+            foreach (['tenant', 'central'] as $name) {
+                $connection = DB::connection($name);
+
+                $dispatcher = $connection->getEventDispatcher();
+                $connection->unsetEventDispatcher();
+                $connection->rollBack();
+                $connection->setEventDispatcher($dispatcher);
+            }
+
             tenancy()->end();
         }
     }

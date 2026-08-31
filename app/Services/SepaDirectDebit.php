@@ -46,9 +46,20 @@ class SepaDirectDebit
 
         /**
          * FRST voor wie nog niet eerder is geïncasseerd, RCUR daarna. De bank
-         * kijkt hierop; een tweede incasso als FRST wordt geweigerd.
+         * kijkt hierop; een tweede incasso als FRST wordt geweigerd. Ook
+         * binnen dit ene bestand: van twee facturen van dezelfde klant is
+         * alleen de eerste een eerste.
          */
-        foreach ($this->invoices->groupBy(fn ($invoice) => $this->sequenceType($invoice)) as $sequence => $group) {
+        $seen = [];
+        $sequences = [];
+
+        foreach ($this->invoices as $invoice) {
+            $first = !in_array($invoice->tenant_id, $seen, true) && $this->neverCollected($invoice);
+            $sequences[$invoice->id] = $first ? 'FRST' : 'RCUR';
+            $seen[] = $invoice->tenant_id;
+        }
+
+        foreach ($this->invoices->groupBy(fn ($invoice) => $sequences[$invoice->id]) as $sequence => $group) {
             $this->paymentInformation($xml, $issuer, (string) $sequence, $group);
         }
 
@@ -179,19 +190,17 @@ class SepaDirectDebit
     }
 
     /**
-     * Was er voor deze klant al eerder geïncasseerd? Dan doorlopend, anders
-     * eerste. Er wordt naar andere facturen gekeken en niet naar deze, zodat
-     * een bestand dat opnieuw wordt gemaakt hetzelfde eruit komt.
+     * Is er voor deze klant nog nooit geïncasseerd? Er wordt naar andere
+     * facturen gekeken en niet naar deze, zodat een bestand dat opnieuw wordt
+     * gemaakt er hetzelfde uit komt.
      */
-    private function sequenceType(Invoice $invoice): string
+    private function neverCollected(Invoice $invoice): bool
     {
-        $earlier = Invoice::on('central')
+        return !Invoice::on('central')
             ->where('tenant_id', $invoice->tenant_id)
             ->whereNotNull('collected_at')
             ->where('id', '!=', $invoice->id)
             ->exists();
-
-        return $earlier ? 'RCUR' : 'FRST';
     }
 
     private function amount(int $cents): string

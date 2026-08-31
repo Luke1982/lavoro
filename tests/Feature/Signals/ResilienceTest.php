@@ -4,10 +4,10 @@ namespace Tests\Feature\Signals;
 
 use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Models\Activity;
+use App\Models\ActivityChange;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -39,10 +39,22 @@ class ResilienceTest extends TestCase
             'customer_id' => Customer::factory()->create()->id,
         ]);
 
-        /** A column that cannot hold what we are about to give it. */
-        DB::statement('DROP TABLE activity_changes');
+        /**
+         * De storing zit op modelniveau en niet meer in het schema. De oude
+         * versie gooide de tabel weg, en op MySQL is DROP TABLE een impliciete
+         * commit: de tabel bleef weg voor elke test erna, en de omhullende
+         * testtransactie was stilletjes al gecommit. Een creating-listener die
+         * gooit simuleert dezelfde mislukking zonder iets te slopen.
+         */
+        ActivityChange::creating(function () {
+            throw new \RuntimeException('activity_changes is stuk (testinjectie)');
+        });
 
-        $order->update(['external_invoice_no' => 'F-STILL-SAVES']);
+        try {
+            $order->update(['external_invoice_no' => 'F-STILL-SAVES']);
+        } finally {
+            ActivityChange::flushEventListeners();
+        }
 
         $this->assertSame('F-STILL-SAVES', $order->fresh()->external_invoice_no);
         Log::shouldHaveReceived('error')->once();

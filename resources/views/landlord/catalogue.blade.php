@@ -56,4 +56,22 @@
     </tr>
     @endforeach
 </table>
+
+<h3 id="facturatie">Facturatie</h3>
+<p class="muted" style="margin:0 0 10px">
+    De afzendergegevens op de factuur en het incassocontract. Het incassant-ID
+    krijg je van de bank; zonder dat nummer weigert de bank een incassobestand.
+</p>
+<form method="post" action="{{ route('landlord.issuer.update') }}">@csrf @method('put')
+    <table>
+        <tr><th>Sleutel</th><th>Waarde</th></tr>
+        @foreach($issuer_rows as $row)
+        <tr>
+            <td><code>{{ $row->key }}</code></td>
+            <td><input type="text" name="issuer[{{ $row->key }}]" value="{{ $row->value }}" style="width:280px"></td>
+        </tr>
+        @endforeach
+    </table>
+    <p><button>Opslaan</button></p>
+</form>
 @endsection

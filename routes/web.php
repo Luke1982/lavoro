@@ -110,10 +110,14 @@ Route::group(
             ->middleware('throttle:60,1')
             ->name('assistant.history');
 
-        /** Picks the conversation up again after a button was clicked. */
+        /**
+         * Picks the conversation up again after a button was clicked. Gated
+         * like ask: it spends the same money at the same supplier.
+         */
         Route::post('assistant/continue', [AssistantController::class, 'proceed'])
             ->middleware('throttle:20,1')
-            ->name('assistant.continue');
+            ->name('assistant.continue')
+            ->middleware('tenant.module:assistant');
 
         /**
          * Writes a conversation out to a file so it can be handed over for
@@ -152,7 +156,8 @@ Route::group(
         /** Carries out something already agreed to; no model runs here. */
         Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
             ->middleware('throttle:20,1')
-            ->name('assistant.confirm');
+            ->name('assistant.confirm')
+            ->middleware('tenant.module:assistant');
         /**
          * Feeds the navigation spotlight. Every signed-in user may search; the
          * searchers behind it each apply their own scope, so what comes back is

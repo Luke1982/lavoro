@@ -341,7 +341,7 @@ Het beheergedeelte (alleen voor admins, tenzij anders vermeld):
 - **Instellingen → Agenda-toegang**: een gebruiker inzage geven in de (Google-)agenda van een ander.
 - **Instellingen → Extra velden** en **Instellingen → Meldingen**: zie de eigen hoofdstukken.
 - **Communicatie → Standaard e-mails**: e-mailsjablonen met onderwerp en tekst (met invulvelden), gekoppeld aan momenten rond afspraken — bij aanmaken, wijzigen of verwijderen — en per moment in te stellen of de mail eerst ter bevestiging wordt voorgelegd, nog te bewerken is, of stil op de achtergrond wordt verstuurd. **Standaard bijlagen** zijn herbruikbare bestanden die met die sjablonen meegaan. Vanaf een afspraak zijn sjablonen ook met de hand te versturen, met een voorbeeldweergave en verzendhistorie.
-- **Technisch beheer** (eigen recht): de status van de mailkoppeling bekijken en een testmail sturen.
+- **Technisch beheer** (eigen recht): de koppelingen van uw bedrijf instellen — de mailserver waarmee Lavoro uw e-mail verstuurt (Microsoft 365 of een eigen mailserver) en de SnelStart-sleutels — en een testmail sturen om te controleren of het werkt. Sleutels en wachtwoorden worden versleuteld bewaard en nooit meer getoond; een leeg veld laat de opgeslagen waarde staan.
 - In de planner zelf: standaardduur van een afspraak en de leidende kleur (afspraaktype of monteurrol).
 
 **Onderhoud.** Bij werk aan de applicatie kan Lavoro tijdelijk op onderhoud worden gezet. Iedereen krijgt dan een onderhoudspagina te zien in plaats van de applicatie, met — als die zijn ingevuld — een korte toelichting en het tijdstip waarop Lavoro weer verwacht wordt. Die pagina ververst zichzelf, dus zodra het onderhoud klaar is kom je vanzelf weer in de applicatie; je hoeft niets te doen en niets opnieuw te laden. Er gaat geen werk verloren: wat al opgeslagen was staat er na het onderhoud gewoon weer. Onderhoud wordt door de beheerder van buiten de applicatie aan- en uitgezet, dus je vindt er geen knop voor in het menu.
@@ -350,11 +350,11 @@ Vaste automatische taken op de achtergrond: elk uur werkbonnen genereren uit ond
 
 ## Koppelingen
 
-**SnelStart** (boekhouding). Als de koppeling is ingericht: klanten en artikelen worden dagelijks ('s nachts) opgehaald en zijn ook met de hand te importeren; vanaf een gesloten werkbon maak je met één knop een verkooporder in SnelStart (zie het hoofdstuk Werkbonnen). Is er geen SnelStart-sleutel ingesteld, dan zijn alle SnelStart-knoppen onzichtbaar.
+**SnelStart** (boekhouding). De sleutels stelt een beheerder in onder Technisch beheer; ze gelden alleen voor uw bedrijf. Als de koppeling is ingericht: klanten en artikelen worden dagelijks ('s nachts) opgehaald en zijn ook met de hand te importeren; vanaf een gesloten werkbon maak je met één knop een verkooporder in SnelStart (zie het hoofdstuk Werkbonnen). Is er geen SnelStart-sleutel ingesteld, dan zijn alle SnelStart-knoppen onzichtbaar.
 
 **Google Agenda.** Iedere gebruiker koppelt op zijn profielpagina zijn eigen Google-account. Er wordt dan een aparte agenda "Lavoro" in Google aangemaakt en gevuld met de bestaande afspraken. Daarna gaat het twee kanten op: afspraken uit de planner verschijnen in Google, en wijzigingen in Google komen terug in Lavoro. Valt de koppeling stil, dan verschijnt bovenin de applicatie een balk om opnieuw te koppelen. Een beheerder kan via Agenda-toegang iemands agenda met een collega delen.
 
-**E-mail.** Uitgaande mail (werkbonnen, keuringsrapporten, afspraakbevestigingen, standaard e-mails) loopt via de ingestelde mailkoppeling — onder andere Microsoft 365 wordt ondersteund. Verstuurde mail kan automatisch in de map Verzonden van de eigen mailbox worden bijgezet. Onder Technisch beheer is de koppeling te testen.
+**E-mail.** Uitgaande mail (werkbonnen, keuringsrapporten, afspraakbevestigingen, standaard e-mails) loopt via de mailkoppeling die een beheerder onder Technisch beheer instelt: Microsoft 365 of een eigen mailserver. Zolang er niets is ingesteld verstuurt Lavoro niets — er is geen gedeelde afzender waarop wordt teruggevallen. Verstuurde mail kan automatisch in de map Verzonden van de eigen mailbox worden bijgezet. Onder Technisch beheer is de koppeling te testen.
 
 **Mobiel.** Lavoro werkt in de browser op de telefoon en er is een Android-app (te downloaden vanuit de applicatie). De app kan pushmeldingen tonen, serienummers scannen met de camera en — binnen het ingestelde tijdvenster — de locatie van monteurs delen voor de monteurkaart in de planner.
 
@@ -390,5 +390,9 @@ U ziet in het venster hoeveel daarvan op is, en bij tachtig procent verschijnt
 een waarschuwing.
 
 Is het tegoed op, dan beantwoordt de assistent geen vragen meer tot de volgende
-maand. De rest van Lavoro werkt gewoon door. Heeft u structureel meer nodig, dan
-kan het tegoed verhoogd worden -- neem daarvoor contact op.
+maand. De rest van Lavoro werkt gewoon door.
+
+Meer nodig? Twee smaken. Structureel meer: het maandtegoed kan verhoogd worden.
+Eenmalig iets erbij: er is los tegoed bij te kopen dat niet aan een maand
+gebonden is -- het blijft staan tot het op is, en wordt pas aangesproken als het
+maandtegoed van dat moment op is. Neem voor beide contact op.

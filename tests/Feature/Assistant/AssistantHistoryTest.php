@@ -298,7 +298,14 @@ class AssistantHistoryTest extends TestCase
     {
         $scheduled = collect(app(Schedule::class)->events())
             ->map(fn ($event) => $event->command ?? $event->description ?? '')
-            ->filter(fn (string $command) => str_contains($command, 'assistant:prune'));
+            /**
+             * Sinds tenancy is het geen artisan-aanroep meer maar een closure
+             * die per tenant een job klaarzet; het schema-item heet
+             * assistant-prune-questions. Beide spellingen tellen, zodat de
+             * test over het "dat het gebeurt" gaat en niet over de vorm.
+             */
+            ->filter(fn (string $command) => str_contains($command, 'assistant:prune')
+                || str_contains($command, 'assistant-prune'));
 
         $this->assertNotEmpty($scheduled, 'nothing invokes assistant:prune, so nothing is ever pruned');
     }

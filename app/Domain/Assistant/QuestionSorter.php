@@ -67,6 +67,15 @@ class QuestionSorter
             return null;
         }
 
+        /**
+         * Op is op, ook voor het prijskaartje zelf. Sorteren is een bezuiniging
+         * en geen poort, dus hier geen foutmelding maar gewoon niet sorteren --
+         * de melding komt zo meteen uit de lus.
+         */
+        if (tenancy()->initialized && !app(AllowanceGate::class)->hasRoom()) {
+            return null;
+        }
+
         try {
             $reply = $this->modelFor($provider)->send(
                 [new UserTurn([$question])],

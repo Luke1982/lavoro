@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Anthropic\Client as AnthropicClient;
+use App\Domain\Assistant\AllowanceGate;
 use App\Domain\Assistant\AssistantContext;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
@@ -39,6 +40,7 @@ use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
+use App\Services\AssistantAllowance;
 use App\Support\ForgetsTenantState;
 use App\Support\MailerState;
 use App\Support\TenantMailTransport;
@@ -161,6 +163,16 @@ class AppServiceProvider extends ServiceProvider
          * de sleutels van de koppelingen zitten achter dezelfde toestemming als
          * de rest van het technisch beheer.
          */
+        /**
+         * De poort die bepaalt of de assistent nog mag antwoorden. Als
+         * interface gebonden zodat een test hem kan vervangen zonder aan de
+         * echte teller te zitten.
+         */
+        $this->app->bind(
+            AllowanceGate::class,
+            AssistantAllowance::class,
+        );
+
         Gate::define('technical.management', fn ($user) => $user->hasPermission('technical.management'));
 
         Gate::policy(Assistant::class, AssistantPolicy::class);

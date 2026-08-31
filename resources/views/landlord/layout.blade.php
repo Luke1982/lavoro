@@ -39,7 +39,7 @@ button{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radi
 <header>
     <strong>Lavoro Beheer</strong>
     @auth('landlord')
-        <span><a href="{{ route('landlord.index') }}">Tenants</a> &nbsp; <a href="{{ route('landlord.catalogue') }}">Catalogus</a> &nbsp; <a href="{{ route('landlord.resellers') }}">Resellers</a> &nbsp;
+        <span><a href="{{ route('landlord.index') }}">Tenants</a> &nbsp; <a href="{{ route('landlord.catalogue') }}">Catalogus</a> &nbsp; <a href="{{ route('landlord.resellers') }}">Resellers</a> &nbsp; <a href="{{ route('landlord.collections') }}">Incasso</a> &nbsp;
         <form method="post" action="{{ route('landlord.logout') }}" style="display:inline">@csrf
         <button style="background:transparent;color:#cbd5e1;padding:0">Uitloggen</button></form></span>
     @endauth

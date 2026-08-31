@@ -88,6 +88,23 @@
             <div><input type="text" name="coc_number" placeholder="KvK-nummer" value="{{ $tenant->coc_number }}"></div>
         </div>
 
+        <label>Betaling</label>
+        <div class="choice">
+            <label><input type="radio" name="payment_method" value="transfer" @checked($tenant->payment_method !== 'direct_debit')>
+                <span class="choice-label">Overboeking</span>
+                <span class="muted">de klant maakt zelf over</span></label>
+            <label><input type="radio" name="payment_method" value="direct_debit" @checked($tenant->payment_method === 'direct_debit')>
+                <span class="choice-label">Incasso</span>
+                <span class="muted">automatisch afschrijven met machtiging</span></label>
+        </div>
+        <div class="grid">
+            <div><input type="text" name="iban" placeholder="IBAN" value="{{ $tenant->iban }}"></div>
+            <div><input type="text" name="account_holder" placeholder="Naam rekeninghouder" value="{{ $tenant->account_holder }}"></div>
+            <div><input type="text" name="mandate_reference" placeholder="Machtigingskenmerk" value="{{ $tenant->mandate_reference }}" maxlength="35"></div>
+            <div><input type="date" name="mandate_signed_on" placeholder="Getekend op" value="{{ $tenant->mandate_signed_on }}"></div>
+        </div>
+        @error('iban')<p style="color:#b91c1c;margin:4px 0 0">{{ $message }}</p>@enderror
+
         <label>Modules</label>
         @foreach($modules as $module)
             <div><label style="font-weight:400">
