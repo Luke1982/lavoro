@@ -3,24 +3,24 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\AddTopupRequest;
 use App\Http\Requests\Landlord\ForgetProvisioningPasswordRequest;
 use App\Models\Central\AiTopup;
 use App\Models\Central\PendingCharge;
 use App\Models\Central\PricingSetting;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
-use Illuminate\Http\Request;
 
 /**
  * Eenmalig bijgekocht AI-tegoed.
  */
 class TopupController extends Controller
 {
-    public function addTopup(Request $request, string $id)
+    public function addTopup(AddTopupRequest $request, string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $data = $request->validate(['paid_euro' => 'required|numeric|min:0.01', 'note' => 'nullable|string']);
+        $data = $request->validated();
 
         $rate = PricingSetting::value('ai_topup_cents_per_euro_granted', 200);
         $paid_cents = (int) round((float) $data['paid_euro'] * 100);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Landlord;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Landlord\DestroyTenantRequest;
 use App\Http\Requests\Landlord\StoreTenantRequest;
+use App\Http\Requests\Landlord\UpdateTenantRequest;
 use App\Jobs\RunTenantProvisioningRequestJob;
 use App\Models\Central\AiTopup;
 use App\Models\Central\Module;
@@ -14,13 +15,11 @@ use App\Models\Central\Reseller;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Rules\Iban;
 use App\Services\Invoicer;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
 use App\Services\TenantSuperAdmins;
 use App\Support\Tenancy;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -108,68 +107,30 @@ class TenantController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(UpdateTenantRequest $request, string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $data = $request->validate([
-            'package_key' => 'nullable|string',
-            'subscription_started_on' => 'nullable|date',
-            'billing_period' => 'required|in:monthly,yearly',
-            'invoice_email' => 'nullable|email',
-            'invoice_address' => 'nullable|string',
-            'invoice_postcode' => 'nullable|string|max:16',
-            'invoice_city' => 'nullable|string',
-            'vat_number' => 'nullable|string|max:32',
-            'coc_number' => 'nullable|string|max:32',
-            'payment_method' => 'required|in:transfer,direct_debit',
-            'iban' => ['nullable', 'string', 'max:34', new Iban, 'required_if:payment_method,direct_debit'],
-            'account_holder' => 'nullable|string|max:70',
-            'mandate_reference' => ['nullable', 'string', 'max:35', 'required_if:payment_method,direct_debit'],
-            'mandate_signed_on' => ['nullable', 'date', 'required_if:payment_method,direct_debit'],
-            'extra_field_seats' => 'required|integer|min:0',
-            'extra_office_seats' => 'required|integer|min:0',
-            'storage_limit_gb' => 'required|integer|min:0',
-            'ai_allowance_euro' => 'nullable|numeric|min:0',
-            'price_override_euro' => 'nullable|numeric|min:0',
-            'discount_type' => 'required|in:none,euro,percent',
-            'discount_euro' => 'nullable|numeric|min:0',
-            'discount_percent' => 'nullable|integer|min:0|max:100',
-            'modules' => 'array',
-        ]);
-
-        $money = fn (?string $key) => ($data[$key] ?? '') === '' || !isset($data[$key])
-            ? null
-            : (int) round((float) $data[$key] * 100);
-
-        $ai = ($data['ai_allowance_euro'] ?? '') === '' || !isset($data['ai_allowance_euro'])
-            ? null
-            : (int) round((float) $data['ai_allowance_euro'] * 1_000_000);
-
-        $type = $data['discount_type'];
-
-        unset($data['ai_allowance_euro'], $data['price_override_euro'],
-            $data['discount_euro'], $data['discount_percent'], $data['discount_type']);
-
+        /**
+         * Voor en na, want een pakketwissel halverwege de maand levert een
+         * verrekening op voor de volgende factuur.
+         */
         $before = (new TenantSubscription($tenant))->monthlyTotalCents();
 
-        $tenant->update($data + [
-            'modules' => $data['modules'] ?? [],
-            'ai_allowance_micros' => $ai,
-            'price_override_cents' => $money('price_override_euro'),
-            'discount_cents' => $type === 'euro' ? $money('discount_euro') : null,
-            'discount_percent' => $type === 'percent' ? (int) ($request->input('discount_percent') ?: 0) : null,
-        ]);
+        $tenant->update($request->tenantAttributes());
 
         $after = (new TenantSubscription($tenant->refresh()))->monthlyTotalCents();
-
         $charge = (new Invoicer($tenant))->prorate($before, $after);
 
-        return redirect()->route('landlord.edit', $tenant->id)->with('status', $tenant->name . ' is bijgewerkt.'
-            . ($charge ? ' Verrekening van € ' . number_format($charge->amount_cents / 100, 2, ',', '.') . ' staat klaar voor de volgende factuur.' : ''));
+        return redirect()->route('landlord.edit', $tenant->id)->with(
+            'status',
+            $tenant->name . ' is bijgewerkt.' . ($charge
+                ? ' Verrekening van € ' . number_format($charge->amount_cents / 100, 2, ',', '.')
+                    . ' staat klaar voor de volgende factuur.'
+                : ''),
+        );
     }
 
-    /** Alles wat geïncasseerd mag worden en nog niet in een bestand zat. */
     public function storeTenant(StoreTenantRequest $request)
     {
         $data = $request->validated();

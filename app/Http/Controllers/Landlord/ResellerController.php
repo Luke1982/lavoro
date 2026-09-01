@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\RedeemCouponRequest;
+use App\Http\Requests\Landlord\StoreCouponRequest;
+use App\Http\Requests\Landlord\StoreResellerRequest;
 use App\Models\Central\Coupon;
 use App\Models\Central\Reseller;
 use App\Models\Tenant;
 use App\Services\CouponRedeemer;
 use App\Services\TenantSubscription;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
@@ -32,26 +34,16 @@ class ResellerController extends Controller
         return view('landlord.resellers', ['rows' => $resellers]);
     }
 
-    public function storeReseller(Request $request)
+    public function storeReseller(StoreResellerRequest $request)
     {
-        Reseller::on('central')->create($request->validate([
-            'name' => 'required|string',
-            'email' => 'nullable|email',
-            'commission_percent' => 'required|integer|min:0|max:100',
-        ]));
+        Reseller::on('central')->create($request->validated());
 
         return back()->with('status', 'Reseller toegevoegd.');
     }
 
-    public function storeCoupon(Request $request)
+    public function storeCoupon(StoreCouponRequest $request)
     {
-        $data = $request->validate([
-            'reseller_id' => 'required|integer',
-            'code' => 'nullable|string|max:40',
-            'discount_percent' => 'required|integer|min:1|max:100',
-            'discount_months' => 'required|integer|min:1|max:60',
-            'aantal' => 'required|integer|min:1|max:50',
-        ]);
+        $data = $request->validated();
 
         for ($i = 0; $i < $data['aantal']; $i++) {
             Coupon::on('central')->create([
@@ -65,7 +57,7 @@ class ResellerController extends Controller
         return back()->with('status', $data['aantal'] . ' coupon(s) aangemaakt.');
     }
 
-    public function redeemCoupon(Request $request, string $id)
+    public function redeemCoupon(RedeemCouponRequest $request, string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
