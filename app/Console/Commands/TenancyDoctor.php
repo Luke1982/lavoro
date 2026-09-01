@@ -280,80 +280,18 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De grens waar deze hele opzet op leunt: het account van de applicatie mag
-     * geen databases van klanten kunnen maken of weggooien, en alleen de
-     * provisioner mag dat wel. Dat stond tot nu toe alleen in een leesmij, en
-     * een voorwaarde die nergens gecontroleerd wordt is een voorwaarde die na
-     * de eerste de beste herinstallatie stilletjes weg is.
+     * De rechten van de databaseaccounts controleert scripts/tenancy/verify-mysql.sh.
+     *
+     * Die probeert als provisioner een database binnen en buiten de toegestane
+     * namen te maken, en als applicatie een die geweigerd hoort te worden --
+     * grondiger dan hiervandaan kan, want daar is root voor nodig. Hier alleen
+     * de verwijzing; twee keer dezelfde controle schrijven levert twee
+     * antwoorden op die uit elkaar gaan lopen. deploy.sh draait hem mee.
      */
     private function checkPrivileges(): void
     {
         $this->line('Rechten');
-
-        try {
-            $grants = array_map(
-                fn ($row) => (string) array_values((array) $row)[0],
-                DB::connection('central')->select('SHOW GRANTS FOR CURRENT_USER()'),
-            );
-        } catch (\Throwable $e) {
-            $this->skip('kan de rechten van dit account niet opvragen: ' . $e->getMessage());
-
-            return;
-        }
-
-        $account = DB::connection('central')->selectOne('SELECT CURRENT_USER() AS wie')->wie ?? 'onbekend';
-
-        /**
-         * Twee manieren waarop het te ruim staat: alles op alles, of rechten
-         * op de databases van klanten. Beide betekenen dat een fout in de
-         * webapplicatie de gegevens van een klant kan weggooien.
-         */
-        $all_on_everything = array_filter($grants, fn ($grant) => (bool) preg_match(
-            '/GRANT (ALL PRIVILEGES|.*\bCREATE\b.*|.*\bDROP\b.*) ON \*\.\*/i', $grant
-        ));
-
-        $reaches_tenants = array_filter($grants, fn ($grant) => str_contains($grant, 'tenant')
-            && !str_contains($grant, 'GRANT USAGE'));
-
-        if ($all_on_everything || $reaches_tenants) {
-            $this->bad("{$account} kan bij de databases van klanten. Alleen lavoro_provisioner hoort dat te kunnen.");
-
-            foreach (array_merge($all_on_everything, $reaches_tenants) as $grant) {
-                $this->line('       ' . mb_strimwidth($grant, 0, 120, '...'));
-            }
-        } else {
-            $this->pass("{$account} kan geen klantdatabases maken of weggooien volgens zijn rechten");
-        }
-
-        $this->probeDatabaseCreation($account);
-    }
-
-    /**
-     * Niet alleen de rechten lezen maar het ook echt proberen. Rechten zijn
-     * op meer manieren te krijgen dan uit SHOW GRANTS blijkt -- via een rol,
-     * via een andere host-regel -- en dit is de enige controle die daar
-     * doorheen kijkt.
-     */
-    private function probeDatabaseCreation(string $account): void
-    {
-        $probe = 'lavoro_tenant_doctorprobe_' . bin2hex(random_bytes(4));
-
-        try {
-            DB::connection('central')->statement("CREATE DATABASE `{$probe}`");
-        } catch (\Throwable) {
-            $this->pass('geprobeerd een klantdatabase te maken: geweigerd, zoals het hoort');
-
-            return;
-        }
-
-        try {
-            DB::connection('central')->statement("DROP DATABASE `{$probe}`");
-            $this->bad("{$account} heeft zojuist echt een database aangemaakt (en weer weggegooid)."
-                . ' Dit account hoort dat niet te kunnen; alleen de provisioner.');
-        } catch (\Throwable $e) {
-            $this->bad("{$account} kon de database {$probe} aanmaken maar niet opruimen."
-                . ' Gooi hem met de hand weg. Oorspronkelijke fout: ' . $e->getMessage());
-        }
+        $this->skip('Databaserechten: sudo scripts/tenancy/verify-mysql.sh (draait ook mee in deploy.sh)');
     }
 
     /**
@@ -445,9 +383,6 @@ class TenancyDoctor extends Command
 
         $this->checkProvisionerLinuxUser($username, $password);
 
-        if (!$reachable || $password !== '') {
-            $this->checkSocketPlugin();
-        }
     }
 
     /**
@@ -455,47 +390,6 @@ class TenancyDoctor extends Command
      * dan moet die gebruiker er ook zijn. Zonder hem kan niemand meer
      * inloggen en staat het aanmaken van klanten stil.
      */
-    /**
-     * Inloggen zonder wachtwoord werkt alleen als de server de bijbehorende
-     * plugin geladen heeft. Is dat niet zo, dan komt er bij het aanmaken van
-     * het account "Plugin auth_socket is not loaded" en gaat niemand vanzelf
-     * bedenken dat dat de oorzaak is.
-     */
-    private function checkSocketPlugin(): void
-    {
-        try {
-            $loaded = DB::connection('central')->select(
-                'SELECT plugin_name, plugin_status FROM information_schema.plugins'
-                . ' WHERE plugin_name IN (?, ?)',
-                ['unix_socket', 'auth_socket'],
-            );
-        } catch (\Throwable $e) {
-            $this->skip('Kan niet nakijken of de socket-plugin geladen is: ' . $e->getMessage());
-
-            return;
-        }
-
-        $active = collect($loaded)->first(fn ($row) => strtoupper($row->plugin_status) === 'ACTIVE');
-
-        if ($active) {
-            $this->pass("socket-plugin {$active->plugin_name} is geladen");
-
-            return;
-        }
-
-        if ($loaded === []) {
-            $this->skip('Of de socket-plugin geladen is, is met dit account niet te zien.'
-                . ' Kijk als beheerder: SELECT plugin_name, plugin_status FROM information_schema.plugins'
-                . " WHERE plugin_name IN ('unix_socket','auth_socket');");
-
-            return;
-        }
-
-        $this->bad('De socket-plugin staat niet aan, dus een account zonder wachtwoord kan niet'
-            . " inloggen. Zet hem aan: MariaDB \"INSTALL SONAME 'auth_socket'\","
-            . " MySQL \"INSTALL PLUGIN auth_socket SONAME 'auth_socket.so'\".");
-    }
-
     private function checkProvisionerLinuxUser(string $username, string $password): void
     {
         if (!function_exists('posix_getpwnam')) {

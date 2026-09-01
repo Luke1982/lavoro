@@ -1,130 +1,111 @@
-# Van nul naar draaiend op productie
+# Installing Lavoro on a new server
 
-Eén doorlopende lijst. Van een lege server tot de bestaande installatie erin,
-in de volgorde waarin je het doet. Elke stap heeft een controle; komt die er
-niet uit zoals hier staat, dan stop je daar.
+Follow these steps in order.
 
-Ga uit van **MariaDB 10.11** — dat draait op productie, en het verschilt op een
-paar punten van MySQL. Waar dat uitmaakt staat het erbij.
-
-Reken op een uur, plus de tijd van de dump. De bestaande installatie gaat pas
-in stap 9 op slot; alles daarvoor kun je doen terwijl hij gewoon doordraait.
-
----
-
-## Voordat je begint
-
-Verzamel dit; halverwege ernaar zoeken is hoe het misgaat.
-
-- [ ] Root- of sudo-toegang op de nieuwe server
-- [ ] Een databasegebruiker die `CREATE USER` en `GRANT` mag
-- [ ] Het pad van de bestaande installatie, en of die op deze server staat
-- [ ] `APP_KEY` uit de `.env` van de bestaande installatie — **zonder die
-      sleutel is elke opgeslagen Google-koppeling en elk versleuteld veld
-      onleesbaar.** Niet opnieuw genereren.
-- [ ] De naam van het bedrijf zoals het op de factuur moet komen
-- [ ] Een backup van de bestaande database die je hebt teruggezet en gezien
+After every step, run:
 
 ```bash
-mysql --version          # verwacht: MariaDB 10.11 of hoger
-php -v                   # verwacht: 8.3 of hoger
-php -m | grep -E 'pcntl|posix'   # allebei nodig
+php artisan tenancy:doctor
 ```
 
-Ontbreekt `pcntl` of `posix`, dan kan het provisioner-commando zichzelf niet
-verheffen en moet je alles met `sudo -u` typen. Werkt, maar onhandig.
+That command is the check. It looks at the database accounts and their
+privileges, the PHP extensions, the `.env`, both background workers, the
+scheduler, your invoice details and every customer database. It prints what is
+wrong and what to do about it, and exits with an error code so a script stops
+on it. If it reports a problem, fix that before moving on.
+
+It will complain about things that are not set up yet. That is expected — work
+down the list and the complaints disappear one by one.
+
+Written for MariaDB 10.11 and PHP 8.3. Where MySQL differs, it says so.
+
+Budget an hour, plus however long the database dump takes. Your existing
+installation keeps running until step 8, so everything before that is safe.
 
 ---
 
-## 1. De code neerzetten
+## Before you start
+
+Have these ready:
+
+- Root or sudo access on the new server
+- A database account that can create users and grant privileges
+- The path to your existing Lavoro installation
+- **The `APP_KEY` from the old installation's `.env`.** Copy it, do not
+  generate a new one. That key decrypts every stored Google connection and
+  every encrypted field. Without it that data is unreadable.
+- The company name as it should appear on invoices
+- A database backup you have restored somewhere and seen working
+
+## 1. Get the code
 
 ```bash
 sudo mkdir -p /var/www/lavoro
 sudo chown "$USER" /var/www/lavoro
-git clone <repo> /var/www/lavoro
+git clone <repository-url> /var/www/lavoro
 cd /var/www/lavoro
-git checkout feature/multi-tenancy
 
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 ```
 
-**Controle:** `php artisan --version` geeft een versienummer en geen fout.
+## 2. Turn on socket login in the database
 
-## 2. De socket-plugin aanzetten
+Lavoro uses two database accounts. One of them logs in without a password,
+using the Linux user it belongs to. That needs a plugin which is not always
+switched on. Skip this and the next step fails with
+`Plugin 'auth_socket' is not loaded`.
 
-Het provisioner-account hangt aan een Linux-gebruiker in plaats van aan een
-wachtwoord. Daar is een plugin voor nodig die er niet altijd al is — dit is
-precies de `Plugin 'auth_socket' is not loaded` die je anders krijgt.
-
-**MariaDB:**
+MariaDB:
 
 ```sql
 INSTALL SONAME 'auth_socket';
 ```
 
-**MySQL 8:**
+MySQL 8:
 
 ```sql
 INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';
 ```
 
-Daarna, op beide:
+This survives a restart, so it is a one-off. If it says the file is missing,
+look at `SELECT @@plugin_dir` and install the matching server package.
 
-```sql
-SELECT plugin_name, plugin_status FROM information_schema.plugins
- WHERE plugin_name IN ('unix_socket','auth_socket');
-```
-
-`INSTALL` overleeft een herstart, dus dit is eenmalig. Bestaat het
-`.so`-bestand niet (`SELECT @@plugin_dir` en dan kijken), dan ontbreekt het
-serverpakket en heeft doorgaan geen zin.
-
-**Controle:** de `SELECT` geeft een regel met `ACTIVE`. `php artisan
-tenancy:doctor` zegt het ook, met het commando erbij, zodra hij merkt dat een
-wachtwoordloos account niet kan inloggen.
-
-> Op MariaDB heet het bij het aanmaken van een gebruiker `IDENTIFIED VIA
-> unix_socket`, op MySQL `IDENTIFIED WITH auth_socket`. Het script hieronder
-> kiest zelf de goede.
-
-## 3. De databaseaccounts
+## 3. Create the database accounts
 
 ```bash
-sudo scripts/tenancy/setup-mysql.sh --dry-run     # eerst kijken
-sudo scripts/tenancy/setup-mysql.sh --write-env
+sudo scripts/tenancy/setup-mysql.sh --dry-run    # prints the SQL, changes nothing
+sudo scripts/tenancy/setup-mysql.sh --write-env  # actually does it
 ```
 
-Dit maakt: de landlord-database, `lavoro_app` (met wachtwoord, alleen die ene
-database), de Linux-gebruiker `lavoro_provisioner`, en het MySQL-account
-daaraan gekoppeld zonder wachtwoord. `--write-env` zet de gegevens in `.env` en
-maakt eerst een kopie.
+This creates:
 
-**Controle — dit is de grens waar de hele opzet op leunt:**
+- the central database, `lavoro_landlord`
+- `lavoro_app`, with a password. The website runs as this account and it can
+  only touch that one database.
+- the Linux user `lavoro_provisioner` and a matching database account with no
+  password, tied to that Linux user. This is the only account that can create
+  and delete customer databases.
 
-```bash
-# mag niet kunnen:
-mysql -u lavoro_app -p -e "CREATE DATABASE lavoro_tenant_proef"   # verwacht: geweigerd
+`--write-env` writes the results into `.env` and backs up the old file first.
 
-# moet kunnen:
-sudo -u lavoro_provisioner mysql -e "SELECT 1"                    # verwacht: 1
-```
+This split is the boundary the whole setup rests on. The doctor tests it by
+actually trying to create a customer database as `lavoro_app` and expecting to
+be refused.
 
-Lukt de eerste wél, dan staat `lavoro_app` te ruim en ga je niet verder.
+## 4. Configure the application
 
-## 4. De `.env`
-
-Neem de `APP_KEY` over uit de oude installatie. Verder:
+Edit `.env`. Copy `APP_KEY` across from the old installation.
 
 ```
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://<domein>
+APP_URL=https://your-domain.example
 
 DB_CONNECTION=mysql
 DB_DATABASE=lavoro_landlord
 DB_USERNAME=lavoro_app
-DB_PASSWORD=<uit stap 3>
+DB_PASSWORD=            # from step 3
 
 SESSION_DRIVER=database
 SESSION_CONNECTION=central
@@ -144,39 +125,40 @@ LANDLORD_MAIL_FROM_ADDRESS=info@majorlabel.nl
 LANDLORD_MAIL_FROM_NAME=MajorLabel
 ```
 
-**Geen** `DB_PROVISIONER_PASSWORD` en **geen** `DB_PROVISIONER_HOST`. Staan die
-er, dan kan alles wat de `.env` leest — de webserver dus ook — elke
-klantdatabase weggooien, en klaagt de controle in stap 8 daarover.
+Two things to get right:
 
-`MAIL_MAILER=tenant` betekent: elke klant verstuurt met zijn eigen
-mailinstellingen. `LANDLORD_MAIL_*` is jouw eigen server, alleen voor de
-facturen die jij aan klanten stuurt.
+- **No `DB_PROVISIONER_PASSWORD` and no `DB_PROVISIONER_HOST`.** With those
+  present, anything that can read `.env` — the website included — can delete
+  any customer's database.
+- **`MAIL_MAILER=tenant`** means every customer sends mail with their own
+  settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
+  invoices you send to customers.
+
+Then create the tables:
 
 ```bash
 php artisan migrate --force
 ```
 
-**Controle:** `php artisan tenants:list` geeft een lege tabel en geen fout.
-
-## 5. Het beheerpaneel
+## 5. Create your admin login
 
 ```bash
-php artisan landlord:user jij@majorlabel.nl
+php artisan landlord:user you@majorlabel.nl
 ```
 
-Wachtwoord komt op het scherm. Dit account staat in de landlord-database en
-heeft niets te maken met de gebruikers van een klant.
+It prints a generated password. This account lives in the central database and
+has nothing to do with any customer's users.
 
-**Controle:** `https://<domein>/beheer` geeft een inlogscherm, en je komt
-binnen. Nog geen klanten in de lijst; dat klopt.
+Open `https://your-domain.example/beheer`, log in, and go to
+**Catalogus → Facturatie**. Fill in your address, chamber of commerce number,
+VAT number, IBAN and payment terms. If you will collect by direct debit, add
+the creditor ID your bank issued. The doctor reports these as missing until
+they are filled in.
 
-Zet daarna onder **Catalogus → Facturatie** je eigen gegevens: adres, KvK, BTW,
-IBAN, betaaltermijn, en het incassant-ID als je gaat incasseren.
+## 6. Set up the two background workers
 
-## 6. De twee workers
-
-Twee, en dat is met opzet: de gewone draait als het account van de applicatie
-dat géén databases mag maken, de tweede is de enige die dat wel mag.
+Two, on purpose. The first runs as the website's account, which cannot create
+databases. The second is the only one that can.
 
 `/etc/systemd/system/lavoro-worker.service`:
 
@@ -215,125 +197,103 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-```bash
-sudo systemctl enable --now lavoro-worker lavoro-provisioning
-sudo systemctl status lavoro-worker lavoro-provisioning
-```
+`--tries=1` on the second one is deliberate. Retrying a half-created customer
+fails on "database already exists" and hides the real error.
 
-`--tries=1` op de tweede is geen slordigheid: een half aangemaakte klant nog
-eens proberen loopt vast op "de database bestaat al" en verbergt de echte fout.
-
-`lavoro_provisioner` moet de projectmap kunnen lezen en in `storage/` kunnen
-schrijven — hij maakt de mappen van nieuwe klanten aan:
+The provisioning worker creates folders for new customers, so give it write
+access:
 
 ```bash
 sudo setfacl -R -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 sudo setfacl -R -d -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 ```
 
-## 7. De cron
+Start both:
+
+```bash
+sudo systemctl enable --now lavoro-worker lavoro-provisioning
+```
+
+Each worker reports in every minute while it runs, and the doctor tells you if
+one has stopped. An empty queue looks exactly like a dead worker, so that
+heartbeat is the only thing that can tell them apart.
+
+## 7. Set up the scheduler
 
 ```bash
 sudo crontab -u www-data -e
 ```
 
+Add this line:
+
 ```
 * * * * * cd /var/www/lavoro && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Zonder deze regel gebeurt er niets vanzelf: geen facturen, geen
-Google-synchronisatie, geen werkbonnen uit onderhoudscontracten. Dat valt pas
-weken later op.
+Without it nothing happens automatically: no invoices, no Google Calendar sync,
+no work orders generated from maintenance contracts. Wait five minutes, then
+run the doctor — it reports whether the scheduler is alive.
 
-**Controle:** wacht vijf minuten, dan `php artisan tenancy:doctor`. De
-planner-hartslag hoort er te staan.
+**Everything above should now be clean.** Run the doctor and fix anything it
+reports before continuing. What follows involves real customer data.
 
-## 8. Alles nakijken
+## 8. Move your existing installation in
 
-```bash
-php artisan tenancy:doctor
-```
+From here the old installation is offline. Do this outside working hours.
 
-Loopt de opstelling na en geeft exitcode 1 bij een probleem. Wat er hier moet
-staan:
-
-- `lavoro_app kan geen klantdatabases maken of weggooien`
-- `MySQL-account lavoro_provisioner ... bestaat en werkt` — of, als je dit als
-  jezelf draait, de mededeling dat het hiervandaan niet te zien is. Dat is
-  goed: het betekent dat jouw account er niet bij kan.
-- `Linux-gebruiker lavoro_provisioner bestaat`
-- **Geen** klacht over een wachtwoord in de `.env`
-- `planner draait`
-
-Klaagt hij, dan los je dat nu op. Alles hierna gaat over echte klantgegevens.
-
-## 9. De bestaande installatie erin
-
-Vanaf hier ligt de oude installatie stil. Doe dit buiten werktijd.
+Take it down and take a fresh backup while nothing is writing to it:
 
 ```bash
-# oude installatie op slot
-cd /pad/naar/oude/lavoro
+cd /path/to/old/lavoro
 php artisan down
 
-# verse backup, nu er niemand meer schrijft
-mysqldump --single-transaction --routines <oude_db> > ~/lavoro-voor-overzetten.sql
+mysqldump --single-transaction --routines <old_database> > ~/lavoro-before-move.sql
 ```
 
-Bewaar die dump ergens waar hij een week blijft staan. Dan:
+Keep that dump for at least a week. Then:
 
 ```bash
 cd /var/www/lavoro
-sudo -u lavoro_provisioner php artisan tenancy:doctor    # nog één keer
 
 scripts/tenancy/import-install.sh \
-    --from /pad/naar/oude/lavoro \
-    --name "Spee Totaaltechniek" \
-    --slug spee \
+    --from /path/to/old/lavoro \
+    --name "Customer Name BV" \
+    --slug customername \
     --package business \
     --dry-run
-
-# als dat klopt, zonder --dry-run
 ```
 
-Wat het doet: dumpt de oude database, zet hem terug als
-`lavoro_tenant_<slug>`, gooit de tabellen eruit die nu centraal staan
-(`sessions`, `cache`, `jobs`), registreert de klant, werkt het schema bij,
-kopieert `storage/app/public` en `storage/app/private` naar de map van de
-klant, en zet het pakket.
+Read what it says it will do. If that is right, run it again without
+`--dry-run`.
 
-**De bestaande gebruikers gaan mee, met hun eigen wachtwoord.** Het commando
-zet hun e-mailadressen in de centrale lijst waarmee het inloggen de klant
-opzoekt. Je hoeft geen nieuwe beheerder te maken.
+It copies the old database into `lavoro_tenant_<slug>`, drops the tables that
+are now shared (sessions, cache, jobs), registers the customer, updates the
+schema, copies uploaded files into the customer's folder and sets the package.
 
-**Controle:**
+**Existing users come across with their own passwords.** The command registers
+their email addresses centrally, which is how logging in finds the right
+customer. You do not need to create anyone.
 
-```bash
-php artisan tenants:list      # de klant staat er, met het aantal gebruikers
-php artisan tenancy:doctor    # alles in orde, geen databases zonder klant
-```
+Run the doctor afterwards. It now also checks this customer: the database, the
+stored password, the login, the required work order stages, that every user has
+a central entry, and that the file folders exist and are writable.
 
-## 10. Kijken of het echt werkt
+## 9. Test the things a program cannot check
 
-Niet alleen of het opstart. Dit zijn de dingen die stil kapot gaan:
+The doctor proves the plumbing. These are the things only a person can see:
 
-- [ ] Inloggen met een bestaand account, met het oude wachtwoord
-- [ ] Een klantenlijst: staat het juiste aantal erin
-- [ ] **Een foto op een werkbon opent.** Bestanden verhuizen mee naar een
-      andere map; is dat misgegaan, dan zie je geen foutmelding maar een lege
-      plek.
-- [ ] De planner toont afspraken (die komen via de API, een ander pad dan de
-      rest)
-- [ ] Een werkbon-PDF genereren
-- [ ] Een testmail sturen onder **Technisch beheer**
-- [ ] De AI-assistent een vraag stellen, als die is afgenomen
-- [ ] In `/beheer`: de klant staat er met het juiste pakket, plaatsen en opslag
+- Log in with an existing account and its old password
+- Open the customer list — is the number right?
+- **Open a photo on a work order.** Files move to a different folder during the
+  import. If that went wrong you get no error, just an empty space.
+- Open the planner and check appointments appear. They load over a different
+  route than the rest of the app.
+- Generate a work order PDF
+- Send a test email under **Technisch beheer**
+- Ask the AI assistant a question, if this customer has it
+- In `/beheer`, check the customer shows the right package, seats and storage
 
-```bash
-php artisan queue:work --once -v    # één job, kijk of hij goed afloopt
-```
-
-## 11. Openzetten
+## 10. Go live
 
 ```bash
 php artisan config:cache route:cache view:cache
@@ -341,56 +301,52 @@ sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
 php artisan up
 ```
 
-Laat de oude installatie een week staan met de webserver eruit. Niet weggooien.
+Leave the old installation in place for a week with its web server switched
+off. Do not delete it.
 
-## 12. Een tweede klant
+## 11. Add a second customer
 
-Nu pas, en op een rustige dag: dit is de eerste keer dat er echt een database
-aangemaakt wordt.
+Do this on a quiet day. It is the first time a database gets created for real.
 
-Via `/beheer` → **Nieuwe tenant**, of:
+Either use **Nieuwe tenant** in `/beheer`, or:
 
 ```bash
-php artisan tenant:create "Tweede Klant BV" beheer@tweede.nl --package=starter
+php artisan tenant:create "Second Customer BV" admin@second.example --package=starter
 ```
 
-Maak je hem in het paneel, dan komt er een aanvraag in de lijst die de
-provisioning-worker oppakt. Blijft die op "in de wacht" staan, dan draait die
-worker niet.
+Creating one through the panel queues a job for the provisioning worker. If the
+request stays on "in de wacht", that worker is not running — and the doctor
+will say so.
 
-**Controle:** log in als de nieuwe klant en kijk of je een lege installatie
-ziet — en vooral: **niet de gegevens van de eerste klant.** Vraag daarna een
-bestand op van de eerste klant terwijl je als de tweede bent ingelogd; dat
-hoort 404 te geven.
+Then log in as the new customer. You should see an empty installation and,
+above all, *not* the first customer's data. Still logged in as the second
+customer, try to open a file belonging to the first: you should get a 404.
 
 ---
 
-## Als het misgaat
+## If something goes wrong
 
-| Wanneer | Wat |
+| When | What to do |
 | --- | --- |
-| Vóór stap 9 | Niets aan de hand, de oude installatie draait nog. Opnieuw beginnen kan. |
-| Import mislukt halverwege | `php artisan tenant:delete <id>`, of `DROP DATABASE lavoro_tenant_<slug>` plus de rij uit `tenants` en `user_tenant_lookups`. Daarna opnieuw. |
-| Na stap 11, binnen een week | Oude installatie weer aanzetten (`php artisan up` daar), nieuwe eruit. Alles wat sindsdien is ingevoerd is dan wel weg. |
+| Before step 8 | Nothing is at risk, the old installation is still running. Start over. |
+| The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
+| After step 10, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
 
-`php artisan tenancy:doctor` is na elke stap de goedkoopste controle. Draai hem
-liever te vaak.
+## Once you are live
 
-## Wat je hierna nog moet doen
+- Back up the central database **and every customer database**. A backup of
+  only the central one is a list of names and nothing else.
+- Put `APP_KEY` somewhere safe. It unlocks every customer database password,
+  and without it none of the encrypted data can be read.
+- For each customer, fill in their mail settings under **Technisch beheer**.
+  Until you do, that customer sends no email at all. That is deliberate:
+  sending from another company's mailbox is worse than not sending.
 
-- Een backup van de landlord-database **én** van elke klantdatabase. Een backup
-  van alleen de landlord is een lijst met namen en verder niets.
-- `APP_KEY` in de kluis. Die sleutel opent elk wachtwoord van elke
-  klantdatabase, en zonder hem is niets meer te lezen.
-- Per klant onder **Technisch beheer** de mailkoppeling invullen. Tot dat
-  gebeurt verstuurt die klant geen mail — met opzet: uit de mailbox van een
-  ander bedrijf versturen is erger dan niet versturen.
-
-## Verder
+## Related documents
 
 | | |
 | --- | --- |
-| `tenancy-bediening.md` | dagelijkse bediening |
-| `tenancy-provisioning-worker.md` | de provisioning-worker |
-| `tenancy-testrisicos.md` | waar dit stuk breekt |
-| `superpowers/plans/2026-06-09-multi-database-tenancy.md` | het waarom |
+| `tenancy-bediening.md` | day to day commands |
+| `tenancy-provisioning-worker.md` | the provisioning worker in detail |
+| `tenancy-testrisicos.md` | where this breaks and how you would notice |
+| `superpowers/plans/2026-06-09-multi-database-tenancy.md` | why it is built this way |

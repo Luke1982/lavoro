@@ -8,6 +8,7 @@ use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
 use App\Models\Tenant;
+use App\Support\Tenancy;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -23,11 +24,9 @@ Artisan::command('inspire', function () {
  * QueueTenancyBootstrapper de juiste tenant meekrijgt.
  */
 $forEachTenant = function (callable $dispatch): void {
-    Tenant::on('central')->cursor()->each(function (Tenant $tenant) use ($dispatch) {
-        tenancy()->initialize($tenant);
-        $dispatch();
-        tenancy()->end();
-    });
+    Tenant::on('central')->cursor()->each(
+        fn (Tenant $tenant) => Tenancy::within($tenant, $dispatch)
+    );
 };
 
 Schedule::call(fn () => $forEachTenant(fn () => DispatchTenantCalendarPullsJob::dispatch()))

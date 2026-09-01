@@ -1,6 +1,16 @@
 <?php
 
-use App\Http\Controllers\Landlord\LandlordController;
+use App\Http\Controllers\Landlord\AuthController;
+use App\Http\Controllers\Landlord\CatalogueController;
+use App\Http\Controllers\Landlord\CollectionController;
+use App\Http\Controllers\Landlord\InvoiceController;
+use App\Http\Controllers\Landlord\ResellerController;
+use App\Http\Controllers\Landlord\SuperAdminController;
+use App\Http\Controllers\Landlord\TenantController;
+use App\Http\Controllers\Landlord\TopupController;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\InitializeTenancyBySession;
+use App\Http\Middleware\UseLandlordGuard;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -9,44 +19,44 @@ use Illuminate\Support\Facades\Route;
  * anders de landlord uitlogt zodra er geen tenant is.
  */
 Route::prefix('beheer')
-    ->middleware(\App\Http\Middleware\UseLandlordGuard::class)
+    ->middleware(UseLandlordGuard::class)
     ->withoutMiddleware([
-        \App\Http\Middleware\InitializeTenancyBySession::class,
-        \App\Http\Middleware\HandleInertiaRequests::class,
+        InitializeTenancyBySession::class,
+        HandleInertiaRequests::class,
     ])
     ->group(function () {
-        Route::get('login', [LandlordController::class, 'showLogin'])->name('landlord.login');
-        Route::post('login', [LandlordController::class, 'login'])->name('landlord.login.post');
+        Route::get('login', [AuthController::class, 'showLogin'])->name('landlord.login');
+        Route::post('login', [AuthController::class, 'login'])->name('landlord.login.post');
 
         Route::middleware('auth:landlord')->group(function () {
-            Route::post('logout', [LandlordController::class, 'logout'])->name('landlord.logout');
-            Route::get('/', [LandlordController::class, 'index'])->name('landlord.index');
-            Route::get('catalogus', [LandlordController::class, 'catalogue'])->name('landlord.catalogue');
-            Route::get('resellers', [LandlordController::class, 'resellers'])->name('landlord.resellers');
-            Route::post('resellers', [LandlordController::class, 'storeReseller'])->name('landlord.reseller.store');
-            Route::post('coupons', [LandlordController::class, 'storeCoupon'])->name('landlord.coupon.store');
-            Route::post('{tenant}/coupon', [LandlordController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
-            Route::post('tenants', [LandlordController::class, 'storeTenant'])->name('landlord.tenant.store');
-            Route::delete('tenants/{tenant}', [LandlordController::class, 'destroyTenant'])->name('landlord.tenant.destroy');
-            Route::delete('aanvraag/{request}/wachtwoord', [LandlordController::class, 'forgetProvisioningPassword'])
+            Route::post('logout', [AuthController::class, 'logout'])->name('landlord.logout');
+            Route::get('/', [TenantController::class, 'index'])->name('landlord.index');
+            Route::get('catalogus', [CatalogueController::class, 'catalogue'])->name('landlord.catalogue');
+            Route::get('resellers', [ResellerController::class, 'resellers'])->name('landlord.resellers');
+            Route::post('resellers', [ResellerController::class, 'storeReseller'])->name('landlord.reseller.store');
+            Route::post('coupons', [ResellerController::class, 'storeCoupon'])->name('landlord.coupon.store');
+            Route::post('{tenant}/coupon', [ResellerController::class, 'redeemCoupon'])->name('landlord.coupon.redeem');
+            Route::post('tenants', [TenantController::class, 'storeTenant'])->name('landlord.tenant.store');
+            Route::delete('tenants/{tenant}', [TenantController::class, 'destroyTenant'])->name('landlord.tenant.destroy');
+            Route::delete('aanvraag/{request}/wachtwoord', [TopupController::class, 'forgetProvisioningPassword'])
                 ->name('landlord.provisioning.forget-password');
-            Route::get('incasso', [LandlordController::class, 'collections'])->name('landlord.collections');
-            Route::post('incasso', [LandlordController::class, 'exportCollection'])->name('landlord.collections.export');
-            Route::get('{tenant}/facturen', [LandlordController::class, 'invoices'])->name('landlord.invoices');
-            Route::post('{tenant}/facturen', [LandlordController::class, 'issueInvoice'])->name('landlord.invoice.issue');
-            Route::post('{tenant}/facturen/{invoice}/mail', [LandlordController::class, 'mailInvoice'])->name('landlord.invoice.mail');
-            Route::get('{tenant}/facturen/{invoice}/pdf', [LandlordController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
-            Route::get('{tenant}/facturen/{invoice}/xml', [LandlordController::class, 'invoiceXml'])->name('landlord.invoice.xml');
-            Route::put('pakket/{package}', [LandlordController::class, 'updatePackage'])->name('landlord.package.update');
-            Route::put('module/{module}', [LandlordController::class, 'updateModule'])->name('landlord.module.update');
-            Route::put('instelling/{setting}', [LandlordController::class, 'updateSetting'])->name('landlord.setting.update');
-            Route::put('facturatie', [LandlordController::class, 'updateIssuer'])->name('landlord.issuer.update');
-            Route::get('{tenant}', [LandlordController::class, 'edit'])->name('landlord.edit');
-            Route::put('{tenant}', [LandlordController::class, 'update'])->name('landlord.update');
-            Route::post('{tenant}/bijkoop', [LandlordController::class, 'addTopup'])->name('landlord.topup');
-            Route::post('{tenant}/superbeheerder', [LandlordController::class, 'storeSuperAdmin'])
+            Route::get('incasso', [CollectionController::class, 'collections'])->name('landlord.collections');
+            Route::post('incasso', [CollectionController::class, 'exportCollection'])->name('landlord.collections.export');
+            Route::get('{tenant}/facturen', [InvoiceController::class, 'invoices'])->name('landlord.invoices');
+            Route::post('{tenant}/facturen', [InvoiceController::class, 'issueInvoice'])->name('landlord.invoice.issue');
+            Route::post('{tenant}/facturen/{invoice}/mail', [InvoiceController::class, 'mailInvoice'])->name('landlord.invoice.mail');
+            Route::get('{tenant}/facturen/{invoice}/pdf', [InvoiceController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
+            Route::get('{tenant}/facturen/{invoice}/xml', [InvoiceController::class, 'invoiceXml'])->name('landlord.invoice.xml');
+            Route::put('pakket/{package}', [CatalogueController::class, 'updatePackage'])->name('landlord.package.update');
+            Route::put('module/{module}', [CatalogueController::class, 'updateModule'])->name('landlord.module.update');
+            Route::put('instelling/{setting}', [CatalogueController::class, 'updateSetting'])->name('landlord.setting.update');
+            Route::put('facturatie', [CatalogueController::class, 'updateIssuer'])->name('landlord.issuer.update');
+            Route::get('{tenant}', [TenantController::class, 'edit'])->name('landlord.edit');
+            Route::put('{tenant}', [TenantController::class, 'update'])->name('landlord.update');
+            Route::post('{tenant}/bijkoop', [TopupController::class, 'addTopup'])->name('landlord.topup');
+            Route::post('{tenant}/superbeheerder', [SuperAdminController::class, 'storeSuperAdmin'])
                 ->name('landlord.superadmin.store');
-            Route::delete('{tenant}/superbeheerder/{user}', [LandlordController::class, 'destroySuperAdmin'])
+            Route::delete('{tenant}/superbeheerder/{user}', [SuperAdminController::class, 'destroySuperAdmin'])
                 ->name('landlord.superadmin.destroy');
         });
     });
