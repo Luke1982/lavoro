@@ -87,7 +87,14 @@ else
     if [ "$ACTIVE" = "1" ]; then
         pass "${SOCKET_PLUGIN} is loaded"
     else
-        fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate"
+        if [ "$DB_FLAVOUR" = "mariadb" ]; then
+            fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate.
+          On MariaDB it is normally built in and active without installing anything;
+          'INSTALL SONAME' fails there because there is no separate library file."
+        else
+            fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate.
+          Switch it on with: INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';"
+        fi
     fi
 fi
 

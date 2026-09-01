@@ -49,27 +49,36 @@ composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 ```
 
-## 2. Turn on socket login in the database
+## 2. Check socket login is available
 
 Lavoro uses two database accounts. One of them logs in without a password,
-using the Linux user it belongs to. That needs a plugin which is not always
-switched on. Skip this and the next step fails with
-`Plugin 'auth_socket' is not loaded`.
-
-MariaDB:
+using the Linux user it belongs to. Check the server can do that:
 
 ```sql
-INSTALL SONAME 'auth_socket';
+SELECT plugin_name, plugin_status, plugin_library
+  FROM information_schema.plugins
+ WHERE plugin_name IN ('unix_socket', 'auth_socket');
 ```
 
-MySQL 8:
+**On MariaDB this is almost always already `ACTIVE`.** Since 10.4 the plugin is
+compiled into the server, so `plugin_library` is NULL and there is nothing to
+install. `INSTALL SONAME 'auth_socket'` then fails with "cannot open shared
+object file" — not because something is missing, but because there is no
+separate file to load. If the query shows `ACTIVE`, this step is done.
+
+**On MySQL** it usually needs switching on once:
 
 ```sql
 INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';
 ```
 
-This survives a restart, so it is a one-off. If it says the file is missing,
-look at `SELECT @@plugin_dir` and install the matching server package.
+That survives a restart.
+
+If neither server reports the plugin at all, install the matching server
+package — check `SELECT @@plugin_dir` to see where it would live.
+
+The next step picks the right syntax for your server by itself: MariaDB wants
+`IDENTIFIED VIA unix_socket`, MySQL wants `IDENTIFIED WITH auth_socket`.
 
 ## 3. Create the database accounts
 
