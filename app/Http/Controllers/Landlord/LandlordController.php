@@ -91,10 +91,19 @@ class LandlordController extends Controller
             'monthly' => $rows->sum('total'),
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
-            /** Openstaand werk en wat er onlangs misging; geslaagde aanvragen zijn de tenant zelf. */
+            /** Werk dat nog loopt of is misgelopen. Geslaagd werk is de tenant zelf. */
             'requests' => TenantProvisioningRequest::on('central')
-                ->where(fn ($query) => $query->whereIn('status', ['queued', 'running', 'failed'])
-                    ->orWhereNotNull('generated_password'))
+                ->whereIn('status', ['queued', 'running', 'failed'])
+                ->orderByDesc('id')
+                ->get(),
+            /**
+             * Wachtwoorden die nog opgehaald moeten worden, los van dat werk.
+             * Alleen van klanten die nog bestaan: het wachtwoord van een
+             * weggegooide klant hoort nergens meer te staan.
+             */
+            'passwords' => TenantProvisioningRequest::on('central')
+                ->whereNotNull('generated_password')
+                ->whereIn('tenant_id', Tenant::on('central')->pluck('id'))
                 ->orderByDesc('id')
                 ->get(),
         ]);
