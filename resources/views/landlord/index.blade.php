@@ -18,7 +18,7 @@
 
 @if($requests->isNotEmpty())
     <div class="card" style="max-width:100%;margin-top:22px">
-        <h3>Aanvragen</h3>
+        <h3>Bezig</h3>
         <p class="muted" style="margin:0 0 10px">
             Aanmaken en verwijderen doet de provisioner op de achtergrond. Blijft een regel
             hier staan, dan draait die worker niet.
@@ -26,11 +26,9 @@
         <table>
             @foreach($requests as $request)
                 <tr>
-                    <td style="width:90px">
+                    <td style="width:110px">
                         @if($request->status === 'failed')
                             <span class="warn">mislukt</span>
-                        @elseif($request->status === 'done')
-                            <span class="muted">klaar</span>
                         @else
                             <span class="muted">{{ $request->status === 'running' ? 'bezig' : 'in de wacht' }}</span>
                         @endif
@@ -38,18 +36,32 @@
                     <td>
                         {{ $request->action === 'delete' ? 'Verwijderen' : 'Aanmaken' }}: <strong>{{ $request->name }}</strong>
                         @if($request->error)<br><span class="warn">{{ $request->error }}</span>@endif
-                        @if($request->generated_password)
-                            <br>Beheerder <strong>{{ $request->email }}</strong>,
-                            wachtwoord <code>{{ $request->generated_password }}</code>
-                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </table>
+    </div>
+@endif
+
+@if($passwords->isNotEmpty())
+    <div class="card" style="max-width:100%;margin-top:22px">
+        <h3>Wachtwoorden om door te geven</h3>
+        <p class="muted" style="margin:0 0 10px">
+            Van een nieuwe tenant. Geef het door en wis het daarna; het staat hier
+            leesbaar zolang het er staat.
+        </p>
+        <table>
+            @foreach($passwords as $request)
+                <tr>
+                    <td>
+                        <strong>{{ $request->name }}</strong><br>
+                        {{ $request->email }} &middot; <code>{{ $request->generated_password }}</code>
                     </td>
                     <td style="text-align:right;width:120px">
-                        @if($request->generated_password)
-                            <form method="post" action="{{ route('landlord.provisioning.forget-password', $request->id) }}">
-                                @csrf @method('delete')
-                                <button type="submit" class="linkish">wachtwoord wissen</button>
-                            </form>
-                        @endif
+                        <form method="post" action="{{ route('landlord.provisioning.forget-password', $request->id) }}">
+                            @csrf @method('delete')
+                            <button type="submit" class="linkish">wissen</button>
+                        </form>
                     </td>
                 </tr>
             @endforeach

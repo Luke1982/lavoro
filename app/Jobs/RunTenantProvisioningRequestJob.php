@@ -84,6 +84,14 @@ class RunTenantProvisioningRequestJob implements ShouldQueue
         }
 
         $provisioner->destroy($tenant);
+
+        /**
+         * Het wachtwoord van een klant die niet meer bestaat hoort nergens
+         * meer te staan, en zeker niet zichtbaar in het beheerpaneel.
+         */
+        TenantProvisioningRequest::on('central')
+            ->where('tenant_id', $tenant->id)
+            ->update(['generated_password' => null]);
     }
 
     public function failed(\Throwable $e): void
