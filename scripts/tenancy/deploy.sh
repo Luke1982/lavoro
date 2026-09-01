@@ -43,6 +43,9 @@ php artisan view:cache
 php artisan queue:restart
 
 step "Controle"
+# Twee controles, elk met een eigen bereik: het script kijkt naar de rechten van
+# de databaseaccounts (root nodig), de doctor naar de rest van de opstelling.
+scripts/tenancy/verify-mysql.sh
 php artisan tenancy:doctor
 
 step "Onderhoud uit"

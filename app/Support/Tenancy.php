@@ -11,6 +11,10 @@ use App\Models\Tenant;
  * iets tussenin gooit: dan blijft de tenant openstaan en draait de volgende
  * ronde -- of de rest van het verzoek -- in de database van de vorige klant.
  * Dat levert geen foutmelding op, alleen de verkeerde gegevens.
+ *
+ * En niet tenancy()->runForMultiple(): dat zet de vorige tenant alleen terug
+ * als er niets misgaat -- het herstel staat na de lus en niet in een finally --
+ * en het geeft niets terug. Precies de twee dingen waar dit voor is.
  */
 final class Tenancy
 {
