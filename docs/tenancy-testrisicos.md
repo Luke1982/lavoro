@@ -19,19 +19,28 @@ dat gecontroleerd, niet gegokt.
 
 ## 1. Isolatie tussen klanten — het hele punt
 
-**Nu niet gedekt.** De suite maakt één tenant aan. Geen enkele test zet er twee
-naast elkaar en controleert of ze elkaar niet zien. Alles hieronder in deze
-lijst is een variant op dit ene risico.
+**Gedekt** door `tests/Feature/Tenancy/IsolationTest.php`: twee klanten naast
+elkaar, en per keer eerst bewijzen dat het gegeven er in de ene wél is voordat
+er wordt gekeken of het in de andere ontbreekt. Gegevens, hetzelfde id in
+allebei, aparte databases, aparte cache-aanhef, aparte bestandsmappen, een
+e-mailadres dat maar bij één klant kan horen, en het spoor dat bij zijn eigen
+klant blijft.
+
+Wat het nog niet dekt: bestanden opvragen over http als de verkeerde klant
+(punt hieronder), en de mailer die tussen twee klanten op één worker blijft
+hangen (punt 4).
 
 | Wat | Hoe het misgaat | Hoe je het vangt |
 | --- | --- | --- |
 | Query's | Een model zonder `$connection` dat toch centraal hoort, of andersom | Twee tenants, elk eigen data, tel over en weer |
-| Bestanden | `/files/images/7` van klant A opvraagbaar als klant B | Vraag een id op dat van de ander is; hoort 404 te zijn |
+| Bestanden | `/files/images/7` van klant A opvraagbaar als klant B | Vraag een id op dat van de ander is; hoort 404 te zijn. **Nog niet gedekt** |
 | Zoeken | De spotlight zoekt over de verkeerde database | Zoek als B naar een naam die alleen A heeft |
 | Activiteiten | Het spoor van A verschijnt in de historie van B | Wijzig iets als A, tel `activities` in beide |
 
-**Bouw dit eerst.** Een `TwoTenantTestCase` die twee tenants opzet is de test
-die de rest van deze lijst goedkoop maakt.
+`Tests\Concerns\UsesASecondTenant` zet die tweede klant op. Let op: de tweede
+database draait niet in een transactie, want van tenant wisselen gooit de
+verbinding weg en daarmee de transactie. Hij wordt daarom leeggemaakt aan het
+begin van elke test die hem gebruikt.
 
 ## 2. Stil weggelaten velden
 
