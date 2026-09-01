@@ -263,7 +263,83 @@ class TenancyDoctor extends Command
             ? $this->pass('eigen mailserver voor facturen ingesteld')
             : $this->bad('LANDLORD_MAIL_HOST is leeg -- facturen aan klanten kunnen niet verstuurd worden');
 
+        $this->checkVersions();
+        $this->checkDrivers();
+        $this->checkInvoiceFonts();
         $this->checkIssuer();
+    }
+
+    /**
+     * De versies waar dit op gebouwd is. Een oudere PHP of database geeft
+     * geen nette weigering maar een vreemde fout op een willekeurige plek.
+     */
+    private function checkVersions(): void
+    {
+        version_compare(PHP_VERSION, '8.3', '>=')
+            ? $this->pass('PHP ' . PHP_VERSION)
+            : $this->bad('PHP ' . PHP_VERSION . ' is te oud; 8.3 of hoger is nodig.');
+
+        try {
+            $version = (string) DB::connection('central')->selectOne('SELECT VERSION() AS v')->v;
+        } catch (\Throwable) {
+            return;
+        }
+
+        $number = preg_replace('/[^0-9.].*$/', '', $version);
+        $minimum = str_contains(strtolower($version), 'mariadb') ? '10.11' : '8.0';
+
+        version_compare($number, $minimum, '>=')
+            ? $this->pass('database ' . $version)
+            : $this->bad("Database {$version} is te oud; {$minimum} of hoger is nodig.");
+    }
+
+    /**
+     * De opslagplekken die het ontwerp aanneemt.
+     *
+     * Staat de wachtrij op sync, dan draait provisioning in het webverzoek als
+     * het account van de applicatie -- dat geen databases mag maken -- in
+     * plaats van in de worker die dat wel mag. Staat de sessie niet centraal,
+     * dan zoekt het inloggen zijn gebruiker in de verkeerde database.
+     */
+    private function checkDrivers(): void
+    {
+        $expected = [
+            'queue.default' => ['database', 'De wachtrij staat op %s. Provisioning draait dan in het'
+                . ' webverzoek als het verkeerde account in plaats van in de eigen worker.'],
+            'session.driver' => ['database', 'De sessie staat op %s en hoort op database te staan;'
+                . ' anders staat hij niet centraal.'],
+            'cache.default' => ['database', 'De cache staat op %s en hoort op database te staan;'
+                . ' de scheiding per klant hangt aan de centrale cache.'],
+        ];
+
+        foreach ($expected as $key => [$want, $complaint]) {
+            $actual = config($key);
+
+            $actual === $want
+                ? $this->pass("{$key}={$want}")
+                : $this->bad(sprintf($complaint, $actual));
+        }
+    }
+
+    /**
+     * dompdf legt de maten van een lettertype in een eigen map neer en maakt
+     * die map niet aan. Ontbreekt hij, dan rolt er geen factuur uit maar een
+     * foutmelding -- en dat merk je pas als je er een wilt versturen.
+     */
+    private function checkInvoiceFonts(): void
+    {
+        $directory = config('dompdf.options.font_dir', storage_path('fonts'));
+
+        if (!is_dir($directory)) {
+            $this->bad("De map {$directory} bestaat niet; facturen renderen dan niet."
+                . ' Maak hem aan en geef de webserver schrijfrecht.');
+
+            return;
+        }
+
+        is_writable($directory)
+            ? $this->pass('lettertypemap voor facturen')
+            : $this->bad("De map {$directory} is niet beschrijfbaar; facturen renderen dan niet.");
     }
 
     /** Zonder deze gegevens klopt er geen enkele factuur. */
@@ -384,6 +460,7 @@ class TenancyDoctor extends Command
 
         $this->checkProvisionerLinuxUser($username, $password);
         $this->checkElevation($username);
+        $this->checkProvisionerCanWriteStorage($username);
 
     }
 
@@ -412,6 +489,36 @@ class TenancyDoctor extends Command
             : $this->skip("Kan niet zonder wachtwoord {$username} worden. Tenant-commando's moeten dan"
                 . " met 'sudo -u {$username} php artisan ...' getypt worden. Wil je dat niet, installeer"
                 . ' dan /etc/sudoers.d/lavoro-admin (plan, taak 2 stap 2b).');
+    }
+
+    /**
+     * De provisioning-worker maakt de mappen van een nieuwe klant aan. Mag hij
+     * niet in storage/ schrijven, dan komt de klant er wel maar mislukt zijn
+     * eerste upload -- een lege map die niemand mist tot dat gebeurt.
+     *
+     * Alleen te testen als we die gebruiker kunnen worden; anders zegt onze
+     * eigen toegang niets over de zijne.
+     */
+    private function checkProvisionerCanWriteStorage(string $username): void
+    {
+        if (!ProvisionerConnection::canElevate()) {
+            $this->skip("Of {$username} in storage/ mag schrijven is hiervandaan niet te zien."
+                . ' Zonder dat recht mislukt de eerste upload van een nieuwe klant.');
+
+            return;
+        }
+
+        $path = storage_path();
+        $status = 0;
+        $ignored = [];
+
+        exec('sudo -n -u ' . escapeshellarg($username) . ' test -w ' . escapeshellarg($path)
+            . ' 2>/dev/null', $ignored, $status);
+
+        $status === 0
+            ? $this->pass("{$username} mag schrijven in storage/")
+            : $this->bad("{$username} mag niet schrijven in {$path}; de mappen van een nieuwe klant"
+                . ' kunnen dan niet aangemaakt worden. Zie setfacl in docs/tenancy-productie.md.');
     }
 
     private function checkProvisionerLinuxUser(string $username, string $password): void
