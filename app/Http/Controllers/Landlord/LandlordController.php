@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\DestroySuperAdminRequest;
 use App\Http\Requests\Landlord\DestroyTenantRequest;
 use App\Http\Requests\Landlord\ExportCollectionRequest;
 use App\Http\Requests\Landlord\ForgetProvisioningPasswordRequest;
@@ -72,8 +73,8 @@ class LandlordController extends Controller
             $package = Package::on('central')->where('key', $tenant->package_key)->first();
 
             tenancy()->initialize($tenant);
-            $field = User::where('seat_type', 'field')->count();
-            $office = User::where('seat_type', 'office')->count();
+            $field = User::occupyingSeat('field')->count();
+            $office = User::occupyingSeat('office')->count();
             $used = (new StorageQuota)->usedBytes();
             tenancy()->end();
 
@@ -367,7 +368,7 @@ class LandlordController extends Controller
         return back()->with('status', "Superbeheerder {$data['email']} aangemaakt. Wachtwoord: {$password}");
     }
 
-    public function destroySuperAdmin(StoreSuperAdminRequest $request, string $id, int $user)
+    public function destroySuperAdmin(DestroySuperAdminRequest $request, string $id, int $user)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
@@ -512,7 +513,7 @@ class LandlordController extends Controller
             'reseller' => $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
-            'superadmins' => app(\App\Services\TenantSuperAdmins::class)->all($tenant),
+            'superadmins' => app(TenantSuperAdmins::class)->all($tenant),
         ]);
     }
 

@@ -390,7 +390,7 @@ liever te vaak.
 
 | | |
 | --- | --- |
-| `README.md` | dagelijkse bediening |
-| `README-provisioning.md` | de provisioning-worker |
-| `../../docs/tenancy-testrisicos.md` | waar dit stuk breekt |
-| `../../docs/superpowers/plans/2026-06-09-multi-database-tenancy.md` | het waarom |
+| `tenancy-bediening.md` | dagelijkse bediening |
+| `tenancy-provisioning-worker.md` | de provisioning-worker |
+| `tenancy-testrisicos.md` | waar dit stuk breekt |
+| `superpowers/plans/2026-06-09-multi-database-tenancy.md` | het waarom |

@@ -1,10 +1,10 @@
 # Lavoro draaien — bediening
 
 Alles wat je op een server doet. Voor de redenering achter de opzet:
-`docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
+`superpowers/plans/2026-06-09-multi-database-tenancy.md`.
 
 **Een nieuwe server opzetten of de bestaande installatie overzetten?**
-Volg [PRODUCTIE.md](PRODUCTIE.md) — dat is de doorlopende lijst van nul tot
+Volg [tenancy-productie.md](tenancy-productie.md) — dat is de doorlopende lijst van nul tot
 draaiend. Hieronder staat het dagelijkse werk.
 
 ## Wat er moet draaien
@@ -173,7 +173,7 @@ taak 44 van het plan voor wat het precies doet.
 
 | | |
 | --- | --- |
-| `README-provisioning.md` | de provisioning-worker, met systemd-unit |
-| `../../docs/tenancy-testrisicos.md` | waar dit stuk breekt en hoe je dat merkt |
-| `../../CLAUDE.md` | regels voor wie code schrijft |
-| `../../docs/handleiding.md` | voor de mensen die ermee werken |
+| `tenancy-provisioning-worker.md` | de provisioning-worker, met systemd-unit |
+| `tenancy-testrisicos.md` | waar dit stuk breekt en hoe je dat merkt |
+| `../CLAUDE.md` | regels voor wie code schrijft |
+| `handleiding.md` | voor de mensen die ermee werken |

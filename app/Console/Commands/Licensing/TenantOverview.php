@@ -24,8 +24,8 @@ class TenantOverview extends Command
 
             tenancy()->initialize($tenant);
 
-            $field = User::where('seat_type', 'field')->count();
-            $office = User::where('seat_type', 'office')->count();
+            $field = User::occupyingSeat('field')->count();
+            $office = User::occupyingSeat('office')->count();
             $used = (new StorageQuota)->usedBytes();
 
             tenancy()->end();
