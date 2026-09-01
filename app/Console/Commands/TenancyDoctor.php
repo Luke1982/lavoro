@@ -6,6 +6,7 @@ use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\ProvisionerConnection;
 use App\Support\WorkerHeartbeat;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -382,6 +383,7 @@ class TenancyDoctor extends Command
         }
 
         $this->checkProvisionerLinuxUser($username, $password);
+        $this->checkElevation($username);
 
     }
 
@@ -390,6 +392,28 @@ class TenancyDoctor extends Command
      * dan moet die gebruiker er ook zijn. Zonder hem kan niemand meer
      * inloggen en staat het aanmaken van klanten stil.
      */
+    /**
+     * Kunnen de tenant-commando's zichzelf verheffen?
+     *
+     * Zonder de sudo-regel werkt alles nog, maar dan geeft
+     * "php artisan tenant:create" geen klant terug maar een uitleg over welk
+     * commando je had moeten typen. Beter hier te lezen dan daar.
+     */
+    private function checkElevation(string $username): void
+    {
+        if (ProvisionerConnection::linuxUser() === $username) {
+            $this->pass("draait al als {$username}; verheffen is niet nodig");
+
+            return;
+        }
+
+        ProvisionerConnection::canElevate()
+            ? $this->pass("kan zonder wachtwoord {$username} worden; commando's verheffen zichzelf")
+            : $this->skip("Kan niet zonder wachtwoord {$username} worden. Tenant-commando's moeten dan"
+                . " met 'sudo -u {$username} php artisan ...' getypt worden. Wil je dat niet, installeer"
+                . ' dan /etc/sudoers.d/lavoro-admin (plan, taak 2 stap 2b).');
+    }
+
     private function checkProvisionerLinuxUser(string $username, string $password): void
     {
         if (!function_exists('posix_getpwnam')) {
