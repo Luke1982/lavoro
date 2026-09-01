@@ -1,5 +1,7 @@
 # De provisioning-worker
 
+Onderdeel van [de bediening](README.md).
+
 > **Dit is een inrichtingsvoorschrift, geen beschrijving van wat er draait.**
 > Op de proefopstelling is `lavoro_provisioner` een gewoon MySQL-account met
 > een wachtwoord in de `.env`, en bestaat de Linux-gebruiker niet. Zolang dat
