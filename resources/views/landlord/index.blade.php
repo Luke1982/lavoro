@@ -1,6 +1,6 @@
 @extends('landlord.layout')
 @section('content')
-<p class="muted">{{ $rows->count() }} tenants &middot; samen &euro; {{ number_format($monthly / 100, 2, ',', '.') }} per maand</p>
+<p class="muted">{{ $rows->count() }} tenants &middot; samen @euro($monthly) per maand</p>
 <table>
     <tr><th>Naam</th><th>Pakket</th><th>Buiten</th><th>Binnen</th><th>Opslag</th><th>Per maand</th><th></th></tr>
     @foreach($rows as $row)
@@ -10,7 +10,7 @@
             <td class="{{ $row['field'] > $row['field_limit'] ? 'warn' : '' }}">{{ $row['field'] }}/{{ $row['field_limit'] }}</td>
             <td class="{{ $row['office'] > $row['office_limit'] ? 'warn' : '' }}">{{ $row['office'] }}/{{ $row['office_limit'] }}</td>
             <td class="{{ $row['used_gb'] > $row['tenant']->storage_limit_gb ? 'warn' : '' }}">{{ $row['used_gb'] }} / {{ $row['tenant']->storage_limit_gb }} GB</td>
-            <td>&euro; {{ number_format($row['total'] / 100, 2, ',', '.') }}</td>
+            <td>@euro($row['total'])</td>
             <td><a href="{{ route('landlord.edit', $row['tenant']->id) }}">bewerken</a></td>
         </tr>
     @endforeach
@@ -90,7 +90,7 @@
         <select name="package_key">
             @foreach($packages as $package)
                 <option value="{{ $package->key }}" @selected(old('package_key') === $package->key)>
-                    {{ $package->name }} &mdash; &euro; {{ number_format($package->price_cents / 100, 2, ',', '.') }}
+                    {{ $package->name }} &mdash; @euro($package->price_cents)
                 </option>
             @endforeach
         </select>
@@ -102,7 +102,7 @@
                 <input type="checkbox" name="modules[]" value="{{ $module->key }}"
                     @checked(in_array($module->key, old('modules', []), true))>
                 {{ $module->name }}
-                <span class="muted">&euro; {{ number_format($module->price_cents / 100, 2, ',', '.') }}</span>
+                <span class="muted">@euro($module->price_cents)</span>
             </label></div>
         @endforeach
 

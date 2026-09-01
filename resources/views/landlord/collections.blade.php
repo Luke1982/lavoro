@@ -30,7 +30,7 @@
                         <td>{{ $invoice->number }}</td>
                         <td>{{ $invoice->tenant->name }}</td>
                         <td class="muted">{{ $invoice->tenant->mandate_reference }} &middot; {{ $invoice->tenant->iban }}</td>
-                        <td style="text-align:right">&euro; {{ number_format($invoice->gross_cents / 100, 2, ',', '.') }}</td>
+                        <td style="text-align:right">@euro($invoice->gross_cents)</td>
                     </tr>
                 @endforeach
             </table>

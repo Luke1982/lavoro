@@ -50,6 +50,7 @@ use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -277,6 +278,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         /** Een draaiende worker laat elke minuut van zich horen; de doctor kijkt daarnaar. */
+        /** @euro(1250) wordt "€ 12,50"; de opmaak staat op een plek. */
+        Blade::directive('euro', fn ($expression) => "<?php echo '€ ' . \App\Support\Money::human($expression); ?>");
+
         WorkerHeartbeat::listen();
 
         Event::listen(MessageSending::class, ApplyTenantSender::class);

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Central\Invoice;
 use App\Models\Central\IssuerSetting;
 use App\Models\Tenant;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use XMLWriter;
@@ -75,7 +76,7 @@ class SepaDirectDebit
         $xml->writeElement('MsgId', $this->batch_id);
         $xml->writeElement('CreDtTm', now()->format('Y-m-d\TH:i:s'));
         $xml->writeElement('NbOfTxs', (string) $this->invoices->count());
-        $xml->writeElement('CtrlSum', $this->amount($this->invoices->sum('gross_cents')));
+        $xml->writeElement('CtrlSum', Money::machine($this->invoices->sum('gross_cents')));
 
         $xml->startElement('InitgPty');
         $xml->writeElement('Nm', $issuer['name'] ?? 'MajorLabel');
@@ -91,7 +92,7 @@ class SepaDirectDebit
         $xml->writeElement('PmtMtd', 'DD');
         $xml->writeElement('BtchBookg', 'true');
         $xml->writeElement('NbOfTxs', (string) $group->count());
-        $xml->writeElement('CtrlSum', $this->amount($group->sum('gross_cents')));
+        $xml->writeElement('CtrlSum', Money::machine($group->sum('gross_cents')));
 
         $xml->startElement('PmtTpInf');
         $xml->startElement('SvcLvl');
@@ -154,7 +155,7 @@ class SepaDirectDebit
 
         $xml->startElement('InstdAmt');
         $xml->writeAttribute('Ccy', 'EUR');
-        $xml->text($this->amount($invoice->gross_cents));
+        $xml->text(Money::machine($invoice->gross_cents));
         $xml->endElement();
 
         $xml->startElement('DrctDbtTx');
@@ -201,11 +202,6 @@ class SepaDirectDebit
             ->whereNotNull('collected_at')
             ->where('id', '!=', $invoice->id)
             ->exists();
-    }
-
-    private function amount(int $cents): string
-    {
-        return number_format($cents / 100, 2, '.', '');
     }
 
     private function plain(string $value): string

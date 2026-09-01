@@ -172,19 +172,19 @@
                 'name' => ($line_icons[$line->kind] ?? 'file') . '-dot', 'size' => 22,
             ])</td>
             <td class="txt">{{ $line->description }}</td>
-            <td class="r">{!! $line->amount_cents < 0 ? '&minus;' : '' !!}&euro; {{ number_format(abs($line->amount_cents) / 100, 2, ',', '.') }}</td>
+            <td class="r">{!! $line->amount_cents < 0 ? '&minus;' : '' !!}@euro(abs($line->amount_cents))</td>
         </tr>
     @endforeach
 </table>
 
 <table class="totals">
     @if($invoice->discount_cents)
-        <tr><td>Subtotaal</td><td class="r">&euro; {{ number_format($invoice->subtotal_cents / 100, 2, ',', '.') }}</td></tr>
-        <tr><td>Jaarkorting</td><td class="r">&minus;&euro; {{ number_format($invoice->discount_cents / 100, 2, ',', '.') }}</td></tr>
+        <tr><td>Subtotaal</td><td class="r">@euro($invoice->subtotal_cents)</td></tr>
+        <tr><td>Jaarkorting</td><td class="r">&minus;@euro($invoice->discount_cents)</td></tr>
     @endif
-    <tr><td>Netto</td><td class="r">&euro; {{ number_format($invoice->total_cents / 100, 2, ',', '.') }}</td></tr>
-    <tr><td>BTW {{ $invoice->vat_percent }}%</td><td class="r">&euro; {{ number_format($invoice->vat_cents / 100, 2, ',', '.') }}</td></tr>
-    <tr class="pay"><td>Te betalen</td><td class="r">&euro; {{ number_format($invoice->gross_cents / 100, 2, ',', '.') }}</td></tr>
+    <tr><td>Netto</td><td class="r">@euro($invoice->total_cents)</td></tr>
+    <tr><td>BTW {{ $invoice->vat_percent }}%</td><td class="r">@euro($invoice->vat_cents)</td></tr>
+    <tr class="pay"><td>Te betalen</td><td class="r">@euro($invoice->gross_cents)</td></tr>
 </table>
 
 <div class="pay-card">
