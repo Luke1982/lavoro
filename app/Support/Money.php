@@ -25,6 +25,22 @@ final class Money
         return number_format($cents / 100, 2, ',', '.');
     }
 
+    /**
+     * Zoals het in een invulveld hoort te staan: punt als decimaal, want een
+     * <input type="number"> weigert een komma. Leeg blijft leeg -- dat
+     * betekent "niet ingesteld" en niet "nul".
+     */
+    public static function input(?int $cents): string
+    {
+        return $cents === null ? '' : number_format($cents / 100, 2, '.', '');
+    }
+
+    /** Het AI-tegoed wordt in miljoensten bewaard, fijner dan een cent. */
+    public static function fromMicros(int $micros): int
+    {
+        return (int) round($micros / 10_000);
+    }
+
     /** Zoals een bank of boekhoudpakket het inleest. */
     public static function machine(int $cents): string
     {

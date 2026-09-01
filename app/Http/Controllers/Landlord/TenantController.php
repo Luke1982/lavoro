@@ -19,6 +19,7 @@ use App\Services\Invoicer;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
 use App\Services\TenantSuperAdmins;
+use App\Support\Money;
 use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 
@@ -91,11 +92,15 @@ class TenantController extends Controller
 
         return view('landlord.edit', [
             'tenant' => $tenant,
-            'ai_spent_euro' => $spent / 1_000_000,
-            'ai_allowance_euro' => $allowance / 1_000_000,
+            /**
+             * In centen naar het scherm, niet in euro's of miljoensten: het
+             * scherm rekende zelf om en deed dat op drie plekken net anders.
+             */
+            'ai_spent_cents' => Money::fromMicros($spent),
+            'ai_allowance_cents' => Money::fromMicros($allowance),
             'ai_is_default' => $tenant->ai_allowance_micros === null,
-            'ai_topup_euro' => AiTopup::on('central')
-                ->where('tenant_id', $tenant->id)->sum('granted_micros') / 1_000_000,
+            'ai_topup_cents' => Money::fromMicros((int) AiTopup::on('central')
+                ->where('tenant_id', $tenant->id)->sum('granted_micros')),
             'sub' => new TenantSubscription($tenant),
             'invoicer' => new Invoicer($tenant),
             'topups' => AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
@@ -125,7 +130,7 @@ class TenantController extends Controller
         return redirect()->route('landlord.edit', $tenant->id)->with(
             'status',
             $tenant->name . ' is bijgewerkt.' . ($charge
-                ? ' Verrekening van € ' . number_format($charge->amount_cents / 100, 2, ',', '.')
+                ? ' Verrekening van € ' . Money::human($charge->amount_cents)
                     . ' staat klaar voor de volgende factuur.'
                 : ''),
         );

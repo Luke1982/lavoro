@@ -34,13 +34,13 @@
             <div>
                 <label>AI-limiet per maand (&euro;)</label>
                 <input type="number" step="0.01" min="0" name="ai_allowance_euro"
-                    value="{{ $ai_is_default ? '' : number_format($ai_allowance_euro, 2, '.', '') }}"
-                    placeholder="{{ number_format($ai_allowance_euro, 2, ',', '') }} (standaard)">
+                    value="{{ $ai_is_default ? '' : \App\Support\Money::input($ai_allowance_cents) }}"
+                    placeholder="{{ \App\Support\Money::human($ai_allowance_cents) }} (standaard)">
                 <p class="muted" style="margin:4px 0 0">
-                    Deze maand verbruikt: &euro; {{ number_format($ai_spent_euro, 2, ',', '.') }}
-                    van &euro; {{ number_format($ai_allowance_euro, 2, ',', '.') }}.
-                    @if ($ai_topup_euro > 0)
-                        Bijgekocht tegoed: &euro; {{ number_format($ai_topup_euro, 2, ',', '.') }}.
+                    Deze maand verbruikt: @euro($ai_spent_cents)
+                    van @euro($ai_allowance_cents).
+                    @if ($ai_topup_cents > 0)
+                        Bijgekocht tegoed: @euro($ai_topup_cents).
                     @endif
                     Leeg laten volgt de standaard uit de catalogus.
                 </p>
@@ -65,7 +65,7 @@
             <label><input type="radio" name="discount_type" value="euro" @checked($type === 'euro')>
                 <span class="choice-label">Vast bedrag</span>
                 <input type="number" step="0.01" min="0" name="discount_euro" placeholder="0,00"
-                    value="{{ $tenant->discount_cents ? number_format($tenant->discount_cents / 100, 2, '.', '') : '' }}">
+                    value="{{ \App\Support\Money::input($tenant->discount_cents) }}">
                 <span class="muted">&euro; per maand</span></label>
 
             <label><input type="radio" name="discount_type" value="percent" @checked($type === 'percent')>
@@ -77,7 +77,7 @@
 
         <label>Vaste maandprijs (&euro;) <span class="muted">(leeg = berekenen)</span></label>
         <input type="number" step="0.01" name="price_override_euro" min="0"
-            value="{{ $tenant->price_override_cents ? number_format($tenant->price_override_cents / 100, 2, '.', '') : '' }}">
+            value="{{ \App\Support\Money::input($tenant->price_override_cents) }}">
         <label>Factuurgegevens</label>
         <div class="grid">
             <div><input type="text" name="invoice_address" placeholder="Straat en nummer" value="{{ $tenant->invoice_address }}"></div>
@@ -174,7 +174,7 @@
                 <tr>
                     <td>{{ $t->created_at->format('d-m-Y') }}</td>
                     <td>@euro($t->paid_cents)</td>
-                    <td>&euro; {{ number_format($t->granted_micros / 1000000, 2, ',', '.') }}</td>
+                    <td>@euro(\App\Support\Money::fromMicros($t->granted_micros))</td>
                     <td class="muted">{{ $t->note }}</td>
                 </tr>
             @endforeach
