@@ -36,6 +36,9 @@ class TenancyDoctor extends Command
         }
 
         $this->newLine();
+        $this->checkPrivileges();
+
+        $this->newLine();
         $this->checkProvisioning();
 
         $this->newLine();
@@ -180,6 +183,53 @@ class TenancyDoctor extends Command
     }
 
     /**
+     * De grens waar deze hele opzet op leunt: het account van de applicatie mag
+     * geen databases van klanten kunnen maken of weggooien, en alleen de
+     * provisioner mag dat wel. Dat stond tot nu toe alleen in een leesmij, en
+     * een voorwaarde die nergens gecontroleerd wordt is een voorwaarde die na
+     * de eerste de beste herinstallatie stilletjes weg is.
+     */
+    private function checkPrivileges(): void
+    {
+        $this->line('Rechten');
+
+        try {
+            $grants = array_map(
+                fn ($row) => (string) array_values((array) $row)[0],
+                DB::connection('central')->select('SHOW GRANTS FOR CURRENT_USER()'),
+            );
+        } catch (\Throwable $e) {
+            $this->skip('kan de rechten van dit account niet opvragen: ' . $e->getMessage());
+
+            return;
+        }
+
+        $account = DB::connection('central')->selectOne('SELECT CURRENT_USER() AS wie')->wie ?? 'onbekend';
+
+        /**
+         * Twee manieren waarop het te ruim staat: alles op alles, of rechten
+         * op de databases van klanten. Beide betekenen dat een fout in de
+         * webapplicatie de gegevens van een klant kan weggooien.
+         */
+        $all_on_everything = array_filter($grants, fn ($grant) => (bool) preg_match(
+            '/GRANT (ALL PRIVILEGES|.*\bCREATE\b.*|.*\bDROP\b.*) ON \*\.\*/i', $grant
+        ));
+
+        $reaches_tenants = array_filter($grants, fn ($grant) => str_contains($grant, 'tenant')
+            && !str_contains($grant, 'GRANT USAGE'));
+
+        if ($all_on_everything || $reaches_tenants) {
+            $this->bad("{$account} kan bij de databases van klanten. Alleen lavoro_provisioner hoort dat te kunnen.");
+
+            foreach (array_merge($all_on_everything, $reaches_tenants) as $grant) {
+                $this->line('       ' . mb_strimwidth($grant, 0, 120, '...'));
+            }
+        } else {
+            $this->pass("{$account} kan geen klantdatabases maken of weggooien");
+        }
+    }
+
+    /**
      * Het beheerpaneel legt aanvragen neer die alleen de provisioner-worker kan
      * uitvoeren. Draait die niet, dan blijft een aanvraag stilletjes staan en
      * lijkt het paneel kapot. Dit is de plek waar dat opvalt.
@@ -200,7 +250,18 @@ class TenancyDoctor extends Command
         } elseif ($requests->isNotEmpty()) {
             $this->pass($requests->count() . ' aanvraag(en) onderweg.');
         } else {
-            $this->pass('Geen aanvragen in de wacht.');
+            /**
+             * Geen aanvragen betekent niet dat de worker draait -- dat is
+             * alleen te zien aan werk dat af is gekomen. Zonder dat is dit pad
+             * onbewezen en niet in orde.
+             */
+            $done = TenantProvisioningRequest::on('central')
+                ->where('status', 'done')->exists();
+
+            $done
+                ? $this->pass('Geen aanvragen in de wacht; de worker heeft eerder werk afgerond.')
+                : $this->skip('Geen aanvragen in de wacht, en er is er nog nooit een afgerond -- of de'
+                    . ' worker draait is hiermee niet vast te stellen.');
         }
 
         $failed = TenantProvisioningRequest::on('central')
@@ -209,6 +270,39 @@ class TenancyDoctor extends Command
         $failed
             ? $this->bad($failed . ' mislukte aanvraag(en); zie het beheerpaneel voor de reden.')
             : $this->pass('Geen mislukte aanvragen.');
+
+        $this->checkProvisionerAccount();
+    }
+
+    /**
+     * Hoe de provisioner zichzelf bewijst. In productie hoort dat via de
+     * socket te gaan, gebonden aan een eigen Linux-gebruiker: dan kan alleen
+     * die gebruiker het, en staat er geen wachtwoord in een bestand dat de
+     * webserver kan lezen.
+     */
+    private function checkProvisionerAccount(): void
+    {
+        $password = (string) config('database.connections.provisioner.password');
+
+        try {
+            $who = DB::connection('provisioner')->selectOne('SELECT CURRENT_USER() AS wie')->wie ?? '';
+        } catch (\Throwable $e) {
+            $password === ''
+                ? $this->pass('provisioner niet bereikbaar vanaf dit account -- zo hoort het buiten de worker')
+                : $this->bad('provisioner heeft een wachtwoord in de config maar is niet bereikbaar: ' . $e->getMessage());
+
+            return;
+        }
+
+        if ($password !== '') {
+            $this->bad("provisioner ({$who}) is met een wachtwoord uit de omgeving te bereiken vanaf dit"
+                . ' proces. In productie hoort dit account aan een Linux-gebruiker te hangen'
+                . ' (IDENTIFIED WITH auth_socket), anders kan alles wat de .env leest ook databases weggooien.');
+
+            return;
+        }
+
+        $this->pass("provisioner ({$who}) bereikbaar zonder wachtwoord -- via de socket, zoals bedoeld");
     }
 
     private function checkOrphans(): void

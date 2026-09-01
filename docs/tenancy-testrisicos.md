@@ -102,9 +102,17 @@ Nieuw, en onomkeerbaar in één richting.
   wezen — draai hem na elke mislukte aanvraag.
 - **Worker staat stil.** Dan blijft een aanvraag hangen en lijkt het paneel
   kapot. Doctor slaat aan na een kwartier.
-- **Rechten van de provisioner.** Dit account mag veel. Controleer op productie
-  dat `lavoro_app` nog steeds géén database kan aanmaken of weggooien — dat is
-  de grens die deze opzet bewaakt.
+- **Rechten van de provisioner.** Dit account mag veel: op de proefopstelling
+  `ALL PRIVILEGES ON *.*`, omdat MySQL anders geen rechten kan uitdelen op een
+  nieuwe klantdatabase. `tenancy:doctor` controleert nu allebei de kanten:
+  dat `lavoro_app` géén klantdatabase kan maken of weggooien, en hoe de
+  provisioner zichzelf bewijst.
+- **De provisioner hangt nog niet aan een Linux-gebruiker.** Op de
+  proefopstelling is het een gewoon account met een wachtwoord in de `.env`, en
+  dat betekent dat alles wat de `.env` leest ook databases kan weggooien. De
+  scheiding is daar een afspraak, geen slot. Dit is een inrichtingsstap voor
+  productie (taak 2 van het plan) en de doctor meldt hem als fout tot hij
+  gedaan is.
 
 ## 7. Inloggen en sessies
 
