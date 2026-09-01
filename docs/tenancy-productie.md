@@ -338,6 +338,7 @@ customer, try to open a file belonging to the first: you should get a 404.
 | When | What to do |
 | --- | --- |
 | Before step 8 | Nothing is at risk, the old installation is still running. Start over. |
+| The `lavoro_app` password is lost | `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new one and writes it to `.env`. |
 | The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
 | After step 10, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
 
