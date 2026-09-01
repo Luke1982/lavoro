@@ -32,6 +32,7 @@ use App\Services\SepaDirectDebit;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
 use App\Services\TenantSuperAdmins;
+use App\Support\Tenancy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -72,11 +73,16 @@ class LandlordController extends Controller
         $rows = Tenant::on('central')->orderBy('name')->get()->map(function (Tenant $tenant) {
             $package = Package::on('central')->where('key', $tenant->package_key)->first();
 
-            tenancy()->initialize($tenant);
-            $field = User::occupyingSeat('field')->count();
-            $office = User::occupyingSeat('office')->count();
-            $used = (new StorageQuota)->usedBytes();
-            tenancy()->end();
+            /**
+             * Via de helper: klapt het bij één klant, dan blijft die tenant
+             * anders openstaan en telt de volgende ronde in de database van
+             * de vorige.
+             */
+            [$field, $office, $used] = Tenancy::within($tenant, fn () => [
+                User::occupyingSeat('field')->count(),
+                User::occupyingSeat('office')->count(),
+                (new StorageQuota)->usedBytes(),
+            ]);
 
             return [
                 'tenant' => $tenant,
