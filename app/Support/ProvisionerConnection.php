@@ -70,6 +70,34 @@ final class ProvisionerConnection
             . ' zie docs/tenancy-bediening.md.';
     }
 
+    /**
+     * Mag deze gebruiker zonder wachtwoord de provisioner worden?
+     *
+     * Dat hangt aan de sudo-regel uit taak 2 stap 2b. Staat hij er, dan
+     * verheffen de tenant-commando's zichzelf; staat hij er niet, dan moet je
+     * er zelf 'sudo -u lavoro_provisioner' voor typen. Allebei werkt, maar het
+     * is het verschil tussen een commando dat werkt en een dat een uitleg
+     * teruggeeft, dus je wilt weten welke van de twee je hebt.
+     */
+    public static function canElevate(): bool
+    {
+        $name = (string) config('database.connections.provisioner.username');
+
+        if (self::linuxUser() === $name) {
+            return true;
+        }
+
+        $sudo = trim((string) shell_exec('command -v sudo 2>/dev/null'));
+
+        if (!$sudo) {
+            return false;
+        }
+
+        exec($sudo . ' -n -u ' . escapeshellarg($name) . ' true 2>/dev/null', $ignored, $status);
+
+        return $status === 0;
+    }
+
     public static function linuxUser(): string
     {
         return function_exists('posix_getpwuid') && function_exists('posix_geteuid')
