@@ -47,14 +47,29 @@
                             :has-error="form.errors.email" :error-message="form.errors.email" />
                     </div>
                     <div v-if="!isEdit">
-                        <label
-                            class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wachtwoord</label>
                         <TextInput v-model="form.password" type="password" label="Wachtwoord" required
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
                     <div v-else>
                         <TextInput v-model="form.password" type="password" label="Nieuw wachtwoord (optioneel)"
                             :has-error="form.errors.password" :error-message="form.errors.password" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Soort plaats</label>
+                        <div class="rounded-md ring-1 ring-inset ring-gray-300 dark:ring-slate-600 overflow-hidden bg-white dark:bg-slate-800">
+                            <label v-for="option in seatOptions" :key="option.value"
+                                class="flex items-center gap-3 px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0"
+                                :class="form.seat_type === option.value ? 'bg-blue-50 dark:bg-slate-700/50' : ''">
+                                <input type="radio" v-model="form.seat_type" :value="option.value"
+                                    class="text-indigo-600 focus:ring-indigo-600" />
+                                <span class="text-sm text-gray-900 dark:text-white">{{ option.label }}</span>
+                                <span v-if="option.limit !== null" class="text-xs ml-auto"
+                                    :class="option.full ? 'text-red-600' : 'text-gray-500 dark:text-slate-400'">
+                                    {{ option.used }} van {{ option.limit }} bezet
+                                </span>
+                            </label>
+                        </div>
+                        <div v-if="form.errors.seat_type" class="text-xs text-red-600 mt-1">{{ form.errors.seat_type }}</div>
                     </div>
                     <div v-if="canAssignRoles">
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rollen</label>
@@ -109,7 +124,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
 import UserRosterWidget from '@/Components/Users/UserRosterWidget.vue'
 
-const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] } })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) } })
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
@@ -127,8 +142,27 @@ const form = useForm({
     password: '',
     avatar: null,
     role_ids: (props.user?.roles || []).map(r => r.id),
+    seat_type: props.user?.seat_type || 'office',
     plannable: !!props.user?.plannable,
 })
+
+/**
+ * Buiten- of binnendienst bepaalt welke plaats uit het abonnement bezet wordt.
+ * Het aantal staat erbij zodat je niet pas bij het opslaan hoort dat het vol
+ * is; de validatie blijft wat het tegenhoudt.
+ */
+const seatOptions = computed(() => ['field', 'office'].map((value) => {
+    const seat = props.seats?.[value]
+    const own = props.user?.seat_type === value ? 1 : 0
+
+    return {
+        value,
+        label: seat?.label || (value === 'field' ? 'Buitendienst' : 'Binnendienst'),
+        used: seat?.used ?? null,
+        limit: seat?.limit ?? null,
+        full: seat ? seat.used - own >= seat.limit : false,
+    }
+}))
 
 const canSubmit = computed(() => form.name && form.email && (!isEdit.value ? form.password.length >= 8 : true))
 

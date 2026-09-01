@@ -45,6 +45,7 @@ use App\Support\ForgetsTenantState;
 use App\Support\MailerState;
 use App\Support\TenantMailTransport;
 use App\Support\TenantState;
+use App\Support\WorkerHeartbeat;
 use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
@@ -266,6 +267,9 @@ class AppServiceProvider extends ServiceProvider
                 logger: app('log')->channel()
             );
         });
+
+        /** Een draaiende worker laat elke minuut van zich horen; de doctor kijkt daarnaar. */
+        WorkerHeartbeat::listen();
 
         Event::listen(MessageSending::class, ApplyTenantSender::class);
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
