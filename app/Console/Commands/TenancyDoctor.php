@@ -409,7 +409,7 @@ class TenancyDoctor extends Command
                 . ' Zo kan niemand inloggen en kan er geen klant aangemaakt worden.')
             : $this->bad("Linux-gebruiker {$username} bestaat niet. Maak hem aan en koppel het"
                 . ' MySQL-account eraan, dan kan het wachtwoord uit de .env weg.'
-                . ' Stappen staan in docs/tenancy-provisioning-worker.md.');
+                . ' Stappen staan in docs/tenancy-bediening.md.');
     }
 
     private function checkOrphans(): void

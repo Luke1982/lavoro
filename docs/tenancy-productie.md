@@ -347,6 +347,5 @@ customer, try to open a file belonging to the first: you should get a 404.
 | | |
 | --- | --- |
 | `tenancy-bediening.md` | day to day commands |
-| `tenancy-provisioning-worker.md` | the provisioning worker in detail |
 | `tenancy-testrisicos.md` | where this breaks and how you would notice |
 | `superpowers/plans/2026-06-09-multi-database-tenancy.md` | why it is built this way |
