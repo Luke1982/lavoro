@@ -3,6 +3,10 @@
 Alles wat je op een server doet. Voor de redenering achter de opzet:
 `docs/superpowers/plans/2026-06-09-multi-database-tenancy.md`.
 
+**Een nieuwe server opzetten of de bestaande installatie overzetten?**
+Volg [PRODUCTIE.md](PRODUCTIE.md) — dat is de doorlopende lijst van nul tot
+draaiend. Hieronder staat het dagelijkse werk.
+
 ## Wat er moet draaien
 
 | | Wat | Als wie |
