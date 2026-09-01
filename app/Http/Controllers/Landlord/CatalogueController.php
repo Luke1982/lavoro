@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\UpdateIssuerRequest;
+use App\Http\Requests\Landlord\UpdateModuleRequest;
+use App\Http\Requests\Landlord\UpdatePackageRequest;
+use App\Http\Requests\Landlord\UpdatePricingSettingRequest;
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\Module;
 use App\Models\Central\ModuleBundle;
 use App\Models\Central\Package;
 use App\Models\Central\PricingSetting;
-use App\Rules\Iban;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -30,15 +32,9 @@ class CatalogueController extends Controller
         ]);
     }
 
-    public function updateIssuer(Request $request)
+    public function updateIssuer(UpdateIssuerRequest $request)
     {
-        $data = $request->validate([
-            'issuer' => 'required|array',
-            'issuer.email' => 'nullable|email',
-            'issuer.iban' => ['nullable', new Iban],
-            'issuer.payment_days' => 'nullable|integer|min:0|max:120',
-            'issuer.*' => 'nullable|string|max:255',
-        ]);
+        $data = $request->validated();
 
         foreach ($data['issuer'] as $key => $value) {
             IssuerSetting::on('central')->where('key', $key)->update(['value' => (string) $value]);
@@ -47,34 +43,27 @@ class CatalogueController extends Controller
         return back()->with('status', 'Facturatiegegevens opgeslagen.');
     }
 
-    public function updatePackage(Request $request, int $id)
+    public function updatePackage(UpdatePackageRequest $request, int $id)
     {
-        $data = $request->validate([
-            'name' => 'required|string',
-            'field_seats' => 'required|integer|min:0',
-            'office_seats' => 'required|integer|min:0',
-            'price_cents' => 'required|integer|min:0',
-            'extra_field_cents' => 'required|integer|min:0',
-            'extra_office_cents' => 'required|integer|min:0',
-        ]);
+        $data = $request->validated();
 
         Package::on('central')->findOrFail($id)->update($data);
 
         return back()->with('status', 'Pakket bijgewerkt.');
     }
 
-    public function updateModule(Request $request, int $id)
+    public function updateModule(UpdateModuleRequest $request, int $id)
     {
-        $data = $request->validate(['name' => 'required|string', 'price_cents' => 'required|integer|min:0']);
+        $data = $request->validated();
 
         Module::on('central')->findOrFail($id)->update($data);
 
         return back()->with('status', 'Module bijgewerkt.');
     }
 
-    public function updateSetting(Request $request, int $id)
+    public function updateSetting(UpdatePricingSettingRequest $request, int $id)
     {
-        $data = $request->validate(['value' => 'required|integer|min:0']);
+        $data = $request->validated();
 
         PricingSetting::on('central')->findOrFail($id)->update($data);
 

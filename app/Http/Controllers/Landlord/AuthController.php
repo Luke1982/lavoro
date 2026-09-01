@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,9 +17,9 @@ class AuthController extends Controller
         return view('landlord.login');
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $data = $request->validate(['email' => 'required|email', 'password' => 'required']);
+        $data = $request->validated();
 
         if (!Auth::guard('landlord')->attempt($data, true)) {
             return back()->withErrors(['email' => 'Kon niet inloggen'])->withInput();
