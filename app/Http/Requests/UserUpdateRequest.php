@@ -22,20 +22,20 @@ class UserUpdateRequest extends FormRequest
 
     private function targetIsSuperAdmin(): bool
     {
-        $route_user = request()->route('user');
+        $route_user = $this->route('user');
 
         $user = is_object($route_user)
             ? $route_user
-            : User::withoutGlobalScopes()->find($route_user ?: optional(request()->user())->id);
+            : User::withoutGlobalScopes()->find($route_user ?: optional($this->user())->id);
 
         return $user?->isSuperAdmin() ?? false;
     }
 
     public function rules(): array
     {
-        $route_user = request()->route('user');
+        $route_user = $this->route('user');
         $route_user_id = is_object($route_user) ? $route_user->id : $route_user;
-        $current_user_id = optional(request()->user())->id;
+        $current_user_id = optional($this->user())->id;
         $ignore_id = $route_user_id ?: $current_user_id;
 
         $rules = [
@@ -66,7 +66,7 @@ class UserUpdateRequest extends FormRequest
                 : ['required', 'in:field,office', new SeatAvailable($ignore_id)],
         ];
 
-        $request_user = request()->user();
+        $request_user = $this->user();
         if ($request_user && $request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
             /**
