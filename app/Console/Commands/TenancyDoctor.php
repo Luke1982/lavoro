@@ -275,34 +275,75 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Hoe de provisioner zichzelf bewijst. In productie hoort dat via de
-     * socket te gaan, gebonden aan een eigen Linux-gebruiker: dan kan alleen
-     * die gebruiker het, en staat er geen wachtwoord in een bestand dat de
-     * webserver kan lezen.
+     * Het account dat databases van klanten mag maken en weggooien.
+     *
+     * Twee losse vragen, want ze kunnen los van elkaar misgaan: bestaat het
+     * MySQL-account, en hangt het aan een Linux-gebruiker in plaats van aan
+     * een wachtwoord in een bestand.
      */
     private function checkProvisionerAccount(): void
     {
+        $username = (string) config('database.connections.provisioner.username');
         $password = (string) config('database.connections.provisioner.password');
 
-        try {
-            $who = DB::connection('provisioner')->selectOne('SELECT CURRENT_USER() AS wie')->wie ?? '';
-        } catch (\Throwable $e) {
-            $password === ''
-                ? $this->pass('provisioner niet bereikbaar vanaf dit account -- zo hoort het buiten de worker')
-                : $this->bad('provisioner heeft een wachtwoord in de config maar is niet bereikbaar: ' . $e->getMessage());
+        $reachable = true;
+        $who = $username;
 
-            return;
+        try {
+            $who = DB::connection('provisioner')->selectOne('SELECT CURRENT_USER() AS wie')->wie ?? $username;
+        } catch (\Throwable $e) {
+            $reachable = false;
+        }
+
+        if ($reachable) {
+            $this->pass("MySQL-account {$who} bestaat en werkt");
+        } elseif ($password !== '') {
+            $this->bad("MySQL-account {$username} logt niet in met het wachtwoord uit de .env."
+                . ' Bestaat het account wel, en klopt DB_PROVISIONER_PASSWORD?');
+        } else {
+            /**
+             * Niet kunnen inloggen bewijst niets. Een account dat aan een
+             * Linux-gebruiker hangt hoort hier te weigeren, en een account dat
+             * helemaal niet bestaat doet precies hetzelfde. Dit dus niet
+             * goedkeuren.
+             */
+            $this->skip("Of het MySQL-account {$username} bestaat is hiervandaan niet te zien."
+                . " Draai 'sudo -u {$username} php artisan tenancy:doctor' om het te controleren.");
         }
 
         if ($password !== '') {
-            $this->bad("provisioner ({$who}) is met een wachtwoord uit de omgeving te bereiken vanaf dit"
-                . ' proces. In productie hoort dit account aan een Linux-gebruiker te hangen'
-                . ' (IDENTIFIED WITH auth_socket), anders kan alles wat de .env leest ook databases weggooien.');
+            $this->bad("Het wachtwoord van {$username} staat in de .env. Wie dat bestand kan lezen --"
+                . ' de webserver ook -- kan daarmee de database van elke klant weggooien.');
+        }
+
+        $this->checkProvisionerLinuxUser($username, $password);
+    }
+
+    /**
+     * Hoort het account aan een Linux-gebruiker te hangen (geen wachtwoord),
+     * dan moet die gebruiker er ook zijn. Zonder hem kan niemand meer
+     * inloggen en staat het aanmaken van klanten stil.
+     */
+    private function checkProvisionerLinuxUser(string $username, string $password): void
+    {
+        if (!function_exists('posix_getpwnam')) {
+            $this->skip("Kan niet nakijken of de Linux-gebruiker {$username} bestaat (posix ontbreekt).");
 
             return;
         }
 
-        $this->pass("provisioner ({$who}) bereikbaar zonder wachtwoord -- via de socket, zoals bedoeld");
+        if (posix_getpwnam($username) !== false) {
+            $this->pass("Linux-gebruiker {$username} bestaat");
+
+            return;
+        }
+
+        $password === ''
+            ? $this->bad("Linux-gebruiker {$username} bestaat niet, terwijl er geen wachtwoord is ingesteld."
+                . ' Zo kan niemand inloggen en kan er geen klant aangemaakt worden.')
+            : $this->bad("Linux-gebruiker {$username} bestaat niet. Maak hem aan en koppel het"
+                . ' MySQL-account eraan, dan kan het wachtwoord uit de .env weg.'
+                . ' Stappen staan in scripts/tenancy/README-provisioning.md.');
     }
 
     private function checkOrphans(): void
