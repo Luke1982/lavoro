@@ -69,7 +69,7 @@ Fouten hier zijn zichtbaar bij de klant en kosten een creditnota.
 | Optelling | De uitgesplitste regels tellen niet op tot het maandbedrag | Gedekt |
 | Verrekening pakketwissel | Dagen verkeerd om, of over de verkeerde periode | **Niet gedekt** |
 | Jaarkorting | Rekent mee over eenmalige posten | Deels |
-| Nummerreeks | Twee facturen tegelijk krijgen hetzelfde nummer | **Niet gedekt** — race, niet af te dwingen met een test alleen |
+| Nummerreeks | Twee facturen tegelijk krijgen hetzelfde nummer | **Niet gedekt** — race, niet af te dwingen met een test alleen; er is wel een unieke index op `number` |
 | Kortingsbon | Loopt niet af, of stapelt met de vaste korting | Gedekt |
 
 De nummerreeks is de enige waar een test niet volstaat: `MAX(nummer) + 1`
@@ -170,10 +170,15 @@ heeft, of laat iemand door die dat niet deed.
 
 ## 11. Incasso
 
+**Gedekt** door `SepaDirectDebitTest` en `InvoiceUblTest`: de vorm van het
+bestand, de optelling, het bedragformaat (een komma maakt het onbruikbaar),
+één eerste incasso per machtiging, de machtiging bij elke transactie, en een
+IBAN met spaties die zonder spaties wordt weggeschreven.
+
 - Machtiging en IBAN horen bij elkaar; een IBAN met een typefout wordt dagen
   later door de bank teruggelegd. Er is een controlegetalcheck.
-- Eén eerste incasso per machtiging, ook binnen één bestand. Gedekt.
-- Een factuur mag niet twee keer in een bestand.
+- Een factuur mag niet twee keer in een bestand. **Niet gedekt** — het stempel
+  `collected_at` regelt het, maar er is geen test die het afdwingt.
 - Het incassant-ID komt van de bank en kan niet verzonnen worden.
 
 ---
