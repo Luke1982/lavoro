@@ -124,7 +124,7 @@ class UserController extends Controller
     private function assignableRoles()
     {
         return auth()->user()?->can('assignRoles', User::class)
-            ? Role::orderBy('name')->get(['id', 'name'])
+            ? Role::assignable()->orderBy('name')->get(['id', 'name'])
             : [];
     }
 

@@ -17,6 +17,5 @@ return [
     'Projectleider' => 'projectleider',
     'Projectmanager' => 'projectmanager',
     'Gebruikersbeheer' => 'gebruikersbeheer',
-    'technisch beheer' => 'technisch_beheer',
     'HR' => 'hr',
 ];

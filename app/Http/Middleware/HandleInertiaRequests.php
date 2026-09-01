@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\TicketStatusses;
 use App\Models\Assistant;
+use App\Models\Central\Package;
 use App\Models\GeneralSetting;
 use App\Models\InternalAnnouncement;
 use App\Models\Ticket;
@@ -71,6 +72,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user_data,
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
+                /** MajorLabel zelf; alleen dit account ziet Technisch beheer. */
+                'isSuperAdmin' => $request->user() ? $request->user()->isSuperAdmin() : false,
 
                 /**
                  * Verdicts, not the evidence. A rule with an exception in it —
@@ -131,7 +134,7 @@ class HandleInertiaRequests extends Middleware
              */
             /** Het pakket dat deze klant afneemt, voor de licentiekaart in het menu. */
             'tenant' => tenancy()->initialized ? [
-                'package' => optional(\App\Models\Central\Package::on('central')
+                'package' => optional(Package::on('central')
                     ->where('key', tenancy()->tenant->package_key)->first())->name,
                 'modules' => tenancy()->tenant->modules ?? [],
             ] : null,

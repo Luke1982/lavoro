@@ -6,6 +6,8 @@ use App\Exceptions\GraphNotConfigured;
 use App\Exceptions\MailNotConfigured;
 use App\Exceptions\SnelStartNotConfigured;
 use App\Models\GeneralSetting;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\SnelStartClient;
 use App\Support\TenantMailTransport;
 use Illuminate\Support\Facades\DB;
@@ -69,9 +71,11 @@ class IntegrationCredentialsTest extends TestCase
         GeneralSetting::set('graph_client_secret', 'geheim-dat-niet-mag-lekken');
         GeneralSetting::set('mail_smtp_password', 'wachtwoord-dat-niet-mag-lekken');
 
-        /** De pagina vraagt het rauwe recht; admin zijn is hier bewust niet genoeg. */
-        $response = $this->actingAs($this->userWithPermissions('technical.management'))
-            ->get('/technical-management');
+        /** De pagina is van de superbeheerder; beheerder zijn is bewust niet genoeg. */
+        $super = User::factory()->create();
+        $super->roles()->attach(Role::firstOrCreate(['name' => Role::SUPERADMIN])->id);
+
+        $response = $this->actingAs($super)->get('/technical-management');
 
         $response->assertOk();
         $this->assertStringNotContainsString('geheim-dat-niet-mag-lekken', $response->getContent());

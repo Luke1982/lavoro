@@ -181,6 +181,41 @@
         </table>
     @endif
 </div>
+
+<div class="card" style="max-width:100%;margin-top:18px">
+    <h3>Superbeheerders</h3>
+    <p class="muted" style="margin:0 0 10px">
+        Accounts van MajorLabel binnen deze klant. Mogen alles, langs elke
+        rechtencontrole heen. De klant ziet deze rol nergens en kan hem niet
+        toekennen.
+    </p>
+
+    @if(count($superadmins))
+        <table>
+            @foreach($superadmins as $admin)
+                <tr>
+                    <td>{{ $admin['name'] }} <span class="muted">{{ $admin['email'] }}</span></td>
+                    <td style="text-align:right;width:110px">
+                        <form method="post" action="{{ route('landlord.superadmin.destroy', [$tenant->id, $admin['id']]) }}">
+                            @csrf @method('delete')
+                            <button type="submit" class="linkish">verwijderen</button>
+                        </form>
+                    </td>
+                </tr>
+            @endforeach
+        </table>
+    @else
+        <p class="muted">Nog geen superbeheerder voor deze klant.</p>
+    @endif
+
+    <form method="post" action="{{ route('landlord.superadmin.store', $tenant->id) }}" style="margin-top:12px">@csrf
+        <div class="grid">
+            <div><input type="email" name="email" placeholder="e-mailadres" required></div>
+            <div><input type="text" name="password" placeholder="wachtwoord (leeg = genereren)"></div>
+        </div>
+        <p style="margin:10px 0 0"><button type="submit">Superbeheerder toevoegen</button></p>
+    </form>
+</div>
 </div>
 </div>
 @endsection

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Landlord\DestroyTenantRequest;
 use App\Http\Requests\Landlord\ExportCollectionRequest;
 use App\Http\Requests\Landlord\ForgetProvisioningPasswordRequest;
+use App\Http\Requests\Landlord\StoreSuperAdminRequest;
 use App\Http\Requests\Landlord\StoreTenantRequest;
 use App\Jobs\RunTenantProvisioningRequestJob;
 use App\Models\Central\AiTopup;
@@ -29,6 +30,7 @@ use App\Services\InvoiceUbl;
 use App\Services\SepaDirectDebit;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
+use App\Services\TenantSuperAdmins;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -350,6 +352,30 @@ class LandlordController extends Controller
         return back()->with('status', 'Wachtwoord gewist.');
     }
 
+    public function storeSuperAdmin(StoreSuperAdminRequest $request, string $id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+        $data = $request->validated();
+
+        try {
+            $password = app(TenantSuperAdmins::class)
+                ->create($tenant, $data['email'], $data['password'] ?? '');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('status', "Superbeheerder {$data['email']} aangemaakt. Wachtwoord: {$password}");
+    }
+
+    public function destroySuperAdmin(StoreSuperAdminRequest $request, string $id, int $user)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        app(TenantSuperAdmins::class)->remove($tenant, $user);
+
+        return back()->with('status', 'Superbeheerder verwijderd.');
+    }
+
     public function collections()
     {
         return view('landlord.collections', [
@@ -486,6 +512,7 @@ class LandlordController extends Controller
             'reseller' => $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
+            'superadmins' => app(\App\Services\TenantSuperAdmins::class)->all($tenant),
         ]);
     }
 

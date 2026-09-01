@@ -8,7 +8,7 @@ class ForgetIntegrationSecretRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('technical.management') ?? false;
+        return $this->user()?->isSuperAdmin() ?? false;
     }
 
     public function rules(): array

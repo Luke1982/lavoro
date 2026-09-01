@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Rules\SeatAvailable;
 use Illuminate\Foundation\Http\FormRequest;
@@ -50,7 +51,17 @@ class UserUpdateRequest extends FormRequest
         $request_user = request()->user();
         if ($request_user && $request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
-            $rules['role_ids.*'] = 'integer|exists:roles,id';
+            /**
+             * Alleen rollen die een klant mag toekennen. Zonder deze grens
+             * plakt een aangepast verzoek het id van onze eigen rol erbij en
+             * heeft die gebruiker alles.
+             */
+            $rules['role_ids.*'] = [
+                'integer',
+                Rule::exists('roles', 'id')->where(
+                    fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
+                ),
+            ];
         }
         if ($request_user && method_exists($request_user, 'isAdmin') && $request_user->isAdmin()) {
             $rules['plannable'] = 'sometimes|boolean';

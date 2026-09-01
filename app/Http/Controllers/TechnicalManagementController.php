@@ -30,9 +30,7 @@ class TechnicalManagementController extends Controller
 
     public function index(Request $request)
     {
-        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
-            abort(403);
-        }
+        abort_unless($request->user()?->isSuperAdmin() ?? false, 403);
 
         $settings = [];
 
@@ -87,9 +85,7 @@ class TechnicalManagementController extends Controller
 
     public function sendTestMail(Request $request)
     {
-        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
-            abort(403);
-        }
+        abort_unless($request->user()?->isSuperAdmin() ?? false, 403);
 
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],

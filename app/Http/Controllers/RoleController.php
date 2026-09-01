@@ -12,7 +12,9 @@ class RoleController extends Controller
     public function index()
     {
         return inertia('Roles/IndexPage', [
-            'roles' => Role::with(['users:id,name,email', 'permissions:id'])
+            /** Onze eigen rol hoort niet in het rollenscherm van een klant. */
+            'roles' => Role::assignable()
+                ->with(['users:id,name,email', 'permissions:id'])
                 ->orderBy('name')
                 ->get(),
             'allUsers' => User::orderBy('name')->get(['id', 'name', 'email']),
@@ -24,7 +26,12 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            /**
+             * De naam van onze eigen rol is verboden. Zonder dit maakt een
+             * beheerder van een klant zelf een rol 'superadmin' aan en heeft
+             * daarmee alles, want de gate kijkt naar de naam.
+             */
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name', 'not_in:' . Role::SUPERADMIN],
         ]);
 
         $role = Role::create($data);
@@ -36,6 +43,9 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+        /** Wie hem niet mag zien, mag hem ook niet vullen met gebruikers. */
+        abort_if($role->name === Role::SUPERADMIN, 404);
+
         $data = $request->validate([
             'user_ids' => ['nullable', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],

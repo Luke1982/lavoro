@@ -126,10 +126,19 @@ class User extends Authenticatable
 
     /**
      * Whether the user has the admin role.
+     *
+     * De superbeheerder telt mee: die mag per definitie alles wat een
+     * beheerder mag, en meer.
      */
     public function isAdmin(): bool
     {
-        return $this->roles()->where('name', 'admin')->exists();
+        return $this->roles()->whereIn('name', ['admin', Role::SUPERADMIN])->exists();
+    }
+
+    /** MajorLabel zelf, binnen de database van een klant. */
+    public function isSuperAdmin(): bool
+    {
+        return $this->roles()->where('name', Role::SUPERADMIN)->exists();
     }
 
     /**
