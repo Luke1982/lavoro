@@ -6,6 +6,8 @@ use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\WorkerHeartbeat;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -107,10 +109,17 @@ class TenancyDoctor extends Command
             $this->bad('cache: ' . $e->getMessage());
         }
 
+        /**
+         * Werk dat blijft liggen. De hartslag hieronder zegt of er een worker
+         * leeft; dit zegt of hij ook vooruitkomt -- een worker die op elke job
+         * stukloopt heeft wel een hartslag.
+         */
         $pending = DB::connection('central')->table('jobs')->min('available_at');
         $pending && $pending < now()->subHour()->timestamp
-            ? $this->bad('oudste wachtende job is meer dan een uur oud -- draait de worker?')
-            : $this->pass('wachtrij');
+            ? $this->bad('oudste wachtende job is meer dan een uur oud -- komt de worker vooruit?')
+            : $this->pass('geen werk dat blijft liggen');
+
+        $this->checkWorkers();
 
         $beat = Cache::get('scheduler_heartbeat');
 
@@ -120,6 +129,38 @@ class TenancyDoctor extends Command
             $this->bad('planner-hartslag is ouder dan 15 minuten -- cron draait niet');
         } else {
             $this->pass('planner draait');
+        }
+    }
+
+    /**
+     * Draaien de workers? Een lege wachtrij ziet er hetzelfde uit als een
+     * worker die er niet is, dus tellen wat er klaarstaat zegt niets. Elke
+     * worker schrijft daarom elke minuut een hartslag, ook als hij niets te
+     * doen heeft.
+     */
+    private function checkWorkers(): void
+    {
+        $workers = [
+            'default' => 'php artisan queue:work',
+            'provisioning' => 'php artisan queue:work --queue=provisioning (als lavoro_provisioner)',
+        ];
+
+        foreach ($workers as $queue => $command) {
+            $beat = WorkerHeartbeat::beatFor($queue);
+
+            if ($beat === null) {
+                $this->bad("Wachtrij '{$queue}': geen enkele hartslag. Draait '{$command}'?");
+
+                continue;
+            }
+
+            $age = now()->timestamp - $beat;
+
+            $age > WorkerHeartbeat::STALE_AFTER_MINUTES * 60
+                ? $this->bad("Wachtrij '{$queue}': laatste hartslag "
+                    . CarbonImmutable::createFromTimestamp($beat)->diffForHumans()
+                    . ". De worker is gestopt. Start '{$command}'.")
+                : $this->pass("worker voor '{$queue}' draait");
         }
     }
 

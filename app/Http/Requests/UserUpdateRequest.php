@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Rules\SeatAvailable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,11 +33,18 @@ class UserUpdateRequest extends FormRequest
                 'email',
                 Rule::unique('users', 'email')->ignore($ignore_id),
                 Rule::unique('central.user_tenant_lookups', 'email')->ignore(
-                    optional(\App\Models\User::find($ignore_id))->email, 'email'
+                    optional(User::find($ignore_id))->email, 'email'
                 ),
             ],
             'password' => 'nullable|string|min:8',
             'avatar' => 'nullable|image|max:3072',
+            /**
+             * Ook bij wijzigen: iemand van binnen- naar buitendienst zetten
+             * verplaatst hem naar een andere plaats uit het abonnement, en die
+             * kan vol zijn. De eigen plaats telt niet mee, anders kan niemand
+             * blijven staan waar hij staat.
+             */
+            'seat_type' => ['required', 'in:field,office', new SeatAvailable($ignore_id)],
         ];
 
         $request_user = request()->user();

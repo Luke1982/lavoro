@@ -6,6 +6,7 @@ use App\Http\Requests\UserDeleteRequest;
 use App\Http\Requests\UserRestoreRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\Central\Package;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\UserAvatarService;
@@ -33,6 +34,7 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => null,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
         ]);
     }
 
@@ -44,12 +46,32 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
                 ->orderBy('date')
                 ->get(),
         ]);
+    }
+
+    /**
+     * Hoeveel plaatsen er per soort zijn en hoeveel er nog vrij zijn. Het
+     * formulier laat dat zien; de validatie bewaakt het.
+     */
+    private function seats(): array
+    {
+        if (!tenancy()->initialized) {
+            return [];
+        }
+
+        $tenant = tenancy()->tenant;
+        $package = Package::on('central')->where('key', $tenant->package_key)->first();
+
+        return collect([
+            'field' => ['label' => 'Buitendienst', 'limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats],
+            'office' => ['label' => 'Binnendienst', 'limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats],
+        ])->map(fn ($seat, $type) => $seat + ['used' => User::where('seat_type', $type)->count()])->all();
     }
 
     public function store(UserStoreRequest $request)
@@ -118,6 +140,7 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
