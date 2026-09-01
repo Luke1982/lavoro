@@ -122,6 +122,60 @@ class SuperAdminRoleTest extends TestCase
         $this->actingAs($this->superAdmin())->get('/technical-management')->assertOk();
     }
 
+    public function test_a_customer_never_sees_the_account_in_any_list(): void
+    {
+        $super = $this->superAdmin();
+        $admin = $this->admin();
+
+        $this->actingAs($admin);
+
+        $this->assertFalse(
+            User::where('id', $super->id)->exists(),
+            'De globale scope hoort ons account overal uit te houden, niet alleen uit het gebruikersscherm.',
+        );
+
+        $this->actingAs($super);
+
+        $this->assertTrue(
+            User::where('id', $super->id)->exists(),
+            'Een superbeheerder hoort zichzelf wel te zien.',
+        );
+    }
+
+    public function test_logging_in_still_finds_the_account(): void
+    {
+        $super = $this->superAdmin();
+
+        /** Zonder ingelogde gebruiker doet de scope niets, anders kan hij er nooit meer in. */
+        $this->assertTrue(User::where('id', $super->id)->exists());
+    }
+
+    public function test_a_customer_cannot_edit_or_delete_the_account(): void
+    {
+        $super = $this->superAdmin();
+        $admin = $this->admin();
+
+        $this->assertFalse($admin->can('view', $super));
+        $this->assertFalse($admin->can('update', $super));
+        $this->assertFalse($admin->can('delete', $super));
+
+        /** En wij kunnen er zelf wel bij. */
+        $this->assertTrue($super->can('update', $super));
+    }
+
+    public function test_the_account_does_not_occupy_a_seat(): void
+    {
+        $before = User::occupyingSeat('office')->count();
+
+        $this->superAdmin()->update(['seat_type' => 'office']);
+
+        $this->assertSame(
+            $before,
+            User::occupyingSeat('office')->count(),
+            'Ons eigen account hoort geen plaats uit het abonnement van de klant te kosten.',
+        );
+    }
+
     public function test_the_old_technical_management_role_is_gone(): void
     {
         $this->assertSame(0, Role::where('name', 'technisch beheer')->count());

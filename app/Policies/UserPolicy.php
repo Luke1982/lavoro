@@ -11,9 +11,15 @@ class UserPolicy
         return $user->hasPermission('user.read');
     }
 
+    /**
+     * De accounts van MajorLabel zijn voor de klant onzichtbaar (globale
+     * scope) en ook onaanraakbaar: de scope houdt lijsten schoon, dit houdt
+     * een verzoek met een id erin tegen. Een superbeheerder komt hier niet
+     * langs -- die valt al af op Gate::before.
+     */
     public function view(User $user, User $model): bool
     {
-        return $user->hasPermission('user.read');
+        return !$model->isSuperAdmin() && $user->hasPermission('user.read');
     }
 
     public function create(User $user): bool
@@ -23,7 +29,7 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return $user->hasPermission('user.update');
+        return !$model->isSuperAdmin() && $user->hasPermission('user.update');
     }
 
     /**
@@ -37,12 +43,14 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        return $user->id !== $model->id && $user->hasPermission('user.delete');
+        return !$model->isSuperAdmin()
+            && $user->id !== $model->id
+            && $user->hasPermission('user.delete');
     }
 
     public function restore(User $user, User $model): bool
     {
-        return $user->hasPermission('user.restore');
+        return !$model->isSuperAdmin() && $user->hasPermission('user.restore');
     }
 
     public function viewTrashed(User $user): bool

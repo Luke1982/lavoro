@@ -26,18 +26,26 @@ class UserStoreRequest extends FormRequest
             'plannable' => 'sometimes|boolean',
         ];
 
-        if ($this->user()->can('assignRoles', User::class)) {
+        $request_user = $this->user();
+
+        if ($request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
             /**
              * Alleen rollen die een klant mag toekennen. Zonder deze grens
              * plakt een aangepast verzoek het id van onze eigen rol erbij en
              * heeft die gebruiker alles.
+             *
+             * Een superbeheerder valt hier niet onder: die moet zijn eigen rol
+             * kunnen laten staan, anders is zijn eigen profiel niet op te
+             * slaan.
              */
             $rules['role_ids.*'] = [
                 'integer',
-                Rule::exists('roles', 'id')->where(
-                    fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
-                ),
+                $request_user?->isSuperAdmin()
+                    ? Rule::exists('roles', 'id')
+                    : Rule::exists('roles', 'id')->where(
+                        fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
+                    ),
             ];
         }
 

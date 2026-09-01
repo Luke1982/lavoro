@@ -54,7 +54,7 @@
                         <TextInput v-model="form.password" type="password" label="Nieuw wachtwoord (optioneel)"
                             :has-error="form.errors.password" :error-message="form.errors.password" />
                     </div>
-                    <div>
+                    <div v-if="occupiesSeat">
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Soort plaats</label>
                         <div class="rounded-md ring-1 ring-inset ring-gray-300 dark:ring-slate-600 overflow-hidden bg-white dark:bg-slate-800">
                             <label v-for="option in seatOptions" :key="option.value"
@@ -124,7 +124,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
 import UserRosterWidget from '@/Components/Users/UserRosterWidget.vue'
 
-const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) } })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) }, occupiesSeat: { type: Boolean, default: true } })
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
@@ -142,7 +142,7 @@ const form = useForm({
     password: '',
     avatar: null,
     role_ids: (props.user?.roles || []).map(r => r.id),
-    seat_type: props.user?.seat_type || 'office',
+    seat_type: props.occupiesSeat ? (props.user?.seat_type || 'office') : null,
     plannable: !!props.user?.plannable,
 })
 

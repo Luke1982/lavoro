@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\HidesSuperAdmins;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,14 @@ class User extends Authenticatable
 
     use Notifiable;
     use SoftDeletes;
+
+    private ?bool $is_super_admin = null;
+
+    /** De accounts van MajorLabel blijven buiten beeld bij de klant. */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new HidesSuperAdmins);
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -144,14 +153,30 @@ class User extends Authenticatable
      */
     public function scopeOccupyingSeat($query, string $seat_type)
     {
-        return $query->where('seat_type', $seat_type)
-            ->whereDoesntHave('roles', fn ($role) => $role->where('name', Role::SUPERADMIN));
+        return $query->where('seat_type', $seat_type)->withoutSuperAdmins();
     }
 
-    /** MajorLabel zelf, binnen de database van een klant. */
+    /**
+     * De ene plek die weet hoe je een superbeheerder uit een query houdt.
+     * De globale scope, de stoelentelling en alles wat later komt gaan hier
+     * doorheen, zodat er maar één definitie is.
+     */
+    public function scopeWithoutSuperAdmins($query)
+    {
+        return $query->whereDoesntHave('roles', fn ($role) => $role->where('name', Role::SUPERADMIN));
+    }
+
+    /**
+     * MajorLabel zelf, binnen de database van een klant.
+     *
+     * Onthouden per exemplaar: de globale scope vraagt dit bij elke query naar
+     * gebruikers, en dat is één extra query per keer voor een antwoord dat
+     * binnen een verzoek niet verandert. Een ->fresh() geeft een nieuw
+     * exemplaar en dus een nieuw antwoord.
+     */
     public function isSuperAdmin(): bool
     {
-        return $this->roles()->where('name', Role::SUPERADMIN)->exists();
+        return $this->is_super_admin ??= $this->roles()->where('name', Role::SUPERADMIN)->exists();
     }
 
     /**

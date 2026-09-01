@@ -20,6 +20,17 @@ class UserUpdateRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    private function targetIsSuperAdmin(): bool
+    {
+        $route_user = request()->route('user');
+
+        $user = is_object($route_user)
+            ? $route_user
+            : User::withoutGlobalScopes()->find($route_user ?: optional(request()->user())->id);
+
+        return $user?->isSuperAdmin() ?? false;
+    }
+
     public function rules(): array
     {
         $route_user = request()->route('user');
@@ -45,7 +56,14 @@ class UserUpdateRequest extends FormRequest
              * kan vol zijn. De eigen plaats telt niet mee, anders kan niemand
              * blijven staan waar hij staat.
              */
-            'seat_type' => ['required', 'in:field,office', new SeatAvailable($ignore_id)],
+            /**
+             * Een superbeheerder bezet geen plaats uit het abonnement -- dat
+             * account is van MajorLabel. Hij krijgt de keuze niet te zien en
+             * hoeft hem dus ook niet mee te sturen.
+             */
+            'seat_type' => $this->targetIsSuperAdmin()
+                ? ['nullable']
+                : ['required', 'in:field,office', new SeatAvailable($ignore_id)],
         ];
 
         $request_user = request()->user();
@@ -55,12 +73,18 @@ class UserUpdateRequest extends FormRequest
              * Alleen rollen die een klant mag toekennen. Zonder deze grens
              * plakt een aangepast verzoek het id van onze eigen rol erbij en
              * heeft die gebruiker alles.
+             *
+             * Een superbeheerder valt hier niet onder: die moet zijn eigen rol
+             * kunnen laten staan, anders is zijn eigen profiel niet op te
+             * slaan.
              */
             $rules['role_ids.*'] = [
                 'integer',
-                Rule::exists('roles', 'id')->where(
-                    fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
-                ),
+                $request_user?->isSuperAdmin()
+                    ? Rule::exists('roles', 'id')
+                    : Rule::exists('roles', 'id')->where(
+                        fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
+                    ),
             ];
         }
         if ($request_user && method_exists($request_user, 'isAdmin') && $request_user->isAdmin()) {
