@@ -17,7 +17,17 @@ draaiend. Hieronder staat het dagelijkse werk.
 | Cron | `* * * * * php artisan schedule:run` | `www-data` |
 
 Twee workers, en dat is met opzet. De gewone draait als het account van de
-applicatie, dat geen databases mag aanmaken. Alleen de tweede mag dat.
+applicatie, dat geen databases mag aanmaken. Alleen de tweede mag dat: kon het
+paneel zelf databases maken, dan kon een fout in het paneel er ook een
+weggooien.
+
+De gewone worker pakt de wachtrij `provisioning` niet op, en dat hoort zo: hij
+zou er toch op stuklopen. Draait de tweede niet, dan blijft een aanvraag in het
+paneel op "in de wacht" staan en meldt `tenancy:doctor` het na een kwartier.
+
+`--tries=1` op die tweede is geen slordigheid: een half aangemaakte klant nog
+eens proberen loopt vast op "de database bestaat al" en verbergt de echte fout.
+De systemd-unit staat in [tenancy-productie.md](tenancy-productie.md).
 
 Staat de cron niet, dan gebeurt er niets automatisch: geen facturen, geen
 Google-synchronisatie, geen werkbonnen uit onderhoudscontracten.
@@ -173,7 +183,6 @@ taak 44 van het plan voor wat het precies doet.
 
 | | |
 | --- | --- |
-| `tenancy-provisioning-worker.md` | de provisioning-worker, met systemd-unit |
 | `tenancy-testrisicos.md` | waar dit stuk breekt en hoe je dat merkt |
 | `../CLAUDE.md` | regels voor wie code schrijft |
 | `handleiding.md` | voor de mensen die ermee werken |
