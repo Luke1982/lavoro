@@ -65,6 +65,7 @@ export function useMenu() {
 
     const authUser = computed(() => page.props.auth?.user ?? null)
     const isAdmin = computed(() => !!page.props.auth?.isAdmin)
+    const isSuperAdmin = computed(() => !!page.props.auth?.isSuperAdmin)
     const initials = computed(() => (authUser.value?.name ? getInitials(authUser.value.name) : ''))
     const userRoles = computed(() => (authUser.value?.roles || []).join(', '))
     const companyName = computed(() => page.props.company?.name ?? null)
@@ -86,6 +87,7 @@ export function useMenu() {
      * daar niet genoeg, zoals bij technisch beheer.
      */
     const maySee = (item) => {
+        if (item.superadminOnly) return isSuperAdmin.value
         if (item.adminOnly) return isAdmin.value
         if (item.explicitPermission) return (page.props.auth?.permissions || []).includes(item.explicitPermission)
         if (item.anyPermission) return hasAnyPermission(item.anyPermission)

@@ -182,7 +182,7 @@
                     "label": "Technisch beheer",
                     "icon": "Wrench",
                     "href": "/technical-management",
-                    "explicitPermission": "technical.management"
+                    "superadminOnly": true
                 }
             ]
         }

@@ -174,6 +174,14 @@ class AppServiceProvider extends ServiceProvider
             AssistantAllowance::class,
         );
 
+        /**
+         * De superbeheerder komt langs elke policy heen. Gate::before draait
+         * voor elke can()-controle in de applicatie, dus dit is de enige plek
+         * waar 'mag alles' echt alles betekent -- een lijst met rechten zou
+         * altijd iets missen dat later wordt toegevoegd.
+         */
+        Gate::before(fn ($user) => $user instanceof User && $user->isSuperAdmin() ? true : null);
+
         Gate::define('technical.management', fn ($user) => $user->hasPermission('technical.management'));
 
         Gate::policy(Assistant::class, AssistantPolicy::class);

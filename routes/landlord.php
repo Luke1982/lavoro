@@ -44,5 +44,9 @@ Route::prefix('beheer')
             Route::get('{tenant}', [LandlordController::class, 'edit'])->name('landlord.edit');
             Route::put('{tenant}', [LandlordController::class, 'update'])->name('landlord.update');
             Route::post('{tenant}/bijkoop', [LandlordController::class, 'addTopup'])->name('landlord.topup');
+            Route::post('{tenant}/superbeheerder', [LandlordController::class, 'storeSuperAdmin'])
+                ->name('landlord.superadmin.store');
+            Route::delete('{tenant}/superbeheerder/{user}', [LandlordController::class, 'destroySuperAdmin'])
+                ->name('landlord.superadmin.destroy');
         });
     });
