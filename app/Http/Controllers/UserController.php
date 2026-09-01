@@ -35,6 +35,7 @@ class UserController extends Controller
             'user' => null,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
+            'occupiesSeat' => true,
         ]);
     }
 
@@ -47,6 +48,8 @@ class UserController extends Controller
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
+            /** Een superbeheerder bezet geen plaats; die keuze hoort hij niet te zien. */
+            'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
@@ -141,6 +144,8 @@ class UserController extends Controller
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
+            /** Een superbeheerder bezet geen plaats; die keuze hoort hij niet te zien. */
+            'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
