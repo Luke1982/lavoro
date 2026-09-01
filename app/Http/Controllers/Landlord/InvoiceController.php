@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Services\InvoiceDocuments;
 use App\Services\InvoiceMailer;
 use App\Services\Invoicer;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /**
@@ -39,7 +40,7 @@ class InvoiceController extends Controller
         $invoice = (new Invoicer($tenant))->issue();
 
         return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
-            . number_format($invoice->total_cents / 100, 2, ',', '.'));
+            . Money::human($invoice->total_cents));
     }
 
     /** Handmatig: er hoort eerst iemand naar de factuur gekeken te hebben. */
