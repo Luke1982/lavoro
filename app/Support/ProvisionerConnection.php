@@ -67,7 +67,7 @@ final class ProvisionerConnection
             . " Draai dit als: sudo -u {$name} php artisan <commando>, of installeer"
             . ' /etc/sudoers.d/lavoro-admin (plan, taak 2 stap 2b) zodat het zichzelf verheft.'
             . ' De worker van het beheerpaneel hoort al als deze gebruiker te draaien;'
-            . ' zie scripts/tenancy/README-provisioning.md.';
+            . ' zie docs/tenancy-provisioning-worker.md.';
     }
 
     public static function linuxUser(): string

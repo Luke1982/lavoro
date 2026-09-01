@@ -1,6 +1,6 @@
 # De provisioning-worker
 
-Onderdeel van [de bediening](README.md).
+Onderdeel van [de bediening](tenancy-bediening.md).
 
 > **Dit is een inrichtingsvoorschrift, geen beschrijving van wat er draait.**
 > Op de proefopstelling is `lavoro_provisioner` een gewoon MySQL-account met

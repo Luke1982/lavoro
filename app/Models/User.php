@@ -135,6 +135,19 @@ class User extends Authenticatable
         return $this->roles()->whereIn('name', ['admin', Role::SUPERADMIN])->exists();
     }
 
+    /**
+     * De gebruikers die een plaats uit het abonnement bezetten.
+     *
+     * Onze eigen superbeheerder telt niet mee: dat account is van MajorLabel
+     * en de klant hoort er geen plaats voor te betalen. Zachtgewiste
+     * gebruikers vallen al buiten de standaardscope.
+     */
+    public function scopeOccupyingSeat($query, string $seat_type)
+    {
+        return $query->where('seat_type', $seat_type)
+            ->whereDoesntHave('roles', fn ($role) => $role->where('name', Role::SUPERADMIN));
+    }
+
     /** MajorLabel zelf, binnen de database van een klant. */
     public function isSuperAdmin(): bool
     {

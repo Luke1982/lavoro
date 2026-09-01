@@ -13,7 +13,7 @@ class SeatAvailable implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! tenancy()->initialized || ! in_array($value, ['field', 'office'], true)) {
+        if (!tenancy()->initialized || !in_array($value, ['field', 'office'], true)) {
             return;
         }
 
@@ -24,8 +24,8 @@ class SeatAvailable implements ValidationRule
             ? (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats
             : (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats;
 
-        /** Zachtgewiste gebruikers tellen niet mee: die kosten niets. */
-        $query = User::where('seat_type', $value);
+        /** Zachtgewiste gebruikers en onze eigen superbeheerder kosten niets. */
+        $query = User::occupyingSeat($value);
 
         if ($this->ignore_id) {
             $query->where('id', '!=', $this->ignore_id);

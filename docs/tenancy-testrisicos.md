@@ -4,7 +4,7 @@ Een risicolijst voor de omschakeling naar multi-tenancy: welke plekken fout
 kunnen gaan, hoe die fout zich voordoet, en waarmee je hem vangt.
 
 Gesorteerd op wat het kost als het misgaat, niet op hoe waarschijnlijk het is.
-Bediening staat in [scripts/tenancy/README.md](../scripts/tenancy/README.md).
+Bediening staat in [tenancy-bediening.md](tenancy-bediening.md).
 
 **Wat deze lijst stuurt:** vrijwel alles hieronder faalt *stil*. Een 500 vindt
 iedereen binnen een dag. Een werkbon die in de database van de verkeerde klant

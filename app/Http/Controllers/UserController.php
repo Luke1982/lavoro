@@ -71,7 +71,7 @@ class UserController extends Controller
         return collect([
             'field' => ['label' => 'Buitendienst', 'limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats],
             'office' => ['label' => 'Binnendienst', 'limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats],
-        ])->map(fn ($seat, $type) => $seat + ['used' => User::where('seat_type', $type)->count()])->all();
+        ])->map(fn ($seat, $type) => $seat + ['used' => User::occupyingSeat($type)->count()])->all();
     }
 
     public function store(UserStoreRequest $request)
