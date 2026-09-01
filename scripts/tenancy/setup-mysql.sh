@@ -91,6 +91,25 @@ fi
 
 detect_flavour
 
+# ---------------------------------------------------------------------------
+# Vroeg falen als er straks niets weggeschreven kan worden
+# ---------------------------------------------------------------------------
+#
+# Zonder deze controle maakte --write-env eerst het account met een
+# gegenereerd wachtwoord aan en ontdekte daarna pas dat er geen .env was om het
+# in te zetten. Het wachtwoord was op dat moment nergens meer te vinden en het
+# account onbruikbaar; alleen --rotate-app-password kon dat nog rechttrekken.
+
+if [ "$WRITE_ENV" -eq 1 ] && [ ! -f "$PROJECT_ROOT/.env" ]; then
+    if [ -f "$PROJECT_ROOT/.env.example" ]; then
+        cp "$PROJECT_ROOT/.env.example" "$PROJECT_ROOT/.env"
+        green "Created .env from .env.example"
+    else
+        die "No .env at $PROJECT_ROOT/.env and no .env.example to start from.
+Create the file first, or drop --write-env and copy the credentials by hand."
+    fi
+fi
+
 info "==> Detected database server"
 print_flavour
 info ""
@@ -244,7 +263,14 @@ SESSION_CONNECTION=central"
 
 if [ "$WRITE_ENV" -eq 1 ]; then
     ENV_FILE="$PROJECT_ROOT/.env"
-    [ -f "$ENV_FILE" ] || die ".env not found at $ENV_FILE"
+
+    # Een nieuw wachtwoord bestaat op dit moment alleen hier. Gaat het
+    # wegschrijven mis, dan is het account onbruikbaar en is het wachtwoord
+    # weg; laat het dan zien in plaats van het te laten verdampen.
+    trap 'if [ "$APP_PASSWORD_IS_NEW" -eq 1 ]; then
+        red "Kon .env niet bijwerken. Bewaar dit wachtwoord nu, het staat nergens anders:"
+        red "  DB_PASSWORD=\"$APP_PASSWORD\""
+    fi' ERR
 
     BACKUP="$ENV_FILE.backup-$(date +%Y-%m-%d_%H-%M-%S)"
     cp "$ENV_FILE" "$BACKUP"
@@ -263,6 +289,7 @@ if [ "$WRITE_ENV" -eq 1 ]; then
         fi
     done <<< "$ENV_BLOCK"
 
+    trap - ERR
     green "  .env updated."
     if [ "$APP_PASSWORD_IS_NEW" -eq 0 ] && [ -z "$APP_PASSWORD" ]; then
         warn "  DB_PASSWORD was left as-is; the existing account's password is unknown to this script."
