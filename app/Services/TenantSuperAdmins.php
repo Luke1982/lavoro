@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -31,12 +32,10 @@ class TenantSuperAdmins
             throw new RuntimeException("{$email} is al in gebruik bij een andere tenant.");
         }
 
-        tenancy()->initialize($tenant);
-
-        try {
+        return Tenancy::within($tenant, function () use ($email, $password, $name) {
             $role = Role::firstOrCreate(['name' => Role::SUPERADMIN]);
 
-            $user = User::where('email', $email)->first();
+            $user = User::withoutGlobalScopes()->where('email', $email)->first();
 
             if ($user) {
                 $user->update(['password' => Hash::make($password)]);
@@ -50,47 +49,44 @@ class TenantSuperAdmins
             }
 
             $user->roles()->syncWithoutDetaching($role->id);
-        } finally {
-            tenancy()->end();
-        }
 
-        return $password;
+            return $password;
+        });
     }
 
     /** @return array<int, array{id: int, name: string, email: string}> */
     public function all(Tenant $tenant): array
     {
-        tenancy()->initialize($tenant);
-
-        try {
+        return Tenancy::within($tenant, function () {
             $role = Role::where('name', Role::SUPERADMIN)->first();
 
-            $users = $role
-                ? $role->users()->get(['users.id', 'users.name', 'users.email'])
-                    ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
-                    ->all()
-                : [];
-        } finally {
-            tenancy()->end();
-        }
+            /**
+             * Zonder de globale scope: die verbergt deze accounts voor de
+             * klant, en het beheerpaneel is juist de plek waar ze beheerd
+             * worden. Het paneel draait bovendien op de landlord-guard, dus de
+             * uitzondering voor "ik ben zelf superbeheerder" gaat hier niet op.
+             */
+            if (!$role) {
+                return [];
+            }
 
-        return $users;
+            return $role->users()->withoutGlobalScopes()
+                ->get(['users.id', 'users.name', 'users.email'])
+                ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
+                ->all();
+        });
     }
 
     public function remove(Tenant $tenant, int $user_id): void
     {
-        tenancy()->initialize($tenant);
-
-        try {
-            $user = User::find($user_id);
+        Tenancy::within($tenant, function () use ($user_id) {
+            $user = User::withoutGlobalScopes()->find($user_id);
 
             if ($user && $user->isSuperAdmin()) {
                 $email = $user->email;
                 $user->forceDelete();
                 DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->delete();
             }
-        } finally {
-            tenancy()->end();
-        }
+        });
     }
 }
