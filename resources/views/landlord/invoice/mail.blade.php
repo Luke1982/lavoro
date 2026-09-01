@@ -6,7 +6,7 @@ Beste {{ $tenant->name }},
 Bijgevoegd vind je de factuur voor de periode
 {{ $invoice->period_start->format('d-m-Y') }} t/m {{ $invoice->period_end->format('d-m-Y') }}.
 
-**Te betalen:** &euro; {{ number_format($invoice->gross_cents / 100, 2, ',', '.') }}
+**Te betalen:** @euro($invoice->gross_cents)
 @if($invoice->due_on)
 **Vervaldatum:** {{ $invoice->due_on->format('d-m-Y') }}
 @endif

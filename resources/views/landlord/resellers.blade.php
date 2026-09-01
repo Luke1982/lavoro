@@ -22,7 +22,7 @@
         </h3>
         <p>
             {{ $row['tenants']->count() }} klant(en) &middot;
-            <strong>&euro; {{ number_format($row['commission'] / 100, 2, ',', '.') }} commissie per maand</strong>
+            <strong>@euro($row['commission']) commissie per maand</strong>
         </p>
 
         <table>

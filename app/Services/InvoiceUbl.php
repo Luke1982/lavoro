@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Central\Invoice;
 use App\Models\Central\IssuerSetting;
 use App\Models\Tenant;
+use App\Support\Money;
 
 /**
  * UBL 2.1 in het Nederlandse profiel (NLCIUS), het formaat dat de overheid en
@@ -21,7 +22,6 @@ class InvoiceUbl
     public function toXml(): string
     {
         $issuer = IssuerSetting::all_values();
-        $money = fn (int $cents) => number_format($cents / 100, 2, '.', '');
 
         $x = new \XMLWriter;
         $x->openMemory();
@@ -70,7 +70,7 @@ class InvoiceUbl
             'coc' => (string) $this->tenant->coc_number,
         ]);
 
-        if (! empty($issuer['iban'])) {
+        if (!empty($issuer['iban'])) {
             $x->startElement('cac:PaymentMeans');
             $x->writeElement('cbc:PaymentMeansCode', '58');
             $x->writeElement('cbc:PaymentID', $this->invoice->number);
@@ -83,11 +83,11 @@ class InvoiceUbl
         $x->startElement('cac:TaxTotal');
         $x->startElement('cbc:TaxAmount');
         $x->writeAttribute('currencyID', 'EUR');
-        $x->text($money($this->invoice->vat_cents));
+        $x->text(Money::machine($this->invoice->vat_cents));
         $x->endElement();
         $x->startElement('cac:TaxSubtotal');
-        $this->amount($x, 'cbc:TaxableAmount', $money($this->invoice->total_cents));
-        $this->amount($x, 'cbc:TaxAmount', $money($this->invoice->vat_cents));
+        $this->amount($x, 'cbc:TaxableAmount', Money::machine($this->invoice->total_cents));
+        $this->amount($x, 'cbc:TaxAmount', Money::machine($this->invoice->vat_cents));
         $x->startElement('cac:TaxCategory');
         $x->writeElement('cbc:ID', 'S');
         $x->writeElement('cbc:Percent', number_format($this->invoice->vat_percent, 2, '.', ''));
@@ -99,15 +99,15 @@ class InvoiceUbl
         $x->endElement();
 
         $x->startElement('cac:LegalMonetaryTotal');
-        $this->amount($x, 'cbc:LineExtensionAmount', $money($this->invoice->subtotal_cents));
-        $this->amount($x, 'cbc:TaxExclusiveAmount', $money($this->invoice->total_cents));
-        $this->amount($x, 'cbc:TaxInclusiveAmount', $money($this->invoice->gross_cents));
+        $this->amount($x, 'cbc:LineExtensionAmount', Money::machine($this->invoice->subtotal_cents));
+        $this->amount($x, 'cbc:TaxExclusiveAmount', Money::machine($this->invoice->total_cents));
+        $this->amount($x, 'cbc:TaxInclusiveAmount', Money::machine($this->invoice->gross_cents));
 
         if ($this->invoice->discount_cents) {
-            $this->amount($x, 'cbc:AllowanceTotalAmount', $money($this->invoice->discount_cents));
+            $this->amount($x, 'cbc:AllowanceTotalAmount', Money::machine($this->invoice->discount_cents));
         }
 
-        $this->amount($x, 'cbc:PayableAmount', $money($this->invoice->gross_cents));
+        $this->amount($x, 'cbc:PayableAmount', Money::machine($this->invoice->gross_cents));
         $x->endElement();
 
         foreach ($this->invoice->lines as $index => $line) {
@@ -117,7 +117,7 @@ class InvoiceUbl
             $x->writeAttribute('unitCode', 'C62');
             $x->text('1');
             $x->endElement();
-            $this->amount($x, 'cbc:LineExtensionAmount', $money($line->amount_cents));
+            $this->amount($x, 'cbc:LineExtensionAmount', Money::machine($line->amount_cents));
             $x->startElement('cac:Item');
             $x->writeElement('cbc:Name', $line->description);
             $x->startElement('cac:ClassifiedTaxCategory');
@@ -129,7 +129,7 @@ class InvoiceUbl
             $x->endElement();
             $x->endElement();
             $x->startElement('cac:Price');
-            $this->amount($x, 'cbc:PriceAmount', $money($line->amount_cents));
+            $this->amount($x, 'cbc:PriceAmount', Money::machine($line->amount_cents));
             $x->endElement();
             $x->endElement();
         }

@@ -23,7 +23,7 @@
             <option value="">— geen —</option>
             @foreach($packages as $package)
                 <option value="{{ $package->key }}" @selected($tenant->package_key === $package->key)>
-                    {{ $package->name }} (&euro; {{ number_format($package->price_cents / 100, 2, ',', '.') }})
+                    {{ $package->name }} (@euro($package->price_cents))
                 </option>
             @endforeach
         </select>
@@ -47,12 +47,12 @@
             </div>
         </div>
         <div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:12px;margin:14px 0">
-            <div>Berekend: &euro; {{ number_format($sub->beforeDiscountCents() / 100, 2, ',', '.') }}</div>
+            <div>Berekend: @euro($sub->beforeDiscountCents())</div>
             @if($sub->discountCents())
-                <div style="color:#b91c1c">Korting: &minus; &euro; {{ number_format($sub->discountCents() / 100, 2, ',', '.') }}</div>
+                <div style="color:#b91c1c">Korting: &minus; @euro($sub->discountCents())</div>
             @endif
             <div style="font-size:18px;font-weight:700;margin-top:4px">
-                Totaal: &euro; {{ number_format($sub->monthlyTotalCents() / 100, 2, ',', '.') }} per maand
+                Totaal: @euro($sub->monthlyTotalCents()) per maand
             </div>
         </div>
 
@@ -109,7 +109,7 @@
         @foreach($modules as $module)
             <div><label style="font-weight:400">
                 <input type="checkbox" name="modules[]" value="{{ $module->key }}" @checked($tenant->hasModule($module->key))>
-                {{ $module->name }} @if($module->price_cents) <span class="muted">&euro; {{ number_format($module->price_cents / 100, 2, ',', '.') }}</span>@endif
+                {{ $module->name }} @if($module->price_cents) <span class="muted">@euro($module->price_cents)</span>@endif
             </label></div>
         @endforeach
         <p><button type="submit">Opslaan</button> &nbsp; <a href="{{ route('landlord.index') }}">annuleren</a></p>
@@ -120,7 +120,7 @@
 <div class="card" style="max-width:100%">
     <h3>Facturatie</h3>
     <p>
-        Volgende factuur: <strong>&euro; {{ number_format($invoicer->preview()['total_cents'] / 100, 2, ',', '.') }}</strong>
+        Volgende factuur: <strong>@euro($invoicer->preview()['total_cents'])</strong>
         <span class="muted">({{ $tenant->billing_period === 'yearly' ? 'per jaar' : 'per maand' }})</span>
     </p>
     @php($pending = $invoicer->pendingCharges())
@@ -128,7 +128,7 @@
         <p class="muted">Nog te verrekenen:</p>
         <table>
             @foreach($pending as $charge)
-                <tr><td>{{ $charge->description }}</td><td style="text-align:right">&euro; {{ number_format($charge->amount_cents / 100, 2, ',', '.') }}</td></tr>
+                <tr><td>{{ $charge->description }}</td><td style="text-align:right">@euro($charge->amount_cents)</td></tr>
             @endforeach
         </table>
     @endif
@@ -143,7 +143,7 @@
             {{ \Carbon\Carbon::parse($tenant->coupon_discount_until)->format('d-m-Y') }}
             @if($reseller) &middot; via {{ $reseller->name }} ({{ $reseller->commission_percent }}% commissie) @endif
         </p>
-        <p class="muted">Deze maand commissie: &euro; {{ number_format($sub->commissionCents() / 100, 2, ',', '.') }}</p>
+        <p class="muted">Deze maand commissie: @euro($sub->commissionCents())</p>
     @else
         <form method="post" action="{{ route('landlord.coupon.redeem', $tenant->id) }}">@csrf
             <label>Couponcode</label>
@@ -157,7 +157,7 @@
     <p class="muted">
         Eenmalig en niet aan een maand gebonden: wat er niet op gaat blijft staan.
         Het maandtegoed gaat er eerst af.<br>
-        Tarief: &euro; {{ number_format($topup_rate / 100, 2, ',', '.') }} betaald geeft &euro; 1,00 aan tegoed.
+        Tarief: @euro($topup_rate) betaald geeft &euro; 1,00 aan tegoed.
     </p>
     <form method="post" action="{{ route('landlord.topup', $tenant->id) }}">
         @csrf
@@ -173,7 +173,7 @@
             @foreach($topups as $t)
                 <tr>
                     <td>{{ $t->created_at->format('d-m-Y') }}</td>
-                    <td>&euro; {{ number_format($t->paid_cents / 100, 2, ',', '.') }}</td>
+                    <td>@euro($t->paid_cents)</td>
                     <td>&euro; {{ number_format($t->granted_micros / 1000000, 2, ',', '.') }}</td>
                     <td class="muted">{{ $t->note }}</td>
                 </tr>
