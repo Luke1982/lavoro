@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
@@ -34,6 +35,9 @@ class TenancyDoctor extends Command
             $this->line($tenant->name);
             $this->checkTenant($tenant);
         }
+
+        $this->newLine();
+        $this->checkEnvironment();
 
         $this->newLine();
         $this->checkPrivileges();
@@ -183,6 +187,58 @@ class TenancyDoctor extends Command
     }
 
     /**
+     * De voorwaarden die niet in de code staan maar in de omgeving: welke
+     * PHP-onderdelen er zijn, hoe de .env staat, en of er post uit kan. Stuk
+     * voor stuk dingen die pas opvallen op het moment dat je ze nodig hebt.
+     */
+    private function checkEnvironment(): void
+    {
+        $this->line('Omgeving');
+
+        foreach (['pcntl', 'posix'] as $extension) {
+            extension_loaded($extension)
+                ? $this->pass("PHP-onderdeel {$extension}")
+                : $this->bad("PHP-onderdeel {$extension} ontbreekt -- het provisioner-commando kan"
+                    . ' zichzelf dan niet verheffen en moet met sudo -u getypt worden');
+        }
+
+        filled(config('app.key'))
+            ? $this->pass('APP_KEY staat ingevuld')
+            : $this->bad('APP_KEY is leeg -- geen enkel wachtwoord van een klantdatabase is te lezen');
+
+        if (app()->environment('production')) {
+            config('app.debug')
+                ? $this->bad('APP_DEBUG staat aan op productie -- foutpagina\'s tonen dan .env-waarden')
+                : $this->pass('APP_DEBUG staat uit');
+        }
+
+        config('mail.default') === 'tenant'
+            ? $this->pass('MAIL_MAILER=tenant -- elke klant verstuurt met zijn eigen instellingen')
+            : $this->bad('MAIL_MAILER is ' . config('mail.default') . ' en niet "tenant". Iedereen'
+                . ' verstuurt dan via dezelfde mailbox.');
+
+        filled(config('mail.mailers.landlord.host'))
+            ? $this->pass('eigen mailserver voor facturen ingesteld')
+            : $this->bad('LANDLORD_MAIL_HOST is leeg -- facturen aan klanten kunnen niet verstuurd worden');
+
+        $this->checkIssuer();
+    }
+
+    /** Zonder deze gegevens klopt er geen enkele factuur. */
+    private function checkIssuer(): void
+    {
+        $issuer = IssuerSetting::all_values();
+
+        $missing = collect(['name', 'address', 'postcode', 'city', 'vat_number', 'coc_number', 'iban'])
+            ->reject(fn ($key) => filled($issuer[$key] ?? null));
+
+        $missing->isEmpty()
+            ? $this->pass('eigen bedrijfsgegevens voor op de factuur')
+            : $this->bad('facturatiegegevens ontbreken: ' . $missing->implode(', ')
+                . ' -- vul ze in bij Catalogus > Facturatie');
+    }
+
+    /**
      * De grens waar deze hele opzet op leunt: het account van de applicatie mag
      * geen databases van klanten kunnen maken of weggooien, en alleen de
      * provisioner mag dat wel. Dat stond tot nu toe alleen in een leesmij, en
@@ -225,7 +281,37 @@ class TenancyDoctor extends Command
                 $this->line('       ' . mb_strimwidth($grant, 0, 120, '...'));
             }
         } else {
-            $this->pass("{$account} kan geen klantdatabases maken of weggooien");
+            $this->pass("{$account} kan geen klantdatabases maken of weggooien volgens zijn rechten");
+        }
+
+        $this->probeDatabaseCreation($account);
+    }
+
+    /**
+     * Niet alleen de rechten lezen maar het ook echt proberen. Rechten zijn
+     * op meer manieren te krijgen dan uit SHOW GRANTS blijkt -- via een rol,
+     * via een andere host-regel -- en dit is de enige controle die daar
+     * doorheen kijkt.
+     */
+    private function probeDatabaseCreation(string $account): void
+    {
+        $probe = 'lavoro_tenant_doctorprobe_' . bin2hex(random_bytes(4));
+
+        try {
+            DB::connection('central')->statement("CREATE DATABASE `{$probe}`");
+        } catch (\Throwable) {
+            $this->pass('geprobeerd een klantdatabase te maken: geweigerd, zoals het hoort');
+
+            return;
+        }
+
+        try {
+            DB::connection('central')->statement("DROP DATABASE `{$probe}`");
+            $this->bad("{$account} heeft zojuist echt een database aangemaakt (en weer weggegooid)."
+                . ' Dit account hoort dat niet te kunnen; alleen de provisioner.');
+        } catch (\Throwable $e) {
+            $this->bad("{$account} kon de database {$probe} aanmaken maar niet opruimen."
+                . ' Gooi hem met de hand weg. Oorspronkelijke fout: ' . $e->getMessage());
         }
     }
 
@@ -317,6 +403,10 @@ class TenancyDoctor extends Command
         }
 
         $this->checkProvisionerLinuxUser($username, $password);
+
+        if (!$reachable || $password !== '') {
+            $this->checkSocketPlugin();
+        }
     }
 
     /**
@@ -324,6 +414,47 @@ class TenancyDoctor extends Command
      * dan moet die gebruiker er ook zijn. Zonder hem kan niemand meer
      * inloggen en staat het aanmaken van klanten stil.
      */
+    /**
+     * Inloggen zonder wachtwoord werkt alleen als de server de bijbehorende
+     * plugin geladen heeft. Is dat niet zo, dan komt er bij het aanmaken van
+     * het account "Plugin auth_socket is not loaded" en gaat niemand vanzelf
+     * bedenken dat dat de oorzaak is.
+     */
+    private function checkSocketPlugin(): void
+    {
+        try {
+            $loaded = DB::connection('central')->select(
+                'SELECT plugin_name, plugin_status FROM information_schema.plugins'
+                . ' WHERE plugin_name IN (?, ?)',
+                ['unix_socket', 'auth_socket'],
+            );
+        } catch (\Throwable $e) {
+            $this->skip('Kan niet nakijken of de socket-plugin geladen is: ' . $e->getMessage());
+
+            return;
+        }
+
+        $active = collect($loaded)->first(fn ($row) => strtoupper($row->plugin_status) === 'ACTIVE');
+
+        if ($active) {
+            $this->pass("socket-plugin {$active->plugin_name} is geladen");
+
+            return;
+        }
+
+        if ($loaded === []) {
+            $this->skip('Of de socket-plugin geladen is, is met dit account niet te zien.'
+                . ' Kijk als beheerder: SELECT plugin_name, plugin_status FROM information_schema.plugins'
+                . " WHERE plugin_name IN ('unix_socket','auth_socket');");
+
+            return;
+        }
+
+        $this->bad('De socket-plugin staat niet aan, dus een account zonder wachtwoord kan niet'
+            . " inloggen. Zet hem aan: MariaDB \"INSTALL SONAME 'auth_socket'\","
+            . " MySQL \"INSTALL PLUGIN auth_socket SONAME 'auth_socket.so'\".");
+    }
+
     private function checkProvisionerLinuxUser(string $username, string $password): void
     {
         if (!function_exists('posix_getpwnam')) {

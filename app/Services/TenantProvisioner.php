@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\ProvisionerConnection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -23,11 +23,15 @@ use RuntimeException;
  */
 class TenantProvisioner
 {
-    use RunsAsProvisioner;
-
+    /**
+     * Verheft zichzelf niet: dit draait in de worker, en die hoort al als
+     * lavoro_provisioner te draaien. Kan hij het niet, dan is dat een fout
+     * die op de aanvraag hoort te belanden en niet stil weg mag vallen.
+     */
     public function __construct()
     {
-        $this->runAsProvisioner();
+        ProvisionerConnection::use();
+        ProvisionerConnection::assertUsable();
     }
 
     public function databaseNameFor(string $name): string
