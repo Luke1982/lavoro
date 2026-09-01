@@ -6,6 +6,7 @@ use App\Models\Central\UserTenantLookup;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -50,15 +51,16 @@ class CreateTenantAdmin extends Command
             return self::FAILURE;
         }
 
-        tenancy()->initialize($tenant);
-
-        try {
+        /**
+         * Via de helper: die zet terug wat er stond. Met een kale
+         * tenancy()->end() draait alles na dit commando -- of na deze test --
+         * ineens zonder tenant.
+         */
+        $failure = Tenancy::within($tenant, function () use ($tenant, $email, $password) {
             $role = Role::where('name', 'admin')->first();
 
             if (!$role) {
-                $this->error('De rol admin ontbreekt in deze database.');
-
-                return self::FAILURE;
+                return 'De rol admin ontbreekt in deze database.';
             }
 
             $user = User::where('email', $email)->first();
@@ -67,18 +69,27 @@ class CreateTenantAdmin extends Command
                 $user->update(['password' => Hash::make($password)]);
                 $user->roles()->syncWithoutDetaching($role->id);
                 $this->info("Wachtwoord van {$email} opnieuw gezet en beheerdersrol bevestigd.");
-            } else {
-                $user = User::create([
-                    'name' => $this->option('name'),
-                    'email' => $email,
-                    'password' => Hash::make($password),
-                    'seat_type' => 'office',
-                ]);
-                $user->roles()->attach($role->id);
-                $this->info("Beheerder {$email} aangemaakt voor {$tenant->name}.");
+
+                return null;
             }
-        } finally {
-            tenancy()->end();
+
+            /** Beheerder zijn is een rol en geen kolom; die koppeling is het hele punt. */
+            User::create([
+                'name' => $this->option('name'),
+                'email' => $email,
+                'password' => Hash::make($password),
+                'seat_type' => 'office',
+            ])->roles()->attach($role->id);
+
+            $this->info("Beheerder {$email} aangemaakt voor {$tenant->name}.");
+
+            return null;
+        });
+
+        if ($failure) {
+            $this->error($failure);
+
+            return self::FAILURE;
         }
 
         $this->line('  wachtwoord: ' . $password);
