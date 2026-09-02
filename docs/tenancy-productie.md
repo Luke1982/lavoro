@@ -220,6 +220,18 @@ Start both:
 sudo systemctl enable --now lavoro-worker lavoro-provisioning
 ```
 
+Finally, so you do not have to type `sudo -u lavoro_provisioner` in front of
+every tenant command:
+
+```bash
+sudo scripts/tenancy/setup-sudoers.sh
+```
+
+That lets your own account become the provisioner without a password, so the
+commands elevate themselves. It refuses to hand that to `www-data` or any
+unattended account — through PHP it would amount to giving away the provisioner
+entirely. Skipping it is fine; you then keep typing `sudo -u`.
+
 Each worker reports in every minute while it runs, and the doctor tells you if
 one has stopped. An empty queue looks exactly like a dead worker, so that
 heartbeat is the only thing that can tell them apart.
