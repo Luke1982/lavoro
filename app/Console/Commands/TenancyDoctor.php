@@ -532,8 +532,8 @@ class TenancyDoctor extends Command
         ProvisionerConnection::canElevate()
             ? $this->pass("kan zonder wachtwoord {$username} worden; commando's verheffen zichzelf")
             : $this->skip("Kan niet zonder wachtwoord {$username} worden. Tenant-commando's moeten dan"
-                . " met 'sudo -u {$username} php artisan ...' getypt worden. Wil je dat niet, installeer"
-                . ' dan /etc/sudoers.d/lavoro-admin (plan, taak 2 stap 2b).');
+                . " met 'sudo -u {$username} php artisan ...' getypt worden. Wil je dat niet, draai"
+                . ' dan: sudo scripts/tenancy/setup-sudoers.sh');
     }
 
     /**
@@ -563,7 +563,9 @@ class TenancyDoctor extends Command
         $status === 0
             ? $this->pass("{$username} mag schrijven in storage/")
             : $this->bad("{$username} mag niet schrijven in {$path}; de mappen van een nieuwe klant"
-                . ' kunnen dan niet aangemaakt worden. Zie setfacl in docs/tenancy-productie.md.');
+                . " kunnen dan niet aangemaakt worden. Geef schrijfrecht met:\n"
+                . "         sudo setfacl -R -m u:{$username}:rwX {$path}\n"
+                . "         sudo setfacl -R -d -m u:{$username}:rwX {$path}");
     }
 
     private function checkProvisionerLinuxUser(string $username, string $password): void
@@ -584,8 +586,8 @@ class TenancyDoctor extends Command
             ? $this->bad("Linux-gebruiker {$username} bestaat niet, terwijl er geen wachtwoord is ingesteld."
                 . ' Zo kan niemand inloggen en kan er geen klant aangemaakt worden.')
             : $this->bad("Linux-gebruiker {$username} bestaat niet. Maak hem aan en koppel het"
-                . ' MySQL-account eraan, dan kan het wachtwoord uit de .env weg.'
-                . ' Stappen staan in docs/tenancy-bediening.md.');
+                . ' MySQL-account eraan, dan kan het wachtwoord uit de .env weg. Dat doet:'
+                . ' sudo scripts/tenancy/setup-mysql.sh --write-env');
     }
 
     private function checkOrphans(): void

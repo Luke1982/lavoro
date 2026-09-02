@@ -64,8 +64,8 @@ final class ProvisionerConnection
         $name = (string) config('database.connections.provisioner.username');
 
         return "Kan niet verbinden als {$name} (nu draaiend als '" . self::linuxUser() . "')."
-            . " Draai dit als: sudo -u {$name} php artisan <commando>, of installeer"
-            . ' /etc/sudoers.d/lavoro-admin (plan, taak 2 stap 2b) zodat het zichzelf verheft.'
+            . " Draai dit als: sudo -u {$name} php artisan <commando>, of draai eenmalig"
+            . ' sudo scripts/tenancy/setup-sudoers.sh zodat het zichzelf verheft.'
             . ' De worker van het beheerpaneel hoort al als deze gebruiker te draaien;'
             . ' zie docs/tenancy-bediening.md.';
     }
