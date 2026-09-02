@@ -17,10 +17,24 @@ on it. If it reports a problem, fix that before moving on.
 It will complain about things that are not set up yet. That is expected — work
 down the list and the complaints disappear one by one.
 
+## Which account runs what
+
+Three identities, and mixing them up costs an afternoon:
+
+| | Runs |
+| --- | --- |
+| **root** | Anything with `sudo` in front of it here: creating accounts, `setfacl`, `systemctl`, `crontab`. |
+| **the app account** (the user owning the checkout — `lavoro` in these examples) | `git`, `composer`, `npm`, and every `php artisan` command. No `sudo`: it is deliberately not a sudoer. |
+| **lavoro_provisioner** | Only creates and deletes customer databases. You never log in as this one. Tenant commands become it by themselves once step 6 is done. |
+
+If a command asks for a password, you are running it as the wrong account.
+Logged in as the app account, `php artisan …` needs no `sudo` at all — it is
+already that user.
+
 Written for MariaDB 10.11 and PHP 8.3. Where MySQL differs, it says so.
 
 Budget an hour, plus however long the database dump takes. Your existing
-installation keeps running until step 8, so everything before that is safe.
+installation keeps running until step 7, so everything before that is safe.
 
 ---
 
@@ -161,50 +175,28 @@ VAT number, IBAN and payment terms. If you will collect by direct debit, add
 the creditor ID your bank issued. The doctor reports these as missing until
 they are filled in.
 
-## 6. Set up the two background workers
+## 6. Start the background work
 
-Two, on purpose. The first runs as the website's account, which cannot create
-databases. The second is the only one that can.
-
-`/etc/systemd/system/lavoro-worker.service`:
-
-```ini
-[Unit]
-Description=Lavoro worker
-After=mariadb.service
-
-[Service]
-User=www-data
-WorkingDirectory=/var/www/lavoro
-ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo scripts/tenancy/setup-workers.sh --dry-run   # shows what it will write
+sudo scripts/tenancy/setup-workers.sh
 ```
 
-`/etc/systemd/system/lavoro-provisioning.service`:
+This sets up three things, none of which happen on their own:
 
-```ini
-[Unit]
-Description=Lavoro provisioning worker
-After=mariadb.service
+- **A worker for ordinary jobs,** running as the account that owns the
+  checkout — the one that cannot create databases.
+- **A worker for provisioning,** running as `lavoro_provisioner` — the only
+  account that can. It runs with `--tries=1` deliberately: retrying a
+  half-created customer fails on "database already exists" and hides the real
+  error.
+- **A cron line for the scheduler.** Without it there are no invoices, no
+  Google Calendar sync, and no work orders from maintenance contracts.
 
-[Service]
-User=lavoro_provisioner
-Group=lavoro_provisioner
-WorkingDirectory=/var/www/lavoro
-ExecStart=/usr/bin/php artisan queue:work --queue=provisioning --tries=1 --sleep=5
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-`--tries=1` on the second one is deliberate. Retrying a half-created customer
-fails on "database already exists" and hides the real error.
+The script reads the account, the path, the PHP binary and the name of the
+database service off the machine rather than assuming them. An installation in
+a home directory runs as a different account than one in `/var/www`, and a unit
+file naming the wrong account starts happily and does nothing.
 
 The provisioning worker creates folders for new customers, so give it write
 access:
@@ -228,12 +220,6 @@ sudo setfacl -m u:lavoro_provisioner:x /home/youraccount/lavoro
 The doctor tells the two cases apart and names the exact directories that are
 in the way.
 
-Start both:
-
-```bash
-sudo systemctl enable --now lavoro-worker lavoro-provisioning
-```
-
 Finally, so you do not have to type `sudo -u lavoro_provisioner` in front of
 every tenant command:
 
@@ -244,32 +230,18 @@ sudo scripts/tenancy/setup-sudoers.sh
 That lets your own account become the provisioner without a password, so the
 commands elevate themselves. It refuses to hand that to `www-data` or any
 unattended account — through PHP it would amount to giving away the provisioner
-entirely. Skipping it is fine; you then keep typing `sudo -u`.
+entirely, and it proves the rule actually works before it finishes. Skipping it
+is fine; you then keep typing `sudo -u`.
 
 Each worker reports in every minute while it runs, and the doctor tells you if
 one has stopped. An empty queue looks exactly like a dead worker, so that
-heartbeat is the only thing that can tell them apart.
-
-## 7. Set up the scheduler
-
-```bash
-sudo crontab -u www-data -e
-```
-
-Add this line:
-
-```
-* * * * * cd /var/www/lavoro && php artisan schedule:run >> /dev/null 2>&1
-```
-
-Without it nothing happens automatically: no invoices, no Google Calendar sync,
-no work orders generated from maintenance contracts. Wait five minutes, then
-run the doctor — it reports whether the scheduler is alive.
+heartbeat is the only thing that can tell them apart. Wait a minute after this
+step before believing the doctor on that point.
 
 **Everything above should now be clean.** Run the doctor and fix anything it
 reports before continuing. What follows involves real customer data.
 
-## 8. Move your existing installation in
+## 7. Move your existing installation in
 
 From here the old installation is offline. Do this outside working hours.
 
@@ -310,7 +282,7 @@ Run the doctor afterwards. It now also checks this customer: the database, the
 stored password, the login, the required work order stages, that every user has
 a central entry, and that the file folders exist and are writable.
 
-## 9. Test the things a program cannot check
+## 8. Test the things a program cannot check
 
 The doctor proves the plumbing. These are the things only a person can see:
 
@@ -325,7 +297,7 @@ The doctor proves the plumbing. These are the things only a person can see:
 - Ask the AI assistant a question, if this customer has it
 - In `/beheer`, check the customer shows the right package, seats and storage
 
-## 10. Go live
+## 9. Go live
 
 ```bash
 php artisan config:cache route:cache view:cache
@@ -336,7 +308,7 @@ php artisan up
 Leave the old installation in place for a week with its web server switched
 off. Do not delete it.
 
-## 11. Add a second customer
+## 10. Add a second customer
 
 Do this on a quiet day. It is the first time a database gets created for real.
 
@@ -360,10 +332,10 @@ customer, try to open a file belonging to the first: you should get a 404.
 
 | When | What to do |
 | --- | --- |
-| Before step 8 | Nothing is at risk, the old installation is still running. Start over. |
+| Before step 7 | Nothing is at risk, the old installation is still running. Start over. |
 | The `lavoro_app` password is lost | `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new one and writes it to `.env`. |
 | The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
-| After step 10, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
+| After step 9, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
 
 ## Once you are live
 

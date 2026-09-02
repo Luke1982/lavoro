@@ -282,12 +282,29 @@ class TenancyDoctor extends Command
     {
         $this->line('Omgeving');
 
-        foreach (['pcntl', 'posix'] as $extension) {
+        foreach (['pcntl', 'posix', 'pdo_mysql'] as $extension) {
             extension_loaded($extension)
                 ? $this->pass("PHP-onderdeel {$extension}")
                 : $this->bad("PHP-onderdeel {$extension} ontbreekt -- het provisioner-commando kan"
                     . ' zichzelf dan niet verheffen en moet met sudo -u getypt worden');
         }
+
+        /**
+         * Staat exec of shell_exec in disable_functions, dan kan er niets meer
+         * verheven worden -- en erger: de controles hierboven die daarop
+         * leunen krijgen 'nee' terug zonder dat er iets mis is. Dan meldt de
+         * doctor een probleem dat niet bestaat en verbergt hij het echte.
+         */
+        $blocked = array_values(array_intersect(
+            ['exec', 'shell_exec', 'proc_open'],
+            array_map('trim', explode(',', (string) ini_get('disable_functions'))),
+        ));
+
+        empty($blocked)
+            ? $this->pass('php mag programma\'s starten')
+            : $this->bad('In php.ini staat ' . implode(' en ', $blocked) . ' uit. Zonder die functies'
+                . ' verheffen commando\'s zichzelf niet, en kan hierboven niet nagekeken worden of dat'
+                . ' wel zou lukken -- die meldingen zeggen dan niets.');
 
         filled(config('app.key'))
             ? $this->pass('APP_KEY staat ingevuld')
@@ -494,8 +511,7 @@ class TenancyDoctor extends Command
              * helemaal niet bestaat doet precies hetzelfde. Dit dus niet
              * goedkeuren.
              */
-            $this->skip("Of het MySQL-account {$username} bestaat is hiervandaan niet te zien."
-                . " Draai 'sudo -u {$username} php artisan tenancy:doctor' om het te controleren.");
+            $this->checkProvisionerAccountByElevating($username);
         }
 
         if ($password !== '') {
@@ -625,6 +641,47 @@ class TenancyDoctor extends Command
         }
 
         return $blocked ?: [dirname($path)];
+    }
+
+    /**
+     * Vanaf dit account weigert het provisioner-account altijd, want het hangt
+     * aan een Linux-gebruiker. Dat zegt dus niets over of het bestaat.
+     *
+     * Mogen we die gebruiker worden, dan is het wel te zien: dan doen we van
+     * daaruit precies wat het provisioneren straks ook doet -- via de socket
+     * naar binnen, zonder wachtwoord.
+     */
+    private function checkProvisionerAccountByElevating(string $username): void
+    {
+        if (!ProvisionerConnection::canElevate()) {
+            $this->skip("Of het MySQL-account {$username} bestaat is hiervandaan niet te zien."
+                . " Draai 'sudo -u {$username} php artisan tenancy:doctor' om het te controleren.");
+
+            return;
+        }
+
+        $socket = (string) config('database.connections.provisioner.unix_socket');
+        $database = (string) config('database.connections.provisioner.database');
+
+        if ($socket === '') {
+            $this->bad("DB_PROVISIONER_SOCKET staat leeg, dus {$username} zou over TCP verbinden."
+                . ' Dat account hoort juist alleen via de socket naar binnen te kunnen.');
+
+            return;
+        }
+
+        $dsn = 'mysql:unix_socket=' . $socket . ';dbname=' . $database;
+
+        $status = ProvisionerConnection::phpAsProvisioner(
+            'try { new PDO(' . var_export($dsn, true) . ', ' . var_export($username, true) . ', "");'
+            . ' exit(0); } catch (Throwable $e) { exit(1); }'
+        );
+
+        $status === 0
+            ? $this->pass("MySQL-account {$username} bestaat en komt via de socket binnen")
+            : $this->bad("MySQL-account {$username} komt niet binnen via {$socket}. Bestaat het account,"
+                . ' en hangt het aan de Linux-gebruiker met dezelfde naam?'
+                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh');
     }
 
     private function checkProvisionerLinuxUser(string $username, string $password): void

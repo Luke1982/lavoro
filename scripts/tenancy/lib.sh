@@ -18,6 +18,63 @@ TEST_PASSWORD="${TEST_PASSWORD:-lavoro_test}"
 COLLATION="utf8mb4_unicode_ci"
 CHARSET="utf8mb4"
 
+# ---------------------------------------------------------------------------
+# Draait dit script hier uberhaupt?
+# ---------------------------------------------------------------------------
+#
+# Elke aanname die deze scripts doen is ergens niet waar: een minimale image
+# zonder getent, een server zonder openssl, busybox in plaats van GNU-sed, een
+# oude bash zonder mapfile. Halverwege stuklopen op een programma dat er niet
+# is kost meer tijd dan het vooraf nakijken.
+
+require_bash() {
+    if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+        die "Dit script heeft bash 4 of nieuwer nodig (nu: ${BASH_VERSION:-onbekend}).
+mapfile en 'printf -v' bestaan daaronder niet."
+    fi
+}
+
+require_commands() {
+    local missing=() name
+
+    for name in "$@"; do
+        if ! command -v "$name" >/dev/null 2>&1; then
+            missing+=("$name")
+        fi
+    done
+
+    if [ "${#missing[@]}" -gt 0 ]; then
+        die "Deze programma's ontbreken op deze server: ${missing[*]}
+Installeer ze en draai opnieuw."
+    fi
+}
+
+# Wat elk van deze scripts hoe dan ook gebruikt, direct of via dit bestand.
+preflight_common() {
+    require_bash
+    require_commands sed grep awk cut tr mktemp date cp id
+    require_gnu_sed
+}
+
+# GNU-sed en BSD-sed hebben allebei -i maar bedoelen er iets anders mee: bij
+# BSD is het argument erachter de achtervoegsel voor een reservekopie, dus
+# 'sed -i "s|a|b|" file' eet daar het patroon op. Alles wat .env aanpast gaat
+# door sed heen, dus dat moet vooraf vaststaan.
+require_gnu_sed() {
+    local probe
+    probe="$(mktemp)"
+
+    printf 'a\n' > "$probe"
+
+    if ! sed -i 's|a|b|' "$probe" 2>/dev/null || [ "$(cat "$probe")" != "b" ]; then
+        rm -f "$probe"
+        die "sed gedraagt zich hier niet als GNU-sed. Op BSD en macOS heeft -i een
+argument nodig; deze scripts gaan uit van GNU-sed (Linux)."
+    fi
+
+    rm -f "$probe"
+}
+
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 warn()  { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -311,7 +368,7 @@ env_backup() {
     backup="${file}.backup-$(date +%Y-%m-%d_%H-%M-%S)"
     cp "$file" "$backup"
     ENV_BACKUP_MADE=1
-    info "  Reservekopie: $(basename "$backup")"
+    info "  Reservekopie: ${backup##*/}"
 }
 
 generate_password() {
