@@ -66,8 +66,6 @@ class TenancyDoctor extends Command
         }
 
         $this->error("{$this->failed} probleem(en), {$this->passed} in orde.");
-        $this->line('  Wat hierboven over .env gaat zet scripts/tenancy/setup-env.sh recht,'
-            . ' wat over databaseaccounts gaat scripts/tenancy/setup-mysql.sh.');
 
         return self::FAILURE;
     }
@@ -664,8 +662,9 @@ class TenancyDoctor extends Command
         $database = (string) config('database.connections.provisioner.database');
 
         if ($socket === '') {
-            $this->bad("DB_PROVISIONER_SOCKET staat leeg, dus {$username} zou over TCP verbinden."
-                . ' Dat account hoort juist alleen via de socket naar binnen te kunnen.');
+            $this->bad("DB_PROVISIONER_SOCKET staat leeg, dus {$username} zou over TCP verbinden,"
+                . ' en dit account komt alleen via de socket binnen. Zet in .env:' . "\n"
+                . '         DB_PROVISIONER_SOCKET=' . $this->serverSocket());
 
             return;
         }
@@ -682,6 +681,21 @@ class TenancyDoctor extends Command
             : $this->bad("MySQL-account {$username} komt niet binnen via {$socket}. Bestaat het account,"
                 . ' en hangt het aan de Linux-gebruiker met dezelfde naam?'
                 . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh');
+    }
+
+    /**
+     * Het pad naar de socket verschilt per distributie, dus dat aan de server
+     * zelf vragen scheelt de lezer het opzoeken -- en een verkeerd overgetypt
+     * pad geeft dezelfde melding als helemaal geen pad.
+     */
+    private function serverSocket(): string
+    {
+        try {
+            return (string) (DB::connection('central')->selectOne('SELECT @@socket AS pad')->pad
+                ?: '/var/run/mysqld/mysqld.sock');
+        } catch (\Throwable $e) {
+            return '/var/run/mysqld/mysqld.sock';
+        }
     }
 
     private function checkProvisionerLinuxUser(string $username, string $password): void
