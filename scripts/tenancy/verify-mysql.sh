@@ -33,6 +33,7 @@ NOT_APPLICABLE=0
 FAILED=0
 SCRATCH_DB="${TENANT_PREFIX}verify_$$"
 OUTSIDE_DB="lavoro_notatenant_$$"
+SCRATCH_USER="lavoro_verify_$$"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -134,6 +135,35 @@ else
     if sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
         -e "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
         pass "can create a database inside the ${TENANT_PREFIX} namespace"
+
+        # Creating the database is only half the job. Every tenant also gets its
+        # own MySQL login, confined to that one database, and handing out those
+        # rights needs GRANT OPTION on the namespace. Checking only the CREATE
+        # left exactly this failing in production, one step further along, with
+        # the tenant half made.
+        #
+        # The privilege list is the one the tenancy library grants, so this
+        # tests the real statement and not a simplified stand-in.
+        TENANT_GRANTS="ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES,
+            CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES,
+            SELECT, SHOW VIEW, TRIGGER, UPDATE"
+
+        GRANT_ERROR="$(sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -e "
+            CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';
+            GRANT ${TENANT_GRANTS} ON \`${SCRATCH_DB}\`.* TO \`${SCRATCH_USER}\`@\`%\`;
+        " 2>&1)"
+
+        if [ -z "$GRANT_ERROR" ]; then
+            pass "can create a tenant login and grant it rights on its own database"
+        else
+            fail "cannot set up a tenant login — creating a tenant fails halfway:
+        ${GRANT_ERROR}
+        Check what the account actually holds:
+            sudo -u ${PROV_USER} ${MYSQL_CLIENT} -e 'SHOW GRANTS;'"
+        fi
+
+        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
+            -e "DROP USER IF EXISTS \`${SCRATCH_USER}\`@\`%\`;" >/dev/null 2>&1 || true
         sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
             -e "DROP DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
     else
