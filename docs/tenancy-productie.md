@@ -118,13 +118,6 @@ This split is the boundary the whole setup rests on. The doctor tests it by
 actually trying to create a customer database as `lavoro_app` and expecting to
 be refused.
 
-The provisioner also gets `GRANT USAGE ON *.* … WITH GRANT OPTION`. `USAGE`
-means no privileges at all: it only allows the account to pass on rights it
-already holds, and those stay limited to the tenant namespace and the landlord
-database. MariaDB needs it because a `GRANT` naming one specific database is a
-stricter check than the wildcard pattern satisfies — without it, creating a
-customer gets as far as the database and then fails to give that customer a
-login.
 
 Reading MySQL's privilege tables needs root, which the doctor does not have, so
 that half is checked by a separate script — run it once now:

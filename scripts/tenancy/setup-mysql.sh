@@ -170,20 +170,6 @@ fi
 # single-character wildcard, so `lavoro\_tenant\_%` matches only the tenant
 # namespace, while lavoro_tenant_% would also match lavoroXtenantY.
 #
-# About that last line, GRANT USAGE ... WITH GRANT OPTION. MariaDB uses the
-# wildcard pattern to decide what the account may *reach*, but a GRANT naming
-# one specific database is a stricter check that the pattern does not satisfy:
-# creating lavoro_tenant_acme works, handing its own login rights on it fails
-# with 1044. Every tenant needs such a login, so without this line tenant
-# creation dies halfway, leaving a database with no account to use it.
-#
-# USAGE is the absence of privileges. This line grants no access whatsoever --
-# it only lets the account pass on privileges it already holds, which remain the
-# tenant namespace and the landlord database. It can already read and write both,
-# so being able to grant them to an account it creates adds nothing it could not
-# do directly. The confinement that matters is untouched, and verify-mysql.sh
-# proves it by trying to create a database outside the namespace.
-
 build_sql() {
     cat <<SQL
 CREATE DATABASE IF NOT EXISTS \`${LANDLORD_DB}\`
@@ -196,7 +182,6 @@ CREATE USER IF NOT EXISTS '${PROV_USER}'@'${PROV_HOST}' ${IDENTIFIED_CLAUSE};
 GRANT ALL PRIVILEGES ON \`${TENANT_PREFIX//_/\\_}%\`.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON \`${LANDLORD_DB//_/\\_}\`.* TO '${PROV_USER}'@'${PROV_HOST}';
 GRANT CREATE USER ON *.* TO '${PROV_USER}'@'${PROV_HOST}';
-GRANT USAGE ON *.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
 
 FLUSH PRIVILEGES;
 SQL
