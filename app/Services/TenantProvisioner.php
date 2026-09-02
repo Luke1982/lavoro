@@ -9,6 +9,7 @@ use App\Support\ProvisionerConnection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -74,13 +75,27 @@ class TenantProvisioner
 
         $password = $password ?: Str::password(16);
 
-        $tenant = Tenant::create([
-            'id' => (string) Str::uuid(),
-            'name' => $name,
-            'package_key' => $package,
-            'modules' => array_values(array_filter($modules)),
-            'tenancy_db_name' => $database,
-        ]);
+        /**
+         * Vanaf hier kan er van alles half klaar komen te staan: een rij zonder
+         * database, een database zonder gebruiker, een gebruiker zonder
+         * beheerder. Loopt het stuk, dan gaat alles weer weg -- anders blijft er
+         * rommel achter die de volgende poging blokkeert ("die naam bestaat al")
+         * en die het beheerpaneel op een foutmelding zet, terwijl de melding zelf
+         * over een wachtwoord gaat en niet over wat er werkelijk aan de hand is.
+         */
+        try {
+            $tenant = Tenant::create([
+                'id' => (string) Str::uuid(),
+                'name' => $name,
+                'package_key' => $package,
+                'modules' => array_values(array_filter($modules)),
+                'tenancy_db_name' => $database,
+            ]);
+        } catch (\Throwable $e) {
+            $this->cleanUpAfterFailure(null, $database);
+
+            throw $e;
+        }
 
         /**
          * De bootstrapper wijst de schijven naar deze mappen, maar maakt ze niet
@@ -91,9 +106,9 @@ class TenantProvisioner
             File::ensureDirectoryExists(storage_path("tenant-{$tenant->id}/{$disk}"), 0775);
         }
 
-        tenancy()->initialize($tenant);
-
         try {
+            tenancy()->initialize($tenant);
+
             $admin = User::create([
                 'name' => 'Beheerder',
                 'email' => $email,
@@ -114,11 +129,48 @@ class TenantProvisioner
             }
 
             $admin->roles()->attach($role->id);
+        } catch (\Throwable $e) {
+            tenancy()->end();
+
+            $this->cleanUpAfterFailure($tenant, $database);
+
+            throw $e;
         } finally {
             tenancy()->end();
         }
 
         return ['tenant' => $tenant, 'password' => $password];
+    }
+
+    /**
+     * Draait een mislukte aanmaak terug: de rij, de database, het databaseaccount
+     * en de mappen.
+     *
+     * Zelf niets laten opvallen als het opruimen ook stukloopt. De fout die hier
+     * binnenkwam is degene die de gebruiker moet zien; een tweede fout daaroverheen
+     * verbergt precies de reden waarom het misging.
+     */
+    private function cleanUpAfterFailure(?Tenant $tenant, string $database): void
+    {
+        try {
+            $tenant ??= Tenant::on('central')->get()
+                ->first(fn (Tenant $candidate) => $candidate->getInternal('db_name') === $database);
+
+            if ($tenant) {
+                $this->destroy($tenant);
+
+                return;
+            }
+
+            /** Geen rij meer, maar de database kan er wel al staan. */
+            DB::connection(config('tenancy.database.template_tenant_connection', 'mysql'))
+                ->statement("DROP DATABASE IF EXISTS `{$database}`");
+        } catch (\Throwable $ignored) {
+            Log::warning('Opruimen na een mislukte aanmaak lukte niet', [
+                'database' => $database,
+                'fout' => $ignored->getMessage(),
+            ]);
+        }
     }
 
     /**
