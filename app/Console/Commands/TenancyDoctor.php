@@ -257,11 +257,32 @@ class TenancyDoctor extends Command
                 ? $this->pass("{$users->count()} gebruikers in de centrale lijst")
                 : $this->bad($orphan->count() . ' gebruiker(s) zonder centrale rij -- die kunnen niet inloggen');
 
+            /**
+             * Schrijfrecht wordt nagekeken voor het account waaronder de
+             * webserver draait, want die zet de uploads neer. is_writable()
+             * kijkt naar het account dat dit commando draait, en dat is een
+             * ander -- dan staat hier 'in orde' terwijl elke upload mislukt.
+             */
+            $account = $this->webAccount();
+
             foreach (['public', 'local'] as $disk) {
                 $path = storage_path("tenant-{$tenant->id}/{$disk}");
-                File::isDirectory($path) && is_writable($path)
+
+                if (!File::isDirectory($path)) {
+                    $this->bad("opslag {$disk} ontbreekt");
+
+                    continue;
+                }
+
+                $writable = $account === null
+                    ? is_writable($path)
+                    : $this->userCanWrite($account, $path);
+
+                $writable
                     ? $this->pass("opslag {$disk}")
-                    : $this->bad("opslag {$disk} ontbreekt of is niet schrijfbaar");
+                    : $this->bad("opslag {$disk} is niet beschrijfbaar voor "
+                        . ($account ?? 'dit account') . ', dus uploads mislukken. Herstellen met:'
+                        . "\n         sudo setfacl -R -m u:{$account}:rwX " . storage_path());
             }
 
             tenancy()->end();
@@ -631,19 +652,18 @@ class TenancyDoctor extends Command
      */
     private function checkWebServerCanLog(): void
     {
-        $compiled = glob(storage_path('framework/views/*.php')) ?: [];
+        $account = $this->webAccount();
 
-        if (empty($compiled)) {
+        if ($account === null) {
             $this->skip('Als wie de webserver draait is nog niet te zien: er zijn geen gecompileerde'
                 . ' sjablonen. Open een pagina en draai dit opnieuw.');
 
             return;
         }
 
-        $account = $this->ownerOf($compiled[0]);
         $log = storage_path('logs/laravel.log');
 
-        if ($account === null || !file_exists($log)) {
+        if (!file_exists($log)) {
             $this->skip('Niet na te gaan als wie de webserver draait.');
 
             return;
@@ -660,6 +680,24 @@ class TenancyDoctor extends Command
             . ' Elke fout uit een webverzoek verdwijnt dan zonder spoor. Herstellen met:' . "\n"
             . "         sudo setfacl -R -m u:{$account}:rwX storage bootstrap/cache\n"
             . "         sudo setfacl -R -d -m u:{$account}:rwX storage bootstrap/cache");
+    }
+
+    /**
+     * Het account waaronder php onder de webserver draait, afgelezen aan de
+     * gecompileerde sjablonen: die schrijft de webserver zelf. Null als er nog
+     * geen zijn.
+     */
+    private function webAccount(): ?string
+    {
+        static $account = false;
+
+        if ($account !== false) {
+            return $account;
+        }
+
+        $compiled = glob(storage_path('framework/views/*.php')) ?: [];
+
+        return $account = $compiled === [] ? null : $this->ownerOf($compiled[0]);
     }
 
     private function ownerOf(string $path): ?string
