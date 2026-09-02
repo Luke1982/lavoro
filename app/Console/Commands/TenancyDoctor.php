@@ -217,12 +217,21 @@ class TenancyDoctor extends Command
              * inmiddels wel kloppen.
              */
             $settings = WorkerHeartbeat::settingsFor($queue);
+            $code = WorkerHeartbeat::codeFor($queue);
+            $now = WorkerHeartbeat::codeVersion();
 
-            $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint()
-                ? $this->bad("Wachtrij '{$queue}': de worker draait op oudere instellingen dan er nu"
-                    . ' in .env staan. Herstart hem, anders werkt hij met wat er bij het opstarten'
-                    . " stond:\n         sudo systemctl restart lavoro-worker lavoro-provisioning")
-                : $this->pass("worker voor '{$queue}' draait");
+            $stale = match (true) {
+                $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint() => 'instellingen',
+                $code !== null && $code !== '' && $now !== '' && $code !== $now => 'code',
+                default => null,
+            };
+
+            $stale === null
+                ? $this->pass("worker voor '{$queue}' draait")
+                : $this->bad("Wachtrij '{$queue}': de worker draait op oudere {$stale} dan wat er nu"
+                    . ' staat. Php houdt bij het opstarten alles vast, dus tot een herstart werkt hij'
+                    . " met wat er toen was:\n"
+                    . '         sudo systemctl restart lavoro-worker lavoro-provisioning');
         }
     }
 

@@ -24,6 +24,13 @@ final class WorkerHeartbeat
 
     private static ?int $last_written = null;
 
+    /**
+     * De code waarmee deze worker is opgestart. Eén keer bepaald: net als de
+     * instellingen ligt die vast tot een herstart, terwijl het bestand op schijf
+     * intussen iets anders kan zeggen.
+     */
+    private static ?string $code_at_boot = null;
+
     public static function listen(): void
     {
         $queue = self::queueFromCommandLine();
@@ -41,8 +48,11 @@ final class WorkerHeartbeat
 
             self::$last_written = $now;
 
+            self::$code_at_boot ??= self::codeVersion();
+
             Cache::put(self::key($queue), $now, now()->addHour());
             Cache::put(self::settingsKey($queue), self::settingsFingerprint(), now()->addHour());
+            Cache::put(self::codeKey($queue), self::$code_at_boot, now()->addHour());
         });
     }
 
@@ -82,6 +92,65 @@ final class WorkerHeartbeat
             config('cache.default'),
             config('tenancy.database.prefix'),
         ]));
+    }
+
+    public static function codeKey(string $queue): string
+    {
+        return 'worker_code:' . $queue;
+    }
+
+    /**
+     * Welke code er nu op schijf staat. Php houdt alles vast wat het bij het
+     * opstarten heeft ingelezen, dus na een git pull draait een worker rustig
+     * door op de oude versie -- met een hartslag die niets laat merken.
+     *
+     * Leeg als dit geen git-map is; dan valt er niets te vergelijken en wordt
+     * er ook niets beweerd.
+     */
+    public static function codeVersion(): string
+    {
+        $git = base_path('.git');
+
+        /**
+         * In een worktree is .git geen map maar een bestand met daarin waar de
+         * echte map staat. Zonder deze stap komt daar niets uit en zou de
+         * controle stilletjes niets doen.
+         */
+        if (is_file($git)) {
+            $pointer = trim((string) file_get_contents($git));
+            $git = str_starts_with($pointer, 'gitdir: ') ? substr($pointer, 8) : $git;
+        }
+
+        $head = $git . '/HEAD';
+
+        if (!is_readable($head)) {
+            return '';
+        }
+
+        $contents = trim((string) file_get_contents($head));
+
+        if (!str_starts_with($contents, 'ref: ')) {
+            return $contents;
+        }
+
+        $ref = $git . '/' . substr($contents, 5);
+
+        /**
+         * In een worktree staan de takken in de gedeelde map, een niveau hoger
+         * dan de eigen HEAD.
+         */
+        if (!is_readable($ref) && preg_match('#^(.*)/worktrees/[^/]+$#', $git, $found)) {
+            $ref = $found[1] . '/' . substr($contents, 5);
+        }
+
+        return is_readable($ref) ? trim((string) file_get_contents($ref)) : '';
+    }
+
+    public static function codeFor(string $queue): ?string
+    {
+        $stored = Cache::get(self::codeKey($queue));
+
+        return $stored === null ? null : (string) $stored;
     }
 
     public static function settingsFor(string $queue): ?string
