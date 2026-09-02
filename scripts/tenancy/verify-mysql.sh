@@ -125,61 +125,97 @@ if ! id -u "$PROV_USER" >/dev/null 2>&1; then
 elif [ "$(id -u)" -ne 0 ]; then
     skip "provisioner checks need root to switch user — re-run with sudo"
 else
-    CURRENT="$(sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -N -B -e "SELECT current_user();" 2>/dev/null || true)"
+    # Alles in dit blok draait als de provisioner zelf. Eén plek waar dat staat,
+    # in plaats van vijf keer dezelfde regel met een ander commando erin.
+    as_provisioner() {
+        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -e "$1" 2>&1
+    }
+
+    CURRENT="$(as_provisioner "SELECT current_user();" | tail -1 || true)"
+
     if [ "$CURRENT" = "${PROV_USER}@${PROV_HOST}" ]; then
         pass "authenticates as ${PROV_USER}@${PROV_HOST} without a password"
     else
         fail "expected ${PROV_USER}@${PROV_HOST}, got '${CURRENT:-<connection failed>}'"
     fi
 
-    if sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-        -e "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
+    # Wat er ook misgaat, de proefdatabase en het proefaccount gaan weer weg.
+    # Blijven ze staan, dan draagt elke volgende controle de rommel van de
+    # vorige mee -- en juist een controlescript hoort niets achter te laten.
+    clean_probe() {
+        as_provisioner "DROP USER IF EXISTS \`${SCRATCH_USER}\`@\`%\`;" >/dev/null 2>&1 || true
+        as_provisioner "DROP DATABASE IF EXISTS \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
+    }
+
+    trap clean_probe EXIT
+
+    # Restjes van een eerdere run opruimen. Een controle die halverwege afbreekt
+    # laat zijn proefdatabase staan, en die duikt daarna op als "database zonder
+    # tenant" in de doctor -- een melding over een probleem dat dit script zelf
+    # heeft gemaakt.
+    if [ "$HAVE_ROOT_DB" -eq 1 ]; then
+        while IFS= read -r statement; do
+            [ -n "$statement" ] && sql_root "$statement" >/dev/null 2>&1
+        done < <(sql_root "
+            SELECT CONCAT('DROP DATABASE IF EXISTS \`', schema_name, '\`;')
+              FROM information_schema.schemata
+             WHERE schema_name LIKE '${TENANT_PREFIX}verify\\_%'
+             UNION ALL
+            SELECT CONCAT('DROP USER IF EXISTS \`', user, '\`@\`', host, '\`;')
+              FROM mysql.user
+             WHERE user LIKE 'lavoro\\_verify\\_%';" 2>/dev/null || true)
+    fi
+
+    if as_provisioner "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
         pass "can create a database inside the ${TENANT_PREFIX} namespace"
 
-        # Creating the database is only half the job. Every tenant also gets its
-        # own MySQL login, confined to that one database, and handing out those
-        # rights needs GRANT OPTION on the namespace. Checking only the CREATE
-        # left exactly this failing in production, one step further along, with
-        # the tenant half made.
+        # Een database aanmaken is de helft van het werk. Elke klant krijgt ook
+        # een eigen MySQL-login die alleen bij die ene database mag, en dat
+        # uitdelen vraagt GRANT OPTION op de naamruimte. Alleen het aanmaken
+        # nakijken liet precies dit in productie stuklopen, één stap verder,
+        # met een half aangemaakte klant tot gevolg.
         #
-        # The privilege list is the one the tenancy library grants, so this
-        # tests the real statement and not a simplified stand-in.
+        # De lijst met rechten is die van de bibliotheek, dus dit is de echte
+        # opdracht en geen vereenvoudigde versie.
         TENANT_GRANTS="ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES,
             CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES,
             SELECT, SHOW VIEW, TRIGGER, UPDATE"
 
-        GRANT_ERROR="$(sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -e "
-            CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';
-            GRANT ${TENANT_GRANTS} ON \`${SCRATCH_DB}\`.* TO \`${SCRATCH_USER}\`@\`%\`;
-        " 2>&1)"
+        # '|| true' hoort hier: zonder dat neemt een mislukte opdracht onder
+        # 'set -e' het hele script mee, en dan valt er niets meer te melden.
+        USER_ERROR="$(as_provisioner "CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';" || true)"
 
-        if [ -z "$GRANT_ERROR" ]; then
-            pass "can create a tenant login and grant it rights on its own database"
+        if [ -n "$USER_ERROR" ]; then
+            fail "cannot create a MySQL account for a tenant:
+        ${USER_ERROR}"
         else
-            fail "cannot set up a tenant login — creating a tenant fails halfway:
-        ${GRANT_ERROR}
-        Check what the account actually holds:
-            sudo -u ${PROV_USER} ${MYSQL_CLIENT} -e 'SHOW GRANTS;'"
-        fi
+            GRANT_ERROR="$(as_provisioner "GRANT ${TENANT_GRANTS} ON \`${SCRATCH_DB}\`.* TO \`${SCRATCH_USER}\`@\`%\`;" || true)"
 
-        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-            -e "DROP USER IF EXISTS \`${SCRATCH_USER}\`@\`%\`;" >/dev/null 2>&1 || true
-        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-            -e "DROP DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
+            if [ -z "$GRANT_ERROR" ]; then
+                pass "can grant a tenant login rights on its own database"
+            else
+                fail "the account may create a database but not hand out rights on it, so creating
+        a tenant fails halfway:
+        ${GRANT_ERROR}
+        Fix: GRANT USAGE ON *.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
+        That adds no access, only the right to pass on privileges it already holds."
+            fi
+        fi
     else
         fail "cannot create ${SCRATCH_DB} — tenant creation will fail"
     fi
 
-    # The point of the namespace: everything outside it is off limits, so a
-    # provisioning mistake cannot reach a pre-tenancy or unrelated database.
-    if sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-        -e "CREATE DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1; then
+    # De naamruimte is het hele punt: alles daarbuiten hoort onbereikbaar te
+    # zijn, zodat een fout in het provisioneren niet bij een andere database kan.
+    if as_provisioner "CREATE DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1; then
         fail "created ${OUTSIDE_DB} outside the tenant namespace — the grant is too wide"
-        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-            -e "DROP DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1 || true
+        as_provisioner "DROP DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1 || true
     else
         pass "refused to create a database outside the ${TENANT_PREFIX} namespace"
     fi
+
+    clean_probe
+    trap - EXIT
 fi
 
 # A password must not work for this account from any OS user. Only meaningful
