@@ -97,6 +97,8 @@ This creates:
   and delete customer databases.
 
 `--write-env` writes the results into `.env` and backs up the old file first.
+It also writes the provisioner's account name and socket, and removes
+`DB_PROVISIONER_PASSWORD` and `DB_PROVISIONER_HOST` if they are present.
 
 This split is the boundary the whole setup rests on. The doctor tests it by
 actually trying to create a customer database as `lavoro_app` and expecting to
@@ -104,41 +106,36 @@ be refused.
 
 ## 4. Configure the application
 
-Edit `.env`. Copy `APP_KEY` across from the old installation.
-
-```
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://your-domain.example
-
-DB_CONNECTION=mysql
-DB_DATABASE=lavoro_landlord
-DB_USERNAME=lavoro_app
-DB_PASSWORD=            # from step 3
-
-SESSION_DRIVER=database
-SESSION_CONNECTION=central
-QUEUE_CONNECTION=database
-CACHE_STORE=database
-
-DB_PROVISIONER_USERNAME=lavoro_provisioner
-DB_PROVISIONER_SOCKET=/var/run/mysqld/mysqld.sock
-
-MAIL_MAILER=tenant
-
-LANDLORD_MAIL_HOST=
-LANDLORD_MAIL_PORT=587
-LANDLORD_MAIL_USERNAME=
-LANDLORD_MAIL_PASSWORD=
-LANDLORD_MAIL_FROM_ADDRESS=info@majorlabel.nl
-LANDLORD_MAIL_FROM_NAME=MajorLabel
+```bash
+scripts/tenancy/setup-env.sh
 ```
 
-Two things to get right:
+It asks three things: the address Lavoro runs on, the `APP_KEY` of your old
+installation, and the mail server you send invoices from. Everything else it
+sets by itself — the queue, session, cache and mail settings that tenancy
+depends on are not preferences, and the script does not offer them as choices.
 
-- **No `DB_PROVISIONER_PASSWORD` and no `DB_PROVISIONER_HOST`.** With those
-  present, anything that can read `.env` — the website included — can delete
-  any customer's database.
+**Have the old `APP_KEY` ready and paste it when asked.** It decrypts every
+stored Google connection, every customer database password and every encrypted
+field. Press Enter instead and you get a new key, which makes all of that
+unreadable with no way back. The script checks the key you paste is a real one
+before writing it.
+
+Safe to run again; existing values stay unless you overwrite them. To run it
+unattended:
+
+```bash
+scripts/tenancy/setup-env.sh --yes \
+    --url=https://your-domain.example \
+    --mail-host=smtp.example --mail-from=info@majorlabel.nl
+```
+
+Between this and step 3, every setting the doctor looks at is now in place.
+Two of them are worth knowing about:
+
+- **The provisioner has no password and no host in `.env`,** and step 3 removes
+  them if they are there. With either one present, anything that can read
+  `.env` — the website included — can delete any customer's database.
 - **`MAIL_MAILER=tenant`** means every customer sends mail with their own
   settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
   invoices you send to customers.

@@ -31,7 +31,13 @@ class TenancyDoctor extends Command
     public function handle(): int
     {
         $this->line('Centraal');
-        $this->checkCentral();
+
+        if (!$this->checkCentral()) {
+            $this->newLine();
+            $this->error('Zonder de centrale database valt er verder niets te controleren.');
+
+            return self::FAILURE;
+        }
 
         foreach (Tenant::on('central')->orderBy('name')->get() as $tenant) {
             $this->newLine();
@@ -60,6 +66,8 @@ class TenancyDoctor extends Command
         }
 
         $this->error("{$this->failed} probleem(en), {$this->passed} in orde.");
+        $this->line('  Wat hierboven over .env gaat zet scripts/tenancy/setup-env.sh recht,'
+            . ' wat over databaseaccounts gaat scripts/tenancy/setup-mysql.sh.');
 
         return self::FAILURE;
     }
@@ -81,16 +89,28 @@ class TenancyDoctor extends Command
         $this->line("  <fg=yellow>OVER</> {$m}");
     }
 
-    private function checkCentral(): void
+    /**
+     * @return bool of de centrale database bereikbaar is; zo niet, dan heeft
+     *              geen enkele controle daarna nog zin
+     */
+    private function checkCentral(): bool
     {
         try {
             $name = DB::connection('central')->getDatabaseName();
+
+            /**
+             * getDatabaseName() leest alleen de instellingen en opent geen
+             * verbinding. Zonder een echte vraag aan de server meldde de doctor
+             * hier "in orde" terwijl er niets draaide, en klapte de controle
+             * daarna eruit met een stacktrace in plaats van een melding.
+             */
+            DB::connection('central')->select('SELECT 1');
+
             $this->pass("centrale verbinding: {$name}");
         } catch (\Throwable $e) {
             $this->bad('centrale verbinding: ' . $e->getMessage());
-            $this->skip('overige centrale controles');
 
-            return;
+            return false;
         }
 
         foreach (['tenants', 'user_tenant_lookups', 'sessions', 'cache', 'jobs', 'packages', 'modules'] as $table) {
@@ -131,6 +151,8 @@ class TenancyDoctor extends Command
         } else {
             $this->pass('planner draait');
         }
+
+        return true;
     }
 
     /**

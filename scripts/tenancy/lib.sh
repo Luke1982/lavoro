@@ -232,6 +232,88 @@ env_value() {
     printf '%s' "$line"
 }
 
+# Zet één sleutel in .env. Bestaat de regel al, dan wordt hij vervangen; zo niet,
+# dan komt hij erbij. Idempotent, zodat de scripts opnieuw gedraaid kunnen worden.
+#
+# De waarde kan / en & bevatten, dus een scheidingsteken dat niet in een sleutel
+# kan voorkomen, met een ontsnapping voor de vervanging. Waarden met een spatie
+# of een # gaan tussen aanhalingstekens, anders leest Laravel ze half in.
+# De poort waarop de server luistert. Niet elke installatie draait op 3306, en
+# een verkeerd nummer in .env geeft "connection refused" zonder verdere uitleg.
+detect_port() {
+    local found
+
+    if found="$(sql_root "SELECT @@port;" 2>/dev/null)" && [ -n "$found" ]; then
+        printf '%s' "$found"
+    else
+        printf '3306'
+    fi
+}
+
+# Waar de databaseserver zijn socket neerlegt. Het pad verschilt per
+# distributie, en het provisioner-account kan alleen via de socket naar binnen:
+# staat hier het verkeerde pad, dan kan er geen enkele klant aangemaakt worden.
+#
+# Eerst de server zelf vragen; lukt dat niet, dan de plekken langs waar hij bij
+# de gangbare pakketten staat.
+detect_socket() {
+    local found candidate
+
+    if found="$(sql_root "SELECT @@socket;" 2>/dev/null)" && [ -n "$found" ]; then
+        printf '%s' "$found"
+        return 0
+    fi
+
+    for candidate in /var/run/mysqld/mysqld.sock /run/mysqld/mysqld.sock \
+                     /var/lib/mysql/mysql.sock /tmp/mysql.sock; do
+        if [ -S "$candidate" ]; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+
+    printf '/var/run/mysqld/mysqld.sock'
+}
+
+env_set() {
+    local file="$1" key="$2" value="$3" escaped
+
+    case "$value" in
+        *[[:space:]#]*) value="\"${value}\"" ;;
+    esac
+
+    escaped="$(printf '%s' "$value" | sed -e 's/[\&|]/\\&/g')"
+
+    if grep -qE "^${key}=" "$file"; then
+        sed -i "s|^${key}=.*|${key}=${escaped}|" "$file"
+    else
+        printf '%s=%s\n' "$key" "$value" >> "$file"
+    fi
+}
+
+# Haalt een sleutel helemaal weg. Voor DB_PROVISIONER_PASSWORD en
+# DB_PROVISIONER_HOST: leeg laten staan werkt ook, maar een lege regel nodigt
+# uit om er ooit iets in te zetten, en juist dat mag nooit.
+env_remove() {
+    local file="$1" key="$2"
+    sed -i "/^${key}=/d" "$file"
+}
+
+# Eén reservekopie per keer dat een script draait, niet per sleutel.
+ENV_BACKUP_MADE=0
+env_backup() {
+    local file="$1" backup
+
+    if [ "$ENV_BACKUP_MADE" -eq 1 ]; then
+        return 0
+    fi
+
+    backup="${file}.backup-$(date +%Y-%m-%d_%H-%M-%S)"
+    cp "$file" "$backup"
+    ENV_BACKUP_MADE=1
+    info "  Reservekopie: $(basename "$backup")"
+}
+
 generate_password() {
     # cut rather than head: head closes the pipe early, which trips pipefail.
     openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32
