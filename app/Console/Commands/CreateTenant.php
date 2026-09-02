@@ -2,11 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Services\TenantProvisioner;
 use Illuminate\Console\Command;
 
 class CreateTenant extends Command
 {
+    use RunsAsProvisioner;
+
     protected $signature = 'tenant:create
         {name : De bedrijfsnaam}
         {email : Het e-mailadres van de eerste beheerder}
@@ -18,6 +21,16 @@ class CreateTenant extends Command
 
     public function handle(TenantProvisioner $provisioner): int
     {
+        /**
+         * Eerst dit: het start dit commando opnieuw als lavoro_provisioner
+         * wanneer dat zonder wachtwoord mag. Kan dat niet, dan zegt het wat
+         * je moet typen in plaats van halverwege op de database stuk te
+         * lopen.
+         */
+        if (!$this->runAsProvisioner()) {
+            return self::FAILURE;
+        }
+
         try {
             ['tenant' => $tenant, 'password' => $password] = $provisioner->create(
                 name: $this->argument('name'),

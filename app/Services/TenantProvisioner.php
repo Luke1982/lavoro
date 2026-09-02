@@ -24,11 +24,17 @@ use RuntimeException;
 class TenantProvisioner
 {
     /**
-     * Verheft zichzelf niet: dit draait in de worker, en die hoort al als
-     * lavoro_provisioner te draaien. Kan hij het niet, dan is dat een fout
-     * die op de aanvraag hoort te belanden en niet stil weg mag vallen.
+     * Geen constructor die de databaseverbinding omzet.
+     *
+     * Dat deed hij wel, en daarmee was deze klasse aanmaken genoeg om een heel
+     * verzoek of commando om te gooien -- ook als het alleen om een naam ging.
+     * Laravel maakt hem bovendien aan voordat handle() draait, dus een commando
+     * dat zich eerst wilde verheffen kwam nooit zo ver: de fout viel al bij het
+     * aanmaken.
+     *
+     * Het omzetten gebeurt nu waar het nodig is, in create() en destroy().
      */
-    public function __construct()
+    private function asProvisioner(): void
     {
         ProvisionerConnection::use();
         ProvisionerConnection::assertUsable();
@@ -52,6 +58,8 @@ class TenantProvisioner
      */
     public function create(string $name, string $email, string $password = '', string $package = 'starter', array $modules = []): array
     {
+        $this->asProvisioner();
+
         $database = self::databaseNameFor($name);
 
         if (DB::connection('central')->selectOne(
@@ -120,6 +128,8 @@ class TenantProvisioner
      */
     public function destroy(Tenant $tenant): void
     {
+        $this->asProvisioner();
+
         $database = $tenant->getInternal('db_name');
         $username = $tenant->tenancy_db_username;
         $files = storage_path('tenant-' . $tenant->id);
