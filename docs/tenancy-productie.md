@@ -275,8 +275,11 @@ after every `.env` change:
 sudo systemctl restart lavoro-worker lavoro-provisioning
 ```
 
-The doctor compares the settings a worker started with against what is in
-`.env` now, and says so when they differ.
+The same applies to code: after a `git pull` a worker keeps running the version
+it started with. `deploy.sh` handles this for you; a manual pull does not.
+
+The doctor compares both the settings and the code a worker started with
+against what is on disk now, and says so when they differ.
 
 Each worker reports in every minute while it runs, and the doctor tells you if
 one has stopped. An empty queue looks exactly like a dead worker, so that
