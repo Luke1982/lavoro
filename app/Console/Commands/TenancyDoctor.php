@@ -465,15 +465,28 @@ class TenancyDoctor extends Command
         }
 
         if (($outcome['skipped'] ?? 0) > 0) {
-            $this->skip("De laatste controle ({$moment}) sloeg {$outcome['skipped']} punt(en) over en"
-                . ' bewijst dus niets. ' . $advice);
+            $this->skip("De laatste controle ({$moment}) kon {$outcome['skipped']} punt(en) niet nakijken"
+                . ' en bewijst dus niets. ' . $advice);
 
             return;
         }
 
-        $when->isBefore(now()->subDays(self::PRIVILEGES_STALE_AFTER_DAYS))
-            ? $this->skip("De rechten zijn voor het laatst nagekeken {$moment}. " . $advice)
-            : $this->pass("rechten van de databaseaccounts nagekeken ({$moment})");
+        if ($when->isBefore(now()->subDays(self::PRIVILEGES_STALE_AFTER_DAYS))) {
+            $this->skip("De rechten zijn voor het laatst nagekeken {$moment}. " . $advice);
+
+            return;
+        }
+
+        /**
+         * Controles die nog niet van toepassing waren -- er is bijvoorbeeld nog
+         * geen enkele klant, dus ook geen klantaccount om na te kijken -- zijn
+         * geen gat in de controle. Wel het vermelden waard, want zodra er een
+         * klant is zegt een nieuwe run meer dan deze.
+         */
+        $pending = (int) ($outcome['not_applicable'] ?? 0);
+
+        $this->pass("rechten van de databaseaccounts nagekeken ({$moment})"
+            . ($pending > 0 ? ", op {$pending} punt(en) na die toen nog niet bestonden" : ''));
     }
 
     /**
