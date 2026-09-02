@@ -37,6 +37,14 @@
                         {{ $request->action === 'delete' ? 'Verwijderen' : 'Aanmaken' }}: <strong>{{ $request->name }}</strong>
                         @if($request->error)<br><span class="warn">{{ $request->error }}</span>@endif
                     </td>
+                    <td style="text-align:right;width:120px">
+                        @if($request->status === 'failed')
+                            <form method="post" action="{{ route('landlord.provisioning.destroy', $request->id) }}">
+                                @csrf @method('delete')
+                                <button type="submit" class="linkish">weghalen</button>
+                            </form>
+                        @endif
+                    </td>
                 </tr>
             @endforeach
         </table>

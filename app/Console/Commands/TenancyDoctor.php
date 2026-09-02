@@ -13,6 +13,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 /**
  * Controleert wat git niet vasthoudt. Leest alleen; repareert nooit.
@@ -562,12 +563,28 @@ class TenancyDoctor extends Command
                     . ' worker draait is hiermee niet vast te stellen.');
         }
 
+        /**
+         * De reden staat in de aanvraag zelf. Die hier tonen scheelt de omweg
+         * langs het beheerpaneel, en juist wie dit vanaf de opdrachtregel
+         * uitzoekt heeft dat paneel niet open.
+         */
         $failed = TenantProvisioningRequest::on('central')
-            ->where('status', 'failed')->count();
+            ->where('status', 'failed')->orderByDesc('id')->get();
 
-        $failed
-            ? $this->bad($failed . ' mislukte aanvraag(en); zie het beheerpaneel voor de reden.')
-            : $this->pass('Geen mislukte aanvragen.');
+        if ($failed->isEmpty()) {
+            $this->pass('Geen mislukte aanvragen.');
+
+            return;
+        }
+
+        $this->bad($failed->count() . ' mislukte aanvraag(en):');
+
+        foreach ($failed as $request) {
+            $this->line("         {$request->action} '{$request->name}': "
+                . Str::limit((string) $request->error, 300));
+        }
+
+        $this->line('       Opgelost? Haal ze weg in het beheerpaneel en probeer het opnieuw.');
 
         $this->checkProvisionerAccount();
     }
