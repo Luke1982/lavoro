@@ -113,6 +113,29 @@ class TenancyDoctor extends Command
             return false;
         }
 
+        /**
+         * De centrale verbinding staat in de instellingen vast op TCP, maar
+         * migraties, het aanmaken van klanten en de sjabloonverbinding lopen
+         * over de standaardverbinding. Die kan stuk zijn terwijl de centrale
+         * het gewoon doet, en dan meldde de doctor niets terwijl migrate
+         * weigerde.
+         */
+        $template = config('tenancy.database.template_tenant_connection', 'mysql');
+
+        try {
+            DB::connection($template)->select('SELECT 1');
+            $this->pass("verbinding '{$template}' (migraties en provisioning)");
+        } catch (\Throwable $e) {
+            $socket = (string) config("database.connections.{$template}.unix_socket");
+            $host = (string) config("database.connections.{$template}.host");
+
+            $socket === ''
+                ? $this->bad('standaardverbinding: ' . $e->getMessage())
+                : $this->bad("De standaardverbinding loopt over de socket {$socket}. MySQL ziet het"
+                    . " account daardoor als 'localhost' en niet als {$host}, en daar bestaat het"
+                    . ' niet. Haal DB_SOCKET uit .env.');
+        }
+
         foreach (['tenants', 'user_tenant_lookups', 'sessions', 'cache', 'jobs', 'packages', 'modules'] as $table) {
             DB::connection('central')->getSchemaBuilder()->hasTable($table)
                 ? $this->pass("tabel {$table}")

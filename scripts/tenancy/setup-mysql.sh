@@ -252,7 +252,6 @@ fi
 # .env
 # ---------------------------------------------------------------------------
 
-DB_SOCKET="$(detect_socket)"
 DB_PORT="$(detect_port)"
 
 # De sleutels die bij de accounts horen die dit script aanmaakt, en alleen die.
@@ -263,10 +262,9 @@ DB_PORT=${DB_PORT}
 DB_DATABASE=${LANDLORD_DB}
 DB_USERNAME=${APP_USER}
 DB_PASSWORD=${APP_PASSWORD}
-DB_SOCKET=${DB_SOCKET}
 SESSION_CONNECTION=central
 DB_PROVISIONER_USERNAME=${PROV_USER}
-DB_PROVISIONER_SOCKET=${DB_SOCKET}"
+DB_PROVISIONER_SOCKET=$(detect_socket)"
 
 if [ "$WRITE_ENV" -eq 1 ]; then
     ENV_FILE="$PROJECT_ROOT/.env"
@@ -291,6 +289,14 @@ if [ "$WRITE_ENV" -eq 1 ]; then
     # account hoort alleen via de socket bereikbaar te zijn, als Linux-gebruiker.
     env_remove "$ENV_FILE" DB_PROVISIONER_PASSWORD
     env_remove "$ENV_FILE" DB_PROVISIONER_HOST
+
+    # DB_SOCKET geldt voor de verbinding waar het account van de applicatie op
+    # draait, en dat account bestaat alleen op 127.0.0.1. Een socketverbinding
+    # komt bij MySQL binnen als 'localhost', waar geen account voor is: dan
+    # geeft migrate "Access denied" met een hostnaam die nergens in de
+    # instellingen staat. De provisioner heeft zijn eigen socketsleutel en die
+    # blijft wel staan -- dat account hangt juist aan de Linux-gebruiker.
+    env_remove "$ENV_FILE" DB_SOCKET
 
     trap - ERR
     green "  .env bijgewerkt."

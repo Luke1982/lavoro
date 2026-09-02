@@ -192,7 +192,7 @@ Useful flags:
 | `--with-test` | Also creates the Task 30 test account and `lavoro_test_landlord`. |
 | `--write-env` | Patches `.env` with the resulting credentials, backing it up first. |
 
-> **`setup-mysql.sh` currently writes the wrong key and must be fixed before it is run.** Its `ENV_BLOCK` (line 242) emits `DB_SOCKET=/var/run/mysqld/mysqld.sock`, which is the collision described in Step 4 below — the stock `mysql` connection reads that variable and would move every tenant request onto the socket. Change that line to `DB_PROVISIONER_SOCKET=`. This is committed code, not a hypothetical: anyone running `--write-env` today gets the broken `.env`.
+> **This bit the first production install.** `setup-mysql.sh` used to emit `DB_SOCKET=/var/run/mysqld/mysqld.sock` — the collision described in Step 4 below, where the stock `mysql` connection reads that variable and moves every tenant request onto the socket. Because `lavoro_app` exists only on `127.0.0.1`, MySQL then sees the account as `localhost` and `migrate` fails with `Access denied` naming a host that appears nowhere in `.env`. The script now writes `DB_PROVISIONER_SOCKET` instead and deletes `DB_SOCKET` if it finds it, and `tenancy:doctor` tests the template connection so the same mistake reports itself instead of surfacing as an unexplained denial.
 | `--rotate-app-password` | Re-runs are otherwise non-destructive and leave an existing password alone. |
 | `--generate-password` | Skip the prompt and generate the `lavoro_app` password. |
 | `--admin-user=`, `--defaults-file=` | Connect as something other than socket-authenticated `root`. |
