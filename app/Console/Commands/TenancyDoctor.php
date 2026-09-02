@@ -428,7 +428,10 @@ class TenancyDoctor extends Command
     private function checkPrivileges(): void
     {
         $this->line('Rechten');
-        $this->skip('Databaserechten: sudo scripts/tenancy/verify-mysql.sh (draait ook mee in deploy.sh)');
+        $this->skip('De rechten van de databaseaccounts zijn hiervandaan niet te zien: daar mag alleen'
+            . ' root bij. Dat is wat de scheiding tussen de accounts bewijst, dus draai eenmalig:' . "\n"
+            . '         sudo scripts/tenancy/verify-mysql.sh' . "\n"
+            . '       Bij elke deploy gebeurt dat vanzelf.');
     }
 
     /**
