@@ -554,17 +554,77 @@ class TenancyDoctor extends Command
         }
 
         $path = storage_path();
+        $quoted = var_export($path, true);
 
+        /**
+         * Drie uitkomsten, want twee heel verschillende oorzaken zien er
+         * hetzelfde uit. Rechten op storage/ zelf helpen niet als de gebruiker
+         * de mappen erboven niet in mag: staat de installatie in een home-map,
+         * dan staat die standaard op 0750 en komt hij niet eens tot de deur.
+         * Zonder dat onderscheid stuur je iemand net zo lang setfacl op
+         * storage/ herhalen tot hij het opgeeft.
+         */
         $status = ProvisionerConnection::phpAsProvisioner(
-            'exit(is_writable(' . var_export($path, true) . ') ? 0 : 1);'
+            "exit(!is_dir({$quoted}) ? 2 : (is_writable({$quoted}) ? 0 : 1));"
         );
 
-        $status === 0
-            ? $this->pass("{$username} mag schrijven in storage/")
-            : $this->bad("{$username} mag niet schrijven in {$path}; de mappen van een nieuwe klant"
-                . " kunnen dan niet aangemaakt worden. Geef schrijfrecht met:\n"
-                . "         sudo setfacl -R -m u:{$username}:rwX {$path}\n"
-                . "         sudo setfacl -R -d -m u:{$username}:rwX {$path}");
+        if ($status === 0) {
+            $this->pass("{$username} mag schrijven in storage/");
+
+            return;
+        }
+
+        if ($status === 2) {
+            $this->bad("{$username} komt niet eens bij {$path}; een map erboven laat hem er niet"
+                . ' door. Geef hem alleen doorgang, niet meer dan dat:' . "\n"
+                . collect($this->unreachableAncestors($path))
+                    ->map(fn (string $directory) => "         sudo setfacl -m u:{$username}:x {$directory}")
+                    ->implode("\n") . $this->setfaclHint());
+
+            return;
+        }
+
+        $this->bad("{$username} mag niet schrijven in {$path}; de mappen van een nieuwe klant"
+            . " kunnen dan niet aangemaakt worden. Geef schrijfrecht met:\n"
+            . "         sudo setfacl -R -m u:{$username}:rwX {$path}\n"
+            . "         sudo setfacl -R -d -m u:{$username}:rwX {$path}" . $this->setfaclHint());
+    }
+
+    /**
+     * setfacl zit in een apart pakket dat lang niet overal staat. Het advies
+     * hierboven levert anders 'command not found' op, en dan is de vraag wat
+     * je fout deed in plaats van wat je moet installeren.
+     */
+    private function setfaclHint(): string
+    {
+        $found = trim((string) shell_exec('command -v setfacl 2>/dev/null'));
+
+        return $found === '' ? "\n" . '         (setfacl zit in het pakket acl: apt install acl)' : '';
+    }
+
+    /**
+     * De mappen tussen / en het pad waar de provisioner niet doorheen komt.
+     * Alleen die waar hij nu geen doorgang heeft, zodat er niet meer opengezet
+     * wordt dan nodig.
+     */
+    private function unreachableAncestors(string $path): array
+    {
+        $blocked = [];
+        $directory = dirname($path);
+
+        while ($directory !== '/' && $directory !== '.' && $directory !== '') {
+            $reachable = ProvisionerConnection::phpAsProvisioner(
+                'exit(is_executable(' . var_export($directory, true) . ') ? 0 : 1);'
+            );
+
+            if ($reachable !== 0) {
+                array_unshift($blocked, $directory);
+            }
+
+            $directory = dirname($directory);
+        }
+
+        return $blocked ?: [dirname($path)];
     }
 
     private function checkProvisionerLinuxUser(string $username, string $password): void

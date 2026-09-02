@@ -210,9 +210,23 @@ The provisioning worker creates folders for new customers, so give it write
 access:
 
 ```bash
+sudo apt install acl        # setfacl is not installed by default
 sudo setfacl -R -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 sudo setfacl -R -d -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 ```
+
+**If you installed somewhere under `/home` instead**, permissions on `storage`
+alone are not enough. A home directory is `0750`, so the provisioner cannot
+walk through it to reach anything inside, and no amount of access on `storage`
+changes that. Give it passage on each directory above:
+
+```bash
+sudo setfacl -m u:lavoro_provisioner:x /home/youraccount
+sudo setfacl -m u:lavoro_provisioner:x /home/youraccount/lavoro
+```
+
+The doctor tells the two cases apart and names the exact directories that are
+in the way.
 
 Start both:
 
