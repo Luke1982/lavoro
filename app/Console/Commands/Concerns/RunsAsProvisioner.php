@@ -12,8 +12,8 @@ use App\Support\ProvisionerConnection;
  * klanten maken en weggooien, en staat er nergens een wachtwoord waarmee een
  * webverzoek hetzelfde zou kunnen.
  *
- * Het commando verheft zichzelf als de sudo-regel uit taak 2 stap 2b er is;
- * anders zegt het welke regel je moet typen.
+ * Het commando verheft zichzelf als de sudo-regel er is; anders zegt het welke
+ * regel je moet hebben. Die regel zet scripts/tenancy/setup-sudoers.sh neer.
  */
 trait RunsAsProvisioner
 {
@@ -55,9 +55,7 @@ trait RunsAsProvisioner
             return;
         }
 
-        exec($sudo . ' -n -u ' . escapeshellarg($name) . ' true 2>/dev/null', $ignored, $status);
-
-        if ($status !== 0) {
+        if (!ProvisionerConnection::canElevate()) {
             return;
         }
 

@@ -554,11 +554,10 @@ class TenancyDoctor extends Command
         }
 
         $path = storage_path();
-        $status = 0;
-        $ignored = [];
 
-        exec('sudo -n -u ' . escapeshellarg($username) . ' test -w ' . escapeshellarg($path)
-            . ' 2>/dev/null', $ignored, $status);
+        $status = ProvisionerConnection::phpAsProvisioner(
+            'exit(is_writable(' . var_export($path, true) . ') ? 0 : 1);'
+        );
 
         $status === 0
             ? $this->pass("{$username} mag schrijven in storage/")

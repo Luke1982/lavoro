@@ -63,22 +63,106 @@ if [ "$DRY_RUN" -eq 0 ]; then
     require_root
 fi
 
-# Wie deze sudo draait, is degene die de regel wil hebben. Zonder sudo valt het
-# terug op de ingelogde gebruiker, wat bij --dry-run het geval is.
-if [ -z "$ADMIN_ACCOUNT" ]; then
-    ADMIN_ACCOUNT="${SUDO_USER:-${USER:-}}"
-fi
-
-[ -n "$ADMIN_ACCOUNT" ] || die "Kon niet vaststellen om welk account het gaat. Geef --user=NAAM mee."
-
+# sudo vergelijkt het pad letterlijk en volgt geen symlinks. /usr/bin/php is op
+# Debian en Ubuntu een symlink naar /usr/bin/php8.3, en pcntl_exec start juist
+# dat laatste pad (PHP_BINARY). Staat alleen de symlink in de regel, dan weigert
+# sudo zonder uitleg en verheft er nooit een commando -- terwijl de regel er
+# goed uitziet. Daarom allebei, als ze verschillen.
 if [ -z "$PHP_PATH" ]; then
-    PHP_PATH="$(command -v php || true)"
+    PHP_PATH="$(php -r 'echo PHP_BINARY;' 2>/dev/null || true)"
+    PHP_PATH="${PHP_PATH:-$(command -v php || true)}"
 fi
 
 [ -n "$PHP_PATH" ] || die "Geen php gevonden. Geef --php-path=/pad/naar/php mee."
 
+PHP_ALIAS="$(command -v php || true)"
+
+if [ -n "$PHP_ALIAS" ] && [ "$PHP_ALIAS" != "$PHP_PATH" ]; then
+    PHP_COMMANDS="${PHP_PATH}, ${PHP_ALIAS}"
+else
+    PHP_COMMANDS="${PHP_PATH}"
+fi
+
 PROV_ACCOUNT="$(grep -E '^DB_PROVISIONER_USERNAME=' "$PROJECT_ROOT/.env" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"' || true)"
 PROV_ACCOUNT="${PROV_ACCOUNT:-$PROV_USER}"
+
+# De accounts van echte mensen. Systeemaccounts beginnen onder 1000 en nobody
+# zit op 65534; wat daartussen zit is waar iemand mee inlogt.
+login_accounts() {
+    getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1 }' | sort | tr '\n' ' '
+}
+
+# Waarom een account deze regel niet mag hebben, of niets als het wel mag.
+#
+# De regel geeft NOPASSWD op de php-binary. php kan van alles starten, dus dit
+# is de provisioner helemaal weggeven. Voor een mens is dat te verdedigen: die
+# kon al 'sudo -u' typen en kan met APP_KEY toch al elk klantwachtwoord lezen.
+# Voor de webserver of een onbewaakt proces is het dat niet -- dan is "vanuit
+# een webverzoek kan er geen klant aangemaakt worden" ineens niet meer waar, en
+# er is niets in de applicatie dat daarover klaagt.
+why_not() {
+    local account="$1" forbidden
+
+    for forbidden in www-data nobody nginx apache "$PROV_ACCOUNT"; do
+        if [ "$account" = "$forbidden" ]; then
+            printf "'%s' hoort deze regel niet te krijgen. Dit is voor het account van een mens." "$account"
+            return 0
+        fi
+    done
+
+    if ! id "$account" >/dev/null 2>&1; then
+        printf "De gebruiker '%s' bestaat niet op deze server." "$account"
+        return 0
+    fi
+
+    return 1
+}
+
+# Meegegeven met --user telt zoals het er staat. Anders vragen, met degene die
+# deze sudo draait als voorzet -- draai je als root, dan is er geen voorzet en
+# is die vraag juist het punt.
+if [ -z "$ADMIN_ACCOUNT" ]; then
+    DEFAULT_ACCOUNT="${SUDO_USER:-}"
+
+    if have_tty; then
+        info "  Accounts op deze server: $(login_accounts)"
+        info ""
+
+        for attempt in 1 2 3; do
+            if [ -n "$DEFAULT_ACCOUNT" ]; then
+                printf '  Welk account draait straks de tenant-opdrachten? [%s]: ' "$DEFAULT_ACCOUNT" >&2
+            else
+                printf '  Welk account draait straks de tenant-opdrachten? ' >&2
+            fi
+
+            read -r ANSWER < /dev/tty
+            ADMIN_ACCOUNT="${ANSWER:-$DEFAULT_ACCOUNT}"
+
+            if [ -z "$ADMIN_ACCOUNT" ]; then
+                warn "  Geef een accountnaam op."
+                continue
+            fi
+
+            if COMPLAINT="$(why_not "$ADMIN_ACCOUNT")"; then
+                warn "  ${COMPLAINT}"
+                ADMIN_ACCOUNT=""
+                continue
+            fi
+
+            break
+        done
+
+        [ -n "$ADMIN_ACCOUNT" ] || die "Geen bruikbaar account opgegeven."
+        info ""
+    else
+        ADMIN_ACCOUNT="${DEFAULT_ACCOUNT:-${USER:-}}"
+        [ -n "$ADMIN_ACCOUNT" ] || die "Kon niet vaststellen om welk account het gaat. Geef --user=NAAM mee."
+    fi
+fi
+
+if COMPLAINT="$(why_not "$ADMIN_ACCOUNT")"; then
+    die "$COMPLAINT"
+fi
 
 # ---------------------------------------------------------------------------
 # Wie deze regel niet mag hebben
@@ -90,17 +174,6 @@ PROV_ACCOUNT="${PROV_ACCOUNT:-$PROV_USER}"
 # Voor de webserver of een onbewaakt proces is het dat niet -- dan is "vanuit
 # een webverzoek kan er geen klant aangemaakt worden" ineens niet meer waar, en
 # er is niets in de applicatie dat daarover klaagt.
-
-for forbidden in www-data nobody nginx apache "$PROV_ACCOUNT"; do
-    if [ "$ADMIN_ACCOUNT" = "$forbidden" ]; then
-        die "Aan '${ADMIN_ACCOUNT}' hoort deze regel niet gegeven te worden.
-Dit is een regel voor het account van een mens dat de commando's typt."
-    fi
-done
-
-if [ "$DRY_RUN" -eq 0 ] && ! id "$ADMIN_ACCOUNT" >/dev/null 2>&1; then
-    die "De gebruiker '${ADMIN_ACCOUNT}' bestaat niet op deze server."
-fi
 
 # ---------------------------------------------------------------------------
 # Schrijven, maar alleen wat visudo goedkeurt
@@ -137,12 +210,12 @@ install_rule() {
 ADMIN_RULE="# /etc/sudoers.d/lavoro-admin
 # Laat ${ADMIN_ACCOUNT} tenant-commando's draaien zonder 'sudo -u' te typen.
 # Aangemaakt door scripts/tenancy/setup-sudoers.sh
-${ADMIN_ACCOUNT} ALL=(${PROV_ACCOUNT}) NOPASSWD: ${PHP_PATH}"
+${ADMIN_ACCOUNT} ALL=(${PROV_ACCOUNT}) NOPASSWD: ${PHP_COMMANDS}"
 
 info "==> Regels installeren"
 info "  account:     ${ADMIN_ACCOUNT}"
 info "  wordt:       ${PROV_ACCOUNT}"
-info "  via:         ${PHP_PATH}"
+info "  via:         ${PHP_COMMANDS}"
 info ""
 
 install_rule /etc/sudoers.d/lavoro-admin "$ADMIN_RULE"

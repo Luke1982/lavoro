@@ -73,7 +73,7 @@ final class ProvisionerConnection
     /**
      * Mag deze gebruiker zonder wachtwoord de provisioner worden?
      *
-     * Dat hangt aan de sudo-regel uit taak 2 stap 2b. Staat hij er, dan
+     * Dat hangt aan de sudo-regel die scripts/tenancy/setup-sudoers.sh neerzet. Staat hij er, dan
      * verheffen de tenant-commando's zichzelf; staat hij er niet, dan moet je
      * er zelf 'sudo -u lavoro_provisioner' voor typen. Allebei werkt, maar het
      * is het verschil tussen een commando dat werkt en een dat een uitleg
@@ -87,15 +87,32 @@ final class ProvisionerConnection
             return true;
         }
 
+        return self::phpAsProvisioner('exit(0);') === 0;
+    }
+
+    /**
+     * Draait een stukje php als de provisioner en geeft de exitcode terug, of
+     * null als er niet eens een sudo is om het mee te proberen.
+     *
+     * Via php en niet via 'true' of 'test': de sudo-regel geeft rechten op de
+     * php-binary en op niets anders. Een proef met een ander programma valt
+     * daarbuiten en zou dus 'nee' zeggen terwijl het verheffen zelf gewoon mag.
+     * De proef moet precies datgene doen wat er straks echt gebeurt.
+     */
+    public static function phpAsProvisioner(string $code): ?int
+    {
         $sudo = trim((string) shell_exec('command -v sudo 2>/dev/null'));
 
         if (!$sudo) {
-            return false;
+            return null;
         }
 
-        exec($sudo . ' -n -u ' . escapeshellarg($name) . ' true 2>/dev/null', $ignored, $status);
+        $name = (string) config('database.connections.provisioner.username');
 
-        return $status === 0;
+        exec($sudo . ' -n -u ' . escapeshellarg($name) . ' ' . escapeshellarg(PHP_BINARY)
+            . ' -r ' . escapeshellarg($code) . ' 2>/dev/null', $ignored, $status);
+
+        return $status;
     }
 
     public static function linuxUser(): string
