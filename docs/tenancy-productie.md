@@ -232,6 +232,27 @@ sudo setfacl -m u:lavoro_provisioner:x /home/youraccount/lavoro
 The doctor tells the two cases apart and names the exact directories that are
 in the way.
 
+**Check which account your web server runs PHP as**, because it is often not
+the one owning the files:
+
+```bash
+ps -eo user,comm | grep -iE 'lsphp|php-fpm'
+```
+
+LiteSpeed commonly runs as `nobody`, Apache and nginx as `www-data`. Whatever
+it is, it needs to write to `storage` and `bootstrap/cache`:
+
+```bash
+sudo setfacl -R -m u:nobody:rwX storage bootstrap/cache
+sudo setfacl -R -d -m u:nobody:rwX storage bootstrap/cache
+```
+
+Get this wrong and the application cannot write its own log. Errors from the
+browser then vanish with no page, no entry and nothing to search for — a
+button that appears to do nothing at all. The doctor reads the owner of the
+compiled templates to work out which account that is, and says so if it cannot
+write.
+
 Finally, so you do not have to type `sudo -u lavoro_provisioner` in front of
 every tenant command:
 

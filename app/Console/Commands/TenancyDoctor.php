@@ -578,6 +578,7 @@ class TenancyDoctor extends Command
         $this->checkProvisionerLinuxUser($username, $password);
         $this->checkElevation($username);
         $this->checkProvisionerCanWriteStorage($username);
+        $this->checkWebServerCanLog();
 
     }
 
@@ -616,6 +617,125 @@ class TenancyDoctor extends Command
      * Alleen te testen als we die gebruiker kunnen worden; anders zegt onze
      * eigen toegang niets over de zijne.
      */
+    /**
+     * Mag de webserver schrijven in storage/?
+     *
+     * De worker en de commando's draaien als het account van de installatie,
+     * maar php onder de webserver draait vaak als iets anders -- 'nobody' bij
+     * LiteSpeed, 'www-data' bij Apache. Kan dat account niet in storage/logs
+     * schrijven, dan verdwijnt elke fout uit een webverzoek geruisloos: geen
+     * pagina, geen regel, niets om op te zoeken.
+     *
+     * Wie dat account is valt af te lezen aan de gecompileerde sjablonen: die
+     * schrijft de webserver zelf, bij de eerste pagina die hij toont.
+     */
+    private function checkWebServerCanLog(): void
+    {
+        $compiled = glob(storage_path('framework/views/*.php')) ?: [];
+
+        if (empty($compiled)) {
+            $this->skip('Als wie de webserver draait is nog niet te zien: er zijn geen gecompileerde'
+                . ' sjablonen. Open een pagina en draai dit opnieuw.');
+
+            return;
+        }
+
+        $account = $this->ownerOf($compiled[0]);
+        $log = storage_path('logs/laravel.log');
+
+        if ($account === null || !file_exists($log)) {
+            $this->skip('Niet na te gaan als wie de webserver draait.');
+
+            return;
+        }
+
+        if ($this->userCanWrite($account, $log)) {
+            $this->pass("webserver draait als {$account} en kan zijn fouten opschrijven");
+
+            return;
+        }
+
+        $this->bad("De webserver draait als {$account}, maar dat account kan niet schrijven in"
+            . " {$log} (dat is van " . ($this->ownerOf($log) ?? '?') . ').'
+            . ' Elke fout uit een webverzoek verdwijnt dan zonder spoor. Herstellen met:' . "\n"
+            . "         sudo setfacl -R -m u:{$account}:rwX storage bootstrap/cache\n"
+            . "         sudo setfacl -R -d -m u:{$account}:rwX storage bootstrap/cache");
+    }
+
+    private function ownerOf(string $path): ?string
+    {
+        if (!function_exists('posix_getpwuid')) {
+            return null;
+        }
+
+        $owner = @fileowner($path);
+
+        return $owner === false ? null : (posix_getpwuid($owner)['name'] ?? null);
+    }
+
+    /**
+     * Of een ander account ergens mag schrijven. Niet te doen met is_writable:
+     * die kijkt naar het account dat dit commando draait.
+     *
+     * Een ACL kan schrijfrecht geven waar de rechtenbits van niets weten, dus
+     * die wordt er nog naast gelegd voordat er iets gemeld wordt.
+     */
+    private function userCanWrite(string $account, string $path): bool
+    {
+        /** root trekt zich van rechtenbits niets aan. */
+        if ($account === 'root') {
+            return true;
+        }
+
+        $details = function_exists('posix_getpwnam') ? posix_getpwnam($account) : false;
+        $stat = @stat($path);
+
+        if ($details === false || $stat === false) {
+            return true;
+        }
+
+        $mode = $stat['mode'];
+
+        if ($stat['uid'] === $details['uid']) {
+            return ($mode & 0o200) !== 0;
+        }
+
+        $group = function_exists('posix_getgrgid') ? posix_getgrgid($stat['gid']) : false;
+        $member = $group !== false
+            && ($group['gid'] === $details['gid'] || in_array($account, $group['members'], true));
+
+        if ($member && ($mode & 0o020) !== 0) {
+            return true;
+        }
+
+        if (($mode & 0o002) !== 0) {
+            return true;
+        }
+
+        return $this->aclGrantsWrite($account, $path);
+    }
+
+    private function aclGrantsWrite(string $account, string $path): bool
+    {
+        $output = [];
+        $status = 0;
+
+        exec('getfacl -p ' . escapeshellarg($path) . ' 2>/dev/null', $output, $status);
+
+        if ($status !== 0) {
+            return false;
+        }
+
+        foreach ($output as $line) {
+            if (preg_match('/^user:' . preg_quote($account, '/') . ':(.*)$/', trim($line), $found)
+                && str_contains($found[1], 'w')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function checkProvisionerCanWriteStorage(string $username): void
     {
         if (!ProvisionerConnection::canElevate()) {
