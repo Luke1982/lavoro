@@ -42,7 +42,7 @@ class StoreTenantRequest extends FormRequest
                 return;
             }
 
-            $database = app(TenantProvisioner::class)->databaseNameFor($name);
+            $database = TenantProvisioner::databaseNameFor($name);
 
             $taken = Tenant::on('central')->get()
                 ->contains(fn ($tenant) => $tenant->getInternal('db_name') === $database);
