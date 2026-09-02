@@ -425,13 +425,55 @@ class TenancyDoctor extends Command
      * de verwijzing; twee keer dezelfde controle schrijven levert twee
      * antwoorden op die uit elkaar gaan lopen. deploy.sh draait hem mee.
      */
+    private const PRIVILEGES_STALE_AFTER_DAYS = 30;
+
+    /**
+     * De rechten van de databaseaccounts kan dit commando niet zelf nakijken:
+     * daarvoor moet je in mysql.user kunnen kijken en dat mag alleen root.
+     * verify-mysql.sh kan dat wel en laat zijn uitslag achter; hier wordt die
+     * gelezen.
+     *
+     * Een run zonder root slaat de helft over. Dat telt niet als goedkeuring,
+     * anders zou 'even zonder sudo gedraaid' hier als groen vinkje eindigen.
+     */
     private function checkPrivileges(): void
     {
         $this->line('Rechten');
-        $this->skip('De rechten van de databaseaccounts zijn hiervandaan niet te zien: daar mag alleen'
-            . ' root bij. Dat is wat de scheiding tussen de accounts bewijst, dus draai eenmalig:' . "\n"
-            . '         sudo scripts/tenancy/verify-mysql.sh' . "\n"
-            . '       Bij elke deploy gebeurt dat vanzelf.');
+
+        $advice = 'Draai: sudo scripts/tenancy/verify-mysql.sh (gebeurt ook bij elke deploy).';
+        $file = storage_path('app/tenancy-privileges.json');
+
+        $outcome = is_readable($file)
+            ? json_decode((string) file_get_contents($file), true)
+            : null;
+
+        if (!is_array($outcome) || !isset($outcome['checked_at'])) {
+            $this->skip('De rechten van de databaseaccounts zijn hier nog nooit nagekeken.'
+                . ' Dat is wat de scheiding tussen de accounts bewijst. ' . $advice);
+
+            return;
+        }
+
+        $when = CarbonImmutable::parse($outcome['checked_at']);
+        $moment = $when->diffForHumans();
+
+        if (($outcome['failed'] ?? 0) > 0) {
+            $this->bad("Bij de laatste controle ({$moment}) waren er {$outcome['failed']} probleem(en)"
+                . ' met de rechten van de databaseaccounts. ' . $advice);
+
+            return;
+        }
+
+        if (($outcome['skipped'] ?? 0) > 0) {
+            $this->skip("De laatste controle ({$moment}) sloeg {$outcome['skipped']} punt(en) over en"
+                . ' bewijst dus niets. ' . $advice);
+
+            return;
+        }
+
+        $when->isBefore(now()->subDays(self::PRIVILEGES_STALE_AFTER_DAYS))
+            ? $this->skip("De rechten zijn voor het laatst nagekeken {$moment}. " . $advice)
+            : $this->pass("rechten van de databaseaccounts nagekeken ({$moment})");
     }
 
     /**

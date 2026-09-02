@@ -245,6 +245,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Een spoor achterlaten
+# ---------------------------------------------------------------------------
+#
+# Dit script heeft root nodig, de doctor draait als het account van de site.
+# Die kan er dus nooit zelf bij en moest tot nu toe zeggen "hiervandaan niet te
+# zien". Door de uitslag hier weg te schrijven weet de doctor wel wat eruit
+# kwam en wanneer.
+#
+# Alleen een volledige run wordt vastgelegd: zonder root slaat dit script het
+# meeste over, en dat is geen goedkeuring.
+
+record_outcome() {
+    local file="$PROJECT_ROOT/storage/app/tenancy-privileges.json"
+
+    [ -d "${file%/*}" ] || return 0
+
+    # Een halve run mag een hele niet overschrijven. Zonder root wordt het
+    # meeste overgeslagen, en dat zou de uitslag van een eerdere volledige
+    # controle wegzetten voor iets dat niets bewijst.
+    if [ "$SKIPPED" -ne 0 ]; then
+        return 0
+    fi
+
+    printf '{"checked_at":"%s","passed":%d,"failed":%d,"skipped":%d,"by":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PASSED" "$FAILED" "$SKIPPED" "$(id -un)" > "$file" 2>/dev/null || return 0
+
+    chmod 0644 "$file" 2>/dev/null || true
+}
+
+record_outcome
 
 info ""
 
