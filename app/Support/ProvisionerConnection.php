@@ -19,11 +19,23 @@ final class ProvisionerConnection
      * en dat is DB_CONNECTION. Alleen 'central' omzetten laat het aanmaken van
      * de database en de gebruiker als lavoro_app lopen, en dat mag niet.
      */
+    /**
+     * De instellingen zoals ze waren voordat er werd omgezet, zodat het terug
+     * kan. Zonder dat blijft een verzoek waarin dit misgaat kapot achter: ook
+     * het wegschrijven van de sessie en het tonen van de foutmelding lopen dan
+     * over dezelfde verbinding, en die is dan van niemand meer.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private static array $previous = [];
+
     public static function use(): void
     {
         $provisioner = config('database.connections.provisioner');
 
-        foreach (['central', config('tenancy.database.template_tenant_connection', 'mysql')] as $name) {
+        foreach (self::switchable() as $name) {
+            self::$previous[$name] ??= config("database.connections.{$name}");
+
             Config::set("database.connections.{$name}", array_merge(
                 config("database.connections.{$name}"),
                 [
@@ -38,6 +50,23 @@ final class ProvisionerConnection
         }
     }
 
+    /** Terug naar de instellingen van voor use(). */
+    public static function restore(): void
+    {
+        foreach (self::$previous as $name => $settings) {
+            Config::set("database.connections.{$name}", $settings);
+            DB::purge($name);
+        }
+
+        self::$previous = [];
+    }
+
+    /** @return array<int, string> */
+    private static function switchable(): array
+    {
+        return ['central', config('tenancy.database.template_tenant_connection', 'mysql')];
+    }
+
     public static function works(): bool
     {
         try {
@@ -50,13 +79,23 @@ final class ProvisionerConnection
     }
 
     /** @throws RuntimeException */
+    /**
+     * Lukt het niet, dan gaat de verbinding eerst terug naar wat hij was. Blijft
+     * hij omgezet staan, dan sneuvelt de rest van het verzoek ook -- inclusief
+     * het wegschrijven van de sessie, en daarmee de foutmelding die zou moeten
+     * uitleggen wat er aan de hand is.
+     */
     public static function assertUsable(): void
     {
         if (self::works()) {
             return;
         }
 
-        throw new RuntimeException(self::advice());
+        $advice = self::advice();
+
+        self::restore();
+
+        throw new RuntimeException($advice);
     }
 
     public static function advice(): string

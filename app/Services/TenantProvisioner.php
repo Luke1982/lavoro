@@ -34,7 +34,14 @@ class TenantProvisioner
         ProvisionerConnection::assertUsable();
     }
 
-    public function databaseNameFor(string $name): string
+    /**
+     * Statisch, en met opzet. De naam volgt uit het voorvoegsel en de bedrijfs-
+     * naam en heeft geen database nodig -- terwijl deze klasse aanmaken de
+     * verbinding wel omzet naar de provisioner. Dat gebeurde per ongeluk bij het
+     * valideren van het formulier, waarna het hele webverzoek op een verbinding
+     * zat waar de webserver niet bij kan.
+     */
+    public static function databaseNameFor(string $name): string
     {
         return config('tenancy.database.prefix') . Str::slug($name, '_');
     }
@@ -45,7 +52,7 @@ class TenantProvisioner
      */
     public function create(string $name, string $email, string $password = '', string $package = 'starter', array $modules = []): array
     {
-        $database = $this->databaseNameFor($name);
+        $database = self::databaseNameFor($name);
 
         if (DB::connection('central')->selectOne(
             'SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME = ?', [$database]
