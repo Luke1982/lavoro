@@ -1,15 +1,32 @@
 <?php
 
+use App\Http\Middleware\EnsureTenantHasModule;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\InitializeTenancyBySession;
+use App\Http\Middleware\InitializeTenancyForApi;
 use App\Http\Middleware\ResolveAccessToken;
+use App\Http\Middleware\UseLandlordGuard;
 use App\Support\DatabaseErrorMessage;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Contracts\Session\Middleware\AuthenticatesSessions;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -19,43 +36,43 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function () {
-            \Illuminate\Support\Facades\Route::middleware('web')
+            Route::middleware('web')
                 ->group(base_path('routes/landlord.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\InitializeTenancyBySession::class,
+            InitializeTenancyBySession::class,
             HandleInertiaRequests::class,
         ]);
 
         $middleware->priority([
-            \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
-            \Illuminate\Cookie\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \App\Http\Middleware\InitializeTenancyBySession::class,
-            \App\Http\Middleware\UseLandlordGuard::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class,
-            \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
-            \Illuminate\Contracts\Session\Middleware\AuthenticatesSessions::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \Illuminate\Auth\Middleware\Authorize::class,
+            HandlePrecognitiveRequests::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            InitializeTenancyBySession::class,
+            UseLandlordGuard::class,
+            ShareErrorsFromSession::class,
+            AuthenticatesRequests::class,
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+            AuthenticatesSessions::class,
+            SubstituteBindings::class,
+            Authorize::class,
         ]);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'accesstoken' => ResolveAccessToken::class,
-            'tenant.api' => \App\Http\Middleware\InitializeTenancyForApi::class,
-            'tenant.module' => \App\Http\Middleware\EnsureTenantHasModule::class,
+            'tenant.api' => InitializeTenancyForApi::class,
+            'tenant.module' => EnsureTenantHasModule::class,
         ]);
         /**
          * Een gast op het beheerpaneel hoort naar het inlogscherm van het
          * paneel, niet naar dat van de app: Authenticate stuurt standaard naar
          * de route 'login', ongeacht welke guard hem tegenhield.
          */
-        $middleware->redirectGuestsTo(fn (\Illuminate\Http\Request $request) => $request->is('beheer', 'beheer/*')
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('beheer', 'beheer/*')
             ? route('landlord.login')
             : route('login'));
 
@@ -113,6 +130,21 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
+            /**
+             * Een verzoek dat hier langskomt eindigt als een omleiding met een
+             * melding erbij. Ziet iemand die melding niet -- een sjabloon dat
+             * de sleutel niet toont, een pagina uit de cache -- dan gebeurt er
+             * ogenschijnlijk niets: geen fout, geen regel, geen resultaat.
+             * Daarom hier wel een regel, zodat het altijd ergens staat.
+             */
+            if (in_array($response->getStatusCode(), [403, 419], true) && !$request->expectsJson()) {
+                Log::warning('Verzoek geweigerd', [
+                    'status' => $response->getStatusCode(),
+                    'methode' => $request->method(),
+                    'pad' => $request->path(),
+                ]);
+            }
+
             if ($response->getStatusCode() === 403 && !$request->expectsJson()) {
                 return redirect()->back()->with('error', 'U heeft geen toestemming om deze actie uit te voeren.');
             }
