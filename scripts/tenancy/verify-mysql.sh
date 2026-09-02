@@ -197,8 +197,10 @@ else
                 fail "the account may create a database but not hand out rights on it, so creating
         a tenant fails halfway:
         ${GRANT_ERROR}
-        Fix: GRANT USAGE ON *.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
-        That adds no access, only the right to pass on privileges it already holds."
+        MariaDB weighs a GRANT naming one database against an exact entry, not
+        against the wildcard this account holds. Widening it enough to satisfy
+        that means privileges on every database -- which is the one thing this
+        account must not have. See docs/tenancy-productie.md."
             fi
         fi
     else
