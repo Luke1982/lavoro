@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\DestroyProvisioningRequestRequest;
 use App\Http\Requests\Landlord\DestroyTenantRequest;
 use App\Http\Requests\Landlord\StoreTenantRequest;
 use App\Http\Requests\Landlord\UpdateTenantRequest;
@@ -134,6 +135,21 @@ class TenantController extends Controller
                     . ' staat klaar voor de volgende factuur.'
                 : ''),
         );
+    }
+
+    /**
+     * Een mislukte aanvraag blijft in het paneel staan tot iemand hem weghaalt.
+     * Dat is de bedoeling -- anders verdwijnt de reden waarom het misging -- maar
+     * dan moet hij er ook weg kunnen als het opgelost is.
+     */
+    public function destroyProvisioningRequest(DestroyProvisioningRequestRequest $request, int $id)
+    {
+        TenantProvisioningRequest::on('central')
+            ->where('id', $id)
+            ->where('status', 'failed')
+            ->delete();
+
+        return back()->with('status', 'Mislukte aanvraag weggehaald.');
     }
 
     public function storeTenant(StoreTenantRequest $request)

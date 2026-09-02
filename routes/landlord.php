@@ -40,6 +40,8 @@ Route::prefix('beheer')
             Route::delete('tenants/{tenant}', [TenantController::class, 'destroyTenant'])->name('landlord.tenant.destroy');
             Route::delete('aanvraag/{request}/wachtwoord', [TopupController::class, 'forgetProvisioningPassword'])
                 ->name('landlord.provisioning.forget-password');
+            Route::delete('aanvraag/{request}', [TenantController::class, 'destroyProvisioningRequest'])
+                ->name('landlord.provisioning.destroy');
             Route::get('incasso', [CollectionController::class, 'collections'])->name('landlord.collections');
             Route::post('incasso', [CollectionController::class, 'exportCollection'])->name('landlord.collections.export');
             Route::get('{tenant}/facturen', [InvoiceController::class, 'invoices'])->name('landlord.invoices');
