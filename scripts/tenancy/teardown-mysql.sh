@@ -97,6 +97,10 @@ if [ -n "$TENANT_USERS" ]; then
 fi
 
 sql_root "DROP DATABASE IF EXISTS \`${LANDLORD_DB}\`;"
+# Ook de database met de procedure die klantlogins hun rechten geeft. Blijft die
+# staan, dan lijkt een volgende installatie schoon terwijl er nog een procedure
+# van de vorige klaarstaat.
+sql_root "DROP DATABASE IF EXISTS \`${ADMIN_DB}\`;"
 sql_root "DROP USER IF EXISTS '${APP_USER}'@'${APP_HOST}';"
 sql_root "DROP USER IF EXISTS '${PROV_USER}'@'${PROV_HOST}';"
 
