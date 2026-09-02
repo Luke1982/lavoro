@@ -200,10 +200,27 @@ class TenancyDoctor extends Command
 
             $age = now()->timestamp - $beat;
 
-            $age > WorkerHeartbeat::STALE_AFTER_MINUTES * 60
-                ? $this->bad("Wachtrij '{$queue}': laatste hartslag "
+            if ($age > WorkerHeartbeat::STALE_AFTER_MINUTES * 60) {
+                $this->bad("Wachtrij '{$queue}': laatste hartslag "
                     . CarbonImmutable::createFromTimestamp($beat)->diffForHumans()
-                    . ". De worker is gestopt. Start '{$command}'.")
+                    . ". De worker is gestopt. Start '{$command}'.");
+
+                continue;
+            }
+
+            /**
+             * Een worker leest .env bij het opstarten en houdt dat vast. Is er
+             * daarna iets veranderd, dan draait hij door op de oude instellingen
+             * terwijl de hartslag gewoon blijft komen -- en loopt alleen het
+             * werk stuk, met een foutmelding die naar instellingen wijst die
+             * inmiddels wel kloppen.
+             */
+            $settings = WorkerHeartbeat::settingsFor($queue);
+
+            $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint()
+                ? $this->bad("Wachtrij '{$queue}': de worker draait op oudere instellingen dan er nu"
+                    . ' in .env staan. Herstart hem, anders werkt hij met wat er bij het opstarten'
+                    . " stond:\n         sudo systemctl restart lavoro-worker lavoro-provisioning")
                 : $this->pass("worker voor '{$queue}' draait");
         }
     }

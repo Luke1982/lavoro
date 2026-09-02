@@ -266,6 +266,18 @@ unattended account — through PHP it would amount to giving away the provisione
 entirely, and it proves the rule actually works before it finishes. Skipping it
 is fine; you then keep typing `sudo -u`.
 
+**A worker reads `.env` once, when it starts.** Change anything afterwards and
+it keeps running on what it had — the heartbeat carries on as if nothing is
+wrong, and only the work fails, pointing at settings that now look correct. So
+after every `.env` change:
+
+```bash
+sudo systemctl restart lavoro-worker lavoro-provisioning
+```
+
+The doctor compares the settings a worker started with against what is in
+`.env` now, and says so when they differ.
+
 Each worker reports in every minute while it runs, and the doctor tells you if
 one has stopped. An empty queue looks exactly like a dead worker, so that
 heartbeat is the only thing that can tell them apart. Wait a minute after this
