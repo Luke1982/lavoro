@@ -252,14 +252,21 @@ fi
 # .env
 # ---------------------------------------------------------------------------
 
+DB_SOCKET="$(detect_socket)"
+DB_PORT="$(detect_port)"
+
+# De sleutels die bij de accounts horen die dit script aanmaakt, en alleen die.
+# De rest van .env is van setup-env.sh.
 ENV_BLOCK="DB_CONNECTION=mysql
 DB_HOST=${APP_HOST}
-DB_PORT=3306
+DB_PORT=${DB_PORT}
 DB_DATABASE=${LANDLORD_DB}
 DB_USERNAME=${APP_USER}
-DB_PASSWORD=\"${APP_PASSWORD}\"
-DB_SOCKET=/var/run/mysqld/mysqld.sock
-SESSION_CONNECTION=central"
+DB_PASSWORD=${APP_PASSWORD}
+DB_SOCKET=${DB_SOCKET}
+SESSION_CONNECTION=central
+DB_PROVISIONER_USERNAME=${PROV_USER}
+DB_PROVISIONER_SOCKET=${DB_SOCKET}"
 
 if [ "$WRITE_ENV" -eq 1 ]; then
     ENV_FILE="$PROJECT_ROOT/.env"
@@ -272,33 +279,32 @@ if [ "$WRITE_ENV" -eq 1 ]; then
         red "  DB_PASSWORD=\"$APP_PASSWORD\""
     fi' ERR
 
-    BACKUP="$ENV_FILE.backup-$(date +%Y-%m-%d_%H-%M-%S)"
-    cp "$ENV_FILE" "$BACKUP"
-    info "==> Patching .env (backup at $(basename "$BACKUP"))"
+    info "==> .env bijwerken"
+    env_backup "$ENV_FILE"
 
     while IFS= read -r line; do
-        key="${line%%=*}"
-        value="${line#*=}"
-        if grep -qE "^${key}=" "$ENV_FILE"; then
-            # The value can contain / and &, so use a delimiter that cannot
-            # appear in an env key and escape the replacement.
-            escaped="$(printf '%s' "$value" | sed -e 's/[\&|]/\\&/g')"
-            sed -i "s|^${key}=.*|${key}=${escaped}|" "$ENV_FILE"
-        else
-            printf '%s\n' "$line" >> "$ENV_FILE"
-        fi
+        env_set "$ENV_FILE" "${line%%=*}" "${line#*=}"
     done <<< "$ENV_BLOCK"
 
+    # Met een wachtwoord of een netwerkadres voor de provisioner kan alles wat
+    # .env kan lezen -- de website incluis -- elke klantdatabase weggooien. Het
+    # account hoort alleen via de socket bereikbaar te zijn, als Linux-gebruiker.
+    env_remove "$ENV_FILE" DB_PROVISIONER_PASSWORD
+    env_remove "$ENV_FILE" DB_PROVISIONER_HOST
+
     trap - ERR
-    green "  .env updated."
+    green "  .env bijgewerkt."
+
     if [ "$APP_PASSWORD_IS_NEW" -eq 0 ] && [ -z "$APP_PASSWORD" ]; then
-        warn "  DB_PASSWORD was left as-is; the existing account's password is unknown to this script."
+        warn "  DB_PASSWORD is niet aangeraakt; dit script kent het wachtwoord van het bestaande account niet."
     fi
 else
-    info "==> Add this to .env"
+    info "==> Zet dit in .env"
     info ""
     printf '%s\n' "$ENV_BLOCK"
+    info ""
+    info "En haal DB_PROVISIONER_PASSWORD en DB_PROVISIONER_HOST weg als ze er staan."
 fi
 
 info ""
-info "Next: scripts/tenancy/verify-mysql.sh"
+info "Hierna: scripts/tenancy/setup-env.sh, daarna php artisan tenancy:doctor"
