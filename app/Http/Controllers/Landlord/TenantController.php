@@ -39,14 +39,28 @@ class TenantController extends Controller
              * anders openstaan en telt de volgende ronde in de database van
              * de vorige.
              */
-            [$field, $office, $used] = Tenancy::within($tenant, fn () => [
-                User::occupyingSeat('field')->count(),
-                User::occupyingSeat('office')->count(),
-                (new StorageQuota)->usedBytes(),
-            ]);
+            /**
+             * Eén klant waar iets mis mee is mag de hele lijst niet meenemen.
+             * Loopt het aanmaken halverwege stuk, dan staat de rij er wel maar
+             * de database niet, en zonder dit stond daarna het hele paneel op
+             * een foutmelding -- juist het scherm waar je die klant weer moet
+             * kunnen opruimen.
+             */
+            try {
+                [$field, $office, $used] = Tenancy::within($tenant, fn () => [
+                    User::occupyingSeat('field')->count(),
+                    User::occupyingSeat('office')->count(),
+                    (new StorageQuota)->usedBytes(),
+                ]);
+                $broken = null;
+            } catch (\Throwable $e) {
+                [$field, $office, $used] = [0, 0, 0];
+                $broken = $e->getMessage();
+            }
 
             return [
                 'tenant' => $tenant,
+                'broken' => $broken,
                 'field' => $field,
                 'field_limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats,
                 'office' => $office,

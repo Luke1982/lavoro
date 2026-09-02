@@ -5,7 +5,11 @@
     <tr><th>Naam</th><th>Pakket</th><th>Buiten</th><th>Binnen</th><th>Opslag</th><th>Per maand</th><th></th></tr>
     @foreach($rows as $row)
         <tr>
-            <td><strong>{{ $row['tenant']->name }}</strong><br><span class="muted">{{ $row['tenant']->getInternal('db_name') }}</span></td>
+            <td>
+                    <strong>{{ $row['tenant']->name }}</strong><br>
+                    <span class="muted">{{ $row['tenant']->getInternal('db_name') }}</span>
+                    @if($row['broken'])<br><span class="warn">{{ $row['broken'] }}</span>@endif
+                </td>
             <td>{{ $row['tenant']->package_key ?? '—' }}</td>
             <td class="{{ $row['field'] > $row['field_limit'] ? 'warn' : '' }}">{{ $row['field'] }}/{{ $row['field_limit'] }}</td>
             <td class="{{ $row['office'] > $row['office_limit'] ? 'warn' : '' }}">{{ $row['office'] }}/{{ $row['office_limit'] }}</td>
