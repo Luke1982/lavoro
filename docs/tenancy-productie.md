@@ -118,6 +118,18 @@ This split is the boundary the whole setup rests on. The doctor tests it by
 actually trying to create a customer database as `lavoro_app` and expecting to
 be refused.
 
+Reading MySQL's privilege tables needs root, which the doctor does not have, so
+that half is checked by a separate script — run it once now:
+
+```bash
+sudo scripts/tenancy/verify-mysql.sh
+```
+
+It records its result where the doctor can read it, so from then on the doctor
+reports what came out and when. Only a complete run counts: without `sudo` it
+skips most checks and leaves the previous result alone. `deploy.sh` runs it
+every time.
+
 ## 4. Configure the application
 
 ```bash
