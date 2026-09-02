@@ -1,13 +1,16 @@
 <?php
 
+use App\Models\Tenant;
+use App\Services\Tenancy\TenantDatabaseManager;
 use App\Tenancy\PrefixCacheBootstrapper;
 use App\Tenancy\TenantStorageBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
+use Stancl\Tenancy\UUIDGenerator;
 
 return [
-    'tenant_model' => App\Models\Tenant::class,
-    'id_generator' => Stancl\Tenancy\UUIDGenerator::class,
+    'tenant_model' => Tenant::class,
+    'id_generator' => UUIDGenerator::class,
     'central_domains' => [],
     'bootstrappers' => [
         DatabaseTenancyBootstrapper::class,
@@ -21,8 +24,8 @@ return [
         'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_tenant_'),
         'suffix' => '',
         'managers' => [
-            'mysql' => env('TENANCY_MYSQL_MANAGER', Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class),
-            'mariadb' => env('TENANCY_MYSQL_MANAGER', Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class),
+            'mysql' => env('TENANCY_MYSQL_MANAGER', TenantDatabaseManager::class),
+            'mariadb' => env('TENANCY_MYSQL_MANAGER', TenantDatabaseManager::class),
         ],
     ],
     'cache' => ['tag_base' => 'tenant'],

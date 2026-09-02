@@ -155,8 +155,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 ]);
             }
 
+            /**
+             * Alleen voor verzoeken die iets wijzigen. Een pagina die zelf
+             * stukloopt terugsturen naar waar hij vandaan kwam is die pagina
+             * opnieuw: dan blijft de browser heen en weer springen tot hij het
+             * opgeeft, en is er van de fout niets meer te zien. Precies dat
+             * gebeurde toen een half aangemaakte klant het beheerpaneel liet
+             * struikelen.
+             */
             $notProd = app()->environment(['local', 'development', 'testing']);
-            if (!$notProd && in_array($response->getStatusCode(), [500, 503, 404])) {
+            if (!$notProd && !$request->isMethodSafe() && in_array($response->getStatusCode(), [500, 503, 404])) {
                 $messages = [
                     500 => 'Er is een serverfout opgetreden. Probeer het later opnieuw.',
                     503 => 'De service is momenteel niet beschikbaar.',
