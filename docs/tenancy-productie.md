@@ -114,9 +114,20 @@ This creates:
 It also writes the provisioner's account name and socket, and removes
 `DB_PROVISIONER_PASSWORD` and `DB_PROVISIONER_HOST` if they are present.
 
+It also creates `lavoro_admin`, holding one stored procedure that hands a new
+customer's login rights on its own database. That indirection is not decoration:
+MySQL and MariaDB weigh a `GRANT` naming one database against an entry matching
+that name exactly, never against the wildcard the provisioner holds. So it can
+create `lavoro_tenant_acme` and cannot grant rights on it, and the only grant
+that would satisfy the check is privileges on every database — precisely what
+this account must never have. The procedure runs as root and refuses any name
+outside the customer namespace. The provisioner holds nothing in `lavoro_admin`
+but permission to call it, so it can never widen it.
+
 This split is the boundary the whole setup rests on. The doctor tests it by
 actually trying to create a customer database as `lavoro_app` and expecting to
-be refused.
+be refused, and `verify-mysql.sh` calls the procedure with the landlord database
+to confirm it says no.
 
 
 Reading MySQL's privilege tables needs root, which the doctor does not have, so

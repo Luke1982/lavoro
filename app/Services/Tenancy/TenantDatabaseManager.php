@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenancy;
 
+use RuntimeException;
+use Stancl\Tenancy\DatabaseConfig;
 use Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager;
 
 /**
@@ -22,5 +24,49 @@ class TenantDatabaseManager extends PermissionControlledMySQLDatabaseManager
     public function userExists(string $username): bool
     {
         return false;
+    }
+
+    /**
+     * Maakt de login van een klant en geeft hem rechten op alleen zijn eigen
+     * database.
+     *
+     * Het uitdelen gaat via een procedure en niet via GRANT hier. MySQL en
+     * MariaDB wegen een GRANT die een database bij naam noemt af tegen een rij
+     * die exact op die naam staat, nooit tegen het jokerteken dat de provisioner
+     * heeft: lavoro_tenant_acme aanmaken lukt, er rechten op uitdelen niet
+     * (fout 1044). De enige toereikende variant zou rechten op elke database
+     * zijn, en juist dat mag dit account niet.
+     *
+     * De procedure draait als degene die hem heeft aangemaakt (root) en weigert
+     * elke naam buiten de klantnaamruimte. Zie scripts/tenancy/setup-mysql.sh.
+     */
+    public function createUser(DatabaseConfig $config): bool
+    {
+        $username = $config->getUsername();
+
+        $this->database()->statement(
+            'CREATE USER `' . $username . '`@`%` IDENTIFIED BY ?', [$config->getPassword()]
+        );
+
+        [$schema, $procedure] = $this->grantProcedure();
+
+        return $this->database()->statement(
+            'CALL `' . $schema . '`.`' . $procedure . '`(?, ?)', [$config->getName(), $username]
+        );
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function grantProcedure(): array
+    {
+        $configured = (string) config('tenancy.database.grant_procedure', 'lavoro_admin.grant_tenant_access');
+        $parts = explode('.', $configured, 2);
+
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+            throw new RuntimeException(
+                "tenancy.database.grant_procedure hoort 'database.procedure' te zijn, niet '{$configured}'."
+            );
+        }
+
+        return $parts;
     }
 }
