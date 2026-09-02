@@ -13,7 +13,6 @@ main{max-width:1100px;margin:24px auto;padding:0 24px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 @media(max-width:900px){.cols{grid-template-columns:1fr}}
 .card h3{margin-top:0}
-.flash-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
     .linkish{background:none;border:0;padding:0;font:inherit;color:#2563eb;cursor:pointer;text-decoration:underline}
     .choice{border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .choice label{display:flex;align-items:center;gap:10px;margin:0;padding:9px 12px;font-weight:400;cursor:pointer}
@@ -32,6 +31,7 @@ button{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radi
 .muted{color:var(--muted)}
 .warn{color:#b91c1c;font-weight:600}
 .flash{background:#dcfce7;border:1px solid #86efac;padding:10px 14px;border-radius:6px;margin-bottom:16px}
+.flash-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
 .err{background:#fee2e2;border:1px solid #fca5a5;padding:10px 14px;border-radius:6px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 </style>
