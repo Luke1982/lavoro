@@ -14,10 +14,19 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
+# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
+# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
+
+preflight_common
+require_commands base64 php
 
 APP_URL_OPT=""
 APP_KEY_OPT=""
@@ -27,6 +36,7 @@ MAIL_USERNAME_OPT=""
 MAIL_FROM_OPT=""
 MAIL_FROM_NAME_OPT=""
 ASSUME_YES=0
+DRY_RUN=0
 
 usage() {
     cat <<'USAGE'
@@ -43,6 +53,7 @@ voorzet. Enter houdt die waarde.
   --mail-from=ADRES
   --mail-from-name=NAAM
   --yes                      Niets vragen; alleen zetten wat is meegegeven
+  --dry-run                  Laat zien wat er gezet zou worden, en schrijf niets
   --help
 
 Het wachtwoord van de mailserver komt uit LANDLORD_MAIL_PASSWORD in de
@@ -61,6 +72,7 @@ while [ $# -gt 0 ]; do
         --mail-from=*)      MAIL_FROM_OPT="${1#*=}" ;;
         --mail-from-name=*) MAIL_FROM_NAME_OPT="${1#*=}" ;;
         --yes|-y)           ASSUME_YES=1 ;;
+        --dry-run)          DRY_RUN=1; ASSUME_YES=1 ;;
         --help|-h)          usage; exit 0 ;;
         *)                  usage; die "Onbekende optie: $1" ;;
     esac
@@ -71,9 +83,25 @@ ENV_FILE="$PROJECT_ROOT/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     [ -f "$PROJECT_ROOT/.env.example" ] || die "Geen .env en geen .env.example in $PROJECT_ROOT."
-    cp "$PROJECT_ROOT/.env.example" "$ENV_FILE"
-    green "Nieuwe .env gemaakt uit .env.example"
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        warn "Er is nog geen .env; die zou uit .env.example gemaakt worden."
+        ENV_FILE="$PROJECT_ROOT/.env.example"
+    else
+        cp "$PROJECT_ROOT/.env.example" "$ENV_FILE"
+        green "Nieuwe .env gemaakt uit .env.example"
+    fi
 fi
+
+# Bij --dry-run alleen laten zien wat er zou komen te staan. Zo is te zien wat
+# er verandert voordat er iets verandert, net als bij de andere scripts.
+set_key() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  %s=%s\n' "$1" "$2"
+    else
+        env_set "$ENV_FILE" "$1" "$2"
+    fi
+}
 
 interactive() {
     [ "$ASSUME_YES" -eq 0 ] && have_tty
@@ -105,7 +133,10 @@ ask() {
 }
 
 info "==> .env bijwerken"
-env_backup "$ENV_FILE"
+
+if [ "$DRY_RUN" -eq 0 ]; then
+    env_backup "$ENV_FILE"
+fi
 
 # ---------------------------------------------------------------------------
 # Wat niet ter discussie staat
@@ -120,13 +151,13 @@ env_backup "$ENV_FILE"
 
 info "  Vaste waarden"
 
-env_set "$ENV_FILE" APP_ENV production
-env_set "$ENV_FILE" APP_DEBUG false
-env_set "$ENV_FILE" SESSION_DRIVER database
-env_set "$ENV_FILE" SESSION_CONNECTION central
-env_set "$ENV_FILE" QUEUE_CONNECTION database
-env_set "$ENV_FILE" CACHE_STORE database
-env_set "$ENV_FILE" MAIL_MAILER tenant
+set_key APP_ENV production
+set_key APP_DEBUG false
+set_key SESSION_DRIVER database
+set_key SESSION_CONNECTION central
+set_key QUEUE_CONNECTION database
+set_key CACHE_STORE database
+set_key MAIL_MAILER tenant
 
 # ---------------------------------------------------------------------------
 # APP_KEY
@@ -148,7 +179,7 @@ key_is_valid() {
 if [ -n "$APP_KEY_OPT" ]; then
     key_is_valid "$APP_KEY_OPT" || die "Die APP_KEY klopt niet. Verwacht 'base64:' met daarachter 32 bytes.
 Neem hem letterlijk over uit de .env van de oude installatie."
-    env_set "$ENV_FILE" APP_KEY "$APP_KEY_OPT"
+    set_key APP_KEY "$APP_KEY_OPT"
     green "  APP_KEY overgenomen."
 elif [ -n "$CURRENT_KEY" ]; then
     info "  APP_KEY stond er al; niet aangeraakt."
@@ -163,8 +194,10 @@ elif interactive; then
 
     if [ -n "$PASTED_KEY" ]; then
         key_is_valid "$PASTED_KEY" || die "Die sleutel klopt niet. Verwacht 'base64:' met daarachter 32 bytes."
-        env_set "$ENV_FILE" APP_KEY "$PASTED_KEY"
+        set_key APP_KEY "$PASTED_KEY"
         green "  APP_KEY overgenomen."
+    elif [ "$DRY_RUN" -eq 1 ]; then
+        info "  Er zou een nieuwe APP_KEY gemaakt worden."
     else
         (cd "$PROJECT_ROOT" && php artisan key:generate --force)
         green "  Nieuwe APP_KEY gemaakt. Bewaar hem: zonder die sleutel is niets meer te lezen."
@@ -181,7 +214,7 @@ info ""
 info "  Adres"
 
 ask APP_URL "  Adres waarop Lavoro draait" "$APP_URL_OPT" "$(env_value APP_URL "$ENV_FILE")"
-if [ -n "$APP_URL" ]; then env_set "$ENV_FILE" APP_URL "$APP_URL"; fi
+if [ -n "$APP_URL" ]; then set_key APP_URL "$APP_URL"; fi
 
 info ""
 info "  Mailserver voor de facturen die jij naar klanten stuurt"
@@ -193,26 +226,32 @@ ask MAIL_USERNAME  "  Gebruikersnaam" "$MAIL_USERNAME_OPT" "$(env_value LANDLORD
 ask MAIL_FROM      "  Afzenderadres" "$MAIL_FROM_OPT"      "$(env_value LANDLORD_MAIL_FROM_ADDRESS "$ENV_FILE")"
 ask MAIL_FROM_NAME "  Afzendernaam"  "$MAIL_FROM_NAME_OPT" "$(env_value LANDLORD_MAIL_FROM_NAME "$ENV_FILE")"
 
-if [ -n "$MAIL_HOST" ];      then env_set "$ENV_FILE" LANDLORD_MAIL_HOST "$MAIL_HOST"; fi
-if [ -n "$MAIL_USERNAME" ];  then env_set "$ENV_FILE" LANDLORD_MAIL_USERNAME "$MAIL_USERNAME"; fi
-if [ -n "$MAIL_FROM" ];      then env_set "$ENV_FILE" LANDLORD_MAIL_FROM_ADDRESS "$MAIL_FROM"; fi
-if [ -n "$MAIL_FROM_NAME" ]; then env_set "$ENV_FILE" LANDLORD_MAIL_FROM_NAME "$MAIL_FROM_NAME"; fi
+if [ -n "$MAIL_HOST" ];      then set_key LANDLORD_MAIL_HOST "$MAIL_HOST"; fi
+if [ -n "$MAIL_USERNAME" ];  then set_key LANDLORD_MAIL_USERNAME "$MAIL_USERNAME"; fi
+if [ -n "$MAIL_FROM" ];      then set_key LANDLORD_MAIL_FROM_ADDRESS "$MAIL_FROM"; fi
+if [ -n "$MAIL_FROM_NAME" ]; then set_key LANDLORD_MAIL_FROM_NAME "$MAIL_FROM_NAME"; fi
 
-env_set "$ENV_FILE" LANDLORD_MAIL_PORT "${MAIL_PORT:-587}"
+set_key LANDLORD_MAIL_PORT "${MAIL_PORT:-587}"
 
 # Het wachtwoord komt uit de omgeving of uit een prompt, nooit van de
 # opdrachtregel: daar staat het in `ps` en in de geschiedenis van de shell.
 MAIL_PASSWORD="${LANDLORD_MAIL_PASSWORD:-}"
 
 if [ -n "$MAIL_PASSWORD" ]; then
-    env_set "$ENV_FILE" LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
+    set_key LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
     info "  Wachtwoord uit LANDLORD_MAIL_PASSWORD overgenomen."
 elif [ -z "$(env_value LANDLORD_MAIL_PASSWORD "$ENV_FILE")" ] && [ -n "$MAIL_HOST" ] && interactive; then
     prompt_password MAIL_PASSWORD "  Wachtwoord van de mailserver"
-    env_set "$ENV_FILE" LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
+    set_key LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
 fi
 
 info ""
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    info "Niets gewijzigd (--dry-run)."
+    exit 0
+fi
+
 green ".env bijgewerkt."
 info ""
 info "Hierna:"

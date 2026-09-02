@@ -13,10 +13,19 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
+# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
+# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
+
+preflight_common
+require_commands visudo install getent php
 
 ADMIN_ACCOUNT=""
 DEPLOY_ACCOUNT=""
@@ -212,6 +221,35 @@ ADMIN_RULE="# /etc/sudoers.d/lavoro-admin
 # Aangemaakt door scripts/tenancy/setup-sudoers.sh
 ${ADMIN_ACCOUNT} ALL=(${PROV_ACCOUNT}) NOPASSWD: ${PHP_COMMANDS}"
 
+# ---------------------------------------------------------------------------
+# Leest sudo deze map uberhaupt?
+# ---------------------------------------------------------------------------
+#
+# /etc/sudoers.d werkt alleen als /etc/sudoers hem binnenhaalt. Oudere sudo
+# schrijft dat als #includedir, sinds 1.9.1 als @includedir, en op een
+# zelfgebouwde of uitgeklede installatie staat het er soms niet. Zonder die
+# regel schrijf je een keurig bestand dat nooit gelezen wordt: er verandert
+# niets en niets zegt waarom.
+
+check_sudoers_include() {
+    if [ ! -r /etc/sudoers ]; then
+        warn "  /etc/sudoers is niet te lezen; of /etc/sudoers.d meetelt is niet na te gaan."
+        return 0
+    fi
+
+    if grep -qE '^[[:space:]]*[@#]includedir[[:space:]]+/etc/sudoers\.d' /etc/sudoers; then
+        return 0
+    fi
+
+    die "/etc/sudoers haalt /etc/sudoers.d niet binnen, dus een bestand daarin doet niets.
+Zet deze regel onderaan /etc/sudoers (met visudo):
+    @includedir /etc/sudoers.d"
+}
+
+if [ "$DRY_RUN" -eq 0 ]; then
+    check_sudoers_include
+fi
+
 info "==> Regels installeren"
 info "  account:     ${ADMIN_ACCOUNT}"
 info "  wordt:       ${PROV_ACCOUNT}"
@@ -236,6 +274,26 @@ fi
 if [ "$DRY_RUN" -eq 1 ]; then
     info "Niets gewijzigd (--dry-run)."
     exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Werkt het ook echt?
+# ---------------------------------------------------------------------------
+#
+# Een regel die visudo goedkeurt kan nog steeds niets doen: het pad naar php
+# kan net anders zijn, een latere regel kan hem overrulen, of sudo leest de map
+# niet. Dat wil je nu weten en niet als er een klant aangemaakt moet worden.
+# Dit is precies wat het commando straks zelf probeert.
+
+info ""
+info "==> Nakijken of de regel werkt"
+
+if sudo -u "$ADMIN_ACCOUNT" sudo -n -u "$PROV_ACCOUNT" "$PHP_PATH" -r 'exit(0);' 2>/dev/null; then
+    green "  ${ADMIN_ACCOUNT} kan zonder wachtwoord ${PROV_ACCOUNT} worden."
+else
+    red "  Het lukt ${ADMIN_ACCOUNT} nog steeds niet om zonder wachtwoord ${PROV_ACCOUNT} te worden."
+    red "  Kijk met: sudo -u ${ADMIN_ACCOUNT} sudo -n -l"
+    exit 1
 fi
 
 info ""

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Deploy voor de multi-tenant installatie.
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+case "$0" in
+    */*) cd "${0%/*}/../.." ;;
+    *)   cd "$PWD" ;;
+esac
 
 step() { printf '\n== %s ==\n' "$1"; }
 

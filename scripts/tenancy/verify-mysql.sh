@@ -14,12 +14,21 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
+# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
+# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
+preflight_common
+
 PASSED=0
+SKIPPED=0
 FAILED=0
 SCRATCH_DB="${TENANT_PREFIX}verify_$$"
 OUTSIDE_DB="lavoro_notatenant_$$"
@@ -45,7 +54,7 @@ done
 
 pass() { green "  PASS  $*"; PASSED=$((PASSED + 1)); }
 fail() { red   "  FAIL  $*"; FAILED=$((FAILED + 1)); }
-skip() { warn  "  SKIP  $*"; }
+skip() { warn  "  SKIP  $*"; SKIPPED=$((SKIPPED + 1)); }
 
 detect_client
 
@@ -238,10 +247,21 @@ fi
 # ---------------------------------------------------------------------------
 
 info ""
-if [ "$FAILED" -eq 0 ]; then
+
+# Overgeslagen controles apart noemen. "All 4 checks passed" onder een lijst
+# waarin de helft is overgeslagen leest als goedkeuring, terwijl juist de
+# controles die root nodig hebben -- de rechten van de accounts -- niet zijn
+# gedaan.
+if [ "$FAILED" -eq 0 ] && [ "$SKIPPED" -eq 0 ]; then
     green "All ${PASSED} checks passed."
     exit 0
 fi
 
-red "${FAILED} check(s) failed, ${PASSED} passed."
+if [ "$FAILED" -eq 0 ]; then
+    warn "${PASSED} passed, ${SKIPPED} skipped -- this was not a full check."
+    warn "Re-run with sudo to include the ones that need a privileged connection."
+    exit 0
+fi
+
+red "${FAILED} check(s) failed, ${PASSED} passed, ${SKIPPED} skipped."
 exit 1

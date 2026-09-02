@@ -10,10 +10,18 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
+# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
+# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
+
+preflight_common
 
 CONFIRMED=0
 DROP_TEST=0
