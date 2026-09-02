@@ -48,6 +48,12 @@ button{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radi
 <main>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="flash flash-bad">{{ session('error') }}</div>@endif
+    {{-- Ook 'message': daar zet de afhandeling van een verlopen pagina (419) zijn
+         uitleg neer. Zonder deze regel leverde een verlopen formulier een
+         herladen pagina op zonder melding, zonder regel in het logboek en zonder
+         dat er iets was aangemaakt -- niet te onderscheiden van een knop die
+         stuk is. --}}
+    @if(session('message'))<div class="flash flash-bad">{{ session('message') }}</div>@endif
     @if($errors->any())<div class="err">{{ $errors->first() }}</div>@endif
     @yield('content')
 </main>
