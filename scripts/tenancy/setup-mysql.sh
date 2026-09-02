@@ -170,6 +170,21 @@ fi
 # single-character wildcard, so `lavoro\_tenant\_%` matches only the tenant
 # namespace, while lavoro_tenant_% would also match lavoroXtenantY.
 #
+# Why a stored procedure hands out the tenant grants
+# --------------------------------------------------
+# Every tenant gets its own MySQL login, restricted to its own database, so one
+# tenant's connection cannot reach another's data. Creating those logins is the
+# provisioner's job -- but MySQL and MariaDB weigh a GRANT naming one database
+# against an entry matching that name exactly, and never against the wildcard
+# this account holds. Creating lavoro_tenant_acme therefore works while granting
+# rights on it fails with 1044, and the only grant that would satisfy the check
+# is privileges on every database: exactly what this account must never have.
+#
+# So the grant is issued by a procedure that runs as its creator (root) and
+# refuses any name outside the tenant namespace. It lives in its own database,
+# where the provisioner holds nothing but EXECUTE, so it can call the procedure
+# and never rewrite it into a wider one.
+#
 build_sql() {
     cat <<SQL
 CREATE DATABASE IF NOT EXISTS \`${LANDLORD_DB}\`
@@ -182,6 +197,40 @@ CREATE USER IF NOT EXISTS '${PROV_USER}'@'${PROV_HOST}' ${IDENTIFIED_CLAUSE};
 GRANT ALL PRIVILEGES ON \`${TENANT_PREFIX//_/\\_}%\`.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON \`${LANDLORD_DB//_/\\_}\`.* TO '${PROV_USER}'@'${PROV_HOST}';
 GRANT CREATE USER ON *.* TO '${PROV_USER}'@'${PROV_HOST}';
+
+CREATE DATABASE IF NOT EXISTS \`${ADMIN_DB}\`
+    CHARACTER SET ${CHARSET} COLLATE ${COLLATION};
+DROP PROCEDURE IF EXISTS \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`;
+
+DELIMITER //
+CREATE PROCEDURE \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`(
+    IN tenant_db VARCHAR(64),
+    IN tenant_user VARCHAR(64)
+)
+    SQL SECURITY DEFINER
+    COMMENT 'Geeft een klantlogin rechten op alleen zijn eigen database'
+BEGIN
+    IF tenant_db NOT LIKE '${TENANT_PREFIX//_/\\_}%'
+        OR tenant_db REGEXP '[^a-zA-Z0-9_]'
+        OR tenant_user REGEXP '[^a-zA-Z0-9_]' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Alleen namen binnen de klantnaamruimte, en zonder bijzondere tekens.';
+    END IF;
+
+    SET @grant_statement = CONCAT(
+        'GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, ',
+        'CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, ',
+        'REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE',
+        ' ON \`', tenant_db, '\`.* TO \`', tenant_user, '\`@\`%\`'
+    );
+
+    PREPARE granting FROM @grant_statement;
+    EXECUTE granting;
+    DEALLOCATE PREPARE granting;
+END//
+DELIMITER ;
+
+GRANT EXECUTE ON PROCEDURE \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\` TO '${PROV_USER}'@'${PROV_HOST}';
 
 FLUSH PRIVILEGES;
 SQL

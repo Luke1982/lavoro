@@ -22,6 +22,8 @@ return [
         'central_connection' => 'central',
         'template_tenant_connection' => env('DB_CONNECTION', 'mysql'),
         'prefix' => env('TENANCY_DB_PREFIX', 'lavoro_tenant_'),
+        /** Deelt de rechten van een klantlogin uit; zie scripts/tenancy/setup-mysql.sh. */
+        'grant_procedure' => env('TENANCY_GRANT_PROCEDURE', 'lavoro_admin.grant_tenant_access'),
         'suffix' => '',
         'managers' => [
             'mysql' => env('TENANCY_MYSQL_MANAGER', TenantDatabaseManager::class),

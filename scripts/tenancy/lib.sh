@@ -6,6 +6,11 @@ TENANT_PREFIX="${TENANT_PREFIX:-lavoro_tenant_}"
 APP_USER="${APP_USER:-lavoro_app}"
 APP_HOST="${APP_HOST:-127.0.0.1}"
 PROV_USER="${PROV_USER:-lavoro_provisioner}"
+# Een eigen database voor de procedure die rechten uitdeelt. Met opzet buiten de
+# klantnaamruimte: de provisioner heeft er niets te zoeken behalve die ene
+# procedure aanroepen, en kan hem dus niet vervangen door een ruimere versie.
+ADMIN_DB="${ADMIN_DB:-lavoro_admin}"
+GRANT_PROCEDURE="${GRANT_PROCEDURE:-grant_tenant_access}"
 PROV_HOST="${PROV_HOST:-localhost}"
 TEST_USER="${TEST_USER:-lavoro_test}"
 TEST_DB="${TEST_DB:-lavoro_test_landlord}"

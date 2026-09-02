@@ -170,17 +170,12 @@ else
         pass "can create a database inside the ${TENANT_PREFIX} namespace"
 
         # Een database aanmaken is de helft van het werk. Elke klant krijgt ook
-        # een eigen MySQL-login die alleen bij die ene database mag, en dat
-        # uitdelen vraagt GRANT OPTION op de naamruimte. Alleen het aanmaken
-        # nakijken liet precies dit in productie stuklopen, één stap verder,
-        # met een half aangemaakte klant tot gevolg.
+        # een eigen MySQL-login die alleen bij die ene database mag. Dat
+        # uitdelen doet een procedure die als root draait, omdat een GRANT met
+        # een databasenaam erin niet af te doen is met het jokerteken dat dit
+        # account heeft. Alleen het aanmaken nakijken liet precies dit in
+        # productie stuklopen, met een half aangemaakte klant tot gevolg.
         #
-        # De lijst met rechten is die van de bibliotheek, dus dit is de echte
-        # opdracht en geen vereenvoudigde versie.
-        TENANT_GRANTS="ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES,
-            CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES,
-            SELECT, SHOW VIEW, TRIGGER, UPDATE"
-
         # '|| true' hoort hier: zonder dat neemt een mislukte opdracht onder
         # 'set -e' het hele script mee, en dan valt er niets meer te melden.
         USER_ERROR="$(as_provisioner "CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';" || true)"
@@ -189,20 +184,28 @@ else
             fail "cannot create a MySQL account for a tenant:
         ${USER_ERROR}"
         else
-            GRANT_ERROR="$(as_provisioner "GRANT ${TENANT_GRANTS} ON \`${SCRATCH_DB}\`.* TO \`${SCRATCH_USER}\`@\`%\`;" || true)"
+            GRANT_ERROR="$(as_provisioner "CALL \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`('${SCRATCH_DB}', '${SCRATCH_USER}');" || true)"
 
             if [ -z "$GRANT_ERROR" ]; then
-                pass "can grant a tenant login rights on its own database"
+                pass "can give a tenant login rights on its own database"
             else
-                fail "the account may create a database but not hand out rights on it, so creating
-        a tenant fails halfway:
+                fail "cannot give a tenant login its rights, so creating a tenant fails halfway:
         ${GRANT_ERROR}
-        MariaDB weighs a GRANT naming one database against an exact entry, not
-        against the wildcard this account holds. Widening it enough to satisfy
-        that means privileges on every database -- which is the one thing this
-        account must not have. See docs/tenancy-productie.md."
+        Re-run: sudo scripts/tenancy/setup-mysql.sh"
+            fi
+
+            # De procedure is het enige gaatje in de afscherming, dus dat gaatje
+            # moet zo nauw zijn als bedoeld: buiten de klantnaamruimte hoort hij
+            # te weigeren. Doet hij dat niet, dan kan de provisioner via deze weg
+            # rechten uitdelen op elke database die er is.
+            if as_provisioner "CALL \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`('${LANDLORD_DB}', '${SCRATCH_USER}');" >/dev/null 2>&1; then
+                fail "the grant procedure accepted ${LANDLORD_DB} — it must refuse anything
+        outside the ${TENANT_PREFIX} namespace"
+            else
+                pass "the grant procedure refuses databases outside the ${TENANT_PREFIX} namespace"
             fi
         fi
+
     else
         fail "cannot create ${SCRATCH_DB} — tenant creation will fail"
     fi
