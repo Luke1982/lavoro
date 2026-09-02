@@ -29,6 +29,7 @@ preflight_common
 
 PASSED=0
 SKIPPED=0
+NOT_APPLICABLE=0
 FAILED=0
 SCRATCH_DB="${TENANT_PREFIX}verify_$$"
 OUTSIDE_DB="lavoro_notatenant_$$"
@@ -54,7 +55,11 @@ done
 
 pass() { green "  PASS  $*"; PASSED=$((PASSED + 1)); }
 fail() { red   "  FAIL  $*"; FAILED=$((FAILED + 1)); }
+# Twee soorten overslaan, en het verschil is wezenlijk. Iets niet kunnen
+# nakijken laat een gat achter; iets nakijken dat er nog niet is, niet. Alleen
+# het eerste maakt de uitslag onvolledig.
 skip() { warn  "  SKIP  $*"; SKIPPED=$((SKIPPED + 1)); }
+skip_na() { warn  "  SKIP  $*"; NOT_APPLICABLE=$((NOT_APPLICABLE + 1)); }
 
 detect_client
 
@@ -229,7 +234,7 @@ fi
 if [ "$HAVE_ROOT_DB" -eq 0 ]; then
     skip "cannot read mysql.user without a privileged connection"
 elif [ -z "$TENANT_USERS" ]; then
-    skip "no tenant accounts yet (expected before the first tenant:create)"
+    skip_na "no tenant accounts yet (expected before the first tenant:create)"
 else
     while IFS= read -r tenant_user; do
         [ -n "$tenant_user" ] || continue
@@ -264,12 +269,16 @@ record_outcome() {
     # Een halve run mag een hele niet overschrijven. Zonder root wordt het
     # meeste overgeslagen, en dat zou de uitslag van een eerdere volledige
     # controle wegzetten voor iets dat niets bewijst.
+    #
+    # Controles die niet van toepassing zijn tellen hier niet mee: dat er nog
+    # geen klantaccounts zijn is geen gat in de controle, dat is de situatie.
     if [ "$SKIPPED" -ne 0 ]; then
         return 0
     fi
 
-    printf '{"checked_at":"%s","passed":%d,"failed":%d,"skipped":%d,"by":"%s"}\n' \
-        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PASSED" "$FAILED" "$SKIPPED" "$(id -un)" > "$file" 2>/dev/null || return 0
+    printf '{"checked_at":"%s","passed":%d,"failed":%d,"skipped":%d,"not_applicable":%d,"by":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PASSED" "$FAILED" "$SKIPPED" "$NOT_APPLICABLE" "$(id -un)" \
+        > "$file" 2>/dev/null || return 0
 
     chmod 0644 "$file" 2>/dev/null || true
 }
@@ -283,15 +292,19 @@ info ""
 # controles die root nodig hebben -- de rechten van de accounts -- niet zijn
 # gedaan.
 if [ "$FAILED" -eq 0 ] && [ "$SKIPPED" -eq 0 ]; then
-    green "All ${PASSED} checks passed."
+    if [ "$NOT_APPLICABLE" -eq 0 ]; then
+        green "All ${PASSED} checks passed."
+    else
+        green "All ${PASSED} applicable checks passed (${NOT_APPLICABLE} did not apply yet)."
+    fi
     exit 0
 fi
 
 if [ "$FAILED" -eq 0 ]; then
-    warn "${PASSED} passed, ${SKIPPED} skipped -- this was not a full check."
+    warn "${PASSED} passed, ${SKIPPED} could not be checked -- this was not a full check."
     warn "Re-run with sudo to include the ones that need a privileged connection."
     exit 0
 fi
 
-red "${FAILED} check(s) failed, ${PASSED} passed, ${SKIPPED} skipped."
+red "${FAILED} check(s) failed, ${PASSED} passed, ${SKIPPED} not checked."
 exit 1
