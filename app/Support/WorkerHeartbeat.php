@@ -42,12 +42,53 @@ final class WorkerHeartbeat
             self::$last_written = $now;
 
             Cache::put(self::key($queue), $now, now()->addHour());
+            Cache::put(self::settingsKey($queue), self::settingsFingerprint(), now()->addHour());
         });
     }
 
     public static function key(string $queue): string
     {
         return 'worker_heartbeat:' . $queue;
+    }
+
+    public static function settingsKey(string $queue): string
+    {
+        return 'worker_settings:' . $queue;
+    }
+
+    /**
+     * Een vingerafdruk van de instellingen waarmee deze worker draait.
+     *
+     * Een worker leest .env één keer, bij het opstarten, en houdt dat vast tot
+     * hij herstart. Verandert er daarna iets -- een socketpad erbij, een ander
+     * wachtwoord -- dan draait hij door op wat hij had, terwijl alles wat de
+     * instellingen nu leest denkt dat het klopt. Dat is niet te zien aan de
+     * hartslag: die blijft gewoon komen.
+     *
+     * Alleen wat het werk raakt telt mee, zodat een wijziging elders geen
+     * loos alarm oplevert.
+     */
+    public static function settingsFingerprint(): string
+    {
+        return md5(serialize([
+            config('database.connections.provisioner.username'),
+            config('database.connections.provisioner.unix_socket'),
+            config('database.connections.provisioner.host'),
+            filled(config('database.connections.provisioner.password')),
+            config('database.connections.central.database'),
+            config('database.connections.central.username'),
+            config('database.connections.central.port'),
+            config('queue.default'),
+            config('cache.default'),
+            config('tenancy.database.prefix'),
+        ]));
+    }
+
+    public static function settingsFor(string $queue): ?string
+    {
+        $stored = Cache::get(self::settingsKey($queue));
+
+        return $stored === null ? null : (string) $stored;
     }
 
     public static function beatFor(string $queue): ?int
