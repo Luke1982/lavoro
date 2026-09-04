@@ -134,6 +134,8 @@ class HandleInertiaRequests extends Middleware
              */
             /** Het pakket dat deze klant afneemt, voor de licentiekaart in het menu. */
             'tenant' => tenancy()->initialized ? [
+                /** Voor in de paginatitel: 'Lavoro - <klant> - <module>'. */
+                'name' => tenancy()->tenant->name,
                 'package' => optional(Package::on('central')
                     ->where('key', tenancy()->tenant->package_key)->first())->name,
                 'modules' => tenancy()->tenant->modules ?? [],

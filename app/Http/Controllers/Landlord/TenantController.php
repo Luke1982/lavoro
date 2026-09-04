@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Landlord;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Landlord\DestroyProvisioningRequestRequest;
 use App\Http\Requests\Landlord\DestroyTenantRequest;
+use App\Http\Requests\Landlord\LandlordStatusRequest;
 use App\Http\Requests\Landlord\StoreTenantRequest;
 use App\Http\Requests\Landlord\UpdateTenantRequest;
 use App\Jobs\RunTenantProvisioningRequestJob;
@@ -170,6 +171,29 @@ class TenantController extends Controller
      * Dat is de bedoeling -- anders verdwijnt de reden waarom het misging -- maar
      * dan moet hij er ook weg kunnen als het opgelost is.
      */
+    /**
+     * Een korte samenvatting van wat er loopt, zodat het scherm zichzelf kan
+     * verversen zolang de provisioner bezig is.
+     *
+     * Geen inhoud, alleen een vingerafdruk: verandert die, dan is er iets
+     * gebeurd en haalt de pagina zichzelf opnieuw op. Zo hoeft dit niet te weten
+     * hoe het scherm eruitziet, en blijft er één plek waar dat staat.
+     */
+    public function provisioningStatus(LandlordStatusRequest $request)
+    {
+        $requests = TenantProvisioningRequest::on('central')
+            ->orderBy('id')
+            ->get(['id', 'status'])
+            ->map(fn ($row) => $row->id . ':' . $row->status)
+            ->implode(',');
+
+        return response()->json([
+            'signature' => md5($requests . '|' . Tenant::on('central')->count()),
+            'busy' => TenantProvisioningRequest::on('central')
+                ->whereIn('status', ['queued', 'running'])->exists(),
+        ]);
+    }
+
     public function destroyProvisioningRequest(DestroyProvisioningRequestRequest $request, int $id)
     {
         TenantProvisioningRequest::on('central')
