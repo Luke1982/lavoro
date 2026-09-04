@@ -125,6 +125,17 @@ vervangen door een ruimere versie. Zie `scripts/tenancy/setup-mysql.sh`.
 sudo systemctl restart lavoro-worker lavoro-provisioning
 ```
 
+Hetzelfde geldt voor php onder de webserver: die houdt de gecompileerde code
+vast (opcache). `view:clear` raakt dat niet aan, dus na een pull draait de
+webserver door op de oude klassen terwijl de sjablonen al nieuw zijn -- een
+combinatie die vreemde dingen doet, zoals een scherm dat zichzelf blijft
+herladen omdat de controller een waarde nog niet meestuurt die het sjabloon al
+verwacht.
+
+```bash
+sudo systemctl restart lsphp        # of php8.3-fpm, afhankelijk van de server
+```
+
 Een worker leest `.env` en de code één keer, bij het opstarten, en houdt dat
 vast. Na een `git pull` of een wijziging in `.env` draait hij dus door op wat
 hij had, terwijl de hartslag gewoon blijft komen en alles er gezond uitziet.
