@@ -4,6 +4,13 @@ A working multi-tenant conversion with the Spee production dump imported as a
 tenant. Runs against its own MySQL on port 3307, so it never touches your
 `lavoro_fsm` database or the system MySQL.
 
+**Not the same thing as the test database.** `composer test` runs against the
+system MySQL, set up once with `sudo scripts/tenancy/setup-test-db.sh`, and reads
+its port from `phpunit.xml`. The trial below has its own server on 3307; if that
+one is not running, that is fine — the tests do not use it. Pointing the tests at
+a port where nothing listens is how the suite sat dead for a day while every
+change went straight to a production server.
+
 ## Start
 
 ```bash
