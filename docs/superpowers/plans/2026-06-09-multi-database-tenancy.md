@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task.
 
-**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also holds the licensing model: each tenant's package, extra seats, module subscriptions and storage allowance, a price catalogue that computes each tenant's monthly total, and a landlord admin sub-app (on `beheer.lavorofsm.nl`) to manage it all. Licensing is designed in `docs/superpowers/specs/2026-07-20-tenant-licensing-design.md`; Tasks 4, 6, 16, 19, 21, 26, 33–37 and 39 implement it.
+**Goal:** Add multi-database multi-tenancy to Lavoro using `stancl/tenancy` v3, where a single domain serves all client companies and the correct database is chosen based on who logs in. The central ("landlord") database also holds the licensing model: each tenant's package, extra seats, module subscriptions and storage allowance, a price catalogue that computes each tenant's monthly total, and a landlord admin panel (built under `/beheer`, not on its own subdomain) to manage it all. Licensing is designed in `docs/superpowers/specs/2026-07-20-tenant-licensing-design.md`; Tasks 4, 6, 16, 19, 21, 26, 33–37 and 39 implement it.
 
 **How it works, in plain terms:**
 
@@ -114,6 +114,49 @@ Two consequences of this naming scheme worth knowing up front:
 - A full database backup before running the one-time deployment (Task 27)
 
 **The account setup in Task 2 is scripted** (`scripts/tenancy/setup-mysql.sh`, `verify-mysql.sh`, `teardown-mysql.sh`). Read Task 2 before running anything: the scripts are the same statements written out there, and `--dry-run` prints them without touching the server or needing root.
+
+---
+
+## What was built differently, and why
+
+Written after the first production install. The plan below is the design; these
+are the points where reality argued back and won. Each one cost hours to find,
+because in every case the thing that was wrong looked exactly like the thing
+that was right.
+
+**A namespace-confined account cannot hand out grants.** The plan assumed
+`WITH GRANT OPTION` on `lavoro\_tenant\_%` would let the provisioner give each
+tenant's login rights on its own database. It does not: MySQL and MariaDB weigh a
+`GRANT` naming one database against an entry matching that name *exactly*, never
+against a wildcard. Creating `lavoro_tenant_acme` works; granting on it fails
+with 1044. The only sufficient grant is privileges on every database. Instead, a
+stored procedure in `lavoro_admin` runs as root and refuses any name outside the
+namespace; the provisioner holds nothing there but permission to call it. See
+Task 2.
+
+**The landlord panel is a path, not a subdomain.** `/beheer` on the app's own
+host: one certificate, one vhost, nothing to arrange at install time. The
+separation that matters lives in the middleware, which strips tenancy from those
+routes, not in DNS.
+
+**The installation is scripted, not typed.** `setup-mysql.sh`, `setup-env.sh`,
+`setup-workers.sh`, `setup-sudoers.sh` and `setup-test-db.sh` replace the manual
+steps this plan describes. Every one of them exists because a hand-typed step was
+got wrong once: a socket path that differs per distribution, a port that is not
+3306, a php binary that is a symlink, unit files naming an account that does not
+run the site.
+
+**Everything that can fail quietly now has a check beside it.** `Artisan::call`
+returns an exit code nobody reads, so seeding failed silently and produced
+tenants with one role instead of ten. A web server that cannot write
+`storage/logs` discards every error. A worker keeps the code and `.env` it
+started with. `tenancy:doctor` checks all three, and a new mechanism without a
+check is not finished.
+
+**Creating a tenant rolls itself back.** A failure used to leave a row, a
+database, or a login behind, and the debris changed the error the next attempt
+produced. Cleanup works from the id the call generated -- never from the database
+name, which once deleted a healthy tenant of the same name.
 
 ---
 
@@ -6144,7 +6187,7 @@ git commit -m "feat(tenancy): per-tenant storage quota with nightly reconcile"
 
 ## Task 37: Landlord admin sub-app
 
-A small internal admin on its own subdomain (`beheer.lavorofsm.nl`) for managing the catalogue and every tenant's subscription in a browser. It runs **central-only** — its routes never carry the tenancy middleware — with its own `landlord` guard and `landlord_users` table. It is a thin visual layer over the Task 34 logic and the `TenantSubscription` service; controllers hold no pricing logic.
+A small internal admin for managing the catalogue and every tenant's subscription in a browser. **Built under `/beheer` on the app's own host, not on a separate subdomain** -- one certificate, one vhost, nothing extra to arrange at install time. The separation lives in the middleware rather than in DNS. It runs **central-only** — its routes never carry the tenancy middleware — with its own `landlord` guard and `landlord_users` table. It is a thin visual layer over the Task 34 logic and the `TenantSubscription` service; controllers hold no pricing logic.
 
 Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 34), seat counting (Task 35) and the storage counter (Task 36).
 
@@ -6160,7 +6203,7 @@ Built last: it depends on the catalogue (Task 6/16), the commands' logic (Task 3
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: `App\Models\Central\LandlordUser`; `landlord` auth guard; routes under the `beheer` subdomain.
+- Produces: `App\Models\Central\LandlordUser`; `landlord` auth guard; routes under the `/beheer` prefix.
 
 ### Task 37, Step 1: Create the `landlord_users` central migration and model
 
@@ -6221,10 +6264,10 @@ In `config/auth.php`, add a guard and provider:
 ],
 ```
 
-### Task 37, Step 3: Add the `landlord:create` command
+### Task 37, Step 3: Add the `landlord:user` command
 
 ```php
-protected $signature = 'landlord:create {name} {email} {--password=}';
+protected $signature = 'landlord:user {email} {--name=Beheer} {--password=}';
 
 public function handle(): int
 {
@@ -6238,7 +6281,7 @@ public function handle(): int
 }
 ```
 
-### Task 37, Step 4: Register the landlord route file on the subdomain, without tenancy middleware
+### Task 37, Step 4: Register the landlord route file under /beheer, without tenancy middleware
 
 In `bootstrap/app.php`, load `routes/landlord.php` in `withRouting` via a `then:` closure, wrapping it in the `web` group **minus** `InitializeTenancyBySession`, scoped to the `beheer` domain:
 
@@ -6250,13 +6293,13 @@ In `bootstrap/app.php`, load `routes/landlord.php` in `withRouting` via a `then:
     health: '/up',
     then: function () {
         Route::middleware('web')
-            ->domain(config('app.landlord_domain'))
+            ->prefix('beheer')
             ->group(base_path('routes/landlord.php'));
     },
 )
 ```
 
-Add `'landlord_domain' => env('LANDLORD_DOMAIN', 'beheer.lavorofsm.nl')` to `config/app.php`. Because these routes are registered in the `web` group but **not** appended with `InitializeTenancyBySession` (Task 12 appends that only to the main web group), they never initialize tenancy. Add a feature test asserting the default connection stays `central` through a landlord request.
+No extra configuration: the routes live under the `/beheer` prefix on the app's own host. Because they are registered in the `web` group but **not** appended with `InitializeTenancyBySession` (Task 12 appends that only to the main web group), they never initialize tenancy. Moving to a dedicated host later means changing this one `prefix()` call and adding a vhost; nothing else assumes a host. Add a feature test asserting the default connection stays `central` through a landlord request.
 
 ### Task 37, Step 5: Write the failing access test
 
@@ -6323,7 +6366,7 @@ Expected: PASS, including the assertion that a landlord request never initialize
 
 ### Task 37, Step 10: Operational notes
 
-Add the `beheer.lavorofsm.nl` DNS record and a vhost pointing at the same app; it shares the codebase and central database. Create the first landlord with `php artisan landlord:create "Naam" ops@lavoro.nl`.
+No DNS record or vhost is needed: the panel lives under `/beheer` on the existing host and shares the codebase and central database. Create the first landlord with `php artisan landlord:user ops@lavoro.nl`.
 
 ### Task 37, Step 11: Commit
 
