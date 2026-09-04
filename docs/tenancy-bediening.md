@@ -133,8 +133,12 @@ herladen omdat de controller een waarde nog niet meestuurt die het sjabloon al
 verwacht.
 
 ```bash
-sudo systemctl restart lsphp        # of php8.3-fpm, afhankelijk van de server
+sudo pkill lsphp                    # LiteSpeed: de processen komen vanzelf terug
+sudo systemctl reload php8.3-fpm    # Apache of nginx met php-fpm
 ```
+
+Voor lsphp bestaat geen systemd-unit; die processen worden door LiteSpeed zelf
+opnieuw gestart zodra ze weg zijn.
 
 Een worker leest `.env` en de code één keer, bij het opstarten, en houdt dat
 vast. Na een `git pull` of een wijziging in `.env` draait hij dus door op wat
