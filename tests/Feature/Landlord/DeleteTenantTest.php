@@ -47,8 +47,10 @@ class DeleteTenantTest extends TestCase
         $this->actingAs($this->landlord(), 'landlord')
             ->get(route('landlord.edit', $tenant->id))
             ->assertOk()
-            ->assertSee(route('landlord.tenant.destroy', $tenant->id))
-            ->assertSee('Definitief verwijderen');
+            ->assertInertia(fn ($page) => $page
+                ->component('Landlord/EditPage')
+                ->where('tenant.id', $tenant->id)
+                ->where('tenant.name', $tenant->name));
     }
 
     public function test_a_wrong_name_deletes_nothing(): void

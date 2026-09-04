@@ -124,8 +124,7 @@ class TenantController extends Controller
         /**
          * Lukt het niet in de database van deze klant te komen -- half
          * aangemaakt, half opgeruimd -- dan hoort dit scherm het juist wel te
-         * doen: hier staat de knop waarmee je zo'n klant opruimt. Zonder dit
-         * vangnet was dat een 500 en zat je vast.
+         * doen: hier staat de knop waarmee je zo'n klant opruimt.
          */
         $unreachable = null;
         $superadmins = [];
@@ -136,24 +135,76 @@ class TenantController extends Controller
             $unreachable = $e->getMessage();
         }
 
-        return view('landlord.edit', [
-            'tenant' => $tenant,
-            /**
-             * In centen naar het scherm, niet in euro's of miljoensten: het
-             * scherm rekende zelf om en deed dat op drie plekken net anders.
-             */
-            'ai_spent_cents' => Money::fromMicros($spent),
-            'ai_allowance_cents' => Money::fromMicros($allowance),
-            'ai_is_default' => $tenant->ai_allowance_micros === null,
-            'ai_topup_cents' => Money::fromMicros((int) AiTopup::on('central')
-                ->where('tenant_id', $tenant->id)->sum('granted_micros')),
-            'sub' => new TenantSubscription($tenant),
-            'invoicer' => new Invoicer($tenant),
-            'topups' => AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get(),
-            'topup_rate' => PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
-            'reseller' => $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null,
-            'packages' => Package::on('central')->orderBy('sort_order')->get(),
-            'modules' => Module::on('central')->orderBy('sort_order')->get(),
+        $subscription = new TenantSubscription($tenant);
+        $invoicer = new Invoicer($tenant);
+        $reseller = $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null;
+
+        return inertia('Landlord/EditPage', [
+            'tenant' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'database' => $tenant->getInternal('db_name'),
+                'subscription_started_on' => optional($tenant->subscription_started_on)->format('Y-m-d'),
+                'billing_period' => $tenant->billing_period,
+                'package_key' => $tenant->package_key,
+                'extra_field_seats' => (int) $tenant->extra_field_seats,
+                'extra_office_seats' => (int) $tenant->extra_office_seats,
+                'storage_limit_gb' => (int) $tenant->storage_limit_gb,
+                'modules' => $tenant->modules ?? [],
+                'discount_cents' => (int) $tenant->discount_cents,
+                'discount_percent' => (int) $tenant->discount_percent,
+                'price_override_cents' => $tenant->price_override_cents,
+                'invoice_address' => $tenant->invoice_address,
+                'invoice_email' => $tenant->invoice_email,
+                'invoice_postcode' => $tenant->invoice_postcode,
+                'invoice_city' => $tenant->invoice_city,
+                'vat_number' => $tenant->vat_number,
+                'coc_number' => $tenant->coc_number,
+                'payment_method' => $tenant->payment_method,
+                'iban' => $tenant->iban,
+                'account_holder' => $tenant->account_holder,
+                'mandate_reference' => $tenant->mandate_reference,
+                'mandate_signed_on' => $tenant->mandate_signed_on,
+                'coupon_discount_percent' => (int) $tenant->coupon_discount_percent,
+                'coupon_discount_until' => $tenant->coupon_discount_until,
+            ],
+            'packages' => Package::on('central')->orderBy('sort_order')->get(['key', 'name', 'price_cents']),
+            'modules' => Module::on('central')->orderBy('sort_order')->get(['key', 'name', 'price_cents']),
+            'ai' => [
+                /** In centen naar het scherm: het scherm rekende zelf om, op drie plekken net anders. */
+                'spent_cents' => Money::fromMicros($spent),
+                'allowance_cents' => Money::fromMicros($allowance),
+                'is_default' => $tenant->ai_allowance_micros === null,
+                'topup_cents' => Money::fromMicros((int) AiTopup::on('central')
+                    ->where('tenant_id', $tenant->id)->sum('granted_micros')),
+                'rate_cents' => (int) PricingSetting::value('ai_topup_cents_per_euro_granted', 200),
+            ],
+            'topups' => AiTopup::on('central')->where('tenant_id', $tenant->id)->latest()->get()
+                ->map(fn ($topup) => [
+                    'id' => $topup->id,
+                    'date' => $topup->created_at->format('d-m-Y'),
+                    'paid_cents' => (int) $topup->paid_cents,
+                    'granted_cents' => Money::fromMicros((int) $topup->granted_micros),
+                    'note' => $topup->note,
+                ]),
+            'subscription' => [
+                'before_discount_cents' => $subscription->beforeDiscountCents(),
+                'discount_cents' => $subscription->discountCents(),
+                'total_cents' => $subscription->monthlyTotalCents(),
+                'commission_cents' => $subscription->commissionCents(),
+            ],
+            'billing' => [
+                'next_cents' => $invoicer->preview()['total_cents'],
+                'pending' => $invoicer->pendingCharges()
+                    ->map(fn ($charge) => [
+                        'description' => $charge->description,
+                        'amount_cents' => (int) $charge->amount_cents,
+                    ])->values(),
+            ],
+            'reseller' => $reseller ? [
+                'name' => $reseller->name,
+                'commission_percent' => (int) $reseller->commission_percent,
+            ] : null,
             'superadmins' => $superadmins,
             'unreachable' => $unreachable,
         ]);
