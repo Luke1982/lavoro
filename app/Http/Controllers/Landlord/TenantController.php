@@ -120,6 +120,21 @@ class TenantController extends Controller
         $allowance = (int) ($tenant->ai_allowance_micros
             ?? PricingSetting::value('ai_allowance_micros', 12_500_000));
 
+        /**
+         * Lukt het niet in de database van deze klant te komen -- half
+         * aangemaakt, half opgeruimd -- dan hoort dit scherm het juist wel te
+         * doen: hier staat de knop waarmee je zo'n klant opruimt. Zonder dit
+         * vangnet was dat een 500 en zat je vast.
+         */
+        $unreachable = null;
+        $superadmins = [];
+
+        try {
+            $superadmins = app(TenantSuperAdmins::class)->all($tenant);
+        } catch (\Throwable $e) {
+            $unreachable = $e->getMessage();
+        }
+
         return view('landlord.edit', [
             'tenant' => $tenant,
             /**
@@ -138,7 +153,8 @@ class TenantController extends Controller
             'reseller' => $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null,
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
-            'superadmins' => app(TenantSuperAdmins::class)->all($tenant),
+            'superadmins' => $superadmins,
+            'unreachable' => $unreachable,
         ]);
     }
 
