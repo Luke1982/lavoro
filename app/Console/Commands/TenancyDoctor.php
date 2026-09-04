@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\ProvisionerConnection;
@@ -324,6 +325,21 @@ class TenancyDoctor extends Command
             $missing->isEmpty()
                 ? $this->pass('een fase voor elke vlag')
                 : $this->bad('geen fase voor: ' . $missing->implode(', '));
+
+            /**
+             * De rollen komen uit het zaaien, en dat kan stil mislukken -- de
+             * bibliotheek kijkt niet naar de exitcode. Een klant zonder rollen
+             * ziet er verder gezond uit: je kunt inloggen, en pas als er iemand
+             * bij moet blijkt dat er niets toe te kennen valt.
+             */
+            $expected = array_keys(include base_path('database/seeders/data/tenant_roles.php'));
+            $absent = array_diff($expected, Role::pluck('name')->all());
+
+            $absent === []
+                ? $this->pass(count($expected) . ' rollen aanwezig')
+                : $this->bad('rollen ontbreken: ' . implode(', ', $absent)
+                    . '. Het zaaien is niet gelukt; herstellen met:' . "\n"
+                    . "         php artisan tenants:seed --tenants={$tenant->id}");
 
             $users = User::withTrashed()->pluck('email');
             $known = DB::connection('central')->table('user_tenant_lookups')
