@@ -11,6 +11,62 @@ one is not running, that is fine — the tests do not use it. Pointing the tests
 a port where nothing listens is how the suite sat dead for a day while every
 change went straight to a production server.
 
+## Een volledige installatie hier draaien
+
+Niet de suite maar de echte applicatie, met werkende workers, om een klant
+aan te maken en weer weg te gooien zoals dat op een server gaat.
+
+```bash
+sudo scripts/tenancy/setup-test-db.sh          # eenmalig
+
+cat > .env.localtest <<'ENV'
+APP_NAME=Lavoro
+APP_ENV=localtest
+APP_DEBUG=false
+APP_URL=http://127.0.0.1:8199
+APP_KEY=
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lavoro_test_install
+DB_USERNAME=lavoro_test
+DB_PASSWORD=lavoro_test
+DB_PROVISIONER_USERNAME=lavoro_test
+DB_PROVISIONER_PASSWORD=lavoro_test
+DB_PROVISIONER_HOST=127.0.0.1
+TENANCY_DB_PREFIX=lavoro_test_tenant_
+TENANCY_GRANT_PROCEDURE=lavoro_test_admin.grant_tenant_access
+SESSION_DRIVER=database
+SESSION_CONNECTION=central
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+MAIL_MAILER=log
+ENV
+
+mysql -h 127.0.0.1 -u lavoro_test -plavoro_test \
+    -e "CREATE DATABASE IF NOT EXISTS lavoro_test_install"
+
+php artisan --env=localtest key:generate --force
+php artisan --env=localtest migrate --force
+php artisan --env=localtest landlord:user jij@local.test
+```
+
+Starten -- `APP_ENV` moet in de omgeving staan en niet als `--env`, want de
+webserver die `serve` opstart erft die vlag niet en leest dan gewoon `.env`:
+
+```bash
+APP_ENV=localtest php artisan serve --port=8199 &
+APP_ENV=localtest php artisan queue:work --queue=provisioning --tries=1 --sleep=1 &
+APP_ENV=localtest php artisan queue:work --sleep=1 &
+```
+
+Dan http://127.0.0.1:8199/beheer. Hiermee is de hele keten na te lopen: een
+klant aanmaken, zien dat de worker hem oppakt, het paneel zichzelf zien
+verversen, en hem weer verwijderen. Dat hoort hier te gebeuren en niet op een
+server met klanten erop.
+
+Opruimen: `php artisan --env=localtest tenancy:doctor` wijst de resten aan.
+
 ## Start
 
 ```bash
