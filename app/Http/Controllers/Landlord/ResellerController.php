@@ -65,6 +65,10 @@ class ResellerController extends Controller
             $coupon = app(CouponRedeemer::class)
                 ->redeem(strtoupper(trim($request->input('code'))), $tenant);
         } catch (\RuntimeException $e) {
+            /**
+             * Hier wel zelf vangen en niet centraal: de melding hoort bij het
+             * veld waar de code in staat, en niet als losse balk bovenaan.
+             */
             return back()->withErrors(['code' => $e->getMessage()]);
         }
 

@@ -18,12 +18,9 @@ class SuperAdminController extends Controller
         $tenant = Tenant::on('central')->findOrFail($id);
         $data = $request->validated();
 
-        try {
-            $password = app(TenantSuperAdmins::class)
-                ->create($tenant, $data['email'], $data['password'] ?? '');
-        } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        /** Een weigering met een reden wordt centraal afgehandeld; zie bootstrap/app.php. */
+        $password = app(TenantSuperAdmins::class)
+            ->create($tenant, $data['email'], $data['password'] ?? '');
 
         return back()->with('status', "Superbeheerder {$data['email']} aangemaakt. Wachtwoord: {$password}");
     }

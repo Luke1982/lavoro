@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Refusal;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -66,11 +67,11 @@ class TenantProvisioner
         if (DB::connection('central')->selectOne(
             'SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME = ?', [$database]
         )) {
-            throw new RuntimeException("De database {$database} bestaat al. Kies een andere naam.");
+            throw new Refusal("De database {$database} bestaat al. Kies een andere naam.");
         }
 
         if (DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->exists()) {
-            throw new RuntimeException("{$email} is al in gebruik bij een andere tenant.");
+            throw new Refusal("{$email} is al in gebruik bij een andere tenant.");
         }
 
         $password = $password ?: Str::password(16);

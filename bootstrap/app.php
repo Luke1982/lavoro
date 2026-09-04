@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\Refusal;
 use App\Http\Middleware\EnsureTenantHasModule;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -81,6 +82,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['google/webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        /**
+         * Een weigering met een leesbare reden gaat terug naar het scherm met
+         * die reden erbij. Zonder dit werd het een 500 en las de gebruiker
+         * "Er is een serverfout opgetreden", terwijl de uitleg al geschreven
+         * was door degene die de weigering gooide.
+         */
+        $exceptions->render(function (Refusal $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->withInput()->with('error', $e->getMessage());
+        });
+
         $exceptions->render(function (AuthorizationException $e, Request $request) {
             if ($request->expectsJson()) {
                 return null;
