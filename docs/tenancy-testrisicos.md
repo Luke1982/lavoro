@@ -112,17 +112,38 @@ Nieuw, en onomkeerbaar in één richting.
   wezen — draai hem na elke mislukte aanvraag.
 - **Worker staat stil.** Dan blijft een aanvraag hangen en lijkt het paneel
   kapot. Doctor slaat aan na een kwartier.
-- **Rechten van de provisioner.** Dit account mag veel: op de proefopstelling
-  `ALL PRIVILEGES ON *.*`, omdat MySQL anders geen rechten kan uitdelen op een
-  nieuwe klantdatabase. `tenancy:doctor` controleert nu allebei de kanten:
-  dat `lavoro_app` géén klantdatabase kan maken of weggooien, en hoe de
-  provisioner zichzelf bewijst.
-- **De provisioner hangt nog niet aan een Linux-gebruiker.** Op de
-  proefopstelling is het een gewoon account met een wachtwoord in de `.env`, en
-  dat betekent dat alles wat de `.env` leest ook databases kan weggooien. De
-  scheiding is daar een afspraak, geen slot. Dit is een inrichtingsstap voor
-  productie (taak 2 van het plan) en de doctor meldt hem als fout tot hij
-  gedaan is.
+- **Rechten van de provisioner.** Dit account mag met opzet alleen bij
+  `lavoro_tenant_%`. Rechten uitdelen aan een klantlogin kan het daardoor niet
+  zelf; dat doet een procedure die als root draait en alles buiten de
+  naamruimte weigert. `verify-mysql.sh` probeert die procedure met de
+  landlord-database en verwacht een weigering. Wordt dat gaatje ooit ruimer,
+  dan is de hele afscherming weg zonder dat er iets stukgaat -- dus dat is de
+  controle die nooit mag verdwijnen.
+
+Wat de eerste installatie op productie werkelijk heeft gekost, en waar dus op
+te letten valt:
+
+- **De webserver draait als een ander account dan je denkt.** LiteSpeed draait
+  php als `nobody`, Apache en nginx als `www-data`, en dat hoeft niet het
+  account te zijn waar de bestanden van zijn. Kan dat account niet in
+  `storage/logs` schrijven, dan verdwijnt elke fout uit een webverzoek zonder
+  spoor: geen pagina, geen regel, niets om op te zoeken. Een knop doet dan
+  gewoon niets. De doctor leest af als wie de webserver draait en controleert
+  het.
+- **Een halve aanmaak laat rommel achter.** Een rij zonder database, een
+  database zonder login, of mappen in `storage/` van een klant die niet meer
+  bestaat. Die rommel blokkeert de volgende poging ("die naam bestaat al") en
+  laat een volgende fout op iets heel anders lijken. Het aanmaken draait
+  zichzelf nu terug; de doctor zoekt naar wat er toch blijft staan.
+- **Een worker draait op oude code of oude instellingen.** Php leest alles één
+  keer bij het opstarten. Na een `git pull` of een wijziging in `.env` werkt de
+  worker door met wat hij had, terwijl de hartslag gewoon blijft komen en alles
+  gezond lijkt. De doctor vergelijkt waar de worker mee is opgestart met wat er
+  nu staat.
+- **Een controle die één stap te vroeg stopt.** `verify-mysql.sh` bewees dat de
+  provisioner een database kon maken, maar niet dat hij er een login op kon
+  geven -- precies de stap die het begaf. Bij elke controle hoort de vraag: dekt
+  dit de hele handeling, of alleen het begin ervan?
 
 ## 7. Inloggen en sessies
 

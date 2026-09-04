@@ -230,6 +230,7 @@ CREATE USER IF NOT EXISTS 'lavoro_provisioner'@'localhost' IDENTIFIED WITH auth_
 GRANT ALL PRIVILEGES ON `lavoro\_tenant\_%`.* TO 'lavoro_provisioner'@'localhost' WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON `lavoro\_landlord`.* TO 'lavoro_provisioner'@'localhost';
 GRANT CREATE USER ON *.* TO 'lavoro_provisioner'@'localhost';
+-- plus lavoro_admin and the grant_tenant_access procedure; see below
 FLUSH PRIVILEGES;
 ```
 
@@ -239,7 +240,38 @@ Do not drop the backslashes before the underscores in either grant. An unescaped
 
 Note what is *not* covered: a database that is neither the landlord nor a tenant — a pre-tenancy install, another app's schema — falls outside both patterns, so this account cannot read or drop it. That is what makes the pre-cutover database safe from provisioning mistakes rather than merely untouched by convention.
 
-`WITH GRANT OPTION` is required on the tenant pattern because this account grants each new tenant's **MySQL login** rights on its own database. `CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
+`CREATE USER` must be granted at `*.*` — MySQL does not accept it scoped to a database pattern.
+
+**The grant this account cannot make, and what to do about it.** Each tenant gets its own MySQL login restricted to its own database, and creating that login is the provisioner's job. `WITH GRANT OPTION` on the wildcard was supposed to cover it. It does not, and this cost a full day on the first production install.
+
+When a `GRANT` names one database, MySQL and MariaDB check the grantor's privileges for that name against an entry matching it *exactly*; the wildcard row is consulted for ordinary access only. So the provisioner can `CREATE DATABASE lavoro_tenant_acme` and then cannot grant anything on it — `ERROR 1044`, naming a database it demonstrably has rights to. Adding `GRANT USAGE ON *.* … WITH GRANT OPTION` does not help: the privileges being handed out must satisfy the same exact-name check, so the only sufficient grant is privileges on every database. That is the one thing this account must never have, and it is the whole point of the namespace.
+
+The way out is a stored procedure that runs as its creator:
+
+```sql
+CREATE DATABASE IF NOT EXISTS `lavoro_admin`;
+
+CREATE PROCEDURE `lavoro_admin`.`grant_tenant_access`(IN tenant_db VARCHAR(64), IN tenant_user VARCHAR(64))
+    SQL SECURITY DEFINER
+BEGIN
+    IF tenant_db NOT LIKE 'lavoro\_tenant\_%'
+        OR tenant_db REGEXP '[^a-zA-Z0-9_]'
+        OR tenant_user REGEXP '[^a-zA-Z0-9_]' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'outside the tenant namespace';
+    END IF;
+    -- builds and runs the GRANT for tenant_db to tenant_user
+END;
+
+GRANT EXECUTE ON PROCEDURE `lavoro_admin`.`grant_tenant_access` TO 'lavoro_provisioner'@'localhost';
+```
+
+Created by root, so it runs with root's authority — the `sudo` pattern, or `passwd` editing a file its caller may not touch. It refuses any name outside the namespace, so "runs as root" is bounded to exactly the tenant databases.
+
+**It lives in its own database on purpose.** The provisioner holds `ALL PRIVILEGES` on `lavoro_landlord` and on every tenant database, and that includes dropping and recreating routines. In `lavoro_admin` it holds one thing: permission to call this procedure. It cannot rewrite the check that constrains it. (Replacing the procedure would not hand it root either — recreating a routine with a different definer needs a privilege it lacks — but a guard rail the guarded account can rewrite is not a guard rail worth reasoning about.)
+
+The honest limit: the provisioner chooses both arguments, so it can arrange access for any login on any database inside the namespace, not solely the one it just created. That is not an escalation — it already has full access to every tenant database directly — but the guarantee is "nothing outside `lavoro_tenant_%`", not "only this one tenant".
+
+`verify-mysql.sh` tests the procedure from both sides: that it grants for a tenant database, and that it refuses the landlord database. That procedure is the single deliberate opening in the confinement, so it is the one thing that must never widen unnoticed.
 
 If `auth_socket` is unavailable, install it once: `INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';` (on MySQL 8 the plugin may be named `auth_socket` or `unix_socket` depending on the build).
 
