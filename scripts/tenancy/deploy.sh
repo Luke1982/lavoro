@@ -30,6 +30,26 @@ for DB in $(mysql -N -e "SELECT SCHEMA_NAME FROM information_schema.schemata WHE
 done
 
 step "Code"
+# De build maakt public/service-worker.js opnieuw. Zolang die op deze server nog
+# in git zit, blokkeert zijn eigen wijziging de pull die hem er juist uithaalt.
+for GENERATED in public/service-worker.js; do
+    if git ls-files --error-unmatch "$GENERATED" >/dev/null 2>&1; then
+        git checkout -- "$GENERATED" 2>/dev/null || true
+    fi
+done
+
+# Een pull met --ff-only weigert zodra een gevolgd bestand lokaal gewijzigd is.
+# Dat is terecht, maar de kale git-melding zegt niet welk bestand het is.
+DIRTY=$(git status --porcelain --untracked-files=no)
+if [ -n "$DIRTY" ]; then
+    echo "$DIRTY"
+    echo
+    echo "  Lokale wijzigingen in gevolgde bestanden: de pull zou ze overschrijven."
+    echo "  Bekijk ze met 'git diff' en zet ze terug of leg ze vast, en draai daarna"
+    echo "  deze deploy opnieuw. Er is nog niets uitgerold; de site staat weer aan."
+    exit 1
+fi
+
 git pull --ff-only
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
