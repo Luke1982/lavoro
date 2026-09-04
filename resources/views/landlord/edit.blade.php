@@ -217,5 +217,36 @@
     </form>
 </div>
 </div>
+
+@if($unreachable)
+    <div class="flash flash-bad" style="margin-top:22px">
+        De database van deze klant is niet bereikbaar, dus een deel van dit scherm
+        blijft leeg: <span class="warn">{{ $unreachable }}</span><br>
+        Hieronder kun je hem opruimen.
+    </div>
+@endif
+
+<div class="card" style="max-width:100%;margin-top:22px;border-color:#fca5a5">
+    <h3 class="warn">Klant verwijderen</h3>
+    <p class="muted" style="margin:0 0 10px">
+        Dit gooit de database van {{ $tenant->name }} weg, het databaseaccount, de
+        bestanden en de centrale rijen. Er is geen weg terug en er is geen
+        prullenbak. Tik de naam letterlijk over om te bevestigen.
+    </p>
+    <form method="post" action="{{ route('landlord.tenant.destroy', $tenant->id) }}">
+        @csrf @method('delete')
+        <div class="grid">
+            <div>
+                <label>Naam van de klant</label>
+                <input type="text" name="confirm_name" placeholder="{{ $tenant->name }}"
+                    autocomplete="off" required>
+            </div>
+            <div style="display:flex;align-items:flex-end">
+                <button type="submit" style="background:#b91c1c">Definitief verwijderen</button>
+            </div>
+        </div>
+    </form>
 </div>
+</div>
+
 @endsection
