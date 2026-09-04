@@ -658,11 +658,11 @@ class TenancyDoctor extends Command
                 . ' de webserver ook -- kan daarmee de database van elke klant weggooien.');
         }
 
+        $this->checkGrantProcedure($username);
         $this->checkProvisionerLinuxUser($username, $password);
         $this->checkElevation($username);
         $this->checkProvisionerCanWriteStorage($username);
         $this->checkWebServerCanLog();
-
     }
 
     /**
@@ -947,11 +947,8 @@ class TenancyDoctor extends Command
             return;
         }
 
-        $dsn = 'mysql:unix_socket=' . $socket . ';dbname=' . $database;
-
         $status = ProvisionerConnection::phpAsProvisioner(
-            'try { new PDO(' . var_export($dsn, true) . ', ' . var_export($username, true) . ', "");'
-            . ' exit(0); } catch (Throwable $e) { exit(1); }'
+            'try { ' . $this->provisionerPdo($username) . ' exit(0); } catch (Throwable $e) { exit(1); }'
         );
 
         $status === 0
@@ -959,6 +956,75 @@ class TenancyDoctor extends Command
             : $this->bad("MySQL-account {$username} komt niet binnen via {$socket}. Bestaat het account,"
                 . ' en hangt het aan de Linux-gebruiker met dezelfde naam?'
                 . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh');
+    }
+
+    /** Php dat als de provisioner een verbinding opzet; laat $pdo achter. */
+    private function provisionerPdo(string $username): string
+    {
+        $dsn = 'mysql:unix_socket=' . config('database.connections.provisioner.unix_socket')
+            . ';dbname=' . config('database.connections.provisioner.database');
+
+        return '$pdo = new PDO(' . var_export($dsn, true) . ', ' . var_export($username, true) . ', "");';
+    }
+
+    /**
+     * De procedure die een klantlogin zijn rechten geeft.
+     *
+     * Zonder die procedure lukt het aanmaken van een klant tot en met de
+     * database en strandt het daarna -- terwijl alles hierboven in orde is. Ze
+     * wordt daarom aangeroepen met de landlord-database: dat hoort geweigerd te
+     * worden, en aan hoe hij weigert is te zien of hij er is en of zijn
+     * controle nog klopt. Er verandert niets: een weigering is het doel.
+     */
+    private function checkGrantProcedure(string $username): void
+    {
+        $procedure = (string) config('tenancy.database.grant_procedure', 'lavoro_admin.grant_tenant_access');
+        [$schema, $name] = array_pad(explode('.', $procedure, 2), 2, '');
+
+        if ($schema === '' || $name === '') {
+            $this->bad("tenancy.database.grant_procedure hoort 'database.procedure' te zijn,"
+                . " niet '{$procedure}'.");
+
+            return;
+        }
+
+        $forbidden = (string) config('database.connections.central.database');
+        $call = 'CALL `' . $schema . '`.`' . $name . '`(' . var_export($forbidden, true) . ", 'doctor_probe')";
+
+        /**
+         * Draaien we zelf al als de provisioner, dan kan de proef rechtstreeks.
+         * Anders via sudo. Zonder dat onderscheid werd deze controle juist
+         * overgeslagen op de machine waar hij het makkelijkst te doen is.
+         */
+        if (ProvisionerConnection::linuxUser() === $username) {
+            try {
+                DB::connection('provisioner')->statement($call);
+                $status = 2;
+            } catch (\Throwable $e) {
+                $status = (string) $e->getCode() === '45000' ? 0 : 3;
+            }
+        } elseif (ProvisionerConnection::canElevate()) {
+            $status = ProvisionerConnection::phpAsProvisioner(
+                'try { ' . $this->provisionerPdo($username)
+                . ' $pdo->exec(' . var_export($call, true) . ');'
+                . ' exit(2); } catch (Throwable $e) { exit((string) $e->getCode() === "45000" ? 0 : 3); }'
+            );
+        } else {
+            $this->skip("Of {$procedure} bestaat en nog steeds weigert wat hij hoort te weigeren is"
+                . ' hiervandaan niet te zien.');
+
+            return;
+        }
+
+        match ($status) {
+            0 => $this->pass("{$procedure} bestaat en weigert alles buiten de klantnaamruimte"),
+            2 => $this->bad("{$procedure} deelde rechten uit op {$forbidden}. Hij hoort alles buiten"
+                . ' de klantnaamruimte te weigeren; zo kan de provisioner overal rechten op geven.'
+                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh'),
+            default => $this->bad("{$procedure} is niet aan te roepen. Zonder die procedure komt een"
+                . ' nieuwe klant tot en met de database en strandt het daarna.'
+                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh'),
+        };
     }
 
     /**
