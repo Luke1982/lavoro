@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\IssueInvoiceRequest;
+use App\Http\Requests\Landlord\MailInvoiceRequest;
 use App\Models\Central\Invoice;
 use App\Models\Tenant;
 use App\Services\InvoiceDocuments;
@@ -33,7 +35,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function issueInvoice(string $id)
+    public function issueInvoice(IssueInvoiceRequest $request, string $id)
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
@@ -44,7 +46,7 @@ class InvoiceController extends Controller
     }
 
     /** Handmatig: er hoort eerst iemand naar de factuur gekeken te hebben. */
-    public function mailInvoice(string $id, int $invoice_id)
+    public function mailInvoice(MailInvoiceRequest $request, string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 

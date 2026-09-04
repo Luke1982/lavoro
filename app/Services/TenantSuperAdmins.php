@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Refusal;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -9,7 +10,6 @@ use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 /**
  * De accounts waarmee MajorLabel zelf in de database van een klant kan.
@@ -29,7 +29,7 @@ class TenantSuperAdmins
         $lookup = DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->first();
 
         if ($lookup && $lookup->tenant_id !== $tenant->id) {
-            throw new RuntimeException("{$email} is al in gebruik bij een andere tenant.");
+            throw new Refusal("{$email} is al in gebruik bij een andere tenant.");
         }
 
         return Tenancy::within($tenant, function () use ($email, $password, $name) {

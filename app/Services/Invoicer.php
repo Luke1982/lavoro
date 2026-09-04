@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Refusal;
 use App\Models\Central\Invoice;
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\PendingCharge;
@@ -186,7 +187,7 @@ class Invoicer
          * in een doorlopende reeks die de boekhouding niet kan overslaan.
          */
         if ($preview['lines'] === []) {
-            throw new \RuntimeException('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
+            throw new Refusal('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
         }
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {

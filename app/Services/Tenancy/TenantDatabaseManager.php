@@ -42,17 +42,40 @@ class TenantDatabaseManager extends PermissionControlledMySQLDatabaseManager
      */
     public function createUser(DatabaseConfig $config): bool
     {
-        $username = $config->getUsername();
+        $username = (string) $config->getUsername();
 
-        $this->database()->statement(
-            'CREATE USER `' . $username . '`@`%` IDENTIFIED BY ?', [$config->getPassword()]
-        );
+        /**
+         * De naam gaat ongequote de opdracht in, dus hij moet onverdacht zijn.
+         * De generator levert alleen letters en cijfers; staat er ooit iets
+         * anders, dan stopt het hier en niet halverwege een CREATE USER.
+         */
+        if (preg_match('/[^A-Za-z0-9_]/', $username)) {
+            throw new RuntimeException("Ongeldige naam voor een klantlogin: '{$username}'.");
+        }
+
+        /**
+         * Geen ? voor het wachtwoord: CREATE USER is DDL en die neemt geen
+         * plaatshouders aan -- MySQL struikelt dan letterlijk over het
+         * vraagteken. Het wachtwoord wordt daarom door PDO zelf van
+         * aanhalingstekens voorzien.
+         */
+        $password = $this->database()->getPdo()->quote((string) $config->getPassword());
+
+        $this->database()->statement("CREATE USER `{$username}`@`%` IDENTIFIED BY {$password}");
 
         [$schema, $procedure] = $this->grantProcedure();
 
-        return $this->database()->statement(
-            'CALL `' . $schema . '`.`' . $procedure . '`(?, ?)', [$config->getName(), $username]
-        );
+        /**
+         * Ook hier zonder plaatshouders. Een CALL neemt ze wel aan, maar beide
+         * waarden zijn hierboven al nagelopen en de procedure kijkt ze zelf nog
+         * eens na, dus er valt niets te winnen -- en het aanmaken van een klant
+         * is geen plek om te ontdekken dat een aanname over plaatshouders niet
+         * klopte.
+         */
+        $pdo = $this->database()->getPdo();
+        $arguments = $pdo->quote((string) $config->getName()) . ', ' . $pdo->quote($username);
+
+        return $this->database()->statement("CALL `{$schema}`.`{$procedure}`({$arguments})");
     }
 
     /** @return array{0: string, 1: string} */
