@@ -1,0 +1,422 @@
+# Installing Lavoro on a new server
+
+Follow these steps in order.
+
+After every step, run:
+
+```bash
+php artisan tenancy:doctor
+```
+
+That command is the check. It looks at the database accounts and their
+privileges, the PHP extensions, the `.env`, both background workers, the
+scheduler, your invoice details and every customer database. It prints what is
+wrong and what to do about it, and exits with an error code so a script stops
+on it. If it reports a problem, fix that before moving on.
+
+It will complain about things that are not set up yet. That is expected — work
+down the list and the complaints disappear one by one.
+
+## Which account runs what
+
+Three identities, and mixing them up costs an afternoon:
+
+| | Runs |
+| --- | --- |
+| **root** | Anything with `sudo` in front of it here: creating accounts, `setfacl`, `systemctl`, `crontab`. |
+| **the app account** (the user owning the checkout — `lavoro` in these examples) | `git`, `composer`, `npm`, and every `php artisan` command. No `sudo`: it is deliberately not a sudoer. |
+| **lavoro_provisioner** | Only creates and deletes customer databases. You never log in as this one. Tenant commands become it by themselves once step 6 is done. |
+
+If a command asks for a password, you are running it as the wrong account.
+Logged in as the app account, `php artisan …` needs no `sudo` at all — it is
+already that user.
+
+Written for MariaDB 10.11 and PHP 8.3. Where MySQL differs, it says so.
+
+Budget an hour, plus however long the database dump takes. Your existing
+installation keeps running until step 7, so everything before that is safe.
+
+---
+
+## Before you start
+
+Have these ready:
+
+- Root or sudo access on the new server
+- A database account that can create users and grant privileges
+- The path to your existing Lavoro installation
+- **The `APP_KEY` from the old installation's `.env`.** Copy it, do not
+  generate a new one. That key decrypts every stored Google connection and
+  every encrypted field. Without it that data is unreadable.
+- The company name as it should appear on invoices
+- A database backup you have restored somewhere and seen working
+
+## 1. Get the code
+
+```bash
+sudo mkdir -p /var/www/lavoro
+sudo chown "$USER" /var/www/lavoro
+git clone <repository-url> /var/www/lavoro
+cd /var/www/lavoro
+
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+```
+
+## 2. Check socket login is available
+
+Lavoro uses two database accounts. One of them logs in without a password,
+using the Linux user it belongs to. Check the server can do that:
+
+```sql
+SELECT plugin_name, plugin_status, plugin_library
+  FROM information_schema.plugins
+ WHERE plugin_name IN ('unix_socket', 'auth_socket');
+```
+
+**On MariaDB this is almost always already `ACTIVE`.** Since 10.4 the plugin is
+compiled into the server, so `plugin_library` is NULL and there is nothing to
+install. `INSTALL SONAME 'auth_socket'` then fails with "cannot open shared
+object file" — not because something is missing, but because there is no
+separate file to load. If the query shows `ACTIVE`, this step is done.
+
+**On MySQL** it usually needs switching on once:
+
+```sql
+INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';
+```
+
+That survives a restart.
+
+If neither server reports the plugin at all, install the matching server
+package — check `SELECT @@plugin_dir` to see where it would live.
+
+The next step picks the right syntax for your server by itself: MariaDB wants
+`IDENTIFIED VIA unix_socket`, MySQL wants `IDENTIFIED WITH auth_socket`.
+
+## 3. Create the database accounts
+
+```bash
+sudo scripts/tenancy/setup-mysql.sh --dry-run    # prints the SQL, changes nothing
+sudo scripts/tenancy/setup-mysql.sh --write-env  # actually does it
+```
+
+This creates:
+
+- the central database, `lavoro_landlord`
+- `lavoro_app`, with a password. The website runs as this account and it can
+  only touch that one database.
+- the Linux user `lavoro_provisioner` and a matching database account with no
+  password, tied to that Linux user. This is the only account that can create
+  and delete customer databases.
+
+`--write-env` writes the results into `.env` and backs up the old file first.
+It also writes the provisioner's account name and socket, and removes
+`DB_PROVISIONER_PASSWORD` and `DB_PROVISIONER_HOST` if they are present.
+
+It also creates `lavoro_admin`, holding one stored procedure that hands a new
+customer's login rights on its own database. That indirection is not decoration:
+MySQL and MariaDB weigh a `GRANT` naming one database against an entry matching
+that name exactly, never against the wildcard the provisioner holds. So it can
+create `lavoro_tenant_acme` and cannot grant rights on it, and the only grant
+that would satisfy the check is privileges on every database — precisely what
+this account must never have. The procedure runs as root and refuses any name
+outside the customer namespace. The provisioner holds nothing in `lavoro_admin`
+but permission to call it, so it can never widen it.
+
+This split is the boundary the whole setup rests on. The doctor tests it by
+actually trying to create a customer database as `lavoro_app` and expecting to
+be refused, and `verify-mysql.sh` calls the procedure with the landlord database
+to confirm it says no.
+
+
+Reading MySQL's privilege tables needs root, which the doctor does not have, so
+that half is checked by a separate script — run it once now:
+
+```bash
+sudo scripts/tenancy/verify-mysql.sh
+```
+
+It records its result where the doctor can read it, so from then on the doctor
+reports what came out and when. Only a complete run counts: without `sudo` it
+skips most checks and leaves the previous result alone. `deploy.sh` runs it
+every time.
+
+## 4. Configure the application
+
+```bash
+scripts/tenancy/setup-env.sh
+```
+
+It asks three things: the address Lavoro runs on, the `APP_KEY` of your old
+installation, and the mail server you send invoices from. Everything else it
+sets by itself — the queue, session, cache and mail settings that tenancy
+depends on are not preferences, and the script does not offer them as choices.
+
+**Have the old `APP_KEY` ready and paste it when asked.** It decrypts every
+stored Google connection, every customer database password and every encrypted
+field. Press Enter instead and you get a new key, which makes all of that
+unreadable with no way back. The script checks the key you paste is a real one
+before writing it.
+
+Safe to run again; existing values stay unless you overwrite them. To run it
+unattended:
+
+```bash
+scripts/tenancy/setup-env.sh --yes \
+    --url=https://your-domain.example \
+    --mail-host=smtp.example --mail-from=info@majorlabel.nl
+```
+
+Between this and step 3, every setting the doctor looks at is now in place.
+Two of them are worth knowing about:
+
+- **The provisioner has no password and no host in `.env`,** and step 3 removes
+  them if they are there. With either one present, anything that can read
+  `.env` — the website included — can delete any customer's database.
+- **`MAIL_MAILER=tenant`** means every customer sends mail with their own
+  settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
+  invoices you send to customers.
+
+Then create the tables:
+
+```bash
+php artisan migrate --force
+```
+
+## 5. Create your admin login
+
+```bash
+php artisan landlord:user you@majorlabel.nl
+```
+
+It prints a generated password. This account lives in the central database and
+has nothing to do with any customer's users.
+
+Open `https://your-domain.example/beheer`, log in, and go to
+**Catalogus → Facturatie**. Fill in your address, chamber of commerce number,
+VAT number, IBAN and payment terms. If you will collect by direct debit, add
+the creditor ID your bank issued. The doctor reports these as missing until
+they are filled in.
+
+## 6. Start the background work
+
+```bash
+sudo scripts/tenancy/setup-workers.sh --dry-run   # shows what it will write
+sudo scripts/tenancy/setup-workers.sh
+```
+
+This sets up three things, none of which happen on their own:
+
+- **A worker for ordinary jobs,** running as the account that owns the
+  checkout — the one that cannot create databases.
+- **A worker for provisioning,** running as `lavoro_provisioner` — the only
+  account that can. It runs with `--tries=1` deliberately: retrying a
+  half-created customer fails on "database already exists" and hides the real
+  error.
+- **A cron line for the scheduler.** Without it there are no invoices, no
+  Google Calendar sync, and no work orders from maintenance contracts.
+
+The script reads the account, the path, the PHP binary and the name of the
+database service off the machine rather than assuming them. An installation in
+a home directory runs as a different account than one in `/var/www`, and a unit
+file naming the wrong account starts happily and does nothing.
+
+The provisioning worker creates folders for new customers, so give it write
+access:
+
+```bash
+sudo apt install acl        # setfacl is not installed by default
+sudo setfacl -R -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
+sudo setfacl -R -d -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
+```
+
+**If you installed somewhere under `/home` instead**, permissions on `storage`
+alone are not enough. A home directory is `0750`, so the provisioner cannot
+walk through it to reach anything inside, and no amount of access on `storage`
+changes that. Give it passage on each directory above:
+
+```bash
+sudo setfacl -m u:lavoro_provisioner:x /home/youraccount
+sudo setfacl -m u:lavoro_provisioner:x /home/youraccount/lavoro
+```
+
+The doctor tells the two cases apart and names the exact directories that are
+in the way.
+
+**Check which account your web server runs PHP as**, because it is often not
+the one owning the files:
+
+```bash
+ps -eo user,comm | grep -iE 'lsphp|php-fpm'
+```
+
+LiteSpeed commonly runs as `nobody`, Apache and nginx as `www-data`. Whatever
+it is, it needs to write to `storage` and `bootstrap/cache`:
+
+```bash
+sudo setfacl -R -m u:nobody:rwX storage bootstrap/cache
+sudo setfacl -R -d -m u:nobody:rwX storage bootstrap/cache
+```
+
+Get this wrong and the application cannot write its own log. Errors from the
+browser then vanish with no page, no entry and nothing to search for — a
+button that appears to do nothing at all. The doctor reads the owner of the
+compiled templates to work out which account that is, and says so if it cannot
+write.
+
+Finally, so you do not have to type `sudo -u lavoro_provisioner` in front of
+every tenant command:
+
+```bash
+sudo scripts/tenancy/setup-sudoers.sh
+```
+
+That lets your own account become the provisioner without a password, so the
+commands elevate themselves. It refuses to hand that to `www-data` or any
+unattended account — through PHP it would amount to giving away the provisioner
+entirely, and it proves the rule actually works before it finishes. Skipping it
+is fine; you then keep typing `sudo -u`.
+
+**A worker reads `.env` once, when it starts.** Change anything afterwards and
+it keeps running on what it had — the heartbeat carries on as if nothing is
+wrong, and only the work fails, pointing at settings that now look correct. So
+after every `.env` change:
+
+```bash
+sudo systemctl restart lavoro-worker lavoro-provisioning
+```
+
+The same applies to code: after a `git pull` a worker keeps running the version
+it started with. `deploy.sh` handles this for you; a manual pull does not.
+
+The doctor compares both the settings and the code a worker started with
+against what is on disk now, and says so when they differ.
+
+Each worker reports in every minute while it runs, and the doctor tells you if
+one has stopped. An empty queue looks exactly like a dead worker, so that
+heartbeat is the only thing that can tell them apart. Wait a minute after this
+step before believing the doctor on that point.
+
+**Everything above should now be clean.** Run the doctor and fix anything it
+reports before continuing. What follows involves real customer data.
+
+## 7. Move your existing installation in
+
+From here the old installation is offline. Do this outside working hours.
+
+Take it down and take a fresh backup while nothing is writing to it:
+
+```bash
+cd /path/to/old/lavoro
+php artisan down
+
+mysqldump --single-transaction --routines <old_database> > ~/lavoro-before-move.sql
+```
+
+Keep that dump for at least a week. Then:
+
+```bash
+cd /var/www/lavoro
+
+scripts/tenancy/import-install.sh \
+    --from /path/to/old/lavoro \
+    --name "Customer Name BV" \
+    --slug customername \
+    --package business \
+    --dry-run
+```
+
+Read what it says it will do. If that is right, run it again without
+`--dry-run`.
+
+It copies the old database into `lavoro_tenant_<slug>`, drops the tables that
+are now shared (sessions, cache, jobs), registers the customer, updates the
+schema, copies uploaded files into the customer's folder and sets the package.
+
+**Existing users come across with their own passwords.** The command registers
+their email addresses centrally, which is how logging in finds the right
+customer. You do not need to create anyone.
+
+Run the doctor afterwards. It now also checks this customer: the database, the
+stored password, the login, the required work order stages, that every user has
+a central entry, and that the file folders exist and are writable.
+
+## 8. Test the things a program cannot check
+
+The doctor proves the plumbing. These are the things only a person can see:
+
+- Log in with an existing account and its old password
+- Open the customer list — is the number right?
+- **Open a photo on a work order.** Files move to a different folder during the
+  import. If that went wrong you get no error, just an empty space.
+- Open the planner and check appointments appear. They load over a different
+  route than the rest of the app.
+- Generate a work order PDF
+- Send a test email under **Technisch beheer**
+- Ask the AI assistant a question, if this customer has it
+- In `/beheer`, check the customer shows the right package, seats and storage
+
+## 9. Go live
+
+```bash
+php artisan config:cache route:cache view:cache
+sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
+php artisan up
+```
+
+Leave the old installation in place for a week with its web server switched
+off. Do not delete it.
+
+## 10. Add a second customer
+
+Do this on a quiet day. It is the first time a database gets created for real.
+
+Either use **Nieuwe tenant** in `/beheer`, or:
+
+```bash
+php artisan tenant:create "Second Customer BV" admin@second.example --package=starter
+```
+
+Creating one through the panel queues a job for the provisioning worker. If the
+request stays on "in de wacht", that worker is not running — and the doctor
+will say so. While the worker is busy the panel refreshes itself, so the list
+updates without you reloading.
+
+Removing a customer works the same way: open it with **bewerken** and use the
+red block at the bottom, where the name has to be typed out in full. That
+deletes the database, the login, the files and the central rows, and there is no
+way back.
+
+Then log in as the new customer. You should see an empty installation and,
+above all, *not* the first customer's data. Still logged in as the second
+customer, try to open a file belonging to the first: you should get a 404.
+
+---
+
+## If something goes wrong
+
+| When | What to do |
+| --- | --- |
+| Before step 7 | Nothing is at risk, the old installation is still running. Start over. |
+| The `lavoro_app` password is lost | `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new one and writes it to `.env`. |
+| The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
+| After step 9, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
+
+## Once you are live
+
+- Back up the central database **and every customer database**. A backup of
+  only the central one is a list of names and nothing else.
+- Put `APP_KEY` somewhere safe. It unlocks every customer database password,
+  and without it none of the encrypted data can be read.
+- For each customer, fill in their mail settings under **Technisch beheer**.
+  Until you do, that customer sends no email at all. That is deliberate:
+  sending from another company's mailbox is worse than not sending.
+
+## Related documents
+
+| | |
+| --- | --- |
+| `tenancy-bediening.md` | day to day commands |
+| `tenancy-testrisicos.md` | where this breaks and how you would notice |
+| `superpowers/plans/2026-06-09-multi-database-tenancy.md` | why it is built this way |
