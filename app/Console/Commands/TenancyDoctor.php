@@ -542,10 +542,25 @@ class TenancyDoctor extends Command
      * uitvoeren. Draait die niet, dan blijft een aanvraag stilletjes staan en
      * lijkt het paneel kapot. Dit is de plek waar dat opvalt.
      */
+    /**
+     * Drie losse vragen, elk in een eigen methode. Ze stonden achter elkaar in
+     * één blok en daar zat een 'return' tussen: waren er geen mislukte
+     * aanvragen, dan sloeg de doctor alles daarna over -- het account, de
+     * Linux-gebruiker, het verheffen, de schrijfrechten. Hij werd dus stiller
+     * naarmate er minder mis was, en meldde 'alles in orde' over controles die
+     * niet gedraaid hadden.
+     */
     private function checkProvisioning(): void
     {
         $this->line('Provisioning');
 
+        $this->checkPendingRequests();
+        $this->checkFailedRequests();
+        $this->checkProvisionerAccount();
+    }
+
+    private function checkPendingRequests(): void
+    {
         $requests = TenantProvisioningRequest::on('central')
             ->whereIn('status', ['queued', 'running'])
             ->get();
@@ -555,28 +570,34 @@ class TenancyDoctor extends Command
         if ($stuck->isNotEmpty()) {
             $this->bad($stuck->count() . ' aanvraag(en) staan langer dan een kwartier stil. Draait'
                 . ' "php artisan queue:work --queue=provisioning" als lavoro_provisioner?');
-        } elseif ($requests->isNotEmpty()) {
-            $this->pass($requests->count() . ' aanvraag(en) onderweg.');
-        } else {
-            /**
-             * Geen aanvragen betekent niet dat de worker draait -- dat is
-             * alleen te zien aan werk dat af is gekomen. Zonder dat is dit pad
-             * onbewezen en niet in orde.
-             */
-            $done = TenantProvisioningRequest::on('central')
-                ->where('status', 'done')->exists();
 
-            $done
-                ? $this->pass('Geen aanvragen in de wacht; de worker heeft eerder werk afgerond.')
-                : $this->skip('Geen aanvragen in de wacht, en er is er nog nooit een afgerond -- of de'
-                    . ' worker draait is hiermee niet vast te stellen.');
+            return;
+        }
+
+        if ($requests->isNotEmpty()) {
+            $this->pass($requests->count() . ' aanvraag(en) onderweg.');
+
+            return;
         }
 
         /**
-         * De reden staat in de aanvraag zelf. Die hier tonen scheelt de omweg
-         * langs het beheerpaneel, en juist wie dit vanaf de opdrachtregel
-         * uitzoekt heeft dat paneel niet open.
+         * Geen aanvragen betekent niet dat de worker draait -- dat is alleen te
+         * zien aan werk dat af is gekomen. Zonder dat is dit pad onbewezen en
+         * niet in orde.
          */
+        TenantProvisioningRequest::on('central')->where('status', 'done')->exists()
+            ? $this->pass('Geen aanvragen in de wacht; de worker heeft eerder werk afgerond.')
+            : $this->skip('Geen aanvragen in de wacht, en er is er nog nooit een afgerond -- of de'
+                . ' worker draait is hiermee niet vast te stellen.');
+    }
+
+    /**
+     * De reden staat in de aanvraag zelf. Die hier tonen scheelt de omweg langs
+     * het beheerpaneel, en juist wie dit vanaf de opdrachtregel uitzoekt heeft
+     * dat paneel niet open.
+     */
+    private function checkFailedRequests(): void
+    {
         $failed = TenantProvisioningRequest::on('central')
             ->where('status', 'failed')->orderByDesc('id')->get();
 
@@ -594,8 +615,6 @@ class TenancyDoctor extends Command
         }
 
         $this->line('       Opgelost? Haal ze weg in het beheerpaneel en probeer het opnieuw.');
-
-        $this->checkProvisionerAccount();
     }
 
     /**
@@ -1002,5 +1021,20 @@ class TenancyDoctor extends Command
 
         $unknown->isEmpty() ? $this->pass('geen databases zonder tenant')
             : $this->bad('database zonder tenant: ' . $unknown->implode(', '));
+
+        /**
+         * De mappen van een klant blijven achter als het opruimen halverwege is
+         * blijven steken. Ze doen geen kwaad, maar er kunnen bestanden van een
+         * bedrijf in staan dat allang weg is -- en dat hoort niet stilletjes op
+         * de schijf te blijven liggen.
+         */
+        $folders = collect(File::directories(storage_path()))
+            ->map(fn (string $path) => basename($path))
+            ->filter(fn (string $name) => str_starts_with($name, 'tenant-'))
+            ->reject(fn (string $name) => $ids->contains(substr($name, strlen('tenant-'))));
+
+        $folders->isEmpty() ? $this->pass('geen mappen zonder tenant')
+            : $this->bad('map zonder tenant: ' . $folders->implode(', ')
+                . '. Weg te halen met: rm -rf ' . storage_path($folders->first()));
     }
 }
