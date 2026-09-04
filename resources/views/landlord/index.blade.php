@@ -145,7 +145,18 @@
 
         const poll = async () => {
             try {
-                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                /**
+                 * Met een teller erachter, zodat elke vraag een eigen adres
+                 * heeft. Een service worker die al draait bewaart antwoorden op
+                 * adres; zonder dit kreeg het paneel eeuwig het eerste antwoord
+                 * terug en ververste het nooit. De worker laat /beheer nu met
+                 * rust, maar de oude draait in een browser gewoon door tot hij
+                 * zichzelf vervangt.
+                 */
+                const response = await fetch(url + '?t=' + Date.now(), {
+                    headers: { Accept: 'application/json' },
+                    cache: 'no-store',
+                });
 
                 if (!response.ok) {
                     return stop();

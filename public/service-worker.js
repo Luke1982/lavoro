@@ -1,4 +1,4 @@
-const CACHE_NAME = "lavoro-cache-f2f13c9";
+const CACHE_NAME = "lavoro-cache-67e1aa97";
 const urlsToCache = ["/manifest.json"]; // do NOT pre-cache "/"
 
 self.addEventListener("install", (event) => {
@@ -35,8 +35,16 @@ self.addEventListener("fetch", (event) => {
     if (url.origin !== self.location.origin) return;
 
     // Let the browser handle assets & API/Inertia calls
+    //
+    // /beheer hoort er ook bij. Dat is het beheerpaneel, geen onderdeel van de
+    // app die offline moet werken, en alles hieronder is cache-first: elke GET
+    // die hier langskomt wordt bewaard en daarna uit de cache beantwoord. Het
+    // paneel vraagt elke paar seconden of er iets veranderd is, en kreeg dus
+    // eeuwig hetzelfde antwoord terug -- het ververste nooit, wat je ook deed.
     if (
         url.pathname.startsWith("/build/") ||
+        url.pathname === "/beheer" ||
+        url.pathname.startsWith("/beheer/") ||
         event.request.headers.get("X-Inertia") ||
         url.pathname.startsWith("/api/")
     ) {
