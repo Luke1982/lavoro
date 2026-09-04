@@ -9,6 +9,7 @@ use App\Http\Controllers\Landlord\SuperAdminController;
 use App\Http\Controllers\Landlord\TenantController;
 use App\Http\Controllers\Landlord\TopupController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\HandleLandlordInertiaRequests;
 use App\Http\Middleware\InitializeTenancyBySession;
 use App\Http\Middleware\UseLandlordGuard;
 use Illuminate\Support\Facades\Route;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Route;
  * anders de landlord uitlogt zodra er geen tenant is.
  */
 Route::prefix('beheer')
-    ->middleware(UseLandlordGuard::class)
+    ->middleware([UseLandlordGuard::class, HandleLandlordInertiaRequests::class])
     ->withoutMiddleware([
         InitializeTenancyBySession::class,
         HandleInertiaRequests::class,

@@ -33,7 +33,13 @@ export default defineConfig({
     publicDir: 'public',
     plugins: [
         laravel({
-            input: ["resources/css/app.css", "resources/js/app.js"],
+            input: [
+                "resources/css/app.css",
+                "resources/js/app.js",
+                // Het beheerpaneel is een eigen Inertia-app op de centrale
+                // database; het deelt geen gedeelde gegevens met de klant-app.
+                "resources/js/landlord.js",
+            ],
             refresh: true,
         }),
         vue({

@@ -32,12 +32,6 @@ class TenantController extends Controller
 {
     public function index()
     {
-        /**
-         * Namen die op dit moment worden aangemaakt. Zolang de worker bezig is
-         * staat de rij er wel maar zijn de tabellen er nog niet, en dan levert
-         * elke telling hieronder een foutmelding op over een tabel die zo
-         * meteen bestaat. Dat is geen probleem maar een moment.
-         */
         $being_created = TenantProvisioningRequest::on('central')
             ->where('action', 'create')
             ->whereIn('status', ['queued', 'running'])
@@ -48,15 +42,12 @@ class TenantController extends Controller
 
             /**
              * Via de helper: klapt het bij één klant, dan blijft die tenant
-             * anders openstaan en telt de volgende ronde in de database van
-             * de vorige.
-             */
-            /**
-             * Eén klant waar iets mis mee is mag de hele lijst niet meenemen.
-             * Loopt het aanmaken halverwege stuk, dan staat de rij er wel maar
-             * de database niet, en zonder dit stond daarna het hele paneel op
-             * een foutmelding -- juist het scherm waar je die klant weer moet
-             * kunnen opruimen.
+             * anders openstaan en telt de volgende ronde in de database van de
+             * vorige.
+             *
+             * En één kapotte klant mag de lijst niet meenemen. Loopt het
+             * aanmaken nog, dan zijn de tabellen er simpelweg nog niet; dat is
+             * geen fout maar een moment.
              */
             try {
                 [$field, $office, $used] = Tenancy::within($tenant, fn () => [
@@ -67,45 +58,54 @@ class TenantController extends Controller
                 $broken = null;
             } catch (\Throwable $e) {
                 [$field, $office, $used] = [0, 0, 0];
-                $broken = $being_created->contains($tenant->name)
-                    ? null
-                    : $e->getMessage();
+                $broken = $being_created->contains($tenant->name) ? null : $e->getMessage();
             }
 
             return [
-                'tenant' => $tenant,
-                'broken' => $broken,
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'database' => $tenant->getInternal('db_name'),
+                'package' => $tenant->package_key,
                 'busy' => $being_created->contains($tenant->name),
+                'broken' => $broken,
                 'field' => $field,
                 'field_limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats,
                 'office' => $office,
                 'office_limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats,
                 'used_gb' => round($used / (1024 ** 3), 2),
+                'storage_limit_gb' => (int) $tenant->storage_limit_gb,
                 'total' => (new TenantSubscription($tenant))->monthlyTotalCents(),
             ];
-        });
+        })->values();
 
-        return view('landlord.index', [
+        return inertia('Landlord/IndexPage', [
             'rows' => $rows,
             'monthly' => $rows->sum('total'),
-            'packages' => Package::on('central')->orderBy('sort_order')->get(),
-            'modules' => Module::on('central')->orderBy('sort_order')->get(),
+            'packages' => Package::on('central')->orderBy('sort_order')
+                ->get(['key', 'name', 'price_cents']),
+            'modules' => Module::on('central')->orderBy('sort_order')
+                ->get(['key', 'name', 'price_cents']),
             /** Werk dat nog loopt of is misgelopen. Geslaagd werk is de tenant zelf. */
-            'signature' => $this->provisioningSignature(),
             'requests' => TenantProvisioningRequest::on('central')
                 ->whereIn('status', ['queued', 'running', 'failed'])
                 ->orderByDesc('id')
-                ->get(),
+                ->get(['id', 'action', 'status', 'name', 'error']),
             /**
-             * Wachtwoorden die nog opgehaald moeten worden, los van dat werk.
-             * Alleen van klanten die nog bestaan: het wachtwoord van een
-             * weggegooide klant hoort nergens meer te staan.
+             * Wachtwoorden die nog opgehaald moeten worden. Alleen van klanten
+             * die nog bestaan: het wachtwoord van een weggegooide klant hoort
+             * nergens meer te staan.
              */
             'passwords' => TenantProvisioningRequest::on('central')
                 ->whereNotNull('generated_password')
                 ->whereIn('tenant_id', Tenant::on('central')->pluck('id'))
                 ->orderByDesc('id')
-                ->get(),
+                ->get(['id', 'name', 'email', 'generated_password'])
+                ->map(fn ($row) => [
+                    'id' => $row->id,
+                    'name' => $row->name,
+                    'email' => $row->email,
+                    'password' => $row->generated_password,
+                ]),
         ]);
     }
 
@@ -183,11 +183,6 @@ class TenantController extends Controller
         );
     }
 
-    /**
-     * Een mislukte aanvraag blijft in het paneel staan tot iemand hem weghaalt.
-     * Dat is de bedoeling -- anders verdwijnt de reden waarom het misging -- maar
-     * dan moet hij er ook weg kunnen als het opgelost is.
-     */
     /**
      * Een korte samenvatting van wat er loopt, zodat het scherm zichzelf kan
      * verversen zolang de provisioner bezig is.
