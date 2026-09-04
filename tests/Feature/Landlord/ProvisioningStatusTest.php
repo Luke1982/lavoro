@@ -83,4 +83,45 @@ class ProvisioningStatusTest extends TestCase
             ->assertSee('aanvragen\\/status', false)
             ->assertSee('setInterval', false);
     }
+
+    /**
+     * Het scherm krijgt de vingerafdruk mee waarmee het is opgebouwd.
+     *
+     * Zonder dat had de eerste navraag niets om tegen af te zetten: hij schreef
+     * de waarde op en stopte. Werk dat binnen een paar seconden klaar is --
+     * verwijderen duurt vaak nog geen seconde -- was dan al afgelopen voor die
+     * eerste navraag, en bleef het scherm staan zoals het was opgebouwd. Je moest
+     * dan zelf verversen, en juist dat zou dit moeten voorkomen.
+     */
+    public function test_the_page_carries_the_signature_it_was_built_with(): void
+    {
+        TenantProvisioningRequest::on('central')->delete();
+
+        $request = TenantProvisioningRequest::on('central')->create([
+            'action' => 'create',
+            'status' => 'queued',
+            'name' => 'Snelweg',
+            'email' => 'snel@example.com',
+        ]);
+
+        $page = $this->actingAs($this->landlord(), 'landlord')->get(route('landlord.index'));
+        $page->assertOk();
+
+        preg_match('/let known = "([a-f0-9]+)"/', $page->getContent(), $found);
+
+        $this->assertNotEmpty($found, 'De pagina draagt geen vingerafdruk, dus de eerste navraag'
+            . ' heeft niets om mee te vergelijken.');
+
+        $live = $this->actingAs($this->landlord(), 'landlord')
+            ->getJson(route('landlord.provisioning.status'))->json('signature');
+
+        $this->assertSame($found[1], $live, 'De pagina en het antwoord rekenen anders,'
+            . ' dus het scherm zou meteen gaan verversen zonder dat er iets veranderd is.');
+
+        /** Werk dat klaarkomt hoort een andere vingerafdruk op te leveren. */
+        $request->update(['status' => 'done']);
+
+        $this->assertNotSame($found[1], $this->actingAs($this->landlord(), 'landlord')
+            ->getJson(route('landlord.provisioning.status'))->json('signature'));
+    }
 }

@@ -139,7 +139,8 @@
 <script>
     (() => {
         const url = @json(route('landlord.provisioning.status'));
-        let known = null;
+        /** Meegekregen bij het opbouwen, zodat de eerste navraag al kan vergelijken. */
+        let known = @json($signature);
         let timer = null;
 
         const poll = async () => {
@@ -152,11 +153,9 @@
 
                 const { signature, busy } = await response.json();
 
-                if (known !== null && signature !== known) {
+                if (signature !== known) {
                     return window.location.reload();
                 }
-
-                known = signature;
 
                 /* Klaar is klaar: doorvragen terwijl er niets loopt belast alleen. */
                 if (!busy) {
