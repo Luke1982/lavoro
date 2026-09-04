@@ -14,17 +14,27 @@ function nativeOnly(modules) {
     };
 }
 
+/**
+ * Zet de huidige commit in de naam van de cache, zodat browsers na een deploy
+ * hun oude bestanden weggooien.
+ *
+ * De bron staat in resources/ en het resultaat in public/, net als de rest van
+ * wat de build maakt. Eerder werd het bestand in public/ ter plekke aangepast --
+ * een bestand dat in git zit -- en dan is de werkmap na elke build vies en
+ * breekt de eerstvolgende git pull op "local changes would be overwritten".
+ */
 function swGitHash() {
     return {
         name: "sw-git-hash",
         closeBundle() {
             const hash = execSync("git rev-parse --short HEAD").toString().trim();
-            const path = "public/service-worker.js";
-            const updated = readFileSync(path, "utf-8").replace(
+
+            const source = readFileSync("resources/service-worker.js", "utf-8").replace(
                 /const CACHE_NAME = "[^"]+";/,
                 `const CACHE_NAME = "lavoro-cache-${hash}";`
             );
-            writeFileSync(path, updated);
+
+            writeFileSync("public/service-worker.js", source);
         },
     };
 }
