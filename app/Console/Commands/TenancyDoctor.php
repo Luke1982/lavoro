@@ -177,6 +177,7 @@ class TenancyDoctor extends Command
             ? $this->bad('oudste wachtende job is meer dan een uur oud -- komt de worker vooruit?')
             : $this->pass('geen werk dat blijft liggen');
 
+        $this->checkFailedJobs();
         $this->checkWorkers();
 
         $beat = Cache::get('scheduler_heartbeat');
@@ -190,6 +191,41 @@ class TenancyDoctor extends Command
         }
 
         return true;
+    }
+
+    /**
+     * Werk dat is opgegeven.
+     *
+     * Een mislukte job zegt niets tegen wie hem in gang zette: de factuur wordt
+     * niet verstuurd, de agenda niet bijgewerkt, en er komt geen scherm waar dat
+     * op staat. Ze stapelen zich stil op in failed_jobs, en niemand kijkt daar
+     * uit zichzelf.
+     */
+    private function checkFailedJobs(): void
+    {
+        $table = (string) config('queue.failed.table', 'failed_jobs');
+
+        if (!DB::connection('central')->getSchemaBuilder()->hasTable($table)) {
+            $this->skip("tabel {$table} bestaat niet, dus mislukt werk is niet na te gaan");
+
+            return;
+        }
+
+        $failed = DB::connection('central')->table($table);
+        $total = $failed->count();
+
+        if ($total === 0) {
+            $this->pass('geen mislukte taken');
+
+            return;
+        }
+
+        $newest = $failed->max('failed_at');
+
+        $this->bad("{$total} mislukte ta(a)k(en), laatste op {$newest}. Die zijn stil blijven liggen:"
+            . " geen factuur verstuurd, geen synchronisatie gedraaid.\n"
+            . "         Bekijken: php artisan queue:failed\n"
+            . '         Opnieuw:  php artisan queue:retry all');
     }
 
     /**
@@ -450,6 +486,9 @@ class TenancyDoctor extends Command
      */
     private function checkInvoiceFonts(): void
     {
+        $this->checkDiskSpace();
+        $this->checkLogRotation();
+
         $directory = config('dompdf.options.font_dir', storage_path('fonts'));
 
         if (!is_dir($directory)) {
@@ -462,6 +501,61 @@ class TenancyDoctor extends Command
         is_writable($directory)
             ? $this->pass('lettertypemap voor facturen')
             : $this->bad("De map {$directory} is niet beschrijfbaar; facturen renderen dan niet.");
+    }
+
+    /**
+     * Een volle schijf breekt alles op een manier die nergens naar een volle
+     * schijf wijst: uploads die half aankomen, een database die niet meer
+     * schrijft, sessies die verdwijnen. Dat wil je weten voordat het zover is.
+     */
+    private function checkDiskSpace(): void
+    {
+        $free = @disk_free_space(storage_path());
+        $total = @disk_total_space(storage_path());
+
+        if ($free === false || $total === false || $total <= 0) {
+            $this->skip('vrije schijfruimte niet op te vragen');
+
+            return;
+        }
+
+        $gigabytes = round($free / (1024 ** 3), 1);
+        $percentage = round($free / $total * 100);
+
+        match (true) {
+            $percentage < 5 => $this->bad("nog {$gigabytes} GB vrij ({$percentage}%). Bij een volle"
+                . ' schijf mislukken uploads en schrijft de database niet meer.'),
+            $percentage < 15 => $this->skip("nog {$gigabytes} GB vrij ({$percentage}%) -- houd het in de gaten"),
+            default => $this->pass("schijfruimte: {$gigabytes} GB vrij ({$percentage}%)"),
+        };
+    }
+
+    /**
+     * Het logbestand groeit zonder ophouden als LOG_CHANNEL op 'single' staat.
+     * Dat valt pas op als de schijf vol is, en dan is de oorzaak niet meer te
+     * zien -- het logboek zelf is dan te groot om te openen.
+     */
+    private function checkLogRotation(): void
+    {
+        $log = storage_path('logs/laravel.log');
+        $size = is_file($log) ? (int) @filesize($log) : 0;
+        $megabytes = (int) round($size / (1024 ** 2));
+
+        if ($megabytes < 100) {
+            $this->pass('logboek heeft een werkbare omvang' . ($megabytes > 0 ? " ({$megabytes} MB)" : ''));
+
+            return;
+        }
+
+        $daily = str_contains((string) config('logging.default'), 'daily')
+            || in_array('daily', (array) config('logging.channels.stack.channels', []), true);
+
+        $daily
+            ? $this->skip("Het logboek is {$megabytes} MB. Er wordt wel geroteerd; de oude bestanden"
+                . ' mogen weg.')
+            : $this->bad("Het logboek is {$megabytes} MB en groeit door: LOG_CHANNEL rouleert niet."
+                . " Zet LOG_STACK=daily in .env en herstart php.\n"
+                . "         Nu opruimen: truncate -s 0 {$log}");
     }
 
     /**
