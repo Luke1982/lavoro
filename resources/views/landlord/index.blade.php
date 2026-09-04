@@ -135,6 +135,7 @@
     weten hoe het scherm eruitziet en blijft er één plek waar dat staat. En
     alleen zolang er iets loopt -- een stilstaand paneel hoort niets te vragen.
 --}}
+@if($requests->isNotEmpty())
 <script>
     (() => {
         const url = @json(route('landlord.provisioning.status'));
@@ -169,11 +170,10 @@
 
         const stop = () => timer && clearInterval(timer);
 
-        if (@json($requests->isNotEmpty())) {
-            poll();
-            timer = setInterval(poll, 3000);
-        }
+        poll();
+        timer = setInterval(poll, 3000);
     })();
 </script>
+@endif
 
 @endsection

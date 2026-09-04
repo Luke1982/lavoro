@@ -59,6 +59,19 @@ Google-synchronisatie, geen werkbonnen uit onderhoudscontracten.
 php artisan tenancy:doctor
 ```
 
+Op een ontwikkelmachine hoort de testsuite te draaien voordat er iets naar een
+server gaat:
+
+```bash
+sudo scripts/tenancy/setup-test-db.sh    # eenmalig
+composer test
+```
+
+Dat script zet de testdatabase klaar met dezelfde grant-procedure als in
+productie, zodat de tests dezelfde weg lopen. Een testomgeving die het net even
+anders doet, test het verkeerde. `IsolationTest` maakt twee echte klanten aan en
+komt daarmee langs het aanmaken, de rechten en de scheiding tussen klanten.
+
 Loopt elke tenant af en controleert onder andere: staan de tabellen er, draait
 de cron, kan het applicatieaccount géén klantdatabases weggooien, bestaat het
 provisioner-account, staan er geen databases zonder tenant. Geeft exitcode 1
@@ -100,8 +113,8 @@ De verleiding is dan om het account `ALL PRIVILEGES ON *.*` te geven. Doe dat
 niet — daarmee is het net zo machtig als root en is er van de afscherming niets
 meer over.
 
-In plaats daarvan deelt een procedure de rechten uit. Die staat in een eigen
-database `lavoro_admin`, draait als degene die hem heeft aangemaakt (root) en
+In plaats daarvan deelt de procedure `lavoro_admin.grant_tenant_access` de
+rechten uit. Die staat in een eigen database, draait als degene die hem heeft aangemaakt (root) en
 weigert elke naam buiten de klantnaamruimte. De provisioner heeft in die
 database niets behalve het recht hem aan te roepen, dus hij kan hem niet
 vervangen door een ruimere versie. Zie `scripts/tenancy/setup-mysql.sh`.
@@ -133,7 +146,12 @@ Beide commando's verheffen zichzelf tot `lavoro_provisioner` als de sudo-regel
 er is (`sudo scripts/tenancy/setup-sudoers.sh`, eenmalig). Is die er niet, dan
 zeggen ze welk commando je moet typen.
 
-Kan ook in het beheerpaneel onder `/beheer`. Dat zet een aanvraag klaar die de
+Verwijderen kan ook in het paneel: open de klant met **bewerken** en gebruik het
+rode blok onderaan. De naam moet daar letterlijk overgetikt worden, want er is
+geen weg terug en geen prullenbak. Is de database van die klant al weg, dan
+blijft dat scherm gewoon werken -- juist dan heb je die knop nodig.
+
+Aanmaken kan ook in het beheerpaneel onder `/beheer`. Dat zet een aanvraag klaar die de
 provisioning-worker uitvoert; blijft hij op "in de wacht" staan, dan draait die
 worker niet. Loopt een aanvraag stuk, dan blijft hij met de reden erbij staan
 tot je hem met **weghalen** wegklikt -- opgeruimd wordt er vanzelf, maar de

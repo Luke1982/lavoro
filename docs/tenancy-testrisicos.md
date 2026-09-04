@@ -140,6 +140,12 @@ te letten valt:
   worker door met wat hij had, terwijl de hartslag gewoon blijft komen en alles
   gezond lijkt. De doctor vergelijkt waar de worker mee is opgestart met wat er
   nu staat.
+- **Een klant waarvan de database weg is.** Dat legde de hele installatie plat:
+  de sessie wees naar die klant, tenancy schakelde om zonder iets te merken, en
+  elke pagina werd een 500 -- ook het inlogscherm, dus er viel niet meer uit te
+  komen. De middleware kijkt nu eerst of die database er nog is, en vergeet
+  anders de sessie. Ook het bewerkscherm van zo'n klant blijft werken; daar
+  staat de knop waarmee je hem opruimt.
 - **Een controle die één stap te vroeg stopt.** `verify-mysql.sh` bewees dat de
   provisioner een database kon maken, maar niet dat hij er een login op kon
   geven -- precies de stap die het begaf. Bij elke controle hoort de vraag: dekt
