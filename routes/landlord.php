@@ -42,6 +42,8 @@ Route::prefix('beheer')
                 ->name('landlord.provisioning.forget-password');
             Route::delete('aanvraag/{request}', [TenantController::class, 'destroyProvisioningRequest'])
                 ->name('landlord.provisioning.destroy');
+            Route::get('aanvragen/status', [TenantController::class, 'provisioningStatus'])
+                ->name('landlord.provisioning.status');
             Route::get('incasso', [CollectionController::class, 'collections'])->name('landlord.collections');
             Route::post('incasso', [CollectionController::class, 'exportCollection'])->name('landlord.collections.export');
             Route::get('{tenant}/facturen', [InvoiceController::class, 'invoices'])->name('landlord.invoices');

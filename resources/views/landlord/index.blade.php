@@ -125,4 +125,55 @@
         </p>
     </form>
 </div>
+
+{{--
+    Aanmaken en verwijderen doet de provisioner op de achtergrond, dus het
+    scherm klopt al niet meer zodra je het ziet. Daarom vraagt het elke drie
+    seconden of er iets veranderd is, en haalt het zichzelf op zodra dat zo is.
+
+    Alleen een vingerafdruk over de lijn, geen inhoud: dan hoeft dit niet te
+    weten hoe het scherm eruitziet en blijft er één plek waar dat staat. En
+    alleen zolang er iets loopt -- een stilstaand paneel hoort niets te vragen.
+--}}
+<script>
+    (() => {
+        const url = @json(route('landlord.provisioning.status'));
+        let known = null;
+        let timer = null;
+
+        const poll = async () => {
+            try {
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+                if (!response.ok) {
+                    return stop();
+                }
+
+                const { signature, busy } = await response.json();
+
+                if (known !== null && signature !== known) {
+                    return window.location.reload();
+                }
+
+                known = signature;
+
+                /* Klaar is klaar: doorvragen terwijl er niets loopt belast alleen. */
+                if (!busy) {
+                    stop();
+                }
+            } catch {
+                /* Netwerk even weg is geen reden om te blijven hameren. */
+                stop();
+            }
+        };
+
+        const stop = () => timer && clearInterval(timer);
+
+        if (@json($requests->isNotEmpty())) {
+            poll();
+            timer = setInterval(poll, 3000);
+        }
+    })();
+</script>
+
 @endsection

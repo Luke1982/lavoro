@@ -12,7 +12,16 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 
-    <title>{{ env('APP_NAME', 'Laravel') }}</title>
+    {{--
+        config() en niet env(): zodra config:cache heeft gedraaid geeft env()
+        buiten de configuratiebestanden zijn standaardwaarde terug, en dat is
+        letterlijk 'Laravel'. In productie stond dat dus in de titelbalk.
+
+        De klantnaam komt uit de gedeelde props; het onderdeel zet app.js erbij
+        zodra bekend is welke pagina er staat.
+    --}}
+    <title inertia>{{ collect([config('app.name'), data_get($page, 'props.tenant.name')])
+        ->filter()->implode(' - ') }}</title>
     <link rel="manifest" href="/manifest.json">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
