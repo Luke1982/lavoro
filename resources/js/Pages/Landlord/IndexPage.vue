@@ -49,13 +49,12 @@
 </template>
 
 <script setup>
-import { Link, router } from '@inertiajs/vue3'
-import { onBeforeUnmount, watch } from 'vue'
+import { Link, usePoll } from '@inertiajs/vue3'
 import ProvisioningQueue from '@/Components/Landlord/ProvisioningQueue.vue'
 import GeneratedPasswords from '@/Components/Landlord/GeneratedPasswords.vue'
 import NewTenantForm from '@/Components/Landlord/NewTenantForm.vue'
 
-const props = defineProps({
+defineProps({
     rows: { type: Array, required: true },
     monthly: { type: Number, required: true },
     requests: { type: Array, required: true },
@@ -70,40 +69,18 @@ const euro = (cents) => new Intl.NumberFormat('nl-NL', { style: 'currency', curr
 const over = (used, limit) => (used > limit ? 'font-semibold text-red-700' : '')
 
 /**
- * Zolang de provisioner bezig is haalt het scherm zichzelf op.
+ * Het scherm houdt zichzelf bij de tijd. usePoll komt uit Inertia zelf: het
+ * vraagt alleen deze eigenschappen opnieuw op, laat de rest van de pagina staan
+ * -- ingetypte tekst en scrollpositie incluis -- stopt vanzelf als het tabblad
+ * naar de achtergrond gaat, en ruimt zichzelf op als je weggaat.
  *
- * Met een gedeeltelijke herlading: Inertia vraagt alleen deze eigenschappen
- * opnieuw en vervangt ze, zonder de pagina te herladen. Daardoor blijft
- * ingetypte tekst in het formulier staan en is er geen tweede route nodig die
- * moet weten wanneer er iets veranderd is -- de server stuurt gewoon de
- * huidige stand.
+ * Onvoorwaardelijk, en niet alleen 'zolang er iets loopt'. Dat was de vorige
+ * opzet, en die hield precies op bij werk dat sneller klaar was dan de eerste
+ * navraag -- verwijderen duurt vaak nog geen seconde.
  */
-let timer = null
-
-const stop = () => {
-    clearInterval(timer)
-    timer = null
-}
-
-const refresh = () => router.reload({
+usePoll(3000, {
     only: ['rows', 'requests', 'passwords', 'monthly'],
     preserveScroll: true,
     preserveState: true,
 })
-
-const follow = (requests) => {
-    const busy = requests.some((request) => ['queued', 'running'].includes(request.status))
-
-    if (busy && !timer) {
-        timer = setInterval(refresh, 3000)
-    }
-
-    if (!busy && timer) {
-        stop()
-    }
-}
-
-watch(() => props.requests, follow, { immediate: true, deep: true })
-
-onBeforeUnmount(stop)
 </script>
