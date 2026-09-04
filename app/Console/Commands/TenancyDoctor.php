@@ -33,32 +33,47 @@ class TenancyDoctor extends Command
     {
         $this->line('Centraal');
 
-        if (!$this->checkCentral()) {
-            $this->newLine();
-            $this->error('Zonder de centrale database valt er verder niets te controleren.');
+        /**
+         * Ligt de centrale database eruit, dan valt er over de klanten en de
+         * rechten niets te zeggen -- maar over de omgeving wel: die controles
+         * hebben geen database nodig. Ze hier toch draaien scheelt een tweede
+         * ronde, en soms staat het antwoord er meteen bij: een APP_KEY die
+         * ontbreekt, of php dat geen programma's mag starten.
+         */
+        $central = $this->checkCentral();
 
-            return self::FAILURE;
-        }
-
-        foreach (Tenant::on('central')->orderBy('name')->get() as $tenant) {
-            $this->newLine();
-            $this->line($tenant->name);
-            $this->checkTenant($tenant);
+        if ($central) {
+            foreach (Tenant::on('central')->orderBy('name')->get() as $tenant) {
+                $this->newLine();
+                $this->line($tenant->name);
+                $this->checkTenant($tenant);
+            }
         }
 
         $this->newLine();
         $this->checkEnvironment();
 
-        $this->newLine();
-        $this->checkPrivileges();
+        if ($central) {
+            $this->checkIssuer();
+
+            $this->newLine();
+            $this->checkPrivileges();
+
+            $this->newLine();
+            $this->checkProvisioning();
+
+            $this->newLine();
+            $this->checkOrphans();
+        }
 
         $this->newLine();
-        $this->checkProvisioning();
 
-        $this->newLine();
-        $this->checkOrphans();
+        if (!$central) {
+            $this->error('De centrale database is onbereikbaar, dus alles wat daarvan afhangt is'
+                . ' overgeslagen. Los dat eerst op en draai opnieuw.');
 
-        $this->newLine();
+            return self::FAILURE;
+        }
 
         if ($this->failed === 0) {
             $this->info("Alles in orde ({$this->passed} controles).");
@@ -374,7 +389,6 @@ class TenancyDoctor extends Command
         $this->checkVersions();
         $this->checkDrivers();
         $this->checkInvoiceFonts();
-        $this->checkIssuer();
     }
 
     /**
@@ -450,7 +464,14 @@ class TenancyDoctor extends Command
             : $this->bad("De map {$directory} is niet beschrijfbaar; facturen renderen dan niet.");
     }
 
-    /** Zonder deze gegevens klopt er geen enkele factuur. */
+    /**
+     * Zonder deze gegevens klopt er geen enkele factuur.
+     *
+     * Staat bewust niet bij de omgevingscontroles: dit leest de centrale
+     * database, en die controles horen het juist te doen als er geen database
+     * is. Anders klapt de doctor eruit op het moment dat je hem het hardst
+     * nodig hebt.
+     */
     private function checkIssuer(): void
     {
         $issuer = IssuerSetting::all_values();
