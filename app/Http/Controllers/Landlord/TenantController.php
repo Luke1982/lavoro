@@ -91,6 +91,7 @@ class TenantController extends Controller
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
             /** Werk dat nog loopt of is misgelopen. Geslaagd werk is de tenant zelf. */
+            'signature' => $this->provisioningSignature(),
             'requests' => TenantProvisioningRequest::on('central')
                 ->whereIn('status', ['queued', 'running', 'failed'])
                 ->orderByDesc('id')
@@ -197,17 +198,32 @@ class TenantController extends Controller
      */
     public function provisioningStatus(LandlordStatusRequest $request)
     {
-        $requests = TenantProvisioningRequest::on('central')
+        return response()->json([
+            'signature' => $this->provisioningSignature(),
+            'busy' => TenantProvisioningRequest::on('central')
+                ->whereIn('status', ['queued', 'running'])->exists(),
+        ]);
+    }
+
+    /**
+     * Waar het scherm op let. Verandert deze, dan is er iets gebeurd.
+     *
+     * Het scherm krijgt hem bij het opbouwen mee, zodat de eerste navraag al
+     * kan vergelijken. Zonder dat had die eerste navraag niets om tegen af te
+     * zetten: werk dat binnen een paar seconden klaar is -- verwijderen duurt
+     * soms nog geen seconde -- was dan al afgelopen voordat er één keer
+     * gevraagd was, en bleef het scherm staan zoals het was opgebouwd. Precies
+     * de gevallen waarin je het verversen het hardst nodig hebt.
+     */
+    private function provisioningSignature(): string
+    {
+        $rows = TenantProvisioningRequest::on('central')
             ->orderBy('id')
             ->get(['id', 'status'])
             ->map(fn ($row) => $row->id . ':' . $row->status)
             ->implode(',');
 
-        return response()->json([
-            'signature' => md5($requests . '|' . Tenant::on('central')->count()),
-            'busy' => TenantProvisioningRequest::on('central')
-                ->whereIn('status', ['queued', 'running'])->exists(),
-        ]);
+        return md5($rows . '|' . Tenant::on('central')->count());
     }
 
     public function destroyProvisioningRequest(DestroyProvisioningRequestRequest $request, int $id)
