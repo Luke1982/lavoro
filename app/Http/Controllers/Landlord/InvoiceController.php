@@ -41,8 +41,14 @@ class InvoiceController extends Controller
 
         $invoice = (new Invoicer($tenant))->issue();
 
+        /**
+         * Het bedrag dat er ook op de factuur staat en dat geincasseerd wordt:
+         * inclusief btw. total_cents is het netto bedrag, en dat stond hier --
+         * 21% lager dan wat de klant betaalt, vlak boven een lijst waarin het
+         * bedrag mét btw staat.
+         */
         return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
-            . Money::human($invoice->total_cents));
+            . Money::human($invoice->gross_cents));
     }
 
     /** Handmatig: er hoort eerst iemand naar de factuur gekeken te hebben. */
