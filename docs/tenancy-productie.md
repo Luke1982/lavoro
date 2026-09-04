@@ -380,7 +380,13 @@ php artisan tenant:create "Second Customer BV" admin@second.example --package=st
 
 Creating one through the panel queues a job for the provisioning worker. If the
 request stays on "in de wacht", that worker is not running — and the doctor
-will say so.
+will say so. While the worker is busy the panel refreshes itself, so the list
+updates without you reloading.
+
+Removing a customer works the same way: open it with **bewerken** and use the
+red block at the bottom, where the name has to be typed out in full. That
+deletes the database, the login, the files and the central rows, and there is no
+way back.
 
 Then log in as the new customer. You should see an empty installation and,
 above all, *not* the first customer's data. Still logged in as the second

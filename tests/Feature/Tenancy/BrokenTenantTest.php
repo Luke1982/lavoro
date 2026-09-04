@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tenancy;
 
 use App\Models\Tenant;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\UsesASecondTenant;
 use Tests\TestCase;
@@ -37,6 +38,41 @@ class BrokenTenantTest extends TestCase
                 ->assertOk();
         } finally {
             /** Weer opbouwen, anders draait de volgende test tegen niets. */
+            DB::connection('central')->statement("CREATE DATABASE IF NOT EXISTS `{$database}`");
+            static::$second_tenant_prepared = false;
+        }
+    }
+
+    /**
+     * Het geval uit productie: er zit nog een ingelogde gebruiker in de sessie
+     * van een klant waarvan de database weg is.
+     *
+     * Auth::forgetUser() vergeet alleen het opgehaalde object; het id staat nog
+     * in de sessie, dus de guard haalt hem opnieuw op -- en zoekt de
+     * users-tabel dan in de centrale database, waar hij niet staat. 500 op elke
+     * pagina, ook op het inlogscherm.
+     */
+    public function test_a_logged_in_session_of_a_vanished_tenant_does_not_break_the_site(): void
+    {
+        $tenant = $this->secondTenant();
+        $database = $tenant->getInternal('db_name');
+
+        DB::connection('central')->statement("DROP DATABASE IF EXISTS `{$database}`");
+
+        /**
+         * De suite draait standaard mét een tenant. Die moet hier weg, anders
+         * komt het verzoek nooit langs de code die deze test bedoelt en slaagt
+         * hij om de verkeerde reden -- wat precies gebeurde.
+         */
+        $guard_key = Auth::guard('web')->getName();
+        tenancy()->end();
+
+        try {
+            $this->withSession([
+                'tenant_id' => $tenant->getTenantKey(),
+                $guard_key => 1,
+            ])->get('/')->assertRedirect(route('login'));
+        } finally {
             DB::connection('central')->statement("CREATE DATABASE IF NOT EXISTS `{$database}`");
             static::$second_tenant_prepared = false;
         }

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use Closure;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -72,9 +73,23 @@ class InitializeTenancyBySession
          * staat -- een 500 in plaats van het inlogscherm.
          */
         if (!tenancy()->initialized) {
+            $guard = Auth::guard();
+
             Auth::forgetUser();
 
-            $recaller = Auth::guard()->getRecallerName();
+            /**
+             * Ook het id uit de sessie halen, en niet alleen de opgehaalde
+             * gebruiker vergeten. forgetUser() gooit het object weg, maar het id
+             * staat nog in de sessie: de guard haalt hem daarna gewoon opnieuw
+             * op en zoekt de users-tabel dan in de centrale database, waar hij
+             * niet staat. Dat was een 500 op elke pagina, ook op het
+             * inlogscherm, dus er viel ook niet meer uit te komen.
+             */
+            if ($request->hasSession() && $guard instanceof SessionGuard) {
+                $request->session()->forget($guard->getName());
+            }
+
+            $recaller = $guard->getRecallerName();
 
             $request->cookies->remove($recaller);
             cookie()->queue(cookie()->forget($recaller));

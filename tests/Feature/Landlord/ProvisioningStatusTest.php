@@ -55,4 +55,32 @@ class ProvisioningStatusTest extends TestCase
             'De vingerafdruk veranderde niet, dus het scherm zou nooit verversen.'
         );
     }
+
+    /**
+     * Het paneel begint alleen te vragen zolang er iets loopt. Staat er niets
+     * open, dan hoort het stil te blijven -- en staat er wel iets open, dan moet
+     * het script er zijn, anders ververst er nooit iets.
+     */
+    public function test_the_panel_polls_only_while_something_is_running(): void
+    {
+        TenantProvisioningRequest::on('central')->delete();
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.index'))
+            ->assertOk()
+            ->assertDontSee('aanvragen\\/status', false);
+
+        TenantProvisioningRequest::on('central')->create([
+            'action' => 'delete',
+            'status' => 'queued',
+            'name' => 'Wegtest',
+        ]);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.index'))
+            ->assertOk()
+            /** Zoals het in de pagina staat: @json escapet de slashes. */
+            ->assertSee('aanvragen\\/status', false)
+            ->assertSee('setInterval', false);
+    }
 }
