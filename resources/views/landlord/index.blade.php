@@ -154,6 +154,19 @@
                 const { signature, busy } = await response.json();
 
                 if (signature !== known) {
+                    /**
+                     * Eén keer verversen per toestand. Blijft er op de
+                     * achtergrond iets veranderen -- werk dat steeds opnieuw
+                     * mislukt bijvoorbeeld -- dan zou het scherm anders blijven
+                     * herladen en valt er niets meer te lezen, ook niet de
+                     * melding die vertelt wat er aan de hand is.
+                     */
+                    if (sessionStorage.getItem('lavoro-herladen') === signature) {
+                        return stop();
+                    }
+
+                    sessionStorage.setItem('lavoro-herladen', signature);
+
                     return window.location.reload();
                 }
 

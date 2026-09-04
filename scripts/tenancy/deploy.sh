@@ -45,6 +45,12 @@ php artisan view:cache
 # Beide workers halen hun code opnieuw op: de gewone en die van de provisioning.
 php artisan queue:restart
 
+# Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit draait
+# hij door op de oude klassen terwijl de sjablonen al nieuw zijn.
+systemctl reload php8.3-fpm 2>/dev/null \
+    || systemctl restart lsphp 2>/dev/null \
+    || echo "  Let op: php onder de webserver zelf herstarten (opcache)."
+
 step "Controle"
 # Twee controles, elk met een eigen bereik: het script kijkt naar de rechten van
 # de databaseaccounts (root nodig), de doctor naar de rest van de opstelling.
