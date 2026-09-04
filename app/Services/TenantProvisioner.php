@@ -86,16 +86,23 @@ class TenantProvisioner
          * en die het beheerpaneel op een foutmelding zet, terwijl de melding zelf
          * over een wachtwoord gaat en niet over wat er werkelijk aan de hand is.
          */
+        /**
+         * Het id vooraf, zodat er bij een fout onomstotelijk vaststaat welke rij
+         * van deze aanroep is. Zoeken op databasenaam kan een klant aanwijzen die
+         * er al stond.
+         */
+        $id = (string) Str::uuid();
+
         try {
             $tenant = Tenant::create([
-                'id' => (string) Str::uuid(),
+                'id' => $id,
                 'name' => $name,
                 'package_key' => $package,
                 'modules' => array_values(array_filter($modules)),
                 'tenancy_db_name' => $database,
             ]);
         } catch (\Throwable $e) {
-            $this->cleanUpAfterFailure(null, $database);
+            $this->cleanUpAfterFailure(Tenant::on('central')->find($id), $database);
 
             throw $e;
         }
@@ -190,19 +197,25 @@ class TenantProvisioner
 
     private function cleanUpAfterFailure(?Tenant $tenant, string $database): void
     {
+        /**
+         * Alleen opruimen wat deze aanroep zelf heeft gemaakt.
+         *
+         * Hier stond een zoekopdracht op databasenaam en een DROP DATABASE op
+         * naam. Dat is levensgevaarlijk: mislukt een tweede poging voor een naam
+         * die al bestaat, dan gooit het opruimen de klant weg die er al stond en
+         * werkte. Weggooien mag nooit iets aanwijzen dat het zelf niet heeft
+         * aangemaakt -- dan is een fout bij het aanmaken erger dan de fout zelf.
+         */
+        if (!$tenant) {
+            Log::warning('Aanmaken mislukt voordat er iets bestond; niets op te ruimen', [
+                'database' => $database,
+            ]);
+
+            return;
+        }
+
         try {
-            $tenant ??= Tenant::on('central')->get()
-                ->first(fn (Tenant $candidate) => $candidate->getInternal('db_name') === $database);
-
-            if ($tenant) {
-                $this->destroy($tenant);
-
-                return;
-            }
-
-            /** Geen rij meer, maar de database kan er wel al staan. */
-            DB::connection(config('tenancy.database.template_tenant_connection', 'mysql'))
-                ->statement("DROP DATABASE IF EXISTS `{$database}`");
+            $this->destroy($tenant);
         } catch (\Throwable $ignored) {
             Log::warning('Opruimen na een mislukte aanmaak lukte niet', [
                 'database' => $database,
