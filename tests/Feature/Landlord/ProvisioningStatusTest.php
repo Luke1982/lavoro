@@ -4,6 +4,8 @@ namespace Tests\Feature\Landlord;
 
 use App\Models\Central\LandlordUser;
 use App\Models\Central\TenantProvisioningRequest;
+use App\Models\Tenant;
+use Inertia\Inertia;
 use Tests\TestCase;
 
 /**
@@ -57,71 +59,66 @@ class ProvisioningStatusTest extends TestCase
     }
 
     /**
-     * Het paneel begint alleen te vragen zolang er iets loopt. Staat er niets
-     * open, dan hoort het stil te blijven -- en staat er wel iets open, dan moet
-     * het script er zijn, anders ververst er nooit iets.
+     * Het overzicht is een Inertia-scherm en haalt zichzelf op zolang er werk
+     * loopt. Wat het daarvoor nodig heeft is de stand van de aanvragen; die moet
+     * dus in de eigenschappen zitten, en apart op te vragen zijn.
      */
-    public function test_the_panel_polls_only_while_something_is_running(): void
+    public function test_the_panel_carries_the_state_it_refreshes_on(): void
     {
         TenantProvisioningRequest::on('central')->delete();
 
-        $this->actingAs($this->landlord(), 'landlord')
-            ->get(route('landlord.index'))
-            ->assertOk()
-            ->assertDontSee('aanvragen\\/status', false);
-
         TenantProvisioningRequest::on('central')->create([
-            'action' => 'delete',
+            'action' => 'create',
             'status' => 'queued',
             'name' => 'Wegtest',
+            'email' => 'weg@example.com',
         ]);
 
         $this->actingAs($this->landlord(), 'landlord')
             ->get(route('landlord.index'))
             ->assertOk()
-            /** Zoals het in de pagina staat: @json escapet de slashes. */
-            ->assertSee('aanvragen\\/status', false)
-            ->assertSee('setInterval', false);
+            ->assertInertia(fn ($page) => $page
+                ->component('Landlord/IndexPage')
+                ->has('requests', 1)
+                ->where('requests.0.status', 'queued')
+                ->where('requests.0.name', 'Wegtest'));
     }
 
     /**
-     * Het scherm krijgt de vingerafdruk mee waarmee het is opgebouwd.
+     * Een klant die nog wordt aangemaakt is geen kapotte klant.
      *
-     * Zonder dat had de eerste navraag niets om tegen af te zetten: hij schreef
-     * de waarde op en stopte. Werk dat binnen een paar seconden klaar is --
-     * verwijderen duurt vaak nog geen seconde -- was dan al afgelopen voor die
-     * eerste navraag, en bleef het scherm staan zoals het was opgebouwd. Je moest
-     * dan zelf verversen, en juist dat zou dit moeten voorkomen.
+     * Zolang de worker de migraties draait staat de rij er wel maar zijn de
+     * tabellen er nog niet. Het overzicht liet dan een rode SQL-fout zien over
+     * een tabel die een paar seconden later gewoon bestaat -- precies op het
+     * moment dat je voor het eerst kijkt of het gelukt is.
      */
-    public function test_the_page_carries_the_signature_it_was_built_with(): void
+    public function test_a_tenant_being_created_reads_as_busy_and_not_as_broken(): void
     {
         TenantProvisioningRequest::on('central')->delete();
 
-        $request = TenantProvisioningRequest::on('central')->create([
+        $tenant = Tenant::withoutEvents(fn () => Tenant::on('central')->firstOrCreate(
+            ['id' => 'bezig-test'],
+            ['name' => 'Bezigtest BV', 'tenancy_db_name' => 'lavoro_test_tenant_bezigtest']
+        ));
+
+        /** Zonder aanvraag is dezelfde klant wél kapot: er valt niet te verbinden. */
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('rows.0.busy', false)
+                ->whereNot('rows.0.broken', null));
+
+        TenantProvisioningRequest::on('central')->create([
             'action' => 'create',
-            'status' => 'queued',
-            'name' => 'Snelweg',
-            'email' => 'snel@example.com',
+            'status' => 'running',
+            'name' => $tenant->name,
+            'email' => 'bezig@example.com',
         ]);
 
-        $page = $this->actingAs($this->landlord(), 'landlord')->get(route('landlord.index'));
-        $page->assertOk();
-
-        preg_match('/let known = "([a-f0-9]+)"/', $page->getContent(), $found);
-
-        $this->assertNotEmpty($found, 'De pagina draagt geen vingerafdruk, dus de eerste navraag'
-            . ' heeft niets om mee te vergelijken.');
-
-        $live = $this->actingAs($this->landlord(), 'landlord')
-            ->getJson(route('landlord.provisioning.status'))->json('signature');
-
-        $this->assertSame($found[1], $live, 'De pagina en het antwoord rekenen anders,'
-            . ' dus het scherm zou meteen gaan verversen zonder dat er iets veranderd is.');
-
-        /** Werk dat klaarkomt hoort een andere vingerafdruk op te leveren. */
-        $request->update(['status' => 'done']);
-
-        $this->assertNotSame($found[1], $this->actingAs($this->landlord(), 'landlord')
-            ->getJson(route('landlord.provisioning.status'))->json('signature'));
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('rows.0.busy', true)
+                ->where('rows.0.broken', null));
     }
 }
