@@ -441,6 +441,58 @@ class TenancyDoctor extends Command
         $this->checkVersions();
         $this->checkDrivers();
         $this->checkInvoiceFonts();
+        $this->checkBuiltAssets();
+    }
+
+    /**
+     * Wat de build maakt staat niet in git: public/build en de service worker
+     * ontstaan pas bij npm run build. Wordt die stap overgeslagen of loopt hij
+     * stuk, dan draait de server met nieuwe code en oude of ontbrekende
+     * bestanden -- en dat geeft geen enkele foutmelding op de server zelf.
+     */
+    private function checkBuiltAssets(): void
+    {
+        file_exists(public_path('build/manifest.json'))
+            ? $this->pass('gebouwde assets aanwezig')
+            : $this->bad('public/build/manifest.json ontbreekt -- de build is hier nooit gedraaid.'
+                . ' Elke pagina geeft dan een Vite-fout. Draai npm ci && npm run build.');
+
+        $worker_path = public_path('service-worker.js');
+
+        if (!file_exists($worker_path)) {
+            $this->bad('public/service-worker.js ontbreekt -- git houdt dat bestand niet meer vast,'
+                . ' de build maakt het. Zonder dat bestand cachet de browser niets meer.'
+                . ' Draai npm run build.');
+
+            return;
+        }
+
+        $revision = $this->gitRevision();
+
+        if ($revision === null) {
+            $this->pass('service worker aanwezig');
+
+            return;
+        }
+
+        str_contains(File::get($worker_path), "lavoro-cache-{$revision}")
+            ? $this->pass('service worker hoort bij de uitgerolde code')
+            : $this->bad('public/service-worker.js komt van een oudere build dan de code die hier'
+                . ' staat. Browsers blijven dan oude bestanden uit hun cache serveren.'
+                . ' Draai npm run build.');
+    }
+
+    /**
+     * @return string|null de korte hash van HEAD, of null als hier geen
+     *                     git-checkout staat of git niet gestart mag worden
+     */
+    private function gitRevision(): ?string
+    {
+        $revision = trim((string) shell_exec(
+            'git -C ' . escapeshellarg(base_path()) . ' rev-parse --short HEAD 2>/dev/null'
+        ));
+
+        return $revision === '' ? null : $revision;
     }
 
     /**
