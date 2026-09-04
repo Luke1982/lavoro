@@ -159,6 +159,12 @@ set_key QUEUE_CONNECTION database
 set_key CACHE_STORE database
 set_key MAIL_MAILER tenant
 
+# De applicatie is Nederlands. Zonder dit komen de meldingen van Laravel zelf --
+# "The collect on field is required" -- in het Engels op het scherm, midden in
+# een Nederlands formulier. De vertalingen staan in lang/nl.
+set_key APP_LOCALE nl
+set_key APP_FALLBACK_LOCALE en
+
 # ---------------------------------------------------------------------------
 # APP_KEY
 # ---------------------------------------------------------------------------
