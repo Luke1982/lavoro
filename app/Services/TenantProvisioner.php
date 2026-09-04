@@ -7,6 +7,8 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\ProvisionerConnection;
+use Database\Seeders\TenantDatabaseSeeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -110,6 +112,8 @@ class TenantProvisioner
         try {
             tenancy()->initialize($tenant);
 
+            $this->seed($tenant);
+
             $admin = User::create([
                 'name' => 'Beheerder',
                 'email' => $email,
@@ -151,6 +155,39 @@ class TenantProvisioner
      * binnenkwam is degene die de gebruiker moet zien; een tweede fout daaroverheen
      * verbergt precies de reden waarom het misging.
      */
+    /**
+     * Zaait de rollen, de rechten, de fases en het bedrijf.
+     *
+     * De bibliotheek doet dit zelf ook, met Artisan::call -- en die geeft een
+     * exitcode terug waar niemand naar kijkt. Ging het zaaien mis, dan was de
+     * klant "aangemaakt" met alleen de rol die uit een migratie komt, en stond
+     * er nergens waarom. Precies dat is gebeurd.
+     *
+     * Hier wordt het opnieuw gedraaid -- alles gaat via firstOrCreate, dus dat
+     * mag -- en wél gekeken of het gelukt is. Zo niet, dan gaat de fout mee naar
+     * boven en ruimt de aanroeper de halve klant op.
+     */
+    private function seed(Tenant $tenant): void
+    {
+        $status = Artisan::call('db:seed', [
+            '--class' => TenantDatabaseSeeder::class,
+            '--force' => true,
+        ]);
+
+        if ($status !== 0) {
+            throw new RuntimeException("Het zaaien van {$tenant->name} is mislukt: "
+                . trim(Artisan::output()));
+        }
+
+        $expected = array_keys(include base_path('database/seeders/data/tenant_roles.php'));
+        $missing = array_diff($expected, Role::pluck('name')->all());
+
+        if ($missing !== []) {
+            throw new RuntimeException("Na het zaaien ontbreken deze rollen bij {$tenant->name}: "
+                . implode(', ', $missing) . '. ' . trim(Artisan::output()));
+        }
+    }
+
     private function cleanUpAfterFailure(?Tenant $tenant, string $database): void
     {
         try {
