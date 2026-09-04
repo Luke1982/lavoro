@@ -8,6 +8,7 @@
             <td>
                     <strong>{{ $row['tenant']->name }}</strong><br>
                     <span class="muted">{{ $row['tenant']->getInternal('db_name') }}</span>
+                    @if($row['busy'])<br><span class="muted">wordt nu aangemaakt…</span>@endif
                     @if($row['broken'])<br><span class="warn">{{ $row['broken'] }}</span>@endif
                 </td>
             <td>{{ $row['tenant']->package_key ?? '—' }}</td>

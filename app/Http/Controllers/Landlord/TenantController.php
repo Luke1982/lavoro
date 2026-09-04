@@ -31,7 +31,18 @@ class TenantController extends Controller
 {
     public function index()
     {
-        $rows = Tenant::on('central')->orderBy('name')->get()->map(function (Tenant $tenant) {
+        /**
+         * Namen die op dit moment worden aangemaakt. Zolang de worker bezig is
+         * staat de rij er wel maar zijn de tabellen er nog niet, en dan levert
+         * elke telling hieronder een foutmelding op over een tabel die zo
+         * meteen bestaat. Dat is geen probleem maar een moment.
+         */
+        $being_created = TenantProvisioningRequest::on('central')
+            ->where('action', 'create')
+            ->whereIn('status', ['queued', 'running'])
+            ->pluck('name');
+
+        $rows = Tenant::on('central')->orderBy('name')->get()->map(function (Tenant $tenant) use ($being_created) {
             $package = Package::on('central')->where('key', $tenant->package_key)->first();
 
             /**
@@ -55,12 +66,15 @@ class TenantController extends Controller
                 $broken = null;
             } catch (\Throwable $e) {
                 [$field, $office, $used] = [0, 0, 0];
-                $broken = $e->getMessage();
+                $broken = $being_created->contains($tenant->name)
+                    ? null
+                    : $e->getMessage();
             }
 
             return [
                 'tenant' => $tenant,
                 'broken' => $broken,
+                'busy' => $being_created->contains($tenant->name),
                 'field' => $field,
                 'field_limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats,
                 'office' => $office,
