@@ -10,7 +10,7 @@ Each tenant also gets 50 GB of file storage, raisable per tenant, with the extra
 
 This design covers the data model, how the limits are enforced, how the monthly price is calculated, and the Artisan commands to manage it all.
 
-A **landlord admin sub-app** on its own subdomain gives the same control in a browser. It is a thin visual layer over the same commands and the same pricing service — no business logic of its own.
+A **landlord admin panel** under `/beheer` gives the same control in a browser. It is a thin visual layer over the same commands and the same pricing service — no business logic of its own.
 
 ## What this is not
 
@@ -270,7 +270,7 @@ Acme is on the default 50 GB, so there is no storage line. A tenant raised to 12
 
 ## Landlord sub-app
 
-A small internal admin, on its own subdomain (`beheer.lavorofsm.nl`), for managing the price catalogue and every tenant's subscription in a browser. It is the visual counterpart to the commands below and shares all of their logic through the same `TenantSubscription` service and catalogue models — the controllers hold no pricing or limit logic of their own.
+A small internal admin, under `/beheer` on the app's own host, for managing the price catalogue and every tenant's subscription in a browser. It is the visual counterpart to the commands below and shares all of their logic through the same `TenantSubscription` service and catalogue models — the controllers hold no pricing or limit logic of their own.
 
 ### The constraint that shapes it
 
@@ -282,7 +282,7 @@ The rest of the app is *always inside a tenant*. The landlord sub-app is the mir
 
 ### Subdomain, not path prefix
 
-The sub-app is served from a dedicated host (`beheer.lavorofsm.nl`), separate from the tenant app (`app.lavorofsm.nl`). This keeps landlord traffic physically apart from tenant traffic, scopes the tenancy middleware away cleanly by host, avoids a reserved `/landlord` path on the tenant app, and separates the cookie scope. Routing is by subdomain in `routes/landlord.php`, loaded in `bootstrap/app.php` with its own middleware group.
+**Built as a path, not a subdomain.** This spec called for a dedicated host, and it was built under `/beheer` on the same host instead — one certificate, one vhost, nothing extra to arrange at install time. The separation that matters is kept in the middleware rather than in DNS: `routes/landlord.php` strips the tenancy middleware and runs on its own `landlord` guard, so a landlord request never carries a tenant. Routing is by prefix in `routes/landlord.php`, loaded in `bootstrap/app.php` with its own middleware group. Moving to a subdomain later means changing that one `Route::prefix` and the vhost; nothing else assumes a host.
 
 ### Stack
 
@@ -422,7 +422,7 @@ This means that immediately after migration nobody is plannable, which would emp
 | Task 30 — tests | the pricing invariant test, seat enforcement tests, storage tests |
 | new | seat type field in the user form; seat and storage usage shown to the customer |
 | new | storage quota: `StorageQuota` service, `WithinStorageQuota` rule wired into the upload paths, the nightly reconcile job, `tenant:storage` and `pricing:*` commands |
-| new | the landlord sub-app: `landlord_users` table, `landlord` guard, `routes/landlord.php` on its own subdomain, Inertia landlord layout, the screens above, and `landlord:create` |
+| new | the landlord panel: `landlord_users` table, `landlord` guard, `routes/landlord.php` under `/beheer`, Blade landlord layout, the screens above, and `landlord:user` |
 
 Storage enforcement slots in after the per-tenant storage roots exist (tenancy plan Task 14) and reuses the scheduled per-tenant dispatch pattern (Task 20). The landlord sub-app depends on the tenancy plan being far enough along that the central connection, the `tenants` table and the catalogue tables exist. It is built last, after the CLI commands prove the model.
 
@@ -460,7 +460,7 @@ Landlord sub-app:
 | Pricing scope | store prices, compute monthly total; no payment provider |
 | Where prices live | central database, managed by Artisan CRUD commands |
 | Control surface | CLI, plus a landlord admin sub-app |
-| Landlord location | own subdomain (`beheer.lavorofsm.nl`), central context, own `landlord` guard and `landlord_users` table |
+| Landlord location | `/beheer` on the app host, central context, own `landlord` guard and `landlord_users` table |
 | Landlord scope | internal admin only — no public pricing page, no self-service signup |
 | Over limit | block new seats, never lock out existing users |
 | Storage limit | 50 GB included per tenant, raisable; extra billed per GB above 50 on the allowance, not live usage |
