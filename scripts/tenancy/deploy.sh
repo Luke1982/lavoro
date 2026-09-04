@@ -47,8 +47,10 @@ php artisan queue:restart
 
 # Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit draait
 # hij door op de oude klassen terwijl de sjablonen al nieuw zijn.
+# LiteSpeed heeft geen unit voor lsphp: de processen worden vanzelf opnieuw
+# gestart zodra ze weg zijn, dus pkill is daar de manier.
 systemctl reload php8.3-fpm 2>/dev/null \
-    || systemctl restart lsphp 2>/dev/null \
+    || pkill lsphp 2>/dev/null \
     || echo "  Let op: php onder de webserver zelf herstarten (opcache)."
 
 step "Controle"
