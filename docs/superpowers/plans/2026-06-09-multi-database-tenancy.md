@@ -1681,7 +1681,7 @@ Because files now live outside the web-served `public/storage` symlink, they are
 - `app/Http/Controllers/FileController.php` (new)
 - `routes/web.php`
 - `app/Models/User.php` (avatar accessor, `getAvatarAttribute`)
-- `public/service-worker.js` (exclude `/files/` from caching)
+- `resources/service-worker.js` (exclude `/files/` from caching)
 - The 12 Vue/JS files that hardcode `/storage/${...}` (images and company logos)
 - The 7 non-disk path builders, in `ServiceOrderController`, `ImageController` (twice), `Company`, `pdf/servicejob.blade.php`, `emails/event/appointment_confirmation.blade.php` and `ViewImagesTool` — **found by the two greps in Step 7, which are the authoritative list**
 
@@ -1868,7 +1868,7 @@ The two existence checks stay for the reason they were written: `null` is what m
 
 ### Task 14, Step 5: Exclude `/files/` from service-worker caching
 
-`public/service-worker.js` serves same-origin GETs cache-first. Every id in this app is a per-tenant auto-increment, so `/files/images/5` is a *different file* in each tenant; a cached copy could be shown to a user of another tenant on a shared browser, and stale copies would survive image replacement.
+The service worker serves same-origin GETs cache-first. Every id in this app is a per-tenant auto-increment, so `/files/images/5` is a *different file* in each tenant; a cached copy could be shown to a user of another tenant on a shared browser, and stale copies would survive image replacement. The file you edit is `resources/service-worker.js` — `public/service-worker.js` is its build output and is not in git.
 
 **`/files/` is not the only route that streams a file through a controller.** The same reasoning covers all of them:
 
@@ -1902,9 +1902,13 @@ if (
 
 Note `/build/` is in the *cacheable* list here, where the current code has it in the early-return list — Vite's build output is content-hashed and immutable, so caching it is safe and desirable; it was previously excluded only because the browser's own cache already handles it. Keep it excluded if you prefer; the tenancy-relevant half of this change is that nothing dynamic reaches the cache.
 
-Bump `CACHE_NAME` in the same commit. Existing installs already hold cached responses from before this change, and nothing else evicts them. (The convention is to set it to the short hash of the commit that ships the change — `lavoro-cache-<sha>` — so it is bumped by whoever last touched the file rather than by remembering to.)
+`CACHE_NAME` takes care of itself. Existing installs still hold cached responses from before
+this change and nothing else evicts them, but the vite plugin `swGitHash` rewrites the constant
+to `lavoro-cache-<short hash of HEAD>` as it copies `resources/service-worker.js` into
+`public/`. Every build that ships the change therefore also expires the old cache — there is
+nothing to bump by hand.
 
-**`public/service-worker.js` does two unrelated jobs, and the second one has a tenancy problem of its own.**
+**`resources/service-worker.js` does two unrelated jobs, and the second one has a tenancy problem of its own.**
 
 The first job is caching, which is what everything above is about. The second: it receives push notifications, and when somebody taps one, it decides which page to open. That second job is the problem.
 
@@ -2079,7 +2083,7 @@ git add app/Tenancy/TenantStorageBootstrapper.php \
         app/Models/Company.php \
         routes/web.php \
         app/Models/User.php \
-        public/service-worker.js \
+        resources/service-worker.js \
         resources/views/ \
         resources/js/
 git commit -m "feat(tenancy): per-tenant storage roots with authenticated file serving"
