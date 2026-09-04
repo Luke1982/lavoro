@@ -11,10 +11,29 @@ draaiend. Hieronder staat het dagelijkse werk.
 
 | | Wat | Als wie |
 | --- | --- | --- |
-| Webserver | php-fpm / nginx | `www-data` |
-| Worker | `php artisan queue:work` | `www-data` |
+| Webserver | php-fpm / lsphp | het account van de webserver |
+| Worker | `php artisan queue:work` | het account van de installatie |
 | Worker | `php artisan queue:work --queue=provisioning` | `lavoro_provisioner` |
-| Cron | `* * * * * php artisan schedule:run` | `www-data` |
+| Cron | `* * * * * php artisan schedule:run` | het account van de installatie |
+
+Er staat met opzet geen naam bij die eerste twee. Welk account de webserver
+gebruikt verschilt per server -- `www-data` bij Apache en nginx, `nobody` bij
+LiteSpeed -- en dat hoeft niet hetzelfde te zijn als het account waar de
+bestanden van zijn. Aannemen dat het `www-data` is kostte een hele dag: de
+webserver kon niet in `storage/logs` schrijven, dus verdween elke fout uit een
+webverzoek spoorloos, en er was geen enkele melding om op te zoeken.
+
+Uitzoeken hoeveel het er zijn:
+
+```bash
+ps -eo user,comm | grep -iE 'lsphp|php-fpm'
+stat -c %U artisan
+```
+
+De doctor leest het zelf af aan de gecompileerde sjablonen -- die schrijft de
+webserver -- en controleert of dat account bij het logboek en bij de mappen van
+elke klant kan. `scripts/tenancy/setup-workers.sh` schrijft de systemd-units met
+de accounts en paden die op deze server gelden.
 
 Twee workers, en dat is met opzet. De gewone draait als het account van de
 applicatie, dat geen databases mag aanmaken. Alleen de tweede mag dat: kon het
@@ -27,7 +46,8 @@ paneel op "in de wacht" staan en meldt `tenancy:doctor` het na een kwartier.
 
 `--tries=1` op die tweede is geen slordigheid: een half aangemaakte klant nog
 eens proberen loopt vast op "de database bestaat al" en verbergt de echte fout.
-De systemd-unit staat in [tenancy-productie.md](tenancy-productie.md).
+De units schrijft `scripts/tenancy/setup-workers.sh`; die leest het account, het
+pad, de php-binary en de naam van de databaseservice van de machine af.
 
 Staat de cron niet, dan gebeurt er niets automatisch: geen facturen, geen
 Google-synchronisatie, geen werkbonnen uit onderhoudscontracten.
@@ -49,38 +69,55 @@ bij een probleem, dus `deploy.sh` breekt erop af.
 | Account | Mag | Waarvoor |
 | --- | --- | --- |
 | `lavoro_app` | alleen de landlord-database | de applicatie zelf |
-| `lavoro_provisioner` | alles, mét rechten uitdelen | klanten aanmaken en weggooien |
+| `lavoro_provisioner` | alleen `lavoro_tenant_%` | klanten aanmaken en weggooien |
 | per klant één | alleen zijn eigen database | de verbinding tijdens een verzoek |
 
-`lavoro_app` kan met opzet geen klantdatabase maken of weggooien. Dat is de
-grens waar de hele opzet op leunt; de doctor controleert hem.
+`lavoro_app` kan met opzet geen klantdatabase maken of weggooien, en de
+provisioner komt met opzet nergens buiten de klantnaamruimte. Dat zijn de twee
+grenzen waar de hele opzet op leunt; `verify-mysql.sh` probeert ze allebei te
+overtreden en verwacht een weigering.
 
-### De provisioner inrichten (eenmalig, per server)
+### Inrichten (eenmalig, per server)
 
 ```bash
-sudo adduser --system --group --no-create-home lavoro_provisioner
+sudo scripts/tenancy/setup-mysql.sh --dry-run    # laat de SQL zien, wijzigt niets
+sudo scripts/tenancy/setup-mysql.sh --write-env  # doet het, en zet .env goed
 ```
 
-```sql
-CREATE USER 'lavoro_provisioner'@'localhost' IDENTIFIED WITH auth_socket;
-GRANT ALL PRIVILEGES ON *.* TO 'lavoro_provisioner'@'localhost' WITH GRANT OPTION;
+Dat maakt de Linux-gebruiker, de accounts, de juiste rechten en de procedure
+hieronder. Met de hand is het niet te doen zonder iets te breken; de volledige
+installatie staat in `tenancy-productie.md`.
+
+### Waarom een procedure de rechten uitdeelt
+
+Elke klant krijgt een eigen MySQL-login die alleen bij zijn eigen database mag.
+Dat aanmaken is het werk van de provisioner, maar MySQL en MariaDB wegen een
+`GRANT` die een database bij naam noemt af tegen een rij die exact op die naam
+staat, en nooit tegen het jokerteken `lavoro\_tenant\_%`. De provisioner kan
+`lavoro_tenant_acme` dus wel aanmaken en er geen rechten op uitdelen: fout 1044.
+
+De verleiding is dan om het account `ALL PRIVILEGES ON *.*` te geven. Doe dat
+niet — daarmee is het net zo machtig als root en is er van de afscherming niets
+meer over.
+
+In plaats daarvan deelt een procedure de rechten uit. Die staat in een eigen
+database `lavoro_admin`, draait als degene die hem heeft aangemaakt (root) en
+weigert elke naam buiten de klantnaamruimte. De provisioner heeft in die
+database niets behalve het recht hem aan te roepen, dus hij kan hem niet
+vervangen door een ruimere versie. Zie `scripts/tenancy/setup-mysql.sh`.
+
+### Na elke wijziging: de workers herstarten
+
+```bash
+sudo systemctl restart lavoro-worker lavoro-provisioning
 ```
 
-`auth_socket` betekent: geen wachtwoord, en alleen de Linux-gebruiker met
-dezelfde naam kan inloggen. Zet daarna in `.env`:
-
-```
-DB_PROVISIONER_USERNAME=lavoro_provisioner
-DB_PROVISIONER_SOCKET=/var/run/mysqld/mysqld.sock
-```
-
-en haal `DB_PROVISIONER_PASSWORD` en `DB_PROVISIONER_HOST` weg. Zolang dat
-wachtwoord er staat kan alles wat de `.env` leest — de webserver dus ook —
-elke klantdatabase weggooien, en klaagt de doctor daarover.
-
-Het brede recht is nodig: MySQL laat een account met alleen een
-wildcard-recht (`lavoro\_tenant\_%`) géén rechten uitdelen op een nieuwe
-database, en dat is precies wat aanmaken vereist.
+Een worker leest `.env` en de code één keer, bij het opstarten, en houdt dat
+vast. Na een `git pull` of een wijziging in `.env` draait hij dus door op wat
+hij had, terwijl de hartslag gewoon blijft komen en alles er gezond uitziet.
+`deploy.sh` doet dit vanzelf; een handmatige pull niet. De doctor vergelijkt
+waar de worker mee is opgestart met wat er nu staat en zegt het als dat
+verschilt.
 
 ## Klanten
 
@@ -92,9 +129,15 @@ php artisan tenant:create "Bedrijf BV" beheer@bedrijf.nl  # klant + eerste behee
 php artisan tenant:delete <id>                            # alles weg, vraagt bevestiging
 ```
 
+Beide commando's verheffen zichzelf tot `lavoro_provisioner` als de sudo-regel
+er is (`sudo scripts/tenancy/setup-sudoers.sh`, eenmalig). Is die er niet, dan
+zeggen ze welk commando je moet typen.
+
 Kan ook in het beheerpaneel onder `/beheer`. Dat zet een aanvraag klaar die de
 provisioning-worker uitvoert; blijft hij op "in de wacht" staan, dan draait die
-worker niet.
+worker niet. Loopt een aanvraag stuk, dan blijft hij met de reden erbij staan
+tot je hem met **weghalen** wegklikt -- opgeruimd wordt er vanzelf, maar de
+reden hoort te blijven staan tot iemand hem gezien heeft.
 
 ### Beheerder voor een bestaande klant
 
