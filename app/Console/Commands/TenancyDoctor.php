@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Middleware\TenancyForStatefulApi;
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Role;
@@ -11,10 +12,12 @@ use App\Support\ProvisionerConnection;
 use App\Support\WorkerHeartbeat;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 /**
  * Controleert wat git niet vasthoudt. Leest alleen; repareert nooit.
@@ -441,6 +444,7 @@ class TenancyDoctor extends Command
         $this->checkVersions();
         $this->checkDrivers();
         $this->checkInvoiceFonts();
+        $this->checkApiAuthentication();
         $this->checkBuiltAssets();
     }
 
@@ -527,6 +531,77 @@ class TenancyDoctor extends Command
      * plaats van in de worker die dat wel mag. Staat de sessie niet centraal,
      * dan zoekt het inloggen zijn gebruiker in de verkeerde database.
      */
+    /**
+     * Of de planner en de andere schermen die over /api praten, ingelogd
+     * blijven.
+     *
+     * Die verzoeken lopen niet door de web-groep maar door de eigen pijplijn
+     * van Sanctum, en die pijplijn slaat hij over zodra hij het verzoek niet
+     * herkent als afkomstig van de eigen voorkant. Dan is er geen sessie, geen
+     * klant en geen gebruiker, en krijgt de planner op elke handeling
+     * 'Unauthenticated' terug -- terwijl de gewone schermen het gewoon doen.
+     * Aan de app zelf is dat niet te zien; het hangt aan drie instellingen.
+     */
+    private function checkApiAuthentication(): void
+    {
+        $url = (string) config('app.url');
+        $host = parse_url($url, PHP_URL_HOST);
+        $port = parse_url($url, PHP_URL_PORT);
+        $served = $host . ($port ? ':' . $port : '');
+        $stateful = collect(config('sanctum.stateful', []))->map(fn ($domain) => trim($domain));
+
+        if (blank($host)) {
+            $this->bad('APP_URL is leeg of onleesbaar. Sanctum leidt daaruit af welke voorkant'
+                . ' bij deze installatie hoort; zonder die waarde blijft elk verzoek naar /api'
+                . ' onaangemeld en werkt de planner niet.');
+
+            return;
+        }
+
+        /**
+         * Niet te controleren vanaf de opdrachtregel: of dit ook het adres is
+         * dat klanten in hun browser hebben staan. Staat het ernaast -- www
+         * ervoor, http in plaats van https, een oud domein -- dan herkent
+         * Sanctum het verzoek niet als eigen voorkant en is er geen sessie.
+         * Daarom staat het er hier uitgeschreven, zodat het na te lopen is.
+         */
+        $this->line("       APP_URL is {$url}; verzoeken van /api moeten van precies dat adres komen.");
+
+        if (app()->environment('production') && in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            $this->bad("APP_URL wijst naar {$host}, en dat is op een server nooit het adres waarop"
+                . ' klanten binnenkomen. Verzoeken van het echte domein gelden dan niet als eigen'
+                . ' voorkant, en alles wat over /api gaat -- de planner voorop -- krijgt'
+                . " 'Unauthenticated' terug terwijl de gewone schermen het wel doen.");
+        } elseif ($stateful->contains($served)) {
+            $this->pass("{$served} telt als eigen voorkant");
+        } else {
+            $this->bad("De app draait volgens APP_URL op {$served}, maar dat staat niet in"
+                . ' SANCTUM_STATEFUL_DOMAINS (' . $stateful->implode(', ') . ").\n"
+                . "         Alles wat over /api gaat krijgt dan 'Unauthenticated' terug. Zet dat"
+                . ' adres erbij en draai daarna php artisan config:cache.');
+        }
+
+        /**
+         * De tenant wordt gezet in het enige haakje dat Sanctum in die pijplijn
+         * biedt. Wordt de configuratie van Sanctum ooit opnieuw gepubliceerd,
+         * dan staat daar weer de standaardklasse en is de klant weg zonder dat
+         * er iets stukgaat -- behalve elk /api-verzoek.
+         */
+        config('sanctum.middleware.authenticate_session') === TenancyForStatefulApi::class
+            ? $this->pass('api-verzoeken krijgen hun klant mee')
+            : $this->bad('sanctum.middleware.authenticate_session hoort '
+                . TenancyForStatefulApi::class . ' te zijn, maar is '
+                . var_export(config('sanctum.middleware.authenticate_session'), true)
+                . '. Zonder dat haakje zoekt /api de gebruiker in de verkeerde database.');
+
+        collect(app(Router::class)->getMiddlewareGroups()['api'] ?? [])
+            ->contains(EnsureFrontendRequestsAreStateful::class)
+            ? $this->pass('api-verzoeken mogen de sessie gebruiken')
+            : $this->bad('De api-groep mist ' . class_basename(EnsureFrontendRequestsAreStateful::class)
+                . ' (statefulApi() in bootstrap/app.php). Zonder die middleware is er op /api geen'
+                . ' sessie en dus geen ingelogde gebruiker.');
+    }
+
     private function checkDrivers(): void
     {
         $expected = [

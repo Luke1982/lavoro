@@ -5,7 +5,6 @@ use App\Http\Middleware\EnsureTenantHasModule;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\InitializeTenancyBySession;
-use App\Http\Middleware\InitializeTenancyForApi;
 use App\Http\Middleware\ResolveAccessToken;
 use App\Http\Middleware\UseLandlordGuard;
 use App\Support\DatabaseErrorMessage;
@@ -65,7 +64,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'accesstoken' => ResolveAccessToken::class,
-            'tenant.api' => InitializeTenancyForApi::class,
             'tenant.module' => EnsureTenantHasModule::class,
         ]);
         /**
