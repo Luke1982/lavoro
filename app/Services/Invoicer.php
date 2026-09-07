@@ -393,46 +393,119 @@ class Invoicer
             return null;
         }
 
+        /**
+         * Bij elkaar in een regel, want ze komen toch op dezelfde factuur.
+         *
+         * Elke wijziging leverde eerst zijn eigen verrekening op. Wie een
+         * module aanzette en daarna de prijs ervan afsprak, kreeg twee regels
+         * met dezelfde omschrijving en tegengestelde bedragen -- samen klopte
+         * het, maar er viel niets van te maken. Heffen ze elkaar op, dan blijft
+         * er niets staan in plaats van een regel van nul euro.
+         *
+         * Waar het vandaan komt gaat mee in de rij: het vertrekpunt blijft dat
+         * van de eerste wijziging, zodat de regel ook na drie wijzigingen nog
+         * zegt van welk pakket en welk bedrag naar welk.
+         */
+        $standing = PendingCharge::on('central')
+            ->where('tenant_id', $this->tenant->id)
+            ->whereNull('invoice_id')
+            ->where('kind', 'proration')
+            ->first();
+
+        $came_from = $standing?->data ?? [];
+
+        $story = [
+            'from_package' => $came_from['from_package'] ?? $old_package,
+            'to_package' => $new_package,
+            'from_cents' => $came_from['from_cents'] ?? $old_monthly_cents,
+            'to_cents' => $new_monthly_cents,
+            'changed_on' => $on->toDateString(),
+            'changes' => ($came_from['changes'] ?? 0) + 1,
+            'days' => $days,
+            'total_days' => $total_days,
+            'invoiced' => $invoiced,
+        ];
+
+        if ($standing) {
+            $together = (int) $standing->amount_cents + $amount;
+
+            if ($together === 0) {
+                $standing->delete();
+
+                return null;
+            }
+
+            $standing->update([
+                'amount_cents' => $together,
+                'data' => $story,
+                'description' => $this->prorationDescription($story),
+            ]);
+
+            return $standing;
+        }
+
         return PendingCharge::on('central')->create([
             'tenant_id' => $this->tenant->id,
-            'description' => $this->prorationDescription(
-                $on, $days, $total_days, $invoiced, $old_package, $new_package,
-            ),
+            'description' => $this->prorationDescription($story),
             'kind' => 'proration',
             'amount_cents' => $amount,
+            'data' => $story,
         ]);
     }
 
     /**
      * Waar de verrekening over gaat, in een regel die op de factuur te volgen
-     * is: van welk pakket naar welk, op welke dag, en over hoeveel dagen.
+     * is: waarvandaan, waarnaartoe, en op welke dag.
+     *
+     * Bij een pakketwissel zeggen de pakketnamen het. Bij alles daaromheen --
+     * een module erbij, een plek meer, een prijsafspraak -- zeggen ze niets,
+     * en dan is het maandbedrag voor en na het enige dat uitlegt waar de
+     * verrekening vandaan komt. Bij meer dan een wijziging staat het bedrag er
+     * altijd bij, want dan is het pakket niet het hele verhaal.
      *
      * De dagen achteraan horen bij het pakket dat ervoor betaald wordt. Was de
      * periode al gefactureerd tegen de oude prijs, dan gaat het om de dagen die
      * nog op het nieuwe pakket komen; was hij dat niet, dan om de dagen die al
-     * op het oude pakket zaten.
+     * op het oude pakket zaten. Na meerdere wijzigingen verschilt dat aantal
+     * per wijziging en staat er alleen nog de dag van de laatste.
      *
-     * Bij een wijziging die het pakket niet raakt -- een plek erbij, meer
-     * opslag -- staat er geen pakketwissel, want dat was er niet.
+     * @param  array<string, mixed>  $story
      */
-    private function prorationDescription(
-        CarbonImmutable $on,
-        int $days,
-        int $total_days,
-        bool $invoiced,
-        ?string $old_package,
-        ?string $new_package,
-    ): string {
-        $switched = filled($old_package) && filled($new_package) && $old_package !== $new_package;
+    private function prorationDescription(array $story): string
+    {
+        $on = CarbonImmutable::parse($story['changed_on'])->format('d-m-Y');
+        $switched = filled($story['from_package']) && filled($story['to_package'])
+            && $story['from_package'] !== $story['to_package'];
+
+        $packages = $switched ? sprintf('%s naar %s', $story['from_package'], $story['to_package']) : null;
+        $amounts = sprintf(
+            '€ %s naar € %s per maand',
+            Money::human($story['from_cents']),
+            Money::human($story['to_cents']),
+        );
+
+        if ($story['changes'] > 1) {
+            return sprintf(
+                'Verrekening abonnementswijziging: %s (laatste wijziging %s)',
+                $packages ? $packages . ', ' . $amounts : $amounts,
+                $on,
+            );
+        }
 
         $what = $switched
-            ? sprintf('pakketwissel %s: %s naar %s', $on->format('d-m-Y'), $old_package, $new_package)
-            : sprintf('abonnementswijziging %s', $on->format('d-m-Y'));
+            ? sprintf('pakketwissel %s: %s', $on, $packages)
+            : sprintf('abonnementswijziging %s: %s', $on, $amounts);
 
         $over = $switched
-            ? ($invoiced ? $new_package : $old_package)
-            : ($invoiced ? 'de nieuwe prijs' : 'de oude prijs');
+            ? ($story['invoiced'] ? $story['to_package'] : $story['from_package'])
+            : ($story['invoiced'] ? 'de nieuwe prijs' : 'de oude prijs');
 
-        return sprintf('Verrekening %s (%d van %d dagen op %s)', $what, $days, $total_days, $over);
+        return sprintf(
+            'Verrekening %s (%d van %d dagen op %s)',
+            $what,
+            $story['days'],
+            $story['total_days'],
+            $over,
+        );
     }
 }

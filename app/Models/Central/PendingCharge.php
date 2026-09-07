@@ -10,5 +10,7 @@ class PendingCharge extends Model
 
     protected $table = 'pending_charges';
 
-    protected $fillable = ['tenant_id', 'description', 'kind', 'amount_cents', 'invoice_id'];
+    protected $casts = ['data' => 'array'];
+
+    protected $fillable = ['tenant_id', 'description', 'kind', 'amount_cents', 'invoice_id', 'data'];
 }

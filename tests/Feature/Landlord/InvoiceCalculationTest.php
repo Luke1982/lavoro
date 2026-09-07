@@ -722,4 +722,107 @@ class InvoiceCalculationTest extends TestCase
         $this->assertStringContainsString('normaal € 330,00, speciale prijsafspraak', $lines[0]['description']);
         $this->assertSame(14900 * 12, $lines[0]['amount_cents']);
     }
+
+    /**
+     * Het gemelde geval: klant per 1 september, op 7 september de AI-module
+     * erbij en meteen daarna een prijsafspraak van 15 euro. Dat waren twee
+     * keer opslaan, en dus twee verrekeningsregels met dezelfde omschrijving
+     * en tegengestelde bedragen. Samen klopte het, los was het onleesbaar.
+     */
+    public function test_two_changes_on_one_day_end_up_on_one_line(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'package_key' => 'starter',
+        ]);
+
+        $on = CarbonImmutable::parse('2026-09-07');
+        $invoicer = new Invoicer($tenant);
+
+        $invoicer->prorate(2750, 5000, $on);
+        $tenant->forceFill(['modules' => ['assistant']])->save();
+
+        $invoicer->prorate(5000, 4250, $on);
+        $tenant->forceFill(['module_prices' => ['assistant' => 1500]])->save();
+
+        $charges = (new Invoicer($tenant))->pendingCharges();
+
+        $this->assertCount(1, $charges, 'twee wijzigingen, een regel');
+        $this->assertSame(-300, (int) $charges->first()->amount_cents);
+        $this->assertSame(
+            'Verrekening abonnementswijziging: € 27,50 naar € 42,50 per maand (laatste wijziging 07-09-2026)',
+            $charges->first()->description,
+        );
+
+        $this->assertSame(
+            2750 + (int) round(1500 * 24 / 30),
+            (new Invoicer($tenant))->issue($on)->total_cents,
+            'zes dagen alleen starter, vierentwintig dagen met de AI-module tegen 15 euro',
+        );
+    }
+
+    public function test_changes_that_cancel_each_other_leave_no_line_at_all(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        (new Invoicer($tenant))->prorate(2750, 5000, $on);
+        (new Invoicer($tenant))->prorate(5000, 2750, $on);
+
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    /**
+     * Een wijziging die geen pakketwissel is, hoort wel te zeggen wat er dan
+     * wel veranderde. 'Abonnementswijziging' alleen legt niets uit.
+     */
+    public function test_a_change_outside_the_package_names_the_amounts(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $charge = (new Invoicer($tenant))->prorate(2750, 5000, CarbonImmutable::parse('2026-09-07'));
+
+        $this->assertSame(
+            'Verrekening abonnementswijziging 07-09-2026: € 27,50 naar € 50,00 per maand'
+                . ' (6 van 30 dagen op de oude prijs)',
+            $charge->description,
+        );
+    }
+
+    /**
+     * Ook na een tweede wijziging hoort er te staan van welk pakket naar welk.
+     * Het samenvoegen gooide dat eerst weg: er stond alleen nog dat er iets
+     * gewijzigd was.
+     */
+    public function test_a_merged_settlement_still_names_both_packages(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        (new Invoicer($tenant))->prorate(2750, 8750, $on, 'Starter', 'Team');
+        (new Invoicer($tenant))->prorate(8750, 11000, $on, 'Team', 'Team');
+
+        $charge = (new Invoicer($tenant))->pendingCharges()->first();
+
+        $this->assertSame(
+            'Verrekening abonnementswijziging: Starter naar Team,'
+                . ' € 27,50 naar € 110,00 per maand (laatste wijziging 07-09-2026)',
+            $charge->description,
+        );
+    }
+
+    /** Een wissel die verderop weer teruggedraaid wordt, noemt geen wissel. */
+    public function test_a_merged_settlement_that_ends_where_it_started_names_no_switch(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        (new Invoicer($tenant))->prorate(2750, 8750, $on, 'Starter', 'Team');
+        (new Invoicer($tenant))->prorate(8750, 4000, $on, 'Team', 'Starter');
+
+        $this->assertStringNotContainsString(
+            'naar Starter',
+            (new Invoicer($tenant))->pendingCharges()->first()->description,
+        );
+    }
 }
