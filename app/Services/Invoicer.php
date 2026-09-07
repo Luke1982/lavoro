@@ -29,17 +29,28 @@ class Invoicer
      * De periode waarin een datum valt, geteld vanaf de startdatum. Zo blijft
      * een klant die op de 12e begon op de 12e factuurdatum houden, ook in
      * februari.
+     *
+     * Elke periode wordt vanaf de oorspronkelijke startdatum uitgerekend en
+     * niet stap voor stap opgeteld, en zonder over te lopen naar de volgende
+     * maand. Wie op de 31e begon schoof anders voorgoed op: 31 januari plus een
+     * maand is 3 maart, en vanaf dan lag de factuurdatum op de 3e. Nu wordt hij
+     * in korte maanden alleen ingekort -- 31 januari, 28 februari, 31 maart --
+     * en blijft de klant op zijn eigen dag.
      */
     public function periodFor(CarbonImmutable $on): array
     {
         $start = $this->startedOn();
         $step = $this->isYearly() ? 12 : 1;
+        $periods = 0;
 
-        while ($start->addMonths($step)->lessThanOrEqualTo($on)) {
-            $start = $start->addMonths($step);
+        while ($start->addMonthsNoOverflow(($periods + 1) * $step)->lessThanOrEqualTo($on)) {
+            $periods++;
         }
 
-        return [$start, $start->addMonths($step)->subDay()];
+        return [
+            $start->addMonthsNoOverflow($periods * $step),
+            $start->addMonthsNoOverflow(($periods + 1) * $step)->subDay(),
+        ];
     }
 
     /** @return array<int, array{description: string, kind: string, amount_cents: int}> */
@@ -107,9 +118,26 @@ class Invoicer
             return false;
         }
 
-        return !Invoice::on('central')
+        return !$this->subscriptionWasInvoicedFor($start);
+    }
+
+    /**
+     * Staat het abonnement van deze periode al op een factuur? Er wordt op de
+     * abonnementsregel gezocht en niet op het bestaan van een factuur: een
+     * tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode.
+     *
+     * Gezocht wordt op een factuur waar de eerste dag van deze periode binnen
+     * valt, en niet op een factuur die precies op die dag begint. Verschuift de
+     * indeling ooit -- een gecorrigeerde startdatum, of de reparatie van de
+     * maandsprong -- dan zou een zoektocht op de exacte dag niets vinden en
+     * werden dagen die al betaald zijn een tweede keer in rekening gebracht.
+     */
+    private function subscriptionWasInvoicedFor(CarbonImmutable $start): bool
+    {
+        return Invoice::on('central')
             ->where('tenant_id', $this->tenant->id)
-            ->whereDate('period_start', $start->toDateString())
+            ->whereDate('period_start', '<=', $start->toDateString())
+            ->whereDate('period_end', '>=', $start->toDateString())
             ->whereHas('lines', fn ($query) => $query->where('kind', 'subscription'))
             ->exists();
     }
@@ -122,7 +150,16 @@ class Invoicer
      */
     public function isDue(?CarbonImmutable $on = null): bool
     {
-        return $this->subscriptionIsDue($on) || $this->pendingCharges()->isNotEmpty();
+        if (!$this->subscriptionIsDue($on) && $this->pendingCharges()->isEmpty()) {
+            return false;
+        }
+
+        /**
+         * Staat er meer tegoed open dan er te factureren valt -- na een
+         * pakketverlaging bijvoorbeeld -- dan valt er nu niets te sturen. Het
+         * tegoed blijft staan en gaat van de volgende factuur af.
+         */
+        return $this->preview($on)['total_cents'] >= 0;
     }
 
     public function pendingCharges()
@@ -160,7 +197,13 @@ class Invoicer
 
         $discount = $this->yearlyDiscountCents($subscription_cents);
 
-        $net = max(0, $subtotal - $discount);
+        /**
+         * Niet afgekapt op nul. Een openstaand tegoed dat groter is dan de
+         * regels eromheen leverde anders een factuur op van nul euro, terwijl
+         * de tegoedpost wel als verwerkt werd afgestempeld -- en daarmee was
+         * het geld van de klant weg. Wat er niet uit kan, weigert issue().
+         */
+        $net = $subtotal - $discount;
         $vat_percent = (int) PricingSetting::value('vat_percent', 21);
         $vat = (int) round($net * $vat_percent / 100);
 
@@ -188,6 +231,17 @@ class Invoicer
          */
         if ($preview['lines'] === []) {
             throw new Refusal('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
+        }
+
+        /**
+         * Een factuur is nooit negatief -- de bedragen staan als positief getal
+         * in de database en een incasso van een negatief bedrag bestaat niet.
+         * Het tegoed blijft dus staan tot er genoeg tegenover staat.
+         */
+        if ($preview['total_cents'] < 0) {
+            throw new Refusal('Er staat meer tegoed open voor ' . $this->tenant->name
+                . ' dan er nu te factureren valt. Dat tegoed blijft staan en gaat van de'
+                . ' volgende factuur af.');
         }
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {
@@ -238,11 +292,21 @@ class Invoicer
     /**
      * Verrekent een pakketwissel halverwege een periode: wat er nog aan dagen
      * over is, tegen het verschil in maandprijs.
+     *
+     * Alleen over dagen die al tegen de oude prijs betaald zijn. Is deze
+     * periode nog niet gefactureerd, dan zet de eerstvolgende factuur het
+     * nieuwe pakket al over de hele periode in rekening; een verrekening
+     * erbij bracht het verschil een tweede keer in rekening -- bij een wissel
+     * op de eerste dag van de periode zelfs het volle verschil.
      */
     public function prorate(int $old_monthly_cents, int $new_monthly_cents, ?CarbonImmutable $on = null): ?PendingCharge
     {
         $on = $on ?? CarbonImmutable::now();
         [$start, $end] = $this->periodFor($on);
+
+        if (!$this->subscriptionWasInvoicedFor($start)) {
+            return null;
+        }
 
         $total_days = $start->diffInDays($end->addDay());
         $left = max(0, $on->startOfDay()->diffInDays($end->addDay()));

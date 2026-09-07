@@ -1,0 +1,564 @@
+<?php
+
+namespace Tests\Feature\Landlord;
+
+use App\Exceptions\Refusal;
+use App\Models\Central\Invoice;
+use App\Models\Central\LandlordUser;
+use App\Models\Central\PendingCharge;
+use App\Models\Tenant;
+use App\Services\Invoicer;
+use Carbon\CarbonImmutable;
+use Tests\TestCase;
+
+/**
+ * Wat er op de factuur komt te staan.
+ *
+ * Uit de migraties: starter 2750, team 8750, jaarkorting 2%, btw 21%.
+ */
+class InvoiceCalculationTest extends TestCase
+{
+    private int $counter = 0;
+
+    private function landlord(): LandlordUser
+    {
+        return LandlordUser::on('central')->firstOrCreate(
+            ['email' => 'facturen@majorlabel.nl'],
+            ['name' => 'Facturen', 'password' => 'geheim'],
+        );
+    }
+
+    private function tenant(array $attributes = []): Tenant
+    {
+        $this->counter++;
+
+        return Tenant::withoutEvents(fn () => Tenant::on('central')->create([
+            'id' => 'factuur-' . $this->counter,
+            'name' => 'Factuurtest ' . $this->counter,
+            'tenancy_db_name' => 'lavoro_test_tenant_factuur',
+            'package_key' => 'starter',
+            'storage_limit_gb' => 50,
+            'billing_period' => 'monthly',
+            'subscription_started_on' => '2026-01-15',
+            ...$attributes,
+        ]));
+    }
+
+    private function period(Tenant $tenant, string $on): string
+    {
+        [$start, $end] = (new Invoicer($tenant))->periodFor(CarbonImmutable::parse($on));
+
+        return $start->format('d-m-Y') . ' t/m ' . $end->format('d-m-Y');
+    }
+
+    public function test_a_month_runs_from_the_start_day_to_the_day_before_the_next(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-01-15']);
+
+        $this->assertSame('15-01-2026 t/m 14-02-2026', $this->period($tenant, '2026-01-15'));
+        $this->assertSame('15-01-2026 t/m 14-02-2026', $this->period($tenant, '2026-02-14'));
+        $this->assertSame('15-02-2026 t/m 14-03-2026', $this->period($tenant, '2026-02-15'));
+        $this->assertSame('15-06-2026 t/m 14-07-2026', $this->period($tenant, '2026-07-01'));
+    }
+
+    /**
+     * De maandelijkse factuurdag hoort niet op te schuiven. Met gewoon
+     * optellen liep 31 januari over naar 3 maart en lag de factuurdatum daarna
+     * voorgoed op de 3e.
+     */
+    public function test_a_customer_who_started_on_the_thirty_first_keeps_that_day(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-01-31']);
+
+        $this->assertSame('31-01-2026 t/m 27-02-2026', $this->period($tenant, '2026-02-01'));
+        $this->assertSame('28-02-2026 t/m 30-03-2026', $this->period($tenant, '2026-03-01'));
+        $this->assertSame('31-03-2026 t/m 29-04-2026', $this->period($tenant, '2026-04-01'));
+        $this->assertSame('31-05-2026 t/m 29-06-2026', $this->period($tenant, '2026-06-01'));
+    }
+
+    public function test_a_customer_who_started_on_the_thirtieth_keeps_that_day_too(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-08-31']);
+
+        $this->assertSame('31-08-2026 t/m 29-09-2026', $this->period($tenant, '2026-09-01'));
+        $this->assertSame('30-09-2026 t/m 30-10-2026', $this->period($tenant, '2026-10-01'));
+        $this->assertSame('31-10-2026 t/m 29-11-2026', $this->period($tenant, '2026-11-01'));
+    }
+
+    public function test_a_yearly_period_runs_twelve_months(): void
+    {
+        $tenant = $this->tenant([
+            'billing_period' => 'yearly',
+            'subscription_started_on' => '2026-03-01',
+        ]);
+
+        $this->assertSame('01-03-2026 t/m 28-02-2027', $this->period($tenant, '2026-09-09'));
+        $this->assertSame('01-03-2027 t/m 29-02-2028', $this->period($tenant, '2027-03-01'));
+    }
+
+    public function test_the_subscription_is_due_until_it_has_been_invoiced(): void
+    {
+        $tenant = $this->tenant();
+        $invoicer = new Invoicer($tenant);
+        $on = CarbonImmutable::parse('2026-02-15');
+
+        $this->assertTrue($invoicer->subscriptionIsDue($on));
+
+        $invoicer->issue($on);
+
+        $this->assertFalse($invoicer->subscriptionIsDue($on));
+        $this->assertTrue($invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-03-15')));
+    }
+
+    public function test_a_subscription_that_has_not_started_is_never_due(): void
+    {
+        $invoicer = new Invoicer($this->tenant(['subscription_started_on' => null]));
+
+        $this->assertFalse($invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-02-15')));
+    }
+
+    public function test_a_period_that_has_not_begun_is_not_due_yet(): void
+    {
+        $invoicer = new Invoicer($this->tenant(['subscription_started_on' => '2026-12-01']));
+
+        $this->assertFalse($invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-02-15')));
+    }
+
+    /**
+     * Een tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode
+     * als de maandfactuur. Die mag het abonnement niet wegdrukken.
+     */
+    public function test_an_extra_invoice_in_the_same_period_does_not_cancel_the_subscription(): void
+    {
+        $tenant = $this->tenant();
+        $on = CarbonImmutable::parse('2026-02-20');
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Extra AI-tegoed',
+            'kind' => 'topup',
+            'amount_cents' => 1000,
+        ]);
+
+        $invoice = (new Invoicer($tenant))->issue($on);
+        $invoice->lines()->where('kind', 'subscription')->delete();
+
+        $this->assertTrue((new Invoicer($tenant))->subscriptionIsDue($on));
+    }
+
+    public function test_a_year_is_charged_as_twelve_months_at_once(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'billing_period' => 'yearly']);
+        $preview = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame(8750 * 12, $preview['subtotal_cents']);
+        $this->assertStringContainsString('(12 maanden)', $preview['lines'][0]['description']);
+    }
+
+    public function test_the_yearly_discount_is_two_percent_of_the_subscription(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'billing_period' => 'yearly']);
+        $preview = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame((int) round(8750 * 12 * 0.02), $preview['discount_cents']);
+        $this->assertSame(8750 * 12 - $preview['discount_cents'], $preview['total_cents']);
+    }
+
+    public function test_paying_per_month_gives_no_yearly_discount(): void
+    {
+        $preview = (new Invoicer($this->tenant()))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame(0, $preview['discount_cents']);
+    }
+
+    /**
+     * De jaarkorting hoort bij het abonnement. Wie tegoed bijkoopt of een
+     * verrekening krijgt, hoort daar geen twee procent op te krijgen omdat hij
+     * toevallig per jaar betaalt.
+     */
+    public function test_the_yearly_discount_skips_top_ups_and_settlements(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'billing_period' => 'yearly']);
+
+        foreach ([['topup', 5000], ['proration', 3000]] as [$kind, $amount]) {
+            PendingCharge::on('central')->create([
+                'tenant_id' => $tenant->id,
+                'description' => 'Losse post',
+                'kind' => $kind,
+                'amount_cents' => $amount,
+            ]);
+        }
+
+        $preview = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame(8750 * 12 + 5000 + 3000, $preview['subtotal_cents']);
+        $this->assertSame((int) round(8750 * 12 * 0.02), $preview['discount_cents']);
+    }
+
+    public function test_vat_is_charged_over_the_amount_after_discount(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'billing_period' => 'yearly']);
+        $preview = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $net = 8750 * 12 - (int) round(8750 * 12 * 0.02);
+
+        $this->assertSame($net, $preview['total_cents']);
+        $this->assertSame(21, $preview['vat_percent']);
+        $this->assertSame((int) round($net * 0.21), $preview['vat_cents']);
+        $this->assertSame($net + (int) round($net * 0.21), $preview['gross_cents']);
+    }
+
+    public function test_the_lines_add_up_to_the_subtotal_and_the_gross_is_what_is_collected(): void
+    {
+        $tenant = $this->tenant([
+            'package_key' => 'business',
+            'billing_period' => 'yearly',
+            'extra_field_seats' => 3,
+            'modules' => ['quotes', 'invoices'],
+            'storage_limit_gb' => 130,
+            'discount_percent' => 7,
+        ]);
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Extra AI-tegoed',
+            'kind' => 'topup',
+            'amount_cents' => 2500,
+        ]);
+
+        $preview = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame(
+            array_sum(array_column($preview['lines'], 'amount_cents')),
+            $preview['subtotal_cents'],
+        );
+        $this->assertSame(
+            $preview['subtotal_cents'] - $preview['discount_cents'],
+            $preview['total_cents'],
+        );
+        $this->assertSame(
+            $preview['total_cents'] + $preview['vat_cents'],
+            $preview['gross_cents'],
+        );
+    }
+
+    /**
+     * Het geval waar het misging: bij een wissel op de eerste dag van een nog
+     * niet gefactureerde periode stond het nieuwe pakket er vol op en kwam het
+     * verschil er nog een keer bij.
+     */
+    public function test_a_switch_in_a_period_that_is_not_invoiced_yet_gets_no_settlement(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-02-04']);
+        $on = CarbonImmutable::parse('2026-02-04');
+
+        $this->assertNull((new Invoicer($tenant))->prorate(2750, 8750, $on));
+
+        $tenant->forceFill(['package_key' => 'team'])->save();
+        $preview = (new Invoicer($tenant))->preview($on);
+
+        $this->assertCount(1, $preview['lines']);
+        $this->assertSame(8750, $preview['subtotal_cents']);
+    }
+
+    public function test_a_switch_halfway_an_invoiced_period_settles_the_days_that_are_left(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $charge = (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-03-16'));
+
+        $this->assertNotNull($charge);
+        $this->assertSame((int) round(6000 * 16 / 31), $charge->amount_cents);
+        $this->assertSame('proration', $charge->kind);
+        $this->assertStringContainsString('16 van 31 dagen', $charge->description);
+    }
+
+    public function test_a_downgrade_settles_as_money_back(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $charge = (new Invoicer($tenant))->prorate(8750, 2750, CarbonImmutable::parse('2026-03-16'));
+
+        $this->assertNotNull($charge);
+        $this->assertSame(-(int) round(6000 * 16 / 31), $charge->amount_cents);
+    }
+
+    public function test_a_switch_to_the_same_price_settles_nothing(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->assertNull((new Invoicer($tenant))->prorate(2750, 2750, CarbonImmutable::parse('2026-03-16')));
+    }
+
+    /** Op de laatste dag valt er nog precies een dag te verrekenen, niet nul. */
+    public function test_a_switch_on_the_last_day_of_a_period_settles_one_day(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $charge = (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-03-31'));
+
+        $this->assertSame((int) round(6000 * 1 / 31), $charge->amount_cents);
+        $this->assertStringContainsString('1 van 31 dagen', $charge->description);
+    }
+
+    public function test_a_yearly_customer_settles_over_twelve_months(): void
+    {
+        $tenant = $this->tenant([
+            'billing_period' => 'yearly',
+            'subscription_started_on' => '2026-01-01',
+        ]);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-01-01'));
+
+        $charge = (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-07-01'));
+
+        $this->assertSame((int) round(6000 * 12 * 184 / 365), $charge->amount_cents);
+    }
+
+    /**
+     * Over twee periodes heen moet de klant precies betalen voor wat hij had:
+     * de oude prijs voor de dagen tot de wissel, de nieuwe voor de rest.
+     */
+    public function test_an_upgrade_costs_the_old_price_until_the_switch_and_the_new_price_after(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        $first = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->assertSame(2750, $first->total_cents);
+
+        $tenant->forceFill(['package_key' => 'team'])->save();
+        (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-03-16'));
+
+        $second = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-04-01'));
+
+        $settlement = (int) round(6000 * 16 / 31);
+
+        $this->assertSame(8750 + $settlement, $second->total_cents);
+
+        $days_on_starter = 15;
+        $days_on_team = 16;
+
+        $this->assertSame(
+            (int) round(2750 * $days_on_starter / 31) + (int) round(8750 * $days_on_team / 31) + 8750,
+            $first->total_cents + $second->total_cents,
+            'samen hoort dit gelijk te zijn aan starter tot de wissel, team erna, plus de nieuwe maand',
+        );
+    }
+
+    public function test_an_empty_invoice_is_refused(): void
+    {
+        $tenant = $this->tenant();
+        $on = CarbonImmutable::parse('2026-02-15');
+
+        (new Invoicer($tenant))->issue($on);
+
+        $this->expectException(Refusal::class);
+
+        (new Invoicer($tenant))->issue($on);
+    }
+
+    public function test_numbers_run_on_per_year_and_are_never_reused(): void
+    {
+        $first = $this->tenant(['subscription_started_on' => '2026-02-01']);
+        $second = $this->tenant(['subscription_started_on' => '2026-02-01']);
+
+        Invoice::on('central')->create([
+            'number' => '2026-LVR-8', 'tenant_id' => $first->id,
+            'period_start' => '2025-01-01', 'period_end' => '2025-01-31',
+            'issued_on' => '2025-01-01', 'due_on' => '2025-01-15',
+            'subtotal_cents' => 0, 'discount_cents' => 0, 'total_cents' => 0,
+            'vat_percent' => 21, 'vat_cents' => 0, 'gross_cents' => 0,
+        ]);
+
+        $invoice = (new Invoicer($first))->issue(CarbonImmutable::parse('2026-02-01'));
+        $this->assertSame('2026-LVR-9', $invoice->number);
+
+        $invoice->delete();
+
+        $next = (new Invoicer($second))->issue(CarbonImmutable::parse('2026-02-01'));
+        $this->assertSame('2026-LVR-9', $next->number, 'het hoogste bestaande nummer bepaalt het volgende');
+    }
+
+    public function test_what_is_previewed_is_what_gets_stored(): void
+    {
+        $tenant = $this->tenant([
+            'package_key' => 'team',
+            'billing_period' => 'yearly',
+            'subscription_started_on' => '2026-02-01',
+            'storage_limit_gb' => 90,
+        ]);
+
+        $on = CarbonImmutable::parse('2026-02-01');
+        $preview = (new Invoicer($tenant))->preview($on);
+        $invoice = (new Invoicer($tenant))->issue($on);
+
+        $this->assertSame($preview['subtotal_cents'], $invoice->subtotal_cents);
+        $this->assertSame($preview['discount_cents'], $invoice->discount_cents);
+        $this->assertSame($preview['total_cents'], $invoice->total_cents);
+        $this->assertSame($preview['vat_cents'], $invoice->vat_cents);
+        $this->assertSame($preview['gross_cents'], $invoice->gross_cents);
+        $this->assertCount(count($preview['lines']), $invoice->lines);
+        $this->assertSame('01-02-2026', $invoice->period_start->format('d-m-Y'));
+        $this->assertSame('31-01-2027', $invoice->period_end->format('d-m-Y'));
+    }
+
+    public function test_a_settlement_is_charged_once_and_then_belongs_to_its_invoice(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $tenant->forceFill(['package_key' => 'team'])->save();
+        $charge = (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-03-16'));
+
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-04-01'));
+
+        $this->assertSame(8750 + $charge->amount_cents, $invoice->total_cents);
+        $this->assertSame($invoice->id, $charge->fresh()->invoice_id);
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+
+        $later = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-05-01'));
+
+        $this->assertSame(8750, $later->total_cents, 'team zonder de verrekening van vorige maand');
+    }
+
+    public function test_a_credit_smaller_than_the_bill_is_simply_deducted(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Verrekening terug',
+            'kind' => 'proration',
+            'amount_cents' => -1000,
+        ]);
+
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->assertSame(2750 - 1000, $invoice->total_cents);
+    }
+
+    /**
+     * Het tegoed van een klant mag niet verdampen. Zonder de grens hieronder
+     * werd de factuur nul euro terwijl de tegoedpost wel als verwerkt werd
+     * afgestempeld -- of liep de opslag stuk op een negatief bedrag.
+     */
+    public function test_a_credit_bigger_than_the_bill_keeps_standing(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Verrekening terug',
+            'kind' => 'proration',
+            'amount_cents' => -5000,
+        ]);
+
+        $on = CarbonImmutable::parse('2026-03-16');
+        $invoicer = new Invoicer($tenant);
+
+        $this->assertSame(-5000, $invoicer->preview($on)['total_cents']);
+        $this->assertFalse($invoicer->isDue($on));
+
+        try {
+            $invoicer->issue($on);
+            $this->fail('een negatieve factuur hoort geweigerd te worden');
+        } catch (Refusal $refusal) {
+            $this->assertStringContainsString('tegoed', $refusal->getMessage());
+        }
+
+        $this->assertCount(1, $invoicer->pendingCharges());
+        $this->assertSame(1, Invoice::on('central')->where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_a_standing_credit_comes_off_the_next_invoice(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'subscription_started_on' => '2026-03-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Verrekening terug',
+            'kind' => 'proration',
+            'amount_cents' => -5000,
+        ]);
+
+        $next = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-04-01'));
+
+        $this->assertSame(8750 - 5000, $next->total_cents);
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    public function test_top_up_money_is_charged_once_at_what_was_paid(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->post(route('landlord.topup', $tenant->id), ['paid_euro' => '12.50', 'note' => 'test'])
+            ->assertRedirect();
+
+        $charge = PendingCharge::on('central')->where('tenant_id', $tenant->id)->first();
+
+        $this->assertSame(1250, $charge->amount_cents);
+        $this->assertSame('topup', $charge->kind);
+
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->assertSame(2750 + 1250, $invoice->total_cents);
+
+        $later = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-04-01'));
+
+        $this->assertSame(2750, $later->total_cents, 'bijkoop hoort maar een keer op een factuur te staan');
+    }
+
+    public function test_the_numbers_start_again_in_a_new_year(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-12-01']);
+
+        $this->assertSame(
+            '2026-LVR-1',
+            (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-12-01'))->number,
+        );
+        $this->assertSame(
+            '2027-LVR-1',
+            (new Invoicer($tenant))->issue(CarbonImmutable::parse('2027-01-01'))->number,
+        );
+    }
+
+    /**
+     * Wordt de startdatum gecorrigeerd, dan verschuift de periode-indeling.
+     * Dagen die al gefactureerd zijn mogen daardoor niet opnieuw op een
+     * factuur belanden.
+     */
+    public function test_days_that_are_already_paid_are_never_charged_a_second_time(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->assertSame('01-03-2026', $invoice->period_start->format('d-m-Y'));
+
+        $tenant->forceFill(['subscription_started_on' => '2026-03-10'])->save();
+
+        $invoicer = new Invoicer($tenant);
+
+        $this->assertSame('10-03-2026 t/m 09-04-2026', $this->period($tenant, '2026-03-15'));
+        $this->assertFalse(
+            $invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-03-15')),
+            'de dagen vanaf 10 maart staan al op de factuur van 1 maart',
+        );
+        $this->assertTrue($invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-04-15')));
+    }
+}

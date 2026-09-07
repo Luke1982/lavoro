@@ -204,8 +204,15 @@ php artisan tenant:storage <id> --limit=200
 php artisan tenant:override <id> --price=14900   # vaste maandprijs in centen, --clear wist hem
 ```
 
-Alles kan ook in het paneel. Een pakketwissel halverwege de maand zet
-automatisch een verrekening klaar voor de volgende factuur.
+Alles kan ook in het paneel. Wissel je halverwege een periode van pakket, dan
+komt er een verrekening voor de resterende dagen op de volgende factuur -- maar
+alleen als die periode al gefactureerd is. Is dat nog niet gebeurd, dan zet de
+eerstvolgende factuur het nieuwe pakket al over de hele periode in rekening en
+zou een verrekening het verschil er een tweede keer bij zetten.
+
+Gaat een klant naar een goedkoper pakket, dan staat er tegoed open. Is dat meer
+dan er op dat moment te factureren valt, dan komt er geen factuur: het tegoed
+blijft staan en gaat van de volgende af. Het scherm zegt dat er dan ook bij.
 
 ## Facturen
 
