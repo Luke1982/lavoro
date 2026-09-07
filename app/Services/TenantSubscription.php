@@ -41,6 +41,17 @@ class TenantSubscription
         return $this->package()?->name;
     }
 
+    /**
+     * Wat het pakket zelf kost: de afgesproken prijs, of anders die uit de
+     * catalogus. Zonder de plekken, modules en opslag die er los bijkomen.
+     */
+    public function packageCents(): int
+    {
+        return $this->tenant->price_override_cents !== null
+            ? (int) $this->tenant->price_override_cents
+            : (int) ($this->package()?->price_cents ?? 0);
+    }
+
     public function monthlyTotalCents(): int
     {
         return max(0, $this->beforeDiscountCents() - $this->discountCents() - $this->couponDiscountCents());
@@ -170,7 +181,8 @@ class TenantSubscription
     private function moduleLines(): array
     {
         $keys = collect($this->tenant->modules ?? []);
-        $agreed = collect($this->tenant->module_prices ?? []);
+        /** Zonder bedrag is het geen afspraak; anders zou een lege rij wel de bundel wegdrukken. */
+        $agreed = collect($this->tenant->module_prices ?? [])->filter(fn ($price) => $price !== null);
         $lines = [];
 
         foreach (ModuleBundle::on('central')->get() as $bundle) {

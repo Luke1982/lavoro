@@ -6,6 +6,16 @@
         <Link :href="`/beheer/${tenant.id}`" class="text-blue-700 underline">terug naar het abonnement</Link>
     </p>
 
+    <div v-if="unbilled.length"
+        class="mb-5 rounded-lg border border-slate-200 border-l-4 border-l-red-700 bg-white p-5">
+        <strong>Deze periodes zijn nooit gefactureerd.</strong>
+        Er wordt altijd maar één periode tegelijk gefactureerd, die van vandaag; een overgeslagen
+        maand komt uit zichzelf niet meer terug.
+        <ul class="mt-2 list-inside list-disc">
+            <li v-for="period in unbilled" :key="period">{{ period }}</li>
+        </ul>
+    </div>
+
     <PanelSection title="Eerstvolgende factuur">
 
         <table class="w-full text-left">
@@ -102,6 +112,7 @@ const props = defineProps({
     preview: { type: Object, required: true },
     is_due: { type: Boolean, required: true },
     next_period_starts_on: { type: String, required: true },
+    unbilled: { type: Array, default: () => [] },
 })
 
 const issuing = ref(false)

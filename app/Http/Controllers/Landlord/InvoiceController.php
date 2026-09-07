@@ -32,6 +32,10 @@ class InvoiceController extends Controller
             'preview' => $invoicer->preview(),
             'is_due' => $invoicer->isDue(),
             'next_period_starts_on' => $end->addDay(),
+            /** Maanden die zijn overgeslagen; die komen uit zichzelf niet meer terug. */
+            'unbilled' => collect($invoicer->unbilledPeriods())
+                ->map(fn (array $period) => $period['start']->format('d-m-Y') . ' t/m ' . $period['end']->format('d-m-Y'))
+                ->all(),
         ]);
     }
 

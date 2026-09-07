@@ -724,40 +724,35 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Het gemelde geval: klant per 1 september, op 7 september de AI-module
-     * erbij en meteen daarna een prijsafspraak van 15 euro. Dat waren twee
-     * keer opslaan, en dus twee verrekeningsregels met dezelfde omschrijving
-     * en tegengestelde bedragen. Samen klopte het, los was het onleesbaar.
+     * Twee keer opslaan op een dag -- eerst naar Team, dan een prijs voor dat
+     * pakket afgesproken -- gaf twee verrekeningsregels met dezelfde
+     * omschrijving en tegengestelde bedragen. Samen klopte het, los was het
+     * onleesbaar.
      */
     public function test_two_changes_on_one_day_end_up_on_one_line(): void
     {
-        $tenant = $this->tenant([
-            'subscription_started_on' => '2026-09-01',
-            'package_key' => 'starter',
-        ]);
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
 
         $on = CarbonImmutable::parse('2026-09-07');
-        $invoicer = new Invoicer($tenant);
 
-        $invoicer->prorate(2750, 5000, $on);
-        $tenant->forceFill(['modules' => ['assistant']])->save();
-
-        $invoicer->prorate(5000, 4250, $on);
-        $tenant->forceFill(['module_prices' => ['assistant' => 1500]])->save();
+        (new Invoicer($tenant))->prorate(2750, 8750, $on, 'Starter', 'Team');
+        (new Invoicer($tenant))->prorate(8750, 5000, $on, 'Team', 'Team');
+        $tenant->forceFill(['package_key' => 'team', 'price_override_cents' => 5000])->save();
 
         $charges = (new Invoicer($tenant))->pendingCharges();
 
         $this->assertCount(1, $charges, 'twee wijzigingen, een regel');
-        $this->assertSame(-300, (int) $charges->first()->amount_cents);
+        $this->assertSame(-(int) round((5000 - 2750) * 6 / 30), (int) $charges->first()->amount_cents);
         $this->assertSame(
-            'Verrekening abonnementswijziging: € 27,50 naar € 42,50 per maand (laatste wijziging 07-09-2026)',
+            'Verrekening abonnementswijziging: Starter naar Team,'
+                . ' € 27,50 naar € 50,00 per maand (laatste wijziging 07-09-2026)',
             $charges->first()->description,
         );
 
         $this->assertSame(
-            2750 + (int) round(1500 * 24 / 30),
+            (int) round(2750 * 6 / 30) + (int) round(5000 * 24 / 30),
             (new Invoicer($tenant))->issue($on)->total_cents,
-            'zes dagen alleen starter, vierentwintig dagen met de AI-module tegen 15 euro',
+            'zes dagen starter, vierentwintig dagen het afgesproken pakket',
         );
     }
 
@@ -824,5 +819,68 @@ class InvoiceCalculationTest extends TestCase
             'naar Starter',
             (new Invoicer($tenant))->pendingCharges()->first()->description,
         );
+    }
+
+    /**
+     * Verrekeningen van twee verschillende maanden horen niet op een hoop.
+     *
+     * Ze gaan over een ander aantal dagen en over een andere factuur. Bij
+     * elkaar opgeteld leveren ze een bedrag op dat bij geen van beide maanden
+     * hoort, onder een omschrijving die geen van beide beschrijft.
+     */
+    public function test_settlements_from_different_periods_stay_apart(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-08-01']);
+
+        (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-08-10'), 'Starter', 'Team');
+        (new Invoicer($tenant))->prorate(8750, 11000, CarbonImmutable::parse('2026-09-10'), 'Team', 'Team');
+
+        $charges = (new Invoicer($tenant))->pendingCharges();
+
+        $this->assertCount(2, $charges);
+        $this->assertStringContainsString('10-08-2026', $charges[0]->description);
+        $this->assertStringContainsString('van 31 dagen', $charges[0]->description);
+        $this->assertStringContainsString('10-09-2026', $charges[1]->description);
+        $this->assertStringContainsString('van 30 dagen', $charges[1]->description);
+    }
+
+    /**
+     * Er wordt maar een periode tegelijk gefactureerd. Slaat een maand over,
+     * dan komt die uit zichzelf nooit meer terug en verdwijnt er stilzwijgend
+     * omzet. Dat hoort in elk geval zichtbaar te zijn.
+     */
+    public function test_periods_that_were_never_billed_are_reported(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-06-01']);
+        $on = CarbonImmutable::parse('2026-09-05');
+
+        $missed = (new Invoicer($tenant))->unbilledPeriods($on);
+
+        $this->assertCount(3, $missed, 'juni, juli en augustus');
+        $this->assertSame('01-06-2026', $missed[0]['start']->format('d-m-Y'));
+        $this->assertSame('30-06-2026', $missed[0]['end']->format('d-m-Y'));
+        $this->assertSame('01-08-2026', $missed[2]['start']->format('d-m-Y'));
+
+        (new Invoicer($tenant))->issue($on);
+
+        $this->assertCount(3, (new Invoicer($tenant))->unbilledPeriods($on), 'september telt niet mee');
+    }
+
+    public function test_a_customer_who_is_billed_every_month_has_nothing_outstanding(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-06-01']);
+
+        foreach (['2026-06-01', '2026-07-01', '2026-08-01'] as $date) {
+            (new Invoicer($tenant))->issue(CarbonImmutable::parse($date));
+        }
+
+        $this->assertSame([], (new Invoicer($tenant))->unbilledPeriods(CarbonImmutable::parse('2026-09-05')));
+    }
+
+    public function test_a_customer_without_a_start_date_has_no_missed_periods(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => null]);
+
+        $this->assertSame([], (new Invoicer($tenant))->unbilledPeriods(CarbonImmutable::parse('2026-09-05')));
     }
 }

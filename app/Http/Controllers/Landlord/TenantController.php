@@ -230,11 +230,17 @@ class TenantController extends Controller
 
         /**
          * Voor en na, want een pakketwissel halverwege de maand levert een
-         * verrekening op voor de volgende factuur. De pakketnaam gaat mee zodat
-         * op de factuur staat waar de verrekening vandaan komt.
+         * verrekening op voor de volgende factuur.
+         *
+         * Alleen het pakket zelf. Wat er los bijkomt -- een module, een plek,
+         * meer opslag, een prijsafspraak daarover -- gaat gewoon mee met de
+         * eerstvolgende factuur en levert geen verrekening op: dat is een
+         * uitbreiding en geen wissel, en een regel die uitrekent hoeveel dagen
+         * iemand die module al had, maakt de factuur onleesbaar voor een bedrag
+         * van een paar euro.
          */
         $before = new TenantSubscription($tenant);
-        $before_cents = $before->monthlyTotalCents();
+        $before_cents = $before->packageCents();
         $before_package = $before->packageName();
 
         $tenant->update($request->tenantAttributes());
@@ -242,7 +248,7 @@ class TenantController extends Controller
         $after = new TenantSubscription($tenant->refresh());
         $charge = (new Invoicer($tenant))->prorate(
             $before_cents,
-            $after->monthlyTotalCents(),
+            $after->packageCents(),
             old_package: $before_package,
             new_package: $after->packageName(),
         );

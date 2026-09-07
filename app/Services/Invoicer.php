@@ -210,6 +210,54 @@ class Invoicer
     }
 
     /** @return Collection<int, PendingCharge> */
+    /**
+     * Periodes die voorbij zijn en waarvoor nooit een abonnement in rekening is
+     * gebracht.
+     *
+     * Er wordt altijd maar een periode gefactureerd: die van vandaag. Wordt er
+     * een maand overgeslagen -- de cron staat stil, de knop wordt niet gedrukt
+     * -- dan komt die maand nooit meer terug. De klant werkt door en er gaat
+     * stilzwijgend een maand omzet verloren. Dit maakt zichtbaar welke.
+     *
+     * Er wordt niet vanzelf alsnog gefactureerd: een klant met een startdatum
+     * ver in het verleden zou daarmee in een klap een stapel facturen krijgen,
+     * en de openstaande posten van vandaag zouden op een oude factuur belanden.
+     * Dat hoort iemand met de hand recht te zetten.
+     *
+     * @return array<int, array{start: CarbonImmutable, end: CarbonImmutable}>
+     */
+    public function unbilledPeriods(?CarbonImmutable $on = null): array
+    {
+        if (!$this->tenant->subscription_started_on) {
+            return [];
+        }
+
+        $on = $on ?? CarbonImmutable::now();
+        [$current] = $this->periodFor($on);
+
+        $start = $this->startedOn();
+        $step = $this->monthsPerPeriod();
+        $missed = [];
+
+        /** Een grens, zodat een startdatum uit 2015 hier geen honderd vragen stelt. */
+        for ($index = 0; $index < 120; $index++) {
+            $from = $start->addMonthsNoOverflow($index * $step);
+
+            if (!$from->lessThan($current)) {
+                break;
+            }
+
+            if (!$this->subscriptionWasInvoicedFor($from)) {
+                $missed[] = [
+                    'start' => $from,
+                    'end' => $start->addMonthsNoOverflow(($index + 1) * $step)->subDay(),
+                ];
+            }
+        }
+
+        return $missed;
+    }
+
     public function pendingCharges(): Collection
     {
         return PendingCharge::on('central')
@@ -380,12 +428,10 @@ class Invoicer
         }
 
         $days_to_come = (int) max(0, $on->startOfDay()->diffInDays($end->addDay()));
-        $days_gone = max(0, $total_days - $days_to_come);
+        $invoiced = $this->subscriptionWasInvoicedFor($start);
+        $days = $invoiced ? $days_to_come : max(0, $total_days - $days_to_come);
 
         $difference = ($new_monthly_cents - $old_monthly_cents) * $this->monthsPerPeriod();
-        $invoiced = $this->subscriptionWasInvoicedFor($start);
-
-        $days = $invoiced ? $days_to_come : $days_gone;
         $amount = (int) round($difference * $days / $total_days);
         $amount = $invoiced ? $amount : -$amount;
 
@@ -393,64 +439,87 @@ class Invoicer
             return null;
         }
 
-        /**
-         * Bij elkaar in een regel, want ze komen toch op dezelfde factuur.
-         *
-         * Elke wijziging leverde eerst zijn eigen verrekening op. Wie een
-         * module aanzette en daarna de prijs ervan afsprak, kreeg twee regels
-         * met dezelfde omschrijving en tegengestelde bedragen -- samen klopte
-         * het, maar er viel niets van te maken. Heffen ze elkaar op, dan blijft
-         * er niets staan in plaats van een regel van nul euro.
-         *
-         * Waar het vandaan komt gaat mee in de rij: het vertrekpunt blijft dat
-         * van de eerste wijziging, zodat de regel ook na drie wijzigingen nog
-         * zegt van welk pakket en welk bedrag naar welk.
-         */
+        return $this->settle($start, $amount, $days, $total_days, $invoiced, [
+            'from_package' => $old_package,
+            'to_package' => $new_package,
+            'from_cents' => $old_monthly_cents,
+            'to_cents' => $new_monthly_cents,
+            'changed_on' => $on->toDateString(),
+        ]);
+    }
+
+    /**
+     * Zet de verrekening klaar, of telt hem op bij die van deze periode.
+     *
+     * Elke wijziging leverde eerst zijn eigen regel op. Wie halverwege de maand
+     * van pakket wisselde en daarna een prijs voor dat pakket afsprak -- twee
+     * keer opslaan -- kreeg twee regels met dezelfde omschrijving en
+     * tegengestelde bedragen. Samen klopte het, maar er viel niets van te
+     * maken. Heffen ze elkaar op, dan blijft er niets staan in plaats van een
+     * regel van nul euro.
+     *
+     * Alleen binnen dezelfde periode. Een verrekening van vorige maand die nog
+     * op een factuur wacht, gaat over de dagen van die maand en over een ander
+     * aantal dagen; die bij deze optellen zou twee correcties op twee
+     * verschillende maanden tot een onnavolgbaar bedrag maken.
+     *
+     * Het vertrekpunt blijft dat van de eerste wijziging, zodat de regel ook na
+     * drie keer opslaan nog zegt van welk pakket en van welk bedrag naar welk.
+     *
+     * @param  array{from_package: ?string, to_package: ?string, from_cents: int, to_cents: int, changed_on: string}  $change
+     */
+    private function settle(
+        CarbonImmutable $start,
+        int $amount,
+        int $days,
+        int $total_days,
+        bool $invoiced,
+        array $change,
+    ): ?PendingCharge {
         $standing = PendingCharge::on('central')
             ->where('tenant_id', $this->tenant->id)
             ->whereNull('invoice_id')
             ->where('kind', 'proration')
+            ->where('data->period_start', $start->toDateString())
             ->first();
 
-        $came_from = $standing?->data ?? [];
+        $before = $standing?->data ?? [];
 
         $story = [
-            'from_package' => $came_from['from_package'] ?? $old_package,
-            'to_package' => $new_package,
-            'from_cents' => $came_from['from_cents'] ?? $old_monthly_cents,
-            'to_cents' => $new_monthly_cents,
-            'changed_on' => $on->toDateString(),
-            'changes' => ($came_from['changes'] ?? 0) + 1,
-            'days' => $days,
-            'total_days' => $total_days,
-            'invoiced' => $invoiced,
+            ...$change,
+            'period_start' => $start->toDateString(),
+            'from_package' => $before['from_package'] ?? $change['from_package'],
+            'from_cents' => $before['from_cents'] ?? $change['from_cents'],
+            'changes' => ($before['changes'] ?? 0) + 1,
         ];
 
-        if ($standing) {
-            $together = (int) $standing->amount_cents + $amount;
+        $description = $this->prorationDescription($story, $days, $total_days, $invoiced);
 
-            if ($together === 0) {
-                $standing->delete();
-
-                return null;
-            }
-
-            $standing->update([
-                'amount_cents' => $together,
+        if (!$standing) {
+            return PendingCharge::on('central')->create([
+                'tenant_id' => $this->tenant->id,
+                'description' => $description,
+                'kind' => 'proration',
+                'amount_cents' => $amount,
                 'data' => $story,
-                'description' => $this->prorationDescription($story),
             ]);
-
-            return $standing;
         }
 
-        return PendingCharge::on('central')->create([
-            'tenant_id' => $this->tenant->id,
-            'description' => $this->prorationDescription($story),
-            'kind' => 'proration',
-            'amount_cents' => $amount,
+        $together = (int) $standing->amount_cents + $amount;
+
+        if ($together === 0) {
+            $standing->delete();
+
+            return null;
+        }
+
+        $standing->update([
+            'amount_cents' => $together,
             'data' => $story,
+            'description' => $description,
         ]);
+
+        return $standing;
     }
 
     /**
@@ -469,9 +538,9 @@ class Invoicer
      * op het oude pakket zaten. Na meerdere wijzigingen verschilt dat aantal
      * per wijziging en staat er alleen nog de dag van de laatste.
      *
-     * @param  array<string, mixed>  $story
+     * @param  array{from_package: ?string, to_package: ?string, from_cents: int, to_cents: int, changed_on: string, changes: int}  $story
      */
-    private function prorationDescription(array $story): string
+    private function prorationDescription(array $story, int $days, int $total_days, bool $invoiced): string
     {
         $on = CarbonImmutable::parse($story['changed_on'])->format('d-m-Y');
         $switched = filled($story['from_package']) && filled($story['to_package'])
@@ -497,15 +566,9 @@ class Invoicer
             : sprintf('abonnementswijziging %s: %s', $on, $amounts);
 
         $over = $switched
-            ? ($story['invoiced'] ? $story['to_package'] : $story['from_package'])
-            : ($story['invoiced'] ? 'de nieuwe prijs' : 'de oude prijs');
+            ? ($invoiced ? $story['to_package'] : $story['from_package'])
+            : ($invoiced ? 'de nieuwe prijs' : 'de oude prijs');
 
-        return sprintf(
-            'Verrekening %s (%d van %d dagen op %s)',
-            $what,
-            $story['days'],
-            $story['total_days'],
-            $over,
-        );
+        return sprintf('Verrekening %s (%d van %d dagen op %s)', $what, $days, $total_days, $over);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Landlord;
 
 use App\Models\Tenant;
+use App\Services\Invoicer;
 use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
@@ -305,5 +306,80 @@ class SubscriptionScreenTest extends TestCase
         $this->save($tenant, ['modules' => ['quotes']])->assertRedirect();
 
         $this->assertSame([], $tenant->fresh()->module_prices);
+    }
+
+    /**
+     * Een verrekening hoort bij een pakketwissel, niet bij een uitbreiding.
+     *
+     * Wie er een module bij neemt heeft niets gewisseld: die module gaat mee
+     * met de eerstvolgende factuur. Een regel die uitrekent hoeveel dagen hij
+     * de module al had, maakt de factuur onleesbaar voor een paar euro.
+     */
+    public function test_adding_a_module_settles_nothing(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['modules' => ['assistant']])->assertRedirect();
+
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    public function test_agreeing_a_price_for_a_module_settles_nothing(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+        ]);
+
+        $this->save($tenant, ['module_prices' => ['assistant' => '15.00']])->assertRedirect();
+
+        $this->assertSame(['assistant' => 1500], $tenant->fresh()->module_prices);
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    public function test_extra_seats_and_storage_settle_nothing(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['extra_field_seats' => 3, 'storage_limit_gb' => 200])->assertRedirect();
+
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    public function test_changing_the_package_does_settle(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['package_key' => 'team'])->assertRedirect();
+
+        $charges = (new Invoicer($tenant))->pendingCharges();
+
+        $this->assertCount(1, $charges);
+        $this->assertStringContainsString('Starter naar Team', $charges->first()->description);
+    }
+
+    /**
+     * Een andere prijs voor hetzelfde pakket is ook een pakketwijziging: de
+     * abonnementsregel op de factuur verandert erdoor.
+     */
+    public function test_changing_the_agreed_package_price_does_settle(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['price_override_euro' => '10.00'])->assertRedirect();
+
+        $this->assertCount(1, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    /** Een pakketwissel en een module in een keer verrekent alleen het pakket. */
+    public function test_a_package_switch_with_a_module_settles_only_the_package(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['package_key' => 'team', 'modules' => ['assistant']])->assertRedirect();
+
+        $charge = (new Invoicer($tenant))->pendingCharges()->first();
+
+        $this->assertSame(-(int) round((8750 - 2750) * 6 / 30), (int) $charge->amount_cents);
     }
 }

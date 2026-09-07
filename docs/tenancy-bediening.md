@@ -215,10 +215,19 @@ Overal waar zo'n afspraak geldt, zet de factuur de gewone prijs erbij:
 prijsafspraak*. Over een jaar weet niemand meer waarom er een ander bedrag
 stond, en de klant hoort te zien dat het een afspraak was en geen fout.
 
-Alles kan ook in het paneel. Wissel je halverwege een periode van pakket, dan
-betaalt de klant over die periode het oude pakket tot de dag van de wissel en
-het nieuwe daarna. Er komt een verrekeningsregel bij die dat rechttrekt, en die
-kan twee kanten op:
+Alles kan ook in het paneel.
+
+**Alleen een pakketwijziging wordt verrekend.** Wissel je halverwege een periode
+van pakket, of spreek je een andere prijs voor dat pakket af, dan betaalt de
+klant over die periode het oude tot de dag van de wissel en het nieuwe daarna.
+Wat er los bijkomt -- een module, een plek, meer opslag -- gaat gewoon mee met
+de eerstvolgende factuur en levert geen verrekening op. Dat is een uitbreiding
+en geen wissel, en een regel die uitrekent hoeveel dagen iemand een module al
+had, maakt de factuur onleesbaar voor een paar euro. De keerzijde: neemt iemand
+er halverwege een al gefactureerde maand iets bij, dan betaalt hij daar die
+maand nog niet voor.
+
+De verrekening van een pakketwijziging kan twee kanten op:
 
 - Was de periode al gefactureerd tegen de oude prijs, dan komt het verschil er
   bij over de dagen die nog komen.
