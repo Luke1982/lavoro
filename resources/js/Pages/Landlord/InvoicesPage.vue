@@ -6,8 +6,7 @@
         <Link :href="`/beheer/${tenant.id}`" class="text-blue-700 underline">terug naar het abonnement</Link>
     </p>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Eerstvolgende factuur</h3>
+    <PanelSection title="Eerstvolgende factuur">
 
         <table class="w-full text-left">
             <tbody>
@@ -35,7 +34,7 @@
         </table>
 
         <button v-if="is_due" type="button" :disabled="issuing" @click="issue"
-            class="mt-4 rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">Factuur aanmaken</button>
+            class="panel-button mt-4">Factuur aanmaken</button>
 
         <p v-else-if="!tenant.subscription_started_on"
             class="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
@@ -54,10 +53,9 @@
             vanaf <strong>{{ nlDate(next_period_starts_on) }}</strong>, of eerder zodra er iets
             verandert &mdash; een pakketwissel of bijgekocht AI-tegoed.
         </p>
-    </section>
+    </PanelSection>
 
-    <section class="mt-5 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Aangemaakt</h3>
+    <PanelSection title="Aangemaakt" class="mt-5">
 
         <p v-if="!invoices.length" class="text-slate-500">Nog geen facturen.</p>
 
@@ -88,10 +86,11 @@
                 Versturen mislukt: {{ invoice.mail_error }}
             </p>
         </div>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { nlDate, nlTime } from '@/Utilities/Utilities'

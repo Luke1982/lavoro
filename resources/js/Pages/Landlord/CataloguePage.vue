@@ -7,8 +7,7 @@
         wordt afgerond onderweg.
     </p>
 
-    <section class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Pakketten</h3>
+    <PanelSection title="Pakketten" class="mb-6">
 
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -29,30 +28,30 @@
                     <tr v-for="row in packageRows" :key="row.id" class="border-t border-slate-200 align-top">
                         <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
                         <td class="py-2 pr-3">
-                            <input v-model="row.name" type="text" class="w-32 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model="row.name" type="text" class="panel-field-narrow w-32">
                         </td>
                         <td class="py-2 pr-3">
-                            <input v-model.number="row.field_seats" type="number" min="0" class="w-16 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model.number="row.field_seats" type="number" min="0" class="panel-field-narrow w-16">
                         </td>
                         <td class="py-2 pr-3">
-                            <input v-model.number="row.office_seats" type="number" min="0" class="w-16 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model.number="row.office_seats" type="number" min="0" class="panel-field-narrow w-16">
                         </td>
                         <td class="py-2 pr-3">
-                            <input v-model.number="row.price_cents" type="number" min="0" class="w-24 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model.number="row.price_cents" type="number" min="0" class="panel-field-narrow w-24">
                             <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.price_cents) }}</span>
                         </td>
                         <td class="py-2 pr-3">
-                            <input v-model.number="row.extra_field_cents" type="number" min="0" class="w-24 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model.number="row.extra_field_cents" type="number" min="0" class="panel-field-narrow w-24">
                             <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.extra_field_cents) }}</span>
                         </td>
                         <td class="py-2 pr-3">
-                            <input v-model.number="row.extra_office_cents" type="number" min="0" class="w-24 rounded-md border border-slate-300 px-2 py-1.5">
+                            <input v-model.number="row.extra_office_cents" type="number" min="0" class="panel-field-narrow w-24">
                             <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.extra_office_cents) }}</span>
                         </td>
                         <td class="py-2 pr-3 text-slate-500">{{ usage[row.key] ?? 0 }} klant(en)</td>
                         <td class="py-2 text-right">
                             <button type="button" @click="savePackage(row)"
-                                class="rounded-md bg-blue-700 px-3 py-1.5 text-white">Opslaan</button>
+                                class="panel-button-narrow">Opslaan</button>
                             <span v-if="errors[`package-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
                                 {{ errors[`package-${row.id}`] }}
                             </span>
@@ -61,10 +60,9 @@
                 </tbody>
             </table>
         </div>
-    </section>
+    </PanelSection>
 
-    <section class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Modules</h3>
+    <PanelSection title="Modules" class="mb-6">
 
         <table class="w-full text-left">
             <thead class="text-xs uppercase tracking-wide text-slate-500">
@@ -79,15 +77,15 @@
                 <tr v-for="row in moduleRows" :key="row.id" class="border-t border-slate-200 align-top">
                     <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
                     <td class="py-2 pr-3">
-                        <input v-model="row.name" type="text" class="w-48 rounded-md border border-slate-300 px-2 py-1.5">
+                        <input v-model="row.name" type="text" class="panel-field-narrow w-48">
                     </td>
                     <td class="py-2 pr-3">
-                        <input v-model.number="row.price_cents" type="number" min="0" class="w-24 rounded-md border border-slate-300 px-2 py-1.5">
+                        <input v-model.number="row.price_cents" type="number" min="0" class="panel-field-narrow w-24">
                         <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.price_cents) }}</span>
                     </td>
                     <td class="py-2 text-right">
                         <button type="button" @click="saveModule(row)"
-                            class="rounded-md bg-blue-700 px-3 py-1.5 text-white">Opslaan</button>
+                            class="panel-button-narrow">Opslaan</button>
                         <span v-if="errors[`module-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
                             {{ errors[`module-${row.id}`] }}
                         </span>
@@ -95,10 +93,9 @@
                 </tr>
             </tbody>
         </table>
-    </section>
+    </PanelSection>
 
-    <section class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Bundels</h3>
+    <PanelSection title="Bundels" class="mb-6">
 
         <table class="w-full text-left">
             <thead class="text-xs uppercase tracking-wide text-slate-500">
@@ -119,10 +116,9 @@
                 </tr>
             </tbody>
         </table>
-    </section>
+    </PanelSection>
 
-    <section class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 mt-0 text-base font-semibold">Instellingen</h3>
+    <PanelSection title="Instellingen" class="mb-6">
 
         <table class="w-full text-left">
             <thead class="text-xs uppercase tracking-wide text-slate-500">
@@ -136,11 +132,11 @@
                 <tr v-for="row in settingRows" :key="row.id" class="border-t border-slate-200 align-top">
                     <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
                     <td class="py-2 pr-3">
-                        <input v-model.number="row.value" type="number" min="0" class="w-36 rounded-md border border-slate-300 px-2 py-1.5">
+                        <input v-model.number="row.value" type="number" min="0" class="panel-field-narrow w-36">
                     </td>
                     <td class="py-2 text-right">
                         <button type="button" @click="saveSetting(row)"
-                            class="rounded-md bg-blue-700 px-3 py-1.5 text-white">Opslaan</button>
+                            class="panel-button-narrow">Opslaan</button>
                         <span v-if="errors[`setting-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
                             {{ errors[`setting-${row.id}`] }}
                         </span>
@@ -148,14 +144,14 @@
                 </tr>
             </tbody>
         </table>
-    </section>
+    </PanelSection>
 
-    <section id="facturatie" class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-1 mt-0 text-base font-semibold">Facturatie</h3>
-        <p class="mb-3 text-sm text-slate-500">
+    <PanelSection title="Facturatie" id="facturatie">
+        <template #description>
             De afzendergegevens op de factuur en het incassocontract. Het incassant-ID
             krijg je van de bank; zonder dat nummer weigert de bank een incassobestand.
-        </p>
+        </template>
+
 
         <form @submit.prevent="saveIssuer">
             <div class="grid gap-3 md:grid-cols-2">
@@ -164,7 +160,7 @@
                         <code class="font-mono text-xs text-slate-500">{{ row.key }}</code>
                     </label>
                     <input :id="`issuer-${row.key}`" v-model="issuerForm.issuer[row.key]" type="text"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="issuerForm.errors[`issuer.${row.key}`]" class="mt-1 text-sm font-semibold text-red-700">
                         {{ issuerForm.errors[`issuer.${row.key}`] }}
                     </p>
@@ -172,12 +168,13 @@
             </div>
 
             <button type="submit" :disabled="issuerForm.processing"
-                class="mt-4 rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">Opslaan</button>
+                class="panel-button mt-4">Opslaan</button>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 import { euro } from '@/Components/Landlord/money.js'

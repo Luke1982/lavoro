@@ -4,11 +4,11 @@ namespace Tests\Feature\Landlord;
 
 use App\Exceptions\Refusal;
 use App\Models\Central\Invoice;
-use App\Models\Central\LandlordUser;
 use App\Models\Central\PendingCharge;
 use App\Models\Tenant;
 use App\Services\Invoicer;
 use Carbon\CarbonImmutable;
+use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
@@ -18,30 +18,12 @@ use Tests\TestCase;
  */
 class InvoiceCalculationTest extends TestCase
 {
-    private int $counter = 0;
+    use MakesLandlordData;
 
-    private function landlord(): LandlordUser
-    {
-        return LandlordUser::on('central')->firstOrCreate(
-            ['email' => 'facturen@majorlabel.nl'],
-            ['name' => 'Facturen', 'password' => 'geheim'],
-        );
-    }
-
+    /** Standaard maandelijks en al een tijdje lopend, zodat er te rekenen valt. */
     private function tenant(array $attributes = []): Tenant
     {
-        $this->counter++;
-
-        return Tenant::withoutEvents(fn () => Tenant::on('central')->create([
-            'id' => 'factuur-' . $this->counter,
-            'name' => 'Factuurtest ' . $this->counter,
-            'tenancy_db_name' => 'lavoro_test_tenant_factuur',
-            'package_key' => 'starter',
-            'storage_limit_gb' => 50,
-            'billing_period' => 'monthly',
-            'subscription_started_on' => '2026-01-15',
-            ...$attributes,
-        ]));
+        return $this->tenantRow(['subscription_started_on' => '2026-01-15', ...$attributes]);
     }
 
     private function period(Tenant $tenant, string $on): string
@@ -580,7 +562,7 @@ class InvoiceCalculationTest extends TestCase
 
         $this->assertNotNull($charge, 'er hoort wel degelijk verrekend te worden');
         $this->assertSame(-(int) round(6000 * 6 / 30), $charge->amount_cents);
-        $this->assertStringContainsString('6 van 30 dagen op het oude pakket', $charge->description);
+        $this->assertStringContainsString('6 van 30 dagen op de oude prijs', $charge->description);
 
         $tenant->forceFill(['package_key' => 'team'])->save();
         $invoice = (new Invoicer($tenant))->issue($on);
@@ -654,5 +636,45 @@ class InvoiceCalculationTest extends TestCase
             - (int) round(7250 * 14 / 30);
 
         $this->assertSame($expected, (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-09-15'))->total_cents);
+    }
+
+    /**
+     * Op de factuur moet te zien zijn waar de verrekening vandaan komt: van
+     * welk pakket naar welk, en op welke dag.
+     */
+    public function test_the_settlement_says_which_packages_it_is_between(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $credit = (new Invoicer($tenant))
+            ->prorate(2750, 8750, CarbonImmutable::parse('2026-09-07'), 'Starter', 'Team');
+
+        $this->assertSame(
+            'Verrekening pakketwissel 07-09-2026: Starter naar Team (6 van 30 dagen op Starter)',
+            $credit->description,
+        );
+
+        $invoiced = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        (new Invoicer($invoiced))->issue(CarbonImmutable::parse('2026-09-01'));
+
+        $charge = (new Invoicer($invoiced))
+            ->prorate(2750, 8750, CarbonImmutable::parse('2026-09-07'), 'Starter', 'Team');
+
+        $this->assertSame(
+            'Verrekening pakketwissel 07-09-2026: Starter naar Team (24 van 30 dagen op Team)',
+            $charge->description,
+        );
+    }
+
+    /** Een plek erbij is geen pakketwissel, en hoort dat ook niet te beweren. */
+    public function test_a_change_that_leaves_the_package_alone_is_not_called_a_switch(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $charge = (new Invoicer($tenant))
+            ->prorate(2750, 3950, CarbonImmutable::parse('2026-09-07'), 'Starter', 'Starter');
+
+        $this->assertStringStartsWith('Verrekening abonnementswijziging 07-09-2026', $charge->description);
+        $this->assertStringNotContainsString('pakketwissel', $charge->description);
     }
 }

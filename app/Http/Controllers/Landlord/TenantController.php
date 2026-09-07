@@ -228,14 +228,22 @@ class TenantController extends Controller
 
         /**
          * Voor en na, want een pakketwissel halverwege de maand levert een
-         * verrekening op voor de volgende factuur.
+         * verrekening op voor de volgende factuur. De pakketnaam gaat mee zodat
+         * op de factuur staat waar de verrekening vandaan komt.
          */
-        $before = (new TenantSubscription($tenant))->monthlyTotalCents();
+        $before = new TenantSubscription($tenant);
+        $before_cents = $before->monthlyTotalCents();
+        $before_package = $before->packageName();
 
         $tenant->update($request->tenantAttributes());
 
-        $after = (new TenantSubscription($tenant->refresh()))->monthlyTotalCents();
-        $charge = (new Invoicer($tenant))->prorate($before, $after);
+        $after = new TenantSubscription($tenant->refresh());
+        $charge = (new Invoicer($tenant))->prorate(
+            $before_cents,
+            $after->monthlyTotalCents(),
+            old_package: $before_package,
+            new_package: $after->packageName(),
+        );
 
         return redirect()->route('landlord.edit', $tenant->id)->with(
             'status',

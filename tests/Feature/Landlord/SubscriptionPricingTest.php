@@ -5,6 +5,7 @@ namespace Tests\Feature\Landlord;
 use App\Models\Central\Reseller;
 use App\Models\Tenant;
 use App\Services\TenantSubscription;
+use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
@@ -20,20 +21,11 @@ use Tests\TestCase;
  */
 class SubscriptionPricingTest extends TestCase
 {
-    private int $counter = 0;
+    use MakesLandlordData;
 
     private function tenant(array $attributes = []): Tenant
     {
-        $this->counter++;
-
-        return Tenant::withoutEvents(fn () => Tenant::on('central')->create([
-            'id' => 'prijs-' . $this->counter,
-            'name' => 'Prijstest ' . $this->counter,
-            'tenancy_db_name' => 'lavoro_test_tenant_prijs',
-            'package_key' => 'starter',
-            'storage_limit_gb' => 50,
-            ...$attributes,
-        ]));
+        return $this->tenantRow($attributes);
     }
 
     private function monthly(array $attributes = []): int

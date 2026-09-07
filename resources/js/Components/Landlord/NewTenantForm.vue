@@ -1,24 +1,23 @@
 <template>
-    <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mt-0 text-base font-semibold">Nieuwe tenant</h3>
+    <PanelSection title="Nieuwe tenant" class="mt-6">
 
         <form @submit.prevent="submit">
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block font-semibold" for="name">Bedrijfsnaam</label>
-                    <input id="name" v-model="form.name" type="text" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input id="name" v-model="form.name" type="text" class="panel-field w-full">
                     <p class="mt-1 text-sm text-slate-500">De databasenaam volgt hieruit en ligt daarna vast.</p>
                     <p v-if="form.errors.name" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.name }}</p>
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold" for="email">E-mail van de eerste beheerder</label>
-                    <input id="email" v-model="form.email" type="email" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input id="email" v-model="form.email" type="email" class="panel-field w-full">
                     <p v-if="form.errors.email" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.email }}</p>
                 </div>
             </div>
 
             <label class="mb-1 mt-4 block font-semibold" for="package">Pakket</label>
-            <select id="package" v-model="form.package_key" class="w-full rounded-md border border-slate-300 px-3 py-2">
+            <select id="package" v-model="form.package_key" class="panel-field w-full">
                 <option v-for="pack in packages" :key="pack.key" :value="pack.key">
                     {{ pack.name }} — {{ euro(pack.price_cents) }}
                 </option>
@@ -32,7 +31,7 @@
 
             <p class="mt-4">
                 <button type="submit" :disabled="form.processing"
-                    class="rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">
+                    class="panel-button">
                     {{ form.processing ? 'Bezig…' : 'Aanmaken' }}
                 </button>
             </p>
@@ -42,10 +41,11 @@
                 zodra de tenant klaar is.
             </p>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { useForm } from '@inertiajs/vue3'
 
 const props = defineProps({

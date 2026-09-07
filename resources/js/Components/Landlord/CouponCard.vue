@@ -1,6 +1,5 @@
 <template>
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mt-0 mb-3 text-base font-semibold">Coupon</h3>
+    <PanelSection title="Coupon">
 
         <template v-if="tenant.coupon_discount_percent">
             <p>
@@ -18,16 +17,17 @@
             <label class="mb-1 block font-semibold">Couponcode</label>
             <div class="flex gap-2">
                 <input v-model="form.code" type="text" placeholder="ZOMER2026"
-                    class="w-56 rounded-md border border-slate-300 px-3 py-2">
+                    class="panel-field w-56">
                 <button type="submit" :disabled="form.processing"
-                    class="rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">Verzilveren</button>
+                    class="panel-button">Verzilveren</button>
             </div>
             <p v-if="form.errors.code" class="mt-1 font-semibold text-red-700">{{ form.errors.code }}</p>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { euro } from './money.js'

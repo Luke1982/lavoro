@@ -1,10 +1,10 @@
 <template>
-    <section v-if="passwords.length" class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mt-0 text-base font-semibold">Wachtwoorden om door te geven</h3>
-        <p class="mb-3 text-sm text-slate-500">
+    <PanelSection title="Wachtwoorden om door te geven" v-if="passwords.length" class="mt-6">
+        <template #description>
             Van een nieuwe tenant. Geef het door en wis het daarna; het staat hier
             leesbaar zolang het er staat.
-        </p>
+        </template>
+
 
         <table class="w-full text-left">
             <tr v-for="password in passwords" :key="password.id" class="border-t border-slate-200">
@@ -19,10 +19,11 @@
                 </td>
             </tr>
         </table>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { router } from '@inertiajs/vue3'
 
 defineProps({ passwords: { type: Array, required: true } })

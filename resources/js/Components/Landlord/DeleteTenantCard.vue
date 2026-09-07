@@ -14,7 +14,7 @@
                     <label class="mb-1 block font-semibold">Naam van de klant</label>
                     <input v-model="form.confirm_name" type="text" required autocomplete="off"
                         :placeholder="tenant.name"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="form.errors.confirm_name" class="mt-1 font-semibold text-red-700">
                         {{ form.errors.confirm_name }}
                     </p>

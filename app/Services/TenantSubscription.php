@@ -12,7 +12,31 @@ use Carbon\Carbon;
 
 class TenantSubscription
 {
+    private ?Package $package = null;
+
+    private bool $package_looked_up = false;
+
     public function __construct(private Tenant $tenant) {}
+
+    /**
+     * Het pakket van deze klant, een keer opgezocht. Stond op twee plekken los
+     * opgehaald, dus elke prijsberekening deed dezelfde vraag twee keer.
+     */
+    private function package(): ?Package
+    {
+        if (!$this->package_looked_up) {
+            $this->package = Package::on('central')->where('key', $this->tenant->package_key)->first();
+            $this->package_looked_up = true;
+        }
+
+        return $this->package;
+    }
+
+    /** De naam zoals hij op de factuur hoort te staan, of niets bij een onbekend pakket. */
+    public function packageName(): ?string
+    {
+        return $this->package()?->name;
+    }
 
     public function monthlyTotalCents(): int
     {
@@ -28,7 +52,7 @@ class TenantSubscription
      */
     public function breakdown(): array
     {
-        $package = Package::on('central')->where('key', $this->tenant->package_key)->first();
+        $package = $this->package();
         $package_name = 'Abonnement Lavoro' . ($package?->name ? ' ' . $package->name : '');
 
         /** Een afgesproken prijs vervangt de opbouw; die valt niet uit te splitsen. */
@@ -174,7 +198,7 @@ class TenantSubscription
             return (int) $this->tenant->price_override_cents;
         }
 
-        $package = Package::on('central')->where('key', $this->tenant->package_key)->first();
+        $package = $this->package();
 
         $total = (int) ($package->price_cents ?? 0)
             + (int) $this->tenant->extra_field_seats * (int) ($package->extra_field_cents ?? 0)

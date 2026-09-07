@@ -18,7 +18,7 @@
         {{ firstError }}
     </p>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
+    <PanelSection>
         <p v-if="!invoices.length" class="text-slate-500">Niets te incasseren.</p>
 
         <!--
@@ -56,8 +56,8 @@
             <div class="mt-4 flex items-center gap-3">
                 <label for="collect_on" class="font-semibold">Incassodatum</label>
                 <input id="collect_on" type="date" name="collect_on" :value="collect_on"
-                    class="rounded-md border border-slate-300 px-3 py-2">
-                <button type="submit" class="rounded-md bg-blue-700 px-4 py-2 text-white">
+                    class="panel-field">
+                <button type="submit" class="panel-button">
                     Incassobestand maken
                 </button>
             </div>
@@ -66,10 +66,11 @@
                 Na het maken staan deze facturen op ge&iuml;ncasseerd en komen ze hier niet terug.
             </p>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { euro } from '@/Components/Landlord/money.js'

@@ -1,6 +1,5 @@
 <template>
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mt-0 mb-3 text-base font-semibold">Facturatie</h3>
+    <PanelSection title="Facturatie">
 
         <p>
             Volgende factuur: <strong>{{ euro(billing.next_cents) }}</strong>
@@ -22,10 +21,11 @@
         <p class="mt-3">
             <Link :href="`/beheer/${tenant.id}/facturen`" class="text-blue-700 underline">Facturen bekijken</Link>
         </p>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { Link } from '@inertiajs/vue3'
 import { euro } from './money.js'
 

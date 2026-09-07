@@ -1,19 +1,18 @@
 <template>
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mt-0 mb-3 text-base font-semibold">Abonnement</h3>
+    <PanelSection title="Abonnement">
 
         <form @submit.prevent="submit">
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block font-semibold">Startdatum abonnement</label>
-                    <input v-model="form.subscription_started_on" type="date" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input v-model="form.subscription_started_on" type="date" class="panel-field w-full">
                     <p v-if="!form.subscription_started_on" class="mt-1 text-sm font-semibold text-amber-700">
                         Zonder ingangsdatum wordt deze klant nooit gefactureerd.
                     </p>
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">Facturatie</label>
-                    <select v-model="form.billing_period" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <select v-model="form.billing_period" class="panel-field w-full">
                         <option value="monthly">Per maand</option>
                         <option value="yearly">Per jaar (2% korting)</option>
                     </select>
@@ -21,7 +20,7 @@
             </div>
 
             <label class="mb-1 mt-4 block font-semibold">Pakket</label>
-            <select v-model="form.package_key" class="w-full rounded-md border border-slate-300 px-3 py-2">
+            <select v-model="form.package_key" class="panel-field w-full">
                 <option value="">— geen —</option>
                 <option v-for="pack in packages" :key="pack.key" :value="pack.key">
                     {{ pack.name }} ({{ euro(pack.price_cents) }})
@@ -31,21 +30,21 @@
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block font-semibold">Extra buitendienst</label>
-                    <input v-model="form.extra_field_seats" type="number" min="0" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input v-model="form.extra_field_seats" type="number" min="0" class="panel-field w-full">
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">Extra binnendienst</label>
-                    <input v-model="form.extra_office_seats" type="number" min="0" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input v-model="form.extra_office_seats" type="number" min="0" class="panel-field w-full">
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">Opslag (GB)</label>
-                    <input v-model="form.storage_limit_gb" type="number" min="0" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <input v-model="form.storage_limit_gb" type="number" min="0" class="panel-field w-full">
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">AI-limiet per maand (€)</label>
                     <input v-model="form.ai_allowance_euro" type="number" step="0.01" min="0"
                         :placeholder="`${euro(ai.allowance_cents)} (standaard)`"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p class="mt-1 text-sm text-slate-500">
                         Deze maand verbruikt: {{ euro(ai.spent_cents) }} van {{ euro(ai.allowance_cents) }}.
                         <template v-if="ai.topup_cents > 0">Bijgekocht tegoed: {{ euro(ai.topup_cents) }}.</template>
@@ -90,16 +89,16 @@
                 Vaste maandprijs (€) <span class="font-normal text-slate-500">(leeg = berekenen)</span>
             </label>
             <input v-model="form.price_override_euro" type="number" step="0.01" min="0"
-                class="w-full rounded-md border border-slate-300 px-3 py-2">
+                class="panel-field w-full">
 
             <label class="mb-1 mt-4 block font-semibold">Factuurgegevens</label>
             <div class="grid gap-3 sm:grid-cols-2">
-                <input v-model="form.invoice_address" type="text" placeholder="Straat en nummer" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.invoice_email" type="email" placeholder="Factuur-e-mail" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.invoice_postcode" type="text" placeholder="Postcode" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.invoice_city" type="text" placeholder="Plaats" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.vat_number" type="text" placeholder="BTW-nummer" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.coc_number" type="text" placeholder="KvK-nummer" class="rounded-md border border-slate-300 px-3 py-2">
+                <input v-model="form.invoice_address" type="text" placeholder="Straat en nummer" class="panel-field">
+                <input v-model="form.invoice_email" type="email" placeholder="Factuur-e-mail" class="panel-field">
+                <input v-model="form.invoice_postcode" type="text" placeholder="Postcode" class="panel-field">
+                <input v-model="form.invoice_city" type="text" placeholder="Plaats" class="panel-field">
+                <input v-model="form.vat_number" type="text" placeholder="BTW-nummer" class="panel-field">
+                <input v-model="form.coc_number" type="text" placeholder="KvK-nummer" class="panel-field">
             </div>
 
             <label class="mb-1 mt-4 block font-semibold">Betaling</label>
@@ -116,10 +115,10 @@
                 </label>
             </div>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                <input v-model="form.iban" type="text" placeholder="IBAN" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.account_holder" type="text" placeholder="Naam rekeninghouder" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.mandate_reference" type="text" maxlength="35" placeholder="Machtigingskenmerk" class="rounded-md border border-slate-300 px-3 py-2">
-                <input v-model="form.mandate_signed_on" type="date" class="rounded-md border border-slate-300 px-3 py-2">
+                <input v-model="form.iban" type="text" placeholder="IBAN" class="panel-field">
+                <input v-model="form.account_holder" type="text" placeholder="Naam rekeninghouder" class="panel-field">
+                <input v-model="form.mandate_reference" type="text" maxlength="35" placeholder="Machtigingskenmerk" class="panel-field">
+                <input v-model="form.mandate_signed_on" type="date" class="panel-field">
             </div>
             <p v-if="form.errors.iban" class="mt-1 font-semibold text-red-700">{{ form.errors.iban }}</p>
 
@@ -132,16 +131,17 @@
 
             <p class="mt-4 flex items-center gap-4">
                 <button type="submit" :disabled="form.processing"
-                    class="rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">
+                    class="panel-button">
                     {{ form.processing ? 'Bezig…' : 'Opslaan' }}
                 </button>
                 <Link href="/beheer" class="text-blue-700 underline">annuleren</Link>
             </p>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import { euro, euroInput } from './money.js'
 

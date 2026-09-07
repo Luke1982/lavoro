@@ -432,3 +432,27 @@
     margin-block: 1em;
     border-top-width: 1px;
 }
+
+/*
+ * Het beheerpaneel.
+ *
+ * Deze vier stonden als losse Tailwind-klassen op zesenveertig plekken, en
+ * niet overal gelijk: de helft van de knoppen vergat disabled:opacity-60, dus
+ * een knop die niets meer deed zag er nog uit alsof hij werkte. Breedtes en
+ * marges blijven in het sjabloon staan, want die verschillen per plek echt.
+ */
+.panel-field {
+    @apply rounded-md border border-slate-300 px-3 py-2;
+}
+
+.panel-field-narrow {
+    @apply rounded-md border border-slate-300 px-2 py-1.5;
+}
+
+.panel-button {
+    @apply rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60;
+}
+
+.panel-button-narrow {
+    @apply rounded-md bg-blue-700 px-3 py-1.5 text-white disabled:opacity-60;
+}

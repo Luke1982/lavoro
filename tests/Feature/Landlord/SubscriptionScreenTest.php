@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Landlord;
 
-use App\Models\Central\LandlordUser;
 use App\Models\Tenant;
+use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
@@ -17,25 +17,11 @@ use Tests\TestCase;
  */
 class SubscriptionScreenTest extends TestCase
 {
-    private function landlord(): LandlordUser
-    {
-        return LandlordUser::on('central')->firstOrCreate(
-            ['email' => 'scherm@majorlabel.nl'],
-            ['name' => 'Scherm', 'password' => 'geheim'],
-        );
-    }
+    use MakesLandlordData;
 
     private function tenant(array $attributes = []): Tenant
     {
-        return Tenant::withoutEvents(fn () => Tenant::on('central')->create([
-            'id' => 'scherm-test',
-            'name' => 'Schermtest',
-            'tenancy_db_name' => 'lavoro_test_tenant_scherm',
-            'package_key' => 'starter',
-            'billing_period' => 'monthly',
-            'storage_limit_gb' => 50,
-            ...$attributes,
-        ]));
+        return $this->tenantRow($attributes);
     }
 
     private function form(Tenant $tenant, array $overrides = []): array
@@ -183,14 +169,14 @@ class SubscriptionScreenTest extends TestCase
 
     public function test_a_customer_without_a_start_date_is_flagged_in_the_overview(): void
     {
-        $this->tenant(['subscription_started_on' => null]);
+        $tenant = $this->tenant(['subscription_started_on' => null]);
 
         $this->actingAs($this->landlord(), 'landlord')
             ->get(route('landlord.index'))
             ->assertOk()
-            ->assertInertia(function ($page) {
+            ->assertInertia(function ($page) use ($tenant) {
                 $rows = collect($page->toArray()['props']['rows']);
-                $mine = $rows->firstWhere('id', 'scherm-test');
+                $mine = $rows->firstWhere('id', $tenant->id);
 
                 $this->assertNotNull($mine, 'de klant hoort in het overzicht te staan');
                 $this->assertNull($mine['starts_on'], 'het overzicht moet kunnen zien dat er geen datum is');

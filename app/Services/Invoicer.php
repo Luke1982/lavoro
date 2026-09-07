@@ -9,6 +9,7 @@ use App\Models\Central\PendingCharge;
 use App\Models\Central\PricingSetting;
 use App\Models\Tenant;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class Invoicer
@@ -20,9 +21,20 @@ class Invoicer
         return $this->tenant->billing_period === 'yearly';
     }
 
-    public function startedOn(): CarbonImmutable
+    /**
+     * Zonder ingangsdatum valt er niets te factureren; deze terugval houdt
+     * alleen de datumrekensom heel voor schermen die er toch naar vragen.
+     * subscriptionIsDue() weigert zo'n klant apart.
+     */
+    private function startedOn(): CarbonImmutable
     {
         return CarbonImmutable::parse($this->tenant->subscription_started_on ?? now()->startOfMonth());
+    }
+
+    /** Een maand of een jaar, in maanden. Overal hetzelfde getal. */
+    private function monthsPerPeriod(): int
+    {
+        return $this->isYearly() ? 12 : 1;
     }
 
     /**
@@ -40,9 +52,15 @@ class Invoicer
     public function periodFor(CarbonImmutable $on): array
     {
         $start = $this->startedOn();
-        $step = $this->isYearly() ? 12 : 1;
+        $step = $this->monthsPerPeriod();
         $periods = 0;
 
+        /**
+         * Tellend en niet uitgerekend uit het aantal maanden ertussen: die twee
+         * zijn het oneens rond het eind van de maand. Van 31 januari naar
+         * 28 februari is nul hele maanden, terwijl 28 februari wel degelijk de
+         * volgende periode begint.
+         */
         while ($start->addMonthsNoOverflow(($periods + 1) * $step)->lessThanOrEqualTo($on)) {
             $periods++;
         }
@@ -57,43 +75,58 @@ class Invoicer
     public function lines(?CarbonImmutable $on = null): array
     {
         $on = $on ?? CarbonImmutable::now();
-        [$start, $end] = $this->periodFor($on);
 
-        $months = $this->isYearly() ? 12 : 1;
-        $period = $start->format('d-m-Y') . ' t/m ' . $end->format('d-m-Y');
+        return [...$this->subscriptionLines($on), ...$this->chargeLines()];
+    }
 
-        $lines = [];
-
-        /**
-         * Het abonnement alleen als deze periode nog niet in rekening is
-         * gebracht. Zonder die voorwaarde zet een tussentijdse factuur voor
-         * bijgekocht tegoed de hele maand er nog een keer bij.
-         *
-         * Per post en niet als één bedrag: op de factuur hoort te staan
-         * waarvoor betaald wordt. De periode staat alleen achter de eerste
-         * regel; hij geldt voor het hele blok en staat ook in de kop.
-         */
-        if ($this->subscriptionIsDue($on)) {
-            foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
-                $lines[] = [
-                    'description' => $index === 0
-                        ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
-                        : $line['description'],
-                    'kind' => $line['kind'],
-                    'amount_cents' => $line['amount_cents'] * $months,
-                ];
-            }
+    /**
+     * Het abonnement van deze periode, uitgesplitst, en leeg zodra die periode
+     * al in rekening is gebracht: zonder die voorwaarde zet een tussentijdse
+     * factuur voor bijgekocht tegoed de hele maand er nog een keer bij.
+     *
+     * Per post en niet als één bedrag: op de factuur hoort te staan waarvoor
+     * betaald wordt. De periode staat alleen achter de eerste regel; hij geldt
+     * voor het hele blok en staat ook in de kop.
+     *
+     * @return array<int, array{description: string, kind: string, amount_cents: int}>
+     */
+    private function subscriptionLines(CarbonImmutable $on): array
+    {
+        if (!$this->subscriptionIsDue($on)) {
+            return [];
         }
 
-        foreach ($this->pendingCharges() as $charge) {
+        [$start, $end] = $this->periodFor($on);
+
+        $months = $this->monthsPerPeriod();
+        $period = $start->format('d-m-Y') . ' t/m ' . $end->format('d-m-Y');
+        $lines = [];
+
+        foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
             $lines[] = [
-                'description' => $charge->description,
-                'kind' => $charge->kind,
-                'amount_cents' => (int) $charge->amount_cents,
+                'description' => $index === 0
+                    ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
+                    : $line['description'],
+                'kind' => $line['kind'],
+                'amount_cents' => $line['amount_cents'] * $months,
             ];
         }
 
         return $lines;
+    }
+
+    /**
+     * De losse posten die sinds de vorige factuur zijn ontstaan.
+     *
+     * @return array<int, array{description: string, kind: string, amount_cents: int}>
+     */
+    private function chargeLines(): array
+    {
+        return $this->pendingCharges()->map(fn (PendingCharge $charge) => [
+            'description' => $charge->description,
+            'kind' => $charge->kind,
+            'amount_cents' => (int) $charge->amount_cents,
+        ])->all();
     }
 
     /**
@@ -162,7 +195,8 @@ class Invoicer
         return $this->preview($on)['total_cents'] >= 0;
     }
 
-    public function pendingCharges()
+    /** @return Collection<int, PendingCharge> */
+    public function pendingCharges(): Collection
     {
         return PendingCharge::on('central')
             ->where('tenant_id', $this->tenant->id)
@@ -171,7 +205,7 @@ class Invoicer
             ->get();
     }
 
-    public function yearlyDiscountCents(int $subtotal): int
+    private function yearlyDiscountCents(int $subtotal): int
     {
         if (!$this->isYearly()) {
             return 0;
@@ -182,20 +216,22 @@ class Invoicer
 
     public function preview(?CarbonImmutable $on = null): array
     {
-        $lines = $this->lines($on);
+        $on = $on ?? CarbonImmutable::now();
+
+        $subscription = $this->subscriptionLines($on);
+        $lines = [...$subscription, ...$this->chargeLines()];
+
         $subtotal = array_sum(array_column($lines, 'amount_cents'));
 
         /**
-         * De jaarkorting gaat alleen over het abonnement, niet over eenmalige
-         * posten: iemand die AI bijkoopt hoort daar geen twee procent op te
-         * krijgen omdat hij toevallig per jaar betaalt.
+         * De jaarkorting gaat alleen over het abonnement en niet over losse
+         * posten: wie AI bijkoopt hoort daar geen twee procent op te krijgen
+         * omdat hij toevallig per jaar betaalt. Daarom wordt er geteld over de
+         * abonnementsregels zelf, en niet over alle regels op een lijstje
+         * uitgezonderde soorten na -- een nieuwe soort post zou daar
+         * stilzwijgend korting op krijgen.
          */
-        $subscription_cents = array_sum(array_map(
-            fn ($line) => in_array($line['kind'], ['topup', 'proration'], true) ? 0 : $line['amount_cents'],
-            $lines,
-        ));
-
-        $discount = $this->yearlyDiscountCents($subscription_cents);
+        $discount = $this->yearlyDiscountCents(array_sum(array_column($subscription, 'amount_cents')));
 
         /**
          * Niet afgekapt op nul. Een openstaand tegoed dat groter is dan de
@@ -245,23 +281,8 @@ class Invoicer
         }
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {
-            /**
-             * Doorlopend per jaar over alle klanten heen, niet per klant: de
-             * boekhouding wil één reeks. De teller kijkt naar het hoogste
-             * nummer van dit jaar en niet naar het aantal, zodat een verwijderde
-             * factuur geen nummer laat hergebruiken.
-             */
-            $prefix = $on->format('Y') . '-LVR-';
-
-            $last = (int) str_replace($prefix, '', (string) Invoice::on('central')
-                ->where('number', 'like', $prefix . '%')
-                ->orderByRaw('CAST(REPLACE(number, ?, "") AS UNSIGNED) DESC', [$prefix])
-                ->value('number'));
-
-            $number = $prefix . ($last + 1);
-
             $invoice = Invoice::on('central')->create([
-                'number' => $number,
+                'number' => $this->nextNumber($on),
                 'tenant_id' => $this->tenant->id,
                 'period_start' => $start->toDateString(),
                 'period_end' => $end->toDateString(),
@@ -290,6 +311,26 @@ class Invoicer
     }
 
     /**
+     * Het volgende factuurnummer.
+     *
+     * Doorlopend per jaar over alle klanten heen en niet per klant: de
+     * boekhouding wil één reeks. Er wordt naar het hoogste nummer van dit jaar
+     * gekeken en niet naar het aantal, zodat een verwijderde factuur zijn
+     * nummer niet laat hergebruiken.
+     */
+    private function nextNumber(CarbonImmutable $on): string
+    {
+        $prefix = $on->format('Y') . '-LVR-';
+
+        $last = (int) str_replace($prefix, '', (string) Invoice::on('central')
+            ->where('number', 'like', $prefix . '%')
+            ->orderByRaw('CAST(REPLACE(number, ?, "") AS UNSIGNED) DESC', [$prefix])
+            ->value('number'));
+
+        return $prefix . ($last + 1);
+    }
+
+    /**
      * Verrekent een pakketwissel halverwege een periode.
      *
      * De klant hoort over deze periode het oude pakket te betalen voor de
@@ -308,25 +349,31 @@ class Invoicer
      * gebeurde er niets en betaalde de klant het nieuwe pakket vanaf de eerste
      * van de maand in plaats van vanaf de dag van de wissel.
      */
-    public function prorate(int $old_monthly_cents, int $new_monthly_cents, ?CarbonImmutable $on = null): ?PendingCharge
-    {
+    public function prorate(
+        int $old_monthly_cents,
+        int $new_monthly_cents,
+        ?CarbonImmutable $on = null,
+        ?string $old_package = null,
+        ?string $new_package = null,
+    ): ?PendingCharge {
         $on = $on ?? CarbonImmutable::now();
         [$start, $end] = $this->periodFor($on);
 
         $total_days = (int) $start->diffInDays($end->addDay());
-        $left = (int) max(0, $on->startOfDay()->diffInDays($end->addDay()));
-        $gone = max(0, $total_days - $left);
 
         if (!$total_days || $old_monthly_cents === $new_monthly_cents) {
             return null;
         }
 
-        $months = $this->isYearly() ? 12 : 1;
-        $difference = ($new_monthly_cents - $old_monthly_cents) * $months;
+        $days_to_come = (int) max(0, $on->startOfDay()->diffInDays($end->addDay()));
+        $days_gone = max(0, $total_days - $days_to_come);
+
+        $difference = ($new_monthly_cents - $old_monthly_cents) * $this->monthsPerPeriod();
         $invoiced = $this->subscriptionWasInvoicedFor($start);
 
-        $days = $invoiced ? $left : $gone;
-        $amount = (int) round($difference * $days / $total_days) * ($invoiced ? 1 : -1);
+        $days = $invoiced ? $days_to_come : $days_gone;
+        $amount = (int) round($difference * $days / $total_days);
+        $amount = $invoiced ? $amount : -$amount;
 
         if ($amount === 0) {
             return null;
@@ -334,11 +381,44 @@ class Invoicer
 
         return PendingCharge::on('central')->create([
             'tenant_id' => $this->tenant->id,
-            'description' => $invoiced
-                ? sprintf('Verrekening pakketwissel %s (%d van %d dagen)', $on->format('d-m-Y'), $days, $total_days)
-                : sprintf('Verrekening pakketwissel %s (%d van %d dagen op het oude pakket)', $on->format('d-m-Y'), $days, $total_days),
+            'description' => $this->prorationDescription(
+                $on, $days, $total_days, $invoiced, $old_package, $new_package,
+            ),
             'kind' => 'proration',
             'amount_cents' => $amount,
         ]);
+    }
+
+    /**
+     * Waar de verrekening over gaat, in een regel die op de factuur te volgen
+     * is: van welk pakket naar welk, op welke dag, en over hoeveel dagen.
+     *
+     * De dagen achteraan horen bij het pakket dat ervoor betaald wordt. Was de
+     * periode al gefactureerd tegen de oude prijs, dan gaat het om de dagen die
+     * nog op het nieuwe pakket komen; was hij dat niet, dan om de dagen die al
+     * op het oude pakket zaten.
+     *
+     * Bij een wijziging die het pakket niet raakt -- een plek erbij, meer
+     * opslag -- staat er geen pakketwissel, want dat was er niet.
+     */
+    private function prorationDescription(
+        CarbonImmutable $on,
+        int $days,
+        int $total_days,
+        bool $invoiced,
+        ?string $old_package,
+        ?string $new_package,
+    ): string {
+        $switched = filled($old_package) && filled($new_package) && $old_package !== $new_package;
+
+        $what = $switched
+            ? sprintf('pakketwissel %s: %s naar %s', $on->format('d-m-Y'), $old_package, $new_package)
+            : sprintf('abonnementswijziging %s', $on->format('d-m-Y'));
+
+        $over = $switched
+            ? ($invoiced ? $new_package : $old_package)
+            : ($invoiced ? 'de nieuwe prijs' : 'de oude prijs');
+
+        return sprintf('Verrekening %s (%d van %d dagen op %s)', $what, $days, $total_days, $over);
     }
 }

@@ -1,15 +1,16 @@
 <template>
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <h3 class="mb-1 mt-0 text-base font-semibold">
+    <PanelSection>
+        <template #title>
             {{ row.reseller.name }}
             <span class="font-normal text-slate-500">
                 {{ row.reseller.email }} &middot; {{ row.reseller.commission_percent }}% commissie
             </span>
-        </h3>
-        <p class="mb-3 text-sm text-slate-500">
+        </template>
+
+        <template #description>
             {{ row.tenants.length }} klant(en) &middot;
             <strong class="text-slate-900">{{ euro(row.commission) }} commissie per maand</strong>
-        </p>
+        </template>
 
         <table class="w-full text-left">
             <thead class="text-xs uppercase tracking-wide text-slate-500">
@@ -45,19 +46,19 @@
                         Code <span class="font-normal text-slate-500">(leeg = willekeurig)</span>
                     </label>
                     <input :id="`code-${row.reseller.id}`" v-model="form.code" type="text" placeholder="ZOMER2026"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="form.errors.code" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.code }}</p>
                 </div>
                 <div>
                     <label :for="`aantal-${row.reseller.id}`" class="mb-1 block font-semibold">Aantal</label>
                     <input :id="`aantal-${row.reseller.id}`" v-model.number="form.aantal" type="number" min="1" max="50"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="form.errors.aantal" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.aantal }}</p>
                 </div>
                 <div>
                     <label :for="`korting-${row.reseller.id}`" class="mb-1 block font-semibold">Korting (%)</label>
                     <input :id="`korting-${row.reseller.id}`" v-model.number="form.discount_percent" type="number" min="1" max="100"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="form.errors.discount_percent" class="mt-1 text-sm font-semibold text-red-700">
                         {{ form.errors.discount_percent }}
                     </p>
@@ -65,7 +66,7 @@
                 <div>
                     <label :for="`looptijd-${row.reseller.id}`" class="mb-1 block font-semibold">Looptijd (maanden)</label>
                     <input :id="`looptijd-${row.reseller.id}`" v-model.number="form.discount_months" type="number" min="1" max="60"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2">
+                        class="panel-field w-full">
                     <p v-if="form.errors.discount_months" class="mt-1 text-sm font-semibold text-red-700">
                         {{ form.errors.discount_months }}
                     </p>
@@ -73,12 +74,13 @@
             </div>
 
             <button type="submit" :disabled="form.processing"
-                class="mt-4 rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">Coupons aanmaken</button>
+                class="panel-button mt-4">Coupons aanmaken</button>
         </form>
-    </section>
+    </PanelSection>
 </template>
 
 <script setup>
+import PanelSection from '@/Components/Landlord/PanelSection.vue'
 import { useForm } from '@inertiajs/vue3'
 import { nlDate } from '@/Utilities/Utilities'
 import { euro } from '@/Components/Landlord/money.js'
