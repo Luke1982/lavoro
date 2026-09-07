@@ -100,6 +100,14 @@ class TenantProvisioner
                 'package_key' => $package,
                 'modules' => array_values(array_filter($modules)),
                 'tenancy_db_name' => $database,
+                /**
+                 * Het abonnement loopt vanaf vandaag. Zonder ingangsdatum valt
+                 * er namelijk nooit iets te factureren, en dat is aan niets te
+                 * zien: de klant werkt gewoon door en er komt alleen geen
+                 * rekening. Klopt de datum niet, dan is hij op het scherm aan
+                 * te passen.
+                 */
+                'subscription_started_on' => now()->toDateString(),
             ]);
         } catch (\Throwable $e) {
             $this->cleanUpAfterFailure(Tenant::on('central')->find($id), $database);

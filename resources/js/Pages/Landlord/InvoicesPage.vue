@@ -37,6 +37,13 @@
         <button v-if="is_due" type="button" :disabled="issuing" @click="issue"
             class="mt-4 rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60">Factuur aanmaken</button>
 
+        <p v-else-if="!tenant.subscription_started_on"
+            class="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+            Deze klant heeft geen ingangsdatum, dus er wordt nooit iets gefactureerd &mdash; ook niet
+            na een pakketwissel. Vul de ingangsdatum in bij
+            <Link :href="`/beheer/${tenant.id}`" class="underline">het abonnement</Link>.
+        </p>
+
         <p v-else-if="preview.total_cents < 0" class="mt-4 text-sm text-slate-500">
             Er staat meer tegoed open dan er nu te factureren valt. Er gaat dus niets de deur uit;
             het tegoed blijft staan en gaat van de volgende factuur af.

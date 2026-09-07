@@ -7,6 +7,9 @@
                 <div>
                     <label class="mb-1 block font-semibold">Startdatum abonnement</label>
                     <input v-model="form.subscription_started_on" type="date" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <p v-if="!form.subscription_started_on" class="mt-1 text-sm font-semibold text-amber-700">
+                        Zonder ingangsdatum wordt deze klant nooit gefactureerd.
+                    </p>
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">Facturatie</label>

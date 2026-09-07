@@ -24,6 +24,9 @@
                     <span class="text-slate-500">{{ row.database }}</span>
                     <span v-if="row.busy" class="block text-slate-500">wordt nu aangemaakt…</span>
                     <span v-if="row.broken" class="block font-semibold text-red-700">{{ row.broken }}</span>
+                    <span v-if="!row.starts_on && !row.busy" class="block font-semibold text-amber-700">
+                        geen ingangsdatum &mdash; wordt niet gefactureerd
+                    </span>
                 </td>
                 <td class="px-3 py-2.5">{{ row.package ?? '—' }}</td>
                 <td class="px-3 py-2.5" :class="over(row.field, row.field_limit)">

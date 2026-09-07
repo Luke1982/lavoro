@@ -75,6 +75,8 @@ class TenantController extends Controller
                 'used_gb' => round($used / (1024 ** 3), 2),
                 'storage_limit_gb' => (int) $tenant->storage_limit_gb,
                 'total' => (new TenantSubscription($tenant))->monthlyTotalCents(),
+                /** Zonder ingangsdatum wordt er voor deze klant nooit iets gefactureerd. */
+                'starts_on' => $tenant->subscription_started_on,
             ];
         })->values();
 
@@ -144,7 +146,17 @@ class TenantController extends Controller
                 'id' => $tenant->id,
                 'name' => $tenant->name,
                 'database' => $tenant->getInternal('db_name'),
-                'subscription_started_on' => optional($tenant->subscription_started_on)->format('Y-m-d'),
+                /**
+                 * Onbewerkt naar het scherm, net als de andere twee datums
+                 * hieronder. De kolom is een date, dus dit is al jjjj-mm-dd --
+                 * precies wat een datumveld wil. Er stond optional()->format()
+                 * omheen, en optional() op tekst in plaats van een object
+                 * levert null: het veld kwam altijd leeg terug, en de eerste
+                 * de beste keer opslaan schreef die leegte terug naar de
+                 * database. Daarmee raakte de ingangsdatum kwijt en viel er
+                 * voor die klant niets meer te factureren.
+                 */
+                'subscription_started_on' => $tenant->subscription_started_on,
                 'billing_period' => $tenant->billing_period,
                 'package_key' => $tenant->package_key,
                 'extra_field_seats' => (int) $tenant->extra_field_seats,
