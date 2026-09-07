@@ -8,6 +8,7 @@ use App\Models\Central\IssuerSetting;
 use App\Models\Central\PendingCharge;
 use App\Models\Central\PricingSetting;
 use App\Models\Tenant;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -103,10 +104,23 @@ class Invoicer
         $lines = [];
 
         foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
+            $description = $index === 0
+                ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
+                : $line['description'];
+
+            /**
+             * Staat er een afgesproken prijs op deze regel, dan hoort de gewone
+             * prijs erbij: over een jaar of twee weet niemand meer waarom er
+             * een ander bedrag stond, en de klant hoort te zien dat het een
+             * afspraak was en geen fout.
+             */
+            if (isset($line['regular_cents'])) {
+                $description .= ', normaal € ' . Money::human($line['regular_cents'] * $months)
+                    . ', speciale prijsafspraak';
+            }
+
             $lines[] = [
-                'description' => $index === 0
-                    ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
-                    : $line['description'],
+                'description' => $description,
                 'kind' => $line['kind'],
                 'amount_cents' => $line['amount_cents'] * $months,
             ];

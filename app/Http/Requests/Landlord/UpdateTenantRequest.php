@@ -20,6 +20,8 @@ class UpdateTenantRequest extends FormRequest
             'subscription_started_on' => 'nullable|date',
             'billing_period' => 'required|in:monthly,yearly',
             'modules' => 'array',
+            'module_prices' => 'array',
+            'module_prices.*' => 'nullable|numeric|min:0',
 
             'invoice_email' => 'nullable|email',
             'invoice_address' => 'nullable|string',
@@ -63,6 +65,7 @@ class UpdateTenantRequest extends FormRequest
             ->except(['ai_allowance_euro', 'price_override_euro', 'discount_euro', 'discount_percent', 'discount_type'])
             ->merge([
                 'modules' => $data['modules'] ?? [],
+                'module_prices' => $this->modulePrices($data),
                 'ai_allowance_micros' => $this->scaled('ai_allowance_euro', 1_000_000),
                 'price_override_cents' => $this->scaled('price_override_euro', 100),
                 /** Een korting is een bedrag of een percentage, nooit allebei. */
@@ -73,6 +76,26 @@ class UpdateTenantRequest extends FormRequest
     }
 
     /** Leeg blijft leeg: dat betekent "niet ingesteld" en niet "nul". */
+    /**
+     * De eigen prijsafspraken per module, in centen.
+     *
+     * Alleen voor modules die de klant ook echt heeft: zet iemand een module
+     * uit, dan hoort de prijs die erbij hoorde niet te blijven staan om bij het
+     * weer aanzetten stilletjes terug te komen. Een leeg veld is geen afspraak
+     * van nul euro maar geen afspraak.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, int>
+     */
+    private function modulePrices(array $data): array
+    {
+        return collect($data['module_prices'] ?? [])
+            ->only($data['modules'] ?? [])
+            ->reject(fn ($price) => $price === null || $price === '')
+            ->map(fn ($price) => (int) round((float) $price * 100))
+            ->all();
+    }
+
     private function scaled(string $field, int $factor): ?int
     {
         $value = $this->validated()[$field] ?? null;

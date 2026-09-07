@@ -80,6 +80,7 @@ class SubscriptionScreenTest extends TestCase
             'mandate_reference' => $tenant->mandate_reference ?? '',
             'mandate_signed_on' => $tenant->mandate_signed_on ?? '',
             'modules' => $tenant->modules ?? [],
+            'module_prices' => collect($tenant->module_prices ?? [])->map($euro)->all(),
             ...$overrides,
         ];
     }
@@ -94,6 +95,7 @@ class SubscriptionScreenTest extends TestCase
             'extra_office_seats' => 2,
             'storage_limit_gb' => 120,
             'modules' => ['quotes', 'assistant'],
+            'module_prices' => ['assistant' => 1500],
             'ai_allowance_micros' => 33_750_000,
             'price_override_cents' => 12345,
             'discount_percent' => 7,
@@ -194,7 +196,7 @@ class SubscriptionScreenTest extends TestCase
 
         $columns = [
             'package_key', 'billing_period', 'subscription_started_on', 'extra_field_seats',
-            'extra_office_seats', 'storage_limit_gb', 'modules', 'ai_allowance_micros',
+            'extra_office_seats', 'storage_limit_gb', 'modules', 'module_prices', 'ai_allowance_micros',
             'price_override_cents', 'discount_cents', 'discount_percent', 'invoice_address',
             'invoice_email', 'invoice_postcode', 'invoice_city', 'vat_number', 'coc_number',
             'payment_method', 'iban', 'account_holder', 'mandate_reference', 'mandate_signed_on',
@@ -278,5 +280,30 @@ class SubscriptionScreenTest extends TestCase
 
         $this->assertSame('transfer', $tenant->fresh()->payment_method);
         $this->assertSame('NL91ABNA0417164300', $tenant->fresh()->iban);
+    }
+
+    public function test_a_module_keeps_the_price_that_was_agreed_for_it(): void
+    {
+        $tenant = $this->filled();
+
+        $this->save($tenant, ['module_prices' => ['assistant' => '9.95', 'quotes' => '']])->assertRedirect();
+
+        $this->assertSame(['assistant' => 995], $tenant->fresh()->module_prices);
+    }
+
+    /**
+     * Een prijs hoort bij een module die de klant heeft. Gaat de module eruit,
+     * dan hoort de afspraak niet te blijven staan om bij het weer aanzetten
+     * stilletjes terug te komen.
+     */
+    public function test_taking_a_module_away_takes_its_agreed_price_with_it(): void
+    {
+        $tenant = $this->filled();
+
+        $this->assertSame(['assistant' => 1500], $tenant->module_prices);
+
+        $this->save($tenant, ['modules' => ['quotes']])->assertRedirect();
+
+        $this->assertSame([], $tenant->fresh()->module_prices);
     }
 }

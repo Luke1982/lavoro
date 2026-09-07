@@ -16,6 +16,9 @@ class TenantSubscription
 
     private bool $package_looked_up = false;
 
+    /** @var array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>|null */
+    private ?array $chargeable = null;
+
     public function __construct(private Tenant $tenant) {}
 
     /**
@@ -50,27 +53,49 @@ class TenantSubscription
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int}>
      */
+    /**
+     * Het abonnement uitgesplitst, zodat op de factuur te zien is waarvoor
+     * betaald wordt in plaats van één bedrag. De regels tellen op tot
+     * monthlyTotalCents(); kortingen staan er als negatieve regel tussen.
+     *
+     * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
+     */
     public function breakdown(): array
     {
-        $package = $this->package();
-        $package_name = 'Abonnement Lavoro' . ($package?->name ? ' ' . $package->name : '');
+        return array_merge($this->chargeableLines(), $this->discountLines());
+    }
 
-        /** Een afgesproken prijs vervangt de opbouw; die valt niet uit te splitsen. */
-        if ($this->tenant->price_override_cents !== null) {
-            $lines = [[
-                'description' => $package_name,
-                'kind' => 'subscription',
-                'amount_cents' => (int) $this->tenant->price_override_cents,
-            ]];
-
-            return array_merge($lines, $this->discountLines());
+    /**
+     * Alles waarvoor betaald wordt, zonder de kortingen: het pakket, de extra
+     * plekken, de modules en de opslag.
+     *
+     * Dit is de enige plek waar die opbouw staat. De korting rekent over de
+     * som hiervan, dus als de factuurregels en die som elk hun eigen sommetje
+     * maakten, konden ze uit elkaar gaan lopen zonder dat iets dat merkt.
+     *
+     * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
+     */
+    private function chargeableLines(): array
+    {
+        if ($this->chargeable !== null) {
+            return $this->chargeable;
         }
 
-        $lines = [[
-            'description' => $package_name,
+        $package = $this->package();
+        $agreed = $this->tenant->price_override_cents;
+
+        /**
+         * Een afgesproken prijs geldt voor het pakket, niet voor de rest. Wat
+         * er los bijgekocht wordt -- plekken, modules, opslag -- komt er
+         * gewoon bovenop; anders zou de klant die erbij neemt daar niets voor
+         * betalen. Voor zo'n module valt een eigen prijs af te spreken.
+         */
+        $lines = [array_filter([
+            'description' => 'Abonnement Lavoro' . ($package?->name ? ' ' . $package->name : ''),
             'kind' => 'subscription',
-            'amount_cents' => (int) ($package->price_cents ?? 0),
-        ]];
+            'amount_cents' => $agreed !== null ? (int) $agreed : (int) ($package->price_cents ?? 0),
+            'regular_cents' => $agreed !== null ? (int) ($package->price_cents ?? 0) : null,
+        ], fn ($value) => $value !== null)];
 
         foreach ([
             ['extra_field_seats', 'extra_field_cents', 'Extra buitendienstplek'],
@@ -94,17 +119,14 @@ class TenantSubscription
         }
 
         if ($storage = $this->storageCents()) {
-            $included = PricingSetting::value('included_storage_gb', 50);
-            $extra = max(0, (int) $this->tenant->storage_limit_gb - $included);
-
             $lines[] = [
-                'description' => 'Extra opslag (' . $extra . ' GB)',
+                'description' => 'Extra opslag (' . $this->extraStorageGb() . ' GB)',
                 'kind' => 'storage',
                 'amount_cents' => $storage,
             ];
         }
 
-        return array_merge($lines, $this->discountLines());
+        return $this->chargeable = $lines;
     }
 
     /** @return array<int, array{description: string, kind: string, amount_cents: int}> */
@@ -133,29 +155,50 @@ class TenantSubscription
         return $lines;
     }
 
-    /** @return array<int, array{description: string, kind: string, amount_cents: int}> */
+    /**
+     * De modules van deze klant, met per module de prijs die voor hem geldt.
+     *
+     * Een bundel vervangt de losse prijzen van de modules die erin zitten,
+     * maar alleen als de klant ze allemaal heeft: anders betaalt iemand voor
+     * een korting die hij niet krijgt. Is er voor een van die modules een
+     * eigen prijs afgesproken, dan gaat die voor -- een afspraak die iemand
+     * met de hand gemaakt heeft, hoort niet overreden te worden door een
+     * bundelprijs.
+     *
+     * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
+     */
     private function moduleLines(): array
     {
         $keys = collect($this->tenant->modules ?? []);
+        $agreed = collect($this->tenant->module_prices ?? []);
         $lines = [];
 
         foreach (ModuleBundle::on('central')->get() as $bundle) {
-            if (collect($bundle->module_keys)->every(fn ($k) => $keys->contains($k))) {
-                $lines[] = [
-                    'description' => $bundle->name,
-                    'kind' => 'module',
-                    'amount_cents' => (int) $bundle->price_cents,
-                ];
-                $keys = $keys->reject(fn ($k) => in_array($k, $bundle->module_keys, true));
+            $complete = collect($bundle->module_keys)->every(fn ($key) => $keys->contains($key));
+            $bargained = collect($bundle->module_keys)->contains(fn ($key) => $agreed->has($key));
+
+            if (!$complete || $bargained) {
+                continue;
             }
+
+            $lines[] = [
+                'description' => $bundle->name,
+                'kind' => 'module',
+                'amount_cents' => (int) $bundle->price_cents,
+            ];
+
+            $keys = $keys->reject(fn ($key) => in_array($key, $bundle->module_keys, true));
         }
 
         foreach (Module::on('central')->whereIn('key', $keys)->orderBy('sort_order')->get() as $module) {
-            $lines[] = [
+            $own = $agreed->get($module->key);
+
+            $lines[] = array_filter([
                 'description' => $module->name,
                 'kind' => 'module',
-                'amount_cents' => (int) $module->price_cents,
-            ];
+                'amount_cents' => $own !== null ? (int) $own : (int) $module->price_cents,
+                'regular_cents' => $own !== null ? (int) $module->price_cents : null,
+            ], fn ($value) => $value !== null);
         }
 
         return $lines;
@@ -194,17 +237,7 @@ class TenantSubscription
     /** Wat het zou kosten zonder korting -- het bedrag waar de korting op rekent. */
     public function beforeDiscountCents(): int
     {
-        if ($this->tenant->price_override_cents !== null) {
-            return (int) $this->tenant->price_override_cents;
-        }
-
-        $package = $this->package();
-
-        $total = (int) ($package->price_cents ?? 0)
-            + (int) $this->tenant->extra_field_seats * (int) ($package->extra_field_cents ?? 0)
-            + (int) $this->tenant->extra_office_seats * (int) ($package->extra_office_cents ?? 0);
-
-        return $total + $this->moduleCents() + $this->storageCents();
+        return array_sum(array_column($this->chargeableLines(), 'amount_cents'));
     }
 
     /**
@@ -223,31 +256,13 @@ class TenantSubscription
         return min($before, (int) ($this->tenant->discount_cents ?? 0));
     }
 
-    /**
-     * Een bundel vervangt de losse prijzen van de modules die erin zitten, maar
-     * alleen als de tenant ze allemaal heeft. Anders betaalt iemand voor een
-     * korting die hij niet krijgt.
-     */
-    private function moduleCents(): int
+    private function extraStorageGb(): int
     {
-        $keys = collect($this->tenant->modules ?? []);
-        $total = 0;
-
-        foreach (ModuleBundle::on('central')->get() as $bundle) {
-            if (collect($bundle->module_keys)->every(fn ($k) => $keys->contains($k))) {
-                $total += (int) $bundle->price_cents;
-                $keys = $keys->reject(fn ($k) => in_array($k, $bundle->module_keys, true));
-            }
-        }
-
-        return $total + (int) Module::on('central')->whereIn('key', $keys)->sum('price_cents');
+        return max(0, (int) $this->tenant->storage_limit_gb - PricingSetting::value('included_storage_gb', 50));
     }
 
     private function storageCents(): int
     {
-        $included = PricingSetting::value('included_storage_gb', 50);
-        $extra = max(0, (int) $this->tenant->storage_limit_gb - $included);
-
-        return $extra * PricingSetting::value('storage_extra_per_gb_cents', 50);
+        return $this->extraStorageGb() * PricingSetting::value('storage_extra_per_gb_cents', 50);
     }
 }

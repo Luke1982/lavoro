@@ -677,4 +677,49 @@ class InvoiceCalculationTest extends TestCase
         $this->assertStringStartsWith('Verrekening abonnementswijziging 07-09-2026', $charge->description);
         $this->assertStringNotContainsString('pakketwissel', $charge->description);
     }
+
+    /**
+     * Staat er een afgesproken prijs op een regel, dan hoort de gewone prijs
+     * erbij: over een jaar weet niemand meer waarom er een ander bedrag stond.
+     */
+    public function test_an_agreed_price_says_what_the_normal_price_is(): void
+    {
+        $tenant = $this->tenant([
+            'price_override_cents' => 14900,
+            'modules' => ['quotes'],
+            'module_prices' => ['quotes' => 1500],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'))['lines'];
+
+        $this->assertSame(
+            'Abonnement Lavoro Starter 15-01-2026 t/m 14-02-2026, normaal € 27,50, speciale prijsafspraak',
+            $lines[0]['description'],
+        );
+        $this->assertSame(14900, $lines[0]['amount_cents']);
+
+        $this->assertSame('Offertes, normaal € 27,50, speciale prijsafspraak', $lines[1]['description']);
+        $this->assertSame(1500, $lines[1]['amount_cents']);
+    }
+
+    public function test_a_normal_price_is_only_mentioned_where_something_was_agreed(): void
+    {
+        $lines = (new Invoicer($this->tenant(['modules' => ['quotes']])))
+            ->preview(CarbonImmutable::parse('2026-02-01'))['lines'];
+
+        foreach ($lines as $line) {
+            $this->assertStringNotContainsString('speciale prijsafspraak', $line['description']);
+        }
+    }
+
+    /** Bij een jaarfactuur staat er ook een jaarbedrag als normale prijs. */
+    public function test_the_normal_price_follows_the_billing_period(): void
+    {
+        $tenant = $this->tenant(['billing_period' => 'yearly', 'price_override_cents' => 14900]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-02-01'))['lines'];
+
+        $this->assertStringContainsString('normaal € 330,00, speciale prijsafspraak', $lines[0]['description']);
+        $this->assertSame(14900 * 12, $lines[0]['amount_cents']);
+    }
 }

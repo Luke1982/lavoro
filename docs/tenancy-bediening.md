@@ -201,8 +201,19 @@ php artisan tenant:package <id> business
 php artisan tenant:modules <id> --add=assistant --remove=quotes
 php artisan tenant:seats <id> --field=+5 --office=2
 php artisan tenant:storage <id> --limit=200
-php artisan tenant:override <id> --price=14900   # vaste maandprijs in centen, --clear wist hem
+php artisan tenant:override <id> --price=14900   # vaste pakketprijs in centen, --clear wist hem
 ```
+
+**Een vaste prijs geldt voor het pakket, niet voor de rest.** Extra plekken,
+modules en extra opslag komen er bovenop; anders zou een klant met een vaste
+prijs alles wat hij bijneemt gratis krijgen. Voor een losse module valt in het
+paneel een eigen prijs af te spreken, en die gaat voor op een bundelprijs uit
+de catalogus.
+
+Overal waar zo'n afspraak geldt, zet de factuur de gewone prijs erbij:
+*Abonnement Lavoro Starter 01-09-2026 t/m 30-09-2026, normaal € 27,50, speciale
+prijsafspraak*. Over een jaar weet niemand meer waarom er een ander bedrag
+stond, en de klant hoort te zien dat het een afspraak was en geen fout.
 
 Alles kan ook in het paneel. Wissel je halverwege een periode van pakket, dan
 betaalt de klant over die periode het oude pakket tot de dag van de wissel en

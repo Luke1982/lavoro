@@ -15,6 +15,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     protected $casts = [
         'data' => 'array',
         'modules' => 'array',
+        'module_prices' => 'array',
         'extra_field_seats' => 'integer',
         'extra_office_seats' => 'integer',
         'price_override_cents' => 'integer',
@@ -44,7 +45,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'invoice_country',
             'vat_number',
             'coc_number', 'extra_field_seats', 'extra_office_seats',
-            'modules', 'price_override_cents', 'storage_limit_gb',
+            'modules', 'module_prices', 'price_override_cents', 'storage_limit_gb',
             'ai_allowance_micros',
             'discount_cents',
             'discount_percent',

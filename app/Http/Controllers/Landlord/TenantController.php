@@ -163,6 +163,8 @@ class TenantController extends Controller
                 'extra_office_seats' => (int) $tenant->extra_office_seats,
                 'storage_limit_gb' => (int) $tenant->storage_limit_gb,
                 'modules' => $tenant->modules ?? [],
+                /** Als object, zodat leeg geen lijst wordt waar het scherm op sleutel zoekt. */
+                'module_prices' => (object) ($tenant->module_prices ?? []),
                 'discount_cents' => (int) $tenant->discount_cents,
                 'discount_percent' => (int) $tenant->discount_percent,
                 'price_override_cents' => $tenant->price_override_cents,

@@ -85,11 +85,16 @@
                 </label>
             </div>
 
-            <label class="mb-1 mt-4 block font-semibold">
-                Vaste maandprijs (€) <span class="font-normal text-slate-500">(leeg = berekenen)</span>
+            <label for="package-price" class="mb-1 mt-4 block font-semibold">
+                Vaste pakketprijs (€)
+                <span class="font-normal text-slate-500">(leeg = prijs uit de catalogus)</span>
             </label>
-            <input v-model="form.price_override_euro" type="number" step="0.01" min="0"
+            <input id="package-price" v-model="form.price_override_euro" type="number" step="0.01" min="0"
                 class="panel-field w-full">
+            <p class="mt-1 text-sm text-slate-500">
+                Geldt voor het pakket. Plekken, modules en extra opslag komen daar bovenop; voor een
+                module spreek je hierboven een eigen prijs af.
+            </p>
 
             <label class="mb-1 mt-4 block font-semibold">Factuurgegevens</label>
             <div class="grid gap-3 sm:grid-cols-2">
@@ -123,11 +128,23 @@
             <p v-if="form.errors.iban" class="mt-1 font-semibold text-red-700">{{ form.errors.iban }}</p>
 
             <label class="mb-1 mt-4 block font-semibold">Modules</label>
-            <label v-for="module in modules" :key="module.key" class="flex items-center gap-2 py-1">
-                <input v-model="form.modules" type="checkbox" :value="module.key">
-                {{ module.name }}
-                <span v-if="module.price_cents" class="text-slate-500">{{ euro(module.price_cents) }}</span>
-            </label>
+            <p class="mb-1 text-sm text-slate-500">
+                Het veld achter een module is een eigen prijsafspraak; leeg is de normale prijs.
+            </p>
+            <div v-for="module in modules" :key="module.key" class="flex items-center gap-2 py-1">
+                <label class="flex flex-1 items-center gap-2">
+                    <input v-model="form.modules" type="checkbox" :value="module.key">
+                    {{ module.name }}
+                    <span v-if="module.price_cents" class="text-slate-500">{{ euro(module.price_cents) }}</span>
+                </label>
+
+                <input v-if="form.modules.includes(module.key)" v-model="form.module_prices[module.key]"
+                    type="number" step="0.01" min="0" :placeholder="euroInput(module.price_cents)"
+                    :aria-label="`Eigen prijs voor ${module.name}`" class="panel-field-narrow w-24">
+            </div>
+            <p v-if="form.errors.module_prices" class="mt-1 text-sm font-semibold text-red-700">
+                {{ form.errors.module_prices }}
+            </p>
 
             <p class="mt-4 flex items-center gap-4">
                 <button type="submit" :disabled="form.processing"
@@ -182,6 +199,10 @@ const form = useForm({
     mandate_reference: props.tenant.mandate_reference ?? '',
     mandate_signed_on: props.tenant.mandate_signed_on ?? '',
     modules: [...(props.tenant.modules ?? [])],
+    /** Centen uit de database worden euro's in het veld, net als de andere bedragen. */
+    module_prices: Object.fromEntries(
+        Object.entries(props.tenant.module_prices ?? {}).map(([key, cents]) => [key, euroInput(cents)]),
+    ),
 })
 
 const submit = () => form.put(`/beheer/${props.tenant.id}`, { preserveScroll: true })

@@ -21,7 +21,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
 const tenant = {
     id: 'x', name: 'Testbedrijf', database: 'lavoro_tenant_test', subscription_started_on: '2026-09-01',
     billing_period: 'monthly', package_key: 'starter', extra_field_seats: 0, extra_office_seats: 0,
-    storage_limit_gb: 50, modules: [], discount_cents: 0, discount_percent: 0, price_override_cents: null,
+    storage_limit_gb: 50, modules: [], module_prices: {}, discount_cents: 0, discount_percent: 0, price_override_cents: null,
     invoice_address: null, invoice_email: null, invoice_postcode: null, invoice_city: null,
     vat_number: null, coc_number: null, payment_method: 'transfer', iban: null, account_holder: null,
     mandate_reference: null, mandate_signed_on: null, coupon_discount_percent: 0, coupon_discount_until: null,
