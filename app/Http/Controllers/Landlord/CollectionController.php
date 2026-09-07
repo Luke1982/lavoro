@@ -16,9 +16,9 @@ class CollectionController extends Controller
 {
     public function collections()
     {
-        return view('landlord.collections', [
+        return inertia('Landlord/CollectionsPage', [
             'invoices' => $this->collectable()->get(),
-            'issuer' => IssuerSetting::all_values(),
+            'issuer' => (object) IssuerSetting::all_values(),
             'collect_on' => now()->addWeekdays(6)->toDateString(),
         ]);
     }

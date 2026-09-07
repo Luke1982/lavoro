@@ -14,7 +14,7 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        return view('landlord.login');
+        return inertia('Landlord/LoginPage');
     }
 
     public function login(LoginRequest $request)

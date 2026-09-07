@@ -21,13 +21,18 @@ class CatalogueController extends Controller
 {
     public function catalogue()
     {
-        return view('landlord.catalogue', [
+        return inertia('Landlord/CataloguePage', [
             'packages' => Package::on('central')->orderBy('sort_order')->get(),
             'modules' => Module::on('central')->orderBy('sort_order')->get(),
             'bundles' => ModuleBundle::on('central')->get(),
             'settings' => PricingSetting::on('central')->orderBy('key')->get(),
-            'usage' => DB::connection('central')->table('tenants')
-                ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')->pluck('aantal', 'package_key'),
+            /**
+             * Als object en niet als lijst: leeg levert json_encode anders []
+             * op, en het scherm zoekt er een pakketsleutel in op.
+             */
+            'usage' => (object) DB::connection('central')->table('tenants')
+                ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')
+                ->pluck('aantal', 'package_key')->all(),
             'issuer_rows' => IssuerSetting::on('central')->orderBy('key')->get(),
         ]);
     }

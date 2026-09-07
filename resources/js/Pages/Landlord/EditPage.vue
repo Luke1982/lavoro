@@ -1,4 +1,6 @@
 <template>
+    <Head :title="tenant.name" />
+
     <h2 class="mb-1 text-xl font-semibold">{{ tenant.name }}</h2>
     <p class="mb-5 text-sm text-slate-500">{{ tenant.database }} &middot; {{ tenant.id }}</p>
 
@@ -24,6 +26,7 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
 import SubscriptionForm from '@/Components/Landlord/SubscriptionForm.vue'
 import BillingCard from '@/Components/Landlord/BillingCard.vue'
 import CouponCard from '@/Components/Landlord/CouponCard.vue'

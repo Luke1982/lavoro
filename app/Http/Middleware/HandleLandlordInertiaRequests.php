@@ -31,6 +31,12 @@ class HandleLandlordInertiaRequests extends Middleware
              * van een verlopen pagina zijn uitleg daar neerzet; zonder dat kwam
              * die melding nergens in beeld en leek een formulier stil te falen.
              */
+            /**
+             * Voor het ene formulier dat niet over Inertia kan: het
+             * incassobestand komt als download terug, en een download kan
+             * alleen uit een gewone formulierverzending komen.
+             */
+            'csrf_token' => fn () => csrf_token(),
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
                 'error' => fn () => $request->session()->get('error'),

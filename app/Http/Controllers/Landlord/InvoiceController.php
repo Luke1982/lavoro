@@ -25,7 +25,7 @@ class InvoiceController extends Controller
         $invoicer = new Invoicer($tenant);
         [$start, $end] = $invoicer->periodFor(CarbonImmutable::now());
 
-        return view('landlord.invoices', [
+        return inertia('Landlord/InvoicesPage', [
             'tenant' => $tenant,
             'invoices' => Invoice::on('central')->with('lines')
                 ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),

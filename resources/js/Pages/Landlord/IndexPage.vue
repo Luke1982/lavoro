@@ -1,4 +1,6 @@
 <template>
+    <Head title="Klanten" />
+
     <p class="mb-3 text-sm text-slate-500">
         {{ rows.length }} tenants &middot; samen {{ euro(monthly) }} per maand
     </p>
@@ -49,7 +51,7 @@
 </template>
 
 <script setup>
-import { Link, usePoll } from '@inertiajs/vue3'
+import { Head, Link, usePoll } from '@inertiajs/vue3'
 import ProvisioningQueue from '@/Components/Landlord/ProvisioningQueue.vue'
 import GeneratedPasswords from '@/Components/Landlord/GeneratedPasswords.vue'
 import NewTenantForm from '@/Components/Landlord/NewTenantForm.vue'

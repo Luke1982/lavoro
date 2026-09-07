@@ -4,6 +4,16 @@ import { router } from '@inertiajs/vue3'
 import IndexPage from '../IndexPage.vue'
 
 /**
+ * <Head> haalt zijn hoofdmanager uit createInertiaApp, en die draait hier niet:
+ * hij heeft geen naam om op te stubben, dus hij wordt hier vervangen. De rest
+ * van de module blijft echt, want de test bespioneert router.reload.
+ */
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original()),
+    Head: { render: () => null },
+}))
+
+/**
  * Het overzicht hoort zichzelf bij te houden.
  *
  * Dit is drie keer misgegaan, en elke keer omdat het verversen aan een

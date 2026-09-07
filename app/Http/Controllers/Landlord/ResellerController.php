@@ -31,7 +31,7 @@ class ResellerController extends Controller
             ];
         });
 
-        return view('landlord.resellers', ['rows' => $resellers]);
+        return inertia('Landlord/ResellersPage', ['rows' => $resellers]);
     }
 
     public function storeReseller(StoreResellerRequest $request)

@@ -4,7 +4,7 @@
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
                 <strong>Lavoro Beheer</strong>
 
-                <nav class="flex items-center gap-5 text-sm text-slate-300">
+                <nav v-if="email" class="flex items-center gap-5 text-sm text-slate-300">
                     <Link v-for="item in menu" :key="item.href" :href="item.href"
                         class="hover:text-white"
                         :class="{ 'text-white font-medium': isCurrent(item.href) }">{{ item.label }}</Link>
@@ -32,6 +32,8 @@ const menu = [
     { label: 'Resellers', href: '/beheer/resellers' },
     { label: 'Incasso', href: '/beheer/incasso' },
 ]
+
+const email = computed(() => usePage().props.auth?.email)
 
 const url = computed(() => usePage().url)
 
