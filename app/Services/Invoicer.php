@@ -290,34 +290,43 @@ class Invoicer
     }
 
     /**
-     * Verrekent een pakketwissel halverwege een periode: wat er nog aan dagen
-     * over is, tegen het verschil in maandprijs.
+     * Verrekent een pakketwissel halverwege een periode.
      *
-     * Alleen over dagen die al tegen de oude prijs betaald zijn. Is deze
-     * periode nog niet gefactureerd, dan zet de eerstvolgende factuur het
-     * nieuwe pakket al over de hele periode in rekening; een verrekening
-     * erbij bracht het verschil een tweede keer in rekening -- bij een wissel
-     * op de eerste dag van de periode zelfs het volle verschil.
+     * De klant hoort over deze periode het oude pakket te betalen voor de
+     * dagen tot de wissel en het nieuwe voor de dagen erna. Wat de factuur
+     * daarvan afwijkt, staat hier als losse regel bij. Dat kan twee kanten op,
+     * en welke kant hangt er alleen van af of deze periode al gefactureerd is:
+     *
+     * - Al gefactureerd, tegen de oude prijs. Dan is er te weinig gerekend
+     *   voor de dagen die nog komen: het verschil erbij over die dagen.
+     * - Nog niet gefactureerd. Dan zet de eerstvolgende factuur het nieuwe
+     *   pakket over de hele periode in rekening, ook over de dagen die de
+     *   klant nog op het oude pakket zat: het verschil eraf over die dagen.
+     *
+     * Allebei die regels rekenen naar hetzelfde bedrag toe. Alleen de eerste
+     * stond er; bij een wissel halverwege een nog niet gefactureerde maand
+     * gebeurde er niets en betaalde de klant het nieuwe pakket vanaf de eerste
+     * van de maand in plaats van vanaf de dag van de wissel.
      */
     public function prorate(int $old_monthly_cents, int $new_monthly_cents, ?CarbonImmutable $on = null): ?PendingCharge
     {
         $on = $on ?? CarbonImmutable::now();
         [$start, $end] = $this->periodFor($on);
 
-        if (!$this->subscriptionWasInvoicedFor($start)) {
-            return null;
-        }
+        $total_days = (int) $start->diffInDays($end->addDay());
+        $left = (int) max(0, $on->startOfDay()->diffInDays($end->addDay()));
+        $gone = max(0, $total_days - $left);
 
-        $total_days = $start->diffInDays($end->addDay());
-        $left = max(0, $on->startOfDay()->diffInDays($end->addDay()));
-
-        if (!$total_days || !$left || $old_monthly_cents === $new_monthly_cents) {
+        if (!$total_days || $old_monthly_cents === $new_monthly_cents) {
             return null;
         }
 
         $months = $this->isYearly() ? 12 : 1;
         $difference = ($new_monthly_cents - $old_monthly_cents) * $months;
-        $amount = (int) round($difference * $left / $total_days);
+        $invoiced = $this->subscriptionWasInvoicedFor($start);
+
+        $days = $invoiced ? $left : $gone;
+        $amount = (int) round($difference * $days / $total_days) * ($invoiced ? 1 : -1);
 
         if ($amount === 0) {
             return null;
@@ -325,7 +334,9 @@ class Invoicer
 
         return PendingCharge::on('central')->create([
             'tenant_id' => $this->tenant->id,
-            'description' => sprintf('Verrekening pakketwissel %s (%d van %d dagen)', $on->format('d-m-Y'), $left, $total_days),
+            'description' => $invoiced
+                ? sprintf('Verrekening pakketwissel %s (%d van %d dagen)', $on->format('d-m-Y'), $days, $total_days)
+                : sprintf('Verrekening pakketwissel %s (%d van %d dagen op het oude pakket)', $on->format('d-m-Y'), $days, $total_days),
             'kind' => 'proration',
             'amount_cents' => $amount,
         ]);

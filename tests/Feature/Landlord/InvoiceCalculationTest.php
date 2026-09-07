@@ -243,11 +243,12 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Het geval waar het misging: bij een wissel op de eerste dag van een nog
-     * niet gefactureerde periode stond het nieuwe pakket er vol op en kwam het
-     * verschil er nog een keer bij.
+     * Wisselen op de eerste dag van een periode die nog niet gefactureerd is:
+     * er is nog geen dag op het oude pakket voorbij, dus er valt niets te
+     * verrekenen en het nieuwe pakket staat er gewoon vol op. Hier kwam het
+     * verschil er eerst nog een tweede keer bij.
      */
-    public function test_a_switch_in_a_period_that_is_not_invoiced_yet_gets_no_settlement(): void
+    public function test_a_switch_on_the_first_day_of_an_uninvoiced_period_gets_no_settlement(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-02-04']);
         $on = CarbonImmutable::parse('2026-02-04');
@@ -560,5 +561,98 @@ class InvoiceCalculationTest extends TestCase
             'de dagen vanaf 10 maart staan al op de factuur van 1 maart',
         );
         $this->assertTrue($invoicer->subscriptionIsDue(CarbonImmutable::parse('2026-04-15')));
+    }
+
+    /**
+     * Wisselen halverwege een maand die nog niet gefactureerd is. De factuur
+     * die eraan komt rekent het nieuwe pakket over de hele maand, ook over de
+     * dagen dat de klant nog op het oude zat. Die dagen horen er als tegoed af.
+     *
+     * Precies het geval dat gemeld werd: begonnen op 1 september op starter,
+     * op 7 september naar team. Zes dagen starter, vierentwintig dagen team.
+     */
+    public function test_a_switch_halfway_an_uninvoiced_period_credits_the_days_on_the_old_package(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        $charge = (new Invoicer($tenant))->prorate(2750, 8750, $on);
+
+        $this->assertNotNull($charge, 'er hoort wel degelijk verrekend te worden');
+        $this->assertSame(-(int) round(6000 * 6 / 30), $charge->amount_cents);
+        $this->assertStringContainsString('6 van 30 dagen op het oude pakket', $charge->description);
+
+        $tenant->forceFill(['package_key' => 'team'])->save();
+        $invoice = (new Invoicer($tenant))->issue($on);
+
+        $this->assertSame(
+            (int) round(2750 * 6 / 30) + (int) round(8750 * 24 / 30),
+            $invoice->total_cents,
+            'zes dagen starter plus vierentwintig dagen team',
+        );
+        $this->assertSame(7550, $invoice->total_cents);
+    }
+
+    /**
+     * Dezelfde maand kost hetzelfde, of de factuur nu voor of na de wissel
+     * gemaakt is. Of dat toevallig zo uitkomt hoort de klant niets te schelen.
+     */
+    public function test_a_month_costs_the_same_whether_it_was_invoiced_before_or_after_the_switch(): void
+    {
+        $ideal = (int) round(2750 * 6 / 30) + (int) round(8750 * 24 / 30);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        $before = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        (new Invoicer($before))->issue(CarbonImmutable::parse('2026-09-01'));
+        $before->forceFill(['package_key' => 'team'])->save();
+        $settlement = (new Invoicer($before))->prorate(2750, 8750, $on);
+        $second = (new Invoicer($before))->issue($on);
+
+        $this->assertSame($ideal, 2750 + $second->total_cents);
+        $this->assertSame($settlement->amount_cents, $second->total_cents);
+
+        $after = $this->tenant(['subscription_started_on' => '2026-09-01']);
+        (new Invoicer($after))->prorate(2750, 8750, $on);
+        $after->forceFill(['package_key' => 'team'])->save();
+
+        $this->assertSame($ideal, (new Invoicer($after))->issue($on)->total_cents);
+    }
+
+    public function test_a_downgrade_halfway_an_uninvoiced_period_charges_the_days_on_the_old_package(): void
+    {
+        $tenant = $this->tenant(['package_key' => 'team', 'subscription_started_on' => '2026-09-01']);
+        $on = CarbonImmutable::parse('2026-09-07');
+
+        $charge = (new Invoicer($tenant))->prorate(8750, 2750, $on);
+
+        $this->assertSame((int) round(6000 * 6 / 30), $charge->amount_cents);
+
+        $tenant->forceFill(['package_key' => 'starter'])->save();
+
+        $this->assertSame(
+            (int) round(8750 * 6 / 30) + (int) round(2750 * 24 / 30),
+            (new Invoicer($tenant))->issue($on)->total_cents,
+        );
+    }
+
+    /**
+     * Twee wissels in dezelfde nog niet gefactureerde maand horen ook op te
+     * tellen tot wat de klant werkelijk gebruikt heeft.
+     */
+    public function test_two_switches_in_one_month_still_add_up(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        (new Invoicer($tenant))->prorate(2750, 8750, CarbonImmutable::parse('2026-09-07'));
+        $tenant->forceFill(['package_key' => 'team'])->save();
+
+        (new Invoicer($tenant))->prorate(8750, 16000, CarbonImmutable::parse('2026-09-15'));
+        $tenant->forceFill(['package_key' => 'business'])->save();
+
+        $expected = 16000
+            - (int) round(6000 * 6 / 30)
+            - (int) round(7250 * 14 / 30);
+
+        $this->assertSame($expected, (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-09-15'))->total_cents);
     }
 }

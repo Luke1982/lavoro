@@ -205,10 +205,18 @@ php artisan tenant:override <id> --price=14900   # vaste maandprijs in centen, -
 ```
 
 Alles kan ook in het paneel. Wissel je halverwege een periode van pakket, dan
-komt er een verrekening voor de resterende dagen op de volgende factuur -- maar
-alleen als die periode al gefactureerd is. Is dat nog niet gebeurd, dan zet de
-eerstvolgende factuur het nieuwe pakket al over de hele periode in rekening en
-zou een verrekening het verschil er een tweede keer bij zetten.
+betaalt de klant over die periode het oude pakket tot de dag van de wissel en
+het nieuwe daarna. Er komt een verrekeningsregel bij die dat rechttrekt, en die
+kan twee kanten op:
+
+- Was de periode al gefactureerd tegen de oude prijs, dan komt het verschil er
+  bij over de dagen die nog komen.
+- Was hij nog niet gefactureerd, dan rekent de eerstvolgende factuur het nieuwe
+  pakket over de hele periode -- ook over de dagen op het oude pakket. Die gaan
+  er als tegoed af.
+
+Een wissel op de eerste dag van een nog niet gefactureerde periode levert dus
+niets op: er is dan nog geen dag op het oude pakket voorbij.
 
 Gaat een klant naar een goedkoper pakket, dan staat er tegoed open. Is dat meer
 dan er op dat moment te factureren valt, dan komt er geen factuur: het tegoed
