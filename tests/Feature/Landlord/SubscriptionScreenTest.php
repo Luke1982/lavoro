@@ -4,6 +4,7 @@ namespace Tests\Feature\Landlord;
 
 use App\Models\Tenant;
 use App\Services\Invoicer;
+use Illuminate\Support\Carbon;
 use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
@@ -381,5 +382,47 @@ class SubscriptionScreenTest extends TestCase
         $charge = (new Invoicer($tenant))->pendingCharges()->first();
 
         $this->assertSame(-(int) round((8750 - 2750) * 6 / 30), (int) $charge->amount_cents);
+    }
+
+    public function test_switching_a_module_on_records_the_day_it_started(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['modules' => ['assistant']])->assertRedirect();
+
+        $this->assertSame(
+            [Carbon::now()->toDateString()],
+            array_values($tenant->fresh()->module_started_on),
+        );
+    }
+
+    public function test_a_module_that_stays_keeps_the_day_it_started(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_started_on' => ['assistant' => '2026-06-12'],
+        ]);
+
+        $this->save($tenant, ['modules' => ['assistant', 'quotes']])->assertRedirect();
+
+        $dates = $tenant->fresh()->module_started_on;
+
+        $this->assertSame('2026-06-12', $dates['assistant'], 'die stond er al');
+        $this->assertSame(Carbon::now()->toDateString(), $dates['quotes'], 'deze is nieuw');
+    }
+
+    /** Eruit en er weer in telt opnieuw: anders zou hij met terugwerkende kracht gratis zijn. */
+    public function test_switching_a_module_off_forgets_when_it_started(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_started_on' => ['assistant' => '2026-06-12'],
+        ]);
+
+        $this->save($tenant, ['modules' => []])->assertRedirect();
+
+        $this->assertSame([], $tenant->fresh()->module_started_on);
     }
 }

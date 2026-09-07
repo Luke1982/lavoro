@@ -883,4 +883,87 @@ class InvoiceCalculationTest extends TestCase
 
         $this->assertSame([], (new Invoicer($tenant))->unbilledPeriods(CarbonImmutable::parse('2026-09-05')));
     }
+
+    /**
+     * Wie halverwege de maand een module erbij neemt, betaalt de dagen die er
+     * nog van de maand over zijn. Niet de hele maand, en niet niets.
+     */
+    public function test_a_module_added_halfway_is_charged_for_the_days_that_are_left(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_started_on' => ['assistant' => '2026-09-07'],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-09-07'))['lines'];
+
+        $this->assertSame(
+            'AI-assistent 07-09-2026 t/m 30-09-2026 (24 van 30 dagen)',
+            $lines[1]['description'],
+        );
+        $this->assertSame((int) round(2250 * 24 / 30), $lines[1]['amount_cents']);
+    }
+
+    public function test_a_module_that_was_there_all_along_is_charged_in_full(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_started_on' => ['assistant' => '2026-09-01'],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-09-07'))['lines'];
+
+        $this->assertSame('AI-assistent', $lines[1]['description']);
+        $this->assertSame(2250, $lines[1]['amount_cents']);
+    }
+
+    public function test_a_module_from_an_earlier_month_is_charged_in_full(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_started_on' => ['assistant' => '2026-06-12'],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-09-07'))['lines'];
+
+        $this->assertSame(2250, $lines[1]['amount_cents']);
+    }
+
+    /** De normale prijs ernaast hoort over dezelfde dagen te gaan als het bedrag. */
+    public function test_the_normal_price_is_counted_over_the_same_days(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['assistant'],
+            'module_prices' => ['assistant' => 1500],
+            'module_started_on' => ['assistant' => '2026-09-07'],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-09-07'))['lines'];
+
+        $this->assertSame(
+            'AI-assistent 07-09-2026 t/m 30-09-2026 (24 van 30 dagen),'
+                . ' normaal € 18,00, speciale prijsafspraak',
+            $lines[1]['description'],
+        );
+        $this->assertSame(1200, $lines[1]['amount_cents']);
+    }
+
+    /** Een bundel telt vanaf de dag dat hij compleet werd. */
+    public function test_a_bundle_counts_from_the_day_it_was_completed(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'modules' => ['quotes', 'invoices'],
+            'module_started_on' => ['quotes' => '2026-08-01', 'invoices' => '2026-09-07'],
+        ]);
+
+        $lines = (new Invoicer($tenant))->preview(CarbonImmutable::parse('2026-09-07'))['lines'];
+
+        $this->assertStringContainsString('24 van 30 dagen', $lines[1]['description']);
+        $this->assertSame((int) round(4000 * 24 / 30), $lines[1]['amount_cents']);
+    }
 }

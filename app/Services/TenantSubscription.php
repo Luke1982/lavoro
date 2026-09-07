@@ -197,6 +197,7 @@ class TenantSubscription
                 'description' => $bundle->name,
                 'kind' => 'module',
                 'amount_cents' => (int) $bundle->price_cents,
+                'module_keys' => $bundle->module_keys,
             ];
 
             $keys = $keys->reject(fn ($key) => in_array($key, $bundle->module_keys, true));
@@ -210,6 +211,7 @@ class TenantSubscription
                 'kind' => 'module',
                 'amount_cents' => $own !== null ? (int) $own : (int) $module->price_cents,
                 'regular_cents' => $own !== null ? (int) $module->price_cents : null,
+                'module_keys' => [$module->key],
             ], fn ($value) => $value !== null);
         }
 

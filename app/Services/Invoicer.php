@@ -109,6 +109,29 @@ class Invoicer
                 : $line['description'];
 
             /**
+             * Wat pas halverwege deze periode is aangezet, wordt naar rato
+             * gerekend: wie op de zevende een module erbij neemt, betaalt de
+             * dagen die er nog van de maand over zijn en niet de hele maand.
+             */
+            if ($since = $this->activeSince($line, $start, $end)) {
+                [$days, $total_days] = $since;
+
+                $description .= sprintf(
+                    ' %s t/m %s (%d van %d dagen)',
+                    $start->max($this->startedOnFor($line))->format('d-m-Y'),
+                    $end->format('d-m-Y'),
+                    $days,
+                    $total_days,
+                );
+
+                $line['amount_cents'] = (int) round($line['amount_cents'] * $days / $total_days);
+
+                if (isset($line['regular_cents'])) {
+                    $line['regular_cents'] = (int) round($line['regular_cents'] * $days / $total_days);
+                }
+            }
+
+            /**
              * Staat er een afgesproken prijs op deze regel, dan hoort de gewone
              * prijs erbij: over een jaar of twee weet niemand meer waarom er
              * een ander bedrag stond, en de klant hoort te zien dat het een
@@ -127,6 +150,46 @@ class Invoicer
         }
 
         return $lines;
+    }
+
+    /**
+     * De dag waarop de regel is aangezet, of niets als dat niet bijgehouden
+     * wordt. Bij een bundel telt de laatste van de modules erin: pas toen was
+     * de bundel compleet en werd hij als bundel in rekening gebracht.
+     *
+     * @param  array<string, mixed>  $line
+     */
+    private function startedOnFor(array $line): ?CarbonImmutable
+    {
+        $dates = collect($line['module_keys'] ?? [])
+            ->map(fn (string $key) => ($this->tenant->module_started_on ?? [])[$key] ?? null)
+            ->filter()
+            ->map(fn (string $date) => CarbonImmutable::parse($date));
+
+        return $dates->count() === count($line['module_keys'] ?? [])
+            ? $dates->max()
+            : null;
+    }
+
+    /**
+     * Hoeveel van deze periode de regel meetelt, als hij er niet de hele
+     * periode was. Niets zodra hij er vanaf de eerste dag al stond.
+     *
+     * @param  array<string, mixed>  $line
+     * @return array{0: int, 1: int}|null
+     */
+    private function activeSince(array $line, CarbonImmutable $start, CarbonImmutable $end): ?array
+    {
+        $since = $this->startedOnFor($line);
+
+        if (!$since || !$since->greaterThan($start) || $since->greaterThan($end)) {
+            return null;
+        }
+
+        $total_days = (int) $start->diffInDays($end->addDay());
+        $days = (int) $since->startOfDay()->diffInDays($end->addDay());
+
+        return $days > 0 && $days < $total_days ? [$days, $total_days] : null;
     }
 
     /**

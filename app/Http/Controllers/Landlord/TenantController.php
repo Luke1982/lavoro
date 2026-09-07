@@ -243,7 +243,10 @@ class TenantController extends Controller
         $before_cents = $before->packageCents();
         $before_package = $before->packageName();
 
-        $tenant->update($request->tenantAttributes());
+        $attributes = $request->tenantAttributes();
+        $attributes['module_started_on'] = $this->moduleStartDates($tenant, $attributes['modules'] ?? []);
+
+        $tenant->update($attributes);
 
         $after = new TenantSubscription($tenant->refresh());
         $charge = (new Invoicer($tenant))->prorate(
@@ -260,6 +263,28 @@ class TenantController extends Controller
                     . ' staat klaar voor de volgende factuur.'
                 : ''),
         );
+    }
+
+    /**
+     * Per module de dag waarop hij aanging.
+     *
+     * Modules die blijven staan houden hun datum; die eruit gaat verliest hem,
+     * zodat opnieuw aanzetten ook opnieuw telt. Zonder deze datums valt niet
+     * uit te rekenen hoeveel van de lopende maand iemand een module gehad
+     * heeft, en betaalt hij een hele maand voor iets dat hij op de zevende
+     * erbij nam.
+     *
+     * @param  array<int, string>  $modules
+     * @return array<string, string>
+     */
+    private function moduleStartDates(Tenant $tenant, array $modules): array
+    {
+        $known = $tenant->module_started_on ?? [];
+        $today = now()->toDateString();
+
+        return collect($modules)
+            ->mapWithKeys(fn (string $key) => [$key => $known[$key] ?? $today])
+            ->all();
     }
 
     /**

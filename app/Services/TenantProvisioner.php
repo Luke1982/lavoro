@@ -99,6 +99,9 @@ class TenantProvisioner
                 'name' => $name,
                 'package_key' => $package,
                 'modules' => array_values(array_filter($modules)),
+                /** Vanaf vandaag, net als het abonnement; anders zou de eerste factuur ze naar rato rekenen. */
+                'module_started_on' => collect($modules)->filter()
+                    ->mapWithKeys(fn (string $key) => [$key => now()->toDateString()])->all(),
                 'tenancy_db_name' => $database,
                 /**
                  * Het abonnement loopt vanaf vandaag. Zonder ingangsdatum valt

@@ -220,12 +220,15 @@ Alles kan ook in het paneel.
 **Alleen een pakketwijziging wordt verrekend.** Wissel je halverwege een periode
 van pakket, of spreek je een andere prijs voor dat pakket af, dan betaalt de
 klant over die periode het oude tot de dag van de wissel en het nieuwe daarna.
-Wat er los bijkomt -- een module, een plek, meer opslag -- gaat gewoon mee met
-de eerstvolgende factuur en levert geen verrekening op. Dat is een uitbreiding
-en geen wissel, en een regel die uitrekent hoeveel dagen iemand een module al
-had, maakt de factuur onleesbaar voor een paar euro. De keerzijde: neemt iemand
-er halverwege een al gefactureerde maand iets bij, dan betaalt hij daar die
-maand nog niet voor.
+Wat er los bijkomt levert geen aparte verrekeningsregel op. Een module die
+halverwege de maand wordt aangezet, wordt op zijn eigen regel naar rato
+gerekend: *AI-assistent 07-09-2026 t/m 30-09-2026 (24 van 30 dagen)*. Staat er
+een prijsafspraak op, dan gaat de normale prijs ernaast over dezelfde dagen, zodat
+de twee bedragen te vergelijken zijn. Een bundel telt vanaf de dag dat hij
+compleet werd.
+
+Extra plekken en opslag gaan wel voor de hele periode mee; die horen bij de
+omvang van het abonnement en niet bij een los product.
 
 De verrekening van een pakketwijziging kan twee kanten op:
 
