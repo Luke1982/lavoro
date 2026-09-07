@@ -932,8 +932,12 @@ class InvoiceCalculationTest extends TestCase
         $this->assertSame(2250, $lines[1]['amount_cents']);
     }
 
-    /** De normale prijs ernaast hoort over dezelfde dagen te gaan als het bedrag. */
-    public function test_the_normal_price_is_counted_over_the_same_days(): void
+    /**
+     * De normale prijs is die uit de catalogus, ook bij een deel van de maand.
+     * Naar rato meerekenen gaf een bedrag dat nergens bestaat: 'normaal
+     * € 18,00' voor een module die gewoon € 22,50 kost.
+     */
+    public function test_the_normal_price_stays_the_catalogue_price(): void
     {
         $tenant = $this->tenant([
             'subscription_started_on' => '2026-09-01',
@@ -946,7 +950,7 @@ class InvoiceCalculationTest extends TestCase
 
         $this->assertSame(
             'AI-assistent 07-09-2026 t/m 30-09-2026 (24 van 30 dagen),'
-                . ' normaal € 18,00, speciale prijsafspraak',
+                . ' normaal € 22,50, speciale prijsafspraak',
             $lines[1]['description'],
         );
         $this->assertSame(1200, $lines[1]['amount_cents']);

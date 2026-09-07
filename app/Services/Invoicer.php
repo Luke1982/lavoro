@@ -139,10 +139,6 @@ class Invoicer
 
             if ($window) {
                 $line['amount_cents'] = (int) round($line['amount_cents'] * $window['days'] / $window['total']);
-
-                if (isset($line['regular_cents'])) {
-                    $line['regular_cents'] = (int) round($line['regular_cents'] * $window['days'] / $window['total']);
-                }
             }
 
             /**
@@ -150,6 +146,12 @@ class Invoicer
              * prijs erbij: over een jaar of twee weet niemand meer waarom er
              * een ander bedrag stond, en de klant hoort te zien dat het een
              * afspraak was en geen fout.
+             *
+             * Dat is de prijs uit de catalogus, ook als er maar een deel van de
+             * periode gerekend wordt. Naar rato meerekenen leverde een bedrag
+             * op dat nergens bestaat -- 'normaal € 18,00' voor een module die
+             * gewoon € 22,50 kost -- en hoeveel dagen het betreft staat al
+             * voor op de regel.
              */
             if (isset($line['regular_cents'])) {
                 $description .= ', normaal € ' . Money::human($line['regular_cents'] * $months)
