@@ -237,6 +237,13 @@ veel betaalde als tegoed terug op de eerstvolgende factuur. Wordt de opzegging
 weer ingetrokken, dan vervalt dat tegoed. Na de laatste dag valt er niets meer
 te factureren.
 
+Blijft er tegoed over waar niets meer tegenover staat -- en bij een vertrokken
+klant is dat de regel, want er komt geen volgende factuur meer -- dan levert de
+knop een **creditfactuur** op: hetzelfde nummer uit dezelfde reeks, met een
+negatief bedrag. De pdf en de mail heten dan ook creditfactuur. Incasseren kan
+er niet mee: terugstorten gaat met de hand, en het incassobestand slaat
+creditfacturen over.
+
 **Van maand naar jaar of andersom** begint de nieuwe termijn bij de
 eerstvolgende periode die nog niet betaald is, en nooit met terugwerkende
 kracht. Wie in september zijn maand al betaald heeft en overstapt op jaar,

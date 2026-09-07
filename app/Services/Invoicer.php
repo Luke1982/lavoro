@@ -290,16 +290,17 @@ class Invoicer
      */
     public function isDue(?CarbonImmutable $on = null): bool
     {
-        if (!$this->subscriptionIsDue($on) && $this->pendingCharges()->isEmpty()) {
-            return false;
-        }
+        return $this->subscriptionIsDue($on) || $this->pendingCharges()->isNotEmpty();
+    }
 
-        /**
-         * Staat er meer tegoed open dan er te factureren valt -- na een
-         * pakketverlaging bijvoorbeeld -- dan valt er nu niets te sturen. Het
-         * tegoed blijft staan en gaat van de volgende factuur af.
-         */
-        return $this->preview($on)['total_cents'] >= 0;
+    /**
+     * Levert dit een creditfactuur op? Dat is er een waar geld terug gaat in
+     * plaats van heen: bijvoorbeeld na een opzegging halverwege een maand die
+     * al betaald was.
+     */
+    public function isCreditNote(?CarbonImmutable $on = null): bool
+    {
+        return $this->preview($on)['total_cents'] < 0;
     }
 
     /** @return Collection<int, PendingCharge> */
@@ -428,17 +429,6 @@ class Invoicer
          */
         if ($preview['lines'] === []) {
             throw new Refusal('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
-        }
-
-        /**
-         * Een factuur is nooit negatief -- de bedragen staan als positief getal
-         * in de database en een incasso van een negatief bedrag bestaat niet.
-         * Het tegoed blijft dus staan tot er genoeg tegenover staat.
-         */
-        if ($preview['total_cents'] < 0) {
-            throw new Refusal('Er staat meer tegoed open voor ' . $this->tenant->name
-                . ' dan er nu te factureren valt. Dat tegoed blijft staan en gaat van de'
-                . ' volgende factuur af.');
         }
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {

@@ -31,6 +31,7 @@ class InvoiceController extends Controller
                 ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),
             'preview' => $invoicer->preview(),
             'is_due' => $invoicer->isDue(),
+            'is_credit' => $invoicer->isCreditNote(),
             'next_period_starts_on' => $end->addDay(),
             /** Maanden die zijn overgeslagen; die komen uit zichzelf niet meer terug. */
             'unbilled' => collect($invoicer->unbilledPeriods())

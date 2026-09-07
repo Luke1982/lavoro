@@ -431,11 +431,12 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Het tegoed van een klant mag niet verdampen. Zonder de grens hieronder
-     * werd de factuur nul euro terwijl de tegoedpost wel als verwerkt werd
-     * afgestempeld -- of liep de opslag stuk op een negatief bedrag.
+     * Meer tegoed dan er te factureren valt, wordt een creditfactuur: geld
+     * terug in plaats van heen. Eerst bleef zo'n tegoed staan tot er een
+     * volgende factuur kwam -- maar voor een klant die net opgezegd heeft komt
+     * die nooit, en dan kreeg hij zijn geld nooit terug.
      */
-    public function test_a_credit_bigger_than_the_bill_keeps_standing(): void
+    public function test_more_credit_than_there_is_to_bill_becomes_a_credit_note(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
 
@@ -452,17 +453,45 @@ class InvoiceCalculationTest extends TestCase
         $invoicer = new Invoicer($tenant);
 
         $this->assertSame(-5000, $invoicer->preview($on)['total_cents']);
-        $this->assertFalse($invoicer->isDue($on));
+        $this->assertTrue($invoicer->isDue($on));
+        $this->assertTrue($invoicer->isCreditNote($on));
 
-        try {
-            $invoicer->issue($on);
-            $this->fail('een negatieve factuur hoort geweigerd te worden');
-        } catch (Refusal $refusal) {
-            $this->assertStringContainsString('tegoed', $refusal->getMessage());
-        }
+        $credit = $invoicer->issue($on);
 
-        $this->assertCount(1, $invoicer->pendingCharges());
-        $this->assertSame(1, Invoice::on('central')->where('tenant_id', $tenant->id)->count());
+        $this->assertSame(-5000, $credit->total_cents);
+        $this->assertSame(-(int) round(5000 * 1.21), $credit->gross_cents);
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges(), 'het tegoed is verwerkt');
+    }
+
+    /** Een creditfactuur valt niet te incasseren: terugstorten gaat met de hand. */
+    public function test_a_credit_note_is_left_out_of_the_direct_debit_batch(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-03-01',
+            'payment_method' => 'direct_debit',
+            'iban' => 'NL91ABNA0417164300',
+            'mandate_reference' => 'MND-1',
+            'mandate_signed_on' => '2026-01-01',
+        ]);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id,
+            'description' => 'Verrekening terug',
+            'kind' => 'proration',
+            'amount_cents' => -5000,
+        ]);
+
+        $credit = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-16'));
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.collections'))
+            ->assertInertia(function ($page) use ($credit) {
+                $numbers = collect($page->toArray()['props']['invoices'])->pluck('number');
+
+                $this->assertFalse($numbers->contains($credit->number), 'creditfactuur hoort er niet bij');
+            });
     }
 
     public function test_a_standing_credit_comes_off_the_next_invoice(): void

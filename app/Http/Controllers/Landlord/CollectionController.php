@@ -67,6 +67,8 @@ class CollectionController extends Controller
         return Invoice::on('central')
             ->with('tenant')
             ->whereNull('collected_at')
+            /** Een creditfactuur valt niet te incasseren; geld terugstorten gaat met de hand. */
+            ->where('gross_cents', '>', 0)
             ->whereHas('tenant', fn ($query) => $query
                 ->where('payment_method', 'direct_debit')
                 ->whereNotNull('iban')

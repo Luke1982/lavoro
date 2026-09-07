@@ -43,19 +43,19 @@
             </tbody>
         </table>
 
+        <p v-if="is_credit" class="mt-4 text-sm text-slate-500">
+            Dit wordt een creditfactuur: er gaat geld terug in plaats van heen. Incasseren kan er
+            niet mee &mdash; terugstorten gaat met de hand.
+        </p>
+
         <button v-if="is_due" type="button" :disabled="issuing" @click="issue"
-            class="panel-button mt-4">Factuur aanmaken</button>
+            class="panel-button mt-4">{{ is_credit ? 'Creditfactuur aanmaken' : 'Factuur aanmaken' }}</button>
 
         <p v-else-if="!tenant.subscription_started_on"
             class="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
             Deze klant heeft geen ingangsdatum, dus er wordt nooit iets gefactureerd &mdash; ook niet
             na een pakketwissel. Vul de ingangsdatum in bij
             <Link :href="`/beheer/${tenant.id}`" class="underline">het abonnement</Link>.
-        </p>
-
-        <p v-else-if="preview.total_cents < 0" class="mt-4 text-sm text-slate-500">
-            Er staat meer tegoed open dan er nu te factureren valt. Er gaat dus niets de deur uit;
-            het tegoed blijft staan en gaat van de volgende factuur af.
         </p>
 
         <p v-else class="mt-4 text-sm text-slate-500">
@@ -111,6 +111,7 @@ const props = defineProps({
     invoices: { type: Array, required: true },
     preview: { type: Object, required: true },
     is_due: { type: Boolean, required: true },
+    is_credit: { type: Boolean, default: false },
     next_period_starts_on: { type: String, required: true },
     unbilled: { type: Array, default: () => [] },
 })

@@ -79,7 +79,7 @@
 <table class="head"><tr>
     <td>
         <div class="title-bar">
-            <h1>Factuur</h1>
+            <h1>{{ $invoice->gross_cents < 0 ? 'Creditfactuur' : 'Factuur' }}</h1>
             <p class="number">{{ $invoice->number }}</p>
         </div>
     </td>
