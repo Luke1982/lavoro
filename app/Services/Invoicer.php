@@ -29,7 +29,26 @@ class Invoicer
      */
     private function startedOn(): CarbonImmutable
     {
-        return CarbonImmutable::parse($this->tenant->subscription_started_on ?? now()->startOfMonth());
+        return CarbonImmutable::parse(
+            $this->tenant->billing_period_started_on
+                ?? $this->tenant->subscription_started_on
+                ?? now()->startOfMonth()
+        );
+    }
+
+    /**
+     * Vanaf welke dag een nieuwe betaaltermijn moet gaan lopen.
+     *
+     * De eerste periode die nog niet gefactureerd is. Is de lopende al betaald,
+     * dan begint de nieuwe termijn daarna: anders zou een klant die in maart
+     * van maand naar jaar gaat, een jaar in rekening krijgen dat begint in een
+     * maand waarvoor hij al betaald heeft.
+     */
+    public function termStartsOn(?CarbonImmutable $on = null): CarbonImmutable
+    {
+        [$start, $end] = $this->periodFor($on ?? CarbonImmutable::now());
+
+        return $this->subscriptionWasInvoicedFor($start) ? $end->addDay() : $start;
     }
 
     /** Een maand of een jaar, in maanden. Overal hetzelfde getal. */
@@ -100,34 +119,29 @@ class Invoicer
         [$start, $end] = $this->periodFor($on);
 
         $months = $this->monthsPerPeriod();
-        $period = $start->format('d-m-Y') . ' t/m ' . $end->format('d-m-Y');
         $lines = [];
 
         foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
-            $description = $index === 0
-                ? $line['description'] . ' ' . $period . ($months > 1 ? ' (12 maanden)' : '')
-                : $line['description'];
-
             /**
-             * Wat pas halverwege deze periode is aangezet, wordt naar rato
-             * gerekend: wie op de zevende een module erbij neemt, betaalt de
-             * dagen die er nog van de maand over zijn en niet de hele maand.
+             * Wat niet de hele periode meeliep, wordt naar rato gerekend: wie
+             * op de zevende een module erbij neemt betaalt de dagen die er nog
+             * van de maand over zijn, en wie halverwege opzegt betaalt tot en
+             * met de dag dat het stopt.
              */
-            if ($since = $this->activeSince($line, $start, $end)) {
-                [$days, $total_days] = $since;
+            $window = $this->activeWindow($line, $start, $end);
+            $from = ($window['from'] ?? $start)->format('d-m-Y');
+            $to = ($window['to'] ?? $end)->format('d-m-Y');
+            $part = $window ? sprintf(' (%d van %d dagen)', $window['days'], $window['total']) : '';
 
-                $description .= sprintf(
-                    ' %s t/m %s (%d van %d dagen)',
-                    $start->max($this->startedOnFor($line))->format('d-m-Y'),
-                    $end->format('d-m-Y'),
-                    $days,
-                    $total_days,
-                );
+            $description = $index === 0
+                ? $line['description'] . ' ' . $from . ' t/m ' . $to . ($months > 1 ? ' (12 maanden)' : '') . $part
+                : $line['description'] . ($window ? ' ' . $from . ' t/m ' . $to . $part : '');
 
-                $line['amount_cents'] = (int) round($line['amount_cents'] * $days / $total_days);
+            if ($window) {
+                $line['amount_cents'] = (int) round($line['amount_cents'] * $window['days'] / $window['total']);
 
                 if (isset($line['regular_cents'])) {
-                    $line['regular_cents'] = (int) round($line['regular_cents'] * $days / $total_days);
+                    $line['regular_cents'] = (int) round($line['regular_cents'] * $window['days'] / $window['total']);
                 }
             }
 
@@ -171,25 +185,34 @@ class Invoicer
             : null;
     }
 
+    /** De laatste dag van het abonnement, als er is opgezegd. */
+    private function endsOn(): ?CarbonImmutable
+    {
+        return $this->tenant->subscription_ends_on
+            ? CarbonImmutable::parse($this->tenant->subscription_ends_on)
+            : null;
+    }
+
     /**
-     * Hoeveel van deze periode de regel meetelt, als hij er niet de hele
-     * periode was. Niets zodra hij er vanaf de eerste dag al stond.
+     * Het stuk van deze periode waarvoor de regel meetelt, als dat niet de
+     * hele periode is: vanaf de dag dat hij aanging tot en met de dag dat het
+     * abonnement stopt. Niets zodra hij de hele periode meetelt.
      *
      * @param  array<string, mixed>  $line
-     * @return array{0: int, 1: int}|null
+     * @return array{from: CarbonImmutable, to: CarbonImmutable, days: int, total: int}|null
      */
-    private function activeSince(array $line, CarbonImmutable $start, CarbonImmutable $end): ?array
+    private function activeWindow(array $line, CarbonImmutable $start, CarbonImmutable $end): ?array
     {
-        $since = $this->startedOnFor($line);
+        $started = $this->startedOnFor($line);
+        $from = $started && $started->greaterThan($start) ? $started : $start;
 
-        if (!$since || !$since->greaterThan($start) || $since->greaterThan($end)) {
-            return null;
-        }
+        $ends = $this->endsOn();
+        $to = $ends && $ends->lessThan($end) ? $ends : $end;
 
-        $total_days = (int) $start->diffInDays($end->addDay());
-        $days = (int) $since->startOfDay()->diffInDays($end->addDay());
+        $total = (int) $start->diffInDays($end->addDay());
+        $days = (int) max(0, $from->startOfDay()->diffInDays($to->addDay()));
 
-        return $days > 0 && $days < $total_days ? [$days, $total_days] : null;
+        return $days < $total ? compact('from', 'to', 'days', 'total') : null;
     }
 
     /**
@@ -225,6 +248,11 @@ class Invoicer
         [$start] = $this->periodFor($on);
 
         if ($start->startOfDay()->greaterThan($on->startOfDay())) {
+            return false;
+        }
+
+        /** Opgezegd voordat deze periode begon: er valt niets meer te sturen. */
+        if ($this->endsOn()?->lessThan($start)) {
             return false;
         }
 
@@ -298,7 +326,13 @@ class Invoicer
         $on = $on ?? CarbonImmutable::now();
         [$current] = $this->periodFor($on);
 
-        $start = $this->startedOn();
+        /**
+         * Geteld vanaf de ingangsdatum en niet vanaf het anker van de huidige
+         * termijn: gaat iemand van maand naar jaar, dan verschuift dat anker
+         * naar vandaag en zouden de maanden daarvoor uit beeld raken -- juist
+         * de maanden waar het hier om gaat.
+         */
+        $start = CarbonImmutable::parse($this->tenant->subscription_started_on);
         $step = $this->monthsPerPeriod();
         $missed = [];
 
@@ -306,7 +340,7 @@ class Invoicer
         for ($index = 0; $index < 120; $index++) {
             $from = $start->addMonthsNoOverflow($index * $step);
 
-            if (!$from->lessThan($current)) {
+            if (!$from->lessThan($current) || $this->endsOn()?->lessThan($from)) {
                 break;
             }
 
@@ -453,6 +487,66 @@ class Invoicer
             ->value('number'));
 
         return $prefix . ($last + 1);
+    }
+
+    /**
+     * Verrekent een opzegging halverwege een periode.
+     *
+     * Alleen als die periode al gefactureerd is: dan zijn de dagen na de
+     * laatste dag wel betaald en niet gebruikt, en die gaan er als tegoed af.
+     * Is er nog niet gefactureerd, dan rekent de eerstvolgende factuur al tot
+     * en met de laatste dag en valt er niets te verrekenen.
+     */
+    public function settleCancellation(CarbonImmutable $ends_on): ?PendingCharge
+    {
+        [$start, $end] = $this->periodFor($ends_on);
+
+        if (!$this->subscriptionWasInvoicedFor($start)) {
+            return null;
+        }
+
+        $total_days = (int) $start->diffInDays($end->addDay());
+        $unused = (int) max(0, $ends_on->addDay()->startOfDay()->diffInDays($end->addDay()));
+
+        if (!$total_days || !$unused) {
+            return null;
+        }
+
+        $paid = (new TenantSubscription($this->tenant))->monthlyTotalCents() * $this->monthsPerPeriod();
+        $amount = -(int) round($paid * $unused / $total_days);
+
+        if ($amount === 0) {
+            return null;
+        }
+
+        $this->forgetCancellationSettlement();
+
+        return PendingCharge::on('central')->create([
+            'tenant_id' => $this->tenant->id,
+            'description' => sprintf(
+                'Verrekening opzegging per %s (%d van %d dagen niet gebruikt)',
+                $ends_on->format('d-m-Y'),
+                $unused,
+                $total_days,
+            ),
+            'kind' => 'proration',
+            'amount_cents' => $amount,
+            'data' => ['cancellation' => true],
+        ]);
+    }
+
+    /**
+     * Haalt het tegoed van een opzegging weg, voor als die wordt ingetrokken.
+     * Zonder dit blijft de klant het geld terugkrijgen voor dagen die hij toch
+     * gewoon gebruikt.
+     */
+    public function forgetCancellationSettlement(): void
+    {
+        PendingCharge::on('central')
+            ->where('tenant_id', $this->tenant->id)
+            ->whereNull('invoice_id')
+            ->where('data->cancellation', true)
+            ->delete();
     }
 
     /**

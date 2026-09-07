@@ -230,6 +230,20 @@ compleet werd.
 Extra plekken en opslag gaan wel voor de hele periode mee; die horen bij de
 omvang van het abonnement en niet bij een los product.
 
+**Opzeggen** gaat met de datum *Opgezegd per*: de laatste dag waarop het
+abonnement loopt. Er wordt tot en met die dag gerekend, dus de laatste maand
+staat naar rato op de factuur. Was die maand al gefactureerd, dan komt het te
+veel betaalde als tegoed terug op de eerstvolgende factuur. Wordt de opzegging
+weer ingetrokken, dan vervalt dat tegoed. Na de laatste dag valt er niets meer
+te factureren.
+
+**Van maand naar jaar of andersom** begint de nieuwe termijn bij de
+eerstvolgende periode die nog niet betaald is, en nooit met terugwerkende
+kracht. Wie in september zijn maand al betaald heeft en overstapt op jaar,
+krijgt zijn jaarfactuur per 1 oktober; wie een jaar vooruitbetaald heeft en
+naar maand gaat, krijgt zijn eerste maandfactuur zodra dat jaar op is. Dat
+anker staat los van de ingangsdatum op het scherm, die blijft wat hij was.
+
 De verrekening van een pakketwijziging kan twee kanten op:
 
 - Was de periode al gefactureerd tegen de oude prijs, dan komt het verschil er

@@ -4,6 +4,7 @@ namespace Tests\Feature\Landlord;
 
 use App\Models\Tenant;
 use App\Services\Invoicer;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
@@ -26,22 +27,6 @@ class SubscriptionScreenTest extends TestCase
         return $this->tenantRow($attributes);
     }
 
-    private function form(Tenant $tenant, array $overrides = []): array
-    {
-        return [
-            'package_key' => $tenant->package_key,
-            'billing_period' => $tenant->billing_period,
-            'subscription_started_on' => $tenant->subscription_started_on,
-            'modules' => [],
-            'payment_method' => 'transfer',
-            'extra_field_seats' => 0,
-            'extra_office_seats' => 0,
-            'storage_limit_gb' => 50,
-            'discount_type' => 'none',
-            ...$overrides,
-        ];
-    }
-
     /**
      * Het formulier zoals het scherm het opstuurt. Dit loopt gelijk met
      * SubscriptionForm.vue: centen worden euro's in het veld, en of er korting
@@ -56,6 +41,7 @@ class SubscriptionScreenTest extends TestCase
 
         return [
             'subscription_started_on' => $tenant->subscription_started_on,
+            'subscription_ends_on' => $tenant->subscription_ends_on ?? '',
             'billing_period' => $tenant->billing_period === 'yearly' ? 'yearly' : 'monthly',
             'package_key' => $tenant->package_key ?? '',
             'extra_field_seats' => (int) $tenant->extra_field_seats,
@@ -112,6 +98,7 @@ class SubscriptionScreenTest extends TestCase
             'account_holder' => 'Snelweg BV',
             'mandate_reference' => 'LVR-9',
             'mandate_signed_on' => '2026-02-02',
+            'subscription_ends_on' => '2026-12-31',
         ]);
     }
 
@@ -146,7 +133,7 @@ class SubscriptionScreenTest extends TestCase
             ->viewData('page')['props']['tenant']['subscription_started_on'];
 
         $this->actingAs($this->landlord(), 'landlord')
-            ->put(route('landlord.update', $tenant->id), $this->form($tenant, [
+            ->put(route('landlord.update', $tenant->id), $this->screenPayload($tenant, [
                 'subscription_started_on' => $shown,
             ]))
             ->assertRedirect();
@@ -159,7 +146,7 @@ class SubscriptionScreenTest extends TestCase
         $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
 
         $this->actingAs($this->landlord(), 'landlord')
-            ->put(route('landlord.update', $tenant->id), $this->form($tenant, [
+            ->put(route('landlord.update', $tenant->id), $this->screenPayload($tenant, [
                 'subscription_started_on' => '2026-05-09',
             ]))
             ->assertRedirect();
@@ -199,6 +186,7 @@ class SubscriptionScreenTest extends TestCase
         $columns = [
             'package_key', 'billing_period', 'subscription_started_on', 'extra_field_seats',
             'extra_office_seats', 'storage_limit_gb', 'modules', 'module_prices', 'ai_allowance_micros',
+            'subscription_ends_on',
             'price_override_cents', 'discount_cents', 'discount_percent', 'invoice_address',
             'invoice_email', 'invoice_postcode', 'invoice_city', 'vat_number', 'coc_number',
             'payment_method', 'iban', 'account_holder', 'mandate_reference', 'mandate_signed_on',
@@ -424,5 +412,164 @@ class SubscriptionScreenTest extends TestCase
         $this->save($tenant, ['modules' => []])->assertRedirect();
 
         $this->assertSame([], $tenant->fresh()->module_started_on);
+    }
+
+    public function test_a_cancellation_is_stored_and_shown_again(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['subscription_ends_on' => '2026-09-20'])->assertRedirect();
+
+        $this->assertSame('2026-09-20', $tenant->fresh()->subscription_ends_on);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.edit', $tenant->id))
+            ->assertInertia(fn ($page) => $page->where('tenant.subscription_ends_on', '2026-09-20'));
+    }
+
+    public function test_a_cancellation_cannot_end_before_it_started(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['subscription_ends_on' => '2026-08-01'])
+            ->assertSessionHasErrors('subscription_ends_on');
+    }
+
+    /**
+     * Is de maand al gefactureerd, dan zijn de dagen na de laatste dag wel
+     * betaald en niet gebruikt. Die horen terug.
+     */
+    public function test_cancelling_an_invoiced_month_gives_the_unused_days_back(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-09-01'));
+
+        $this->save($tenant, ['subscription_ends_on' => '2026-09-20'])->assertRedirect();
+
+        $charge = (new Invoicer($tenant))->pendingCharges()->first();
+
+        $this->assertSame(-(int) round(2750 * 10 / 30), (int) $charge->amount_cents);
+        $this->assertStringContainsString('opzegging per 20-09-2026', $charge->description);
+    }
+
+    public function test_withdrawing_a_cancellation_takes_the_credit_back(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-09-01'));
+
+        $this->save($tenant, ['subscription_ends_on' => '2026-09-20'])->assertRedirect();
+        $this->assertCount(1, (new Invoicer($tenant))->pendingCharges());
+
+        $this->save($tenant->fresh(), ['subscription_ends_on' => ''])->assertRedirect();
+
+        $this->assertNull($tenant->fresh()->subscription_ends_on);
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    /** Nog niet gefactureerd: de factuur rekent al tot en met de laatste dag. */
+    public function test_cancelling_a_month_that_was_not_invoiced_yet_settles_nothing(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['subscription_ends_on' => '2026-09-20'])->assertRedirect();
+
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+
+        $this->assertSame(
+            (int) round(2750 * 20 / 30),
+            (new Invoicer($tenant->fresh()))->issue(CarbonImmutable::parse('2026-09-07'))->total_cents,
+        );
+    }
+
+    public function test_nothing_is_billed_after_the_subscription_ended(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-01',
+            'subscription_ends_on' => '2026-09-20',
+        ]);
+
+        $invoicer = new Invoicer($tenant);
+
+        $this->assertTrue($invoicer->isDue(CarbonImmutable::parse('2026-09-07')));
+        $this->assertFalse($invoicer->isDue(CarbonImmutable::parse('2026-10-07')));
+
+        /**
+         * September zelf staat er nog wel bij: die maand is nooit gefactureerd
+         * en loopt tot en met de twintigste. Wat na de opzegging komt niet.
+         */
+        $missed = $invoicer->unbilledPeriods(CarbonImmutable::parse('2026-12-01'));
+
+        $this->assertCount(1, $missed);
+        $this->assertSame('01-09-2026', $missed[0]['start']->format('d-m-Y'));
+    }
+
+    /**
+     * Van maand naar jaar gaf de klant de rest van het jaar gratis: de
+     * jaarperiode begon op de ingangsdatum, en die maand was al betaald, dus
+     * gold het hele jaar als gefactureerd.
+     *
+     * De nieuwe termijn begint bij de eerstvolgende periode die nog niet
+     * betaald is, en nooit in het verleden.
+     */
+    public function test_switching_to_yearly_starts_the_year_after_the_month_that_was_paid(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-09-01'));
+
+        $this->save($tenant, ['billing_period' => 'yearly'])->assertRedirect();
+
+        $this->assertSame('2026-10-01', $tenant->fresh()->billing_period_started_on);
+
+        $invoicer = new Invoicer($tenant->fresh());
+        [$start, $end] = $invoicer->periodFor(CarbonImmutable::parse('2026-10-05'));
+
+        $this->assertSame('01-10-2026', $start->format('d-m-Y'));
+        $this->assertSame('30-09-2027', $end->format('d-m-Y'));
+        $this->assertTrue($invoicer->isDue(CarbonImmutable::parse('2026-10-05')), 'het jaar moet gefactureerd worden');
+    }
+
+    /** Een termijnwissel mag de maanden ervoor niet uit het zicht duwen. */
+    public function test_switching_the_term_keeps_earlier_unbilled_months_visible(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-06-01']);
+
+        $this->save($tenant, ['billing_period' => 'yearly'])->assertRedirect();
+
+        $missed = (new Invoicer($tenant->fresh()))->unbilledPeriods(CarbonImmutable::parse('2026-09-05'));
+
+        $this->assertNotEmpty($missed, 'juni tot en met augustus is nooit gefactureerd');
+        $this->assertSame('01-06-2026', $missed[0]['start']->format('d-m-Y'));
+    }
+
+    /**
+     * Een klant die het lopende jaar al vooruit betaald heeft, hoort niet
+     * meteen maandfacturen te krijgen. Die beginnen zodra het jaar op is.
+     */
+    public function test_switching_to_monthly_waits_until_the_paid_year_is_over(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-01-01',
+            'billing_period' => 'yearly',
+        ]);
+
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-01-01'));
+
+        $this->save($tenant, ['billing_period' => 'monthly'])->assertRedirect();
+
+        $this->assertSame('2027-01-01', $tenant->fresh()->billing_period_started_on);
+        $this->assertFalse((new Invoicer($tenant->fresh()))->isDue(CarbonImmutable::parse('2026-07-01')));
+        $this->assertTrue((new Invoicer($tenant->fresh()))->isDue(CarbonImmutable::parse('2027-01-05')));
+    }
+
+    public function test_leaving_the_term_alone_leaves_the_anchor_alone(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-01-01']);
+
+        $this->save($tenant, ['package_key' => 'team'])->assertRedirect();
+
+        $this->assertNull($tenant->fresh()->billing_period_started_on);
     }
 }

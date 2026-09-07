@@ -32,7 +32,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'id', 'name', 'package_key',
             'subscription_started_on',
+            'subscription_ends_on',
             'billing_period',
+            'billing_period_started_on',
             'payment_method',
             'iban',
             'bic',

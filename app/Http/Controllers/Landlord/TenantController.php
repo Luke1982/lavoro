@@ -23,6 +23,7 @@ use App\Services\TenantSubscription;
 use App\Services\TenantSuperAdmins;
 use App\Support\Money;
 use App\Support\Tenancy;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -157,6 +158,7 @@ class TenantController extends Controller
                  * voor die klant niets meer te factureren.
                  */
                 'subscription_started_on' => $tenant->subscription_started_on,
+                'subscription_ends_on' => $tenant->subscription_ends_on,
                 'billing_period' => $tenant->billing_period,
                 'package_key' => $tenant->package_key,
                 'extra_field_seats' => (int) $tenant->extra_field_seats,
@@ -242,9 +244,19 @@ class TenantController extends Controller
         $before = new TenantSubscription($tenant);
         $before_cents = $before->packageCents();
         $before_package = $before->packageName();
+        $ended_on = $tenant->subscription_ends_on;
 
         $attributes = $request->tenantAttributes();
         $attributes['module_started_on'] = $this->moduleStartDates($tenant, $attributes['modules'] ?? []);
+
+        /**
+         * Gaat de betaaltermijn om, dan begint hij bij de eerstvolgende periode
+         * die nog niet betaald is -- gerekend volgens de oude termijn, dus
+         * voordat de wijziging is opgeslagen.
+         */
+        if (($attributes['billing_period'] ?? null) !== $tenant->billing_period) {
+            $attributes['billing_period_started_on'] = (new Invoicer($tenant))->termStartsOn()->toDateString();
+        }
 
         $tenant->update($attributes);
 
@@ -256,6 +268,8 @@ class TenantController extends Controller
             new_package: $after->packageName(),
         );
 
+        $this->settleCancellation($tenant, $ended_on);
+
         return redirect()->route('landlord.edit', $tenant->id)->with(
             'status',
             $tenant->name . ' is bijgewerkt.' . ($charge
@@ -263,6 +277,25 @@ class TenantController extends Controller
                     . ' staat klaar voor de volgende factuur.'
                 : ''),
         );
+    }
+
+    /**
+     * Een opzegging halverwege een al betaalde periode levert tegoed op; een
+     * ingetrokken opzegging haalt dat tegoed weer weg.
+     */
+    private function settleCancellation(Tenant $tenant, ?string $ended_on): void
+    {
+        $ends_on = $tenant->subscription_ends_on;
+
+        if ($ends_on === $ended_on) {
+            return;
+        }
+
+        $invoicer = new Invoicer($tenant);
+
+        $ends_on
+            ? $invoicer->settleCancellation(CarbonImmutable::parse($ends_on))
+            : $invoicer->forgetCancellationSettlement();
     }
 
     /**

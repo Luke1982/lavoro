@@ -85,6 +85,19 @@
                 </label>
             </div>
 
+            <label for="ends-on" class="mb-1 mt-4 block font-semibold">
+                Opgezegd per
+                <span class="font-normal text-slate-500">(leeg = loopt door)</span>
+            </label>
+            <input id="ends-on" v-model="form.subscription_ends_on" type="date" class="panel-field w-full">
+            <p v-if="form.errors.subscription_ends_on" class="mt-1 text-sm font-semibold text-red-700">
+                {{ form.errors.subscription_ends_on }}
+            </p>
+            <p class="mt-1 text-sm text-slate-500">
+                De laatste dag waarop het abonnement loopt. Er wordt tot en met die dag gerekend;
+                is de maand al gefactureerd, dan komt het te veel betaalde als tegoed terug.
+            </p>
+
             <label for="package-price" class="mb-1 mt-4 block font-semibold">
                 Vaste pakketprijs (€)
                 <span class="font-normal text-slate-500">(leeg = prijs uit de catalogus)</span>
@@ -177,6 +190,7 @@ const discountType = props.tenant.discount_percent
 
 const form = useForm({
     subscription_started_on: props.tenant.subscription_started_on,
+    subscription_ends_on: props.tenant.subscription_ends_on ?? '',
     billing_period: props.tenant.billing_period === 'yearly' ? 'yearly' : 'monthly',
     package_key: props.tenant.package_key ?? '',
     extra_field_seats: props.tenant.extra_field_seats,

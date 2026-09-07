@@ -18,6 +18,7 @@ class UpdateTenantRequest extends FormRequest
         return [
             'package_key' => 'nullable|string',
             'subscription_started_on' => 'nullable|date',
+            'subscription_ends_on' => 'nullable|date|after_or_equal:subscription_started_on',
             'billing_period' => 'required|in:monthly,yearly',
             'modules' => 'array',
             'module_prices' => 'array',
