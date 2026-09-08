@@ -51,6 +51,8 @@ Route::prefix('beheer')
             Route::post('{tenant}/facturen', [InvoiceController::class, 'issueInvoice'])->name('landlord.invoice.issue');
             Route::post('{tenant}/facturen/{invoice}/mail', [InvoiceController::class, 'mailInvoice'])->name('landlord.invoice.mail');
             Route::get('{tenant}/facturen/{invoice}/pdf', [InvoiceController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
+            Route::get('{tenant}/facturen/{invoice}/voorbeeld', [InvoiceController::class, 'invoicePreview'])
+                ->name('landlord.invoice.preview');
             Route::get('{tenant}/facturen/{invoice}/xml', [InvoiceController::class, 'invoiceXml'])->name('landlord.invoice.xml');
             Route::put('pakket/{package}', [CatalogueController::class, 'updatePackage'])->name('landlord.package.update');
             Route::put('module/{module}', [CatalogueController::class, 'updateModule'])->name('landlord.module.update');

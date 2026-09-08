@@ -69,33 +69,60 @@
 
         <p v-if="!invoices.length" class="text-slate-500">Nog geen facturen.</p>
 
-        <div v-for="invoice in invoices" :key="invoice.id" class="mb-4 last:mb-0">
-            <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 pb-1">
-                <strong>{{ invoice.number }}</strong>
-                <span class="text-slate-500">{{ nlDate(invoice.issued_on) }}</span>
-                <strong>{{ euro(invoice.gross_cents) }}</strong>
-                <span class="text-sm">
-                    <a :href="`/beheer/${tenant.id}/facturen/${invoice.id}/pdf`" class="text-blue-700 underline">pdf</a>
-                    &middot;
-                    <a :href="`/beheer/${tenant.id}/facturen/${invoice.id}/xml`" class="text-blue-700 underline">xml</a>
-                    &middot;
-                    <span v-if="invoice.mailed_at" class="text-slate-500">
-                        verstuurd {{ nlDate(invoice.mailed_at) }} {{ nlTime(invoice.mailed_at) }}
-                    </span>
-                    <button v-else type="button" :disabled="mailing === invoice.id" @click="mail(invoice)"
-                        class="text-blue-700 underline disabled:opacity-60">versturen</button>
-                </span>
-            </div>
+        <!--
+            Een tabel en geen rij losse blokken: met flex bepaalde elke factuur
+            zelf waar zijn datum en bedrag terechtkwamen, en dan staat niets
+            onder elkaar zodra de nummers of de bedragen verschillen.
+        -->
+        <table v-if="invoices.length" class="w-full text-left">
+            <tbody>
+                <template v-for="invoice in invoices" :key="invoice.id">
+                    <tr class="border-t border-slate-200 align-top">
+                        <td class="w-16 py-3">
+                            <a :href="preview(invoice)" target="_blank" rel="noopener"
+                                :title="`Bekijk ${invoice.number}`">
+                                <iframe :src="`${preview(invoice)}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`"
+                                    class="pointer-events-none h-16 w-12 rounded border border-slate-200 bg-white"
+                                    loading="lazy" tabindex="-1" :title="`Voorbeeld van ${invoice.number}`" />
+                            </a>
+                        </td>
+                        <td class="py-3 pr-3 font-semibold">{{ invoice.number }}</td>
+                        <td class="py-3 pr-3 whitespace-nowrap text-slate-500">{{ nlDate(invoice.issued_on) }}</td>
+                        <td class="py-3 pr-3 whitespace-nowrap text-right font-semibold">
+                            {{ euro(invoice.gross_cents) }}
+                        </td>
+                        <td class="py-3 whitespace-nowrap text-right text-sm">
+                            <a :href="`/beheer/${tenant.id}/facturen/${invoice.id}/pdf`"
+                                class="text-blue-700 underline">pdf</a>
+                            &middot;
+                            <a :href="`/beheer/${tenant.id}/facturen/${invoice.id}/xml`"
+                                class="text-blue-700 underline">xml</a>
+                            &middot;
+                            <span v-if="invoice.mailed_at" class="text-slate-500">
+                                verstuurd {{ nlDate(invoice.mailed_at) }} {{ nlTime(invoice.mailed_at) }}
+                            </span>
+                            <button v-else type="button" :disabled="mailing === invoice.id" @click="mail(invoice)"
+                                class="text-blue-700 underline disabled:opacity-60">versturen</button>
+                        </td>
+                    </tr>
 
-            <div v-for="line in invoice.lines" :key="line.id" class="flex justify-between py-1 text-sm text-slate-500">
-                <span>{{ line.description }}</span>
-                <span>{{ euro(line.amount_cents) }}</span>
-            </div>
+                    <tr>
+                        <td></td>
+                        <td colspan="4" class="pb-3">
+                            <div v-for="line in invoice.lines" :key="line.id"
+                                class="flex justify-between gap-6 py-0.5 text-sm text-slate-500">
+                                <span>{{ line.description }}</span>
+                                <span class="whitespace-nowrap">{{ euro(line.amount_cents) }}</span>
+                            </div>
 
-            <p v-if="invoice.mail_error" class="py-1 text-sm font-semibold text-red-700">
-                Versturen mislukt: {{ invoice.mail_error }}
-            </p>
-        </div>
+                            <p v-if="invoice.mail_error" class="pt-1 text-sm font-semibold text-red-700">
+                                Versturen mislukt: {{ invoice.mail_error }}
+                            </p>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
     </PanelSection>
 </template>
 
@@ -115,6 +142,8 @@ const props = defineProps({
     next_period_starts_on: { type: String, required: true },
     unbilled: { type: Array, default: () => [] },
 })
+
+const preview = (invoice) => `/beheer/${props.tenant.id}/facturen/${invoice.id}/voorbeeld`
 
 const issuing = ref(false)
 const mailing = ref(null)

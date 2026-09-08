@@ -79,6 +79,24 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Dezelfde pdf, maar om te tonen in plaats van te downloaden.
+     *
+     * Het verschil zit alleen in Content-Disposition: met 'attachment' schuift
+     * de browser hem naar de downloadmap en valt er niets te bekijken, dus een
+     * voorbeeld in het scherm heeft zijn eigen adres nodig.
+     */
+    public function invoicePreview(string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+        $documents = new InvoiceDocuments($invoice, $tenant);
+
+        return response($documents->pdf(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $documents->pdfName() . '"',
+        ]);
+    }
+
     public function invoiceXml(string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);

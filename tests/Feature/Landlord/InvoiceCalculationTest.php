@@ -999,4 +999,44 @@ class InvoiceCalculationTest extends TestCase
         $this->assertStringContainsString('24 van 30 dagen', $lines[1]['description']);
         $this->assertSame((int) round(4000 * 24 / 30), $lines[1]['amount_cents']);
     }
+
+    /**
+     * Het voorbeeld in het scherm is dezelfde pdf, maar om te tonen. Met
+     * 'attachment' schuift de browser hem naar de downloadmap en is er niets
+     * te zien.
+     */
+    public function test_the_preview_shows_the_invoice_instead_of_downloading_it(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $response = $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.invoice.preview', [$tenant->id, $invoice->id]))
+            ->assertOk();
+
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringStartsWith('inline;', $response->headers->get('content-disposition'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_the_download_still_downloads(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $response = $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.invoice.pdf', [$tenant->id, $invoice->id]))
+            ->assertOk();
+
+        $this->assertStringStartsWith('attachment;', $response->headers->get('content-disposition'));
+    }
+
+    public function test_a_stranger_cannot_look_at_an_invoice(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-01'));
+
+        $this->get(route('landlord.invoice.preview', [$tenant->id, $invoice->id]))
+            ->assertRedirect(route('landlord.login'));
+    }
 }

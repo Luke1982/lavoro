@@ -1,51 +1,26 @@
 #!/usr/bin/env bash
-set -e
+# Dit script bestaat niet meer -- het hoorde bij de installatie van vóór de
+# multi-tenancy en deed twee dingen die daar nu schade aanrichten:
+#
+#   git reset --hard origin/master   -- gooit de tenancy-branch weg en zet er
+#                                       de oude eenklant-versie voor terug
+#   php artisan migrate --force      -- draait de migraties van die versie over
+#                                       de centrale database heen
+#
+# De backup ervoor liep bovendien met de verkeerde login, meldde 'saved' en
+# schreef een leeg bestand: precies wanneer je hem nodig hebt is hij er niet.
+set -euo pipefail
 
-BACKUP_DIR="$(dirname "$0")/storage/backups/db"
-mkdir -p "$BACKUP_DIR"
+cat >&2 <<'MELDING'
+Dit is het oude deploy-script en het doet meer kwaad dan goed.
 
-echo "==> Creating database backup..."
-DB_DATABASE=$(grep -E '^DB_DATABASE=' .env | cut -d '=' -f2-)
-DB_USERNAME=$(grep -E '^DB_USERNAME=' .env | cut -d '=' -f2-)
-DB_PASSWORD=$(grep -E '^DB_PASSWORD=' .env | cut -d '=' -f2-)
-DB_HOST=$(grep -E '^DB_HOST=' .env | cut -d '=' -f2-)
-DB_PORT=$(grep -E '^DB_PORT=' .env | cut -d '=' -f2-)
-BACKUP_FILE="$BACKUP_DIR/$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
-MYSQL_PWD="$DB_PASSWORD" mysqldump \
-    -h "${DB_HOST:-127.0.0.1}" \
-    -P "${DB_PORT:-3306}" \
-    -u "$DB_USERNAME" \
-    "$DB_DATABASE" | gzip > "$BACKUP_FILE"
-echo "    Backup saved to $BACKUP_FILE"
+Gebruik:
 
-echo "==> Pruning old backups (keeping 5)..."
-ls -1t "$BACKUP_DIR"/*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm --
-echo "    Done pruning."
+    scripts/tenancy/deploy.sh
 
-echo "==> Pulling latest from master..."
-git fetch origin master
-git reset --hard origin/master
+Die maakt een back-up van de centrale database én van elke klant, haalt de
+huidige branch op (en niet master), draait de migraties van zowel centraal als
+elke klant, en kijkt achteraf met tenancy:doctor of het klopt.
+MELDING
 
-echo "==> Running database migrations..."
-php artisan migrate --force
-
-echo "==> Updating Composer dependencies..."
-composer install --no-interaction --prefer-dist --optimize-autoloader
-
-echo "==> Updating NPM dependencies..."
-npm ci
-
-echo "==> Building frontend assets..."
-npm run build
-
-echo "==> Clearing caches..."
-php artisan optimize:clear
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-php artisan cache:clear
-
-echo "==> Restarting queue workers..."
-php artisan queue:restart
-
-echo "==> Done."
+exit 1
