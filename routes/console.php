@@ -7,7 +7,6 @@ use App\Jobs\NotifyMissingExecutionTimesJob;
 use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
-use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -18,16 +17,16 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /**
- * Elke tik doet per tenant één ding: config omzetten en één rij in de centrale
- * jobs-tabel. Geen query, geen delete, niets waarvan de kosten meegroeien met
- * hoeveel data een klant heeft. Het werk zelf gebeurt in de job, die door
- * QueueTenancyBootstrapper de juiste tenant meekrijgt.
+ * Elke tik doet per tenant één ding: kijken of zijn database opengaat, en dan
+ * één rij in de centrale jobs-tabel. Geen delete, geen query waarvan de kosten
+ * meegroeien met hoeveel data een klant heeft. Het werk zelf gebeurt in de
+ * job, die door QueueTenancyBootstrapper de juiste tenant meekrijgt.
+ *
+ * Die ene controle vooraf staat er omdat een klant met een verdwenen database
+ * anders elke taak laat omvallen: op productie leverde dat 1313 mislukte taken
+ * op, allemaal van dezelfde klant, met alles wat er echt mis was ertussen.
  */
-$forEachTenant = function (callable $dispatch): void {
-    Tenant::on('central')->cursor()->each(
-        fn (Tenant $tenant) => Tenancy::within($tenant, $dispatch)
-    );
-};
+$forEachTenant = fn (callable $dispatch) => Tenancy::forEachReachable($dispatch);
 
 Schedule::call(fn () => $forEachTenant(fn () => DispatchTenantCalendarPullsJob::dispatch()))
     ->everyFiveMinutes()->name('google-pull-changes')->withoutOverlapping();

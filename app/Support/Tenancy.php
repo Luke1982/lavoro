@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Iets uitvoeren binnen de database van één klant.
@@ -35,5 +37,42 @@ final class Tenancy
         } finally {
             $previous ? tenancy()->initialize($previous) : tenancy()->end();
         }
+    }
+
+    /** Is de database van deze klant te openen? */
+    public static function reachable(Tenant $tenant): bool
+    {
+        try {
+            return (bool) self::within($tenant, fn () => DB::connection('tenant')->getPdo());
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Hetzelfde doen voor elke klant die te bereiken is.
+     *
+     * Een klant met een verdwenen database laat elke taak die over hem gaat
+     * omvallen. Voor werk dat elke vijf minuten draait zijn dat honderden
+     * mislukte taken per dag, en daar verdwijnt alles echts tussen: op
+     * productie stonden er 1313, allemaal van dezelfde kapotte klant.
+     *
+     * Overslaan en niet stilhouden: het staat in het logboek, en de doctor
+     * meldt zo'n klant apart.
+     */
+    public static function forEachReachable(callable $work): void
+    {
+        Tenant::on('central')->cursor()->each(function (Tenant $tenant) use ($work) {
+            if (!static::reachable($tenant)) {
+                Log::warning('Klant overgeslagen: database niet te openen.', [
+                    'tenant' => $tenant->id,
+                    'name' => $tenant->name,
+                ]);
+
+                return;
+            }
+
+            static::within($tenant, $work);
+        });
     }
 }
