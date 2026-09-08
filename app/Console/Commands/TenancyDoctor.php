@@ -539,6 +539,7 @@ class TenancyDoctor extends Command
         $this->checkDrivers();
         $this->checkInvoiceFonts();
         $this->checkApiAuthentication();
+        $this->checkCachedConfigIsCurrent();
         $this->checkBuiltAssets();
     }
 
@@ -625,6 +626,42 @@ class TenancyDoctor extends Command
      * plaats van in de worker die dat wel mag. Staat de sessie niet centraal,
      * dan zoekt het inloggen zijn gebruiker in de verkeerde database.
      */
+    /**
+     * Draait de app op de instellingen die in .env staan?
+     *
+     * Met een gecachete configuratie leest de app niet meer uit .env maar uit
+     * bootstrap/cache/config.php. Wie daarna .env aanpast en vergeet opnieuw
+     * te cachen, draait door op de oude waarden -- en ziet dat nergens. Een
+     * verkeerd APP_URL van vóór het cachen betekent dat /api geen sessie
+     * krijgt, terwijl .env er goed uitziet en dit commando (dat de verse
+     * configuratie leest) ook.
+     */
+    private function checkCachedConfigIsCurrent(): void
+    {
+        $cache = base_path('bootstrap/cache/config.php');
+
+        if (!file_exists($cache)) {
+            app()->environment('production')
+                ? $this->bad('De configuratie is niet gecachet. Op een server hoort'
+                    . ' php artisan config:cache te draaien; zonder dat leest elk verzoek .env opnieuw.')
+                : $this->pass('configuratie niet gecachet (leest .env rechtstreeks)');
+
+            return;
+        }
+
+        $env = base_path('.env');
+
+        if (file_exists($env) && filemtime($env) > filemtime($cache)) {
+            $this->bad('.env is aangepast na de laatste config:cache ('
+                . date('d-m-Y H:i', filemtime($cache)) . '), dus de app draait nog op de oude'
+                . " waarden.\n         Bijwerken met: php artisan config:cache");
+
+            return;
+        }
+
+        $this->pass('gecachete configuratie is van na de laatste wijziging in .env');
+    }
+
     /**
      * Of de planner en de andere schermen die over /api praten, ingelogd
      * blijven.
