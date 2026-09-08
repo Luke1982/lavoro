@@ -226,10 +226,43 @@ class TenancyDoctor extends Command
 
         $newest = $failed->max('failed_at');
 
-        $this->bad("{$total} mislukte ta(a)k(en), laatste op {$newest}. Die zijn stil blijven liggen:"
-            . " geen factuur verstuurd, geen synchronisatie gedraaid.\n"
-            . "         Bekijken: php artisan queue:failed\n"
-            . '         Opnieuw:  php artisan queue:retry all');
+        /**
+         * Het aantal alleen zegt niets. Duizend keer dezelfde fout is een ding
+         * dat stuk is; duizend verschillende is iets anders. Daarom staat
+         * erbij welke taak het vaakst omvalt en waarop.
+         *
+         * Geteld over de laatste tweehonderd in plaats van in SQL: groeperen
+         * op twee tekstkolommen van onbepaalde lengte gaat per database net
+         * anders, en dit hoeft alleen te zeggen waar je moet kijken.
+         */
+        $recent = DB::connection('central')->table($table)
+            ->orderByDesc('failed_at')
+            ->limit(200)
+            ->get(['payload', 'exception']);
+
+        $worst = $recent
+            ->map(fn ($row) => [
+                'job' => json_decode($row->payload, true)['displayName'] ?? 'onbekende taak',
+                'reason' => trim(strtok((string) $row->exception, "\n")),
+            ])
+            ->groupBy(fn (array $row) => $row['job'] . ' | ' . $row['reason'])
+            ->sortByDesc(fn ($group) => $group->count())
+            ->first();
+
+        $summary = $worst
+            ? sprintf(
+                "\n         Meest voorkomend (%dx van de laatste %d): %s\n         %s",
+                $worst->count(),
+                $recent->count(),
+                $worst->first()['job'],
+                $worst->first()['reason'],
+            )
+            : '';
+
+        $this->bad("{$total} mislukte ta(a)k(en), laatste op {$newest}." . $summary
+            . "\n         Die zijn stil blijven liggen: geen factuur verstuurd, geen synchronisatie"
+            . " gedraaid.\n         Bekijken: php artisan queue:failed"
+            . "\n         Opnieuw:  php artisan queue:retry all");
     }
 
     /**
@@ -294,12 +327,6 @@ class TenancyDoctor extends Command
     {
         $database = $tenant->getInternal('db_name');
 
-        $exists = DB::connection('central')->selectOne(
-            'SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME = ?', [$database]
-        );
-
-        $exists ? $this->pass("database {$database}") : $this->bad("database {$database} bestaat niet");
-
         try {
             $tenant->tenancy_db_password
                 ? $this->pass('wachtwoord is te ontsleutelen')
@@ -310,16 +337,31 @@ class TenancyDoctor extends Command
             return;
         }
 
-        if (!$exists) {
+        /**
+         * Verbinden en niet information_schema vragen.
+         *
+         * Die vraag ging over de centrale verbinding, en dat account mag met
+         * opzet alleen bij de centrale database. MySQL toont een database
+         * alleen aan wie er rechten op heeft, dus elke klantdatabase zag er
+         * vanaf daar uit alsof hij niet bestond -- en dan sloeg de doctor de
+         * rest van de controles voor die klant over, precies bij de klant waar
+         * je wilde weten hoe het ervoor stond.
+         */
+        try {
+            tenancy()->initialize($tenant);
+            DB::connection('tenant')->getPdo();
+
+            $this->pass("database {$database} is te openen met de eigen login");
+        } catch (\Throwable $e) {
+            tenancy()->end();
+
+            $this->bad($this->tenantConnectionComplaint($database, $tenant, $e));
             $this->skip('overige controles voor deze tenant');
 
             return;
         }
 
         try {
-            tenancy()->initialize($tenant);
-
-            $this->pass('verbinden met eigen login');
 
             $missing = collect(['is_plannable_state', 'is_planned_state', 'is_closed_state',
                 'is_planning_cancelled_state', 'is_invoiced_state', 'is_incomplete_state'])
@@ -386,6 +428,58 @@ class TenancyDoctor extends Command
         } catch (\Throwable $e) {
             tenancy()->end();
             $this->bad('verbinden mislukt: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Waarom de klantdatabase niet openging.
+     *
+     * Drie heel verschillende dingen zien er van buiten hetzelfde uit, en ze
+     * vragen elk om iets anders. MySQL helpt daar niet bij: een database die
+     * niet bestaat en een account zonder rechten geven allebei 'access
+     * denied', want je hoort niet te kunnen aftasten wat er bestaat.
+     *
+     * Daarom wordt het bestaan apart nagevraagd op de provisioning-verbinding,
+     * die wel over de klantdatabases mag kijken. Lukt ook dat niet, dan staat
+     * dat er zo bij -- liever geen antwoord dan een verkeerd antwoord.
+     */
+    private function tenantConnectionComplaint(string $database, Tenant $tenant, \Throwable $e): string
+    {
+        $login = $tenant->tenancy_db_username;
+        $exists = $this->tenantDatabaseExists($database);
+
+        if ($exists === false) {
+            return "database {$database} bestaat niet, terwijl de klant wel in de registratie staat."
+                . ' Opruimen of opnieuw aanmaken.';
+        }
+
+        if ($exists === true) {
+            return "database {$database} bestaat, maar de login van deze klant ({$login}) komt er niet"
+                . ' in. Het MySQL-account is weg of heeft zijn rechten verloren; opnieuw toekennen met'
+                . " lavoro_admin.grant_tenant_access('{$database}', '{$login}').";
+        }
+
+        return "database {$database} gaat niet open met de login van deze klant ({$login}), en of hij"
+            . ' bestaat is hiervandaan niet na te gaan: ' . $e->getMessage();
+    }
+
+    /**
+     * Bestaat de klantdatabase? Gevraagd op de provisioning-verbinding, want
+     * het centrale account mag met opzet alleen bij de centrale database en
+     * ziet de klantdatabases dus niet staan.
+     *
+     * @return bool|null null als het niet na te gaan is
+     */
+    private function tenantDatabaseExists(string $database): ?bool
+    {
+        try {
+            return (bool) DB::connection(config('tenancy.database.template_tenant_connection', 'mysql'))
+                ->selectOne(
+                    'SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME = ?',
+                    [$database]
+                );
+        } catch (\Throwable $e) {
+            return null;
         }
     }
 

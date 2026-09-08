@@ -22,6 +22,20 @@ class SubscriptionScreenTest extends TestCase
 {
     use MakesLandlordData;
 
+    /**
+     * De klok stilgezet.
+     *
+     * Een verrekening rekent met de dag van vandaag, dus tests die dagen tellen
+     * geven morgen een ander antwoord dan vandaag. Deze viel om zodra de datum
+     * verschoof: 'zes van de dertig dagen' werd er zeven.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(CarbonImmutable::parse('2026-09-07 10:00:00'));
+    }
+
     private function tenant(array $attributes = []): Tenant
     {
         return $this->tenantRow($attributes);

@@ -5,7 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Start full dev stack (Laravel, queue, log tail, Vite — all at once)
+# Start de lokale multi-tenant omgeving (app, beide workers, vite) op poort 8199.
+# Draait op .env.localtest; print de klanten en hun inlog. --reset-logins zet
+# alle wachtwoorden terug op 'testtest'.
+./scripts/tenancy/dev.sh
+
+# Start full dev stack (Laravel, queue, log tail, Vite — all at once).
+# Let op: .env wijst naar een database die niet altijd draait; gebruik dan het
+# script hierboven.
 composer run dev
 
 # Frontend only

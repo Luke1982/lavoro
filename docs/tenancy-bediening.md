@@ -7,6 +7,26 @@ Alles wat je op een server doet. Voor de redenering achter de opzet:
 Volg [tenancy-productie.md](tenancy-productie.md) — dat is de doorlopende lijst van nul tot
 draaiend. Hieronder staat het dagelijkse werk.
 
+
+## Lokaal werken
+
+Alles hieronder valt ook lokaal te doen, zonder productie:
+
+```bash
+./scripts/tenancy/dev.sh                 # app, beide workers en vite
+./scripts/tenancy/dev.sh --reset-logins  # alle wachtwoorden op 'testtest'
+```
+
+De app staat dan op http://127.0.0.1:8199, het beheerpaneel op /beheer. Het
+script noemt bij het starten welke klanten er zijn en met welk e-mailadres je
+bij elk binnenkomt.
+
+Dat draait op `.env.localtest`, met een eigen centrale database en echte
+klantdatabases ernaast -- niet op `.env`, want die wijst naar een database die
+niet altijd draait. Vandaar dat het script `APP_ENV` als omgevingsvariabele
+zet: `--env=localtest` geldt alleen voor het artisan-commando zelf, terwijl de
+verzoeken die de server afhandelt opnieuw opstarten en dan gewoon `.env` lezen.
+
 ## Wat er moet draaien
 
 | | Wat | Als wie |
