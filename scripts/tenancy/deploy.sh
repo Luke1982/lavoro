@@ -27,23 +27,21 @@ mkdir -p storage/backups
 # Klanten waarvan de database niet opengaat worden overgeslagen en genoemd. Van
 # een database die er niet meer is valt niets te bewaren, en dat mag de uitrol
 # niet tegenhouden.
-LINES=$(php artisan tinker --execute='
-    $central = config("database.connections.central");
-
-    echo implode("\t", ["DUMP", $central["database"], $central["username"], $central["password"],
-        $central["host"], $central["port"]]) . "\n";
-
-    foreach (\App\Models\Tenant::on("central")->get() as $tenant) {
-        if (!\App\Support\Tenancy::reachable($tenant)) {
-            echo "OVERSLAAN\t" . $tenant->name . "\n";
-
-            continue;
-        }
-
-        echo implode("\t", ["DUMP", $tenant->getInternal("db_name"), $tenant->tenancy_db_username,
-            $tenant->tenancy_db_password, $central["host"], $central["port"]]) . "\n";
-    }
-' 2>/dev/null)
+# Via een eigen commando en niet via tinker: dat is een schil om een REPL die
+# zijn eigen meldingen schrijft en een exitcode teruggeeft die niets zegt. En
+# de fout blijft zichtbaar -- hier stond 2>/dev/null, precies op het commando
+# waarvan de mislukking de hele uitrol afbreekt, zodat er niets te zien was
+# behalve een kopregel en daarna weer 'live'.
+# Ook stderr erbij, en bij een fout wordt het getoond: artisan schrijft zijn
+# foutmelding naar stdout, dus die verdween in deze variabele en er was niets
+# te zien behalve een kopregel.
+if ! LINES=$(php artisan tenancy:backup-targets 2>&1); then
+    echo "  Kon niet opvragen wat er geback-upt moet worden:" >&2
+    # Zonder de DUMP-regels: daar staan wachtwoorden in, en die horen niet in
+    # de terugmelding of in de scrollback te belanden.
+    printf '%s\n' "$LINES" | grep -v '^DUMP' | sed 's/^/    /' >&2 || true
+    exit 1
+fi
 
 if ! printf '%s\n' "$LINES" | grep -q '^DUMP'; then
     echo "  Geen enkele database om te bewaren -- kwam de centrale database wel op?" >&2
