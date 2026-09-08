@@ -17,16 +17,63 @@ trap restore EXIT
 step "Back-up van elke database"
 STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 mkdir -p storage/backups
-LANDLORD=$(php artisan tinker --execute='echo config("database.connections.central.database");' 2>/dev/null | tail -1)
-mysqldump --single-transaction "$LANDLORD" | gzip > "storage/backups/${LANDLORD}-${STAMP}.sql.gz"
 
-# De oude deploy maakte alleen een back-up van DB_DATABASE. Dat is nu de kleine
-# centrale registratie, en zonder deze lus zou geen enkele klant meer geback-upt
-# worden -- zonder foutmelding.
-php artisan tenants:list --check >/dev/null
-for DB in $(mysql -N -e "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME LIKE 'lavoro_tenant_%'"); do
-    mysqldump --single-transaction "$DB" | gzip > "storage/backups/${DB}-${STAMP}.sql.gz"
-    echo "  $DB"
+# De inloggegevens komen uit de app zelf: de centrale uit de configuratie, die
+# van elke klant uit de registratie. Zonder gegevens valt mysqldump terug op de
+# socket en probeert het als de linux-gebruiker, en die heeft geen
+# MySQL-account -- 'Access denied for user lavoro@localhost', vlak nadat het
+# onderhoudsscherm aanging.
+#
+# Klanten waarvan de database niet opengaat worden overgeslagen en genoemd. Van
+# een database die er niet meer is valt niets te bewaren, en dat mag de uitrol
+# niet tegenhouden.
+LINES=$(php artisan tinker --execute='
+    $central = config("database.connections.central");
+
+    echo implode("\t", ["DUMP", $central["database"], $central["username"], $central["password"],
+        $central["host"], $central["port"]]) . "\n";
+
+    foreach (\App\Models\Tenant::on("central")->get() as $tenant) {
+        if (!\App\Support\Tenancy::reachable($tenant)) {
+            echo "OVERSLAAN\t" . $tenant->name . "\n";
+
+            continue;
+        }
+
+        echo implode("\t", ["DUMP", $tenant->getInternal("db_name"), $tenant->tenancy_db_username,
+            $tenant->tenancy_db_password, $central["host"], $central["port"]]) . "\n";
+    }
+' 2>/dev/null)
+
+if ! printf '%s\n' "$LINES" | grep -q '^DUMP'; then
+    echo "  Geen enkele database om te bewaren -- kwam de centrale database wel op?" >&2
+    exit 1
+fi
+
+printf '%s\n' "$LINES" | grep '^OVERSLAAN' | cut -f2 | while read -r NAME; do
+    echo "  overgeslagen (database niet bereikbaar): ${NAME}"
+done || true
+
+printf '%s\n' "$LINES" | grep '^DUMP' | while IFS=$'\t' read -r _ DB USER PASS HOST PORT; do
+    # Via een tijdelijk bestand en niet op de opdrachtregel: daar leest iedereen
+    # met ps het wachtwoord mee.
+    CONFIG=$(mktemp)
+    chmod 600 "$CONFIG"
+    printf '[client]\nuser=%s\npassword=%s\nhost=%s\nport=%s\n' "$USER" "$PASS" "$HOST" "$PORT" > "$CONFIG"
+
+    TARGET="storage/backups/${DB}-${STAMP}.sql.gz"
+
+    # --no-tablespaces: het uitlezen van tablespaces vraagt het PROCESS-recht, en
+    # dat hebben deze accounts met opzet niet.
+    if ! mysqldump --defaults-extra-file="$CONFIG" --single-transaction --no-tablespaces "$DB" | gzip > "${TARGET}.part"; then
+        rm -f "$CONFIG" "${TARGET}.part"
+        echo "  Back-up van ${DB} mislukt. Er wordt niets uitgerold zonder back-up." >&2
+        exit 1
+    fi
+
+    rm -f "$CONFIG"
+    mv "${TARGET}.part" "$TARGET"
+    echo "  ${DB} ($(du -h "$TARGET" | cut -f1))"
 done
 
 step "Code"
