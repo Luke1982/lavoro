@@ -14,6 +14,13 @@ php artisan app:maintenance --message="We zijn zo terug." || php artisan down
 restore() { php artisan up || true; }
 trap restore EXIT
 
+# Zeggen waar het stukliep. Met set -e stopt dit script bij de eerste fout, en
+# dat gebeurde tot nu toe zonder een woord: je zag een kopregel en daarna weer
+# 'live', en moest het met bash -x opnieuw draaien om te zien waar.
+trap 'echo "
+  Gestopt op regel ${LINENO}: ${BASH_COMMAND}
+  (de melding hierboven hoort daarbij; er is niets uitgerold)" >&2' ERR
+
 step "Back-up van elke database"
 STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 mkdir -p storage/backups
