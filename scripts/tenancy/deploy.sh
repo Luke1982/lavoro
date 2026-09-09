@@ -150,7 +150,17 @@ step "Controle"
 # Twee controles, elk met een eigen bereik: het script kijkt naar de rechten van
 # de databaseaccounts (root nodig), de doctor naar de rest van de opstelling.
 scripts/tenancy/verify-mysql.sh
-php artisan tenancy:doctor
+# In een if, want de doctor geeft een foutcode zodra hij iets te melden heeft.
+# Dat is geen mislukte uitrol -- die is dan al klaar -- en de ERR-trap zei
+# daardoor 'er is niets uitgerold' terwijl alles er gewoon stond.
+if php artisan tenancy:doctor; then
+    echo "
+  Klaar. De controle vond niets."
+else
+    echo "
+  Uitgerold. De controle hierboven vond punten die aandacht vragen; de nieuwe
+  code draait."
+fi
 
 step "Onderhoud uit"
 php artisan up
