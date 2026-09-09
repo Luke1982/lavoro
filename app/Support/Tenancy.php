@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,7 +34,26 @@ final class Tenancy
         tenancy()->initialize($tenant);
 
         try {
-            return $work();
+            $result = $work();
+
+            /**
+             * Job::dispatch() zet niets in de wachtrij: het geeft een
+             * PendingDispatch terug die dat pas in zijn destructor doet. Een
+             * pijlfunctie geeft die waarde door aan deze functie, en dan valt
+             * het object hierbuiten uit elkaar -- nadat tenancy hieronder is
+             * beëindigd. De job kwam zo zonder klant in de wachtrij en draaide
+             * bij de worker tegen de centrale database aan.
+             *
+             * Dat gaf geen fout bij het plannen, alleen later: 'Base table
+             * lavoro_landlord.google_synced_calendars doesn't exist', elke vijf
+             * minuten opnieuw. Op null zetten laat php het object hier
+             * opruimen, met de klant nog open.
+             */
+            if ($result instanceof PendingDispatch) {
+                $result = null;
+            }
+
+            return $result;
         } finally {
             $previous ? tenancy()->initialize($previous) : tenancy()->end();
         }
