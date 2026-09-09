@@ -318,7 +318,7 @@ de nieuwe kolom aanraakt. `deploy.sh` doet allebei.
 ## Uitrollen
 
 ```bash
-./scripts/tenancy/deploy.sh
+./scripts/deploy.sh
 ```
 
 Onderhoudspagina aan, code ophalen, beide migraties, caches, workers

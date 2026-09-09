@@ -2,7 +2,7 @@
 # Deploy voor de multi-tenant installatie.
 set -euo pipefail
 case "$0" in
-    */*) cd "${0%/*}/../.." ;;
+    */*) cd "${0%/*}/.." ;;
     *)   cd "$PWD" ;;
 esac
 
@@ -136,6 +136,11 @@ php artisan view:cache
 # Het sein blijft er als terugval voor installaties zonder systemd-units.
 if sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null; then
     echo "  workers herstart"
+    # systemctl is terug zodra de unit aan staat, niet zodra php klaar is met
+    # opstarten. Zonder deze pauze kijkt de controle hieronder nog naar de
+    # vingerafdruk van de vorige worker en meldde ze elke uitrol als 'oude
+    # code'. Een melding die er altijd staat leert je ze over te slaan.
+    php artisan tenancy:await-workers --timeout=60 || true
 else
     php artisan queue:restart
     echo "  Let op: workers alleen een sein gegeven. Draai scripts/tenancy/setup-sudoers.sh"

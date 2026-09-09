@@ -16,7 +16,7 @@ Dit is het oude deploy-script en het doet meer kwaad dan goed.
 
 Gebruik:
 
-    scripts/tenancy/deploy.sh
+    scripts/deploy.sh
 
 Die maakt een back-up van de centrale database én van elke klant, haalt de
 huidige branch op (en niet master), draait de migraties van zowel centraal als
