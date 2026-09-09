@@ -55,7 +55,10 @@ echo "  nu op: $(git log --oneline -1)"
 step "Bestanden terugzetten"
 for FOLDER in $(ls "$PARK" 2>/dev/null || true); do
     mkdir -p "storage/${FOLDER}"
-    cp -a "${PARK}/${FOLDER}/." "storage/${FOLDER}/"
+    # cp -r en niet -a: -a wil tijden en eigenaar overzetten, en op mappen die
+    # van root zijn levert dat 'Operation not permitted' -- terwijl de bestanden
+    # zelf prima te kopiëren zijn. De tijden doen er hier niet toe.
+    cp -r "${PARK}/${FOLDER}/." "storage/${FOLDER}/"
     echo "  storage/${FOLDER}: $(find "storage/${FOLDER}" -type f | wc -l) bestand(en)"
 done
 
