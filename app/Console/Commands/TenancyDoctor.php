@@ -282,7 +282,8 @@ class TenancyDoctor extends Command
             $beat = WorkerHeartbeat::beatFor($queue);
 
             if ($beat === null) {
-                $this->bad("Wachtrij '{$queue}': geen enkele hartslag. Draait '{$command}'?");
+                $this->bad("Wachtrij '{$queue}': geen enkele hartslag. Draait '{$command}'?"
+                    . $this->whoIsReporting($queue));
 
                 continue;
             }
@@ -292,7 +293,8 @@ class TenancyDoctor extends Command
             if ($age > WorkerHeartbeat::STALE_AFTER_MINUTES * 60) {
                 $this->bad("Wachtrij '{$queue}': laatste hartslag "
                     . CarbonImmutable::createFromTimestamp($beat)->diffForHumans()
-                    . ". De worker is gestopt. Start '{$command}'.");
+                    . ". De worker is gestopt. Start '{$command}'."
+                    . $this->whoIsReporting($queue));
 
                 continue;
             }
@@ -318,9 +320,87 @@ class TenancyDoctor extends Command
                 ? $this->pass("worker voor '{$queue}' draait")
                 : $this->bad("Wachtrij '{$queue}': de worker draait op oudere {$stale} dan wat er nu"
                     . ' staat. Php houdt bij het opstarten alles vast, dus tot een herstart werkt hij'
-                    . " met wat er toen was:\n"
-                    . '         sudo systemctl restart lavoro-worker lavoro-provisioning');
+                    . ' met wat er toen was:'
+                    . "\n         sudo systemctl restart lavoro-worker lavoro-provisioning"
+                    . $this->whoIsReporting($queue));
         }
+    }
+
+    /**
+     * Welk proces die meldingen schrijft.
+     *
+     * Zonder dit zegt de bevinding alleen dát er oude code draait, en blijft
+     * hij staan hoe vaak je ook herstart -- want een herstart raakt alleen de
+     * unit, en niet wat er verder nog meedraait op dezelfde wachtrij.
+     */
+    private function whoIsReporting(string $queue): string
+    {
+        $lines = WorkerHeartbeat::reporterLines($queue);
+        $running = $this->runningWorkers($queue);
+        $code = WorkerHeartbeat::codeVersion();
+
+        $evidence = "\n         hier staat: " . base_path() . ', code '
+            . ($code === '' ? 'onbekend' : substr($code, 0, 8));
+
+        if ($lines !== []) {
+            $evidence .= "\n         meldt zich: " . implode("\n                     ", $lines);
+        }
+
+        if ($running !== []) {
+            $evidence .= "\n         draait nu:  " . implode("\n                     ", $running);
+        }
+
+        return $evidence . (count($lines) > 1 || count($running) > 1
+            ? "\n         Meer dan één proces op dezelfde wachtrij: alleen de unit herstarten laat"
+                . ' de rest gewoon doorlopen.'
+            : '');
+    }
+
+    /**
+     * Wat er op dit moment echt draait, gevraagd aan het systeem zelf.
+     *
+     * De hartslag komt uit de worker, en juist een worker die niet meer
+     * herstart wordt schrijft niets nieuws. ps weet het wel, en /proc zegt uit
+     * welke map het proces draait -- waarmee een tweede installatie die
+     * meeschrijft in dezelfde wachtrij meteen zichtbaar wordt.
+     *
+     * @return array<int, string>
+     */
+    private function runningWorkers(string $queue): array
+    {
+        if (!function_exists('shell_exec')) {
+            return [];
+        }
+
+        $output = (string) @shell_exec('ps -eo pid=,user=,etime=,args= 2>/dev/null');
+        $found = [];
+
+        foreach (explode("\n", $output) as $line) {
+            if (!str_contains($line, 'artisan queue:work') || str_contains($line, 'ps -eo')) {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', trim($line), 4);
+
+            if (count($parts) < 4) {
+                continue;
+            }
+
+            [$pid, $user, $running_for, $command] = $parts;
+
+            $its_queue = preg_match('/--queue[= ]([^\s,]+)/', $command, $match) ? $match[1] : 'default';
+
+            if ($its_queue !== $queue) {
+                continue;
+            }
+
+            $directory = @readlink('/proc/' . $pid . '/cwd');
+
+            $found[] = sprintf('pid %s, als %s, al %s aan het draaien, in %s',
+                $pid, $user, $running_for, $directory ?: 'onbekende map');
+        }
+
+        return $found;
     }
 
     private function checkTenant(Tenant $tenant): void

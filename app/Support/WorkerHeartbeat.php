@@ -31,6 +31,9 @@ final class WorkerHeartbeat
      */
     private static ?string $code_at_boot = null;
 
+    /** Sinds wanneer dit proces meldingen schrijft. */
+    private static ?int $writing_since = null;
+
     public static function listen(): void
     {
         $queue = self::queueFromCommandLine();
@@ -53,12 +56,88 @@ final class WorkerHeartbeat
             Cache::put(self::key($queue), $now, now()->addHour());
             Cache::put(self::settingsKey($queue), self::settingsFingerprint(), now()->addHour());
             Cache::put(self::codeKey($queue), self::$code_at_boot, now()->addHour());
+
+            self::rememberReporter($queue, $now);
         });
     }
 
     public static function key(string $queue): string
     {
         return 'worker_heartbeat:' . $queue;
+    }
+
+    public static function reportersKey(string $queue): string
+    {
+        return 'worker_reporters:' . $queue;
+    }
+
+    /**
+     * Wie er op deze wachtrij van zich laat horen, per proces.
+     *
+     * 'De worker draait op oudere code' zegt niet welke worker. Draait er naast
+     * de unit nog iets ouds mee, dan schrijven ze om beurten in dezelfde sleutel
+     * en blijft die melding staan hoe vaak je ook herstart. Met het proces, de
+     * map en het moment van opstarten erbij is dat in één oogopslag te zien.
+     */
+    private static function rememberReporter(string $queue, int $now): void
+    {
+        self::$writing_since ??= $now;
+
+        $alive = array_filter(
+            (array) Cache::get(self::reportersKey($queue), []),
+            fn ($reporter) => is_array($reporter)
+                && $now - (int) ($reporter['seen'] ?? 0) < self::STALE_AFTER_MINUTES * 60
+        );
+
+        $alive[(string) getmypid()] = [
+            'seen' => $now,
+            'since' => self::$writing_since,
+            'code' => self::$code_at_boot,
+            'path' => base_path(),
+            'user' => self::currentUser(),
+        ];
+
+        Cache::put(self::reportersKey($queue), $alive, now()->addHour());
+    }
+
+    private static function currentUser(): string
+    {
+        if (!function_exists('posix_geteuid')) {
+            return '?';
+        }
+
+        $account = posix_getpwuid(posix_geteuid());
+
+        return is_array($account) ? (string) ($account['name'] ?? '?') : '?';
+    }
+
+    /**
+     * Eén regel per proces dat op deze wachtrij meldt, om onder een bevinding
+     * te zetten. Leeg als er niets bekend is.
+     *
+     * @return array<int, string>
+     */
+    public static function reporterLines(string $queue): array
+    {
+        $lines = [];
+
+        foreach ((array) Cache::get(self::reportersKey($queue), []) as $pid => $reporter) {
+            if (!is_array($reporter)) {
+                continue;
+            }
+
+            $code = (string) ($reporter['code'] ?? '');
+
+            $lines[] = sprintf('pid %s, aan het werk sinds %s, in %s als %s, code %s',
+                $pid,
+                date('d-m H:i', (int) ($reporter['since'] ?? 0)),
+                (string) ($reporter['path'] ?? '?'),
+                (string) ($reporter['user'] ?? '?'),
+                $code === '' ? 'onbekend' : substr($code, 0, 8),
+            );
+        }
+
+        return $lines;
     }
 
     public static function settingsKey(string $queue): string

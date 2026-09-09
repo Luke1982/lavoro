@@ -37,8 +37,18 @@ class TenancyAwaitWorkers extends Command
             }
 
             if (time() >= $deadline) {
-                $this->warn('  Nog niet gemeld: ' . implode(', ', $waiting)
-                    . '. De controle hieronder zegt waarom.');
+                $this->warn('  Nog niet gemeld: ' . implode(', ', $waiting));
+
+                $code = WorkerHeartbeat::codeVersion();
+
+                $this->line('  hier staat: ' . base_path() . ', code '
+                    . ($code === '' ? 'onbekend' : substr($code, 0, 8)));
+
+                foreach ($waiting as $queue) {
+                    foreach (WorkerHeartbeat::reporterLines($queue) as $line) {
+                        $this->line("  {$queue}: {$line}");
+                    }
+                }
 
                 return self::FAILURE;
             }

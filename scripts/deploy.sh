@@ -140,7 +140,17 @@ if sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null; then
     # opstarten. Zonder deze pauze kijkt de controle hieronder nog naar de
     # vingerafdruk van de vorige worker en meldde ze elke uitrol als 'oude
     # code'. Een melding die er altijd staat leert je ze over te slaan.
-    php artisan tenancy:await-workers --timeout=60 || true
+    #
+    # Meldt een worker zich niet, dan draait er iets mee dat de unit niet
+    # beheert: systemctl herstart zijn eigen proces, en een achterblijver van
+    # een vorige keer loopt gewoon door op oude code en schrijft in dezelfde
+    # sleutel. Die eerst omleggen, dan opnieuw laten opstarten door systemd.
+    if ! php artisan tenancy:await-workers --timeout=45; then
+        echo "  achterblijvers opruimen en opnieuw herstarten"
+        pkill -f 'artisan queue:work' 2>/dev/null || true
+        sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null || true
+        php artisan tenancy:await-workers --timeout=45 || true
+    fi
 else
     php artisan queue:restart
     echo "  Let op: workers alleen een sein gegeven. Draai scripts/tenancy/setup-sudoers.sh"
