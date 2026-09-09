@@ -258,6 +258,12 @@ info ""
 
 install_rule /etc/sudoers.d/lavoro-admin "$ADMIN_RULE"
 
+# Zonder --deploy-user is het account dat de tenant-opdrachten draait ook het
+# account dat uitrolt: op een server met één beheerder is dat dezelfde persoon.
+# Stond dit er niet, dan werd de deploy-regel stilzwijgend overgeslagen -- en
+# bleven de workers na elke uitrol op de oude code draaien.
+DEPLOY_ACCOUNT="${DEPLOY_ACCOUNT:-$ADMIN_ACCOUNT}"
+
 if [ -n "$DEPLOY_ACCOUNT" ]; then
     MYSQLDUMP_PATH="$(command -v mysqldump || command -v mariadb-dump || true)"
     [ -n "$MYSQLDUMP_PATH" ] || die "Geen mysqldump gevonden; de deploy-regel kan niet gemaakt worden."
