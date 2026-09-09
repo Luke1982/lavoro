@@ -1488,8 +1488,51 @@ class TenancyDoctor extends Command
             ->filter(fn (string $name) => str_starts_with($name, 'tenant-'))
             ->reject(fn (string $name) => $ids->contains(substr($name, strlen('tenant-'))));
 
-        $folders->isEmpty() ? $this->pass('geen mappen zonder tenant')
-            : $this->bad('map zonder tenant: ' . $folders->implode(', ')
-                . '. Weg te halen met: rm -rf ' . storage_path($folders->first()));
+        if ($folders->isEmpty()) {
+            $this->pass('geen mappen zonder tenant');
+
+            return;
+        }
+
+        /**
+         * Nooit 'rm -rf' voorstellen.
+         *
+         * Zo'n map heet wel verweesd, maar dat betekent alleen dat er geen klant
+         * met dat id meer in de registratie staat -- niet dat er niets in zit.
+         * Op productie stonden er honderden foto's en pdf's van echte werkbonnen
+         * in, en dat advies is opgevolgd. Wat erin zit hoort in de melding te
+         * staan, en het voorstel is opzijzetten en niet weggooien.
+         */
+        foreach ($folders as $folder) {
+            $path = storage_path($folder);
+            $files = collect(File::allFiles($path));
+            $size = $files->sum(fn ($file) => $file->getSize());
+
+            $this->bad(sprintf(
+                "map zonder tenant: %s -- %d bestand(en), %s.\n"
+                . '         Er staat geen klant met dit id meer in de registratie, maar de inhoud'
+                . " kan van een klant zijn die opnieuw is aangemaakt.\n"
+                . '         Kijk er eerst in, en zet hem daarna opzij in plaats van weg:'
+                . "\n         mv %s %s.weg",
+                $folder,
+                $files->count(),
+                $this->humanSize($size),
+                $path,
+                $path,
+            ));
+        }
+    }
+
+    private function humanSize(int $bytes): string
+    {
+        foreach (['B', 'KB', 'MB', 'GB'] as $unit) {
+            if ($bytes < 1024 || $unit === 'GB') {
+                return round($bytes, 1) . ' ' . $unit;
+            }
+
+            $bytes /= 1024;
+        }
+
+        return $bytes . ' B';
     }
 }
