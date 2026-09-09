@@ -29,3 +29,6 @@ Thumbs.db
 
 # Gemelde gesprekken: bevatten klantgegevens en horen niet in versiebeheer.
 /storage/app/**/assistant-reports
+
+# Uploads van klanten horen niet in git: dat is gegevens, geen code.
+/storage/tenant-*
