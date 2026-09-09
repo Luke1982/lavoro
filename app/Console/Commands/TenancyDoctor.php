@@ -1481,12 +1481,15 @@ class TenancyDoctor extends Command
          * De mappen van een klant blijven achter als het opruimen halverwege is
          * blijven steken. Ze doen geen kwaad, maar er kunnen bestanden van een
          * bedrijf in staan dat allang weg is -- en dat hoort niet stilletjes op
-         * de schijf te blijven liggen.
+         * de schijf te blijven liggen. Een lege map is geen bevinding: daar valt
+         * niets over te beslissen, en een deploy die daarover rood kleurt leert
+         * je alleen om de meldingen te negeren.
          */
         $folders = collect(File::directories(storage_path()))
             ->map(fn (string $path) => basename($path))
             ->filter(fn (string $name) => str_starts_with($name, 'tenant-'))
-            ->reject(fn (string $name) => $ids->contains(substr($name, strlen('tenant-'))));
+            ->reject(fn (string $name) => $ids->contains(substr($name, strlen('tenant-'))))
+            ->reject(fn (string $name) => empty(File::allFiles(storage_path($name))));
 
         if ($folders->isEmpty()) {
             $this->pass('geen mappen zonder tenant');
@@ -1501,7 +1504,8 @@ class TenancyDoctor extends Command
          * met dat id meer in de registratie staat -- niet dat er niets in zit.
          * Op productie stonden er honderden foto's en pdf's van echte werkbonnen
          * in, en dat advies is opgevolgd. Wat erin zit hoort in de melding te
-         * staan, en het voorstel is opzijzetten en niet weggooien.
+         * staan, en het opruimen gaat via een commando dat eerst laat zien wat
+         * het weggooit en om bevestiging vraagt.
          */
         foreach ($folders as $folder) {
             $path = storage_path($folder);
@@ -1512,13 +1516,13 @@ class TenancyDoctor extends Command
                 "map zonder tenant: %s -- %d bestand(en), %s.\n"
                 . '         Er staat geen klant met dit id meer in de registratie, maar de inhoud'
                 . " kan van een klant zijn die opnieuw is aangemaakt.\n"
-                . '         Kijk er eerst in, en zet hem daarna opzij in plaats van weg:'
-                . "\n         mv %s %s.weg",
+                . '         Kijk er eerst in (%s), en ruim hem daarna op met:'
+                . "\n         php artisan tenancy:prune-storage %s",
                 $folder,
                 $files->count(),
                 $this->humanSize($size),
                 $path,
-                $path,
+                $folder,
             ));
         }
     }

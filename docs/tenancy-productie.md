@@ -317,24 +317,29 @@ step before believing the doctor on that point.
 reports before continuing. What follows involves real customer data.
 
 
-## Uploads horen niet in git
+## Uploads do not belong in git
 
-`storage/tenant-<id>` is de map met de bestanden van een klant: foto's bij
-werkbonnen, pdf's, avatars. Dat zijn gegevens, net als de database, en ze staan
-met opzet in `.gitignore`.
+`storage/tenant-<id>` holds a customer's files: photos on service orders, pdfs,
+avatars. That is data, exactly like the database is, and it is in `.gitignore`
+on purpose.
 
-Ze hebben er wel een tijd in gestaan -- meegekomen met een import -- en dat
-kostte twee keer bijna de hele map: een `git reset --hard` naar de verkeerde
-branch gooide ze weg, en later deed een `rm -rf` uit een controlemelding
-hetzelfde. Ze zijn uit de historie gehaald.
+It was committed for a while -- it came along with an import -- and that nearly
+cost the whole folder twice: a `git reset --hard` onto the wrong branch wiped
+it, and later an `rm -rf` suggested by a check did the same. It has been removed
+from the history.
 
-Twee dingen om te onthouden:
+Two things to remember:
 
-- **Een pull kan bestanden weggooien.** Wordt een pad uit git gehaald, dan
-  verwijdert git het bij de volgende pull ook van schijf, ook als het intussen
-  genegeerd wordt. Zet zo'n map eerst buiten de repo voor je bijwerkt.
-- **De uitrol maakt geen back-up van bestanden**, alleen van databases. Voor de
-  uploads is een eigen back-up nodig; git was dat niet en hoort dat niet te zijn.
+- **A pull can delete files.** Once a path is removed from git, the next pull
+  removes it from disk as well, even if it is ignored by then. Move such a
+  folder outside the repository before you update.
+- **The deploy does not back up files**, only databases. The uploads need a
+  backup of their own; git was not that, and should not be.
+
+Left-over folders of customers that no longer exist show up in the doctor with
+their file count and size. Look inside first, then clear one with
+`php artisan tenancy:prune-storage tenant-<id>`; it prints what it is about to
+delete and asks before it does. Empty left-overs are not reported.
 
 ## 7. Move your existing installation in
 
