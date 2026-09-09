@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\ProvisionerConnection;
 use App\Support\WorkerHeartbeat;
+use App\Support\WorkerProcesses;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Routing\Router;
@@ -266,10 +267,10 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Draaien de workers? Een lege wachtrij ziet er hetzelfde uit als een
-     * worker die er niet is, dus tellen wat er klaarstaat zegt niets. Elke
-     * worker schrijft daarom elke minuut een hartslag, ook als hij niets te
-     * doen heeft.
+     * Are the workers running? An empty queue looks exactly like a worker that
+     * is not there, so counting what is waiting says nothing. Every worker
+     * therefore writes a heartbeat every minute, also when it has nothing to
+     * do.
      */
     private function checkWorkers(): void
     {
@@ -300,19 +301,29 @@ class TenancyDoctor extends Command
             }
 
             /**
-             * Een worker leest .env bij het opstarten en houdt dat vast. Is er
-             * daarna iets veranderd, dan draait hij door op de oude instellingen
-             * terwijl de hartslag gewoon blijft komen -- en loopt alleen het
-             * werk stuk, met een foutmelding die naar instellingen wijst die
-             * inmiddels wel kloppen.
+             * A worker reads .env at boot and holds on to it. Change something
+             * after that and it keeps running on the old settings while the
+             * heartbeat keeps coming in -- only the work breaks, with an error
+             * pointing at settings that are correct by now.
              */
             $settings = WorkerHeartbeat::settingsFor($queue);
-            $code = WorkerHeartbeat::codeFor($queue);
             $now = WorkerHeartbeat::codeVersion();
+
+            /**
+             * Ask the processes that are still there first. The single key each
+             * worker overwrites keeps a fingerprint alive long after the worker
+             * that wrote it is gone, and then this reads as a finding that no
+             * restart can clear.
+             */
+            $live = WorkerHeartbeat::liveCodes($queue);
+            $reported = $live === [] ? array_filter([WorkerHeartbeat::codeFor($queue)]) : $live;
+
+            $outdated = array_filter($reported,
+                fn (string $code) => $code !== '' && $now !== '' && $code !== $now);
 
             $stale = match (true) {
                 $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint() => 'instellingen',
-                $code !== null && $code !== '' && $now !== '' && $code !== $now => 'code',
+                $outdated !== [] => 'code',
                 default => null,
             };
 
@@ -327,16 +338,16 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Welk proces die meldingen schrijft.
+     * Which process writes those heartbeats.
      *
-     * Zonder dit zegt de bevinding alleen dát er oude code draait, en blijft
-     * hij staan hoe vaak je ook herstart -- want een herstart raakt alleen de
-     * unit, en niet wat er verder nog meedraait op dezelfde wachtrij.
+     * Without this the finding only says that old code is running, and it
+     * stays up however often you restart -- because a restart only touches the
+     * unit, not whatever else runs along on the same queue.
      */
     private function whoIsReporting(string $queue): string
     {
         $lines = WorkerHeartbeat::reporterLines($queue);
-        $running = $this->runningWorkers($queue);
+        $running = array_map(WorkerProcesses::describe(...), WorkerProcesses::forQueue($queue));
         $code = WorkerHeartbeat::codeVersion();
 
         $evidence = "\n         hier staat: " . base_path() . ', code '
@@ -354,53 +365,6 @@ class TenancyDoctor extends Command
             ? "\n         Meer dan één proces op dezelfde wachtrij: alleen de unit herstarten laat"
                 . ' de rest gewoon doorlopen.'
             : '');
-    }
-
-    /**
-     * Wat er op dit moment echt draait, gevraagd aan het systeem zelf.
-     *
-     * De hartslag komt uit de worker, en juist een worker die niet meer
-     * herstart wordt schrijft niets nieuws. ps weet het wel, en /proc zegt uit
-     * welke map het proces draait -- waarmee een tweede installatie die
-     * meeschrijft in dezelfde wachtrij meteen zichtbaar wordt.
-     *
-     * @return array<int, string>
-     */
-    private function runningWorkers(string $queue): array
-    {
-        if (!function_exists('shell_exec')) {
-            return [];
-        }
-
-        $output = (string) @shell_exec('ps -eo pid=,user=,etime=,args= 2>/dev/null');
-        $found = [];
-
-        foreach (explode("\n", $output) as $line) {
-            if (!str_contains($line, 'artisan queue:work') || str_contains($line, 'ps -eo')) {
-                continue;
-            }
-
-            $parts = preg_split('/\s+/', trim($line), 4);
-
-            if (count($parts) < 4) {
-                continue;
-            }
-
-            [$pid, $user, $running_for, $command] = $parts;
-
-            $its_queue = preg_match('/--queue[= ]([^\s,]+)/', $command, $match) ? $match[1] : 'default';
-
-            if ($its_queue !== $queue) {
-                continue;
-            }
-
-            $directory = @readlink('/proc/' . $pid . '/cwd');
-
-            $found[] = sprintf('pid %s, als %s, al %s aan het draaien, in %s',
-                $pid, $user, $running_for, $directory ?: 'onbekende map');
-        }
-
-        return $found;
     }
 
     private function checkTenant(Tenant $tenant): void

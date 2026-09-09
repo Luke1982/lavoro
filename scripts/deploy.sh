@@ -129,33 +129,10 @@ php artisan view:cache
 #
 # queue:restart zet een vlag in de cache die de worker tussen twee taken door
 # oppikt. Dat kwam hier niet aan: na een uitrol meldde de doctor allebei de
-# workers nog op de oude code. Php houdt bij het opstarten alles vast, dus tot
-# een herstart draait de vorige versie door -- en dat zie je nergens aan
-# behalve aan werk dat stilletjes verkeerd gaat.
-#
-# Het sein blijft er als terugval voor installaties zonder systemd-units.
-if sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null; then
-    echo "  workers herstart"
-    # systemctl is terug zodra de unit aan staat, niet zodra php klaar is met
-    # opstarten. Zonder deze pauze kijkt de controle hieronder nog naar de
-    # vingerafdruk van de vorige worker en meldde ze elke uitrol als 'oude
-    # code'. Een melding die er altijd staat leert je ze over te slaan.
-    #
-    # Meldt een worker zich niet, dan draait er iets mee dat de unit niet
-    # beheert: systemctl herstart zijn eigen proces, en een achterblijver van
-    # een vorige keer loopt gewoon door op oude code en schrijft in dezelfde
-    # sleutel. Die eerst omleggen, dan opnieuw laten opstarten door systemd.
-    if ! php artisan tenancy:await-workers --timeout=45; then
-        echo "  achterblijvers opruimen en opnieuw herstarten"
-        pkill -f 'artisan queue:work' 2>/dev/null || true
-        sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null || true
-        php artisan tenancy:await-workers --timeout=45 || true
-    fi
-else
-    php artisan queue:restart
-    echo "  Let op: workers alleen een sein gegeven. Draai scripts/tenancy/setup-sudoers.sh"
-    echo "  als root, dan mag de uitrol ze zelf herstarten."
-fi
+# workers nog op de oude code. Het commando herstart de units, legt om wat de
+# herstart heeft overleefd, en wacht tot beide wachtrijen zich melden met de
+# code die er nu staat -- of zegt precies welk proces dat niet doet.
+php artisan tenancy:restart-workers || true
 
 # Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit
 # draait hij door op de oude klassen terwijl de sjablonen al nieuw zijn.

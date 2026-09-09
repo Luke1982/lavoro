@@ -6,13 +6,13 @@ use App\Support\WorkerHeartbeat;
 use Illuminate\Console\Command;
 
 /**
- * Wacht tot de workers weer op de nieuwe code draaien.
+ * Waits until the workers run the code that is checked out.
  *
- * systemctl restart komt terug zodra de unit is aangezet, niet zodra php klaar
- * is met opstarten. De controle die daar meteen achteraan kwam zag daardoor nog
- * de vingerafdruk van de vorige worker en meldde bij elke uitrol dat beide
- * workers op oude code draaiden -- terwijl ze net herstart waren. Een melding
- * die altijd verschijnt is een melding die niemand meer leest.
+ * systemctl restart returns as soon as the unit is up, not as soon as php has
+ * finished booting. The check that came right after it therefore still saw the
+ * previous worker's fingerprint and reported both workers on old code at every
+ * deploy -- while they had just been restarted. A finding that always shows up
+ * is a finding nobody reads.
  */
 class TenancyAwaitWorkers extends Command
 {
@@ -62,8 +62,8 @@ class TenancyAwaitWorkers extends Command
     }
 
     /**
-     * Dezelfde vraag als de doctor stelt: een verse hartslag, en de code en
-     * instellingen waarmee de worker startte gelijk aan wat er nu staat.
+     * The same question the doctor asks: a fresh heartbeat, and the code and
+     * settings the worker booted with equal to what is here now.
      */
     private function isCurrent(string $queue): bool
     {

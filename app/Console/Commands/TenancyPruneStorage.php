@@ -7,11 +7,11 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
 /**
- * Ruimt de mappen op van klanten die niet meer bestaan.
+ * Clears out the folders of customers that no longer exist.
  *
- * De map van een klant heet naar zijn id: storage/tenant-<id>. Blijft zo'n map
- * achter nadat de klant weg is, dan komt niemand er nog bij: geen enkele
- * inlog wijst er nog naar. De doctor blijft hem melden tot hij weg is.
+ * A customer's folder is named after its id: storage/tenant-<id>. If one is
+ * left behind after the customer is gone, nobody can reach it any more: no
+ * login points at it. The doctor keeps reporting it until it is gone.
  */
 class TenancyPruneStorage extends Command
 {

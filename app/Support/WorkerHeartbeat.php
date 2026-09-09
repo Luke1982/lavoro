@@ -6,18 +6,18 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 
 /**
- * Laat een draaiende worker van zich horen.
+ * Lets a running worker say that it is there.
  *
- * Zonder dit is er geen manier om te zien of een worker leeft: een lege
- * wachtrij ziet er hetzelfde uit als een worker die er niet is, en dat is
- * precies het geval waarin er stilletjes niets meer gebeurt.
+ * Without this there is no way to tell a live worker from a missing one: an
+ * empty queue looks exactly the same either way, and that is precisely the
+ * case where work quietly stops happening.
  *
- * Queue::looping vuurt bij elke ronde van de worker, ook als er geen werk is.
- * Dat is dus een hartslag en geen teller van verwerkte jobs.
+ * Queue::looping fires on every round of the worker, also when there is
+ * nothing to do. So this is a heartbeat, not a counter of processed jobs.
  */
 final class WorkerHeartbeat
 {
-    /** Hoe vaak er hoogstens geschreven wordt. De lus draait elke seconde. */
+    /** How often it writes at most. The loop itself runs every second. */
     private const EVERY_SECONDS = 60;
 
     public const STALE_AFTER_MINUTES = 5;
@@ -25,13 +25,13 @@ final class WorkerHeartbeat
     private static ?int $last_written = null;
 
     /**
-     * De code waarmee deze worker is opgestart. Eén keer bepaald: net als de
-     * instellingen ligt die vast tot een herstart, terwijl het bestand op schijf
-     * intussen iets anders kan zeggen.
+     * The code this worker booted with. Determined once: like the settings it
+     * is fixed until a restart, while the file on disk may say something else
+     * by then.
      */
     private static ?string $code_at_boot = null;
 
-    /** Sinds wanneer dit proces meldingen schrijft. */
+    /** Since when this process has been writing heartbeats. */
     private static ?int $writing_since = null;
 
     public static function listen(): void
@@ -72,12 +72,12 @@ final class WorkerHeartbeat
     }
 
     /**
-     * Wie er op deze wachtrij van zich laat horen, per proces.
+     * Who reports on this queue, per process.
      *
-     * 'De worker draait op oudere code' zegt niet welke worker. Draait er naast
-     * de unit nog iets ouds mee, dan schrijven ze om beurten in dezelfde sleutel
-     * en blijft die melding staan hoe vaak je ook herstart. Met het proces, de
-     * map en het moment van opstarten erbij is dat in één oogopslag te zien.
+     * "The worker runs older code" does not say which worker. If something old
+     * runs alongside the unit, the two take turns writing the same key and the
+     * finding stays up however often you restart. With the process, its
+     * directory and its boot time next to it, that is visible at a glance.
      */
     private static function rememberReporter(string $queue, int $now): void
     {
@@ -94,26 +94,15 @@ final class WorkerHeartbeat
             'since' => self::$writing_since,
             'code' => self::$code_at_boot,
             'path' => base_path(),
-            'user' => self::currentUser(),
+            'user' => WorkerProcesses::currentUser(),
         ];
 
         Cache::put(self::reportersKey($queue), $alive, now()->addHour());
     }
 
-    private static function currentUser(): string
-    {
-        if (!function_exists('posix_geteuid')) {
-            return '?';
-        }
-
-        $account = posix_getpwuid(posix_geteuid());
-
-        return is_array($account) ? (string) ($account['name'] ?? '?') : '?';
-    }
-
     /**
-     * Eén regel per proces dat op deze wachtrij meldt, om onder een bevinding
-     * te zetten. Leeg als er niets bekend is.
+     * One line per process reporting on this queue, to print under a finding.
+     * Empty when nothing is known.
      *
      * @return array<int, string>
      */
@@ -128,12 +117,13 @@ final class WorkerHeartbeat
 
             $code = (string) ($reporter['code'] ?? '');
 
-            $lines[] = sprintf('pid %s, aan het werk sinds %s, in %s als %s, code %s',
+            $lines[] = sprintf('pid %s, aan het werk sinds %s, in %s als %s, code %s%s',
                 $pid,
                 date('d-m H:i', (int) ($reporter['since'] ?? 0)),
                 (string) ($reporter['path'] ?? '?'),
                 (string) ($reporter['user'] ?? '?'),
                 $code === '' ? 'onbekend' : substr($code, 0, 8),
+                WorkerProcesses::exists((int) $pid) ? '' : ' -- dat proces draait niet meer',
             );
         }
 
@@ -146,16 +136,16 @@ final class WorkerHeartbeat
     }
 
     /**
-     * Een vingerafdruk van de instellingen waarmee deze worker draait.
+     * A fingerprint of the settings this worker runs with.
      *
-     * Een worker leest .env één keer, bij het opstarten, en houdt dat vast tot
-     * hij herstart. Verandert er daarna iets -- een socketpad erbij, een ander
-     * wachtwoord -- dan draait hij door op wat hij had, terwijl alles wat de
-     * instellingen nu leest denkt dat het klopt. Dat is niet te zien aan de
-     * hartslag: die blijft gewoon komen.
+     * A worker reads .env once, at boot, and holds on to it until it restarts.
+     * Change something after that -- a socket path added, another password --
+     * and it keeps running on what it had, while everything that reads the
+     * settings now believes they are fine. The heartbeat does not show it: that
+     * keeps coming in.
      *
-     * Alleen wat het werk raakt telt mee, zodat een wijziging elders geen
-     * loos alarm oplevert.
+     * Only what touches the work counts, so a change elsewhere does not raise
+     * a false alarm.
      */
     public static function settingsFingerprint(): string
     {
@@ -179,21 +169,21 @@ final class WorkerHeartbeat
     }
 
     /**
-     * Welke code er nu op schijf staat. Php houdt alles vast wat het bij het
-     * opstarten heeft ingelezen, dus na een git pull draait een worker rustig
-     * door op de oude versie -- met een hartslag die niets laat merken.
+     * Which code is on disk right now. Php holds on to everything it read at
+     * boot, so after a git pull a worker happily keeps running the old version
+     * -- with a heartbeat that shows nothing of it.
      *
-     * Leeg als dit geen git-map is; dan valt er niets te vergelijken en wordt
-     * er ook niets beweerd.
+     * Empty when this is not a git directory; then there is nothing to compare
+     * and nothing is claimed.
      */
     public static function codeVersion(): string
     {
         $git = base_path('.git');
 
         /**
-         * In een worktree is .git geen map maar een bestand met daarin waar de
-         * echte map staat. Zonder deze stap komt daar niets uit en zou de
-         * controle stilletjes niets doen.
+         * In a worktree .git is not a directory but a file saying where the
+         * real one is. Without this step nothing comes out of it and the check
+         * would quietly do nothing.
          */
         if (is_file($git)) {
             $pointer = trim((string) file_get_contents($git));
@@ -215,14 +205,37 @@ final class WorkerHeartbeat
         $ref = $git . '/' . substr($contents, 5);
 
         /**
-         * In een worktree staan de takken in de gedeelde map, een niveau hoger
-         * dan de eigen HEAD.
+         * In a worktree the branches live in the shared directory, one level
+         * up from its own HEAD.
          */
         if (!is_readable($ref) && preg_match('#^(.*)/worktrees/[^/]+$#', $git, $found)) {
             $ref = $found[1] . '/' . substr($contents, 5);
         }
 
         return is_readable($ref) ? trim((string) file_get_contents($ref)) : '';
+    }
+
+    /**
+     * The code fingerprints of the processes on this queue that still exist.
+     *
+     * More reliable than the single key every worker overwrites: two workers on
+     * one queue take turns writing it, so that key says whichever wrote last.
+     * Empty for workers from before this bookkeeping, which is why the caller
+     * falls back to that key.
+     *
+     * @return array<int, string>
+     */
+    public static function liveCodes(string $queue): array
+    {
+        $codes = [];
+
+        foreach ((array) Cache::get(self::reportersKey($queue), []) as $pid => $reporter) {
+            if (is_array($reporter) && WorkerProcesses::exists((int) $pid)) {
+                $codes[] = (string) ($reporter['code'] ?? '');
+            }
+        }
+
+        return $codes;
     }
 
     public static function codeFor(string $queue): ?string
@@ -247,8 +260,8 @@ final class WorkerHeartbeat
     }
 
     /**
-     * Welke wachtrij deze worker afhandelt. Uit de opdrachtregel, want de lus
-     * zelf geeft dat niet mee. Zonder --queue is het de standaardwachtrij.
+     * Which queue this worker handles. From the command line, because the loop
+     * itself does not pass it. Without --queue it is the default queue.
      */
     private static function queueFromCommandLine(): ?string
     {
@@ -258,7 +271,7 @@ final class WorkerHeartbeat
             return null;
         }
 
-        /** Een enkele job (tests, handmatig) zegt niets over een draaiende worker. */
+        /** A single job (tests, by hand) says nothing about a running worker. */
         if (in_array('--once', $argv, true)) {
             return null;
         }
