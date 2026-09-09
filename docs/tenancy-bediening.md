@@ -7,6 +7,26 @@ Alles wat je op een server doet. Voor de redenering achter de opzet:
 Volg [tenancy-productie.md](tenancy-productie.md) — dat is de doorlopende lijst van nul tot
 draaiend. Hieronder staat het dagelijkse werk.
 
+
+## Lokaal werken
+
+Alles hieronder valt ook lokaal te doen, zonder productie:
+
+```bash
+./scripts/tenancy/dev.sh                 # app, beide workers en vite
+./scripts/tenancy/dev.sh --reset-logins  # alle wachtwoorden op 'testtest'
+```
+
+De app staat dan op http://127.0.0.1:8199, het beheerpaneel op /beheer. Het
+script noemt bij het starten welke klanten er zijn en met welk e-mailadres je
+bij elk binnenkomt.
+
+Dat draait op `.env.localtest`, met een eigen centrale database en echte
+klantdatabases ernaast -- niet op `.env`, want die wijst naar een database die
+niet altijd draait. Vandaar dat het script `APP_ENV` als omgevingsvariabele
+zet: `--env=localtest` geldt alleen voor het artisan-commando zelf, terwijl de
+verzoeken die de server afhandelt opnieuw opstarten en dan gewoon `.env` lezen.
+
 ## Wat er moet draaien
 
 | | Wat | Als wie |
@@ -201,11 +221,70 @@ php artisan tenant:package <id> business
 php artisan tenant:modules <id> --add=assistant --remove=quotes
 php artisan tenant:seats <id> --field=+5 --office=2
 php artisan tenant:storage <id> --limit=200
-php artisan tenant:override <id> --price=14900   # vaste maandprijs in centen, --clear wist hem
+php artisan tenant:override <id> --price=14900   # vaste pakketprijs in centen, --clear wist hem
 ```
 
-Alles kan ook in het paneel. Een pakketwissel halverwege de maand zet
-automatisch een verrekening klaar voor de volgende factuur.
+**Een vaste prijs geldt voor het pakket, niet voor de rest.** Extra plekken,
+modules en extra opslag komen er bovenop; anders zou een klant met een vaste
+prijs alles wat hij bijneemt gratis krijgen. Voor een losse module valt in het
+paneel een eigen prijs af te spreken, en die gaat voor op een bundelprijs uit
+de catalogus.
+
+Overal waar zo'n afspraak geldt, zet de factuur de gewone prijs erbij:
+*Abonnement Lavoro Starter 01-09-2026 t/m 30-09-2026, normaal € 27,50, speciale
+prijsafspraak*. Over een jaar weet niemand meer waarom er een ander bedrag
+stond, en de klant hoort te zien dat het een afspraak was en geen fout.
+
+Alles kan ook in het paneel.
+
+**Alleen een pakketwijziging wordt verrekend.** Wissel je halverwege een periode
+van pakket, of spreek je een andere prijs voor dat pakket af, dan betaalt de
+klant over die periode het oude tot de dag van de wissel en het nieuwe daarna.
+Wat er los bijkomt levert geen aparte verrekeningsregel op. Een module die
+halverwege de maand wordt aangezet, wordt op zijn eigen regel naar rato
+gerekend: *AI-assistent 07-09-2026 t/m 30-09-2026 (24 van 30 dagen)*. Staat er
+een prijsafspraak op, dan gaat de normale prijs ernaast over dezelfde dagen, zodat
+de twee bedragen te vergelijken zijn. Een bundel telt vanaf de dag dat hij
+compleet werd.
+
+Extra plekken en opslag gaan wel voor de hele periode mee; die horen bij de
+omvang van het abonnement en niet bij een los product.
+
+**Opzeggen** gaat met de datum *Opgezegd per*: de laatste dag waarop het
+abonnement loopt. Er wordt tot en met die dag gerekend, dus de laatste maand
+staat naar rato op de factuur. Was die maand al gefactureerd, dan komt het te
+veel betaalde als tegoed terug op de eerstvolgende factuur. Wordt de opzegging
+weer ingetrokken, dan vervalt dat tegoed. Na de laatste dag valt er niets meer
+te factureren.
+
+Blijft er tegoed over waar niets meer tegenover staat -- en bij een vertrokken
+klant is dat de regel, want er komt geen volgende factuur meer -- dan levert de
+knop een **creditfactuur** op: hetzelfde nummer uit dezelfde reeks, met een
+negatief bedrag. De pdf en de mail heten dan ook creditfactuur. Incasseren kan
+er niet mee: terugstorten gaat met de hand, en het incassobestand slaat
+creditfacturen over.
+
+**Van maand naar jaar of andersom** begint de nieuwe termijn bij de
+eerstvolgende periode die nog niet betaald is, en nooit met terugwerkende
+kracht. Wie in september zijn maand al betaald heeft en overstapt op jaar,
+krijgt zijn jaarfactuur per 1 oktober; wie een jaar vooruitbetaald heeft en
+naar maand gaat, krijgt zijn eerste maandfactuur zodra dat jaar op is. Dat
+anker staat los van de ingangsdatum op het scherm, die blijft wat hij was.
+
+De verrekening van een pakketwijziging kan twee kanten op:
+
+- Was de periode al gefactureerd tegen de oude prijs, dan komt het verschil er
+  bij over de dagen die nog komen.
+- Was hij nog niet gefactureerd, dan rekent de eerstvolgende factuur het nieuwe
+  pakket over de hele periode -- ook over de dagen op het oude pakket. Die gaan
+  er als tegoed af.
+
+Een wissel op de eerste dag van een nog niet gefactureerde periode levert dus
+niets op: er is dan nog geen dag op het oude pakket voorbij.
+
+Gaat een klant naar een goedkoper pakket, dan staat er tegoed open. Is dat meer
+dan er op dat moment te factureren valt, dan komt er geen factuur: het tegoed
+blijft staan en gaat van de volgende af. Het scherm zegt dat er dan ook bij.
 
 ## Facturen
 

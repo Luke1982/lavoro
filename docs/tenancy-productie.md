@@ -278,6 +278,21 @@ unattended account — through PHP it would amount to giving away the provisione
 entirely, and it proves the rule actually works before it finishes. Skipping it
 is fine; you then keep typing `sudo -u`.
 
+**What that account may do with `sudo`, and nothing else.** Two rules, both
+`NOPASSWD` and both limited to exact commands:
+
+- become `lavoro_provisioner`, but only through the PHP binary — that is how
+  `tenants:*` commands reach the database and the tenant storage;
+- `systemctl restart lavoro-worker lavoro-provisioning`, because PHP holds all
+  code from the moment it starts. Without a restart a worker keeps running the
+  previous release after a deploy, the heartbeat carries on as if nothing is
+  wrong, and only the work quietly goes wrong. `queue:restart` alone did not
+  do it here, so the deploy restarts the units.
+
+It is not general `sudo`: no shell, no root, nothing outside those two lines.
+Run `setup-sudoers.sh` again after changing accounts, otherwise the deploy
+falls back to signalling the workers and says so.
+
 **A worker reads `.env` once, when it starts.** Change anything afterwards and
 it keeps running on what it had — the heartbeat carries on as if nothing is
 wrong, and only the work fails, pointing at settings that now look correct. So
@@ -300,6 +315,26 @@ step before believing the doctor on that point.
 
 **Everything above should now be clean.** Run the doctor and fix anything it
 reports before continuing. What follows involves real customer data.
+
+
+## Uploads horen niet in git
+
+`storage/tenant-<id>` is de map met de bestanden van een klant: foto's bij
+werkbonnen, pdf's, avatars. Dat zijn gegevens, net als de database, en ze staan
+met opzet in `.gitignore`.
+
+Ze hebben er wel een tijd in gestaan -- meegekomen met een import -- en dat
+kostte twee keer bijna de hele map: een `git reset --hard` naar de verkeerde
+branch gooide ze weg, en later deed een `rm -rf` uit een controlemelding
+hetzelfde. Ze zijn uit de historie gehaald.
+
+Twee dingen om te onthouden:
+
+- **Een pull kan bestanden weggooien.** Wordt een pad uit git gehaald, dan
+  verwijdert git het bij de volgende pull ook van schijf, ook als het intussen
+  genegeerd wordt. Zet zo'n map eerst buiten de repo voor je bijwerkt.
+- **De uitrol maakt geen back-up van bestanden**, alleen van databases. Voor de
+  uploads is een eigen back-up nodig; git was dat niet en hoort dat niet te zijn.
 
 ## 7. Move your existing installation in
 
