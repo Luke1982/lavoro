@@ -55,11 +55,17 @@ if ! printf '%s\n' "$LINES" | grep -q '^DUMP'; then
     exit 1
 fi
 
-printf '%s\n' "$LINES" | grep '^OVERSLAAN' | cut -f2 | while read -r NAME; do
-    echo "  overgeslagen (database niet bereikbaar): ${NAME}"
-done || true
+# Met een here-string en niet via een pijp: in 'grep | while' draait de lus in
+# een subshell, en alles wat daarbinnen omvalt sterft daar stil. Je zag dan
+# alleen dat de pijplijn mislukte, zonder de melding uit de lus zelf -- en een
+# exit uit die lus stopte het script niet eens.
+while IFS=$'\t' read -r MARK REST; do
+    [ "$MARK" = "OVERSLAAN" ] && echo "  overgeslagen (database niet bereikbaar): ${REST}"
+done <<< "$LINES"
 
-printf '%s\n' "$LINES" | grep '^DUMP' | while IFS=$'\t' read -r _ DB USER PASS HOST PORT; do
+while IFS=$'\t' read -r MARK DB USER PASS HOST PORT; do
+    [ "$MARK" = "DUMP" ] || continue
+
     # Via een tijdelijk bestand en niet op de opdrachtregel: daar leest iedereen
     # met ps het wachtwoord mee.
     CONFIG=$(mktemp)
@@ -77,9 +83,14 @@ printf '%s\n' "$LINES" | grep '^DUMP' | while IFS=$'\t' read -r _ DB USER PASS H
     fi
 
     rm -f "$CONFIG"
-    mv "${TARGET}.part" "$TARGET"
+
+    if ! mv "${TARGET}.part" "$TARGET"; then
+        echo "  Kon de back-up van ${DB} niet op zijn plek zetten. Is storage/backups beschrijfbaar voor $(id -un)?" >&2
+        exit 1
+    fi
+
     echo "  ${DB} ($(du -h "$TARGET" | cut -f1))"
-done
+done <<< "$LINES"
 
 step "Code"
 # De build maakt public/service-worker.js opnieuw. Zolang die op deze server nog
