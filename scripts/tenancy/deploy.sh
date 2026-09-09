@@ -110,13 +110,23 @@ php artisan view:cache
 # Beide workers halen hun code opnieuw op: de gewone en die van de provisioning.
 php artisan queue:restart
 
-# Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit draait
-# hij door op de oude klassen terwijl de sjablonen al nieuw zijn.
-# LiteSpeed heeft geen unit voor lsphp: de processen worden vanzelf opnieuw
-# gestart zodra ze weg zijn, dus pkill is daar de manier.
-systemctl reload php8.3-fpm 2>/dev/null \
-    || pkill lsphp 2>/dev/null \
-    || echo "  Let op: php onder de webserver zelf herstarten (opcache)."
+# Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit
+# draait hij door op de oude klassen terwijl de sjablonen al nieuw zijn.
+#
+# lsphp eerst, want daar draait deze installatie op. En met -f: pkill vergelijkt
+# standaard de procesnaam precies, en die is lsphp8.3 -- 'pkill lsphp' vond dus
+# nooit iets. LiteSpeed heeft geen unit; de processen komen vanzelf terug.
+#
+# systemctl alleen als het zonder wachtwoord kan: als gewone gebruiker vraagt
+# reload om een polkit-wachtwoord, en dan staat een uitrol te wachten op iemand
+# die niet meekijkt.
+if pkill -f lsphp 2>/dev/null; then
+    echo "  lsphp herstart (opcache leeg)"
+elif sudo -n systemctl reload php8.3-fpm 2>/dev/null; then
+    echo "  php-fpm herladen (opcache leeg)"
+else
+    echo "  Let op: php onder de webserver zelf herstarten, anders draait hij door op de oude code."
+fi
 
 step "Controle"
 # Twee controles, elk met een eigen bereik: het script kijkt naar de rechten van
