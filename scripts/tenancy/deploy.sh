@@ -125,8 +125,22 @@ step "Caches"
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-# Beide workers halen hun code opnieuw op: de gewone en die van de provisioning.
-php artisan queue:restart
+# Beide workers echt herstarten, niet alleen een sein geven.
+#
+# queue:restart zet een vlag in de cache die de worker tussen twee taken door
+# oppikt. Dat kwam hier niet aan: na een uitrol meldde de doctor allebei de
+# workers nog op de oude code. Php houdt bij het opstarten alles vast, dus tot
+# een herstart draait de vorige versie door -- en dat zie je nergens aan
+# behalve aan werk dat stilletjes verkeerd gaat.
+#
+# Het sein blijft er als terugval voor installaties zonder systemd-units.
+if sudo -n systemctl restart lavoro-worker lavoro-provisioning 2>/dev/null; then
+    echo "  workers herstart"
+else
+    php artisan queue:restart
+    echo "  Let op: workers alleen een sein gegeven. Draai scripts/tenancy/setup-sudoers.sh"
+    echo "  als root, dan mag de uitrol ze zelf herstarten."
+fi
 
 # Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit
 # draait hij door op de oude klassen terwijl de sjablonen al nieuw zijn.

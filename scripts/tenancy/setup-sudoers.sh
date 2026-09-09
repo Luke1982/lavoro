@@ -262,11 +262,23 @@ if [ -n "$DEPLOY_ACCOUNT" ]; then
     MYSQLDUMP_PATH="$(command -v mysqldump || command -v mariadb-dump || true)"
     [ -n "$MYSQLDUMP_PATH" ] || die "Geen mysqldump gevonden; de deploy-regel kan niet gemaakt worden."
 
+    SYSTEMCTL_PATH="$(command -v systemctl || true)"
+
     DEPLOY_RULE="# /etc/sudoers.d/lavoro-deploy
-# Alleen back-ups. Met opzet geen php: dat zou de deploy alles laten doen wat
-# de provisioner kan, zonder dat iemand meekijkt.
+# Alleen back-ups en het herstarten van de twee workers. Met opzet geen php:
+# dat zou de deploy alles laten doen wat de provisioner kan, zonder dat iemand
+# meekijkt.
+#
+# Herstarten hoort erbij omdat php bij het opstarten alle code vasthoudt: zonder
+# herstart draait een worker na een uitrol door op de vorige versie, en dat is
+# aan niets te zien behalve aan het werk dat stilletjes verkeerd gaat.
 # Aangemaakt door scripts/tenancy/setup-sudoers.sh
 ${DEPLOY_ACCOUNT} ALL=(${PROV_ACCOUNT}) NOPASSWD: ${MYSQLDUMP_PATH}"
+
+    if [ -n "$SYSTEMCTL_PATH" ]; then
+        DEPLOY_RULE="${DEPLOY_RULE}
+${DEPLOY_ACCOUNT} ALL=(root) NOPASSWD: ${SYSTEMCTL_PATH} restart lavoro-worker lavoro-provisioning, ${SYSTEMCTL_PATH} restart lavoro-worker, ${SYSTEMCTL_PATH} restart lavoro-provisioning"
+    fi
 
     install_rule /etc/sudoers.d/lavoro-deploy "$DEPLOY_RULE"
 fi
