@@ -15,9 +15,9 @@ use App\Http\Middleware\UseLandlordGuard;
 use Illuminate\Support\Facades\Route;
 
 /**
- * Het landlord-paneel draait alleen centraal: deze routes krijgen nooit een
- * tenant, en de tenancy-middleware wordt er expliciet af gehaald omdat die
- * anders de landlord uitlogt zodra er geen tenant is.
+ * The landlord panel runs centrally only: these routes never get a tenant, and
+ * the tenancy middleware is explicitly taken off them because it would log the
+ * landlord out as soon as there is no tenant.
  */
 Route::prefix('beheer')
     ->middleware([UseLandlordGuard::class, HandleLandlordInertiaRequests::class])

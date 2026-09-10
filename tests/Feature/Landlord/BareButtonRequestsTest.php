@@ -7,13 +7,12 @@ use App\Http\Requests\Landlord\DestroySuperAdminRequest;
 use Tests\TestCase;
 
 /**
- * Knoppen in het beheer die alleen een token meesturen: geen invoervelden,
- * geen formulier. Hangt er een verzoek aan dat iets verplicht stelt, dan
- * strandt de knop op "veld is verplicht" terwijl er met de actie niets mis is.
+ * Buttons in the admin panel that only send a token: no input fields, no form.
+ * Hang a request on one that requires something, and the button strands on
+ * "field is required" while there is nothing wrong with the action.
  *
- * Dat is twee keer gebeurd, allebei doordat het aanmaakverzoek werd
- * hergebruikt voor het verwijderen. Vandaar deze lijst: een nieuwe kale knop
- * hoort hier bij te komen.
+ * That happened twice, both times because the create request was reused for
+ * deleting. Hence this list: a new bare button belongs in it.
  */
 class BareButtonRequestsTest extends TestCase
 {

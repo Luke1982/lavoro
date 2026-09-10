@@ -8,10 +8,10 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * Handmatig initialize() en end() koppelen gaat fout zodra er iets tussenin
- * gooit: de tenant blijft dan openstaan en de rest van het verzoek draait in
- * de database van de vorige klant. Geen foutmelding, alleen verkeerde
- * gegevens. Deze helper maakt dat onmogelijk, en dat hoort vast te liggen.
+ * Pairing initialize() and end() by hand goes wrong as soon as something in
+ * between throws: the tenant stays open and the rest of the request runs in the
+ * previous customer's database. No error, only wrong data. This helper makes
+ * that impossible, and that should be nailed down.
  */
 class TenancyWithinTest extends TestCase
 {

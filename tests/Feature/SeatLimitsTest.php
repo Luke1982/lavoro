@@ -8,10 +8,10 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De plaatsen uit het abonnement. Elke weg waarlangs er eentje bezet raakt
- * moet dezelfde grens tegenkomen -- aanmaken, wijzigen én terugzetten. Die
- * laatste ging langs geen enkel formulier en sloeg de controle dus over:
- * weggooien en terughalen bracht je over je abonnement heen.
+ * The seats from the subscription. Every road along which one gets occupied has
+ * to meet the same limit -- creating, updating and restoring. That last one
+ * passed no form at all and therefore skipped the check: deleting and restoring
+ * took you over your subscription.
  */
 class SeatLimitsTest extends TestCase
 {

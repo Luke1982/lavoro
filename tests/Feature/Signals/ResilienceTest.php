@@ -40,11 +40,12 @@ class ResilienceTest extends TestCase
         ]);
 
         /**
-         * De storing zit op modelniveau en niet meer in het schema. De oude
-         * versie gooide de tabel weg, en op MySQL is DROP TABLE een impliciete
-         * commit: de tabel bleef weg voor elke test erna, en de omhullende
-         * testtransactie was stilletjes al gecommit. Een creating-listener die
-         * gooit simuleert dezelfde mislukking zonder iets te slopen.
+         * The failure sits at model level and no longer in the schema. The old
+         * version dropped the table, and on MySQL DROP TABLE is an implicit
+         * commit: the table stayed gone for every test after it, and the
+         * enclosing test transaction had quietly been committed already. A
+         * creating listener that throws simulates the same failure without
+         * breaking anything.
          */
         ActivityChange::creating(function () {
             throw new \RuntimeException('activity_changes is stuk (testinjectie)');

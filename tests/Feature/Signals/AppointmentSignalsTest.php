@@ -18,7 +18,6 @@ use Tests\TestCase;
  */
 class AppointmentSignalsTest extends TestCase
 {
-
     private function appointment(): Event
     {
         return Event::create([
@@ -54,9 +53,9 @@ class AppointmentSignalsTest extends TestCase
     public function test_cancelling_an_appointment_releases_its_werkbonnen_back_to_planning(): void
     {
         /**
-         * De gezaaide testtenant heeft zelf al een geannuleerd-fase, en de
-         * listener pakt "de" fase met die vlag. Deze test rekent op precies
-         * een, dus hij begint leeg; de transactie draait het terug.
+         * The seeded test tenant already has a cancelled stage of its own, and
+         * the listener picks "the" stage with that flag. This test counts on
+         * exactly one, so it starts empty; the transaction rolls it back.
          */
         ServiceOrderStage::query()->delete();
 

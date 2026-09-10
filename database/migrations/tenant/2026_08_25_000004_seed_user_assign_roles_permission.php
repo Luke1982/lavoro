@@ -4,9 +4,9 @@ use App\Models\Permission;
 use Illuminate\Database\Migrations\Migration;
 
 /**
- * Rollen toekennen zat vastgeklonken aan admin. Het is een eigen recht omdat
- * wie rollen uitdeelt indirect alle rechten uitdeelt: dat hoort los te staan
- * van het gewone bewerken van een gebruiker.
+ * Granting roles was riveted to admin. It is a permission of its own because
+ * whoever hands out roles indirectly hands out every permission: that should be
+ * separate from ordinary editing of a user.
  */
 return new class extends Migration
 {

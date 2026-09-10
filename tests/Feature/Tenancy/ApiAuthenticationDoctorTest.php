@@ -7,13 +7,13 @@ use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 use Tests\TestCase;
 
 /**
- * De doctor hoort te melden wanneer /api zijn sessie kwijtraakt.
+ * The doctor should report when /api loses its session.
  *
- * Verzoeken van de planner lopen door de eigen pijplijn van Sanctum, en die
- * slaat hij over zodra hij het verzoek niet herkent als afkomstig van de eigen
- * voorkant. De schermen doen het dan gewoon en de planner geeft op elke
- * handeling 'Unauthenticated'. Aan de app is dat niet te zien, dus moet de
- * doctor het zeggen.
+ * The planner's requests run through Sanctum's own pipeline, and it skips that
+ * pipeline as soon as it does not recognise the request as coming from its own
+ * front end. The screens then work fine and the planner returns
+ * 'Unauthenticated' on every action. The app does not show it, so the doctor
+ * has to say it.
  */
 class ApiAuthenticationDoctorTest extends TestCase
 {

@@ -7,13 +7,13 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * De eerste beheerder van een nieuwe klant kreeg 'is_admin' => true mee, een
- * kolom die niet bestaat. Dat werd stil weggelaten en elke nieuwe klant begon
- * met een beheerder die nergens bij mocht -- zonder foutmelding, want het
- * aanmaken zelf lukte prima.
+ * The first admin of a new customer was given 'is_admin' => true, a column that
+ * does not exist. That was silently dropped and every new customer started with
+ * an admin who was allowed nowhere -- without an error, because the creating
+ * itself worked fine.
  *
- * Beheerder zijn is een rol. Deze test kijkt naar de rol en niet naar het
- * aanmaken, want dat laatste ging nooit mis.
+ * Being an admin is a role. This test looks at the role and not at the
+ * creating, because the latter never went wrong.
  */
 class TenantAdminCommandTest extends TestCase
 {

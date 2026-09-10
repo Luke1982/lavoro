@@ -1,9 +1,8 @@
 @php
     /**
-     * Vooraf uitgetekend en niet als SVG meegegeven. dompdf schaalt een SVG
-     * met een verhouding die per plaatje anders uitvalt; een PNG met een vaste
-     * maat komt eruit zoals hij erin gaat. De bestanden worden gemaakt met
-     * scripts/invoice-icons.py.
+     * Drawn up front and not handed over as an SVG. dompdf scales an SVG with a
+     * ratio that turns out differently per image; a PNG with a fixed size comes
+     * out as it goes in. The files are made with scripts/invoice-icons.py.
      */
     $file = public_path('img/invoice/' . $name . '.png');
     $data = is_readable($file)

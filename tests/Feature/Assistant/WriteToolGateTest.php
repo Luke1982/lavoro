@@ -51,11 +51,11 @@ class WriteToolGateTest extends TestCase
     }
 
     /**
-     * Een token is met APP_KEY versleuteld en APP_KEY is er maar een voor de
-     * hele installatie, dus zonder de tenantcontrole is een goedkeuring uit de
-     * ene tenant een goedkeuring in elke andere -- de eerste admin heet overal
-     * gebruiker 1. De controle zit in decode(); hier wordt de herhaal-aanval
-     * zelf nagespeeld in plaats van alleen dat er "iets" geweigerd wordt.
+     * A token is encrypted with APP_KEY and there is only one APP_KEY for the
+     * whole installation, so without the tenant check an approval from one
+     * tenant is an approval in every other -- the first admin is user 1
+     * everywhere. The check sits in decode(); here the replay attack itself is
+     * acted out instead of only asserting that "something" is refused.
      */
     public function test_a_confirmation_token_dies_with_its_tenant(): void
     {

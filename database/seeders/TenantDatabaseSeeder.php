@@ -37,8 +37,8 @@ class TenantDatabaseSeeder extends Seeder
         }
 
         /**
-         * De testsuite maakt haar eigen rollen aan; die botsen op naam met deze.
-         * Fases en het bedrijf zijn wel altijd nodig.
+         * The test suite creates roles of its own; those clash by name with
+         * these. Stages and the company are always needed.
          */
         if (app()->runningUnitTests()) {
             return;

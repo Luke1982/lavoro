@@ -1,11 +1,11 @@
 <?php
 
 /**
- * De rollen die een nieuwe tenant meekrijgt, met het bestand waar hun rechten in
- * staan. Dit is de enige lijst: TenantDatabaseSeeder loopt hem af en zoekt per
- * rol database/seeders/data/{slug}_permissions.php op.
+ * The roles a new tenant is given, with the file holding their permissions.
+ * This is the only list: TenantDatabaseSeeder walks it and looks up
+ * database/seeders/data/{slug}_permissions.php per role.
  *
- * Een rol toevoegen is hier een regel en een bestand ernaast, nergens anders.
+ * Adding a role is a line here and a file next to it, nowhere else.
  */
 return [
     'admin' => 'admin',

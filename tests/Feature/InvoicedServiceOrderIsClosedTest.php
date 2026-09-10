@@ -10,7 +10,6 @@ use Tests\TestCase;
 
 class InvoicedServiceOrderIsClosedTest extends TestCase
 {
-
     private ServiceOrderStage $open_stage;
 
     private ServiceOrderStage $closed_stage;
@@ -22,10 +21,10 @@ class InvoicedServiceOrderIsClosedTest extends TestCase
         parent::setUp();
 
         /**
-         * De testtenant is gezaaid en heeft dus al een gesloten en een
-         * gefactureerde fase. Deze test gaat juist over de volgorderegels
-         * tussen die vlaggen en rekent op precies één van elk, dus hij begint
-         * met een lege tabel; de transactie om elke test draait het terug.
+         * The test tenant is seeded and therefore already has a closed and an
+         * invoiced stage. This test is about the ordering rules between those
+         * flags and counts on exactly one of each, so it starts with an empty
+         * table; the transaction around every test rolls it back.
          */
         ServiceOrderStage::query()->delete();
 

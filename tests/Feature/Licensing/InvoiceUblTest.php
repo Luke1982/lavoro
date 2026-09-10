@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Het UBL-bestand gaat het boekhoudpakket van de klant in. Klopt de optelling
- * niet, dan staat er een verkeerd bedrag in andermans administratie -- en dat
- * merkt niemand aan een foutmelding.
+ * The UBL file goes into the customer's accounting package. If the total does
+ * not add up, a wrong amount sits in someone else's ledger -- and nobody
+ * notices that from an error message.
  */
 class InvoiceUblTest extends TestCase
 {
