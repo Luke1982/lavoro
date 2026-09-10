@@ -8,9 +8,9 @@ use Illuminate\Mail\Events\MessageSending;
 use Symfony\Component\Mime\Address;
 
 /**
- * Zet de afzender van de klant op de post van de klant. Zonder dit staat er
- * het adres uit de .env boven, en dat is het adres van wie er toevallig als
- * eerste is opgeleverd.
+ * Puts the customer's sender on the customer's post. Without this the address
+ * from .env is on top of it, and that is the address of whoever happened to be
+ * delivered first.
  */
 class ApplyTenantSender
 {
@@ -27,9 +27,9 @@ class ApplyTenantSender
         }
 
         /**
-         * Alleen als de afzender nog de standaard uit de .env is. Een mail die
-         * zelf een afzender heeft gezet — onze eigen facturen bijvoorbeeld —
-         * blijft zo van de partij die hem stuurt.
+         * Only when the sender is still the default from .env. A mail that set
+         * a sender itself -- our own invoices, for instance -- stays from the
+         * party sending it.
          */
         $current = $event->message->getFrom()[0] ?? null;
 

@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Verstuurt een factuur naar de tenant. Altijd via de mailer 'landlord' en
- * nooit via die van de klant: onze facturen horen van ons te komen, ook als
- * de klant zijn eigen mailserver stuk heeft.
+ * Sends an invoice to the tenant. Always through the 'landlord' mailer and
+ * never through the customer's: our invoices should come from us, also when the
+ * customer has broken their own mail server.
  */
 class InvoiceMailer
 {
@@ -29,8 +29,9 @@ class InvoiceMailer
                 ->send(new InvoiceMail($invoice, $tenant));
         } catch (\Throwable $e) {
             /**
-             * De factuur zelf blijft staan. Hem terugdraaien omdat de mail niet
-             * aankwam zou het nummer laten verdwijnen uit een doorlopende reeks.
+             * The invoice itself stays. Rolling it back because the mail did
+             * not arrive would make the number disappear from a continuous
+             * series.
              */
             Log::error('Factuur versturen mislukt', [
                 'invoice' => $invoice->number,

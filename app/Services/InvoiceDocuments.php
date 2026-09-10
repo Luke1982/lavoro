@@ -8,8 +8,8 @@ use App\Models\Tenant;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
- * Eén plek die van een factuur een PDF en een UBL-bestand maakt, zodat de
- * knop in het beheer, de mail en de test hetzelfde bestand opleveren.
+ * One place that turns an invoice into a PDF and a UBL file, so the button in
+ * the admin panel, the mail and the test all produce the same file.
  */
 class InvoiceDocuments
 {
@@ -42,9 +42,9 @@ class InvoiceDocuments
     }
 
     /**
-     * Als data-URI en niet als pad: dompdf haalt een bestand alleen op als het
-     * dat mag, en een factuur die stil zonder logo uitrolt is lastiger te
-     * merken dan een die niet rendert.
+     * As a data URI and not as a path: dompdf only fetches a file when it may,
+     * and an invoice that quietly comes out without a logo is harder to notice
+     * than one that does not render.
      */
     public function logo(): ?string
     {

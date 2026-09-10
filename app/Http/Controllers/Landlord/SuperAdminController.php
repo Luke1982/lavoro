@@ -9,7 +9,7 @@ use App\Models\Tenant;
 use App\Services\TenantSuperAdmins;
 
 /**
- * Onze eigen accounts binnen de database van een klant.
+ * Our own accounts inside a customer's database.
  */
 class SuperAdminController extends Controller
 {
@@ -18,7 +18,7 @@ class SuperAdminController extends Controller
         $tenant = Tenant::on('central')->findOrFail($id);
         $data = $request->validated();
 
-        /** Een weigering met een reden wordt centraal afgehandeld; zie bootstrap/app.php. */
+        /** A refusal with a reason is handled centrally; see bootstrap/app.php. */
         $password = app(TenantSuperAdmins::class)
             ->create($tenant, $data['email'], $data['password'] ?? '');
 

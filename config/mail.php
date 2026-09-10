@@ -41,18 +41,18 @@ return [
         ],
 
         /**
-         * De post van de klant. Welke server erachter zit staat per tenant in
-         * general_settings, niet hier: één server in de .env zou de mail van
-         * elke klant uit de mailbox van de eerste laten vertrekken.
+         * The customer's post. Which server sits behind it is per tenant in
+         * general_settings, not here: one server in .env would have every
+         * customer's mail leave from the first one's mailbox.
          */
         'tenant' => [
             'transport' => 'tenant',
         ],
 
         /**
-         * Onze eigen post: facturen aan de tenants. Bewust los van de mailer
-         * van de klant, zodat een klant die zijn mailserver sloopt onze
-         * facturen niet tegenhoudt.
+         * Our own post: invoices to the tenants. Deliberately separate from the
+         * customer's mailer, so a customer who breaks their mail server does
+         * not hold up our invoices.
          */
         'landlord' => [
             'transport' => 'smtp',

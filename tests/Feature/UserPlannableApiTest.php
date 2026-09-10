@@ -8,11 +8,11 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * Het vinkje 'inplanbaar' in de planner.
+ * The 'plannable' checkbox in the planner.
  *
- * De planner leunt hier op: staat er niemand inplanbaar, dan is er niets om op
- * te plannen. Het vinkje gaat over /api, en dat pad heeft zijn eigen
- * afhandeling van tenancy en aanmelding -- precies waar het mis kon gaan.
+ * The planner leans on it: with nobody plannable there is nothing to plan. The
+ * checkbox goes over /api, and that path has its own handling of tenancy and
+ * authentication -- exactly where it could go wrong.
  */
 class UserPlannableApiTest extends TestCase
 {

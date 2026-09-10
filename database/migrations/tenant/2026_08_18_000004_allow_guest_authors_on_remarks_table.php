@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Een opmerking hoeft niet meer van een gebruiker te zijn.
+ * A remark no longer has to belong to a user.
  *
- * Een klant die via een aanleverlink iets toelicht heeft geen account en krijgt er
- * ook geen. De naam wordt overgeschreven en niet als verwijzing bewaard, net als
- * bij de tijdlijn: een klant die later anders gaat heten mag niet met terugwerkende
- * kracht iets anders gezegd hebben.
+ * A customer explaining something through an upload link has no account and is
+ * not given one. The name is copied over and not kept as a reference, like in
+ * the timeline: a customer who is renamed later must not retroactively have
+ * said something else.
  */
 return new class extends Migration
 {
@@ -27,13 +27,13 @@ return new class extends Migration
     }
 
     /**
-     * Terug kan alleen als er geen opmerkingen van klanten meer staan: die hebben
-     * geen gebruiker en passen niet in de oude kolom.
+     * Going back is only possible when no remarks from customers are left:
+     * those have no user and do not fit the old column.
      *
-     * Ze worden hier niet weggegooid. Een abonnement is een voorkeur die je zo
-     * opnieuw aanzet, maar dit is wat een klant geschreven heeft over zijn eigen
-     * storing, en dat verdwijnt niet als bijvangst van een schemawijziging. Wie
-     * terug wil krijgt te horen wat hem in de weg staat.
+     * They are not thrown away here. A subscription is a preference you switch
+     * on again, but this is what a customer wrote about their own incident, and
+     * that does not disappear as a by-catch of a schema change. Whoever wants
+     * to go back is told what is in the way.
      */
     public function down(): void
     {

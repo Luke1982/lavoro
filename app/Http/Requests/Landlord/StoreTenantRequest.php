@@ -20,7 +20,7 @@ class StoreTenantRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            /** Wereldwijd uniek: het adres wijst bij het inloggen de tenant aan. */
+            /** Globally unique: the address points at the tenant when logging in. */
             'email' => ['required', 'email', 'max:255', 'unique:central.user_tenant_lookups,email'],
             'package_key' => ['required', 'exists:central.packages,key'],
             'modules' => ['array'],
@@ -29,9 +29,9 @@ class StoreTenantRequest extends FormRequest
     }
 
     /**
-     * Twee keer dezelfde naam levert twee keer dezelfde databasenaam op. De
-     * provisioner weigert dat later alsnog, maar dan staat er al een aanvraag
-     * in de wacht die nooit goed kan aflopen.
+     * The same name twice produces the same database name twice. The
+     * provisioner refuses that later anyway, but by then a request is already
+     * waiting that can never end well.
      */
     public function withValidator(Validator $validator): void
     {

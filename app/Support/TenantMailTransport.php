@@ -10,10 +10,10 @@ use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
- * Bouwt de mailer van de ingelogde klant. Er is bewust geen terugval op de
- * .env: mail versturen uit de mailbox van een ander bedrijf zet de verkeerde
- * afzender op de post van een klant, en dat is erger dan niet versturen — er
- * komt geen foutmelding, het bericht komt gewoon van iemand anders.
+ * Builds the logged in customer's mailer. There is deliberately no falling back
+ * to .env: sending mail from another company's mailbox puts the wrong sender on
+ * a customer's post, and that is worse than not sending -- there is no error,
+ * the message simply comes from someone else.
  */
 final class TenantMailTransport
 {
@@ -43,10 +43,10 @@ final class TenantMailTransport
         $port = (int) GeneralSetting::get('mail_smtp_port', 587);
 
         /**
-         * Poort 465 spreekt meteen TLS, 587 begint zonder en schakelt om met
-         * STARTTLS. Wie dat omdraait krijgt geen nette fout maar een verbinding
-         * die blijft hangen, dus wordt het hier uit de poort afgeleid tenzij
-         * het expliciet is gezet.
+         * Port 465 speaks TLS straight away, 587 starts without and switches
+         * over with STARTTLS. Turn that around and you get no polite error but
+         * a connection that hangs, so it is derived from the port here unless
+         * it is set explicitly.
          */
         $scheme = GeneralSetting::get('mail_smtp_scheme') ?: ($port === 465 ? 'smtps' : 'smtp');
 

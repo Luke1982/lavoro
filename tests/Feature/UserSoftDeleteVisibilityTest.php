@@ -9,7 +9,6 @@ use Tests\TestCase;
 
 class UserSoftDeleteVisibilityTest extends TestCase
 {
-
     private function makeAdmin(): User
     {
         /** @var User $admin */
@@ -47,10 +46,10 @@ class UserSoftDeleteVisibilityTest extends TestCase
     }
 
     /**
-     * Het dashboard stuurt geen gebruikerslijst meer mee sinds de planner er niet
-     * meer op staat, dus er is ook niets meer waar een verwijderde gebruiker uit
-     * kan opduiken. Deze test bewaakt dat die lijst niet stilletjes terugkomt —
-     * gebeurt dat wel, dan komt de vraag van hierboven er meteen bij.
+     * The dashboard no longer sends a user list along since the planner is not
+     * on it any more, so there is nothing left for a deleted user to surface
+     * from. This test guards that the list does not come back quietly -- if it
+     * does, the question above comes back with it.
      */
     public function test_dashboard_ships_no_user_list(): void
     {

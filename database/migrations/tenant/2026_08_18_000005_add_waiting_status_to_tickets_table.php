@@ -7,16 +7,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * De statuskolom kent de nieuwe fase nog niet.
+ * The status column does not know the new stage yet.
  *
- * tickets.status is op MySQL een ENUM met de drie oude waarden erin. Een fase
- * toevoegen aan TicketStatusses is daarmee niet genoeg: MySQL kapt af wat er niet
- * in de opsomming staat en geeft "Data truncated for column 'status'". SQLite,
- * waar de tests op draaien, laat elke waarde door — dus dit is precies het soort
- * verschil dat pas op een echte database boven water komt.
+ * On MySQL tickets.status is an ENUM holding the three old values. Adding a
+ * stage to TicketStatusses is therefore not enough: MySQL truncates whatever is
+ * not in the enumeration and gives "Data truncated for column 'status'".
+ * SQLite, which the tests run on, lets every value through -- so this is
+ * precisely the kind of difference that only surfaces on a real database.
  *
- * De waarden komen uit de enum zelf en staan hier niet nog een keer uitgeschreven:
- * die twee lijsten zouden uit elkaar lopen bij de volgende fase die erbij komt.
+ * The values come from the enum itself and are not written out here again:
+ * those two lists would drift apart at the next stage added.
  */
 return new class extends Migration
 {
@@ -26,9 +26,10 @@ return new class extends Migration
     }
 
     /**
-     * Terug kan alleen als er geen storing meer op de nieuwe fase staat: die waarde
-     * past niet in de oude opsomming. Ze gaan naar 'In behandeling', want dat is
-     * wat wachten op de klant was voordat het een eigen fase had.
+     * Going back is only possible when no incident is on the new stage any
+     * more: that value does not fit the old enumeration. They go to
+     * 'In behandeling', because that is what waiting for the customer was
+     * before it had a stage of its own.
      */
     public function down(): void
     {

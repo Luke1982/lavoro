@@ -10,12 +10,12 @@ class Role extends Model
     use HasFactory;
 
     /**
-     * De rol van MajorLabel zelf binnen de database van een klant. Mag alles,
-     * overal, langs elke policy heen.
+     * MajorLabel's own role inside a customer's database. May do everything,
+     * everywhere, past every policy.
      *
-     * Alleen aan te maken vanuit het beheerpaneel. Een klant kan hem niet
-     * kiezen, niet aanmaken, niet hernoemen en niet toekennen -- anders is het
-     * geen scheiding maar een suggestie.
+     * Only creatable from the admin panel. A customer cannot choose it, create
+     * it, rename it or grant it -- otherwise it is not a separation but a
+     * suggestion.
      */
     public const SUPERADMIN = 'superadmin';
 
@@ -23,7 +23,7 @@ class Role extends Model
         'name',
     ];
 
-    /** Rollen die een klant mag zien en gebruiken: alles behalve de onze. */
+    /** Roles a customer may see and use: everything except ours. */
     public function scopeAssignable($query)
     {
         return $query->where('name', '!=', self::SUPERADMIN);

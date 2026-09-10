@@ -53,8 +53,8 @@ class IssueInvoices extends Command
             }
 
             /**
-             * Per tenant apart afgevangen: één klant met een kapot bedrag of
-             * een weigerende mailserver mag de rest van de ronde niet stoppen.
+             * Caught per tenant: one customer with a broken amount or a
+             * refusing mail server must not stop the rest of the round.
              */
             try {
                 $invoice = $invoicer->issue($on);
@@ -71,9 +71,9 @@ class IssueInvoices extends Command
                 . number_format($invoice->gross_cents / 100, 2, ',', '.'));
 
             /**
-             * Versturen gebeurt niet vanzelf. De facturen worden aangemaakt en
-             * blijven staan tot er iemand naar gekeken heeft; pas de knop in
-             * het beheer stuurt ze de deur uit.
+             * Sending does not happen by itself. The invoices are created and
+             * stay put until someone has looked at them; only the button in the
+             * admin panel sends them out.
              */
             if (!$this->option('mail')) {
                 continue;

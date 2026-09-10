@@ -7,10 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Het verbruik van de assistent verhuist naar de centrale database. Daar
-     * wordt het tegoed aan afgemeten en telt het beheer het over alle klanten
-     * op; uit een tabel per klant kan dat allebei niet. De klant zelf komt er
-     * niet meer bij, en dat hoort ook niet: het is een factuurpost.
+     * The assistant's usage moves to the central database. The allowance is
+     * measured off there and management adds it up across all customers;
+     * neither is possible from a table that sits per customer. The customer no
+     * longer reaches it, and should not: it is an invoice item.
      */
     public function up(): void
     {
@@ -43,8 +43,8 @@ return new class extends Migration
     }
 
     /**
-     * Terugdraaien zet de tabel terug maar niet de rijen. Ze staan centraal en
-     * horen daar; ze hier weghalen zou het tegoed van de klant wissen.
+     * Rolling back puts the table back but not the rows. They live centrally
+     * and belong there; removing them here would wipe the customer's allowance.
      */
     public function down(): void
     {
