@@ -52,6 +52,17 @@ class SetupExistingTenant extends Command
             'id' => $id,
             'name' => $this->argument('name'),
             'data' => json_encode(['tenancy_db_name' => $database]),
+            /**
+             * With a start date, like tenant:create. Without one there is never
+             * anything to invoice and nothing shows it: an imported customer
+             * simply keeps working and no bill ever arrives. Today is the day
+             * they start paying here; if that is wrong it can be corrected on
+             * the subscription screen.
+             *
+             * A column and not a key in data: the model lists it among its own
+             * columns, so a value in the json is read by nothing.
+             */
+            'subscription_started_on' => now()->toDateString(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -80,6 +91,7 @@ class SetupExistingTenant extends Command
         $this->info("Tenant created: {$id}");
         $this->line('  database: ' . $database);
         $this->line('  users:    ' . count($emails));
+        $this->line('  billing:  from ' . now()->format('d-m-Y'));
 
         return self::SUCCESS;
     }

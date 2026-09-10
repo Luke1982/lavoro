@@ -294,7 +294,14 @@ class Invoicer
      */
     public function isDue(?CarbonImmutable $on = null): bool
     {
-        return $this->subscriptionIsDue($on) || $this->pendingCharges()->isNotEmpty();
+        /**
+         * The same question issue() asks: is there a line to put on an invoice.
+         * It used to be answered from the two sources separately, and an
+         * outstanding charge of zero euro then lit up the button for an invoice
+         * that issue() refuses -- "there is nothing to invoice" on a screen that
+         * had just offered to make one.
+         */
+        return $this->preview($on)['lines'] !== [];
     }
 
     /**
