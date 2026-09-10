@@ -2,20 +2,22 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Central\AccessTokenTenantLookup;
 use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 
 /**
- * Zet de tenant voor API-verzoeken van de SPA.
+ * Sets the tenant for the SPA's API requests.
  *
- * Dit draait binnen Sanctum's eigen pipeline, niet in de api-groep. Sanctum
- * start de sessie in een genest pipeline en roept daarna pas $next aan, dus
- * middleware in de api-groep komt te laat: auth:sanctum heeft de gebruiker dan
- * al opgezocht in de centrale database. Het laatste onderdeel van die pipeline
- * is instelbaar via sanctum.middleware.authenticate_session, en dat is het
- * eerste punt waarop de sessie er is en de gebruiker nog niet opgehaald.
+ * This runs inside Sanctum's own pipeline, not in the api group. Sanctum starts
+ * the session in a nested pipeline and only calls $next afterwards, so
+ * middleware in the api group comes too late: auth:sanctum has looked the user
+ * up in the central database by then. The last element of that pipeline is
+ * configurable through sanctum.middleware.authenticate_session, and that is the
+ * first point where the session exists and the user has not been fetched yet.
  */
 class TenancyForStatefulApi
 {
@@ -24,15 +26,15 @@ class TenancyForStatefulApi
         $tenant_id = $request->hasSession() ? $request->session()->get('tenant_id') : null;
         $tenant_id = $tenant_id ?: $request->cookie('tenant_id');
 
-        if (! $tenant_id && $bearer = $request->bearerToken()) {
-            $plain = str_contains($bearer, '|') ? \Illuminate\Support\Str::after($bearer, '|') : $bearer;
+        if (!$tenant_id && $bearer = $request->bearerToken()) {
+            $plain = str_contains($bearer, '|') ? Str::after($bearer, '|') : $bearer;
 
-            $tenant_id = \App\Models\Central\AccessTokenTenantLookup::on('central')
+            $tenant_id = AccessTokenTenantLookup::on('central')
                 ->where('token_hash', hash('sha256', $plain))
                 ->value('tenant_id');
         }
 
-        if ($tenant_id && ! tenancy()->initialized) {
+        if ($tenant_id && !tenancy()->initialized) {
             $tenant = Tenant::on('central')->find($tenant_id);
 
             if ($tenant) {

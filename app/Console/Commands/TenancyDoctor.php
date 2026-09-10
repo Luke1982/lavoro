@@ -21,8 +21,8 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 /**
- * Controleert wat git niet vasthoudt. Leest alleen; repareert nooit.
- * Een dokter die zelf ingrijpt is er een waarvan niemand de uitslag meer leest.
+ * Checks what git does not hold. Reads only; never repairs.
+ * A doctor that intervenes is one whose findings nobody reads any more.
  */
 class TenancyDoctor extends Command
 {
@@ -39,11 +39,11 @@ class TenancyDoctor extends Command
         $this->line('Centraal');
 
         /**
-         * Ligt de centrale database eruit, dan valt er over de klanten en de
-         * rechten niets te zeggen -- maar over de omgeving wel: die controles
-         * hebben geen database nodig. Ze hier toch draaien scheelt een tweede
-         * ronde, en soms staat het antwoord er meteen bij: een APP_KEY die
-         * ontbreekt, of php dat geen programma's mag starten.
+         * With the central database down there is nothing to say about the
+         * customers and the permissions -- but there is about the environment:
+         * those checks need no database. Running them anyway saves a second
+         * round, and sometimes the answer is right there: a missing APP_KEY, or
+         * php not being allowed to start programs.
          */
         $central = $this->checkCentral();
 
@@ -109,8 +109,8 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * @return bool of de centrale database bereikbaar is; zo niet, dan heeft
-     *              geen enkele controle daarna nog zin
+     * @return bool whether the central database can be reached; if not, no
+     *              check after this one means anything
      */
     private function checkCentral(): bool
     {
@@ -118,10 +118,10 @@ class TenancyDoctor extends Command
             $name = DB::connection('central')->getDatabaseName();
 
             /**
-             * getDatabaseName() leest alleen de instellingen en opent geen
-             * verbinding. Zonder een echte vraag aan de server meldde de doctor
-             * hier "in orde" terwijl er niets draaide, en klapte de controle
-             * daarna eruit met een stacktrace in plaats van een melding.
+             * getDatabaseName() only reads the settings and opens no
+             * connection. Without a real question to the server the doctor
+             * reported "fine" here while nothing was running, and the next
+             * check fell over with a stack trace instead of a finding.
              */
             DB::connection('central')->select('SELECT 1');
 
@@ -133,11 +133,11 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * De centrale verbinding staat in de instellingen vast op TCP, maar
-         * migraties, het aanmaken van klanten en de sjabloonverbinding lopen
-         * over de standaardverbinding. Die kan stuk zijn terwijl de centrale
-         * het gewoon doet, en dan meldde de doctor niets terwijl migrate
-         * weigerde.
+         * The central connection is fixed on TCP in the settings, but
+         * migrations, creating customers and the template connection all run
+         * over the default connection. That one can be broken while the central
+         * one works fine, and then the doctor reported nothing while migrate
+         * refused.
          */
         $template = config('tenancy.database.template_tenant_connection', 'mysql');
 
@@ -173,9 +173,9 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Werk dat blijft liggen. De hartslag hieronder zegt of er een worker
-         * leeft; dit zegt of hij ook vooruitkomt -- een worker die op elke job
-         * stukloopt heeft wel een hartslag.
+         * Work that is piling up. The heartbeat below says whether a worker is
+         * alive; this says whether it also gets anywhere -- a worker that
+         * breaks on every job has a heartbeat all the same.
          */
         $pending = DB::connection('central')->table('jobs')->min('available_at');
         $pending && $pending < now()->subHour()->timestamp
@@ -199,12 +199,11 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Werk dat is opgegeven.
+     * Work that has been given up on.
      *
-     * Een mislukte job zegt niets tegen wie hem in gang zette: de factuur wordt
-     * niet verstuurd, de agenda niet bijgewerkt, en er komt geen scherm waar dat
-     * op staat. Ze stapelen zich stil op in failed_jobs, en niemand kijkt daar
-     * uit zichzelf.
+     * A failed job says nothing to whoever set it going: the invoice is not
+     * sent, the calendar not updated, and no screen says so. They pile up
+     * quietly in failed_jobs, and nobody looks there of their own accord.
      */
     private function checkFailedJobs(): void
     {
@@ -228,13 +227,13 @@ class TenancyDoctor extends Command
         $newest = $failed->max('failed_at');
 
         /**
-         * Het aantal alleen zegt niets. Duizend keer dezelfde fout is een ding
-         * dat stuk is; duizend verschillende is iets anders. Daarom staat
-         * erbij welke taak het vaakst omvalt en waarop.
+         * The count alone says nothing. A thousand times the same error is one
+         * thing that is broken; a thousand different ones is something else. So
+         * it names the job that falls over most often and what on.
          *
-         * Geteld over de laatste tweehonderd in plaats van in SQL: groeperen
-         * op twee tekstkolommen van onbepaalde lengte gaat per database net
-         * anders, en dit hoeft alleen te zeggen waar je moet kijken.
+         * Counted over the last two hundred rather than in SQL: grouping on two
+         * text columns of unbounded length differs slightly per database, and
+         * this only has to say where to look.
          */
         $recent = DB::connection('central')->table($table)
             ->orderByDesc('failed_at')
@@ -382,14 +381,14 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Verbinden en niet information_schema vragen.
+         * Connect rather than ask information_schema.
          *
-         * Die vraag ging over de centrale verbinding, en dat account mag met
-         * opzet alleen bij de centrale database. MySQL toont een database
-         * alleen aan wie er rechten op heeft, dus elke klantdatabase zag er
-         * vanaf daar uit alsof hij niet bestond -- en dan sloeg de doctor de
-         * rest van de controles voor die klant over, precies bij de klant waar
-         * je wilde weten hoe het ervoor stond.
+         * That question went over the central connection, and that account may
+         * deliberately only reach the central database. MySQL shows a database
+         * only to whoever holds rights on it, so from there every customer
+         * database looked as if it did not exist -- and then the doctor skipped
+         * the rest of the checks for that customer, exactly the customer whose
+         * state you wanted to know.
          */
         try {
             tenancy()->initialize($tenant);
@@ -416,10 +415,11 @@ class TenancyDoctor extends Command
                 : $this->bad('geen fase voor: ' . $missing->implode(', '));
 
             /**
-             * De rollen komen uit het zaaien, en dat kan stil mislukken -- de
-             * bibliotheek kijkt niet naar de exitcode. Een klant zonder rollen
-             * ziet er verder gezond uit: je kunt inloggen, en pas als er iemand
-             * bij moet blijkt dat er niets toe te kennen valt.
+             * The roles come from the seeding, and that can fail silently --
+             * the library does not look at the exit code. A customer without
+             * roles looks healthy from the outside: you can log in, and only
+             * when someone has to be added does it turn out there is nothing to
+             * grant.
              */
             $expected = array_keys(include base_path('database/seeders/data/tenant_roles.php'));
             $absent = array_diff($expected, Role::pluck('name')->all());
@@ -441,10 +441,10 @@ class TenancyDoctor extends Command
                 : $this->bad($orphan->count() . ' gebruiker(s) zonder centrale rij -- die kunnen niet inloggen');
 
             /**
-             * Schrijfrecht wordt nagekeken voor het account waaronder de
-             * webserver draait, want die zet de uploads neer. is_writable()
-             * kijkt naar het account dat dit commando draait, en dat is een
-             * ander -- dan staat hier 'in orde' terwijl elke upload mislukt.
+             * Write access is checked for the account the web server runs as,
+             * because that one puts the uploads down. is_writable() looks at
+             * the account running this command, and that is another one -- then
+             * this says "fine" while every upload fails.
              */
             $account = $this->webAccount();
 
@@ -476,16 +476,16 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Waarom de klantdatabase niet openging.
+     * Why the customer database would not open.
      *
-     * Drie heel verschillende dingen zien er van buiten hetzelfde uit, en ze
-     * vragen elk om iets anders. MySQL helpt daar niet bij: een database die
-     * niet bestaat en een account zonder rechten geven allebei 'access
-     * denied', want je hoort niet te kunnen aftasten wat er bestaat.
+     * Three very different things look the same from the outside, and each asks
+     * for something else. MySQL is no help there: a database that does not
+     * exist and an account without rights both give 'access denied', because
+     * you are not supposed to be able to probe what exists.
      *
-     * Daarom wordt het bestaan apart nagevraagd op de provisioning-verbinding,
-     * die wel over de klantdatabases mag kijken. Lukt ook dat niet, dan staat
-     * dat er zo bij -- liever geen antwoord dan een verkeerd antwoord.
+     * So existence is asked separately on the provisioning connection, which
+     * may look at the customer databases. If that fails too, it says so --
+     * better no answer than a wrong answer.
      */
     private function tenantConnectionComplaint(string $database, Tenant $tenant, \Throwable $e): string
     {
@@ -508,11 +508,11 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Bestaat de klantdatabase? Gevraagd op de provisioning-verbinding, want
-     * het centrale account mag met opzet alleen bij de centrale database en
-     * ziet de klantdatabases dus niet staan.
+     * Does the customer database exist? Asked on the provisioning connection,
+     * because the central account may deliberately only reach the central
+     * database and therefore does not see the customer databases at all.
      *
-     * @return bool|null null als het niet na te gaan is
+     * @return bool|null null when it cannot be established
      */
     private function tenantDatabaseExists(string $database): ?bool
     {
@@ -528,9 +528,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De voorwaarden die niet in de code staan maar in de omgeving: welke
-     * PHP-onderdelen er zijn, hoe de .env staat, en of er post uit kan. Stuk
-     * voor stuk dingen die pas opvallen op het moment dat je ze nodig hebt.
+     * The preconditions that live in the environment rather than in the code:
+     * which PHP extensions are there, how .env stands, and whether mail can go
+     * out. Every one of them a thing you notice only when you need it.
      */
     private function checkEnvironment(): void
     {
@@ -544,10 +544,10 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Staat exec of shell_exec in disable_functions, dan kan er niets meer
-         * verheven worden -- en erger: de controles hierboven die daarop
-         * leunen krijgen 'nee' terug zonder dat er iets mis is. Dan meldt de
-         * doctor een probleem dat niet bestaat en verbergt hij het echte.
+         * With exec or shell_exec in disable_functions nothing can be elevated
+         * any more -- and worse: the checks above that lean on it get "no" back
+         * without anything being wrong. Then the doctor reports a problem that
+         * does not exist and hides the real one.
          */
         $blocked = array_values(array_intersect(
             ['exec', 'shell_exec', 'proc_open'],
@@ -588,10 +588,10 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Wat de build maakt staat niet in git: public/build en de service worker
-     * ontstaan pas bij npm run build. Wordt die stap overgeslagen of loopt hij
-     * stuk, dan draait de server met nieuwe code en oude of ontbrekende
-     * bestanden -- en dat geeft geen enkele foutmelding op de server zelf.
+     * What the build produces is not in git: public/build and the service
+     * worker only come into being on npm run build. Skip that step or let it
+     * fail, and the server runs new code with old or missing files -- and that
+     * raises no error on the server itself at all.
      */
     private function checkBuiltAssets(): void
     {
@@ -626,8 +626,8 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * @return string|null de korte hash van HEAD, of null als hier geen
-     *                     git-checkout staat of git niet gestart mag worden
+     * @return string|null the short hash of HEAD, or null when there is no git
+     *                     checkout here or git may not be started
      */
     private function gitRevision(): ?string
     {
@@ -639,8 +639,8 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De versies waar dit op gebouwd is. Een oudere PHP of database geeft
-     * geen nette weigering maar een vreemde fout op een willekeurige plek.
+     * The versions this is built on. An older PHP or database does not refuse
+     * politely but produces a strange error in a random place.
      */
     private function checkVersions(): void
     {
@@ -663,22 +663,22 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De opslagplekken die het ontwerp aanneemt.
+     * The storage the design assumes.
      *
-     * Staat de wachtrij op sync, dan draait provisioning in het webverzoek als
-     * het account van de applicatie -- dat geen databases mag maken -- in
-     * plaats van in de worker die dat wel mag. Staat de sessie niet centraal,
-     * dan zoekt het inloggen zijn gebruiker in de verkeerde database.
+     * With the queue on sync, provisioning runs inside the web request as the
+     * application's account -- which may not create databases -- instead of in
+     * the worker that may. With the session not central, logging in looks for
+     * its user in the wrong database.
      */
     /**
-     * Draait de app op de instellingen die in .env staan?
+     * Does the app run on the settings that are in .env?
      *
-     * Met een gecachete configuratie leest de app niet meer uit .env maar uit
-     * bootstrap/cache/config.php. Wie daarna .env aanpast en vergeet opnieuw
-     * te cachen, draait door op de oude waarden -- en ziet dat nergens. Een
-     * verkeerd APP_URL van vóór het cachen betekent dat /api geen sessie
-     * krijgt, terwijl .env er goed uitziet en dit commando (dat de verse
-     * configuratie leest) ook.
+     * With a cached configuration the app no longer reads .env but
+     * bootstrap/cache/config.php. Change .env after that and forget to cache
+     * again, and it keeps running on the old values -- with nothing showing it.
+     * A wrong APP_URL from before the caching means /api gets no session, while
+     * .env looks right and so does this command, which reads the fresh
+     * configuration.
      */
     private function checkCachedConfigIsCurrent(): void
     {
@@ -707,15 +707,15 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Of de planner en de andere schermen die over /api praten, ingelogd
-     * blijven.
+     * Whether the planner and the other screens that talk to /api stay logged
+     * in.
      *
-     * Die verzoeken lopen niet door de web-groep maar door de eigen pijplijn
-     * van Sanctum, en die pijplijn slaat hij over zodra hij het verzoek niet
-     * herkent als afkomstig van de eigen voorkant. Dan is er geen sessie, geen
-     * klant en geen gebruiker, en krijgt de planner op elke handeling
-     * 'Unauthenticated' terug -- terwijl de gewone schermen het gewoon doen.
-     * Aan de app zelf is dat niet te zien; het hangt aan drie instellingen.
+     * Those requests do not run through the web group but through Sanctum's own
+     * pipeline, and it skips that pipeline as soon as it does not recognise the
+     * request as coming from its own front end. Then there is no session, no
+     * customer and no user, and the planner gets 'Unauthenticated' back on
+     * every action -- while the ordinary screens work fine. The app itself does
+     * not show it; it hangs on three settings.
      */
     private function checkApiAuthentication(): void
     {
@@ -734,11 +734,11 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Niet te controleren vanaf de opdrachtregel: of dit ook het adres is
-         * dat klanten in hun browser hebben staan. Staat het ernaast -- www
-         * ervoor, http in plaats van https, een oud domein -- dan herkent
-         * Sanctum het verzoek niet als eigen voorkant en is er geen sessie.
-         * Daarom staat het er hier uitgeschreven, zodat het na te lopen is.
+         * Not checkable from the command line: whether this is also the address
+         * customers have in their browser. If it is off -- www in front, http
+         * instead of https, an old domain -- Sanctum does not recognise the
+         * request as its own front end and there is no session. So it is
+         * spelled out here, to be checked by eye.
          */
         $this->line("       APP_URL is {$url}; verzoeken van /api moeten van precies dat adres komen.");
 
@@ -757,10 +757,10 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * De tenant wordt gezet in het enige haakje dat Sanctum in die pijplijn
-         * biedt. Wordt de configuratie van Sanctum ooit opnieuw gepubliceerd,
-         * dan staat daar weer de standaardklasse en is de klant weg zonder dat
-         * er iets stukgaat -- behalve elk /api-verzoek.
+         * The tenant is set in the only hook Sanctum offers in that pipeline.
+         * Should Sanctum's configuration ever be published again, the default
+         * class is back in it and the customer is gone without anything
+         * breaking -- except every /api request.
          */
         config('sanctum.middleware.authenticate_session') === TenancyForStatefulApi::class
             ? $this->pass('api-verzoeken krijgen hun klant mee')
@@ -798,9 +798,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * dompdf legt de maten van een lettertype in een eigen map neer en maakt
-     * die map niet aan. Ontbreekt hij, dan rolt er geen factuur uit maar een
-     * foutmelding -- en dat merk je pas als je er een wilt versturen.
+     * dompdf puts a font's metrics in a directory of its own and does not
+     * create that directory. Without it no invoice comes out but an error --
+     * and you only notice when you want to send one.
      */
     private function checkInvoiceFonts(): void
     {
@@ -822,9 +822,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Een volle schijf breekt alles op een manier die nergens naar een volle
-     * schijf wijst: uploads die half aankomen, een database die niet meer
-     * schrijft, sessies die verdwijnen. Dat wil je weten voordat het zover is.
+     * A full disk breaks everything in a way that points at a full disk
+     * nowhere: uploads that arrive halfway, a database that stops writing,
+     * sessions that vanish. You want to know before it gets that far.
      */
     private function checkDiskSpace(): void
     {
@@ -849,9 +849,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Het logbestand groeit zonder ophouden als LOG_CHANNEL op 'single' staat.
-     * Dat valt pas op als de schijf vol is, en dan is de oorzaak niet meer te
-     * zien -- het logboek zelf is dan te groot om te openen.
+     * The log file grows without end when LOG_CHANNEL is on 'single'. That is
+     * noticed once the disk is full, and by then the cause cannot be seen any
+     * more -- the log itself is too big to open.
      */
     private function checkLogRotation(): void
     {
@@ -877,12 +877,11 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Zonder deze gegevens klopt er geen enkele factuur.
+     * Without these details no invoice is right.
      *
-     * Staat bewust niet bij de omgevingscontroles: dit leest de centrale
-     * database, en die controles horen het juist te doen als er geen database
-     * is. Anders klapt de doctor eruit op het moment dat je hem het hardst
-     * nodig hebt.
+     * Deliberately not among the environment checks: this reads the central
+     * database, and those checks should work precisely when there is no
+     * database. Otherwise the doctor falls over at the moment you need it most.
      */
     private function checkIssuer(): void
     {
@@ -898,24 +897,24 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De rechten van de databaseaccounts controleert scripts/tenancy/verify-mysql.sh.
+     * The rights of the database accounts are checked by
+     * scripts/tenancy/verify-mysql.sh.
      *
-     * Die probeert als provisioner een database binnen en buiten de toegestane
-     * namen te maken, en als applicatie een die geweigerd hoort te worden --
-     * grondiger dan hiervandaan kan, want daar is root voor nodig. Hier alleen
-     * de verwijzing; twee keer dezelfde controle schrijven levert twee
-     * antwoorden op die uit elkaar gaan lopen. deploy.sh draait hem mee.
+     * It tries, as the provisioner, to create a database inside and outside the
+     * allowed names, and as the application one that should be refused -- more
+     * thoroughly than is possible from here, because that needs root. Only the
+     * reference here; writing the same check twice produces two answers that
+     * drift apart. deploy.sh runs it along.
      */
     private const PRIVILEGES_STALE_AFTER_DAYS = 30;
 
     /**
-     * De rechten van de databaseaccounts kan dit commando niet zelf nakijken:
-     * daarvoor moet je in mysql.user kunnen kijken en dat mag alleen root.
-     * verify-mysql.sh kan dat wel en laat zijn uitslag achter; hier wordt die
-     * gelezen.
+     * The rights of the database accounts are something this command cannot
+     * check itself: that needs to look into mysql.user and only root may.
+     * verify-mysql.sh can, and leaves its verdict behind; it is read here.
      *
-     * Een run zonder root slaat de helft over. Dat telt niet als goedkeuring,
-     * anders zou 'even zonder sudo gedraaid' hier als groen vinkje eindigen.
+     * A run without root skips half of it. That does not count as approval,
+     * otherwise "ran it quickly without sudo" would end up as a green tick.
      */
     private function checkPrivileges(): void
     {
@@ -959,10 +958,10 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Controles die nog niet van toepassing waren -- er is bijvoorbeeld nog
-         * geen enkele klant, dus ook geen klantaccount om na te kijken -- zijn
-         * geen gat in de controle. Wel het vermelden waard, want zodra er een
-         * klant is zegt een nieuwe run meer dan deze.
+         * Checks that did not apply yet -- there is no customer at all, so no
+         * customer account to check either -- are not a hole in the check. Worth
+         * mentioning though, because as soon as there is a customer a new run
+         * says more than this one.
          */
         $pending = (int) ($outcome['not_applicable'] ?? 0);
 
@@ -971,17 +970,15 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Het beheerpaneel legt aanvragen neer die alleen de provisioner-worker kan
-     * uitvoeren. Draait die niet, dan blijft een aanvraag stilletjes staan en
-     * lijkt het paneel kapot. Dit is de plek waar dat opvalt.
-     */
-    /**
-     * Drie losse vragen, elk in een eigen methode. Ze stonden achter elkaar in
-     * één blok en daar zat een 'return' tussen: waren er geen mislukte
-     * aanvragen, dan sloeg de doctor alles daarna over -- het account, de
-     * Linux-gebruiker, het verheffen, de schrijfrechten. Hij werd dus stiller
-     * naarmate er minder mis was, en meldde 'alles in orde' over controles die
-     * niet gedraaid hadden.
+     * The admin panel puts down requests only the provisioner worker can carry
+     * out. If it is not running, a request quietly sits there and the panel
+     * looks broken. This is the place where that shows.
+     *
+     * Three separate questions, each in a method of its own. They used to sit
+     * in one block with a 'return' in between: with no failed requests the
+     * doctor skipped everything after it -- the account, the Linux user, the
+     * elevating, the write access. So it grew quieter the less was wrong, and
+     * reported "all fine" about checks that had not run.
      */
     private function checkProvisioning(): void
     {
@@ -1014,9 +1011,9 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Geen aanvragen betekent niet dat de worker draait -- dat is alleen te
-         * zien aan werk dat af is gekomen. Zonder dat is dit pad onbewezen en
-         * niet in orde.
+         * No requests does not mean the worker runs -- that can only be seen
+         * from work that got finished. Without that this path is unproven and
+         * not fine.
          */
         TenantProvisioningRequest::on('central')->where('status', 'done')->exists()
             ? $this->pass('Geen aanvragen in de wacht; de worker heeft eerder werk afgerond.')
@@ -1025,9 +1022,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De reden staat in de aanvraag zelf. Die hier tonen scheelt de omweg langs
-     * het beheerpaneel, en juist wie dit vanaf de opdrachtregel uitzoekt heeft
-     * dat paneel niet open.
+     * The reason is in the request itself. Showing it here saves the detour via
+     * the admin panel, and whoever works this out from the command line does
+     * not have that panel open.
      */
     private function checkFailedRequests(): void
     {
@@ -1051,11 +1048,11 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Het account dat databases van klanten mag maken en weggooien.
+     * The account allowed to create and drop customer databases.
      *
-     * Twee losse vragen, want ze kunnen los van elkaar misgaan: bestaat het
-     * MySQL-account, en hangt het aan een Linux-gebruiker in plaats van aan
-     * een wachtwoord in een bestand.
+     * Two separate questions, because they can go wrong independently: does the
+     * MySQL account exist, and does it hang on a Linux user rather than on a
+     * password in a file.
      */
     private function checkProvisionerAccount(): void
     {
@@ -1078,10 +1075,9 @@ class TenancyDoctor extends Command
                 . ' Bestaat het account wel, en klopt DB_PROVISIONER_PASSWORD?');
         } else {
             /**
-             * Niet kunnen inloggen bewijst niets. Een account dat aan een
-             * Linux-gebruiker hangt hoort hier te weigeren, en een account dat
-             * helemaal niet bestaat doet precies hetzelfde. Dit dus niet
-             * goedkeuren.
+             * Not being able to log in proves nothing. An account that hangs on
+             * a Linux user should refuse here, and an account that does not
+             * exist at all does exactly the same. So do not approve this.
              */
             $this->checkProvisionerAccountByElevating($username);
         }
@@ -1099,16 +1095,16 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Hoort het account aan een Linux-gebruiker te hangen (geen wachtwoord),
-     * dan moet die gebruiker er ook zijn. Zonder hem kan niemand meer
-     * inloggen en staat het aanmaken van klanten stil.
+     * If the account is meant to hang on a Linux user (no password), that user
+     * has to exist as well. Without them nobody can log in any more and
+     * creating customers comes to a halt.
      */
     /**
-     * Kunnen de tenant-commando's zichzelf verheffen?
+     * Can the tenant commands elevate themselves?
      *
-     * Zonder de sudo-regel werkt alles nog, maar dan geeft
-     * "php artisan tenant:create" geen klant terug maar een uitleg over welk
-     * commando je had moeten typen. Beter hier te lezen dan daar.
+     * Without the sudo rule everything still works, but then
+     * "php artisan tenant:create" returns no customer but an explanation of
+     * which command you should have typed. Better read here than there.
      */
     private function checkElevation(string $username): void
     {
@@ -1126,24 +1122,24 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De provisioning-worker maakt de mappen van een nieuwe klant aan. Mag hij
-     * niet in storage/ schrijven, dan komt de klant er wel maar mislukt zijn
-     * eerste upload -- een lege map die niemand mist tot dat gebeurt.
+     * The provisioning worker creates the folders of a new customer. If it may
+     * not write in storage/, the customer is created but its first upload fails
+     * -- an empty folder nobody misses until that happens.
      *
-     * Alleen te testen als we die gebruiker kunnen worden; anders zegt onze
-     * eigen toegang niets over de zijne.
+     * Only testable when we can become that user; otherwise our own access says
+     * nothing about theirs.
      */
     /**
-     * Mag de webserver schrijven in storage/?
+     * May the web server write in storage/?
      *
-     * De worker en de commando's draaien als het account van de installatie,
-     * maar php onder de webserver draait vaak als iets anders -- 'nobody' bij
-     * LiteSpeed, 'www-data' bij Apache. Kan dat account niet in storage/logs
-     * schrijven, dan verdwijnt elke fout uit een webverzoek geruisloos: geen
-     * pagina, geen regel, niets om op te zoeken.
+     * The worker and the commands run as the installation's account, but php
+     * under the web server often runs as something else -- 'nobody' on
+     * LiteSpeed, 'www-data' on Apache. If that account cannot write in
+     * storage/logs, every error from a web request disappears without a sound:
+     * no page, no line, nothing to look up.
      *
-     * Wie dat account is valt af te lezen aan de gecompileerde sjablonen: die
-     * schrijft de webserver zelf, bij de eerste pagina die hij toont.
+     * Who that account is can be read from the compiled templates: the web
+     * server writes those itself, on the first page it renders.
      */
     private function checkWebServerCanLog(): void
     {
@@ -1178,9 +1174,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Het account waaronder php onder de webserver draait, afgelezen aan de
-     * gecompileerde sjablonen: die schrijft de webserver zelf. Null als er nog
-     * geen zijn.
+     * The account php runs as under the web server, read from the compiled
+     * templates: the web server writes those itself. Null when there are none
+     * yet.
      */
     private function webAccount(): ?string
     {
@@ -1207,15 +1203,15 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Of een ander account ergens mag schrijven. Niet te doen met is_writable:
-     * die kijkt naar het account dat dit commando draait.
+     * Whether another account may write somewhere. Not doable with is_writable:
+     * that looks at the account running this command.
      *
-     * Een ACL kan schrijfrecht geven waar de rechtenbits van niets weten, dus
-     * die wordt er nog naast gelegd voordat er iets gemeld wordt.
+     * An ACL can grant write access where the permission bits know nothing of
+     * it, so that is laid next to it before anything is reported.
      */
     private function userCanWrite(string $account, string $path): bool
     {
-        /** root trekt zich van rechtenbits niets aan. */
+        /** root does not care about permission bits. */
         if ($account === 'root') {
             return true;
         }
@@ -1282,12 +1278,12 @@ class TenancyDoctor extends Command
         $quoted = var_export($path, true);
 
         /**
-         * Drie uitkomsten, want twee heel verschillende oorzaken zien er
-         * hetzelfde uit. Rechten op storage/ zelf helpen niet als de gebruiker
-         * de mappen erboven niet in mag: staat de installatie in een home-map,
-         * dan staat die standaard op 0750 en komt hij niet eens tot de deur.
-         * Zonder dat onderscheid stuur je iemand net zo lang setfacl op
-         * storage/ herhalen tot hij het opgeeft.
+         * Three outcomes, because two very different causes look the same.
+         * Rights on storage/ itself do not help when the user may not enter the
+         * folders above it: with the installation in a home directory, that one
+         * is 0750 by default and they do not even reach the door. Without that
+         * distinction you send someone repeating setfacl on storage/ until they
+         * give up.
          */
         $status = ProvisionerConnection::phpAsProvisioner(
             "exit(!is_dir({$quoted}) ? 2 : (is_writable({$quoted}) ? 0 : 1));"
@@ -1316,9 +1312,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * setfacl zit in een apart pakket dat lang niet overal staat. Het advies
-     * hierboven levert anders 'command not found' op, en dan is de vraag wat
-     * je fout deed in plaats van wat je moet installeren.
+     * setfacl sits in a separate package that is far from everywhere. Without
+     * this the advice above produces 'command not found', and then the question
+     * is what you did wrong instead of what you have to install.
      */
     private function setfaclHint(): string
     {
@@ -1328,9 +1324,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De mappen tussen / en het pad waar de provisioner niet doorheen komt.
-     * Alleen die waar hij nu geen doorgang heeft, zodat er niet meer opengezet
-     * wordt dan nodig.
+     * The directories between / and the path the provisioner cannot get
+     * through. Only the ones they have no passage through now, so that no more
+     * is opened up than needed.
      */
     private function unreachableAncestors(string $path): array
     {
@@ -1353,12 +1349,11 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Vanaf dit account weigert het provisioner-account altijd, want het hangt
-     * aan een Linux-gebruiker. Dat zegt dus niets over of het bestaat.
+     * From this account the provisioner account always refuses, because it
+     * hangs on a Linux user. So that says nothing about whether it exists.
      *
-     * Mogen we die gebruiker worden, dan is het wel te zien: dan doen we van
-     * daaruit precies wat het provisioneren straks ook doet -- via de socket
-     * naar binnen, zonder wachtwoord.
+     * If we may become that user, it can be seen: from there we do exactly what
+     * provisioning will do later -- in through the socket, without a password.
      */
     private function checkProvisionerAccountByElevating(string $username): void
     {
@@ -1391,7 +1386,7 @@ class TenancyDoctor extends Command
                 . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh');
     }
 
-    /** Php dat als de provisioner een verbinding opzet; laat $pdo achter. */
+    /** Php opening a connection as the provisioner; leaves $pdo behind. */
     private function provisionerPdo(string $username): string
     {
         $dsn = 'mysql:unix_socket=' . config('database.connections.provisioner.unix_socket')
@@ -1401,13 +1396,13 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * De procedure die een klantlogin zijn rechten geeft.
+     * The procedure that grants a customer login its rights.
      *
-     * Zonder die procedure lukt het aanmaken van een klant tot en met de
-     * database en strandt het daarna -- terwijl alles hierboven in orde is. Ze
-     * wordt daarom aangeroepen met de landlord-database: dat hoort geweigerd te
-     * worden, en aan hoe hij weigert is te zien of hij er is en of zijn
-     * controle nog klopt. Er verandert niets: een weigering is het doel.
+     * Without that procedure creating a customer succeeds up to and including
+     * the database and strands after it -- while everything above is fine. So
+     * it is called with the landlord database: that should be refused, and how
+     * it refuses shows whether it is there and whether its own check still
+     * holds. Nothing changes: a refusal is the goal.
      */
     private function checkGrantProcedure(string $username): void
     {
@@ -1425,9 +1420,9 @@ class TenancyDoctor extends Command
         $call = 'CALL `' . $schema . '`.`' . $name . '`(' . var_export($forbidden, true) . ", 'doctor_probe')";
 
         /**
-         * Draaien we zelf al als de provisioner, dan kan de proef rechtstreeks.
-         * Anders via sudo. Zonder dat onderscheid werd deze controle juist
-         * overgeslagen op de machine waar hij het makkelijkst te doen is.
+         * If we already run as the provisioner the probe can go directly.
+         * Otherwise through sudo. Without that distinction this check was
+         * skipped precisely on the machine where it is easiest to do.
          */
         if (ProvisionerConnection::linuxUser() === $username) {
             try {
@@ -1461,9 +1456,9 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * Het pad naar de socket verschilt per distributie, dus dat aan de server
-     * zelf vragen scheelt de lezer het opzoeken -- en een verkeerd overgetypt
-     * pad geeft dezelfde melding als helemaal geen pad.
+     * The path to the socket differs per distribution, so asking the server
+     * itself saves the reader the lookup -- and a mistyped path gives the same
+     * message as no path at all.
      */
     private function serverSocket(): string
     {
@@ -1522,12 +1517,12 @@ class TenancyDoctor extends Command
             : $this->bad('database zonder tenant: ' . $unknown->implode(', '));
 
         /**
-         * De mappen van een klant blijven achter als het opruimen halverwege is
-         * blijven steken. Ze doen geen kwaad, maar er kunnen bestanden van een
-         * bedrijf in staan dat allang weg is -- en dat hoort niet stilletjes op
-         * de schijf te blijven liggen. Een lege map is geen bevinding: daar valt
-         * niets over te beslissen, en een deploy die daarover rood kleurt leert
-         * je alleen om de meldingen te negeren.
+         * A customer's folders are left behind when the cleanup got stuck
+         * halfway. They do no harm, but they can hold the files of a company
+         * that is long gone -- and that should not quietly stay on the disk. An
+         * empty folder is not a finding: there is nothing to decide about it,
+         * and a deploy that goes red over one only teaches you to ignore the
+         * findings.
          */
         $folders = collect(File::directories(storage_path()))
             ->map(fn (string $path) => basename($path))
@@ -1542,14 +1537,14 @@ class TenancyDoctor extends Command
         }
 
         /**
-         * Nooit 'rm -rf' voorstellen.
+         * Never suggest 'rm -rf'.
          *
-         * Zo'n map heet wel verweesd, maar dat betekent alleen dat er geen klant
-         * met dat id meer in de registratie staat -- niet dat er niets in zit.
-         * Op productie stonden er honderden foto's en pdf's van echte werkbonnen
-         * in, en dat advies is opgevolgd. Wat erin zit hoort in de melding te
-         * staan, en het opruimen gaat via een commando dat eerst laat zien wat
-         * het weggooit en om bevestiging vraagt.
+         * Such a folder is called orphaned, but that only means no customer
+         * with that id is in the registry any more -- not that there is nothing
+         * in it. On production it held hundreds of photos and pdfs of real
+         * service orders, and that advice was followed. What is in it belongs in
+         * the finding, and the cleaning up goes through a command that first
+         * shows what it will delete and asks for confirmation.
          */
         foreach ($folders as $folder) {
             $path = storage_path($folder);

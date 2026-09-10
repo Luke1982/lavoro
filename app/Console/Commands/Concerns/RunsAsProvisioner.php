@@ -5,15 +5,16 @@ namespace App\Console\Commands\Concerns;
 use App\Support\ProvisionerConnection;
 
 /**
- * Laat een commando praten als lavoro_provisioner.
+ * Lets a command speak as lavoro_provisioner.
  *
- * Dat account hoort aan de Linux-gebruiker met dezelfde naam te hangen
- * (auth_socket), zonder wachtwoord: dan kan alleen die gebruiker databases van
- * klanten maken en weggooien, en staat er nergens een wachtwoord waarmee een
- * webverzoek hetzelfde zou kunnen.
+ * That account should hang on the Linux user of the same name (auth_socket),
+ * without a password: then only that user can create and drop customer
+ * databases, and there is no password anywhere for a web request to do the
+ * same with.
  *
- * Het commando verheft zichzelf als de sudo-regel er is; anders zegt het welke
- * regel je moet hebben. Die regel zet scripts/tenancy/setup-sudoers.sh neer.
+ * The command elevates itself when the sudo rule is there; otherwise it says
+ * which rule you need. scripts/tenancy/setup-sudoers.sh puts that rule in
+ * place.
  */
 trait RunsAsProvisioner
 {
@@ -33,9 +34,9 @@ trait RunsAsProvisioner
     }
 
     /**
-     * Opnieuw starten als de provisioner, als dat zonder wachtwoord mag. Lukt
-     * dat niet, dan gaat het gewoon door: misschien draaien we al als de juiste
-     * gebruiker, of staat er nog een wachtwoord in de omgeving.
+     * Starting again as the provisioner, when that is allowed without a
+     * password. If it is not, it simply carries on: maybe we already run as the
+     * right user, or a password is still set in the environment.
      */
     private function elevate(): void
     {
@@ -60,10 +61,10 @@ trait RunsAsProvisioner
         }
 
         /**
-         * pcntl_exec en geen passthru: argv gaat als array mee, dus een klant
-         * die "Spee B.V." heet overleeft het zonder aanhalingstekens. Het
-         * vervangt bovendien dit proces, zodat de exitcode de echte is en
-         * Ctrl-C op de juiste plek aankomt.
+         * pcntl_exec and not passthru: argv travels as an array, so a customer
+         * called "Spee B.V." survives it without quoting. It also replaces this
+         * process, so the exit code is the real one and Ctrl-C arrives in the
+         * right place.
          */
         pcntl_exec($sudo, array_merge(
             ['-n', '-u', $name, PHP_BINARY, base_path('artisan')],

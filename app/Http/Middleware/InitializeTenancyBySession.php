@@ -13,15 +13,15 @@ use Illuminate\Support\Facades\Log;
 class InitializeTenancyBySession
 {
     /**
-     * Is de database van deze klant er nog?
+     * Is this customer's database still there?
      *
-     * tenancy()->initialize() wisselt alleen de instellingen om en merkt niets;
-     * de eerste vraag aan de database loopt dan stuk. Bij een klant die halverwege
-     * is aangemaakt of opgeruimd betekende dat een 500 op elke pagina, ook op het
-     * inlogscherm -- de hele installatie plat door één kapotte klant.
+     * tenancy()->initialize() only swaps the settings over and notices nothing;
+     * the first question to the database then breaks. For a customer that was
+     * half created or half cleaned up that meant a 500 on every page, the login
+     * screen included -- the whole installation down over one broken customer.
      *
-     * Lukt het verbinden niet, dan doen we alsof er geen klant is: dan wordt de
-     * sessie vergeten en kom je op het inlogscherm uit, waar je verder kunt.
+     * If connecting fails we act as if there is no customer: the session is
+     * forgotten and you end up on the login screen, where you can go on.
      */
     private function reachable(Tenant $tenant): bool
     {
@@ -66,11 +66,11 @@ class InitializeTenancyBySession
         }
 
         /**
-         * Zonder tenant kan er niets ingelogd zijn: de users-tabel staat in de
-         * tenantdatabase. Laravel's remember-me herstelt de gebruiker pas na
-         * deze middleware, dus zonder dit haalt hij er alsnog eentje terug en
-         * vraagt Auth::user() de centrale database om een tabel die daar niet
-         * staat -- een 500 in plaats van het inlogscherm.
+         * Without a tenant nothing can be logged in: the users table lives in
+         * the tenant database. Laravel's remember-me restores the user only
+         * after this middleware, so without this it fetches one anyway and
+         * Auth::user() asks the central database for a table that is not there
+         * -- a 500 instead of the login screen.
          */
         if (!tenancy()->initialized) {
             $guard = Auth::guard();
@@ -78,12 +78,12 @@ class InitializeTenancyBySession
             Auth::forgetUser();
 
             /**
-             * Ook het id uit de sessie halen, en niet alleen de opgehaalde
-             * gebruiker vergeten. forgetUser() gooit het object weg, maar het id
-             * staat nog in de sessie: de guard haalt hem daarna gewoon opnieuw
-             * op en zoekt de users-tabel dan in de centrale database, waar hij
-             * niet staat. Dat was een 500 op elke pagina, ook op het
-             * inlogscherm, dus er viel ook niet meer uit te komen.
+             * Take the id out of the session too, and not only forget the
+             * fetched user. forgetUser() throws the object away, but the id is
+             * still in the session: the guard simply fetches it again afterwards
+             * and looks for the users table in the central database, where it is
+             * not. That was a 500 on every page, the login screen included, so
+             * there was no way out of it either.
              */
             if ($request->hasSession() && $guard instanceof SessionGuard) {
                 $request->session()->forget($guard->getName());
