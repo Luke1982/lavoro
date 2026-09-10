@@ -101,7 +101,25 @@ detect_client
 ensure_admin_connection
 
 DB="${TENANT_PREFIX}${SLUG}"
-run() { if [ "$DRY" -eq 1 ]; then info "+ $*"; else "$@"; fi; }
+run() {
+    if [ "$DRY" -eq 0 ]; then
+        "$@"
+        return
+    fi
+
+    # Printed the way you would type it: without this a name with a space in it
+    # reads as two arguments, and the line cannot be pasted.
+    local line="+" arg
+    for arg in "$@"; do
+        if [[ "$arg" =~ ^[A-Za-z0-9._/=:@+-]+$ ]]; then
+            line="${line} ${arg}"
+        else
+            line="${line} '${arg//\'/\'\\\'\'}'"
+        fi
+    done
+
+    info "$line"
+}
 step() { printf '\n== %s ==\n' "$1"; }
 
 # The application's own account, read from the files instead of assumed. Artisan
@@ -131,14 +149,26 @@ if sql_root "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NA
     die "${DB} already exists. Remove it or choose another slug."
 fi
 
-info "  source:   ${SRC_DB}"
+SRC_MB=$(sql_root "SELECT COALESCE(ROUND(SUM(data_length + index_length) / 1024 / 1024), 0)
+    FROM information_schema.tables WHERE table_schema='${SRC_DB}'")
+FREE_MB=$(df -Pm "$PROJECT_ROOT" | awk 'NR == 2 { print $4 }')
+
+# The dump is text and the copy lands next to it, so twice the size is the floor
+# rather than the ceiling.
+NEEDED_MB=$(( SRC_MB * 3 ))
+
+[ "${FREE_MB:-0}" -gt "$NEEDED_MB" ] || die "Not enough room: ${SRC_DB} is ${SRC_MB} MB, so this needs
+roughly ${NEEDED_MB} MB for the dump and the copy, and ${FREE_MB} MB is free on $(df -P "$PROJECT_ROOT" | awk 'NR == 2 { print $6 }')."
+
+info "  source:   ${SRC_DB} (${SRC_MB} MB)"
 info "  target:   ${DB}"
 info "  artisan:  as ${APP_ACCOUNT}"
 [ "$DRY" -eq 1 ] && info "  (dry run: nothing is written)"
 
 step "Dump and restore"
 
-DUMP=$(mktemp /tmp/import-XXXXXX.sql)
+mkdir -p "$PROJECT_ROOT/storage/backups"
+DUMP=$(mktemp "$PROJECT_ROOT/storage/backups/import-${SLUG}-XXXXXX.sql")
 chmod 600 "$DUMP"
 trap 'rm -f "$DUMP"' EXIT
 
