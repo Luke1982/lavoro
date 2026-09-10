@@ -54,11 +54,11 @@ if [ "$(id -u)" -ne 0 ]; then
     # with ADMIN_PASSWORD, or DEFAULTS_FILE) and have the source readable, and
     # neither applies -- then it simply runs.
     #
-    # Elevating is only attempted when it can actually be done: 'sudo -n' says
-    # whether it goes without a password, 'sudo -v' asks for one when there is a
-    # terminal. The app account deliberately has neither right in general -- it
-    # may only run php as the provisioner -- so ending up at the line below is
-    # the normal case here, not the exception.
+    # Only elevated when it can be done without a password. Never prompting: the
+    # app account has no general sudo right on purpose, so a prompt here is a
+    # question that cannot be answered -- and giving it a NOPASSWD rule for this
+    # script would be handing it root, because this script copies paths of your
+    # choosing and runs commands as root.
     if [ -r "$FROM/.env" ] && [ -n "${ADMIN_PASSWORD:-}${DEFAULTS_FILE:-}" ]; then
         NEEDS_ROOT=0
     else
@@ -67,15 +67,27 @@ if [ "$(id -u)" -ne 0 ]; then
 
     if [ "$NEEDS_ROOT" -eq 0 ]; then
         :
-    elif sudo -n true 2>/dev/null || { [ -t 0 ] && sudo -v 2>/dev/null; }; then
+    elif sudo -n true 2>/dev/null; then
         echo "  elevating to root (reading ${FROM} and creating a database need it)"
-        exec sudo -- "$0" "${ARGS[@]}"
+        exec sudo -n -- "$0" "${ARGS[@]}"
     else
-        printf 'This has to run as root: %s belongs to another account, and creating\n' "$FROM" >&2
-        printf 'a database is not something %s may do.\n\n' "${USER:-this account}" >&2
-        printf '  su -\n  cd %q\n  bash %q' "$(pwd)" "$0" >&2
-        printf ' %q' "${ARGS[@]}" >&2
-        printf '\n' >&2
+        SELF="$(cd "${0%/*}" 2>/dev/null && pwd)/${0##*/}"
+
+        # Single quotes, so a customer name with a space in it survives being
+        # pasted. An embedded quote becomes '\'' -- the shell's own way out.
+        COMMAND="bash ${SELF}"
+        for arg in "${ARGS[@]}"; do
+            if [[ "$arg" =~ ^[A-Za-z0-9._/=:@+-]+$ ]]; then
+                COMMAND="${COMMAND} ${arg}"
+            else
+                COMMAND="${COMMAND} '${arg//\'/\'\\\'\'}'"
+            fi
+        done
+
+        printf 'This has to run as root: %s belongs to another account, and\n' "$FROM" >&2
+        printf 'creating a database is not something %s may do.\n\n' "${USER:-this account}" >&2
+        printf 'In a root shell:\n\n  %s\n\n' "$COMMAND" >&2
+        printf 'Or in one line from here:\n\n  su - root -c "%s"\n' "$COMMAND" >&2
         exit 1
     fi
 fi
