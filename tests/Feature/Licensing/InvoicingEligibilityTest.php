@@ -12,16 +12,16 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * Wanneer valt er iets te factureren? Een dubbele factuur voor dezelfde maand
- * kost een nummer uit een doorlopende reeks en moet met een creditnota
- * teruggedraaid worden, dus dit hoort niet te kunnen.
+ * When is there something to invoice? A duplicate invoice for the same month
+ * costs a number from a continuous series and has to be undone with a credit
+ * note, so this should not be possible.
  */
 class InvoicingEligibilityTest extends TestCase
 {
     /**
-     * De rij wordt rechtstreeks weggeschreven en niet met Tenant::create():
-     * dat laatste trapt de pijplijn af die een echte database aanmaakt, en
-     * daar gaan deze tests niet over. Er wordt hier alleen gerekend.
+     * The row is written directly and not with Tenant::create(): the latter
+     * kicks off the pipeline that creates a real database, and these tests are
+     * not about that. Only arithmetic happens here.
      */
     private function tenant(array $attributes = []): Tenant
     {
@@ -124,7 +124,7 @@ class InvoicingEligibilityTest extends TestCase
         $tenant = $this->tenant();
         $invoicer = new Invoicer($tenant);
 
-        /** Maart is gefactureerd; daarna koopt de klant tegoed bij. */
+        /** March is invoiced; after that the customer tops up credit. */
         $invoicer->issue(CarbonImmutable::parse('2026-03-15'));
         $this->charge($tenant);
         $charges_only = $invoicer->issue(CarbonImmutable::parse('2026-03-20'));
@@ -132,8 +132,8 @@ class InvoicingEligibilityTest extends TestCase
         $this->assertSame(['topup'], $charges_only->lines->pluck('kind')->all());
 
         /**
-         * Die tussentijdse factuur valt in de periode van april zodra die
-         * begint -- hij mag de aprilfactuur niet wegdrukken.
+         * That interim invoice falls in April's period as soon as it starts --
+         * it must not push April's invoice aside.
          */
         $april = CarbonImmutable::parse('2026-04-15');
 

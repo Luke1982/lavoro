@@ -5,19 +5,19 @@ namespace Tests\Feature\Tenancy;
 use Tests\TestCase;
 
 /**
- * Twee mappen met migraties: database/migrations/ draait tegen de centrale
- * database, database/migrations/tenant/ tegen die van elke klant.
+ * Two directories of migrations: database/migrations/ runs against the central
+ * database, database/migrations/tenant/ against every customer's.
  *
- * Een tenant-migratie die per ongeluk in de centrale map staat maakt zijn
- * tabel aan in lavoro_landlord en nergens anders. Er gaat niets stuk bij het
- * migreren; het valt pas op als een klant die tabel nodig heeft.
+ * A tenant migration that ends up in the central directory by accident creates
+ * its table in lavoro_landlord and nowhere else. Nothing breaks while
+ * migrating; it only shows when a customer needs that table.
  */
 class MigrationsLiveInTheRightPlaceTest extends TestCase
 {
     /**
-     * De twee migraties van Laravel zelf. Die draaien op de standaard-
-     * verbinding, en dat is de centrale database -- klopt dus, maar het staat
-     * er niet. Ze staan hier met naam zodat een nieuwe uitzondering opvalt.
+     * Laravel's own two migrations. They run on the default connection, and
+     * that is the central database -- correct, then, but unstated. They are
+     * named here so a new exception stands out.
      */
     private const ALLOWED_WITHOUT_CONNECTION = [
         '0001_01_01_000001_create_cache_table.php',
@@ -47,7 +47,7 @@ class MigrationsLiveInTheRightPlaceTest extends TestCase
             . " database/migrations/tenant/:\n" . implode("\n", $offenders) . "\n");
     }
 
-    /** En andersom: een klantmigratie hoort de centrale verbinding juist niet te kiezen. */
+    /** And the other way around: a customer migration should not pick the central connection. */
     public function test_no_tenant_migration_writes_to_the_central_database_by_default(): void
     {
         $offenders = [];
@@ -56,9 +56,9 @@ class MigrationsLiveInTheRightPlaceTest extends TestCase
             $source = (string) file_get_contents($path);
 
             /**
-             * Schema::connection('central') in een klantmigratie is bijna
-             * altijd fout. De uitzondering is een migratie die bewust iets
-             * centraals bijwerkt, en die zegt dat in zijn toelichting.
+             * Schema::connection('central') in a customer migration is almost
+             * always wrong. The exception is a migration that deliberately
+             * updates something central, and it says so in its docblock.
              */
             if (str_contains($source, "Schema::connection('central')")) {
                 $offenders[] = basename($path);

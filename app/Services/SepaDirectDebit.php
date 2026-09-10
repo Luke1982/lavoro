@@ -11,12 +11,12 @@ use Illuminate\Support\Collection;
 use XMLWriter;
 
 /**
- * Een incassobestand in SEPA-XML, pain.008.001.02. Dat is wat ASN via Online
- * Bankieren inleest; hun handleiding noemt het "SEPA XML-formaat".
+ * A direct debit file in SEPA XML, pain.008.001.02. That is what ASN reads
+ * through Online Bankieren; their manual calls it "SEPA XML-formaat".
  *
- * Eén bestand kan meerdere batches bevatten. Er wordt er hier één per soort
- * gemaakt — eerste incasso en doorlopende incasso mogen niet door elkaar in
- * dezelfde batch, en de bank weigert het bestand als dat toch gebeurt.
+ * One file can hold several batches. One per kind is made here -- a first
+ * collection and a recurring one may not sit together in the same batch, and
+ * the bank refuses the file if they do.
  */
 class SepaDirectDebit
 {
@@ -46,10 +46,10 @@ class SepaDirectDebit
         $this->groupHeader($xml, $issuer);
 
         /**
-         * FRST voor wie nog niet eerder is geïncasseerd, RCUR daarna. De bank
-         * kijkt hierop; een tweede incasso als FRST wordt geweigerd. Ook
-         * binnen dit ene bestand: van twee facturen van dezelfde klant is
-         * alleen de eerste een eerste.
+         * FRST for whoever has not been collected from before, RCUR after that.
+         * The bank checks this; a second collection as FRST is refused. Within
+         * this one file too: of two invoices from the same customer only the
+         * first is a first.
          */
         $seen = [];
         $sequences = [];
@@ -124,7 +124,7 @@ class SepaDirectDebit
 
         $xml->writeElement('ChrgBr', 'SLEV');
 
-        /** Het incassant-ID dat de bank heeft uitgegeven, niet het KvK-nummer. */
+        /** The creditor id the bank issued, not the chamber of commerce number. */
         $xml->startElement('CdtrSchmeId');
         $xml->startElement('Id');
         $xml->startElement('PrvtId');
@@ -191,9 +191,8 @@ class SepaDirectDebit
     }
 
     /**
-     * Is er voor deze klant nog nooit geïncasseerd? Er wordt naar andere
-     * facturen gekeken en niet naar deze, zodat een bestand dat opnieuw wordt
-     * gemaakt er hetzelfde uit komt.
+     * Has this customer never been collected from? It looks at other invoices
+     * and not at this one, so that a file made again comes out the same.
      */
     private function neverCollected(Invoice $invoice): bool
     {

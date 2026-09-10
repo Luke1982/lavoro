@@ -17,7 +17,7 @@ class AssistantAllowance implements AllowanceGate
             ->sum('cost_micros');
     }
 
-    /** Het maandtegoed. Begint elke maand opnieuw. */
+    /** The monthly allowance. Starts over every month. */
     public function monthlyMicros(): int
     {
         return (int) (tenancy()->tenant->ai_allowance_micros
@@ -25,8 +25,8 @@ class AssistantAllowance implements AllowanceGate
     }
 
     /**
-     * Wat er ooit is bijgekocht, min wat er in eerdere maanden overheen ging.
-     * Bijkopen verloopt niet, dus het telt over de hele looptijd.
+     * What was ever topped up, minus what went over it in earlier months.
+     * Topping up does not expire, so it counts over the whole lifetime.
      */
     public function topupMicros(): int
     {
@@ -41,22 +41,22 @@ class AssistantAllowance implements AllowanceGate
     }
 
     /**
-     * Bijgekocht tegoed gaat er pas aan zodra het maandtegoed op is, en wat
-     * daarvan over is blijft staan voor de volgende maand.
+     * Topped up credit is only eaten into once the monthly allowance is gone,
+     * and what is left of it stays for the next month.
      *
-     * Er wordt per maand gekeken naar wat er bóven het maandtegoed uit ging, en
-     * niet naar het totaal. Anders eet een klant die drie maanden netjes onder
-     * zijn tegoed bleef zijn bijkoop op zonder hem ooit gebruikt te hebben.
+     * It looks per month at what went above the monthly allowance, and not at
+     * the total. Otherwise a customer who stayed neatly under their allowance
+     * for three months eats their top-up without ever having used it.
      *
-     * Het maandtegoed van nu geldt daarbij ook voor eerdere maanden. Wat het
-     * toen precies was is niet vastgelegd, en dat achteraf reconstrueren is
-     * meer werk dan het verschil waard is.
+     * Today's monthly allowance also counts for earlier months. What it was
+     * back then exactly is not recorded, and reconstructing that afterwards is
+     * more work than the difference is worth.
      */
     public function topupRemainingMicros(): int
     {
         $monthly = $this->monthlyMicros();
 
-        /** In PHP gegroepeerd en niet in SQL: de tests draaien op sqlite. */
+        /** Grouped in PHP and not in SQL: the tests run on sqlite. */
         $per_month = DB::connection('central')->table('assistant_usage')
             ->where('tenant_id', (string) tenancy()->tenant->getTenantKey())
             ->where('created_at', '<', now()->startOfMonth())

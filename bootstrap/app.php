@@ -67,9 +67,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.module' => EnsureTenantHasModule::class,
         ]);
         /**
-         * Een gast op het beheerpaneel hoort naar het inlogscherm van het
-         * paneel, niet naar dat van de app: Authenticate stuurt standaard naar
-         * de route 'login', ongeacht welke guard hem tegenhield.
+         * A guest on the admin panel belongs at the panel's login screen, not
+         * at the app's: Authenticate sends to the route 'login' by default,
+         * whichever guard stopped them.
          */
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('beheer', 'beheer/*')
             ? route('landlord.login')
@@ -81,10 +81,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /**
-         * Een weigering met een leesbare reden gaat terug naar het scherm met
-         * die reden erbij. Zonder dit werd het een 500 en las de gebruiker
-         * "Er is een serverfout opgetreden", terwijl de uitleg al geschreven
-         * was door degene die de weigering gooide.
+         * A refusal with a readable reason goes back to the screen with that
+         * reason. Without this it became a 500 and the user read "Er is een
+         * serverfout opgetreden", while the explanation had already been
+         * written by whoever threw the refusal.
          */
         $exceptions->render(function (Refusal $e, Request $request) {
             if ($request->expectsJson()) {
@@ -144,11 +144,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             /**
-             * Een verzoek dat hier langskomt eindigt als een omleiding met een
-             * melding erbij. Ziet iemand die melding niet -- een sjabloon dat
-             * de sleutel niet toont, een pagina uit de cache -- dan gebeurt er
-             * ogenschijnlijk niets: geen fout, geen regel, geen resultaat.
-             * Daarom hier wel een regel, zodat het altijd ergens staat.
+             * A request passing here ends as a redirect with a message. If
+             * someone does not see that message -- a template not showing the
+             * key, a page from cache -- then to all appearances nothing happens:
+             * no error, no line, no result. Hence a line here, so it is always
+             * written down somewhere.
              */
             if (in_array($response->getStatusCode(), [403, 419], true) && !$request->expectsJson()) {
                 Log::warning('Verzoek geweigerd', [
@@ -169,12 +169,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             /**
-             * Alleen voor verzoeken die iets wijzigen. Een pagina die zelf
-             * stukloopt terugsturen naar waar hij vandaan kwam is die pagina
-             * opnieuw: dan blijft de browser heen en weer springen tot hij het
-             * opgeeft, en is er van de fout niets meer te zien. Precies dat
-             * gebeurde toen een half aangemaakte klant het beheerpaneel liet
-             * struikelen.
+             * Only for requests that change something. Sending a page that
+             * breaks itself back to where it came from is that page again: the
+             * browser then keeps bouncing back and forth until it gives up, and
+             * nothing of the error is left to see. That is exactly what
+             * happened when a half created customer tripped the admin panel.
              */
             $notProd = app()->environment(['local', 'development', 'testing']);
             if (!$notProd && !$request->isMethodSafe() && in_array($response->getStatusCode(), [500, 503, 404])) {

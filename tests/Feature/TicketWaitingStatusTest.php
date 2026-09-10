@@ -12,9 +12,9 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De vierde fase van een storing. Het overzicht telt de fasen met de hand op, dus
- * een nieuwe status die nergens meegeteld wordt is een storing die uit de
- * kaarten verdwijnt zonder dat iemand het merkt.
+ * The fourth stage of an incident. The overview adds the stages up by hand, so
+ * a new status that is counted nowhere is an incident disappearing from the
+ * cards without anyone noticing.
  */
 class TicketWaitingStatusTest extends TestCase
 {
@@ -42,10 +42,11 @@ class TicketWaitingStatusTest extends TestCase
     }
 
     /**
-     * De kolom is op MySQL een ENUM en kent alleen wat er ooit in gezet is. Een fase
-     * bij de enum in PHP zonder migratie erbij levert daar "Data truncated for column
-     * 'status'" op, en op SQLite — waar deze test standaard draait — merkt niemand
-     * er iets van. Deze schrijft ze allemaal weg en leest ze terug.
+     * On MySQL the column is an ENUM and knows only what was once put in it. A
+     * stage added to the enum in PHP without a migration gives "Data truncated
+     * for column 'status'" there, and on SQLite -- where this test runs by
+     * default -- nobody notices a thing. This one writes them all and reads
+     * them back.
      */
     public function test_every_status_the_enum_names_survives_a_write(): void
     {
@@ -72,7 +73,7 @@ class TicketWaitingStatusTest extends TestCase
                 ->where('waitingCount', 2)
                 ->where('openCount', 1)
 
-                /** Vier fasen, drie storingen: het gemiddelde deelt door vier. */
+                /** Four stages, three incidents: the average divides by four. */
                 ->where('avgCount', 1));
     }
 

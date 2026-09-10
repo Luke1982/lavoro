@@ -12,10 +12,10 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De rol van MajorLabel binnen de database van een klant. Mag alles, en een
- * klant mag er op geen enkele manier bij: niet zien, niet aanmaken, niet
- * toekennen. Elke weg daarheen krijgt hier zijn eigen test, want één open
- * deur is genoeg.
+ * MajorLabel's role inside a customer's database. May do everything, and a
+ * customer may not reach it in any way: not see it, not create it, not grant
+ * it. Every road there gets a test of its own here, because one open door is
+ * enough.
  */
 class SuperAdminRoleTest extends TestCase
 {
@@ -106,9 +106,9 @@ class SuperAdminRoleTest extends TestCase
     public function test_technical_management_is_for_the_super_admin_alone(): void
     {
         /**
-         * Zonder dit maakt de afhandelaar er een 302 met een melding van, en
-         * dan zegt de test alleen dat er iets gebeurde. Zo staat er waarom hij
-         * geweigerd wordt.
+         * Without this the handler turns it into a 302 with a message, and then
+         * the test only says that something happened. This way it states why it
+         * is refused.
          */
         $this->withoutExceptionHandling();
 
@@ -146,7 +146,7 @@ class SuperAdminRoleTest extends TestCase
     {
         $super = $this->superAdmin();
 
-        /** Zonder ingelogde gebruiker doet de scope niets, anders kan hij er nooit meer in. */
+        /** Without a logged in user the scope does nothing, otherwise they could never get in. */
         $this->assertTrue(User::where('id', $super->id)->exists());
     }
 
@@ -159,7 +159,7 @@ class SuperAdminRoleTest extends TestCase
         $this->assertFalse($admin->can('update', $super));
         $this->assertFalse($admin->can('delete', $super));
 
-        /** En wij kunnen er zelf wel bij. */
+        /** And we can reach it ourselves. */
         $this->assertTrue($super->can('update', $super));
     }
 

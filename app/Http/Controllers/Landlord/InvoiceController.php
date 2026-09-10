@@ -14,7 +14,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /**
- * Facturen van een klant: maken, versturen en downloaden.
+ * A customer's invoices: creating, sending and downloading.
  */
 class InvoiceController extends Controller
 {
@@ -33,7 +33,7 @@ class InvoiceController extends Controller
             'is_due' => $invoicer->isDue(),
             'is_credit' => $invoicer->isCreditNote(),
             'next_period_starts_on' => $end->addDay(),
-            /** Maanden die zijn overgeslagen; die komen uit zichzelf niet meer terug. */
+            /** Months that were skipped; those do not come back of their own accord. */
             'unbilled' => collect($invoicer->unbilledPeriods())
                 ->map(fn (array $period) => $period['start']->format('d-m-Y') . ' t/m ' . $period['end']->format('d-m-Y'))
                 ->all(),
@@ -47,16 +47,16 @@ class InvoiceController extends Controller
         $invoice = (new Invoicer($tenant))->issue();
 
         /**
-         * Het bedrag dat er ook op de factuur staat en dat geincasseerd wordt:
-         * inclusief btw. total_cents is het netto bedrag, en dat stond hier --
-         * 21% lager dan wat de klant betaalt, vlak boven een lijst waarin het
-         * bedrag mét btw staat.
+         * The amount that is on the invoice as well and that gets collected:
+         * including VAT. total_cents is the net amount, and that used to be
+         * here -- 21% lower than what the customer pays, right above a list
+         * showing the amount with VAT.
          */
         return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
             . Money::human($invoice->gross_cents));
     }
 
-    /** Handmatig: er hoort eerst iemand naar de factuur gekeken te hebben. */
+    /** By hand: someone should have looked at the invoice first. */
     public function mailInvoice(MailInvoiceRequest $request, string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
@@ -80,11 +80,11 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Dezelfde pdf, maar om te tonen in plaats van te downloaden.
+     * The same pdf, but to show instead of to download.
      *
-     * Het verschil zit alleen in Content-Disposition: met 'attachment' schuift
-     * de browser hem naar de downloadmap en valt er niets te bekijken, dus een
-     * voorbeeld in het scherm heeft zijn eigen adres nodig.
+     * The difference is only in Content-Disposition: with 'attachment' the
+     * browser pushes it into the downloads folder and there is nothing to look
+     * at, so a preview in the screen needs an address of its own.
      */
     public function invoicePreview(string $id, int $invoice_id)
     {

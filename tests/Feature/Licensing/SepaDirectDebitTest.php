@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Het incassobestand gaat naar de bank. Gaat er iets mis, dan hoor je dat
- * dagen later terug als een afgekeurde batch, niet als een foutmelding hier.
- * Vandaar dat dit bestand tot op de knoop wordt nagelopen.
+ * The direct debit file goes to the bank. If something is wrong you hear about
+ * it days later as a rejected batch, not as an error here. Hence this file is
+ * checked down to the knot.
  */
 class SepaDirectDebitTest extends TestCase
 {
@@ -100,7 +100,7 @@ class SepaDirectDebitTest extends TestCase
         $this->assertSame('EUR', (string) $xml->xpath('//p:InstdAmt/@Ccy')[0]);
     }
 
-    /** De optelling moet kloppen, anders weigert de bank de hele batch. */
+    /** The total has to add up, otherwise the bank refuses the whole batch. */
     public function test_the_totals_match_the_transactions(): void
     {
         $tenant = $this->tenantWithMandate();
@@ -120,8 +120,8 @@ class SepaDirectDebitTest extends TestCase
     }
 
     /**
-     * Een tweede incasso als "eerste" wordt geweigerd. Binnen één bestand is
-     * dus alleen de eerste van een machtiging FRST.
+     * A second collection as "first" is refused. Within one file only the first
+     * of a mandate is FRST.
      */
     public function test_only_the_first_collection_for_a_mandate_is_a_first(): void
     {
@@ -153,7 +153,7 @@ class SepaDirectDebitTest extends TestCase
         $this->assertSame('T-7', (string) $xml->xpath('//p:EndToEndId')[0]);
     }
 
-    /** Spaties in een IBAN zijn gebruikelijk op papier en verboden in het bestand. */
+    /** Spaces in an IBAN are usual on paper and forbidden in the file. */
     public function test_a_spaced_iban_is_written_without_spaces(): void
     {
         $tenant = $this->tenantWithMandate(['iban' => 'NL39 ASNB 0932 3928 81']);

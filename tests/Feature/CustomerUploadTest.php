@@ -23,8 +23,8 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De aanleverpagina zoals een klant hem tegenkomt: geen inlog, één link, en alles
- * wat er binnenkomt komt op de storing terecht.
+ * The upload page as a customer meets it: no login, one link, and everything
+ * that comes in lands on the incident.
  */
 class CustomerUploadTest extends TestCase
 {
@@ -162,8 +162,8 @@ class CustomerUploadTest extends TestCase
     }
 
     /**
-     * De tijdlijn toont een voorbeeldplaatje zodra de melding er een aanwijst. Zonder
-     * dit pad blijft dat leeg en is aan de regel niet te zien wat er binnenkwam.
+     * The timeline shows a preview image as soon as the entry points at one.
+     * Without this path it stays empty and the line does not show what came in.
      */
     public function test_the_activity_carries_a_thumbnail_and_reads_as_an_image(): void
     {
@@ -180,7 +180,7 @@ class CustomerUploadTest extends TestCase
         $this->assertNotNull($activity->metadata['thumbnail_path']);
         $this->assertTrue(Storage::disk('public')->exists($activity->metadata['thumbnail_path']));
 
-        /** Het id gaat mee zodat de tijdlijn straks niet meer van /storage/ afhangt. */
+        /** The id travels along so the timeline no longer depends on /storage/. */
         $this->assertSame(
             $this->ticket->images()->first()->id,
             $activity->metadata['thumbnail_image_id'],
@@ -215,9 +215,9 @@ class CustomerUploadTest extends TestCase
     }
 
     /**
-     * Alleen vanuit de wachtfase. Wie de storing intussen ergens anders heeft neergezet
-     * weet meer dan deze pagina, en een binnenkomend bestand hoort dat niet terug te
-     * draaien.
+     * Only from the waiting stage. Whoever moved the incident elsewhere in the
+     * meantime knows more than this page, and an incoming file should not undo
+     * that.
      */
     public function test_a_delivery_leaves_a_storing_alone_that_is_not_waiting(): void
     {
@@ -250,10 +250,10 @@ class CustomerUploadTest extends TestCase
         $this->assertStringContainsString('Van Dijk B.V.', $notification->body);
 
         /**
-         * Twee berichten en niet één: dat de klant iets stuurde en dat de storing
-         * daardoor niet meer wacht zijn twee feiten met elk hun eigen intekenaars.
-         * Wie alleen op statuswijzigingen intekent hoort het tweede te horen, ook
-         * als hij niets van aanleveringen wil weten.
+         * Two messages and not one: that the customer sent something and that
+         * the incident is no longer waiting are two facts with subscribers of
+         * their own. Whoever only subscribes to stage changes should hear the
+         * second, also when they want to know nothing about uploads.
          */
         $this->assertSame(2, UserNotification::where('user_id', $follower->id)->count());
     }

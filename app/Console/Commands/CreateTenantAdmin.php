@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Geeft een bestaande tenant een beheerder, of zet het wachtwoord van een
- * bestaande opnieuw. tenant:create doet dit voor een nieuwe klant;
- * tenant:setup-existing laat een overgenomen database juist zonder achter.
+ * Gives an existing tenant an admin, or sets an existing one's password again.
+ * tenant:create does this for a new customer; tenant:setup-existing
+ * deliberately leaves an adopted database without one.
  */
 class CreateTenantAdmin extends Command
 {
@@ -42,7 +42,7 @@ class CreateTenantAdmin extends Command
         $email = $this->argument('email');
         $password = $this->option('password') ?: Str::password(16);
 
-        /** Een adres hoort bij één tenant; anders weet het inloggen niet waarheen. */
+        /** An address belongs to one tenant; otherwise logging in does not know where to go. */
         $lookup = UserTenantLookup::on('central')->find($email);
 
         if ($lookup && $lookup->tenant_id !== $tenant->id) {
@@ -52,9 +52,9 @@ class CreateTenantAdmin extends Command
         }
 
         /**
-         * Via de helper: die zet terug wat er stond. Met een kale
-         * tenancy()->end() draait alles na dit commando -- of na deze test --
-         * ineens zonder tenant.
+         * Through the helper: it puts back what was there. With a bare
+         * tenancy()->end() everything after this command -- or after this test
+         * -- suddenly runs without a tenant.
          */
         $failure = Tenancy::within($tenant, function () use ($tenant, $email, $password) {
             $role = Role::where('name', 'admin')->first();
@@ -73,7 +73,7 @@ class CreateTenantAdmin extends Command
                 return null;
             }
 
-            /** Beheerder zijn is een rol en geen kolom; die koppeling is het hele punt. */
+            /** Being an admin is a role and not a column; that link is the whole point. */
             User::create([
                 'name' => $this->option('name'),
                 'email' => $email,

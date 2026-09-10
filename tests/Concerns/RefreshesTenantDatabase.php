@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Eén testtenant per run, en elke test in een transactie op beide verbindingen.
+ * One test tenant per run, and every test in a transaction on both connections.
  *
- * Een database per test zou correct zijn en onwerkbaar traag; een transactie die
- * terugdraait geeft dezelfde afscherming. Wat het niet geeft: opnieuw beginnende
- * auto-increments, en code die zelf commit ontsnapt eraan.
+ * A database per test would be correct and unworkably slow; a transaction that
+ * rolls back gives the same separation. What it does not give: auto-increments
+ * starting over, and code that commits itself escapes it.
  */
 trait RefreshesTenantDatabase
 {
@@ -30,10 +30,10 @@ trait RefreshesTenantDatabase
             Artisan::call('migrate:fresh', ['--force' => true, '--database' => 'central']);
 
             /**
-             * De database en de MySQL-login blijven na een run staan. Ze eerst
-             * weghalen scheelt een uitzondering bij elke volgende run, en het
-             * opnieuw migreren van 244 migraties per run is de prijs waard
-             * tegenover een suite die alleen de eerste keer draait.
+             * The database and the MySQL login stay behind after a run.
+             * Removing them first saves an exception on every following run,
+             * and migrating 244 migrations again per run is worth the price
+             * against a suite that only runs the first time.
              */
             $database = 'lavoro_test_tenant_test';
 
@@ -42,7 +42,7 @@ trait RefreshesTenantDatabase
             foreach (DB::connection('central')->select(
                 'SELECT user FROM mysql.user WHERE user LIKE ?', ['%']
             ) as $row) {
-                // niets: gebruikersnamen zijn willekeurig, we ruimen via de tenantrij op
+                // nothing: user names are random, we clean up through the tenant row
             }
 
             Tenant::on('central')->where('id', 'test-tenant')->get()->each(function (Tenant $stale) {
@@ -56,9 +56,9 @@ trait RefreshesTenantDatabase
             });
 
             /**
-             * De testtenant krijgt elk pakket en elke module. De poortjes zelf
-             * hebben hun eigen tests; alle andere tests gaan over wat erachter
-             * zit en horen niet op een abonnement te stranden.
+             * The test tenant gets every package and every module. The gates
+             * themselves have tests of their own; all other tests are about
+             * what sits behind them and should not strand on a subscription.
              */
             Tenant::create([
                 'id' => 'test-tenant',
@@ -75,12 +75,12 @@ trait RefreshesTenantDatabase
         tenancy()->initialize(Tenant::on('central')->find('test-tenant'));
 
         /**
-         * Dezelfde beheerder die Laravels eigen RefreshDatabase gebruikt.
-         * Zonder deze blijft alles wat "na de commit" hoort te gebeuren --
-         * ShouldHandleEventsAfterCommit-listeners, afterCommit-jobs -- eeuwig
-         * wachten, want de omhullende testtransactie commit nooit. Deze
-         * beheerder weet dat en voert zulke callbacks meteen uit zolang alleen
-         * de testtransactie openstaat.
+         * The same manager Laravel's own RefreshDatabase uses. Without it
+         * everything that should happen "after the commit" --
+         * ShouldHandleEventsAfterCommit listeners, afterCommit jobs -- waits
+         * forever, because the enclosing test transaction never commits. This
+         * manager knows that and runs such callbacks straight away as long as
+         * only the test transaction is open.
          */
         $manager = new DatabaseTransactionsManager(['central', 'tenant']);
         app()->instance('db.transactions', $manager);

@@ -72,7 +72,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user_data,
                 'permissions' => $request->user() ? $request->user()->permissionNames() : [],
                 'isAdmin' => $request->user() ? $request->user()->isAdmin() : false,
-                /** MajorLabel zelf; alleen dit account ziet Technisch beheer. */
+                /** MajorLabel itself; only this account sees Technisch beheer. */
                 'isSuperAdmin' => $request->user() ? $request->user()->isSuperAdmin() : false,
 
                 /**
@@ -105,22 +105,23 @@ class HandleInertiaRequests extends Middleware
                     : 0,
             ],
             /**
-             * De aankondiging die deze gebruiker nu moet bevestigen, of null.
+             * The announcement this user has to acknowledge now, or null.
              *
-             * De naam is met opzet lang. Een paginaprop overschrijft een
-             * gedeelde prop met dezelfde sleutel, en 'announcement' is precies
-             * hoe de detailpagina zijn eigen record noemt: daar las de balk dan
-             * de aankondiging van de pagina en ging hij nooit meer weg.
+             * The name is deliberately long. A page prop overrides a shared
+             * prop with the same key, and 'announcement' is exactly what the
+             * detail page calls its own record: the bar then read the page's
+             * announcement and never went away again.
              *
-             * Hier en niet in een eigen route: elke Inertia-navigatie ververst
-             * dit al, en na een bevestiging stuurt de controller terug naar
-             * dezelfde pagina, waarna de volgende openstaande aankondiging
-             * vanzelf in deze prop staat. Alleen wat de balk tekent, want de
-             * rest van het record gaat niemand aan die het moet lezen.
+             * Here and not in a route of its own: every Inertia navigation
+             * refreshes this already, and after an acknowledgement the
+             * controller sends back to the same page, after which the next open
+             * announcement is in this prop by itself. Only what the bar draws,
+             * because the rest of the record is no business of whoever has to
+             * read it.
              *
-             * Als functie, zodat de zoekopdracht alleen draait als er een
-             * Inertia-pagina getekend wordt. Elk formulier dat opslaat eindigt
-             * in een redirect, en die hoeft hier niet voor te betalen.
+             * As a function, so the query only runs when an Inertia page is
+             * drawn. Every form that saves ends in a redirect, and that should
+             * not pay for this.
              */
             'pendingAnnouncement' => fn () => $request->user()
                 ? InternalAnnouncement::openFor($request->user())
@@ -132,9 +133,9 @@ class HandleInertiaRequests extends Middleware
              * which is the front end's cue not to ask for permission it could
              * never act on.
              */
-            /** Het pakket dat deze klant afneemt, voor de licentiekaart in het menu. */
+            /** The package this customer subscribes to, for the licence card in the menu. */
             'tenant' => tenancy()->initialized ? [
-                /** Voor in de paginatitel: 'Lavoro - <klant> - <module>'. */
+                /** For the page title: 'Lavoro - <customer> - <module>'. */
                 'name' => tenancy()->tenant->name,
                 'package' => optional(Package::on('central')
                     ->where('key', tenancy()->tenant->package_key)->first())->name,

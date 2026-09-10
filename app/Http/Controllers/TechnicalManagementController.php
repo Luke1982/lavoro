@@ -15,14 +15,14 @@ use Throwable;
 
 class TechnicalManagementController extends Controller
 {
-    /** Velden die gewoon terug het scherm in mogen. */
+    /** Fields that may simply go back into the screen. */
     private const PLAIN_KEYS = [
         'mail_transport', 'mail_from_address', 'mail_from_name',
         'graph_azure_tenant_id', 'graph_client_id', 'graph_user_id',
         'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_scheme', 'mail_smtp_username',
     ];
 
-    /** Velden die het scherm alleen als "staat ingevuld" te zien krijgt. */
+    /** Fields the screen only gets to see as "is filled in". */
     private const SECRET_KEYS = [
         'graph_client_secret', 'mail_smtp_password',
         'snelstart_client_key', 'snelstart_subscription_key',
@@ -38,7 +38,7 @@ class TechnicalManagementController extends Controller
             $settings[$key] = GeneralSetting::get($key, '');
         }
 
-        /** Wie niets gekozen heeft mailt via Microsoft 365; dat is wat er stond. */
+        /** Whoever chose nothing mails through Microsoft 365; that is what was there. */
         $settings['mail_transport'] = $settings['mail_transport'] ?: 'graph';
 
         $stored = [];
@@ -62,8 +62,8 @@ class TechnicalManagementController extends Controller
         }
 
         /**
-         * Een leeg geheim betekent "laat staan". Anders wist elk bezoek aan het
-         * scherm de sleutels, want ze staan er niet in.
+         * An empty secret means "leave it". Otherwise every visit to the screen
+         * wiped the keys, because they are not in it.
          */
         foreach (self::SECRET_KEYS as $key) {
             if (filled($data[$key] ?? null)) {

@@ -11,21 +11,21 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Voert één aanvraag uit het beheerpaneel uit.
+ * Carries out one request from the admin panel.
  *
- * Draait op de aparte wachtrij 'provisioning', want alleen de worker die als
- * lavoro_provisioner draait mag databases aanmaken en weggooien. De gewone
- * worker draait als lavoro_app en zou hier stuklopen -- daarom een eigen
- * wachtrij en niet de standaard.
+ * Runs on the separate 'provisioning' queue, because only the worker running as
+ * lavoro_provisioner may create and drop databases. The ordinary worker runs as
+ * lavoro_app and would break here -- hence a queue of its own and not the
+ * default.
  */
 class RunTenantProvisioningRequestJob implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * Eén poging. Een halve tenant nog eens proberen aan te maken loopt vast op
-     * "de database bestaat al" en verbergt de echte fout; opruimen en opnieuw
-     * indienen is de juiste weg.
+     * One attempt. Trying to create half a tenant again gets stuck on "the
+     * database already exists" and hides the real error; cleaning up and
+     * submitting again is the right way.
      */
     public $tries = 1;
 
@@ -68,9 +68,9 @@ class RunTenantProvisioningRequestJob implements ShouldQueue
         );
 
         /**
-         * Het wachtwoord wordt één keer getoond en daarna gewist. Het staat hier
-         * omdat de aanvrager het scherm al lang verlaten kan hebben als de
-         * worker klaar is, en anders is er geen manier om erin te komen.
+         * The password is shown once and wiped after. It is here because the
+         * requester may long have left the screen by the time the worker is
+         * done, and then there is no way of getting in.
          */
         $request->update(['tenant_id' => $tenant->id, 'generated_password' => $password]);
     }
@@ -86,8 +86,8 @@ class RunTenantProvisioningRequestJob implements ShouldQueue
         $provisioner->destroy($tenant);
 
         /**
-         * Het wachtwoord van een klant die niet meer bestaat hoort nergens
-         * meer te staan, en zeker niet zichtbaar in het beheerpaneel.
+         * The password of a customer that no longer exists should not be
+         * anywhere any more, and certainly not visible in the admin panel.
          */
         TenantProvisioningRequest::on('central')
             ->where('tenant_id', $tenant->id)

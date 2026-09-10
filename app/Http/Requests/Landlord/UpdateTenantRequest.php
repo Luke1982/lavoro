@@ -50,10 +50,10 @@ class UpdateTenantRequest extends FormRequest
     }
 
     /**
-     * Het formulier praat in euro's, de tenant rekent in centen. Die vertaling
-     * hoort hier en niet in de controller: daar stond hij tussen het opslaan
-     * door, met drie losse regels om de velden die alleen op het scherm
-     * bestaan er weer uit te halen.
+     * The form speaks in euros, the tenant counts in cents. That translation
+     * belongs here and not in the controller: there it sat in between the
+     * saving, with three separate lines to take the fields that exist only on
+     * screen back out again.
      *
      * @return array<string, mixed>
      */
@@ -69,21 +69,21 @@ class UpdateTenantRequest extends FormRequest
                 'module_prices' => $this->modulePrices($data),
                 'ai_allowance_micros' => $this->scaled('ai_allowance_euro', 1_000_000),
                 'price_override_cents' => $this->scaled('price_override_euro', 100),
-                /** Een korting is een bedrag of een percentage, nooit allebei. */
+                /** A discount is an amount or a percentage, never both. */
                 'discount_cents' => $type === 'euro' ? $this->scaled('discount_euro', 100) : null,
                 'discount_percent' => $type === 'percent' ? (int) ($data['discount_percent'] ?? 0) : null,
             ])
             ->all();
     }
 
-    /** Leeg blijft leeg: dat betekent "niet ingesteld" en niet "nul". */
+    /** Empty stays empty: that means "not set" and not "zero". */
     /**
-     * De eigen prijsafspraken per module, in centen.
+     * The agreed prices per module, in cents.
      *
-     * Alleen voor modules die de klant ook echt heeft: zet iemand een module
-     * uit, dan hoort de prijs die erbij hoorde niet te blijven staan om bij het
-     * weer aanzetten stilletjes terug te komen. Een leeg veld is geen afspraak
-     * van nul euro maar geen afspraak.
+     * Only for modules the customer actually has: switch a module off and the
+     * price that belonged to it should not stay behind to come back quietly
+     * when it is switched on again. An empty field is not an agreement of zero
+     * euro but no agreement.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, int>

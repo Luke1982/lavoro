@@ -9,9 +9,9 @@ use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
- * Geplande taken draaien per klant. Eén klant met een verdwenen database liet
- * ze allemaal omvallen: op productie stonden er 1313 mislukte taken, elke vijf
- * minuten een nieuwe, en daar verdween tussen wat er echt mis was.
+ * Scheduled tasks run per customer. One customer with a vanished database made
+ * them all fall over: production held 1313 failed jobs, a new one every five
+ * minutes, and what was really wrong disappeared among them.
  */
 class ScheduledWorkSkipsBrokenTenantsTest extends TestCase
 {
@@ -51,7 +51,7 @@ class ScheduledWorkSkipsBrokenTenantsTest extends TestCase
         $this->assertNotContains($broken->id, $seen, 'de kapotte klant hoort overgeslagen te worden');
     }
 
-    /** Overslaan is niet stilhouden: het hoort in het logboek te staan. */
+    /** Skipping is not keeping quiet: it belongs in the log. */
     public function test_skipping_a_tenant_is_written_down(): void
     {
         $broken = $this->brokenTenant();
@@ -66,9 +66,9 @@ class ScheduledWorkSkipsBrokenTenantsTest extends TestCase
     }
 
     /**
-     * Na afloop hoort dezelfde klant open te staan als ervoor. Blijft er een
-     * klant uit de lus open, dan draait alles daarna in de verkeerde database
-     * -- zonder foutmelding, met de verkeerde gegevens.
+     * Afterwards the same customer should be open as before. If a customer from
+     * the loop stays open, everything after it runs in the wrong database --
+     * without an error, with the wrong data.
      */
     public function test_it_leaves_the_same_tenant_open_as_before(): void
     {

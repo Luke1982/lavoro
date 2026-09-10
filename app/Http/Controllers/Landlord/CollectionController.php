@@ -10,7 +10,7 @@ use App\Services\SepaDirectDebit;
 use Carbon\CarbonImmutable;
 
 /**
- * Incasso: het SEPA-bestand voor de bank.
+ * Collection: the SEPA file for the bank.
  */
 class CollectionController extends Controller
 {
@@ -44,9 +44,8 @@ class CollectionController extends Controller
         ))->toXml();
 
         /**
-         * Pas afstempelen als het bestand er is. Een klant die al op
-         * "geïncasseerd" staat terwijl de bank niets gekregen heeft, wordt
-         * nooit meer meegenomen.
+         * Only stamp them once the file is there. A customer already marked as
+         * collected while the bank got nothing is never included again.
          */
         Invoice::on('central')
             ->whereIn('id', $invoices->pluck('id'))
@@ -59,15 +58,15 @@ class CollectionController extends Controller
     }
 
     /**
-     * Een factuur mag mee als de klant een machtiging heeft afgegeven en hij
-     * nog niet eerder in een bestand zat.
+     * An invoice may travel along when the customer has given a mandate and it
+     * was not in a file before.
      */
     private function collectable()
     {
         return Invoice::on('central')
             ->with('tenant')
             ->whereNull('collected_at')
-            /** Een creditfactuur valt niet te incasseren; geld terugstorten gaat met de hand. */
+            /** A credit note cannot be collected; paying money back is done by hand. */
             ->where('gross_cents', '>', 0)
             ->whereHas('tenant', fn ($query) => $query
                 ->where('payment_method', 'direct_debit')

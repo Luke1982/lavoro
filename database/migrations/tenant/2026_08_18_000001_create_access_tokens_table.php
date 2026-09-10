@@ -6,16 +6,16 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Links die iemand zonder account mag openen.
+ * Links someone without an account may open.
  *
- * Alleen de hash staat er, nooit de link zelf: wie de database leest houdt dan
- * niets in handen dat een deur opent. Sha256 en geen bcrypt, want er wordt op
- * gezocht en de waarde is lang genoeg om raden zinloos te maken — dezelfde
- * afweging die Laravel voor persoonlijke tokens maakt.
+ * Only the hash is stored, never the link itself: whoever reads the database
+ * holds nothing that opens a door. Sha256 and not bcrypt, because it is
+ * searched on and the value is long enough to make guessing pointless -- the
+ * same trade-off Laravel makes for personal access tokens.
  *
- * Waar de link over gaat staat als morph, en waarvoor hij bedoeld is als losse
- * sleutel. Die twee samen maken de tabel onverschillig voor wat er nog bij komt:
- * een volgend soort link is een enum-case, geen kolom.
+ * What the link is about is stored as a morph, and what it is for as a separate
+ * key. Those two together make the table indifferent to whatever comes next: a
+ * next kind of link is an enum case, not a column.
  */
 return new class extends Migration
 {
@@ -30,7 +30,7 @@ return new class extends Migration
 
             $table->string('token_hash')->unique();
 
-            /** Het adres waar de link naartoe ging; komt terug als naam in de tijdlijn. */
+            /** The address the link went to; comes back as a name in the timeline. */
             $table->string('recipient')->nullable();
 
             /** Wat dit soort link nodig heeft om te weten; per soort anders. */
@@ -44,10 +44,10 @@ return new class extends Migration
             $table->foreignIdFor(User::class, 'created_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            /** "Welke links lopen er nog op dit record", met de hand benoemd omdat de gegenereerde naam te lang is. */
+            /** "Which links are still open on this record", named by hand because the generated name is too long. */
             $table->index(['tokenable_type', 'tokenable_id', 'purpose'], 'access_tokens_tokenable_purpose_index');
 
-            /** Voor het opruimen van wat verlopen is. */
+            /** For cleaning up what has expired. */
             $table->index('expires_at');
         });
     }
