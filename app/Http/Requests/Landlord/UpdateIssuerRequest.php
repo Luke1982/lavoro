@@ -5,7 +5,7 @@ namespace App\Http\Requests\Landlord;
 use App\Rules\Iban;
 
 /**
- * Onze eigen gegevens zoals ze op de factuur komen.
+ * Our own details as they appear on the invoice.
  */
 class UpdateIssuerRequest extends LandlordRequest
 {

@@ -7,15 +7,15 @@ use App\Support\Tenancy;
 use Illuminate\Console\Command;
 
 /**
- * Wat er geback-upt moet worden, en waarmee je erbij komt.
+ * What has to be backed up, and what to reach it with.
  *
- * Het deploy-script had dit eerst via tinker opgehaald. Dat is een schil om een
- * REPL: hij schrijft zijn eigen meldingen, vangt exit() af en geeft een
- * exitcode terug die niets zegt over of het gelukt is. In een script dat bij
- * elke fout hoort te stoppen is dat precies verkeerd.
+ * The deploy script fetched this through tinker at first. That is a shell
+ * around a REPL: it writes messages of its own, swallows exit() and returns an
+ * exit code that says nothing about whether it worked. In a script that should
+ * stop at every error that is exactly wrong.
  *
- * Elke regel is: DUMP<tab>database<tab>gebruiker<tab>wachtwoord<tab>host<tab>poort
- * of OVERSLAAN<tab>naam voor een klant waarvan de database niet opengaat.
+ * Every line reads: DUMP<tab>database<tab>user<tab>password<tab>host<tab>port
+ * or OVERSLAAN<tab>name for a customer whose database will not open.
  */
 class TenancyBackupTargets extends Command
 {

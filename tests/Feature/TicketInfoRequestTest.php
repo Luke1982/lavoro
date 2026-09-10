@@ -20,8 +20,8 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De aanvraag zelf: wat er in de mail staat, welke link eronder hangt en wat de
- * storing ervan merkt.
+ * The request itself: what the mail says, which link hangs under it and what
+ * the incident notices of it.
  */
 class TicketInfoRequestTest extends TestCase
 {

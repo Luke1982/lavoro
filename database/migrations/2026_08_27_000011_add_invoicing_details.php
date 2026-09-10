@@ -28,7 +28,7 @@ return new class extends Migration
             $table->date('due_on')->nullable()->after('issued_on');
         });
 
-        /** Onze eigen gegevens; ze horen op elke factuur en in de XML. */
+        /** Our own details; they belong on every invoice and in the XML. */
         Schema::connection('central')->create('issuer_settings', function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();

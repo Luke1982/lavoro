@@ -68,9 +68,9 @@ class QuestionSorter
         }
 
         /**
-         * Op is op, ook voor het prijskaartje zelf. Sorteren is een bezuiniging
-         * en geen poort, dus hier geen foutmelding maar gewoon niet sorteren --
-         * de melding komt zo meteen uit de lus.
+         * Spent is spent, for the price tag itself too. Sorting is an economy
+         * and not a gate, so no error here but simply no sorting -- the message
+         * comes out of the loop in a moment.
          */
         if (tenancy()->initialized && !app(AllowanceGate::class)->hasRoom()) {
             return null;

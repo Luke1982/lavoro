@@ -5,11 +5,11 @@ namespace App\Http\Requests\Landlord;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Inloggen op het beheerpaneel.
+ * Logging in to the admin panel.
  *
- * Erft met opzet niet van LandlordRequest. Die eist een ingelogde landlord, en
- * dat is precies wat hier nog niet zo is: het verzoek liep dan op een 403 stuk
- * en niemand kon het paneel meer in.
+ * Deliberately does not inherit from LandlordRequest. That one demands a logged
+ * in landlord, and that is exactly what is not the case yet here: the request
+ * then broke on a 403 and nobody could get into the panel any more.
  */
 class LoginRequest extends FormRequest
 {

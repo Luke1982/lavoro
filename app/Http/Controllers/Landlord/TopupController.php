@@ -32,7 +32,7 @@ class TopupController extends Controller
             'note' => $data['note'] ?? null,
         ]);
 
-        /** Het tegoed is meteen bruikbaar; het geld gaat op de eerstvolgende factuur. */
+        /** The credit is usable straight away; the money goes on the next invoice. */
         PendingCharge::on('central')->create([
             'tenant_id' => $tenant->id,
             'description' => 'Extra AI-tegoed' . (($data['note'] ?? null) ? ' (' . $data['note'] . ')' : ''),
@@ -43,7 +43,7 @@ class TopupController extends Controller
         return back()->with('status', 'Bijkoop toegevoegd.');
     }
 
-    /** Het wachtwoord van een nieuwe tenant: één keer tonen, dan weg. */
+    /** A new tenant's password: shown once, then gone. */
     public function forgetProvisioningPassword(ForgetProvisioningPasswordRequest $request, int $id)
     {
         TenantProvisioningRequest::on('central')

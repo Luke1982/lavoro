@@ -6,17 +6,17 @@ use App\Models\Central\AccessTokenTenantLookup;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Houdt bij welke tenant bij welk token hoort.
+ * Keeps track of which tenant belongs to which token.
  *
- * De lijst wijst alleen de database aan; of het token deugt beslist de
- * tenantdatabase zelf. Een verdwaalde of verouderde rij levert daarom hooguit
- * een 401 op, nooit toegang.
+ * The list only points at the database; whether the token is any good is
+ * decided by the tenant database itself. A stray or outdated row therefore
+ * yields a 401 at most, never access.
  */
 class PersonalAccessTokenObserver
 {
     public function created(PersonalAccessToken $token): void
     {
-        if (! tenancy()->initialized) {
+        if (!tenancy()->initialized) {
             return;
         }
 

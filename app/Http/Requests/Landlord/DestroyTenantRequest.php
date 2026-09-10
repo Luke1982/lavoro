@@ -22,9 +22,9 @@ class DestroyTenantRequest extends FormRequest
     }
 
     /**
-     * De naam moet letterlijk overgetikt zijn. Dit gooit een database met alles
-     * erin weg en er is geen weg terug; een knop met een ja-nee-vraag is te
-     * makkelijk aan te klikken op de verkeerde regel.
+     * The name has to be typed over literally. This throws away a database with
+     * everything in it and there is no way back; a button with a yes-no
+     * question is too easy to click on the wrong row.
      */
     public function withValidator(Validator $validator): void
     {

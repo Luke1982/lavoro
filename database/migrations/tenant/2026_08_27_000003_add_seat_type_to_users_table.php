@@ -14,7 +14,7 @@ return new class extends Migration
             $table->index('seat_type');
         });
 
-        /** Wie gepland kan worden werkt buiten; de rest zit binnen. */
+        /** Whoever can be planned works in the field; the rest is office staff. */
         DB::table('users')->where('plannable', true)->update(['seat_type' => 'field']);
     }
 

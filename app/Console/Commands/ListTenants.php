@@ -7,11 +7,11 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Vervangt tenants:list uit het pakket, dat alleen de UUID's laat zien.
+ * Replaces tenants:list from the package, which only shows the UUIDs.
  *
- * Het aantal gebruikers komt uit user_tenant_lookups en niet uit de tenants
- * zelf: dat is één centrale query in plaats van een databasewissel per tenant,
- * en het antwoord is hetzelfde.
+ * The number of users comes from user_tenant_lookups and not from the tenants
+ * themselves: that is one central query instead of a database switch per
+ * tenant, and the answer is the same.
  */
 class ListTenants extends Command
 {
@@ -43,7 +43,7 @@ class ListTenants extends Command
 
             return [
                 $tenant->name,
-                $database . ($existing !== null && ! $existing->has($database) ? ' (ONTBREEKT)' : ''),
+                $database . ($existing !== null && !$existing->has($database) ? ' (ONTBREEKT)' : ''),
                 $users[$tenant->getTenantKey()] ?? 0,
                 $tenant->package_key ?? '—',
                 $tenant->tenancy_db_username ? 'ja' : 'NEE',

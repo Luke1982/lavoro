@@ -16,8 +16,8 @@ class ExportCollectionRequest extends FormRequest
     {
         return [
             /**
-             * De bank wil de incassodatum een paar werkdagen vooruit hebben.
-             * Vandaag of eerder wordt geweigerd, dus dat mag hier al niet.
+             * The bank wants the collection date a few working days ahead.
+             * Today or earlier is refused, so it is not allowed here already.
              */
             'collect_on' => ['required', 'date', 'after:today'],
             'invoices' => ['required', 'array', 'min:1'],

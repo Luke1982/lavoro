@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Services\TenantDbUserProvisioner;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class SetupExistingTenant extends Command
@@ -25,7 +26,7 @@ class SetupExistingTenant extends Command
         $database = $this->argument('database');
         $prefix = config('tenancy.database.prefix');
 
-        if (! str_starts_with($database, $prefix)) {
+        if (!str_starts_with($database, $prefix)) {
             $this->error("De database moet met {$prefix} beginnen. Hernoem hem eerst.");
 
             return self::FAILURE;
@@ -60,16 +61,15 @@ class SetupExistingTenant extends Command
         $provisioner->provision($tenant);
 
         /**
-         * De bootstrapper wijst de schijven naar deze mappen, maar maakt ze niet
-         * aan. Zonder dit mislukt de eerste upload van een nieuwe tenant, en het
-         * is een lege map die niemand mist tot dat gebeurt.
+         * The bootstrapper points the disks at these folders but does not
+         * create them. Without this the first upload of a new tenant fails, and
+         * it is an empty folder nobody misses until that happens.
          */
         foreach (['public', 'local'] as $disk) {
-            \Illuminate\Support\Facades\File::ensureDirectoryExists(
+            File::ensureDirectoryExists(
                 storage_path("tenant-{$tenant->id}/{$disk}"), 0775
             );
         }
-
 
         $rows = array_map(fn ($e) => ['email' => $e, 'tenant_id' => $id], $emails);
 

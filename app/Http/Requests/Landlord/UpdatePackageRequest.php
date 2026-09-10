@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Prijs en plaatsen van een pakket.
+ * A package's price and seats.
  */
 class UpdatePackageRequest extends LandlordRequest
 {

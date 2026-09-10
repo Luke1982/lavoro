@@ -7,13 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Zet de standaardguard op landlord voor het beheerpaneel.
+ * Sets the default guard to landlord for the admin panel.
  *
- * Niet alleen netjes, maar nodig: de database-sessiedriver schrijft user_id mee
- * en haalt dat op met auth()->guard()->id() -- de standaardguard dus. Op een
- * route zonder tenant zoekt die web-guard de gebruiker in de centrale database,
- * waar geen users-tabel staat, en dat is een 500 bij het wegschrijven van de
- * sessie in plaats van iets bij het lezen ervan.
+ * Not merely tidy but necessary: the database session driver writes user_id
+ * along and fetches it with auth()->guard()->id() -- the default guard, that
+ * is. On a route without a tenant that web guard looks for the user in the
+ * central database, where there is no users table, and that is a 500 while
+ * writing the session instead of something while reading it.
  */
 class UseLandlordGuard
 {

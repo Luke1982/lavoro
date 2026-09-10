@@ -6,10 +6,10 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * De controle die elke bank zelf ook doet: landcode en controlegetal naar
- * achteren, letters naar cijfers, en de rest van de deling door 97 moet 1
- * zijn. Vangt vrijwel elke typefout, en een incassobestand met een fout
- * rekeningnummer wordt anders pas dagen later door de bank teruggelegd.
+ * The check every bank does as well: country code and check digits to the back,
+ * letters to digits, and the remainder of the division by 97 has to be 1.
+ * Catches nearly every typo, and a direct debit file with a wrong account
+ * number is otherwise only handed back by the bank days later.
  */
 class Iban implements ValidationRule
 {

@@ -19,7 +19,7 @@ return new class extends Migration
         });
 
         Schema::connection('central')->table('invoices', function (Blueprint $table) {
-            /** Wanneer de factuur in een incassobestand is meegegaan. */
+            /** When the invoice travelled along in a collection file. */
             $table->timestamp('collected_at')->nullable()->after('mail_error');
             $table->string('collection_batch')->nullable()->after('collected_at');
             $table->index('collection_batch');

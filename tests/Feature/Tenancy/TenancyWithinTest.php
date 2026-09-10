@@ -60,7 +60,7 @@ class TenancyWithinTest extends TestCase
 
         $this->assertFalse(tenancy()->initialized, 'Zonder tenant vooraf hoort er ook geen tenant achteraf te zijn.');
 
-        /** De testopzet rekent erop dat de tenant open staat. */
+        /** The test setup counts on the tenant being open. */
         tenancy()->initialize($tenant);
     }
 }

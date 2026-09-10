@@ -6,9 +6,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Eigen verzoek, want een verwijdering stuurt geen e-mailadres mee. Het
- * aanmaakverzoek hergebruiken laat de verwijdering stranden op "e-mailadres is
- * verplicht".
+ * A request of its own, because a deletion sends no email address along.
+ * Reusing the create request makes the deletion strand on "email address is
+ * required".
  */
 class DestroySuperAdminRequest extends FormRequest
 {

@@ -66,9 +66,10 @@ class AssistantLoop
         bool $needs_documents = false,
     ): AssistantAnswer {
         /**
-         * Eerst de meter, dan pas het model. De vraag kost niets zolang hij
-         * niet gesteld is, en een klant zonder tegoed hoort een nette melding
-         * te krijgen in plaats van een antwoord dat stiekem toch geld kostte.
+         * The meter first, only then the model. The question costs nothing as
+         * long as it has not been asked, and a customer without allowance
+         * should get a polite message instead of an answer that quietly cost
+         * money anyway.
          */
         if (tenancy()->initialized && !app(AllowanceGate::class)->hasRoom()) {
             throw new AssistantAllowanceSpent;

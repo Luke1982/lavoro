@@ -5,16 +5,16 @@ namespace App\Exceptions;
 use RuntimeException;
 
 /**
- * "Dit kan niet, en dit is waarom" -- bedoeld voor degene die op de knop drukte.
+ * "This cannot be done, and this is why" -- meant for whoever pressed the
+ * button.
  *
- * Een gewone RuntimeException wordt een 500, en daar maakt de afhandeling
- * "Er is een serverfout opgetreden" van. De echte reden -- er valt niets te
- * factureren, die coupon is al gebruikt, dat adres is al in gebruik -- gaat dan
- * verloren, terwijl hij al opgeschreven was. Wie dit gooit, weet dat de tekst
- * gelezen mag worden.
+ * An ordinary RuntimeException becomes a 500, and the handling turns that into
+ * "Er is een serverfout opgetreden". The real reason -- there is nothing to
+ * invoice, that coupon is already used, that address is already in use -- is
+ * lost then, while it had already been written down. Whoever throws this knows
+ * the text may be read.
  *
- * Alleen voor gevallen die de gebruiker zelf kan oplossen. Een ontbrekende
- * extensie of een verkeerde instelling hoort een echte fout te blijven, met
- * stacktrace en al.
+ * Only for cases the user can solve themselves. A missing extension or a wrong
+ * setting should stay a real error, stack trace and all.
  */
 class Refusal extends RuntimeException {}

@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Geen regels: er valt niets te valideren aan een knop. Wel een eigen klasse,
- * zodat ook deze handeling langs dezelfde deur gaat als de rest van het paneel.
+ * No rules: there is nothing to validate about a button. A class of its own all
+ * the same, so this action passes the same door as the rest of the panel.
  */
 class MailInvoiceRequest extends LandlordRequest
 {

@@ -66,8 +66,8 @@ class ResellerController extends Controller
                 ->redeem(strtoupper(trim($request->input('code'))), $tenant);
         } catch (\RuntimeException $e) {
             /**
-             * Hier wel zelf vangen en niet centraal: de melding hoort bij het
-             * veld waar de code in staat, en niet als losse balk bovenaan.
+             * Caught here and not centrally: the message belongs at the field
+             * holding the code, and not as a separate bar at the top.
              */
             return back()->withErrors(['code' => $e->getMessage()]);
         }

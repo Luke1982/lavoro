@@ -17,7 +17,7 @@ class DeleteTenant extends Command
 
     public function handle(TenantProvisioner $provisioner): int
     {
-        /** Verheft zichzelf tot lavoro_provisioner, of zegt wat je moet typen. */
+        /** Elevates itself to lavoro_provisioner, or says what to type. */
         if (!$this->runAsProvisioner()) {
             return self::FAILURE;
         }

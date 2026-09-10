@@ -40,8 +40,8 @@ class InvoiceMail extends Mailable
     }
 
     /**
-     * De PDF is wat een mens leest, de UBL wat een boekhoudpakket inleest. Beide
-     * mee: welke van de twee de klant gebruikt weten wij niet.
+     * The PDF is what a person reads, the UBL what an accounting package
+     * imports. Both along: which of the two the customer uses we do not know.
      *
      * @return array<int, Attachment>
      */

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Http\Request;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -20,8 +20,8 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        /** Stil doorlopen bij een onbekend adres: anders vertelt dit scherm wie er bestaat. */
-        if (! $this->initializeTenantFromEmail($request->input('email'))) {
+        /** Carry on quietly for an unknown address: otherwise this screen tells who exists. */
+        if (!$this->initializeTenantFromEmail($request->input('email'))) {
             return back()->with('status', __(Password::RESET_LINK_SENT));
         }
 
@@ -45,13 +45,13 @@ class PasswordResetController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'token'                 => 'required',
-            'email'                 => 'required|email',
-            'password'              => 'required|min:8|confirmed',
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
             'password_confirmation' => 'required',
         ]);
 
-        if (! $this->initializeTenantFromEmail($request->input('email'))) {
+        if (!$this->initializeTenantFromEmail($request->input('email'))) {
             return back()->withErrors(['email' => __(Password::INVALID_USER)]);
         }
 
@@ -71,20 +71,20 @@ class PasswordResetController extends Controller
     }
 
     /**
-     * Zonder tenant is er geen users-tabel om in te zoeken. Het e-mailadres is
-     * het enige dat het verzoek meebrengt, dus dat wijst de tenant aan -- net
-     * als bij inloggen.
+     * Without a tenant there is no users table to search in. The email address
+     * is the only thing the request brings, so that points at the tenant --
+     * like when logging in.
      */
     private function initializeTenantFromEmail(?string $email): bool
     {
-        if (! $email || tenancy()->initialized) {
+        if (!$email || tenancy()->initialized) {
             return tenancy()->initialized;
         }
 
         $lookup = UserTenantLookup::on('central')->where('email', $email)->first();
         $tenant = $lookup ? Tenant::on('central')->find($lookup->tenant_id) : null;
 
-        if (! $tenant) {
+        if (!$tenant) {
             return false;
         }
 

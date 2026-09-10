@@ -3,11 +3,11 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Een mislukte aanvraag uit de lijst halen.
+ * Taking a failed request out of the list.
  *
- * Geen regels: er valt niets te valideren aan een knop. Een eigen klasse en
- * niet die van het aanmaken, want die eist een naam en een e-mailadres die hier
- * niet meegestuurd worden -- dan klaagt een wisknop over een leeg veld.
+ * No rules: there is nothing to validate about a button. A class of its own and
+ * not the create one, because that demands a name and an email address which
+ * are not sent here -- then a delete button complains about an empty field.
  */
 class DestroyProvisioningRequestRequest extends LandlordRequest
 {

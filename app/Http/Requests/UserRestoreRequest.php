@@ -20,12 +20,12 @@ class UserRestoreRequest extends FormRequest
     }
 
     /**
-     * Terugzetten bezet weer een plaats.
+     * Restoring occupies a seat again.
      *
-     * Het gaat langs geen enkel formulier, dus de controle die bij aanmaken en
-     * wijzigen vanzelf meeloopt sloeg hier over: een klant kon over zijn
-     * abonnement heen komen door iemand weg te gooien en weer terug te halen.
-     * Dezelfde regel, zodat er één telling is.
+     * It passes no form at all, so the check that runs along by itself on
+     * creating and updating was skipped here: a customer could go over their
+     * subscription by deleting someone and bringing them back. The same rule,
+     * so there is one count.
      */
     public function withValidator(Validator $validator): void
     {

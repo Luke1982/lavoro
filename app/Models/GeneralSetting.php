@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class GeneralSetting extends Model
 {
-    /** Sleutels die versleuteld op schijf horen te staan. */
+    /** Keys that belong on disk encrypted. */
     public const SECRET_KEYS = [
         'graph_client_secret', 'snelstart_client_key', 'snelstart_subscription_key',
         'mail_smtp_password',
@@ -29,10 +29,10 @@ class GeneralSetting extends Model
         }
 
         /**
-         * Na het wisselen van APP_KEY is niets meer te ontcijferen. Dan de
-         * standaard teruggeven en niet klappen: dat leest als "nog niet
-         * ingesteld" en levert een invulscherm op in plaats van een witte
-         * pagina op elke plek die mail of SnelStart aanraakt.
+         * After switching APP_KEY nothing can be deciphered any more. Then
+         * return the default and do not blow up: that reads as "not set yet"
+         * and produces a form instead of a white page on every place that
+         * touches mail or SnelStart.
          */
         try {
             return Crypt::decryptString((string) $row->value);

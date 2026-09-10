@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Alleen kijken of er iets veranderd is. Geen regels, wel dezelfde deur.
+ * Only checking whether something changed. No rules, but the same door.
  */
 class LandlordStatusRequest extends LandlordRequest
 {

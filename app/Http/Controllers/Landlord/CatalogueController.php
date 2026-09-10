@@ -27,8 +27,9 @@ class CatalogueController extends Controller
             'bundles' => ModuleBundle::on('central')->get(),
             'settings' => PricingSetting::on('central')->orderBy('key')->get(),
             /**
-             * Als object en niet als lijst: leeg levert json_encode anders []
-             * op, en het scherm zoekt er een pakketsleutel in op.
+             * As an object and not as a list: empty would otherwise make
+             * json_encode produce [], and the screen looks a package key up in
+             * it.
              */
             'usage' => (object) DB::connection('central')->table('tenants')
                 ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')

@@ -112,10 +112,10 @@ final class ConfirmationToken
         }
 
         /**
-         * APP_KEY is voor de hele installatie en gebruikers-id's zijn per
-         * tenant, dus zonder deze controle is een token uit de ene tenant
-         * geldig in de andere. Strikt vergelijken: een token van voor deze
-         * wijziging heeft de sleutel niet en hoort geweigerd te worden.
+         * APP_KEY is for the whole installation and user ids are per tenant, so
+         * without this check a token from one tenant is valid in another.
+         * Compared strictly: a token from before this change does not have the
+         * key and should be refused.
          */
         $tenant = tenancy()->initialized ? (string) tenancy()->tenant->getTenantKey() : null;
 

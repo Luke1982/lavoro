@@ -109,7 +109,7 @@ class ServiceOrderController extends Controller
         $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');
         $only_closed_stage = $only_stages === [$closed_stage_id];
 
-        /** Een fase kiezen levert die ene fase op, ook al geldt de gefactureerde ook als gesloten. */
+        /** Picking a stage yields that one stage, even though the invoiced one also counts as closed. */
         if (count($only_stages)) {
             $query->whereIn('service_order_stage_id', $only_stages);
         }
@@ -531,7 +531,7 @@ class ServiceOrderController extends Controller
     }
 
     /**
-     * Stuur een serviceorder naar SnelStart als verkooporder.
+     * Sends a service order to SnelStart as a sales order.
      */
     public function sendToSnelStart(ServiceOrder $serviceorder, SnelStartClient $client)
     {

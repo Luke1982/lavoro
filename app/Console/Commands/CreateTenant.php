@@ -22,10 +22,9 @@ class CreateTenant extends Command
     public function handle(TenantProvisioner $provisioner): int
     {
         /**
-         * Eerst dit: het start dit commando opnieuw als lavoro_provisioner
-         * wanneer dat zonder wachtwoord mag. Kan dat niet, dan zegt het wat
-         * je moet typen in plaats van halverwege op de database stuk te
-         * lopen.
+         * This first: it starts this command again as lavoro_provisioner when
+         * that is allowed without a password. If it cannot, it says what to
+         * type instead of breaking on the database halfway through.
          */
         if (!$this->runAsProvisioner()) {
             return self::FAILURE;

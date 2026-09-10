@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Kortingsbonnen voor een reseller.
+ * Discount coupons for a reseller.
  */
 class StoreCouponRequest extends LandlordRequest
 {

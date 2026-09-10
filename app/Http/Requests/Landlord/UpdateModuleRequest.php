@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Naam en prijs van een module.
+ * A module's name and price.
  */
 class UpdateModuleRequest extends LandlordRequest
 {

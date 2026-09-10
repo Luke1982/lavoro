@@ -31,13 +31,13 @@ class UserStoreRequest extends FormRequest
         if ($request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
             /**
-             * Alleen rollen die een klant mag toekennen. Zonder deze grens
-             * plakt een aangepast verzoek het id van onze eigen rol erbij en
-             * heeft die gebruiker alles.
+             * Only roles a customer may grant. Without this limit a doctored
+             * request adds the id of our own role and that user has
+             * everything.
              *
-             * Een superbeheerder valt hier niet onder: die moet zijn eigen rol
-             * kunnen laten staan, anders is zijn eigen profiel niet op te
-             * slaan.
+             * A super admin does not fall under it: they have to be able to
+             * keep their own role, otherwise their own profile cannot be
+             * saved.
              */
             $rules['role_ids.*'] = [
                 'integer',

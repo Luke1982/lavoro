@@ -8,22 +8,22 @@ use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Verbergt de accounts van MajorLabel voor de klant.
+ * Hides MajorLabel's accounts from the customer.
  *
- * Als globale scope en niet per lijst: gebruikers worden op tientallen plekken
- * opgehaald -- het gebruikersscherm, rollen, meldingen, de zoekbalk, de
- * planner -- en één vergeten plek is genoeg om ons account alsnog te tonen,
- * met een prullenbak ernaast.
+ * As a global scope and not per list: users are fetched in dozens of places --
+ * the users screen, roles, notifications, the search bar, the planner -- and
+ * one forgotten place is enough to show our account after all, with a delete
+ * button next to it.
  *
- * Twee uitzonderingen, allebei nodig:
+ * Two exceptions, both needed:
  *
- * - Is er nog niemand ingelogd, dan doet de scope niets. Anders vindt het
- *   inloggen zijn eigen gebruiker niet meer en komt een superbeheerder er
- *   nooit meer in. Commando's en workers vallen hier ook onder.
- * - Een superbeheerder ziet ze wel, anders ziet hij zichzelf niet.
+ * - With nobody logged in the scope does nothing. Otherwise logging in cannot
+ *   find its own user any more and a super admin never gets in again. Commands
+ *   and workers fall under this too.
+ * - A super admin does see them, otherwise they cannot see themselves.
  *
- * Auth::hasUser() en niet Auth::user(): dat laatste zou de gebruiker willen
- * ophalen, wat deze scope opnieuw aanroept.
+ * Auth::hasUser() and not Auth::user(): the latter would want to fetch the
+ * user, which calls this scope again.
  */
 class HidesSuperAdmins implements Scope
 {

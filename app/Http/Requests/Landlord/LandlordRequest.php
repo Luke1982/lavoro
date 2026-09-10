@@ -6,9 +6,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Alles in het beheerpaneel hangt achter dezelfde deur: ingelogd als
- * landlord. Dat een keer opschrijven scheelt het in elk verzoek herhalen, en
- * er kan er niet eentje vergeten worden.
+ * Everything in the admin panel sits behind the same door: logged in as
+ * landlord. Writing that down once saves repeating it in every request, and one
+ * cannot be forgotten.
  */
 abstract class LandlordRequest extends FormRequest
 {

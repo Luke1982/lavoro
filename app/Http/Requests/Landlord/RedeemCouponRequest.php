@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Landlord;
 
 /**
- * Een bon verzilveren bij een klant.
+ * Redeeming a coupon at a customer.
  */
 class RedeemCouponRequest extends LandlordRequest
 {

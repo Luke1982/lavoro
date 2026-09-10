@@ -38,7 +38,7 @@ class ApiAuthenticationDoctorTest extends TestCase
         $this->assertStringContainsString('SANCTUM_STATEFUL_DOMAINS', $this->doctorOutput());
     }
 
-    /** Op een server is localhost nooit het adres waarop klanten binnenkomen. */
+    /** On a server localhost is never the address customers arrive on. */
     public function test_it_complains_about_a_local_address_on_a_server(): void
     {
         config(['app.url' => 'http://localhost']);

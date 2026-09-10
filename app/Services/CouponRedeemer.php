@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\DB;
 class CouponRedeemer
 {
     /**
-     * Verzilvert een bon voor een tenant.
+     * Redeems a coupon for a tenant.
      *
-     * De update zet zelf de voorwaarde dat de bon nog vrij is, zodat twee
-     * klanten die tegelijk dezelfde code invoeren niet allebei slagen: de
-     * tweede raakt nul rijen en krijgt de foutmelding.
+     * The update itself carries the condition that the coupon is still free, so
+     * two customers entering the same code at once do not both succeed: the
+     * second touches zero rows and gets the error.
      */
     public function redeem(string $code, Tenant $tenant): Coupon
     {

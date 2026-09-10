@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Inloggen op het beheerpaneel.
+ * Logging in to the admin panel.
  */
 class AuthController extends Controller
 {
