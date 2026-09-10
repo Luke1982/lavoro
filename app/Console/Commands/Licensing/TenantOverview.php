@@ -55,9 +55,11 @@ class TenantOverview extends Command
                 "{$used_gb}/{$limit_gb} GB",
                 number_format((new TenantSubscription($tenant))->monthlyTotalCents() / 100, 2),
                 /** A plain column with no date cast, so text and not an object. */
-                $tenant->subscription_started_on
-                    ? CarbonImmutable::parse($tenant->subscription_started_on)->format('d-m-Y')
-                    : 'NONE',
+                match (true) {
+                    $tenant->isDemo() => 'demo',
+                    (bool) $tenant->subscription_started_on => CarbonImmutable::parse($tenant->subscription_started_on)->format('d-m-Y'),
+                    default => 'NONE',
+                },
                 $invoicer->isDue()
                     ? number_format($invoicer->preview()['gross_cents'] / 100, 2)
                     : '-',

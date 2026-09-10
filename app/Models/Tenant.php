@@ -27,6 +27,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'tenancy_db_password' => 'encrypted',
     ];
 
+    /**
+     * The demo tenant is rebuilt every night and is never a paying customer.
+     * The flag lives in data: it is set once by DemoInstaller and read in a
+     * handful of places, which is not worth a column.
+     */
+    public function isDemo(): bool
+    {
+        return (bool) ($this->getAttribute('demo') ?? false);
+    }
+
     public static function getCustomColumns(): array
     {
         return [

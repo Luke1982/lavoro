@@ -7,6 +7,8 @@ use App\Jobs\NotifyMissingExecutionTimesJob;
 use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
+use App\Jobs\ReinstallDemoTenantJob;
+use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -60,6 +62,15 @@ Schedule::call(fn () => $forEachTenant(fn () => ReconcileStorageUsageJob::dispat
  */
 Schedule::command('invoices:issue')
     ->hourly()->name('invoices-issue')->withoutOverlapping();
+
+/**
+ * The demo tenant, thrown away and rebuilt every night once demo:install has
+ * made it, so every demo starts from the same clean state around today. Only
+ * while one exists: an installation without a demo does not grow one.
+ */
+Schedule::job(new ReinstallDemoTenantJob)
+    ->dailyAt('04:00')->name('demo-reinstall')->withoutOverlapping()
+    ->when(fn () => Tenant::on('central')->get()->contains(fn (Tenant $tenant) => $tenant->isDemo()));
 
 /** The cron cannot be checked from PHP; the scheduler proves it itself. */
 Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))

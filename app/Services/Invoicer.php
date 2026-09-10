@@ -228,6 +228,10 @@ class Invoicer
      */
     private function chargeLines(): array
     {
+        if ($this->tenant->isDemo()) {
+            return [];
+        }
+
         return $this->pendingCharges()->map(fn (PendingCharge $charge) => [
             'description' => $charge->description,
             'kind' => $charge->kind,
@@ -247,7 +251,12 @@ class Invoicer
     {
         $on = $on ?? CarbonImmutable::now();
 
-        if (!$this->tenant->subscription_started_on) {
+        /**
+         * The demo is rebuilt every night with a fresh start date. Invoicing it
+         * would spend a real number from the series the tax office reads, every
+         * single night.
+         */
+        if ($this->tenant->isDemo() || !$this->tenant->subscription_started_on) {
             return false;
         }
 
