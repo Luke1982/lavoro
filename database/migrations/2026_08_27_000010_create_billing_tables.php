@@ -17,10 +17,10 @@ return new class extends Migration
         });
 
         /**
-         * Losse posten die op de eerstvolgende factuur horen: bijgekochte AI en
-         * verrekeningen van een pakketwissel halverwege een periode. Ze staan
-         * los van het abonnement omdat ze eenmalig zijn en niet meelopen in de
-         * maandprijs.
+         * One-off charges belonging on the next invoice: topped up AI and
+         * settlements of a package change halfway through a period. They sit
+         * apart from the subscription because they are one-off and do not run
+         * along in the monthly price.
          */
         Schema::connection('central')->create('pending_charges', function (Blueprint $table) {
             $table->id();

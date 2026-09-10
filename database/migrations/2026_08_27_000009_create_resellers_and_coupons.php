@@ -26,9 +26,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('discount_months')->default(12);
 
             /**
-             * Eén keer te gebruiken: zodra hier een tenant staat is de bon op.
-             * Dat staat op de bon zelf en niet op de tenant, zodat twee klanten
-             * dezelfde code niet allebei kunnen verzilveren.
+             * Usable once: as soon as a tenant is here the coupon is spent.
+             * That sits on the coupon itself and not on the tenant, so that two
+             * customers cannot both redeem the same code.
              */
             $table->string('redeemed_by_tenant_id')->nullable()->unique();
             $table->timestamp('redeemed_at')->nullable();

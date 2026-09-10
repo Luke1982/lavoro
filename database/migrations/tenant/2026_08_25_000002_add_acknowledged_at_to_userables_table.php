@@ -5,9 +5,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Wie een aankondiging krijgt is een koppeling tussen een gebruiker en een
- * record, dus een rij in userables. Dat die gebruiker bevestigd heeft is geen
- * tweede koppeling maar een eigenschap van dezelfde: het moment waarop.
+ * Who gets an announcement is a link between a user and a record, so a row in
+ * userables. That this user acknowledged it is not a second link but a property
+ * of the same one: the moment they did.
  */
 return new class extends Migration
 {

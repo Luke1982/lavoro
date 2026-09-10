@@ -7,9 +7,9 @@ use App\Models\User;
 final class AccessTokens
 {
     /**
-     * Bewust niet $user->tokens()->delete(): dat is een query-builder-delete,
-     * die geen model-events afvuurt, waardoor de centrale rijen blijven staan
-     * terwijl de tokens weg zijn.
+     * Deliberately not $user->tokens()->delete(): that is a query builder
+     * delete, which fires no model events, leaving the central rows behind
+     * while the tokens are gone.
      */
     public static function revokeAll(User $user): void
     {

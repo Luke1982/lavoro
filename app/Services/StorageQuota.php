@@ -20,8 +20,8 @@ class StorageQuota
     }
 
     /**
-     * Vijf minuten gecachet: dit draait bij elke upload-validatie en het getal
-     * beweegt traag. De cachesleutel heeft al een tenantprefix.
+     * Cached for five minutes: this runs on every upload validation and the
+     * number moves slowly. The cache key already has a tenant prefix.
      */
     public function databaseBytes(): int
     {

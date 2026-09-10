@@ -4,8 +4,9 @@ use App\Models\Permission;
 use Illuminate\Database\Migrations\Migration;
 
 /**
- * Bevestigen staat er niet bij. Wie de aankondiging krijgt mag hem bevestigen
- * en niemand anders, en dat is een vraag over de ontvangerrij, niet over een rol.
+ * Acknowledging is not among them. Whoever gets the announcement may
+ * acknowledge it and nobody else, and that is a question about the recipient
+ * row, not about a role.
  */
 return new class extends Migration
 {

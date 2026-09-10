@@ -11,11 +11,11 @@ final class MailerState implements ForgetsTenantState
         $manager = app('mail.manager');
 
         /**
-         * In een test die Mail::shouldReceive gebruikt is de manager een
-         * Mockery-dubbelganger, en die klapt op elke aanroep waar de test niet
-         * om vroeg. Er valt daar ook niets te vergeten: het ding heeft geen
-         * echte mailers. Overslaan dus, in plaats van elke mail-mockende test
-         * een verwachting voor deze huishouding te laten opgeven.
+         * In a test using Mail::shouldReceive the manager is a Mockery double,
+         * and that blows up on every call the test did not ask for. There is
+         * nothing to forget there either: the thing has no real mailers. So
+         * skip it, rather than making every mail-mocking test declare an
+         * expectation for this housekeeping.
          */
         if ($manager instanceof MockInterface) {
             return;

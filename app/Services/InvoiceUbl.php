@@ -8,12 +8,12 @@ use App\Models\Tenant;
 use App\Support\Money;
 
 /**
- * UBL 2.1 in het Nederlandse profiel (NLCIUS), het formaat dat de overheid en
- * de meeste boekhoudpakketten accepteren.
+ * UBL 2.1 in the Dutch profile (NLCIUS), the format the government and most
+ * accounting packages accept.
  *
- * Bedragen gaan als euro's met twee decimalen naar buiten; intern zijn het
- * centen. Dat omrekenen gebeurt op één plek zodat er geen halve centen kunnen
- * ontstaan tussen de regels en het totaal.
+ * Amounts go out as euros with two decimals; internally they are cents. That
+ * conversion happens in one place so that no half cents can arise between the
+ * lines and the total.
  */
 class InvoiceUbl
 {

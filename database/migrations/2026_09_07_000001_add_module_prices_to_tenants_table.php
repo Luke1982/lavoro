@@ -5,11 +5,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Een eigen prijs per module, per klant.
+ * A price of its own per module, per customer.
  *
- * Als sleutel-waardepaar en niet als tabel: het staat naast de modules zelf,
- * die ook als lijstje in een json-kolom op de klant staan, en het hoort bij
- * niets anders dan die klant.
+ * As a key-value pair and not as a table: it sits next to the modules
+ * themselves, which are also a list in a json column on the customer, and it
+ * belongs to nothing but that customer.
  */
 return new class extends Migration
 {

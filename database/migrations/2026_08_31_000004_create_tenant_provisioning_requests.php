@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Aanvragen om een tenant te maken of op te ruimen.
+     * Requests to create or clean up a tenant.
      *
-     * Het beheerpaneel draait als lavoro_app en die mag met opzet geen
-     * databases aanmaken; dat mag alleen lavoro_provisioner, die aan een eigen
-     * Linux-gebruiker hangt. Het paneel legt daarom een aanvraag neer en een
-     * worker die wél als de provisioner draait voert hem uit. Deze tabel is
-     * die aanvraag, en tegelijk de plek waar te zien is dat het misging --
-     * anders klikt iemand op "aanmaken" en gebeurt er stil niets.
+     * The admin panel runs as lavoro_app and that account may deliberately not
+     * create databases; only lavoro_provisioner may, and it hangs on a Linux
+     * user of its own. So the panel puts a request down and a worker that does
+     * run as the provisioner carries it out. This table is that request, and at
+     * the same time the place where a failure is visible -- otherwise someone
+     * clicks "create" and nothing happens, quietly.
      */
     public function up(): void
     {

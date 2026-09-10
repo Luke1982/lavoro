@@ -5,11 +5,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Wanneer een module is aangezet, per module.
+ * When a module was switched on, per module.
  *
- * Zonder die datum valt niet uit te rekenen hoeveel van de lopende maand een
- * klant de module gehad heeft, en betaalt hij een hele maand voor iets dat hij
- * op de zevende erbij nam.
+ * Without that date there is no working out how much of the current month a
+ * customer had the module, and they pay a whole month for something they added
+ * on the seventh.
  */
 return new class extends Migration
 {

@@ -4,9 +4,9 @@ use App\Models\Permission;
 use Illuminate\Database\Migrations\Migration;
 
 /**
- * Een klant aanschrijven is iets anders dan een storing bijwerken, dus het is een
- * eigen recht: er gaat post de deur uit op naam van het bedrijf, met een link
- * naar binnen eraan vast.
+ * Writing to a customer is something else than updating an incident, so it is a
+ * permission of its own: post goes out in the company's name, with a link
+ * inside attached to it.
  */
 return new class extends Migration
 {

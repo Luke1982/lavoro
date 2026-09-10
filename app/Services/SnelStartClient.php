@@ -18,10 +18,10 @@ class SnelStartClient
     protected string $subscriptionKey;
 
     /**
-     * De sleutels komen van de klant en niet uit de .env. Er is hier geen
-     * terugval: een SnelStart-aanroep zonder eigen sleutels zou de facturen van
-     * de ene klant in de boekhouding van de andere zetten. Het adres van de
-     * dienst zelf staat wel gewoon in de config — dat is voor iedereen gelijk.
+     * The keys come from the customer and not from .env. There is no falling
+     * back here: a SnelStart call without keys of its own would put one
+     * customer's invoices in another's bookkeeping. The address of the service
+     * itself is simply in the config -- that is the same for everyone.
      */
     public function __construct()
     {

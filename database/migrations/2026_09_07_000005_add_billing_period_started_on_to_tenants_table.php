@@ -5,14 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Vanaf wanneer de huidige betaaltermijn loopt.
+ * From when the current billing term runs.
  *
- * De periodes werden altijd vanaf de ingangsdatum geteld. Stapte een klant
- * halverwege het jaar over van maand naar jaar, dan liep de jaarperiode vanaf
- * januari -- een periode waarvoor in januari al een maandfactuur was gestuurd,
- * dus gold het jaar als betaald en kreeg de klant de rest van het jaar gratis.
- * De termijn krijgt daarom zijn eigen begindatum, los van de ingangsdatum die
- * op het scherm staat.
+ * The periods were always counted from the start date. If a customer moved from
+ * monthly to yearly halfway through the year, the yearly period ran from
+ * January -- a period for which a monthly invoice had already been sent in
+ * January, so the year counted as paid and the customer got the rest of it for
+ * free. The term therefore gets a start date of its own, separate from the
+ * start date on the screen.
  */
 return new class extends Migration
 {

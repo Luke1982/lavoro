@@ -5,10 +5,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * De laatste dag van het abonnement.
+ * The last day of the subscription.
  *
- * Opzeggen bestond niet: een klant liep door tot iemand hem weggooide, en dan
- * was hij ineens weg zonder dat de laatste maand verrekend was.
+ * Cancelling did not exist: a customer ran on until someone deleted them, and
+ * then they were suddenly gone without the last month being settled.
  */
 return new class extends Migration
 {

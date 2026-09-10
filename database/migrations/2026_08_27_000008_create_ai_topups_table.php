@@ -10,9 +10,8 @@ return new class extends Migration
     protected $connection = 'central';
 
     /**
-     * Een eenmalige bijkoop. Niet aan een maand gebonden: wat er niet op gaat
-     * blijft staan. Daarom apart van tenants.ai_allowance_micros, dat elke maand
-     * opnieuw begint.
+     * A one-off top-up. Not tied to a month: what is not used stays. Hence
+     * separate from tenants.ai_allowance_micros, which starts over every month.
      */
     public function up(): void
     {

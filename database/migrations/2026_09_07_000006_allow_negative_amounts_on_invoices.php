@@ -4,12 +4,12 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Bedragen op een factuur mogen negatief zijn.
+ * Amounts on an invoice may be negative.
  *
- * Ze stonden als unsigned in de database, dus een creditfactuur kon er niet in.
- * Zegt een klant halverwege een al betaalde maand op, dan heeft hij geld
- * tegoed; zonder creditfactuur bleef dat tegoed staan wachten op een volgende
- * factuur die er voor een vertrokken klant nooit meer komt.
+ * They were unsigned in the database, so a credit note did not fit. If a
+ * customer cancels halfway through a month already paid for, they are owed
+ * money; without a credit note that credit sat waiting for a next invoice that,
+ * for a departed customer, never comes.
  */
 return new class extends Migration
 {

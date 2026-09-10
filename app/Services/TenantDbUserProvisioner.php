@@ -22,15 +22,15 @@ class TenantDbUserProvisioner
 
         $manager = $config->manager();
 
-        if (! $manager instanceof PermissionControlledMySQLDatabaseManager) {
+        if (!$manager instanceof PermissionControlledMySQLDatabaseManager) {
             throw new \RuntimeException('The configured MySQL manager does not manage database users.');
         }
 
         /**
-         * Geen userExists(): die leest mysql.user, en daar SELECT op geven
-         * betekent dat de provisioner elke wachtwoordhash op de server kan
-         * lezen. DROP USER IF EXISTS heeft genoeg aan het CREATE USER-recht
-         * dat hij toch al heeft, en doet hetzelfde werk.
+         * No userExists(): it reads mysql.user, and granting SELECT on that
+         * means the provisioner can read every password hash on the server.
+         * DROP USER IF EXISTS makes do with the CREATE USER right it already
+         * has, and does the same work.
          */
         DB::connection(config('tenancy.database.template_tenant_connection', 'mysql'))
             ->statement("DROP USER IF EXISTS '{$username}'@'%'");

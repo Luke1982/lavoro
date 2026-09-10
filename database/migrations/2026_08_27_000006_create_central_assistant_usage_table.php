@@ -9,9 +9,9 @@ return new class extends Migration
     protected $connection = 'central';
 
     /**
-     * De tenantversie heeft een foreign key naar users; die kan hier niet,
-     * omdat users in een andere database staat. user_id is daarom een kale
-     * kolom en betekent alleen iets samen met tenant_id.
+     * The tenant version has a foreign key to users; that cannot be here,
+     * because users lives in another database. user_id is therefore a bare
+     * column and means something only together with tenant_id.
      */
     public function up(): void
     {

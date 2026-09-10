@@ -5,12 +5,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Waar een openstaande post vandaan komt, naast het bedrag.
+ * Where an outstanding charge comes from, next to the amount.
  *
- * Een verrekening groeit: wie een module aanzet en daarna de prijs afspreekt,
- * doet twee wijzigingen die op een regel horen te belanden. Om die regel te
- * kunnen blijven omschrijven -- van welk pakket naar welk, van welk bedrag
- * naar welk -- moet er meer bewaard worden dan de zin die er nu staat.
+ * A settlement grows: switching a module on and then agreeing its price is two
+ * changes that belong on one line. To keep being able to describe that line --
+ * from which package to which, from which amount to which -- more has to be
+ * kept than the sentence that is on it now.
  */
 return new class extends Migration
 {
