@@ -22,8 +22,8 @@ class TenantSubscription
     public function __construct(private Tenant $tenant) {}
 
     /**
-     * Het pakket van deze klant, een keer opgezocht. Stond op twee plekken los
-     * opgehaald, dus elke prijsberekening deed dezelfde vraag twee keer.
+     * This customer's package, looked up once. It used to be fetched in two
+     * places, so every price calculation asked the same question twice.
      */
     private function package(): ?Package
     {
@@ -35,15 +35,15 @@ class TenantSubscription
         return $this->package;
     }
 
-    /** De naam zoals hij op de factuur hoort te staan, of niets bij een onbekend pakket. */
+    /** The name as it belongs on the invoice, or nothing for an unknown package. */
     public function packageName(): ?string
     {
         return $this->package()?->name;
     }
 
     /**
-     * Wat het pakket zelf kost: de afgesproken prijs, of anders die uit de
-     * catalogus. Zonder de plekken, modules en opslag die er los bijkomen.
+     * What the package itself costs: the agreed price, or else the catalogue
+     * one. Without the seats, modules and storage that come on top of it.
      */
     public function packageCents(): int
     {
@@ -58,16 +58,9 @@ class TenantSubscription
     }
 
     /**
-     * Het abonnement uitgesplitst, zodat op de factuur te zien is waarvoor
-     * betaald wordt in plaats van één bedrag. De regels tellen op tot
-     * monthlyTotalCents(); kortingen staan er als negatieve regel tussen.
-     *
-     * @return array<int, array{description: string, kind: string, amount_cents: int}>
-     */
-    /**
-     * Het abonnement uitgesplitst, zodat op de factuur te zien is waarvoor
-     * betaald wordt in plaats van één bedrag. De regels tellen op tot
-     * monthlyTotalCents(); kortingen staan er als negatieve regel tussen.
+     * The subscription itemised, so the invoice shows what is being paid for
+     * instead of one amount. The lines add up to monthlyTotalCents();
+     * discounts sit in between as a negative line.
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
      */
@@ -77,12 +70,12 @@ class TenantSubscription
     }
 
     /**
-     * Alles waarvoor betaald wordt, zonder de kortingen: het pakket, de extra
-     * plekken, de modules en de opslag.
+     * Everything that is paid for, without the discounts: the package, the
+     * extra seats, the modules and the storage.
      *
-     * Dit is de enige plek waar die opbouw staat. De korting rekent over de
-     * som hiervan, dus als de factuurregels en die som elk hun eigen sommetje
-     * maakten, konden ze uit elkaar gaan lopen zonder dat iets dat merkt.
+     * This is the only place that build-up lives. The discount is computed over
+     * the sum of it, so if the invoice lines and that sum each did their own
+     * arithmetic they could drift apart without anything noticing.
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
      */
@@ -96,10 +89,10 @@ class TenantSubscription
         $agreed = $this->tenant->price_override_cents;
 
         /**
-         * Een afgesproken prijs geldt voor het pakket, niet voor de rest. Wat
-         * er los bijgekocht wordt -- plekken, modules, opslag -- komt er
-         * gewoon bovenop; anders zou de klant die erbij neemt daar niets voor
-         * betalen. Voor zo'n module valt een eigen prijs af te spreken.
+         * An agreed price applies to the package, not to the rest. Whatever is
+         * bought alongside it -- seats, modules, storage -- simply comes on
+         * top; otherwise a customer adding one would pay nothing for it. Such a
+         * module can have a price of its own agreed.
          */
         $lines = [array_filter([
             'description' => 'Abonnement Lavoro' . ($package?->name ? ' ' . $package->name : ''),
@@ -167,21 +160,20 @@ class TenantSubscription
     }
 
     /**
-     * De modules van deze klant, met per module de prijs die voor hem geldt.
+     * This customer's modules, each with the price that applies to them.
      *
-     * Een bundel vervangt de losse prijzen van de modules die erin zitten,
-     * maar alleen als de klant ze allemaal heeft: anders betaalt iemand voor
-     * een korting die hij niet krijgt. Is er voor een van die modules een
-     * eigen prijs afgesproken, dan gaat die voor -- een afspraak die iemand
-     * met de hand gemaakt heeft, hoort niet overreden te worden door een
-     * bundelprijs.
+     * A bundle replaces the individual prices of the modules in it, but only
+     * when the customer has all of them: otherwise someone pays for a discount
+     * they do not get. If a price has been agreed for one of those modules that
+     * one wins -- an agreement someone made by hand should not be run over by a
+     * bundle price.
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int, regular_cents?: int}>
      */
     private function moduleLines(): array
     {
         $keys = collect($this->tenant->modules ?? []);
-        /** Zonder bedrag is het geen afspraak; anders zou een lege rij wel de bundel wegdrukken. */
+        /** Without an amount it is not an agreement; an empty row would push the bundle aside. */
         $agreed = collect($this->tenant->module_prices ?? [])->filter(fn ($price) => $price !== null);
         $lines = [];
 
@@ -219,9 +211,9 @@ class TenantSubscription
     }
 
     /**
-     * De kortingsbon loopt af, de handmatige korting niet. Ze staan naast
-     * elkaar: een klant die met een bon binnenkwam kan daarnaast nog iets
-     * toegezegd hebben gekregen.
+     * The coupon runs out, the manual discount does not. They sit side by side:
+     * a customer who came in with a coupon can have been promised something on
+     * top of it.
      */
     public function couponDiscountCents(): int
     {
@@ -235,7 +227,7 @@ class TenantSubscription
         return (int) round($this->beforeDiscountCents() * $percent / 100);
     }
 
-    /** Wat de reseller deze maand verdient aan deze klant. */
+    /** What the reseller earns on this customer this month. */
     public function commissionCents(): int
     {
         if (!$this->tenant->reseller_id) {
@@ -248,21 +240,22 @@ class TenantSubscription
         return (int) round($this->monthlyTotalCents() * $percent / 100);
     }
 
-    /** Wat het zou kosten zonder korting -- het bedrag waar de korting op rekent. */
+    /** What it would cost without discount -- the amount the discount is computed over. */
     public function beforeDiscountCents(): int
     {
         return array_sum(array_column($this->chargeableLines(), 'amount_cents'));
     }
 
     /**
-     * Procent eerst, dan het vaste bedrag. Andersom zou een korting van tien
-     * euro plus tien procent minder opleveren dan de klant is toegezegd.
+     * Percentage first, then the fixed amount. The other way around, a discount
+     * of ten euro plus ten percent would come out lower than what the customer
+     * was promised.
      */
     public function discountCents(): int
     {
         $before = $this->beforeDiscountCents();
 
-        /** Een korting is een bedrag of een percentage, nooit allebei. */
+        /** A discount is an amount or a percentage, never both. */
         if ($this->tenant->discount_percent) {
             return min($before, (int) round($before * (int) $this->tenant->discount_percent / 100));
         }

@@ -23,9 +23,9 @@ class Invoicer
     }
 
     /**
-     * Zonder ingangsdatum valt er niets te factureren; deze terugval houdt
-     * alleen de datumrekensom heel voor schermen die er toch naar vragen.
-     * subscriptionIsDue() weigert zo'n klant apart.
+     * Without a start date there is nothing to invoice; this fallback only
+     * keeps the date arithmetic intact for screens that ask anyway.
+     * subscriptionIsDue() refuses such a customer separately.
      */
     private function startedOn(): CarbonImmutable
     {
@@ -37,12 +37,12 @@ class Invoicer
     }
 
     /**
-     * Vanaf welke dag een nieuwe betaaltermijn moet gaan lopen.
+     * The day a new billing term should start on.
      *
-     * De eerste periode die nog niet gefactureerd is. Is de lopende al betaald,
-     * dan begint de nieuwe termijn daarna: anders zou een klant die in maart
-     * van maand naar jaar gaat, een jaar in rekening krijgen dat begint in een
-     * maand waarvoor hij al betaald heeft.
+     * The first period that has not been invoiced yet. If the current one is
+     * already paid, the new term starts after it: otherwise a customer moving
+     * from monthly to yearly in March would be charged for a year starting in a
+     * month they already paid for.
      */
     public function termStartsOn(?CarbonImmutable $on = null): CarbonImmutable
     {
@@ -51,23 +51,23 @@ class Invoicer
         return $this->subscriptionWasInvoicedFor($start) ? $end->addDay() : $start;
     }
 
-    /** Een maand of een jaar, in maanden. Overal hetzelfde getal. */
+    /** A month or a year, in months. The same number everywhere. */
     private function monthsPerPeriod(): int
     {
         return $this->isYearly() ? 12 : 1;
     }
 
     /**
-     * De periode waarin een datum valt, geteld vanaf de startdatum. Zo blijft
-     * een klant die op de 12e begon op de 12e factuurdatum houden, ook in
-     * februari.
+     * The period a date falls in, counted from the start date. That keeps a
+     * customer who started on the 12th on the 12th as their invoice day, in
+     * February too.
      *
-     * Elke periode wordt vanaf de oorspronkelijke startdatum uitgerekend en
-     * niet stap voor stap opgeteld, en zonder over te lopen naar de volgende
-     * maand. Wie op de 31e begon schoof anders voorgoed op: 31 januari plus een
-     * maand is 3 maart, en vanaf dan lag de factuurdatum op de 3e. Nu wordt hij
-     * in korte maanden alleen ingekort -- 31 januari, 28 februari, 31 maart --
-     * en blijft de klant op zijn eigen dag.
+     * Every period is computed from the original start date rather than added
+     * up step by step, and without overflowing into the next month. Someone who
+     * started on the 31st drifted forever otherwise: 31 January plus a month is
+     * 3 March, and from then on the invoice day was the 3rd. Now it is only
+     * shortened in short months -- 31 January, 28 February, 31 March -- and the
+     * customer keeps their own day.
      */
     public function periodFor(CarbonImmutable $on): array
     {
@@ -76,10 +76,10 @@ class Invoicer
         $periods = 0;
 
         /**
-         * Tellend en niet uitgerekend uit het aantal maanden ertussen: die twee
-         * zijn het oneens rond het eind van de maand. Van 31 januari naar
-         * 28 februari is nul hele maanden, terwijl 28 februari wel degelijk de
-         * volgende periode begint.
+         * Counted rather than derived from the number of months in between:
+         * those two disagree around the end of the month. From 31 January to
+         * 28 February is zero whole months, while 28 February most certainly
+         * starts the next period.
          */
         while ($start->addMonthsNoOverflow(($periods + 1) * $step)->lessThanOrEqualTo($on)) {
             $periods++;
@@ -100,13 +100,13 @@ class Invoicer
     }
 
     /**
-     * Het abonnement van deze periode, uitgesplitst, en leeg zodra die periode
-     * al in rekening is gebracht: zonder die voorwaarde zet een tussentijdse
-     * factuur voor bijgekocht tegoed de hele maand er nog een keer bij.
+     * This period's subscription, itemised, and empty as soon as that period
+     * has been charged: without that condition an interim invoice for topped up
+     * credit adds the whole month a second time.
      *
-     * Per post en niet als één bedrag: op de factuur hoort te staan waarvoor
-     * betaald wordt. De periode staat alleen achter de eerste regel; hij geldt
-     * voor het hele blok en staat ook in de kop.
+     * Per line and not as one amount: the invoice should say what is being paid
+     * for. The period is only printed behind the first line; it applies to the
+     * whole block and is in the header as well.
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int}>
      */
@@ -123,10 +123,10 @@ class Invoicer
 
         foreach ((new TenantSubscription($this->tenant))->breakdown() as $index => $line) {
             /**
-             * Wat niet de hele periode meeliep, wordt naar rato gerekend: wie
-             * op de zevende een module erbij neemt betaalt de dagen die er nog
-             * van de maand over zijn, en wie halverwege opzegt betaalt tot en
-             * met de dag dat het stopt.
+             * What did not run for the whole period is charged pro rata:
+             * someone adding a module on the seventh pays for the days left in
+             * the month, and someone cancelling halfway pays up to and
+             * including the day it stops.
              */
             $window = $this->activeWindow($line, $start, $end);
             $from = ($window['from'] ?? $start)->format('d-m-Y');
@@ -137,31 +137,35 @@ class Invoicer
                 ? $line['description'] . ' ' . $from . ' t/m ' . $to . ($months > 1 ? ' (12 maanden)' : '') . $part
                 : $line['description'] . ($window ? ' ' . $from . ' t/m ' . $to . $part : '');
 
-            if ($window) {
-                $line['amount_cents'] = (int) round($line['amount_cents'] * $window['days'] / $window['total']);
-            }
-
             /**
-             * Staat er een afgesproken prijs op deze regel, dan hoort de gewone
-             * prijs erbij: over een jaar of twee weet niemand meer waarom er
-             * een ander bedrag stond, en de klant hoort te zien dat het een
-             * afspraak was en geen fout.
+             * If a line has an agreed price, the normal price belongs next to
+             * it: in a year or two nobody remembers why a different amount was
+             * there, and the customer should see it was an agreement and not a
+             * mistake.
              *
-             * Dat is de prijs uit de catalogus, ook als er maar een deel van de
-             * periode gerekend wordt. Naar rato meerekenen leverde een bedrag
-             * op dat nergens bestaat -- 'normaal € 18,00' voor een module die
-             * gewoon € 22,50 kost -- en hoeveel dagen het betreft staat al
-             * voor op de regel.
+             * That is the catalogue price, also when only part of the period is
+             * charged. Pro-rating it produced an amount that exists nowhere --
+             * 'normaal EUR 18,00' for a module that plainly costs EUR 22,50 --
+             * and how many days it covers is already at the front of the line.
              */
             if (isset($line['regular_cents'])) {
                 $description .= ', normaal € ' . Money::human($line['regular_cents'] * $months)
                     . ', speciale prijsafspraak';
             }
 
+            /**
+             * Pro rata over the amount for the whole period, not over the
+             * monthly amount before multiplying: rounding first and then
+             * multiplying by twelve turns half a cent into six.
+             */
+            $amount = $line['amount_cents'] * $months;
+
             $lines[] = [
                 'description' => $description,
                 'kind' => $line['kind'],
-                'amount_cents' => $line['amount_cents'] * $months,
+                'amount_cents' => $window
+                    ? (int) round($amount * $window['days'] / $window['total'])
+                    : $amount,
             ];
         }
 
@@ -169,9 +173,9 @@ class Invoicer
     }
 
     /**
-     * De dag waarop de regel is aangezet, of niets als dat niet bijgehouden
-     * wordt. Bij een bundel telt de laatste van de modules erin: pas toen was
-     * de bundel compleet en werd hij als bundel in rekening gebracht.
+     * The day the line was switched on, or nothing when that is not recorded.
+     * For a bundle it is the last of the modules in it: only then was the
+     * bundle complete and charged as a bundle.
      *
      * @param  array<string, mixed>  $line
      */
@@ -187,7 +191,7 @@ class Invoicer
             : null;
     }
 
-    /** De laatste dag van het abonnement, als er is opgezegd. */
+    /** The last day of the subscription, if it has been cancelled. */
     private function endsOn(): ?CarbonImmutable
     {
         return $this->tenant->subscription_ends_on
@@ -196,9 +200,9 @@ class Invoicer
     }
 
     /**
-     * Het stuk van deze periode waarvoor de regel meetelt, als dat niet de
-     * hele periode is: vanaf de dag dat hij aanging tot en met de dag dat het
-     * abonnement stopt. Niets zodra hij de hele periode meetelt.
+     * The part of this period the line counts for, when that is not the whole
+     * period: from the day it was switched on up to and including the day the
+     * subscription stops. Nothing as soon as it covers the whole period.
      *
      * @param  array<string, mixed>  $line
      * @return array{from: CarbonImmutable, to: CarbonImmutable, days: int, total: int}|null
@@ -218,7 +222,7 @@ class Invoicer
     }
 
     /**
-     * De losse posten die sinds de vorige factuur zijn ontstaan.
+     * The one-off charges raised since the previous invoice.
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int}>
      */
@@ -232,12 +236,12 @@ class Invoicer
     }
 
     /**
-     * Is het abonnement voor de lopende periode al in rekening gebracht?
+     * Has the subscription for the current period already been charged?
      *
-     * Er wordt gezocht op een factuur voor deze periode die het abonnement
-     * ook echt bevat, en niet alleen op het bestaan van een factuur. Een
-     * tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode;
-     * die mag de maandfactuur niet wegdrukken.
+     * It looks for an invoice for this period that actually contains the
+     * subscription, not merely for the existence of an invoice. An interim
+     * invoice for topped up credit falls in the same period; that one must not
+     * push the monthly invoice aside.
      */
     public function subscriptionIsDue(?CarbonImmutable $on = null): bool
     {
@@ -253,7 +257,7 @@ class Invoicer
             return false;
         }
 
-        /** Opgezegd voordat deze periode begon: er valt niets meer te sturen. */
+        /** Cancelled before this period began: there is nothing left to send. */
         if ($this->endsOn()?->lessThan($start)) {
             return false;
         }
@@ -262,15 +266,15 @@ class Invoicer
     }
 
     /**
-     * Staat het abonnement van deze periode al op een factuur? Er wordt op de
-     * abonnementsregel gezocht en niet op het bestaan van een factuur: een
-     * tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode.
+     * Is this period's subscription already on an invoice? It looks for the
+     * subscription line and not for the existence of an invoice: an interim
+     * invoice for topped up credit falls in the same period.
      *
-     * Gezocht wordt op een factuur waar de eerste dag van deze periode binnen
-     * valt, en niet op een factuur die precies op die dag begint. Verschuift de
-     * indeling ooit -- een gecorrigeerde startdatum, of de reparatie van de
-     * maandsprong -- dan zou een zoektocht op de exacte dag niets vinden en
-     * werden dagen die al betaald zijn een tweede keer in rekening gebracht.
+     * It looks for an invoice whose period contains the first day of this
+     * period, not for one that starts exactly on that day. Should the division
+     * ever shift -- a corrected start date, or the repair of the month step --
+     * a search on the exact day would find nothing and days that were already
+     * paid for would be charged a second time.
      */
     private function subscriptionWasInvoicedFor(CarbonImmutable $start): bool
     {
@@ -283,10 +287,10 @@ class Invoicer
     }
 
     /**
-     * Valt er iets te factureren? Het abonnement van een nieuwe periode, of
-     * losse posten die sinds de vorige factuur zijn ontstaan -- een
-     * pakketwissel, bijgekocht AI-tegoed. Is er niets van beide, dan levert
-     * factureren een lege factuur op en dat hoort niet te kunnen.
+     * Is there anything to invoice? A new period's subscription, or one-off
+     * charges raised since the previous invoice -- a package change, topped up
+     * AI credit. With neither, invoicing produces an empty invoice and that
+     * should not be possible.
      */
     public function isDue(?CarbonImmutable $on = null): bool
     {
@@ -294,29 +298,27 @@ class Invoicer
     }
 
     /**
-     * Levert dit een creditfactuur op? Dat is er een waar geld terug gaat in
-     * plaats van heen: bijvoorbeeld na een opzegging halverwege een maand die
-     * al betaald was.
+     * Does this produce a credit note? One where money goes back instead of
+     * out: after a cancellation halfway through a month that was already paid,
+     * for instance.
      */
     public function isCreditNote(?CarbonImmutable $on = null): bool
     {
         return $this->preview($on)['total_cents'] < 0;
     }
 
-    /** @return Collection<int, PendingCharge> */
     /**
-     * Periodes die voorbij zijn en waarvoor nooit een abonnement in rekening is
-     * gebracht.
+     * Periods that are over and for which a subscription was never charged.
      *
-     * Er wordt altijd maar een periode gefactureerd: die van vandaag. Wordt er
-     * een maand overgeslagen -- de cron staat stil, de knop wordt niet gedrukt
-     * -- dan komt die maand nooit meer terug. De klant werkt door en er gaat
-     * stilzwijgend een maand omzet verloren. Dit maakt zichtbaar welke.
+     * Only one period is ever invoiced: today's. Skip a month -- the cron is
+     * down, the button is not pressed -- and that month never comes back. The
+     * customer keeps working and a month of revenue is quietly lost. This makes
+     * visible which ones.
      *
-     * Er wordt niet vanzelf alsnog gefactureerd: een klant met een startdatum
-     * ver in het verleden zou daarmee in een klap een stapel facturen krijgen,
-     * en de openstaande posten van vandaag zouden op een oude factuur belanden.
-     * Dat hoort iemand met de hand recht te zetten.
+     * Nothing is invoiced retroactively on its own: a customer with a start
+     * date far in the past would get a stack of invoices in one go, and today's
+     * outstanding charges would end up on an old invoice. Someone should put
+     * that right by hand.
      *
      * @return array<int, array{start: CarbonImmutable, end: CarbonImmutable}>
      */
@@ -330,16 +332,16 @@ class Invoicer
         [$current] = $this->periodFor($on);
 
         /**
-         * Geteld vanaf de ingangsdatum en niet vanaf het anker van de huidige
-         * termijn: gaat iemand van maand naar jaar, dan verschuift dat anker
-         * naar vandaag en zouden de maanden daarvoor uit beeld raken -- juist
-         * de maanden waar het hier om gaat.
+         * Counted from the start date and not from the anchor of the current
+         * term: moving someone from monthly to yearly shifts that anchor to
+         * today and the months before it would drop out of view -- precisely
+         * the months this is about.
          */
         $start = CarbonImmutable::parse($this->tenant->subscription_started_on);
         $step = $this->monthsPerPeriod();
         $missed = [];
 
-        /** Een grens, zodat een startdatum uit 2015 hier geen honderd vragen stelt. */
+        /** A limit, so a start date from 2015 does not ask a hundred questions here. */
         for ($index = 0; $index < 120; $index++) {
             $from = $start->addMonthsNoOverflow($index * $step);
 
@@ -386,20 +388,20 @@ class Invoicer
         $subtotal = array_sum(array_column($lines, 'amount_cents'));
 
         /**
-         * De jaarkorting gaat alleen over het abonnement en niet over losse
-         * posten: wie AI bijkoopt hoort daar geen twee procent op te krijgen
-         * omdat hij toevallig per jaar betaalt. Daarom wordt er geteld over de
-         * abonnementsregels zelf, en niet over alle regels op een lijstje
-         * uitgezonderde soorten na -- een nieuwe soort post zou daar
-         * stilzwijgend korting op krijgen.
+         * The yearly discount only covers the subscription and not one-off
+         * charges: someone topping up AI credit should not get two percent off
+         * it because they happen to pay per year. So it is counted over the
+         * subscription lines themselves, rather than over every line minus a
+         * list of excluded kinds -- a new kind of charge would silently be
+         * discounted there.
          */
         $discount = $this->yearlyDiscountCents(array_sum(array_column($subscription, 'amount_cents')));
 
         /**
-         * Niet afgekapt op nul. Een openstaand tegoed dat groter is dan de
-         * regels eromheen leverde anders een factuur op van nul euro, terwijl
-         * de tegoedpost wel als verwerkt werd afgestempeld -- en daarmee was
-         * het geld van de klant weg. Wat er niet uit kan, weigert issue().
+         * Not clamped to zero. An outstanding credit larger than the lines
+         * around it produced an invoice of zero euro while the credit charge
+         * was still stamped as processed -- and with that the customer's money
+         * was gone. What does not fit, issue() refuses.
          */
         $net = $subtotal - $discount;
         $vat_percent = (int) PricingSetting::value('vat_percent', 21);
@@ -423,9 +425,9 @@ class Invoicer
         $preview = $this->preview($on);
 
         /**
-         * Geen lege facturen. Zonder deze grens levert elke klik op "factuur
-         * aanmaken" een nieuw nummer op met niets erop, en die nummers zitten
-         * in een doorlopende reeks die de boekhouding niet kan overslaan.
+         * No empty invoices. Without this limit every click on "create invoice"
+         * produces a new number with nothing on it, and those numbers sit in a
+         * continuous series the bookkeeping cannot skip.
          */
         if ($preview['lines'] === []) {
             throw new Refusal('Er valt op dit moment niets te factureren voor ' . $this->tenant->name . '.');
@@ -451,7 +453,7 @@ class Invoicer
                 $invoice->lines()->create($line);
             }
 
-            /** Pas hier vastgezet, zodat een mislukte factuur ze niet opsnoept. */
+            /** Only fixed here, so a failed invoice does not eat them. */
             PendingCharge::on('central')
                 ->where('tenant_id', $this->tenant->id)
                 ->whereNull('invoice_id')
@@ -462,12 +464,12 @@ class Invoicer
     }
 
     /**
-     * Het volgende factuurnummer.
+     * The next invoice number.
      *
-     * Doorlopend per jaar over alle klanten heen en niet per klant: de
-     * boekhouding wil één reeks. Er wordt naar het hoogste nummer van dit jaar
-     * gekeken en niet naar het aantal, zodat een verwijderde factuur zijn
-     * nummer niet laat hergebruiken.
+     * Continuous per year across all customers rather than per customer: the
+     * bookkeeping wants one series. It looks at the highest number of this year
+     * and not at the count, so a deleted invoice does not let its number be
+     * reused.
      */
     private function nextNumber(CarbonImmutable $on): string
     {
@@ -482,12 +484,12 @@ class Invoicer
     }
 
     /**
-     * Verrekent een opzegging halverwege een periode.
+     * Settles a cancellation halfway through a period.
      *
-     * Alleen als die periode al gefactureerd is: dan zijn de dagen na de
-     * laatste dag wel betaald en niet gebruikt, en die gaan er als tegoed af.
-     * Is er nog niet gefactureerd, dan rekent de eerstvolgende factuur al tot
-     * en met de laatste dag en valt er niets te verrekenen.
+     * Only when that period has been invoiced: then the days after the last day
+     * are paid for and not used, and those come off as credit. If it has not
+     * been invoiced yet, the next invoice already charges up to and including
+     * the last day and there is nothing to settle.
      */
     public function settleCancellation(CarbonImmutable $ends_on): ?PendingCharge
     {
@@ -528,9 +530,8 @@ class Invoicer
     }
 
     /**
-     * Haalt het tegoed van een opzegging weg, voor als die wordt ingetrokken.
-     * Zonder dit blijft de klant het geld terugkrijgen voor dagen die hij toch
-     * gewoon gebruikt.
+     * Removes the credit from a cancellation, for when it is withdrawn. Without
+     * this the customer keeps getting money back for days they use after all.
      */
     public function forgetCancellationSettlement(): void
     {
@@ -542,23 +543,23 @@ class Invoicer
     }
 
     /**
-     * Verrekent een pakketwissel halverwege een periode.
+     * Settles a package change halfway through a period.
      *
-     * De klant hoort over deze periode het oude pakket te betalen voor de
-     * dagen tot de wissel en het nieuwe voor de dagen erna. Wat de factuur
-     * daarvan afwijkt, staat hier als losse regel bij. Dat kan twee kanten op,
-     * en welke kant hangt er alleen van af of deze periode al gefactureerd is:
+     * For this period the customer should pay the old package for the days up
+     * to the change and the new one for the days after. Whatever the invoice
+     * differs from that is added here as a separate line. That can go two ways,
+     * and which way depends only on whether this period has been invoiced:
      *
-     * - Al gefactureerd, tegen de oude prijs. Dan is er te weinig gerekend
-     *   voor de dagen die nog komen: het verschil erbij over die dagen.
-     * - Nog niet gefactureerd. Dan zet de eerstvolgende factuur het nieuwe
-     *   pakket over de hele periode in rekening, ook over de dagen die de
-     *   klant nog op het oude pakket zat: het verschil eraf over die dagen.
+     * - Already invoiced, at the old price. Then too little was charged for the
+     *   days still to come: the difference added over those days.
+     * - Not invoiced yet. Then the next invoice charges the new package over
+     *   the whole period, including the days the customer was still on the old
+     *   package: the difference deducted over those days.
      *
-     * Allebei die regels rekenen naar hetzelfde bedrag toe. Alleen de eerste
-     * stond er; bij een wissel halverwege een nog niet gefactureerde maand
-     * gebeurde er niets en betaalde de klant het nieuwe pakket vanaf de eerste
-     * van de maand in plaats van vanaf de dag van de wissel.
+     * Both rules compute towards the same amount. Only the first one was there;
+     * on a change halfway through a month that had not been invoiced yet
+     * nothing happened and the customer paid the new package from the first of
+     * the month instead of from the day of the change.
      */
     public function prorate(
         int $old_monthly_cents,
@@ -598,22 +599,21 @@ class Invoicer
     }
 
     /**
-     * Zet de verrekening klaar, of telt hem op bij die van deze periode.
+     * Puts the settlement ready, or adds it to this period's.
      *
-     * Elke wijziging leverde eerst zijn eigen regel op. Wie halverwege de maand
-     * van pakket wisselde en daarna een prijs voor dat pakket afsprak -- twee
-     * keer opslaan -- kreeg twee regels met dezelfde omschrijving en
-     * tegengestelde bedragen. Samen klopte het, maar er viel niets van te
-     * maken. Heffen ze elkaar op, dan blijft er niets staan in plaats van een
-     * regel van nul euro.
+     * Every change produced its own line at first. Someone switching package
+     * halfway through the month and then agreeing a price for that package --
+     * two saves -- got two lines with the same description and opposite
+     * amounts. Together they were right, but there was no making sense of it.
+     * If they cancel out, nothing is left instead of a line of zero euro.
      *
-     * Alleen binnen dezelfde periode. Een verrekening van vorige maand die nog
-     * op een factuur wacht, gaat over de dagen van die maand en over een ander
-     * aantal dagen; die bij deze optellen zou twee correcties op twee
-     * verschillende maanden tot een onnavolgbaar bedrag maken.
+     * Only within the same period. A settlement from last month still waiting
+     * for an invoice covers that month's days and a different number of them;
+     * adding it to this one would turn two corrections on two different months
+     * into an amount nobody can follow.
      *
-     * Het vertrekpunt blijft dat van de eerste wijziging, zodat de regel ook na
-     * drie keer opslaan nog zegt van welk pakket en van welk bedrag naar welk.
+     * The starting point stays that of the first change, so after three saves
+     * the line still says from which package and which amount to which.
      *
      * @param  array{from_package: ?string, to_package: ?string, from_cents: int, to_cents: int, changed_on: string}  $change
      */
@@ -672,20 +672,20 @@ class Invoicer
     }
 
     /**
-     * Waar de verrekening over gaat, in een regel die op de factuur te volgen
-     * is: waarvandaan, waarnaartoe, en op welke dag.
+     * What the settlement is about, in a line that can be followed on the
+     * invoice: from where, to where, and on which day.
      *
-     * Bij een pakketwissel zeggen de pakketnamen het. Bij alles daaromheen --
-     * een module erbij, een plek meer, een prijsafspraak -- zeggen ze niets,
-     * en dan is het maandbedrag voor en na het enige dat uitlegt waar de
-     * verrekening vandaan komt. Bij meer dan een wijziging staat het bedrag er
-     * altijd bij, want dan is het pakket niet het hele verhaal.
+     * For a package change the package names say it. For everything around it
+     * -- a module added, a seat more, a price agreement -- they say nothing,
+     * and then the monthly amount before and after is the only thing that
+     * explains where the settlement comes from. With more than one change the
+     * amount is always there, because then the package is not the whole story.
      *
-     * De dagen achteraan horen bij het pakket dat ervoor betaald wordt. Was de
-     * periode al gefactureerd tegen de oude prijs, dan gaat het om de dagen die
-     * nog op het nieuwe pakket komen; was hij dat niet, dan om de dagen die al
-     * op het oude pakket zaten. Na meerdere wijzigingen verschilt dat aantal
-     * per wijziging en staat er alleen nog de dag van de laatste.
+     * The days at the end belong to the package being paid for. If the period
+     * was already invoiced at the old price, they are the days still to come on
+     * the new package; if it was not, the days already spent on the old one.
+     * After several changes that number differs per change and only the day of
+     * the last one is left.
      *
      * @param  array{from_package: ?string, to_package: ?string, from_cents: int, to_cents: int, changed_on: string, changes: int}  $story
      */

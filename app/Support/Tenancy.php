@@ -8,16 +8,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Iets uitvoeren binnen de database van één klant.
+ * Running something inside one customer's database.
  *
- * Bestaat omdat initialize() en end() met de hand koppelen fout gaat zodra er
- * iets tussenin gooit: dan blijft de tenant openstaan en draait de volgende
- * ronde -- of de rest van het verzoek -- in de database van de vorige klant.
- * Dat levert geen foutmelding op, alleen de verkeerde gegevens.
+ * Exists because pairing initialize() and end() by hand goes wrong as soon as
+ * something in between throws: the tenant stays open and the next round -- or
+ * the rest of the request -- runs in the previous customer's database. That
+ * produces no error at all, only the wrong data.
  *
- * En niet tenancy()->runForMultiple(): dat zet de vorige tenant alleen terug
- * als er niets misgaat -- het herstel staat na de lus en niet in een finally --
- * en het geeft niets terug. Precies de twee dingen waar dit voor is.
+ * And not tenancy()->runForMultiple(): that only puts the previous tenant back
+ * when nothing goes wrong -- the restore sits after the loop and not in a
+ * finally -- and it returns nothing. Precisely the two things this is for.
  */
 final class Tenancy
 {
@@ -37,17 +37,17 @@ final class Tenancy
             $result = $work();
 
             /**
-             * Job::dispatch() zet niets in de wachtrij: het geeft een
-             * PendingDispatch terug die dat pas in zijn destructor doet. Een
-             * pijlfunctie geeft die waarde door aan deze functie, en dan valt
-             * het object hierbuiten uit elkaar -- nadat tenancy hieronder is
-             * beëindigd. De job kwam zo zonder klant in de wachtrij en draaide
-             * bij de worker tegen de centrale database aan.
+             * Job::dispatch() queues nothing: it returns a PendingDispatch that
+             * only does that in its destructor. An arrow function hands that
+             * value to this function, and then the object falls apart out here
+             * -- after tenancy has been ended below. The job went into the
+             * queue without a customer and ran against the central database at
+             * the worker.
              *
-             * Dat gaf geen fout bij het plannen, alleen later: 'Base table
-             * lavoro_landlord.google_synced_calendars doesn't exist', elke vijf
-             * minuten opnieuw. Op null zetten laat php het object hier
-             * opruimen, met de klant nog open.
+             * That raised no error while scheduling, only later: 'Base table
+             * lavoro_landlord.google_synced_calendars doesn't exist', every
+             * five minutes again. Setting it to null lets php clean the object
+             * up here, with the customer still open.
              */
             if ($result instanceof PendingDispatch) {
                 $result = null;
@@ -59,7 +59,7 @@ final class Tenancy
         }
     }
 
-    /** Is de database van deze klant te openen? */
+    /** Can this customer's database be opened? */
     public static function reachable(Tenant $tenant): bool
     {
         try {
@@ -70,15 +70,15 @@ final class Tenancy
     }
 
     /**
-     * Hetzelfde doen voor elke klant die te bereiken is.
+     * Doing the same for every customer that can be reached.
      *
-     * Een klant met een verdwenen database laat elke taak die over hem gaat
-     * omvallen. Voor werk dat elke vijf minuten draait zijn dat honderden
-     * mislukte taken per dag, en daar verdwijnt alles echts tussen: op
-     * productie stonden er 1313, allemaal van dezelfde kapotte klant.
+     * A customer whose database is gone makes every task about them fall over.
+     * For work that runs every five minutes that is hundreds of failed jobs a
+     * day, and everything real disappears in between: production had 1313 of
+     * them, all from the same broken customer.
      *
-     * Overslaan en niet stilhouden: het staat in het logboek, en de doctor
-     * meldt zo'n klant apart.
+     * Skipped and not kept quiet: it goes in the log, and the doctor reports
+     * such a customer separately.
      */
     public static function forEachReachable(callable $work): void
     {

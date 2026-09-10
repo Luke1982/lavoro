@@ -7,28 +7,28 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Zet de databaseverbindingen om naar het provisioner-account: het enige dat
- * databases van klanten mag maken en weggooien.
+ * Switches the database connections over to the provisioner account: the only
+ * one allowed to create and drop customer databases.
  */
 final class ProvisionerConnection
 {
     /**
-     * Twee verbindingen, niet één. 'central' voor de tenants-tabel, en de
-     * template-verbinding omdat stancl's database manager daarop draait:
-     * DatabaseConfig::manager() doet setConnection(getTemplateConnectionName()),
-     * en dat is DB_CONNECTION. Alleen 'central' omzetten laat het aanmaken van
-     * de database en de gebruiker als lavoro_app lopen, en dat mag niet.
-     */
-    /**
-     * De instellingen zoals ze waren voordat er werd omgezet, zodat het terug
-     * kan. Zonder dat blijft een verzoek waarin dit misgaat kapot achter: ook
-     * het wegschrijven van de sessie en het tonen van de foutmelding lopen dan
-     * over dezelfde verbinding, en die is dan van niemand meer.
+     * The settings as they were before switching, so it can go back. Without
+     * that a request in which this goes wrong is left broken: writing the
+     * session and showing the error message run over the same connection too,
+     * and that one belongs to nobody by then.
      *
      * @var array<string, array<string, mixed>>
      */
     private static array $previous = [];
 
+    /**
+     * Two connections, not one. 'central' for the tenants table, and the
+     * template connection because stancl's database manager runs on it:
+     * DatabaseConfig::manager() calls setConnection(getTemplateConnectionName()),
+     * which is DB_CONNECTION. Switching only 'central' leaves creating the
+     * database and the user running as lavoro_app, and that is not allowed.
+     */
     public static function use(): void
     {
         $provisioner = config('database.connections.provisioner');
@@ -50,7 +50,7 @@ final class ProvisionerConnection
         }
     }
 
-    /** Terug naar de instellingen van voor use(). */
+    /** Back to the settings from before use(). */
     public static function restore(): void
     {
         foreach (self::$previous as $name => $settings) {
@@ -78,12 +78,13 @@ final class ProvisionerConnection
         }
     }
 
-    /** @throws RuntimeException */
     /**
-     * Lukt het niet, dan gaat de verbinding eerst terug naar wat hij was. Blijft
-     * hij omgezet staan, dan sneuvelt de rest van het verzoek ook -- inclusief
-     * het wegschrijven van de sessie, en daarmee de foutmelding die zou moeten
-     * uitleggen wat er aan de hand is.
+     * If it does not work, the connection first goes back to what it was. Leave
+     * it switched over and the rest of the request dies as well -- including
+     * writing the session, and with it the error message that should explain
+     * what is going on.
+     *
+     * @throws RuntimeException
      */
     public static function assertUsable(): void
     {
@@ -110,13 +111,13 @@ final class ProvisionerConnection
     }
 
     /**
-     * Mag deze gebruiker zonder wachtwoord de provisioner worden?
+     * May this user become the provisioner without a password?
      *
-     * Dat hangt aan de sudo-regel die scripts/tenancy/setup-sudoers.sh neerzet. Staat hij er, dan
-     * verheffen de tenant-commando's zichzelf; staat hij er niet, dan moet je
-     * er zelf 'sudo -u lavoro_provisioner' voor typen. Allebei werkt, maar het
-     * is het verschil tussen een commando dat werkt en een dat een uitleg
-     * teruggeeft, dus je wilt weten welke van de twee je hebt.
+     * That hangs on the sudo rule scripts/tenancy/setup-sudoers.sh puts in
+     * place. With it, the tenant commands elevate themselves; without it you
+     * have to type 'sudo -u lavoro_provisioner' yourself. Both work, but it is
+     * the difference between a command that works and one that returns an
+     * explanation, so you want to know which of the two you have.
      */
     public static function canElevate(): bool
     {
@@ -130,13 +131,13 @@ final class ProvisionerConnection
     }
 
     /**
-     * Draait een stukje php als de provisioner en geeft de exitcode terug, of
-     * null als er niet eens een sudo is om het mee te proberen.
+     * Runs a snippet of php as the provisioner and returns the exit code, or
+     * null when there is not even a sudo to try it with.
      *
-     * Via php en niet via 'true' of 'test': de sudo-regel geeft rechten op de
-     * php-binary en op niets anders. Een proef met een ander programma valt
-     * daarbuiten en zou dus 'nee' zeggen terwijl het verheffen zelf gewoon mag.
-     * De proef moet precies datgene doen wat er straks echt gebeurt.
+     * Through php and not through 'true' or 'test': the sudo rule grants rights
+     * on the php binary and on nothing else. A probe with another program falls
+     * outside it and would say "no" while elevating itself is perfectly
+     * allowed. The probe has to do exactly what will really happen later.
      */
     public static function phpAsProvisioner(string $code): ?int
     {
