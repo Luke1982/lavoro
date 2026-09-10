@@ -6,6 +6,7 @@ use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use App\Services\TenantDbUserProvisioner;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -15,7 +16,8 @@ class SetupExistingTenant extends Command
 {
     use RunsAsProvisioner;
 
-    protected $signature = 'tenant:setup-existing {name} {database}';
+    protected $signature = 'tenant:setup-existing {name} {database}
+        {--started-on= : the day billing starts; today by default, "none" to leave it open}';
 
     protected $description = 'Registers an existing, already migrated database as a tenant';
 
@@ -33,6 +35,17 @@ class SetupExistingTenant extends Command
         }
 
         $id = (string) Str::uuid();
+
+        /**
+         * 'none' leaves billing open on purpose -- for a takeover where the day
+         * has not been agreed yet. Nothing is invoiced until it is filled in,
+         * and tenant:overview shows it as NONE so it cannot stay forgotten.
+         */
+        $starts_on = match ($this->option('started-on')) {
+            null, '' => now()->toDateString(),
+            'none' => null,
+            default => CarbonImmutable::parse($this->option('started-on'))->toDateString(),
+        };
 
         $emails = DB::connection('central')->select(
             "SELECT email FROM `{$database}`.users"
@@ -55,14 +68,13 @@ class SetupExistingTenant extends Command
             /**
              * With a start date, like tenant:create. Without one there is never
              * anything to invoice and nothing shows it: an imported customer
-             * simply keeps working and no bill ever arrives. Today is the day
-             * they start paying here; if that is wrong it can be corrected on
-             * the subscription screen.
+             * simply keeps working and no bill ever arrives. Today unless a day
+             * was agreed, and it can be corrected on the subscription screen.
              *
              * A column and not a key in data: the model lists it among its own
              * columns, so a value in the json is read by nothing.
              */
-            'subscription_started_on' => now()->toDateString(),
+            'subscription_started_on' => $starts_on,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -91,7 +103,9 @@ class SetupExistingTenant extends Command
         $this->info("Tenant created: {$id}");
         $this->line('  database: ' . $database);
         $this->line('  users:    ' . count($emails));
-        $this->line('  billing:  from ' . now()->format('d-m-Y'));
+        $this->line('  billing:  ' . ($starts_on
+            ? 'from ' . CarbonImmutable::parse($starts_on)->format('d-m-Y')
+            : 'not set -- nothing is invoiced until it is'));
 
         return self::SUCCESS;
     }

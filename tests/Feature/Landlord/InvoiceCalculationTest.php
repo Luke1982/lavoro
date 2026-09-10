@@ -368,7 +368,32 @@ class InvoiceCalculationTest extends TestCase
         $invoice->delete();
 
         $next = (new Invoicer($second))->issue(CarbonImmutable::parse('2026-02-01'));
-        $this->assertSame('2026-LVR-9', $next->number, 'het hoogste bestaande nummer bepaalt het volgende');
+        $this->assertSame('2026-LVR-10', $next->number,
+            'the number of a removed invoice does not come back: two invoices with the same '
+            . 'number is what a continuous series must never produce');
+    }
+
+    /**
+     * An invoice outlives the customer. Removing one used to take their invoices
+     * with it, and with them the highest number -- which the next invoice then
+     * took over.
+     */
+    public function test_invoices_survive_the_customer_and_keep_their_number(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-02-01']);
+        $other = $this->tenant(['subscription_started_on' => '2026-02-01']);
+
+        $invoice = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertSame($tenant->name, $invoice->tenant_name, 'the invoice says who it was for');
+
+        $tenant->delete();
+
+        $this->assertNotNull(Invoice::on('central')->find($invoice->id), 'the invoice stays behind');
+
+        $next = (new Invoicer($other))->issue(CarbonImmutable::parse('2026-02-01'));
+
+        $this->assertNotSame($invoice->number, $next->number);
     }
 
     public function test_what_is_previewed_is_what_gets_stored(): void

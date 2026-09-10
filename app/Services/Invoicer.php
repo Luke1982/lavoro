@@ -444,6 +444,8 @@ class Invoicer
             $invoice = Invoice::on('central')->create([
                 'number' => $this->nextNumber($on),
                 'tenant_id' => $this->tenant->id,
+                /** Written down, because the customer may be gone by the time this is read back. */
+                'tenant_name' => $this->tenant->name,
                 'period_start' => $start->toDateString(),
                 'period_end' => $end->toDateString(),
                 'issued_on' => $on->toDateString(),
@@ -474,20 +476,44 @@ class Invoicer
      * The next invoice number.
      *
      * Continuous per year across all customers rather than per customer: the
-     * bookkeeping wants one series. It looks at the highest number of this year
-     * and not at the count, so a deleted invoice does not let its number be
-     * reused.
+     * bookkeeping wants one series.
+     *
+     * From a counter that only goes up, and not from the highest number in the
+     * table. That highest number came free again as soon as an invoice went --
+     * with a removed customer their invoices went along -- and the next invoice
+     * took it. Two different invoices with the same number is exactly what a
+     * continuous series must never produce, and the tax office reads that series
+     * as proof that nothing was left out.
+     *
+     * The row is locked by the increment until this transaction commits, so two
+     * invoices at the same moment get two numbers.
      */
     private function nextNumber(CarbonImmutable $on): string
     {
-        $prefix = $on->format('Y') . '-LVR-';
+        $year = (int) $on->format('Y');
+        $prefix = $year . '-LVR-';
+        $counter = DB::connection('central')->table('invoice_numbers');
 
-        $last = (int) str_replace($prefix, '', (string) Invoice::on('central')
+        $counter->insertOrIgnore(['year' => $year, 'last_number' => 0]);
+
+        $last = (int) ($counter->where('year', $year)->lockForUpdate()->value('last_number') ?? 0);
+
+        /**
+         * The highest number that is actually there counts too. A row written
+         * around this service -- an import, a repair by hand -- does not move
+         * the counter, and handing out a number that is already on an invoice
+         * is worse than skipping one.
+         */
+        $issued = (int) str_replace($prefix, '', (string) Invoice::on('central')
             ->where('number', 'like', $prefix . '%')
             ->orderByRaw('CAST(REPLACE(number, ?, "") AS UNSIGNED) DESC', [$prefix])
             ->value('number'));
 
-        return $prefix . ($last + 1);
+        $next = max($last, $issued) + 1;
+
+        $counter->where('year', $year)->update(['last_number' => $next]);
+
+        return $prefix . $next;
     }
 
     /**

@@ -80,9 +80,10 @@
                     <tr class="border-t border-slate-200 align-top">
                         <td class="w-16 py-3">
                             <a :href="preview(invoice)" target="_blank" rel="noopener"
-                                :title="`Bekijk ${invoice.number}`">
-                                <iframe :src="`${preview(invoice)}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`"
-                                    class="pointer-events-none h-16 w-12 rounded border border-slate-200 bg-white"
+                                :title="`Bekijk ${invoice.number}`"
+                                class="block h-28 w-20 overflow-hidden rounded border border-slate-200 bg-white">
+                                <iframe :src="`${preview(invoice)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`"
+                                    class="pointer-events-none h-[453px] w-[320px] origin-top-left scale-[0.25]"
                                     loading="lazy" tabindex="-1" :title="`Voorbeeld van ${invoice.number}`" />
                             </a>
                         </td>
@@ -103,6 +104,11 @@
                             </span>
                             <button v-else type="button" :disabled="mailing === invoice.id" @click="mail(invoice)"
                                 class="text-blue-700 underline disabled:opacity-60">versturen</button>
+                            <template v-if="!invoice.mailed_at && !invoice.collected_at">
+                                &middot;
+                                <button type="button" @click="remove(invoice)"
+                                    class="text-red-700 underline">verwijderen</button>
+                            </template>
                         </td>
                     </tr>
 
@@ -159,4 +165,13 @@ const mail = (invoice) => router.post(`/beheer/${props.tenant.id}/facturen/${inv
     onStart: () => { mailing.value = invoice.id },
     onFinish: () => { mailing.value = null },
 })
+
+const remove = (invoice) => {
+    if (!confirm(`Factuur ${invoice.number} verwijderen? Het nummer blijft vergeven; `
+        + 'de volgende factuur krijgt het daaropvolgende.')) {
+        return
+    }
+
+    router.delete(`/beheer/${props.tenant.id}/facturen/${invoice.id}`, { preserveScroll: true })
+}
 </script>

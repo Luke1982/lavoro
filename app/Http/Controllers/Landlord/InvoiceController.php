@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Landlord;
 
+use App\Exceptions\Refusal;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\DestroyInvoiceRequest;
 use App\Http\Requests\Landlord\IssueInvoiceRequest;
 use App\Http\Requests\Landlord\MailInvoiceRequest;
 use App\Models\Central\Invoice;
+use App\Models\Central\PendingCharge;
 use App\Models\Tenant;
 use App\Services\InvoiceDocuments;
 use App\Services\InvoiceMailer;
@@ -54,6 +57,37 @@ class InvoiceController extends Controller
          */
         return back()->with('status', "Factuur {$invoice->number} aangemaakt: € "
             . Money::human($invoice->gross_cents));
+    }
+
+    /**
+     * Withdraws an invoice that should not have been made.
+     *
+     * Only while it has not left the building: once it has been mailed or has
+     * travelled along in a collection file the customer has it, and then the way
+     * back is a credit note and not a delete.
+     *
+     * The number does not come back. It stays spent in the counter, so the next
+     * invoice takes the following one -- a series with a gap is a question you
+     * can answer, two invoices with the same number is not.
+     */
+    public function destroyInvoice(DestroyInvoiceRequest $request, string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+
+        if ($invoice->mailed_at || $invoice->collected_at) {
+            throw new Refusal("Factuur {$invoice->number} is al de deur uit."
+                . ' Terugdraaien gaat met een creditfactuur, niet met verwijderen.');
+        }
+
+        $number = $invoice->number;
+
+        /** The charges it settled become outstanding again, for the next invoice. */
+        PendingCharge::on('central')->where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
+
+        $invoice->delete();
+
+        return back()->with('status', "Factuur {$number} verwijderd."
+            . ' Het nummer blijft vergeven; de volgende factuur krijgt het daaropvolgende.');
     }
 
     /** By hand: someone should have looked at the invoice first. */

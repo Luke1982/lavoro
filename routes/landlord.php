@@ -50,6 +50,7 @@ Route::prefix('beheer')
             Route::get('{tenant}/facturen', [InvoiceController::class, 'invoices'])->name('landlord.invoices');
             Route::post('{tenant}/facturen', [InvoiceController::class, 'issueInvoice'])->name('landlord.invoice.issue');
             Route::post('{tenant}/facturen/{invoice}/mail', [InvoiceController::class, 'mailInvoice'])->name('landlord.invoice.mail');
+            Route::delete('{tenant}/facturen/{invoice}', [InvoiceController::class, 'destroyInvoice'])->name('landlord.invoice.destroy');
             Route::get('{tenant}/facturen/{invoice}/pdf', [InvoiceController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
             Route::get('{tenant}/facturen/{invoice}/voorbeeld', [InvoiceController::class, 'invoicePreview'])
                 ->name('landlord.invoice.preview');

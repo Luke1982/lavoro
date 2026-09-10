@@ -3,6 +3,7 @@
 namespace Tests\Feature\Landlord;
 
 use App\Http\Requests\ForgetIntegrationSecretRequest;
+use App\Http\Requests\Landlord\DestroyInvoiceRequest;
 use App\Http\Requests\Landlord\DestroySuperAdminRequest;
 use Tests\TestCase;
 
@@ -21,6 +22,7 @@ class BareButtonRequestsTest extends TestCase
         return [
             'superbeheerder verwijderen' => [DestroySuperAdminRequest::class],
             'sleutel wissen' => [ForgetIntegrationSecretRequest::class],
+            'factuur verwijderen' => [DestroyInvoiceRequest::class],
         ];
     }
 

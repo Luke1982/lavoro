@@ -21,7 +21,7 @@ case "$0" in
 esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-FROM=""; NAME=""; SLUG=""; PACKAGE=""; DRY=0
+FROM=""; NAME=""; SLUG=""; PACKAGE=""; BILLING_FROM=""; DRY=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --from) FROM="$2"; shift 2 ;;
@@ -32,6 +32,8 @@ while [ $# -gt 0 ]; do
         --slug=*) SLUG="${1#*=}"; shift ;;
         --package) PACKAGE="$2"; shift 2 ;;
         --package=*) PACKAGE="${1#*=}"; shift ;;
+        --billing-from) BILLING_FROM="$2"; shift 2 ;;
+        --billing-from=*) BILLING_FROM="${1#*=}"; shift ;;
         --dry-run) DRY=1; shift ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
@@ -46,6 +48,7 @@ done
 if [ "$(id -u)" -ne 0 ]; then
     ARGS=(--from "$FROM" --name "$NAME" --slug "$SLUG")
     [ -n "$PACKAGE" ] && ARGS+=(--package "$PACKAGE")
+    [ -n "$BILLING_FROM" ] && ARGS+=(--billing-from "$BILLING_FROM")
     [ "$DRY" -eq 1 ] && ARGS+=(--dry-run)
 
     # Root is needed for two things: reading an installation that belongs to
@@ -208,7 +211,13 @@ fi
 step "Registering the tenant"
 # Checks for email addresses that already belong to another tenant itself, and
 # creates the MySQL login for this database.
-artisan tenant:setup-existing "$NAME" "$DB"
+# Billing starts today unless a day was agreed; 'none' leaves it open, and then
+# nothing is invoiced until someone fills it in on the subscription screen.
+if [ -n "$BILLING_FROM" ]; then
+    artisan tenant:setup-existing "$NAME" "$DB" --started-on="$BILLING_FROM"
+else
+    artisan tenant:setup-existing "$NAME" "$DB"
+fi
 
 step "Updating the schema"
 artisan tenants:migrate
