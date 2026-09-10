@@ -9,9 +9,9 @@ use App\Services\TenantSubscription;
 use Tests\TestCase;
 
 /**
- * De prijsopbouw waar elke factuur op leunt. Rekent op de gezaaide catalogus:
- * Business 160, Offertes 27,50, Facturen 27,50, AI-assistent 22,50, de bundel
- * Offertes + Facturen 40, en 50 GB opslag inbegrepen.
+ * The price build-up every invoice leans on. Counts on the seeded catalogue:
+ * Business 160, Offertes 27.50, Facturen 27.50, AI assistant 22.50, the bundle
+ * Offertes + Facturen 40, and 50 GB storage included.
  */
 class TenantSubscriptionTest extends TestCase
 {
@@ -64,9 +64,9 @@ class TenantSubscriptionTest extends TestCase
     }
 
     /**
-     * Een afgesproken prijs gaat over het pakket. Wat er los bijgekocht wordt
-     * komt er bovenop; anders krijgt een klant met een vaste prijs elke module
-     * en elke gigabyte er gratis bij.
+     * An agreed price covers the package. Whatever is bought alongside comes on
+     * top; otherwise a customer with a fixed price gets every module and every
+     * gigabyte thrown in for free.
      */
     public function test_a_price_override_covers_the_package_and_nothing_else(): void
     {
@@ -99,9 +99,9 @@ class TenantSubscriptionTest extends TestCase
     }
 
     /**
-     * Een bundelprijs komt uit de catalogus, een eigen moduleprijs is met deze
-     * klant afgesproken. Die afspraak gaat voor, anders wordt hij overreden
-     * door een bundel die iemand er ooit omheen gezet heeft.
+     * A bundle price comes from the catalogue, a module price of its own is
+     * agreed with this customer. That agreement wins, otherwise it is run over
+     * by a bundle someone once put around it.
      */
     public function test_an_agreed_module_price_beats_the_bundle(): void
     {
@@ -146,7 +146,7 @@ class TenantSubscriptionTest extends TestCase
         $this->assertSame(16000, $this->subscription(['coupon_discount_percent' => 15])->monthlyTotalCents());
     }
 
-    /** Allebei rekenen over de prijs voor korting, niet over elkaars uitkomst. */
+    /** Both compute over the price before discount, not over each other's outcome. */
     public function test_a_coupon_and_a_manual_discount_stack(): void
     {
         $this->assertSame(16000 - 1600 - 1600, $this->subscription([
@@ -190,7 +190,7 @@ class TenantSubscriptionTest extends TestCase
 
     public function test_a_percentage_discount_beats_a_leftover_euro_amount(): void
     {
-        /** Een korting is een bedrag of een percentage, nooit allebei. */
+        /** A discount is an amount or a percentage, never both. */
         $subscription = $this->subscription(['discount_percent' => 10, 'discount_cents' => 99999]);
 
         $this->assertSame(16000 - 1600, $subscription->monthlyTotalCents());

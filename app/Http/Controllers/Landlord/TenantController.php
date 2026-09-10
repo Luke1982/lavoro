@@ -42,13 +42,13 @@ class TenantController extends Controller
             $package = Package::on('central')->where('key', $tenant->package_key)->first();
 
             /**
-             * Via de helper: klapt het bij één klant, dan blijft die tenant
-             * anders openstaan en telt de volgende ronde in de database van de
-             * vorige.
+             * Through the helper: if it blows up on one customer, that tenant
+             * stays open and the next round counts in the previous customer's
+             * database.
              *
-             * En één kapotte klant mag de lijst niet meenemen. Loopt het
-             * aanmaken nog, dan zijn de tabellen er simpelweg nog niet; dat is
-             * geen fout maar een moment.
+             * And one broken customer must not take the list down with it. If
+             * the creation is still running the tables are simply not there
+             * yet; that is not an error but a moment.
              */
             try {
                 [$field, $office, $used] = Tenancy::within($tenant, fn () => [
@@ -76,7 +76,7 @@ class TenantController extends Controller
                 'used_gb' => round($used / (1024 ** 3), 2),
                 'storage_limit_gb' => (int) $tenant->storage_limit_gb,
                 'total' => (new TenantSubscription($tenant))->monthlyTotalCents(),
-                /** Zonder ingangsdatum wordt er voor deze klant nooit iets gefactureerd. */
+                /** Without a start date nothing is ever invoiced for this customer. */
                 'starts_on' => $tenant->subscription_started_on,
             ];
         })->values();
@@ -88,15 +88,15 @@ class TenantController extends Controller
                 ->get(['key', 'name', 'price_cents']),
             'modules' => Module::on('central')->orderBy('sort_order')
                 ->get(['key', 'name', 'price_cents']),
-            /** Werk dat nog loopt of is misgelopen. Geslaagd werk is de tenant zelf. */
+            /** Work still running or gone wrong. Work that succeeded is the tenant itself. */
             'requests' => TenantProvisioningRequest::on('central')
                 ->whereIn('status', ['queued', 'running', 'failed'])
                 ->orderByDesc('id')
                 ->get(['id', 'action', 'status', 'name', 'error']),
             /**
-             * Wachtwoorden die nog opgehaald moeten worden. Alleen van klanten
-             * die nog bestaan: het wachtwoord van een weggegooide klant hoort
-             * nergens meer te staan.
+             * Passwords still waiting to be collected. Only from customers that
+             * still exist: the password of a deleted customer should not be
+             * anywhere any more.
              */
             'passwords' => TenantProvisioningRequest::on('central')
                 ->whereNotNull('generated_password')
@@ -125,9 +125,9 @@ class TenantController extends Controller
             ?? PricingSetting::value('ai_allowance_micros', 12_500_000));
 
         /**
-         * Lukt het niet in de database van deze klant te komen -- half
-         * aangemaakt, half opgeruimd -- dan hoort dit scherm het juist wel te
-         * doen: hier staat de knop waarmee je zo'n klant opruimt.
+         * If the database of this customer cannot be reached -- half created,
+         * half cleaned up -- this screen should work all the more: it holds the
+         * button that clears such a customer away.
          */
         $unreachable = null;
         $superadmins = [];
@@ -148,14 +148,14 @@ class TenantController extends Controller
                 'name' => $tenant->name,
                 'database' => $tenant->getInternal('db_name'),
                 /**
-                 * Onbewerkt naar het scherm, net als de andere twee datums
-                 * hieronder. De kolom is een date, dus dit is al jjjj-mm-dd --
-                 * precies wat een datumveld wil. Er stond optional()->format()
-                 * omheen, en optional() op tekst in plaats van een object
-                 * levert null: het veld kwam altijd leeg terug, en de eerste
-                 * de beste keer opslaan schreef die leegte terug naar de
-                 * database. Daarmee raakte de ingangsdatum kwijt en viel er
-                 * voor die klant niets meer te factureren.
+                 * Unedited to the screen, like the other two dates below. The
+                 * column is a date, so this is already yyyy-mm-dd -- exactly
+                 * what a date field wants. There used to be an
+                 * optional()->format() around it, and optional() on text rather
+                 * than an object yields null: the field always came back empty,
+                 * and the very first save wrote that emptiness back to the
+                 * database. That lost the start date and left nothing to
+                 * invoice for that customer.
                  */
                 'subscription_started_on' => $tenant->subscription_started_on,
                 'subscription_ends_on' => $tenant->subscription_ends_on,
@@ -165,7 +165,7 @@ class TenantController extends Controller
                 'extra_office_seats' => (int) $tenant->extra_office_seats,
                 'storage_limit_gb' => (int) $tenant->storage_limit_gb,
                 'modules' => $tenant->modules ?? [],
-                /** Als object, zodat leeg geen lijst wordt waar het scherm op sleutel zoekt. */
+                /** As an object, so empty does not become a list the screen looks up keys in. */
                 'module_prices' => (object) ($tenant->module_prices ?? []),
                 'discount_cents' => (int) $tenant->discount_cents,
                 'discount_percent' => (int) $tenant->discount_percent,
@@ -187,7 +187,7 @@ class TenantController extends Controller
             'packages' => Package::on('central')->orderBy('sort_order')->get(['key', 'name', 'price_cents']),
             'modules' => Module::on('central')->orderBy('sort_order')->get(['key', 'name', 'price_cents']),
             'ai' => [
-                /** In centen naar het scherm: het scherm rekende zelf om, op drie plekken net anders. */
+                /** In cents to the screen: the screen converted itself, in three places slightly differently. */
                 'spent_cents' => Money::fromMicros($spent),
                 'allowance_cents' => Money::fromMicros($allowance),
                 'is_default' => $tenant->ai_allowance_micros === null,
@@ -231,15 +231,15 @@ class TenantController extends Controller
         $tenant = Tenant::on('central')->findOrFail($id);
 
         /**
-         * Voor en na, want een pakketwissel halverwege de maand levert een
-         * verrekening op voor de volgende factuur.
+         * Before and after, because a package change halfway through the month
+         * produces a settlement for the next invoice.
          *
-         * Alleen het pakket zelf. Wat er los bijkomt -- een module, een plek,
-         * meer opslag, een prijsafspraak daarover -- gaat gewoon mee met de
-         * eerstvolgende factuur en levert geen verrekening op: dat is een
-         * uitbreiding en geen wissel, en een regel die uitrekent hoeveel dagen
-         * iemand die module al had, maakt de factuur onleesbaar voor een bedrag
-         * van een paar euro.
+         * Only the package itself. What comes on top of it -- a module, a seat,
+         * more storage, a price agreed for one of those -- simply travels along
+         * with the next invoice and produces no settlement: that is an
+         * extension and not a change, and a line working out how many days
+         * someone already had that module makes the invoice unreadable over a
+         * couple of euros.
          */
         $before = new TenantSubscription($tenant);
         $before_cents = $before->packageCents();
@@ -250,9 +250,9 @@ class TenantController extends Controller
         $attributes['module_started_on'] = $this->moduleStartDates($tenant, $attributes['modules'] ?? []);
 
         /**
-         * Gaat de betaaltermijn om, dan begint hij bij de eerstvolgende periode
-         * die nog niet betaald is -- gerekend volgens de oude termijn, dus
-         * voordat de wijziging is opgeslagen.
+         * When the billing term changes, it starts at the first period that has
+         * not been paid for -- counted by the old term, so before the change is
+         * saved.
          */
         if (($attributes['billing_period'] ?? null) !== $tenant->billing_period) {
             $attributes['billing_period_started_on'] = (new Invoicer($tenant))->termStartsOn()->toDateString();
@@ -280,8 +280,8 @@ class TenantController extends Controller
     }
 
     /**
-     * Een opzegging halverwege een al betaalde periode levert tegoed op; een
-     * ingetrokken opzegging haalt dat tegoed weer weg.
+     * A cancellation halfway through an already paid period produces credit; a
+     * withdrawn cancellation takes that credit away again.
      */
     private function settleCancellation(Tenant $tenant, ?string $ended_on): void
     {
@@ -299,13 +299,12 @@ class TenantController extends Controller
     }
 
     /**
-     * Per module de dag waarop hij aanging.
+     * Per module the day it was switched on.
      *
-     * Modules die blijven staan houden hun datum; die eruit gaat verliest hem,
-     * zodat opnieuw aanzetten ook opnieuw telt. Zonder deze datums valt niet
-     * uit te rekenen hoeveel van de lopende maand iemand een module gehad
-     * heeft, en betaalt hij een hele maand voor iets dat hij op de zevende
-     * erbij nam.
+     * Modules that stay keep their date; one that goes loses it, so switching it
+     * on again counts again. Without these dates there is no working out how
+     * much of the current month someone had a module, and they pay a whole
+     * month for something they added on the seventh.
      *
      * @param  array<int, string>  $modules
      * @return array<string, string>
@@ -321,12 +320,12 @@ class TenantController extends Controller
     }
 
     /**
-     * Een korte samenvatting van wat er loopt, zodat het scherm zichzelf kan
-     * verversen zolang de provisioner bezig is.
+     * A short summary of what is running, so the screen can refresh itself
+     * while the provisioner is busy.
      *
-     * Geen inhoud, alleen een vingerafdruk: verandert die, dan is er iets
-     * gebeurd en haalt de pagina zichzelf opnieuw op. Zo hoeft dit niet te weten
-     * hoe het scherm eruitziet, en blijft er één plek waar dat staat.
+     * No content, only a fingerprint: if it changes, something happened and the
+     * page fetches itself again. That way this does not have to know what the
+     * screen looks like, and there stays one place where that lives.
      */
     public function provisioningStatus(LandlordStatusRequest $request)
     {
@@ -338,14 +337,14 @@ class TenantController extends Controller
     }
 
     /**
-     * Waar het scherm op let. Verandert deze, dan is er iets gebeurd.
+     * What the screen watches. If this changes, something happened.
      *
-     * Het scherm krijgt hem bij het opbouwen mee, zodat de eerste navraag al
-     * kan vergelijken. Zonder dat had die eerste navraag niets om tegen af te
-     * zetten: werk dat binnen een paar seconden klaar is -- verwijderen duurt
-     * soms nog geen seconde -- was dan al afgelopen voordat er één keer
-     * gevraagd was, en bleef het scherm staan zoals het was opgebouwd. Precies
-     * de gevallen waarin je het verversen het hardst nodig hebt.
+     * The screen gets it while being built, so the first poll already has
+     * something to compare against. Without that, that first poll had nothing
+     * to measure by: work finished within a couple of seconds -- deleting
+     * sometimes takes less than one -- was already over before a single poll,
+     * and the screen stayed as it was built. Precisely the cases where you need
+     * the refreshing most.
      */
     private function provisioningSignature(): string
     {
@@ -387,8 +386,8 @@ class TenantController extends Controller
     }
 
     /**
-     * Het paneel mag geen database weggooien -- dat doet de provisioner. Hier
-     * wordt alleen de opdracht neergelegd, na een naam die letterlijk klopt.
+     * The panel may not drop a database -- the provisioner does that. Only the
+     * request is put down here, after a name that matches literally.
      */
     public function destroyTenant(DestroyTenantRequest $request, string $id)
     {

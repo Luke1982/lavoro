@@ -14,9 +14,9 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * Fouten die stil waren: het scherm meldde niets, de test was groen en het
- * werkte gewoon niet. Elk van deze had een controle kunnen hebben en had die
- * niet, dus die staat er nu.
+ * Failures that were silent: the screen reported nothing, the test was green
+ * and it simply did not work. Each of these could have had a check and did not,
+ * so now it does.
  */
 class RegressionsFromTodayTest extends TestCase
 {
@@ -31,9 +31,9 @@ class RegressionsFromTodayTest extends TestCase
     }
 
     /**
-     * Elk veld dat het formulier moet invullen hoort ook op dat formulier te
-     * staan. seat_type was verplicht en stond er niet: aanmaken was daardoor
-     * onmogelijk, met een foutmelding die nergens paste.
+     * Every field the form has to fill in belongs on that form as well.
+     * seat_type was required and was not there: creating was impossible because
+     * of it, with an error message that fitted nowhere.
      */
     public function test_the_create_form_receives_what_it_needs_to_fill_in(): void
     {
@@ -48,7 +48,7 @@ class RegressionsFromTodayTest extends TestCase
         $this->assertTrue($props['occupiesSeat']);
     }
 
-    /** Ons eigen account bezet geen plaats, dus het krijgt de keuze niet. */
+    /** Our own account occupies no seat, so it does not get the choice. */
     public function test_a_super_admin_is_not_asked_for_a_seat(): void
     {
         $super = $this->superAdmin();
@@ -62,8 +62,8 @@ class RegressionsFromTodayTest extends TestCase
     }
 
     /**
-     * De rolregel weigerde de rol van de superbeheerder, ook aan hemzelf. Zijn
-     * eigen profiel was daardoor niet op te slaan.
+     * The role rule refused the super admin's role, to themselves as well.
+     * Their own profile could not be saved because of it.
      */
     public function test_a_super_admin_can_save_its_own_profile(): void
     {
@@ -86,16 +86,16 @@ class RegressionsFromTodayTest extends TestCase
     }
 
     /**
-     * Het beheerpaneel beheert deze accounts, dus daar moeten ze zichtbaar
-     * blijven -- de globale scope die ze voor de klant verbergt sloeg ook toe
-     * op het paneel, dat op een andere guard draait.
+     * The admin panel manages these accounts, so they have to stay visible
+     * there -- the global scope hiding them from the customer also struck in
+     * the panel, which runs on another guard.
      */
     public function test_the_landlord_panel_still_sees_the_accounts_it_manages(): void
     {
         $super = $this->superAdmin();
         $tenant = Tenant::on('central')->findOrFail(tenancy()->tenant->getTenantKey());
 
-        /** Ingelogd als een gewone beheerder: die hoort ze juist niet te zien. */
+        /** Logged in as an ordinary admin: they should not see them. */
         $this->actingAs($this->admin());
 
         $this->assertFalse(User::where('id', $super->id)->exists());
@@ -106,8 +106,9 @@ class RegressionsFromTodayTest extends TestCase
     }
 
     /**
-     * Een lege wachtrij ziet er hetzelfde uit als een worker die niet draait.
-     * De hartslag is het enige verschil, dus die moet er zijn en moet verlopen.
+     * An empty queue looks exactly like a worker that is not running. The
+     * heartbeat is the only difference, so it has to be there and has to go
+     * stale.
      */
     public function test_a_worker_without_a_heartbeat_counts_as_stopped(): void
     {
@@ -118,7 +119,7 @@ class RegressionsFromTodayTest extends TestCase
         Cache::put(WorkerHeartbeat::key('provisioning'), now()->timestamp, now()->addHour());
         $this->assertNotNull(WorkerHeartbeat::beatFor('provisioning'));
 
-        /** Ouder dan de grens telt als gestopt. */
+        /** Older than the limit counts as stopped. */
         $stale = now()->subMinutes(WorkerHeartbeat::STALE_AFTER_MINUTES + 1)->timestamp;
         Cache::put(WorkerHeartbeat::key('provisioning'), $stale, now()->addHour());
 

@@ -9,9 +9,9 @@ use Inertia\Inertia;
 use Tests\TestCase;
 
 /**
- * Het beheerpaneel ververst zichzelf zolang de provisioner bezig is. Dat hangt
- * aan één klein antwoord, dus dat antwoord moet kloppen: alleen voor wie
- * ingelogd is, en met een vingerafdruk die verandert zodra er iets gebeurt.
+ * The admin panel refreshes itself while the provisioner is busy. That hangs on
+ * one small answer, so that answer has to be right: only for whoever is logged
+ * in, and with a fingerprint that changes as soon as something happens.
  */
 class ProvisioningStatusTest extends TestCase
 {
@@ -50,7 +50,7 @@ class ProvisioningStatusTest extends TestCase
 
         $busy->assertOk()->assertJson(['busy' => true]);
 
-        /** De vingerafdruk hoort mee te veranderen; daar hangt het verversen aan. */
+        /** The fingerprint should change along; the refreshing hangs on it. */
         $this->assertNotSame(
             $quiet->json('signature'),
             $busy->json('signature'),
@@ -59,9 +59,9 @@ class ProvisioningStatusTest extends TestCase
     }
 
     /**
-     * Het overzicht is een Inertia-scherm en haalt zichzelf op zolang er werk
-     * loopt. Wat het daarvoor nodig heeft is de stand van de aanvragen; die moet
-     * dus in de eigenschappen zitten, en apart op te vragen zijn.
+     * The overview is an Inertia screen and fetches itself while work is
+     * running. What it needs for that is the state of the requests; so that has
+     * to be in the properties, and has to be requestable separately.
      */
     public function test_the_panel_carries_the_state_it_refreshes_on(): void
     {
@@ -85,12 +85,12 @@ class ProvisioningStatusTest extends TestCase
     }
 
     /**
-     * Een klant die nog wordt aangemaakt is geen kapotte klant.
+     * A customer still being created is not a broken customer.
      *
-     * Zolang de worker de migraties draait staat de rij er wel maar zijn de
-     * tabellen er nog niet. Het overzicht liet dan een rode SQL-fout zien over
-     * een tabel die een paar seconden later gewoon bestaat -- precies op het
-     * moment dat je voor het eerst kijkt of het gelukt is.
+     * While the worker runs the migrations the row is there but the tables are
+     * not yet. The overview then showed a red SQL error about a table that
+     * plainly exists a few seconds later -- exactly at the moment you first
+     * look to see whether it worked.
      */
     public function test_a_tenant_being_created_reads_as_busy_and_not_as_broken(): void
     {
@@ -101,7 +101,7 @@ class ProvisioningStatusTest extends TestCase
             ['name' => 'Bezigtest BV', 'tenancy_db_name' => 'lavoro_test_tenant_bezigtest']
         ));
 
-        /** Zonder aanvraag is dezelfde klant wél kapot: er valt niet te verbinden. */
+        /** Without a request the same customer is broken: there is no connecting. */
         $this->actingAs($this->landlord(), 'landlord')
             ->get(route('landlord.index'))
             ->assertInertia(fn ($page) => $page

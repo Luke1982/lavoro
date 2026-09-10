@@ -10,13 +10,13 @@ use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
- * Werk dat per klant gepland wordt, hoort bij de worker weer bij die klant uit
- * te komen. De klant reist mee in de payload van de job, en die wordt gevuld op
- * het moment van in de wachtrij zetten -- niet op het moment van uitvoeren.
+ * Work scheduled per customer should arrive back at that customer in the
+ * worker. The customer travels along in the job's payload, and that is filled
+ * at the moment of queueing -- not at the moment of running.
  *
- * Ging het mis, dan gaf dat geen fout bij het plannen: de job draaide gewoon,
- * tegen de centrale database, en viel daar om op een tabel die daar niet hoort
- * te staan. Op productie was dat elke vijf minuten een mislukte taak.
+ * When it went wrong there was no error while scheduling: the job simply ran,
+ * against the central database, and fell over there on a table that does not
+ * belong there. On production that was a failed job every five minutes.
  */
 class QueuedWorkKeepsItsTenantTest extends TestCase
 {
@@ -28,13 +28,13 @@ class QueuedWorkKeepsItsTenantTest extends TestCase
 
         config(['queue.default' => 'database']);
 
-        /** Alleen kijken naar wat deze test zelf in de wachtrij zet. */
+        /** Only look at what this test queues itself. */
         $this->queued_before = (int) DB::connection('central')->table('jobs')->max('id');
 
         /**
-         * De planner draait zonder klant open, en dat is precies wat deze test
-         * moet nabootsen: laat je de klant van de testomgeving openstaan, dan
-         * valt de job daar toch nog in en bewijst de test niets.
+         * The scheduler runs with no customer open, and that is precisely what
+         * this test has to imitate: leave the test environment's customer open
+         * and the job falls into it after all, proving nothing.
          */
         tenancy()->end();
     }
@@ -50,8 +50,8 @@ class QueuedWorkKeepsItsTenantTest extends TestCase
     }
 
     /**
-     * De valkuil: een pijlfunctie geeft de PendingDispatch terug, en die zet de
-     * job pas in de wachtrij als hij wordt opgeruimd -- buiten de klant.
+     * The trap: an arrow function returns the PendingDispatch, and that only
+     * queues the job once it is cleaned up -- outside the customer.
      */
     public function test_a_job_dispatched_from_a_tenant_carries_that_tenant(): void
     {
@@ -63,7 +63,7 @@ class QueuedWorkKeepsItsTenantTest extends TestCase
             'de job hoort de klant mee te krijgen waarbinnen hij gepland is');
     }
 
-    /** Zo staat het in routes/console.php: één ronde langs alle klanten. */
+    /** This is how routes/console.php has it: one round past every customer. */
     public function test_scheduled_work_queues_one_job_per_tenant_with_its_own_tenant(): void
     {
         Tenancy::forEachReachable(fn () => DispatchTenantCalendarPullsJob::dispatch());
@@ -75,7 +75,7 @@ class QueuedWorkKeepsItsTenantTest extends TestCase
         $this->assertSame($queued, array_unique($queued), 'elke klant hoort één eigen job te krijgen');
     }
 
-    /** Buiten een klant hoort er juist geen klant in de payload te staan. */
+    /** Outside a customer there should be no customer in the payload at all. */
     public function test_central_work_stays_central(): void
     {
         DispatchTenantCalendarPullsJob::dispatch();

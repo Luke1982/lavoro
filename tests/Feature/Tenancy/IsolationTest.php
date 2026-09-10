@@ -12,13 +12,13 @@ use Tests\Concerns\UsesASecondTenant;
 use Tests\TestCase;
 
 /**
- * Twee klanten naast elkaar. Dit is waar het hele project om draait en waar de
- * suite tot nu toe niets over zei: er was één testklant, dus "zien ze elkaar
- * niet" was onbewijsbaar.
+ * Two customers side by side. This is what the whole project is about and what
+ * the suite said nothing about so far: there was one test customer, so "they do
+ * not see each other" was unprovable.
  *
- * Elke test hieronder faalt als de scheiding wegvalt. Ze zijn zo geschreven
- * dat ze niet stil goed gaan: eerst wordt gecontroleerd dat het gegeven er in
- * de ene klant wél is, en pas daarna dat het in de andere ontbreekt.
+ * Every test below fails when the separation falls away. They are written so
+ * they cannot pass quietly: first it is checked that the data is there in the
+ * one customer, and only then that it is missing in the other.
  */
 class IsolationTest extends TestCase
 {
@@ -32,7 +32,7 @@ class IsolationTest extends TestCase
 
         $theirs = $this->asTenant($second, fn () => Customer::factory()->create(['name' => 'Klant van de tweede']));
 
-        /** Eerst bewijzen dat het gegeven bestaat, anders zegt de rest niets. */
+        /** First prove the data exists, otherwise the rest says nothing. */
         $this->assertTrue(Customer::whereKey($mine->id)->exists());
 
         $this->assertFalse(
@@ -49,14 +49,14 @@ class IsolationTest extends TestCase
     }
 
     /**
-     * Record-id's lopen per klant op, dus id 1 bestaat in allebei. Dat is
-     * precies waarom een id alleen nooit genoeg is om iets aan te wijzen.
+     * Record ids count up per customer, so id 1 exists in both. That is exactly
+     * why an id alone is never enough to point at something.
      */
     public function test_the_same_id_points_at_a_different_record_in_each_customer(): void
     {
         $second = $this->secondTenant();
 
-        /** Hetzelfde id afdwingen: anders hangt de test af van waar de tellers staan. */
+        /** Forcing the same id: otherwise the test depends on where the counters stand. */
         $id = 987654;
 
         Customer::factory()->create(['id' => $id, 'name' => 'Van de eerste']);
@@ -83,14 +83,14 @@ class IsolationTest extends TestCase
     }
 
     /**
-     * De cache is per klant voorzien van een eigen aanhef. Gaat dat mis, dan
-     * is het geen gemiste cache maar het gegeven van een ander bedrijf -- en
-     * er zit onder andere een SnelStart-token in.
+     * The cache is given a prefix of its own per customer. If that goes wrong
+     * it is not a cache miss but another company's data -- and there is a
+     * SnelStart token among it.
      *
-     * Er wordt gekeken naar de aanhef en naar wat er onder water komt te
-     * staan, en niet naar teruglezen na een wissel: de cachetabel valt binnen
-     * de testtransactie en de verbinding wordt bij een wissel opnieuw
-     * opgezet, dus dat zou het testopzet meten in plaats van de afscherming.
+     * It looks at the prefix and at what ends up underneath, and not at reading
+     * back after a switch: the cache table falls inside the test transaction and
+     * the connection is rebuilt on a switch, so that would measure the test
+     * setup instead of the separation.
      */
     public function test_the_cache_is_not_shared_between_customers(): void
     {
@@ -103,7 +103,7 @@ class IsolationTest extends TestCase
         $this->assertStringContainsString((string) $this->firstTenant()->getTenantKey(), $first_prefix);
         $this->assertStringContainsString((string) $second->getTenantKey(), $second_prefix);
 
-        /** Wat er werkelijk in de tabel belandt, moet dus ook verschillen. */
+        /** What really lands in the table therefore has to differ too. */
         Cache::put('gedeelde-sleutel', 'van de eerste', 60);
 
         $this->assertSame('van de eerste', Cache::get('gedeelde-sleutel'));
@@ -123,7 +123,7 @@ class IsolationTest extends TestCase
         );
     }
 
-    /** Bestanden van de een horen niet in de map van de ander te landen. */
+    /** One customer's files should not land in the other's folder. */
     public function test_uploads_land_in_a_folder_of_their_own(): void
     {
         $second = $this->secondTenant();
@@ -137,8 +137,8 @@ class IsolationTest extends TestCase
     }
 
     /**
-     * Het e-mailadres wijst bij het inloggen de klant aan, dus dezelfde
-     * gebruiker bij twee klanten kan niet.
+     * The email address points at the customer when logging in, so the same
+     * user at two customers cannot be.
      */
     public function test_an_email_address_belongs_to_one_customer_only(): void
     {
@@ -158,10 +158,9 @@ class IsolationTest extends TestCase
     }
 
     /**
-     * Het spoor van wat er gebeurt hoort in de database van de klant zelf te
-     * staan. Belandt het bij de ander, dan leest die de geschiedenis van een
-     * bedrijf dat hij niet kent -- en dat merkt niemand, want er gaat niets
-     * stuk.
+     * The trail of what happens belongs in the customer's own database. If it
+     * lands at the other one, they read the history of a company they do not
+     * know -- and nobody notices, because nothing breaks.
      */
     public function test_the_audit_trail_stays_with_the_customer_it_belongs_to(): void
     {

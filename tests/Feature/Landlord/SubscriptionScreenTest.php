@@ -10,24 +10,24 @@ use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
- * Het abonnementsscherm moet teruggeven wat erin staat.
+ * The subscription screen has to give back what is in it.
  *
- * De ingangsdatum ging door optional()->format() heen, en optional() op tekst
- * in plaats van een object geeft null terug. Het veld kwam dus altijd leeg in
- * beeld, en de eerste de beste keer opslaan schreef die leegte terug: de
- * ingangsdatum weg, en daarmee werd er voor die klant nooit meer iets
- * gefactureerd. Stil, zonder fout, en pas weken later te zien.
+ * The start date went through optional()->format(), and optional() on text
+ * rather than an object returns null. So the field always came up empty, and
+ * the very first save wrote that emptiness back: the start date gone, and with
+ * it anything ever being invoiced for that customer. Quietly, without an error,
+ * and only visible weeks later.
  */
 class SubscriptionScreenTest extends TestCase
 {
     use MakesLandlordData;
 
     /**
-     * De klok stilgezet.
+     * The clock held still.
      *
-     * Een verrekening rekent met de dag van vandaag, dus tests die dagen tellen
-     * geven morgen een ander antwoord dan vandaag. Deze viel om zodra de datum
-     * verschoof: 'zes van de dertig dagen' werd er zeven.
+     * A settlement counts from today, so tests that count days give a different
+     * answer tomorrow than today. This one fell over as soon as the date moved:
+     * "six of the thirty days" became seven.
      */
     protected function setUp(): void
     {
@@ -42,9 +42,10 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Het formulier zoals het scherm het opstuurt. Dit loopt gelijk met
-     * SubscriptionForm.vue: centen worden euro's in het veld, en of er korting
-     * in euro's of in procenten geldt leidt het scherm af uit wat er staat.
+     * The form as the screen sends it. This runs in step with
+     * SubscriptionForm.vue: cents become euros in the field, and whether a
+     * discount is in euros or in percent is derived by the screen from what is
+     * filled in.
      */
     private function screenPayload(Tenant $tenant, array $overrides = []): array
     {
@@ -135,8 +136,8 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Het scherm opslaan zoals het erbij staat, zonder iets aan te raken, mag
-     * niets weggooien. Precies daar ging het mis.
+     * Saving the screen as it stands, without touching anything, must throw
+     * nothing away. That is exactly where it went wrong.
      */
     public function test_saving_the_screen_unchanged_keeps_the_start_date(): void
     {
@@ -189,9 +190,9 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Het scherm opslaan zonder iets aan te raken hoort niets te veranderen.
-     * Aan een van de velden bleek dat niet te kloppen, en dan is er geen enkele
-     * reden om aan te nemen dat het bij de rest wel goed zit.
+     * Saving the screen without touching anything should change nothing. One of
+     * the fields turned out not to hold to that, and then there is no reason at
+     * all to assume the rest is fine.
      */
     public function test_saving_the_whole_screen_unchanged_changes_nothing(): void
     {
@@ -296,9 +297,9 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Een prijs hoort bij een module die de klant heeft. Gaat de module eruit,
-     * dan hoort de afspraak niet te blijven staan om bij het weer aanzetten
-     * stilletjes terug te komen.
+     * A price belongs to a module the customer has. If the module goes, the
+     * agreement should not stay behind to come back quietly when it is switched
+     * on again.
      */
     public function test_taking_a_module_away_takes_its_agreed_price_with_it(): void
     {
@@ -312,11 +313,11 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Een verrekening hoort bij een pakketwissel, niet bij een uitbreiding.
+     * A settlement belongs to a package change, not to an extension.
      *
-     * Wie er een module bij neemt heeft niets gewisseld: die module gaat mee
-     * met de eerstvolgende factuur. Een regel die uitrekent hoeveel dagen hij
-     * de module al had, maakt de factuur onleesbaar voor een paar euro.
+     * Someone adding a module has changed nothing: that module travels along
+     * with the next invoice. A line working out how many days they already had
+     * the module makes the invoice unreadable over a couple of euros.
      */
     public function test_adding_a_module_settles_nothing(): void
     {
@@ -362,8 +363,8 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Een andere prijs voor hetzelfde pakket is ook een pakketwijziging: de
-     * abonnementsregel op de factuur verandert erdoor.
+     * A different price for the same package is a package change too: the
+     * subscription line on the invoice changes because of it.
      */
     public function test_changing_the_agreed_package_price_does_settle(): void
     {
@@ -374,7 +375,7 @@ class SubscriptionScreenTest extends TestCase
         $this->assertCount(1, (new Invoicer($tenant))->pendingCharges());
     }
 
-    /** Een pakketwissel en een module in een keer verrekent alleen het pakket. */
+    /** A package change and a module in one go settles only the package. */
     public function test_a_package_switch_with_a_module_settles_only_the_package(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
@@ -414,7 +415,7 @@ class SubscriptionScreenTest extends TestCase
         $this->assertSame(Carbon::now()->toDateString(), $dates['quotes'], 'deze is nieuw');
     }
 
-    /** Eruit en er weer in telt opnieuw: anders zou hij met terugwerkende kracht gratis zijn. */
+    /** Out and back in counts again: otherwise it would be free retroactively. */
     public function test_switching_a_module_off_forgets_when_it_started(): void
     {
         $tenant = $this->tenant([
@@ -450,8 +451,8 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Is de maand al gefactureerd, dan zijn de dagen na de laatste dag wel
-     * betaald en niet gebruikt. Die horen terug.
+     * If the month has been invoiced, the days after the last day are paid for
+     * and not used. Those should come back.
      */
     public function test_cancelling_an_invoiced_month_gives_the_unused_days_back(): void
     {
@@ -482,7 +483,7 @@ class SubscriptionScreenTest extends TestCase
         $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
     }
 
-    /** Nog niet gefactureerd: de factuur rekent al tot en met de laatste dag. */
+    /** Not invoiced yet: the invoice already charges up to and including the last day. */
     public function test_cancelling_a_month_that_was_not_invoiced_yet_settles_nothing(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
@@ -510,8 +511,9 @@ class SubscriptionScreenTest extends TestCase
         $this->assertFalse($invoicer->isDue(CarbonImmutable::parse('2026-10-07')));
 
         /**
-         * September zelf staat er nog wel bij: die maand is nooit gefactureerd
-         * en loopt tot en met de twintigste. Wat na de opzegging komt niet.
+         * September itself is still listed: that month was never invoiced and
+         * runs up to and including the twentieth. What comes after the
+         * cancellation is not.
          */
         $missed = $invoicer->unbilledPeriods(CarbonImmutable::parse('2026-12-01'));
 
@@ -520,12 +522,12 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Van maand naar jaar gaf de klant de rest van het jaar gratis: de
-     * jaarperiode begon op de ingangsdatum, en die maand was al betaald, dus
-     * gold het hele jaar als gefactureerd.
+     * Monthly to yearly gave the customer the rest of the year for free: the
+     * yearly period started on the start date, and that month was already paid
+     * for, so the whole year counted as invoiced.
      *
-     * De nieuwe termijn begint bij de eerstvolgende periode die nog niet
-     * betaald is, en nooit in het verleden.
+     * The new term starts at the first period that has not been paid for, and
+     * never in the past.
      */
     public function test_switching_to_yearly_starts_the_year_after_the_month_that_was_paid(): void
     {
@@ -545,7 +547,7 @@ class SubscriptionScreenTest extends TestCase
         $this->assertTrue($invoicer->isDue(CarbonImmutable::parse('2026-10-05')), 'het jaar moet gefactureerd worden');
     }
 
-    /** Een termijnwissel mag de maanden ervoor niet uit het zicht duwen. */
+    /** A term change must not push the months before it out of sight. */
     public function test_switching_the_term_keeps_earlier_unbilled_months_visible(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-06-01']);
@@ -559,8 +561,8 @@ class SubscriptionScreenTest extends TestCase
     }
 
     /**
-     * Een klant die het lopende jaar al vooruit betaald heeft, hoort niet
-     * meteen maandfacturen te krijgen. Die beginnen zodra het jaar op is.
+     * A customer who has already paid the current year up front should not get
+     * monthly invoices straight away. Those start once the year is over.
      */
     public function test_switching_to_monthly_waits_until_the_paid_year_is_over(): void
     {

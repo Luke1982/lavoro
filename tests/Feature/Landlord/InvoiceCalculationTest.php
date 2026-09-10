@@ -12,15 +12,15 @@ use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
 /**
- * Wat er op de factuur komt te staan.
+ * What ends up on the invoice.
  *
- * Uit de migraties: starter 2750, team 8750, jaarkorting 2%, btw 21%.
+ * From the migrations: starter 2750, team 8750, yearly discount 2%, VAT 21%.
  */
 class InvoiceCalculationTest extends TestCase
 {
     use MakesLandlordData;
 
-    /** Standaard maandelijks en al een tijdje lopend, zodat er te rekenen valt. */
+    /** Monthly by default and running for a while, so there is something to compute. */
     private function tenant(array $attributes = []): Tenant
     {
         return $this->tenantRow(['subscription_started_on' => '2026-01-15', ...$attributes]);
@@ -44,9 +44,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * De maandelijkse factuurdag hoort niet op te schuiven. Met gewoon
-     * optellen liep 31 januari over naar 3 maart en lag de factuurdatum daarna
-     * voorgoed op de 3e.
+     * The monthly invoice day should not drift. With plain addition 31 January
+     * overflowed into 3 March and the invoice date sat on the 3rd forever
+     * after.
      */
     public function test_a_customer_who_started_on_the_thirty_first_keeps_that_day(): void
     {
@@ -107,8 +107,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Een tussentijdse factuur voor bijgekocht tegoed valt in dezelfde periode
-     * als de maandfactuur. Die mag het abonnement niet wegdrukken.
+     * An interim invoice for topped up credit falls in the same period as the
+     * monthly invoice. It must not push the subscription aside.
      */
     public function test_an_extra_invoice_in_the_same_period_does_not_cancel_the_subscription(): void
     {
@@ -154,9 +154,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * De jaarkorting hoort bij het abonnement. Wie tegoed bijkoopt of een
-     * verrekening krijgt, hoort daar geen twee procent op te krijgen omdat hij
-     * toevallig per jaar betaalt.
+     * The yearly discount belongs to the subscription. Someone topping up
+     * credit or receiving a settlement should not get two percent off it
+     * because they happen to pay per year.
      */
     public function test_the_yearly_discount_skips_top_ups_and_settlements(): void
     {
@@ -225,10 +225,10 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Wisselen op de eerste dag van een periode die nog niet gefactureerd is:
-     * er is nog geen dag op het oude pakket voorbij, dus er valt niets te
-     * verrekenen en het nieuwe pakket staat er gewoon vol op. Hier kwam het
-     * verschil er eerst nog een tweede keer bij.
+     * Changing on the first day of a period that has not been invoiced: not a
+     * day on the old package has passed, so there is nothing to settle and the
+     * new package is simply charged in full. The difference used to be added a
+     * second time here.
      */
     public function test_a_switch_on_the_first_day_of_an_uninvoiced_period_gets_no_settlement(): void
     {
@@ -279,7 +279,7 @@ class InvoiceCalculationTest extends TestCase
         $this->assertNull((new Invoicer($tenant))->prorate(2750, 2750, CarbonImmutable::parse('2026-03-16')));
     }
 
-    /** Op de laatste dag valt er nog precies een dag te verrekenen, niet nul. */
+    /** On the last day there is exactly one day left to settle, not zero. */
     public function test_a_switch_on_the_last_day_of_a_period_settles_one_day(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-03-01']);
@@ -307,8 +307,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Over twee periodes heen moet de klant precies betalen voor wat hij had:
-     * de oude prijs voor de dagen tot de wissel, de nieuwe voor de rest.
+     * Across two periods the customer should pay exactly for what they had: the
+     * old price for the days up to the change, the new one for the rest.
      */
     public function test_an_upgrade_costs_the_old_price_until_the_switch_and_the_new_price_after(): void
     {
@@ -431,10 +431,10 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Meer tegoed dan er te factureren valt, wordt een creditfactuur: geld
-     * terug in plaats van heen. Eerst bleef zo'n tegoed staan tot er een
-     * volgende factuur kwam -- maar voor een klant die net opgezegd heeft komt
-     * die nooit, en dan kreeg hij zijn geld nooit terug.
+     * More credit than there is to invoice becomes a credit note: money back
+     * instead of out. At first such credit stayed put until a next invoice came
+     * -- but for a customer who has just cancelled it never comes, and then
+     * they never got their money back.
      */
     public function test_more_credit_than_there_is_to_bill_becomes_a_credit_note(): void
     {
@@ -463,7 +463,7 @@ class InvoiceCalculationTest extends TestCase
         $this->assertCount(0, (new Invoicer($tenant))->pendingCharges(), 'het tegoed is verwerkt');
     }
 
-    /** Een creditfactuur valt niet te incasseren: terugstorten gaat met de hand. */
+    /** A credit note cannot be collected: paying back is done by hand. */
     public function test_a_credit_note_is_left_out_of_the_direct_debit_batch(): void
     {
         $tenant = $this->tenant([
@@ -550,9 +550,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Wordt de startdatum gecorrigeerd, dan verschuift de periode-indeling.
-     * Dagen die al gefactureerd zijn mogen daardoor niet opnieuw op een
-     * factuur belanden.
+     * Correcting the start date shifts how the periods are divided. Days that
+     * have already been invoiced must not end up on an invoice again because of
+     * it.
      */
     public function test_days_that_are_already_paid_are_never_charged_a_second_time(): void
     {
@@ -575,12 +575,13 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Wisselen halverwege een maand die nog niet gefactureerd is. De factuur
-     * die eraan komt rekent het nieuwe pakket over de hele maand, ook over de
-     * dagen dat de klant nog op het oude zat. Die dagen horen er als tegoed af.
+     * Changing halfway through a month that has not been invoiced. The invoice
+     * that is coming charges the new package over the whole month, including
+     * the days the customer was still on the old one. Those days come off as
+     * credit.
      *
-     * Precies het geval dat gemeld werd: begonnen op 1 september op starter,
-     * op 7 september naar team. Zes dagen starter, vierentwintig dagen team.
+     * Exactly the case that was reported: started on 1 September on starter, on
+     * 7 September to team. Six days starter, twenty-four days team.
      */
     public function test_a_switch_halfway_an_uninvoiced_period_credits_the_days_on_the_old_package(): void
     {
@@ -605,8 +606,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Dezelfde maand kost hetzelfde, of de factuur nu voor of na de wissel
-     * gemaakt is. Of dat toevallig zo uitkomt hoort de klant niets te schelen.
+     * The same month costs the same, whether the invoice was made before or
+     * after the change. Whether that happens to line up is no concern of the
+     * customer's.
      */
     public function test_a_month_costs_the_same_whether_it_was_invoiced_before_or_after_the_switch(): void
     {
@@ -647,8 +649,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Twee wissels in dezelfde nog niet gefactureerde maand horen ook op te
-     * tellen tot wat de klant werkelijk gebruikt heeft.
+     * Two changes in the same uninvoiced month should also add up to what the
+     * customer actually used.
      */
     public function test_two_switches_in_one_month_still_add_up(): void
     {
@@ -668,8 +670,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Op de factuur moet te zien zijn waar de verrekening vandaan komt: van
-     * welk pakket naar welk, en op welke dag.
+     * The invoice has to show where the settlement comes from: from which
+     * package to which, and on what day.
      */
     public function test_the_settlement_says_which_packages_it_is_between(): void
     {
@@ -695,7 +697,7 @@ class InvoiceCalculationTest extends TestCase
         );
     }
 
-    /** Een plek erbij is geen pakketwissel, en hoort dat ook niet te beweren. */
+    /** An extra seat is not a package change, and should not claim to be one. */
     public function test_a_change_that_leaves_the_package_alone_is_not_called_a_switch(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
@@ -708,8 +710,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Staat er een afgesproken prijs op een regel, dan hoort de gewone prijs
-     * erbij: over een jaar weet niemand meer waarom er een ander bedrag stond.
+     * If a line has an agreed price, the normal price belongs next to it: in a
+     * year nobody remembers why a different amount was there.
      */
     public function test_an_agreed_price_says_what_the_normal_price_is(): void
     {
@@ -741,7 +743,7 @@ class InvoiceCalculationTest extends TestCase
         }
     }
 
-    /** Bij een jaarfactuur staat er ook een jaarbedrag als normale prijs. */
+    /** On a yearly invoice the normal price is a yearly amount too. */
     public function test_the_normal_price_follows_the_billing_period(): void
     {
         $tenant = $this->tenant(['billing_period' => 'yearly', 'price_override_cents' => 14900]);
@@ -753,10 +755,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Twee keer opslaan op een dag -- eerst naar Team, dan een prijs voor dat
-     * pakket afgesproken -- gaf twee verrekeningsregels met dezelfde
-     * omschrijving en tegengestelde bedragen. Samen klopte het, los was het
-     * onleesbaar.
+     * Saving twice in a day -- first to Team, then agreeing a price for that
+     * package -- produced two settlement lines with the same description and
+     * opposite amounts. Together they were right, separately unreadable.
      */
     public function test_two_changes_on_one_day_end_up_on_one_line(): void
     {
@@ -797,8 +798,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Een wijziging die geen pakketwissel is, hoort wel te zeggen wat er dan
-     * wel veranderde. 'Abonnementswijziging' alleen legt niets uit.
+     * A change that is not a package change should still say what did change.
+     * 'Abonnementswijziging' on its own explains nothing.
      */
     public function test_a_change_outside_the_package_names_the_amounts(): void
     {
@@ -814,9 +815,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Ook na een tweede wijziging hoort er te staan van welk pakket naar welk.
-     * Het samenvoegen gooide dat eerst weg: er stond alleen nog dat er iets
-     * gewijzigd was.
+     * After a second change it should still say from which package to which.
+     * Merging threw that away at first: all that was left was that something
+     * had changed.
      */
     public function test_a_merged_settlement_still_names_both_packages(): void
     {
@@ -835,7 +836,7 @@ class InvoiceCalculationTest extends TestCase
         );
     }
 
-    /** Een wissel die verderop weer teruggedraaid wordt, noemt geen wissel. */
+    /** A change that is reversed later on does not name a package change. */
     public function test_a_merged_settlement_that_ends_where_it_started_names_no_switch(): void
     {
         $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
@@ -851,11 +852,11 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Verrekeningen van twee verschillende maanden horen niet op een hoop.
+     * Settlements from two different months do not belong on one heap.
      *
-     * Ze gaan over een ander aantal dagen en over een andere factuur. Bij
-     * elkaar opgeteld leveren ze een bedrag op dat bij geen van beide maanden
-     * hoort, onder een omschrijving die geen van beide beschrijft.
+     * They cover a different number of days and a different invoice. Added
+     * together they produce an amount that belongs to neither month, under a
+     * description that describes neither.
      */
     public function test_settlements_from_different_periods_stay_apart(): void
     {
@@ -874,9 +875,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Er wordt maar een periode tegelijk gefactureerd. Slaat een maand over,
-     * dan komt die uit zichzelf nooit meer terug en verdwijnt er stilzwijgend
-     * omzet. Dat hoort in elk geval zichtbaar te zijn.
+     * Only one period is invoiced at a time. Skip a month and it never comes
+     * back of its own accord, and revenue quietly disappears. That should at
+     * the very least be visible.
      */
     public function test_periods_that_were_never_billed_are_reported(): void
     {
@@ -914,8 +915,8 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Wie halverwege de maand een module erbij neemt, betaalt de dagen die er
-     * nog van de maand over zijn. Niet de hele maand, en niet niets.
+     * Adding a module halfway through the month means paying for the days left
+     * in that month. Not the whole month, and not nothing.
      */
     public function test_a_module_added_halfway_is_charged_for_the_days_that_are_left(): void
     {
@@ -962,9 +963,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * De normale prijs is die uit de catalogus, ook bij een deel van de maand.
-     * Naar rato meerekenen gaf een bedrag dat nergens bestaat: 'normaal
-     * € 18,00' voor een module die gewoon € 22,50 kost.
+     * The normal price is the catalogue one, also for part of a month.
+     * Pro-rating it produced an amount that exists nowhere: 'normaal EUR 18,00'
+     * for a module that plainly costs EUR 22,50.
      */
     public function test_the_normal_price_stays_the_catalogue_price(): void
     {
@@ -985,7 +986,7 @@ class InvoiceCalculationTest extends TestCase
         $this->assertSame(1200, $lines[1]['amount_cents']);
     }
 
-    /** Een bundel telt vanaf de dag dat hij compleet werd. */
+    /** A bundle counts from the day it became complete. */
     public function test_a_bundle_counts_from_the_day_it_was_completed(): void
     {
         $tenant = $this->tenant([
@@ -1001,9 +1002,9 @@ class InvoiceCalculationTest extends TestCase
     }
 
     /**
-     * Het voorbeeld in het scherm is dezelfde pdf, maar om te tonen. Met
-     * 'attachment' schuift de browser hem naar de downloadmap en is er niets
-     * te zien.
+     * The preview in the screen is the same pdf, but to show. With
+     * 'attachment' the browser pushes it into the downloads folder and there is
+     * nothing to see.
      */
     public function test_the_preview_shows_the_invoice_instead_of_downloading_it(): void
     {

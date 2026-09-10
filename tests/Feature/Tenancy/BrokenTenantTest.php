@@ -9,12 +9,13 @@ use Tests\Concerns\UsesASecondTenant;
 use Tests\TestCase;
 
 /**
- * Een klant waarvan de database weg is -- halverwege aangemaakt, half opgeruimd
- * -- mag de installatie niet meenemen.
+ * A customer whose database is gone -- half created, half cleaned up -- must
+ * not take the installation down with it.
  *
- * Dat gebeurde: de sessie wees naar die klant, tenancy schakelde vrolijk om, en
- * de eerste vraag aan de database liep stuk. Resultaat: 500 op elke pagina,
- * inclusief het inlogscherm, zodat er ook niet meer uit te komen viel.
+ * That happened: the session pointed at that customer, tenancy switched over
+ * happily, and the first question to the database broke. The result: a 500 on
+ * every page, the login screen included, so there was no getting out of it
+ * either.
  */
 class BrokenTenantTest extends TestCase
 {
@@ -25,7 +26,7 @@ class BrokenTenantTest extends TestCase
         $tenant = $this->secondTenant();
         $database = $tenant->getInternal('db_name');
 
-        /** Eerst bewijzen dat het normaal wél werkt, anders zegt de rest niets. */
+        /** First prove it works normally, otherwise the rest says nothing. */
         $this->withSession(['tenant_id' => $tenant->getTenantKey()])
             ->get('/login')
             ->assertOk();
@@ -37,20 +38,20 @@ class BrokenTenantTest extends TestCase
                 ->get('/login')
                 ->assertOk();
         } finally {
-            /** Weer opbouwen, anders draait de volgende test tegen niets. */
+            /** Rebuild it, otherwise the next test runs against nothing. */
             DB::connection('central')->statement("CREATE DATABASE IF NOT EXISTS `{$database}`");
             static::$second_tenant_prepared = false;
         }
     }
 
     /**
-     * Het geval uit productie: er zit nog een ingelogde gebruiker in de sessie
-     * van een klant waarvan de database weg is.
+     * The case from production: a logged in user is still in the session of a
+     * customer whose database is gone.
      *
-     * Auth::forgetUser() vergeet alleen het opgehaalde object; het id staat nog
-     * in de sessie, dus de guard haalt hem opnieuw op -- en zoekt de
-     * users-tabel dan in de centrale database, waar hij niet staat. 500 op elke
-     * pagina, ook op het inlogscherm.
+     * Auth::forgetUser() only forgets the fetched object; the id is still in
+     * the session, so the guard fetches it again -- and then looks for the
+     * users table in the central database, where it is not. A 500 on every
+     * page, the login screen included.
      */
     public function test_a_logged_in_session_of_a_vanished_tenant_does_not_break_the_site(): void
     {
@@ -60,9 +61,9 @@ class BrokenTenantTest extends TestCase
         DB::connection('central')->statement("DROP DATABASE IF EXISTS `{$database}`");
 
         /**
-         * De suite draait standaard mét een tenant. Die moet hier weg, anders
-         * komt het verzoek nooit langs de code die deze test bedoelt en slaagt
-         * hij om de verkeerde reden -- wat precies gebeurde.
+         * The suite runs with a tenant by default. That has to go here,
+         * otherwise the request never passes the code this test is about and it
+         * passes for the wrong reason -- which is exactly what happened.
          */
         $guard_key = Auth::guard('web')->getName();
         tenancy()->end();

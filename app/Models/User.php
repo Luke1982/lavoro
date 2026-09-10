@@ -21,7 +21,7 @@ class User extends Authenticatable
 
     private ?bool $is_super_admin = null;
 
-    /** De accounts van MajorLabel blijven buiten beeld bij de klant. */
+    /** MajorLabel's own accounts stay out of sight at the customer. */
     protected static function booted(): void
     {
         static::addGlobalScope(new HidesSuperAdmins);
@@ -38,10 +38,10 @@ class User extends Authenticatable
         'password',
         'plannable',
         /**
-         * Buiten- of binnendienst. Zonder dit hier viel het bij het aanmaken
-         * stil weg -- het formulier vroeg erom, de validatie keurde het goed en
-         * iedereen belandde op de standaard, waardoor de buitendienstplekken
-         * nooit vol raakten.
+         * Field or office staff. Without it here it fell away silently on
+         * creation -- the form asked for it, the validation approved it and
+         * everyone ended up on the default, which meant the field seats never
+         * filled up.
          */
         'seat_type',
     ];
@@ -136,8 +136,8 @@ class User extends Authenticatable
     /**
      * Whether the user has the admin role.
      *
-     * De superbeheerder telt mee: die mag per definitie alles wat een
-     * beheerder mag, en meer.
+     * The super admin counts: by definition they may do everything an admin
+     * may, and more.
      */
     public function isAdmin(): bool
     {
@@ -145,11 +145,11 @@ class User extends Authenticatable
     }
 
     /**
-     * De gebruikers die een plaats uit het abonnement bezetten.
+     * The users occupying a seat from the subscription.
      *
-     * Onze eigen superbeheerder telt niet mee: dat account is van MajorLabel
-     * en de klant hoort er geen plaats voor te betalen. Zachtgewiste
-     * gebruikers vallen al buiten de standaardscope.
+     * Our own super admin does not count: that account belongs to MajorLabel
+     * and the customer should not pay a seat for it. Soft deleted users already
+     * fall outside the default scope.
      */
     public function scopeOccupyingSeat($query, string $seat_type)
     {
@@ -157,9 +157,9 @@ class User extends Authenticatable
     }
 
     /**
-     * De ene plek die weet hoe je een superbeheerder uit een query houdt.
-     * De globale scope, de stoelentelling en alles wat later komt gaan hier
-     * doorheen, zodat er maar één definitie is.
+     * The one place that knows how to keep a super admin out of a query. The
+     * global scope, the seat count and everything that comes later go through
+     * here, so there is only one definition.
      */
     public function scopeWithoutSuperAdmins($query)
     {
@@ -167,12 +167,12 @@ class User extends Authenticatable
     }
 
     /**
-     * MajorLabel zelf, binnen de database van een klant.
+     * MajorLabel itself, inside a customer's database.
      *
-     * Onthouden per exemplaar: de globale scope vraagt dit bij elke query naar
-     * gebruikers, en dat is één extra query per keer voor een antwoord dat
-     * binnen een verzoek niet verandert. Een ->fresh() geeft een nieuw
-     * exemplaar en dus een nieuw antwoord.
+     * Remembered per instance: the global scope asks this on every query for
+     * users, and that is one extra query each time for an answer that does not
+     * change within a request. A ->fresh() gives a new instance and therefore a
+     * new answer.
      */
     public function isSuperAdmin(): bool
     {
@@ -202,8 +202,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Alle rechten uit de lijst, niet een ervan. Een lege lijst is geen drempel:
-     * wie niets hoeft te mogen, mag.
+     * Every permission from the list, not one of them. An empty list is no
+     * barrier: whoever needs no permission, passes.
      *
      * @param  array<int, string>  $names
      */

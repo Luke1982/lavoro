@@ -161,14 +161,13 @@ class AppServiceProvider extends ServiceProvider
         PersonalAccessToken::observe(PersonalAccessTokenObserver::class);
 
         /**
-         * Geen model om een policy aan te hangen, wel iets om af te schermen:
-         * de sleutels van de koppelingen zitten achter dezelfde toestemming als
-         * de rest van het technisch beheer.
+         * No model to hang a policy on, but something to shield all the same:
+         * the integration keys sit behind the same permission as the rest of
+         * technical management.
          */
         /**
-         * De poort die bepaalt of de assistent nog mag antwoorden. Als
-         * interface gebonden zodat een test hem kan vervangen zonder aan de
-         * echte teller te zitten.
+         * The gate deciding whether the assistant may still answer. Bound as an
+         * interface so a test can replace it without touching the real counter.
          */
         $this->app->bind(
             AllowanceGate::class,
@@ -176,10 +175,10 @@ class AppServiceProvider extends ServiceProvider
         );
 
         /**
-         * De superbeheerder komt langs elke policy heen. Gate::before draait
-         * voor elke can()-controle in de applicatie, dus dit is de enige plek
-         * waar 'mag alles' echt alles betekent -- een lijst met rechten zou
-         * altijd iets missen dat later wordt toegevoegd.
+         * The super admin passes every policy. Gate::before runs before every
+         * can() check in the application, so this is the only place where "may
+         * do everything" really means everything -- a list of permissions would
+         * always miss something added later.
          */
         Gate::before(fn ($user) => $user instanceof User && $user->isSuperAdmin() ? true : null);
 
@@ -239,9 +238,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         /**
-         * De mailer van de klant. Welke server erachter zit — Microsoft 365 of
-         * een eigen SMTP — staat in de instellingen van die klant. Lui
-         * opgebouwd, dus pas op het moment van versturen, als de tenant vaststaat.
+         * The customer's mailer. Which server sits behind it -- Microsoft 365
+         * or an SMTP of their own -- is in that customer's settings. Built
+         * lazily, so only at the moment of sending, when the tenant is fixed.
          */
         Mail::extend('tenant', fn () => app(TenantMailTransport::class)->make());
 
@@ -256,10 +255,10 @@ class AppServiceProvider extends ServiceProvider
             $user_id = $setting('graph_user_id');
 
             /**
-             * Alle vier of niets, en geen terugval op .env. Mail sturen uit de
-             * mailbox van een ander bedrijf zet de verkeerde afzender op de post
-             * van een klant, en dat is erger dan niet versturen: er komt geen
-             * foutmelding, het bericht komt gewoon van iemand anders.
+             * All four or nothing, and no falling back to .env. Sending mail
+             * from another company's mailbox puts the wrong sender on a
+             * customer's post, and that is worse than not sending: there is no
+             * error, the message simply comes from someone else.
              */
             if (!filled($azure_tenant) || !filled($client_id) || !filled($secret) || !filled($user_id)) {
                 throw new GraphNotConfigured;
@@ -277,8 +276,8 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        /** Een draaiende worker laat elke minuut van zich horen; de doctor kijkt daarnaar. */
-        /** @euro(1250) wordt "€ 12,50"; de opmaak staat op een plek. */
+        /** A running worker reports in every minute; the doctor looks at that. */
+        /** @euro(1250) becomes "EUR 12,50"; the formatting lives in one place. */
         Blade::directive('euro', fn ($expression) => "<?php echo '€ ' . \App\Support\Money::human($expression); ?>");
 
         WorkerHeartbeat::listen();
