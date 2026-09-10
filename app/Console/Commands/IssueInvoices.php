@@ -16,7 +16,7 @@ class IssueInvoices extends Command
         {--mail : Ook meteen versturen}
         {--dry-run : Alleen tonen wat er zou gebeuren}';
 
-    protected $description = 'Maakt de facturen waarvan de periode begonnen is';
+    protected $description = 'Creates the invoices whose period has started';
 
     public function handle(InvoiceMailer $mailer): int
     {
@@ -59,7 +59,7 @@ class IssueInvoices extends Command
             try {
                 $invoice = $invoicer->issue($on);
             } catch (\Throwable $e) {
-                $this->error($tenant->name . ': factureren mislukt — ' . $e->getMessage());
+                $this->error($tenant->name . ': invoicing failed — ' . $e->getMessage());
                 report($e);
                 $failed++;
 
@@ -86,10 +86,10 @@ class IssueInvoices extends Command
             }
 
             $failed++;
-            $this->warn('  versturen mislukt: ' . $invoice->mail_error);
+            $this->warn('  sending failed: ' . $invoice->mail_error);
         }
 
-        $this->line(sprintf('%d gefactureerd, %d verstuurd, %d mislukt.', $issued, $mailed, $failed));
+        $this->line(sprintf('%d invoiced, %d sent, %d failed.', $issued, $mailed, $failed));
 
         return $failed ? self::FAILURE : self::SUCCESS;
     }

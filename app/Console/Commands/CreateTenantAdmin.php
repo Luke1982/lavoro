@@ -24,7 +24,7 @@ class CreateTenantAdmin extends Command
         {--password= : Leeg laten genereert er een}
         {--name=Beheerder}';
 
-    protected $description = 'Maakt een beheerder voor een tenant, of zet zijn wachtwoord opnieuw';
+    protected $description = 'Creates an admin for a tenant, or resets their password';
 
     public function handle(): int
     {
@@ -34,7 +34,7 @@ class CreateTenantAdmin extends Command
             ?? Tenant::on('central')->where('name', $needle)->first();
 
         if (!$tenant) {
-            $this->error("Geen tenant gevonden op '{$needle}'.");
+            $this->error("No tenant found for '{$needle}'.");
 
             return self::FAILURE;
         }
@@ -46,7 +46,7 @@ class CreateTenantAdmin extends Command
         $lookup = UserTenantLookup::on('central')->find($email);
 
         if ($lookup && $lookup->tenant_id !== $tenant->id) {
-            $this->error("{$email} is al in gebruik bij een andere tenant.");
+            $this->error("{$email} is already in use at another tenant.");
 
             return self::FAILURE;
         }
@@ -68,7 +68,7 @@ class CreateTenantAdmin extends Command
             if ($user) {
                 $user->update(['password' => Hash::make($password)]);
                 $user->roles()->syncWithoutDetaching($role->id);
-                $this->info("Wachtwoord van {$email} opnieuw gezet en beheerdersrol bevestigd.");
+                $this->info("Password of {$email} reset and admin role confirmed.");
 
                 return null;
             }
@@ -81,7 +81,7 @@ class CreateTenantAdmin extends Command
                 'seat_type' => 'office',
             ])->roles()->attach($role->id);
 
-            $this->info("Beheerder {$email} aangemaakt voor {$tenant->name}.");
+            $this->info("Admin {$email} created for {$tenant->name}.");
 
             return null;
         });
@@ -92,7 +92,7 @@ class CreateTenantAdmin extends Command
             return self::FAILURE;
         }
 
-        $this->line('  wachtwoord: ' . $password);
+        $this->line('  password: ' . $password);
 
         return self::SUCCESS;
     }

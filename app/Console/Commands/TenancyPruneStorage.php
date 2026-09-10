@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\File;
 class TenancyPruneStorage extends Command
 {
     protected $signature = 'tenancy:prune-storage
-        {folder? : een enkele map, met of zonder tenant- ervoor; laat weg voor alle}
-        {--force : niet vragen om bevestiging}';
+        {folder? : a single folder, with or without tenant- in front; leave out for all}
+        {--force : do not ask for confirmation}';
 
-    protected $description = 'Verwijdert de storage-mappen van klanten die niet meer bestaan';
+    protected $description = 'Removes the storage folders of customers that no longer exist';
 
     public function handle(): int
     {
@@ -36,8 +36,8 @@ class TenancyPruneStorage extends Command
 
             if (!$orphans->contains($folder)) {
                 $this->error(File::isDirectory(storage_path($folder))
-                    ? "{$folder} hoort bij een klant die nog bestaat en wordt niet verwijderd."
-                    : 'Map bestaat niet: ' . storage_path($folder));
+                    ? "{$folder} belongs to a customer that still exists and is not removed."
+                    : 'Folder does not exist: ' . storage_path($folder));
 
                 return self::FAILURE;
             }
@@ -46,7 +46,7 @@ class TenancyPruneStorage extends Command
         }
 
         if ($orphans->isEmpty()) {
-            $this->info('Niets op te ruimen.');
+            $this->info('Nothing to clear.');
 
             return self::SUCCESS;
         }
@@ -54,19 +54,19 @@ class TenancyPruneStorage extends Command
         foreach ($orphans as $orphan) {
             $files = collect(File::allFiles(storage_path($orphan)));
 
-            $this->line(sprintf('%s -- %d bestand(en), %s',
+            $this->line(sprintf('%s -- %d file(s), %s',
                 $orphan, $files->count(), $this->humanSize($files->sum(fn ($file) => $file->getSize()))));
         }
 
-        if (!$this->option('force') && !$this->confirm('Definitief verwijderen?', false)) {
-            $this->line('Niets gedaan.');
+        if (!$this->option('force') && !$this->confirm('Delete permanently?', false)) {
+            $this->line('Nothing done.');
 
             return self::SUCCESS;
         }
 
         foreach ($orphans as $orphan) {
             File::deleteDirectory(storage_path($orphan));
-            $this->info($orphan . ' verwijderd');
+            $this->info($orphan . ' removed');
         }
 
         return self::SUCCESS;

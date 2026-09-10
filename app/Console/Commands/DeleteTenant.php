@@ -11,9 +11,9 @@ class DeleteTenant extends Command
 {
     use RunsAsProvisioner;
 
-    protected $signature = 'tenant:delete {id} {--force : Niet vragen}';
+    protected $signature = 'tenant:delete {id} {--force : Do not ask}';
 
-    protected $description = 'Verwijdert een tenant: database, MySQL-login, bestanden en centrale rijen';
+    protected $description = 'Removes a tenant: database, MySQL login, files and central rows';
 
     public function handle(TenantProvisioner $provisioner): int
     {
@@ -25,25 +25,25 @@ class DeleteTenant extends Command
         $tenant = Tenant::on('central')->find($this->argument('id'));
 
         if (!$tenant) {
-            $this->error('Onbekende tenant.');
+            $this->error('Unknown tenant.');
 
             return self::FAILURE;
         }
 
         $summary = $provisioner->summaryFor($tenant);
 
-        $this->warn("Dit verwijdert {$tenant->name} onherroepelijk:");
-        $this->line('  database:   ' . $summary['database']);
-        $this->line('  gebruikers: ' . $summary['users']);
-        $this->line('  bestanden:  ' . $summary['files']);
+        $this->warn("This removes {$tenant->name} irrevocably:");
+        $this->line('  database: ' . $summary['database']);
+        $this->line('  users:    ' . $summary['users']);
+        $this->line('  files:    ' . $summary['files']);
 
-        if (!$this->option('force') && !$this->confirm('Doorgaan?', false)) {
+        if (!$this->option('force') && !$this->confirm('Continue?', false)) {
             return self::SUCCESS;
         }
 
         $provisioner->destroy($tenant);
 
-        $this->info("{$tenant->name} is verwijderd.");
+        $this->info("{$tenant->name} has been removed.");
 
         return self::SUCCESS;
     }

@@ -117,13 +117,13 @@ final class WorkerHeartbeat
 
             $code = (string) ($reporter['code'] ?? '');
 
-            $lines[] = sprintf('pid %s, aan het werk sinds %s, in %s als %s, code %s%s',
+            $lines[] = sprintf('pid %s, working since %s, in %s as %s, code %s%s',
                 $pid,
                 date('d-m H:i', (int) ($reporter['since'] ?? 0)),
                 (string) ($reporter['path'] ?? '?'),
                 (string) ($reporter['user'] ?? '?'),
-                $code === '' ? 'onbekend' : substr($code, 0, 8),
-                WorkerProcesses::exists((int) $pid) ? '' : ' -- dat proces draait niet meer',
+                $code === '' ? 'unknown' : substr($code, 0, 8),
+                WorkerProcesses::exists((int) $pid) ? '' : ' -- that process is no longer running',
             );
         }
 

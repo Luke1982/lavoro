@@ -17,7 +17,7 @@ class SetupExistingTenant extends Command
 
     protected $signature = 'tenant:setup-existing {name} {database}';
 
-    protected $description = 'Registreert een bestaande, al gemigreerde database als tenant';
+    protected $description = 'Registers an existing, already migrated database as a tenant';
 
     public function handle(TenantDbUserProvisioner $provisioner): int
     {
@@ -27,7 +27,7 @@ class SetupExistingTenant extends Command
         $prefix = config('tenancy.database.prefix');
 
         if (!str_starts_with($database, $prefix)) {
-            $this->error("De database moet met {$prefix} beginnen. Hernoem hem eerst.");
+            $this->error("The database has to start with {$prefix}. Rename it first.");
 
             return self::FAILURE;
         }
@@ -42,7 +42,7 @@ class SetupExistingTenant extends Command
         $conflicts = UserTenantLookup::on('central')->whereIn('email', $emails)->pluck('email');
 
         if ($conflicts->isNotEmpty()) {
-            $this->error('Deze e-mailadressen bestaan al bij een andere tenant:');
+            $this->error('These email addresses already exist at another tenant:');
             $conflicts->each(fn ($e) => $this->line("  {$e}"));
 
             return self::FAILURE;
@@ -77,9 +77,9 @@ class SetupExistingTenant extends Command
             DB::connection('central')->table('user_tenant_lookups')->insert($chunk);
         }
 
-        $this->info("Tenant aangemaakt: {$id}");
+        $this->info("Tenant created: {$id}");
         $this->line('  database: ' . $database);
-        $this->line('  gebruikers: ' . count($emails));
+        $this->line('  users:    ' . count($emails));
 
         return self::SUCCESS;
     }

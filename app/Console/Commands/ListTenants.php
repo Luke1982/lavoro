@@ -15,16 +15,16 @@ use Illuminate\Support\Facades\DB;
  */
 class ListTenants extends Command
 {
-    protected $signature = 'tenants:list {--check : Kijk ook of elke database er echt is}';
+    protected $signature = 'tenants:list {--check : Also check that every database is really there}';
 
-    protected $description = 'Toont alle tenants met naam, database en aantal gebruikers';
+    protected $description = 'Shows every tenant with its name, database and number of users';
 
     public function handle(): int
     {
         $tenants = Tenant::on('central')->orderBy('name')->get();
 
         if ($tenants->isEmpty()) {
-            $this->warn('Nog geen tenants.');
+            $this->warn('No tenants yet.');
 
             return self::SUCCESS;
         }

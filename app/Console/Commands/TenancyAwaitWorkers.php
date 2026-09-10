@@ -17,10 +17,10 @@ use Illuminate\Console\Command;
 class TenancyAwaitWorkers extends Command
 {
     protected $signature = 'tenancy:await-workers
-        {--timeout=60 : hoeveel seconden er hoogstens gewacht wordt}
-        {--queues=default,provisioning : welke wachtrijen}';
+        {--timeout=60 : how many seconds to wait at most}
+        {--queues=default,provisioning : which queues}';
 
-    protected $description = 'Wacht tot elke worker zich meldt met de code die er nu staat';
+    protected $description = 'Waits until every worker reports in with the code that is checked out';
 
     public function handle(): int
     {
@@ -37,12 +37,12 @@ class TenancyAwaitWorkers extends Command
             }
 
             if (time() >= $deadline) {
-                $this->warn('  Nog niet gemeld: ' . implode(', ', $waiting));
+                $this->warn('  Not reporting yet: ' . implode(', ', $waiting));
 
                 $code = WorkerHeartbeat::codeVersion();
 
-                $this->line('  hier staat: ' . base_path() . ', code '
-                    . ($code === '' ? 'onbekend' : substr($code, 0, 8)));
+                $this->line('  here stands: ' . base_path() . ', code '
+                    . ($code === '' ? 'unknown' : substr($code, 0, 8)));
 
                 foreach ($waiting as $queue) {
                     foreach (WorkerHeartbeat::reporterLines($queue) as $line) {
@@ -56,7 +56,7 @@ class TenancyAwaitWorkers extends Command
             sleep(1);
         }
 
-        $this->line('  workers draaien op de nieuwe code');
+        $this->line('  workers run the current code');
 
         return self::SUCCESS;
     }

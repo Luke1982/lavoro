@@ -28,7 +28,7 @@ class TenancyDoctor extends Command
 {
     protected $signature = 'tenancy:doctor';
 
-    protected $description = 'Controleert de tenancy-opstelling en elke tenant afzonderlijk';
+    protected $description = 'Checks the tenancy setup and every tenant separately';
 
     private int $failed = 0;
 
@@ -36,7 +36,7 @@ class TenancyDoctor extends Command
 
     public function handle(): int
     {
-        $this->line('Centraal');
+        $this->line('Central');
 
         /**
          * With the central database down there is nothing to say about the
@@ -74,19 +74,19 @@ class TenancyDoctor extends Command
         $this->newLine();
 
         if (!$central) {
-            $this->error('De centrale database is onbereikbaar, dus alles wat daarvan afhangt is'
-                . ' overgeslagen. Los dat eerst op en draai opnieuw.');
+            $this->error('The central database cannot be reached, so everything depending on it has'
+                . ' been skipped. Solve that first and run again.');
 
             return self::FAILURE;
         }
 
         if ($this->failed === 0) {
-            $this->info("Alles in orde ({$this->passed} controles).");
+            $this->info("All fine ({$this->passed} checks).");
 
             return self::SUCCESS;
         }
 
-        $this->error("{$this->failed} probleem(en), {$this->passed} in orde.");
+        $this->error("{$this->failed} problem(s), {$this->passed} fine.");
 
         return self::FAILURE;
     }
@@ -99,13 +99,13 @@ class TenancyDoctor extends Command
 
     private function bad(string $m): void
     {
-        $this->line("  <fg=red>FOUT</> {$m}");
+        $this->line("  <fg=red>FAIL</> {$m}");
         $this->failed++;
     }
 
     private function skip(string $m): void
     {
-        $this->line("  <fg=yellow>OVER</> {$m}");
+        $this->line("  <fg=yellow>SKIP</> {$m}");
     }
 
     /**
@@ -125,9 +125,9 @@ class TenancyDoctor extends Command
              */
             DB::connection('central')->select('SELECT 1');
 
-            $this->pass("centrale verbinding: {$name}");
+            $this->pass("central connection: {$name}");
         } catch (\Throwable $e) {
-            $this->bad('centrale verbinding: ' . $e->getMessage());
+            $this->bad('central connection: ' . $e->getMessage());
 
             return false;
         }
@@ -143,31 +143,31 @@ class TenancyDoctor extends Command
 
         try {
             DB::connection($template)->select('SELECT 1');
-            $this->pass("verbinding '{$template}' (migraties en provisioning)");
+            $this->pass("connection '{$template}' (migrations and provisioning)");
         } catch (\Throwable $e) {
             $socket = (string) config("database.connections.{$template}.unix_socket");
             $host = (string) config("database.connections.{$template}.host");
 
             $socket === ''
                 ? $this->bad('standaardverbinding: ' . $e->getMessage())
-                : $this->bad("De standaardverbinding loopt over de socket {$socket}. MySQL ziet het"
-                    . " account daardoor als 'localhost' en niet als {$host}, en daar bestaat het"
-                    . ' niet. Haal DB_SOCKET uit .env.');
+                : $this->bad("The default connection runs over the socket {$socket}. MySQL therefore"
+                    . " sees the account as 'localhost' and not as {$host}, and there it does not"
+                    . ' exist. Take DB_SOCKET out of .env.');
         }
 
         foreach (['tenants', 'user_tenant_lookups', 'sessions', 'cache', 'jobs', 'packages', 'modules'] as $table) {
             DB::connection('central')->getSchemaBuilder()->hasTable($table)
-                ? $this->pass("tabel {$table}")
-                : $this->bad("tabel {$table} ontbreekt -- is migrate gedraaid?");
+                ? $this->pass("table {$table}")
+                : $this->bad("table {$table} is missing -- has migrate run?");
         }
 
         config('session.connection') === 'central'
             ? $this->pass('SESSION_CONNECTION=central')
-            : $this->bad('SESSION_CONNECTION is niet central');
+            : $this->bad('SESSION_CONNECTION is not central');
 
         try {
             Cache::put('doctor', 1, 5);
-            Cache::get('doctor') === 1 ? $this->pass('cache leest en schrijft') : $this->bad('cache schrijft niet');
+            Cache::get('doctor') === 1 ? $this->pass('cache reads and writes') : $this->bad('cache does not write');
         } catch (\Throwable $e) {
             $this->bad('cache: ' . $e->getMessage());
         }
@@ -179,8 +179,8 @@ class TenancyDoctor extends Command
          */
         $pending = DB::connection('central')->table('jobs')->min('available_at');
         $pending && $pending < now()->subHour()->timestamp
-            ? $this->bad('oudste wachtende job is meer dan een uur oud -- komt de worker vooruit?')
-            : $this->pass('geen werk dat blijft liggen');
+            ? $this->bad('the oldest waiting job is more than an hour old -- is the worker getting anywhere?')
+            : $this->pass('no work piling up');
 
         $this->checkFailedJobs();
         $this->checkWorkers();
@@ -188,11 +188,11 @@ class TenancyDoctor extends Command
         $beat = Cache::get('scheduler_heartbeat');
 
         if (!$beat) {
-            $this->skip('planner-hartslag nog nooit geschreven (nieuwe installatie, of cron draait niet)');
+            $this->skip('scheduler heartbeat never written (new installation, or cron is not running)');
         } elseif ($beat < now()->subMinutes(15)->timestamp) {
-            $this->bad('planner-hartslag is ouder dan 15 minuten -- cron draait niet');
+            $this->bad('scheduler heartbeat is older than 15 minutes -- cron is not running');
         } else {
-            $this->pass('planner draait');
+            $this->pass('scheduler is running');
         }
 
         return true;
@@ -210,7 +210,7 @@ class TenancyDoctor extends Command
         $table = (string) config('queue.failed.table', 'failed_jobs');
 
         if (!DB::connection('central')->getSchemaBuilder()->hasTable($table)) {
-            $this->skip("tabel {$table} bestaat niet, dus mislukt werk is niet na te gaan");
+            $this->skip("table {$table} does not exist, so failed work cannot be checked");
 
             return;
         }
@@ -219,7 +219,7 @@ class TenancyDoctor extends Command
         $total = $failed->count();
 
         if ($total === 0) {
-            $this->pass('geen mislukte taken');
+            $this->pass('no failed jobs');
 
             return;
         }
@@ -251,7 +251,7 @@ class TenancyDoctor extends Command
 
         $summary = $worst
             ? sprintf(
-                "\n         Meest voorkomend (%dx van de laatste %d): %s\n         %s",
+                "\n         Most frequent (%dx of the last %d): %s\n         %s",
                 $worst->count(),
                 $recent->count(),
                 $worst->first()['job'],
@@ -260,9 +260,9 @@ class TenancyDoctor extends Command
             : '';
 
         $this->bad("{$total} mislukte ta(a)k(en), laatste op {$newest}." . $summary
-            . "\n         Die zijn stil blijven liggen: geen factuur verstuurd, geen synchronisatie"
-            . " gedraaid.\n         Bekijken: php artisan queue:failed"
-            . "\n         Opnieuw:  php artisan queue:retry all");
+            . "\n         Those have quietly been left undone: no invoice sent, no synchronisation"
+            . " run.\n         Inspect: php artisan queue:failed"
+            . "\n         Retry:   php artisan queue:retry all");
     }
 
     /**
@@ -275,14 +275,14 @@ class TenancyDoctor extends Command
     {
         $workers = [
             'default' => 'php artisan queue:work',
-            'provisioning' => 'php artisan queue:work --queue=provisioning (als lavoro_provisioner)',
+            'provisioning' => 'php artisan queue:work --queue=provisioning (as lavoro_provisioner)',
         ];
 
         foreach ($workers as $queue => $command) {
             $beat = WorkerHeartbeat::beatFor($queue);
 
             if ($beat === null) {
-                $this->bad("Wachtrij '{$queue}': geen enkele hartslag. Draait '{$command}'?"
+                $this->bad("Queue '{$queue}': no heartbeat at all. Is '{$command}' running?"
                     . $this->whoIsReporting($queue));
 
                 continue;
@@ -327,10 +327,10 @@ class TenancyDoctor extends Command
             };
 
             $stale === null
-                ? $this->pass("worker voor '{$queue}' draait")
-                : $this->bad("Wachtrij '{$queue}': de worker draait op oudere {$stale} dan wat er nu"
-                    . ' staat. Php houdt bij het opstarten alles vast, dus tot een herstart werkt hij'
-                    . ' met wat er toen was:'
+                ? $this->pass("worker for '{$queue}' is running")
+                : $this->bad("Queue '{$queue}': the worker runs on older {$stale} than what is here"
+                    . ' now. Php holds on to everything at boot, so until a restart it works with'
+                    . ' what was there then:'
                     . "\n         sudo systemctl restart lavoro-worker lavoro-provisioning"
                     . $this->whoIsReporting($queue));
         }
@@ -349,20 +349,20 @@ class TenancyDoctor extends Command
         $running = array_map(WorkerProcesses::describe(...), WorkerProcesses::forQueue($queue));
         $code = WorkerHeartbeat::codeVersion();
 
-        $evidence = "\n         hier staat: " . base_path() . ', code '
+        $evidence = "\n         here stands: " . base_path() . ', code '
             . ($code === '' ? 'onbekend' : substr($code, 0, 8));
 
         if ($lines !== []) {
-            $evidence .= "\n         meldt zich: " . implode("\n                     ", $lines);
+            $evidence .= "\n         reporting:   " . implode("\n                      ", $lines);
         }
 
         if ($running !== []) {
-            $evidence .= "\n         draait nu:  " . implode("\n                     ", $running);
+            $evidence .= "\n         running now: " . implode("\n                      ", $running);
         }
 
         return $evidence . (count($lines) > 1 || count($running) > 1
-            ? "\n         Meer dan één proces op dezelfde wachtrij: alleen de unit herstarten laat"
-                . ' de rest gewoon doorlopen.'
+            ? "\n         More than one process on the same queue: restarting the unit alone leaves"
+                . ' the rest running.'
             : '');
     }
 
@@ -372,10 +372,10 @@ class TenancyDoctor extends Command
 
         try {
             $tenant->tenancy_db_password
-                ? $this->pass('wachtwoord is te ontsleutelen')
-                : $this->bad('geen MySQL-login -- half aangemaakte tenant');
+                ? $this->pass('password can be decrypted')
+                : $this->bad('no MySQL login -- half created tenant');
         } catch (\Throwable $e) {
-            $this->bad('wachtwoord niet te ontsleutelen -- is APP_KEY gewisseld?');
+            $this->bad('password cannot be decrypted -- was APP_KEY changed?');
 
             return;
         }
@@ -394,12 +394,12 @@ class TenancyDoctor extends Command
             tenancy()->initialize($tenant);
             DB::connection('tenant')->getPdo();
 
-            $this->pass("database {$database} is te openen met de eigen login");
+            $this->pass("database {$database} opens with its own login");
         } catch (\Throwable $e) {
             tenancy()->end();
 
             $this->bad($this->tenantConnectionComplaint($database, $tenant, $e));
-            $this->skip('overige controles voor deze tenant');
+            $this->skip('remaining checks for this tenant');
 
             return;
         }
@@ -411,8 +411,8 @@ class TenancyDoctor extends Command
                 ->reject(fn ($flag) => DB::table('service_order_stages')->where($flag, true)->exists());
 
             $missing->isEmpty()
-                ? $this->pass('een fase voor elke vlag')
-                : $this->bad('geen fase voor: ' . $missing->implode(', '));
+                ? $this->pass('a stage for every flag')
+                : $this->bad('no stage for: ' . $missing->implode(', '));
 
             /**
              * The roles come from the seeding, and that can fail silently --
@@ -425,9 +425,9 @@ class TenancyDoctor extends Command
             $absent = array_diff($expected, Role::pluck('name')->all());
 
             $absent === []
-                ? $this->pass(count($expected) . ' rollen aanwezig')
-                : $this->bad('rollen ontbreken: ' . implode(', ', $absent)
-                    . '. Het zaaien is niet gelukt; herstellen met:' . "\n"
+                ? $this->pass(count($expected) . ' roles present')
+                : $this->bad('roles missing: ' . implode(', ', $absent)
+                    . '. The seeding did not work; repair with:' . "\n"
                     . "         php artisan tenants:seed --tenants={$tenant->id}");
 
             $users = User::withTrashed()->pluck('email');
@@ -437,8 +437,8 @@ class TenancyDoctor extends Command
             $orphan = $users->diff($known);
 
             $orphan->isEmpty()
-                ? $this->pass("{$users->count()} gebruikers in de centrale lijst")
-                : $this->bad($orphan->count() . ' gebruiker(s) zonder centrale rij -- die kunnen niet inloggen');
+                ? $this->pass("{$users->count()} users in the central list")
+                : $this->bad($orphan->count() . ' user(s) without a central row -- they cannot log in');
 
             /**
              * Write access is checked for the account the web server runs as,
@@ -452,7 +452,7 @@ class TenancyDoctor extends Command
                 $path = storage_path("tenant-{$tenant->id}/{$disk}");
 
                 if (!File::isDirectory($path)) {
-                    $this->bad("opslag {$disk} ontbreekt");
+                    $this->bad("storage {$disk} is missing");
 
                     continue;
                 }
@@ -462,9 +462,9 @@ class TenancyDoctor extends Command
                     : $this->userCanWrite($account, $path);
 
                 $writable
-                    ? $this->pass("opslag {$disk}")
-                    : $this->bad("opslag {$disk} is niet beschrijfbaar voor "
-                        . ($account ?? 'dit account') . ', dus uploads mislukken. Herstellen met:'
+                    ? $this->pass("storage {$disk}")
+                    : $this->bad("storage {$disk} is not writable for "
+                        . ($account ?? 'this account') . ', so uploads fail. Repair with:'
                         . "\n         sudo setfacl -R -m u:{$account}:rwX " . storage_path());
             }
 
@@ -493,18 +493,18 @@ class TenancyDoctor extends Command
         $exists = $this->tenantDatabaseExists($database);
 
         if ($exists === false) {
-            return "database {$database} bestaat niet, terwijl de klant wel in de registratie staat."
-                . ' Opruimen of opnieuw aanmaken.';
+            return "database {$database} does not exist, while the customer is in the registry."
+                . ' Clean it up or create it again.';
         }
 
         if ($exists === true) {
-            return "database {$database} bestaat, maar de login van deze klant ({$login}) komt er niet"
-                . ' in. Het MySQL-account is weg of heeft zijn rechten verloren; opnieuw toekennen met'
+            return "database {$database} exists, but this customer's login ({$login}) does not get"
+                . ' in. The MySQL account is gone or lost its rights; grant them again with'
                 . " lavoro_admin.grant_tenant_access('{$database}', '{$login}').";
         }
 
-        return "database {$database} gaat niet open met de login van deze klant ({$login}), en of hij"
-            . ' bestaat is hiervandaan niet na te gaan: ' . $e->getMessage();
+        return "database {$database} does not open with this customer's login ({$login}), and whether"
+            . ' it exists cannot be established from here: ' . $e->getMessage();
     }
 
     /**
@@ -534,13 +534,13 @@ class TenancyDoctor extends Command
      */
     private function checkEnvironment(): void
     {
-        $this->line('Omgeving');
+        $this->line('Environment');
 
         foreach (['pcntl', 'posix', 'pdo_mysql'] as $extension) {
             extension_loaded($extension)
                 ? $this->pass("PHP-onderdeel {$extension}")
-                : $this->bad("PHP-onderdeel {$extension} ontbreekt -- het provisioner-commando kan"
-                    . ' zichzelf dan niet verheffen en moet met sudo -u getypt worden');
+                : $this->bad("PHP extension {$extension} is missing -- the provisioner command"
+                    . ' cannot elevate itself then and has to be typed with sudo -u');
         }
 
         /**
@@ -555,29 +555,29 @@ class TenancyDoctor extends Command
         ));
 
         empty($blocked)
-            ? $this->pass('php mag programma\'s starten')
-            : $this->bad('In php.ini staat ' . implode(' en ', $blocked) . ' uit. Zonder die functies'
-                . ' verheffen commando\'s zichzelf niet, en kan hierboven niet nagekeken worden of dat'
-                . ' wel zou lukken -- die meldingen zeggen dan niets.');
+            ? $this->pass('php may start programs')
+            : $this->bad('php.ini has ' . implode(' and ', $blocked) . ' switched off. Without those'
+                . ' functions commands do not elevate themselves, and whether they could cannot be'
+                . ' checked above -- so those findings say nothing.');
 
         filled(config('app.key'))
             ? $this->pass('APP_KEY staat ingevuld')
-            : $this->bad('APP_KEY is leeg -- geen enkel wachtwoord van een klantdatabase is te lezen');
+            : $this->bad('APP_KEY is empty -- no customer database password can be read at all');
 
         if (app()->environment('production')) {
             config('app.debug')
-                ? $this->bad('APP_DEBUG staat aan op productie -- foutpagina\'s tonen dan .env-waarden')
+                ? $this->bad('APP_DEBUG is on in production -- error pages then show .env values')
                 : $this->pass('APP_DEBUG staat uit');
         }
 
         config('mail.default') === 'tenant'
-            ? $this->pass('MAIL_MAILER=tenant -- elke klant verstuurt met zijn eigen instellingen')
-            : $this->bad('MAIL_MAILER is ' . config('mail.default') . ' en niet "tenant". Iedereen'
+            ? $this->pass('MAIL_MAILER=tenant -- every customer sends with its own settings')
+            : $this->bad('MAIL_MAILER is ' . config('mail.default') . ' and not "tenant". Everyone'
                 . ' verstuurt dan via dezelfde mailbox.');
 
         filled(config('mail.mailers.landlord.host'))
-            ? $this->pass('eigen mailserver voor facturen ingesteld')
-            : $this->bad('LANDLORD_MAIL_HOST is leeg -- facturen aan klanten kunnen niet verstuurd worden');
+            ? $this->pass('own mail server for invoices configured')
+            : $this->bad('LANDLORD_MAIL_HOST is empty -- invoices to customers cannot be sent');
 
         $this->checkVersions();
         $this->checkDrivers();
@@ -596,16 +596,16 @@ class TenancyDoctor extends Command
     private function checkBuiltAssets(): void
     {
         file_exists(public_path('build/manifest.json'))
-            ? $this->pass('gebouwde assets aanwezig')
-            : $this->bad('public/build/manifest.json ontbreekt -- de build is hier nooit gedraaid.'
-                . ' Elke pagina geeft dan een Vite-fout. Draai npm ci && npm run build.');
+            ? $this->pass('built assets present')
+            : $this->bad('public/build/manifest.json is missing -- the build never ran here.'
+                . ' Every page then gives a Vite error. Run npm ci && npm run build.');
 
         $worker_path = public_path('service-worker.js');
 
         if (!file_exists($worker_path)) {
-            $this->bad('public/service-worker.js ontbreekt -- git houdt dat bestand niet meer vast,'
-                . ' de build maakt het. Zonder dat bestand cachet de browser niets meer.'
-                . ' Draai npm run build.');
+            $this->bad('public/service-worker.js is missing -- git no longer holds that file,'
+                . ' the build makes it. Without it the browser caches nothing any more.'
+                . ' Run npm run build.');
 
             return;
         }
@@ -619,10 +619,10 @@ class TenancyDoctor extends Command
         }
 
         str_contains(File::get($worker_path), "lavoro-cache-{$revision}")
-            ? $this->pass('service worker hoort bij de uitgerolde code')
-            : $this->bad('public/service-worker.js komt van een oudere build dan de code die hier'
-                . ' staat. Browsers blijven dan oude bestanden uit hun cache serveren.'
-                . ' Draai npm run build.');
+            ? $this->pass('service worker belongs to the deployed code')
+            : $this->bad('public/service-worker.js comes from an older build than the code that is'
+                . ' here. Browsers then keep serving old files from their cache.'
+                . ' Run npm run build.');
     }
 
     /**
@@ -686,9 +686,9 @@ class TenancyDoctor extends Command
 
         if (!file_exists($cache)) {
             app()->environment('production')
-                ? $this->bad('De configuratie is niet gecachet. Op een server hoort'
-                    . ' php artisan config:cache te draaien; zonder dat leest elk verzoek .env opnieuw.')
-                : $this->pass('configuratie niet gecachet (leest .env rechtstreeks)');
+                ? $this->bad('The configuration is not cached. On a server'
+                    . ' php artisan config:cache should run; without it every request reads .env again.')
+                : $this->pass('configuration not cached (reads .env directly)');
 
             return;
         }
@@ -696,14 +696,14 @@ class TenancyDoctor extends Command
         $env = base_path('.env');
 
         if (file_exists($env) && filemtime($env) > filemtime($cache)) {
-            $this->bad('.env is aangepast na de laatste config:cache ('
-                . date('d-m-Y H:i', filemtime($cache)) . '), dus de app draait nog op de oude'
-                . " waarden.\n         Bijwerken met: php artisan config:cache");
+            $this->bad('.env was changed after the last config:cache ('
+                . date('d-m-Y H:i', filemtime($cache)) . '), so the app still runs on the old'
+                . " values.\n         Update with: php artisan config:cache");
 
             return;
         }
 
-        $this->pass('gecachete configuratie is van na de laatste wijziging in .env');
+        $this->pass('cached configuration is newer than the last change in .env');
     }
 
     /**
@@ -726,9 +726,9 @@ class TenancyDoctor extends Command
         $stateful = collect(config('sanctum.stateful', []))->map(fn ($domain) => trim($domain));
 
         if (blank($host)) {
-            $this->bad('APP_URL is leeg of onleesbaar. Sanctum leidt daaruit af welke voorkant'
-                . ' bij deze installatie hoort; zonder die waarde blijft elk verzoek naar /api'
-                . ' onaangemeld en werkt de planner niet.');
+            $this->bad('APP_URL is empty or unreadable. Sanctum derives from it which front end'
+                . ' belongs to this installation; without that value every request to /api stays'
+                . ' unauthenticated and the planner does not work.');
 
             return;
         }
@@ -740,20 +740,20 @@ class TenancyDoctor extends Command
          * request as its own front end and there is no session. So it is
          * spelled out here, to be checked by eye.
          */
-        $this->line("       APP_URL is {$url}; verzoeken van /api moeten van precies dat adres komen.");
+        $this->line("       APP_URL is {$url}; requests to /api have to come from exactly that address.");
 
         if (app()->environment('production') && in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
-            $this->bad("APP_URL wijst naar {$host}, en dat is op een server nooit het adres waarop"
-                . ' klanten binnenkomen. Verzoeken van het echte domein gelden dan niet als eigen'
-                . ' voorkant, en alles wat over /api gaat -- de planner voorop -- krijgt'
-                . " 'Unauthenticated' terug terwijl de gewone schermen het wel doen.");
+            $this->bad("APP_URL points at {$host}, and on a server that is never the address"
+                . ' customers arrive on. Requests from the real domain then do not count as its own'
+                . ' front end, and everything going over /api -- the planner first of all -- gets'
+                . " 'Unauthenticated' back while the ordinary screens work fine.");
         } elseif ($stateful->contains($served)) {
-            $this->pass("{$served} telt als eigen voorkant");
+            $this->pass("{$served} counts as its own front end");
         } else {
-            $this->bad("De app draait volgens APP_URL op {$served}, maar dat staat niet in"
+            $this->bad("According to APP_URL the app runs on {$served}, but that is not in"
                 . ' SANCTUM_STATEFUL_DOMAINS (' . $stateful->implode(', ') . ").\n"
-                . "         Alles wat over /api gaat krijgt dan 'Unauthenticated' terug. Zet dat"
-                . ' adres erbij en draai daarna php artisan config:cache.');
+                . "         Everything going over /api then gets 'Unauthenticated' back. Add that"
+                . ' address and run php artisan config:cache afterwards.');
         }
 
         /**
@@ -763,29 +763,29 @@ class TenancyDoctor extends Command
          * breaking -- except every /api request.
          */
         config('sanctum.middleware.authenticate_session') === TenancyForStatefulApi::class
-            ? $this->pass('api-verzoeken krijgen hun klant mee')
-            : $this->bad('sanctum.middleware.authenticate_session hoort '
-                . TenancyForStatefulApi::class . ' te zijn, maar is '
+            ? $this->pass('api requests carry their customer')
+            : $this->bad('sanctum.middleware.authenticate_session should be '
+                . TenancyForStatefulApi::class . ', but is '
                 . var_export(config('sanctum.middleware.authenticate_session'), true)
-                . '. Zonder dat haakje zoekt /api de gebruiker in de verkeerde database.');
+                . '. Without that hook /api looks for the user in the wrong database.');
 
         collect(app(Router::class)->getMiddlewareGroups()['api'] ?? [])
             ->contains(EnsureFrontendRequestsAreStateful::class)
-            ? $this->pass('api-verzoeken mogen de sessie gebruiken')
-            : $this->bad('De api-groep mist ' . class_basename(EnsureFrontendRequestsAreStateful::class)
-                . ' (statefulApi() in bootstrap/app.php). Zonder die middleware is er op /api geen'
-                . ' sessie en dus geen ingelogde gebruiker.');
+            ? $this->pass('api requests may use the session')
+            : $this->bad('The api group is missing ' . class_basename(EnsureFrontendRequestsAreStateful::class)
+                . ' (statefulApi() in bootstrap/app.php). Without that middleware there is no session'
+                . ' on /api and therefore no logged in user.');
     }
 
     private function checkDrivers(): void
     {
         $expected = [
-            'queue.default' => ['database', 'De wachtrij staat op %s. Provisioning draait dan in het'
-                . ' webverzoek als het verkeerde account in plaats van in de eigen worker.'],
-            'session.driver' => ['database', 'De sessie staat op %s en hoort op database te staan;'
-                . ' anders staat hij niet centraal.'],
-            'cache.default' => ['database', 'De cache staat op %s en hoort op database te staan;'
-                . ' de scheiding per klant hangt aan de centrale cache.'],
+            'queue.default' => ['database', 'The queue is on %s. Provisioning then runs inside the'
+                . ' web request as the wrong account instead of in its own worker.'],
+            'session.driver' => ['database', 'The session is on %s and should be on database;'
+                . ' otherwise it is not central.'],
+            'cache.default' => ['database', 'The cache is on %s and should be on database;'
+                . ' the separation per customer hangs on the central cache.'],
         ];
 
         foreach ($expected as $key => [$want, $complaint]) {
@@ -810,15 +810,15 @@ class TenancyDoctor extends Command
         $directory = config('dompdf.options.font_dir', storage_path('fonts'));
 
         if (!is_dir($directory)) {
-            $this->bad("De map {$directory} bestaat niet; facturen renderen dan niet."
-                . ' Maak hem aan en geef de webserver schrijfrecht.');
+            $this->bad("The directory {$directory} does not exist; invoices then do not render."
+                . ' Create it and give the web server write access.');
 
             return;
         }
 
         is_writable($directory)
-            ? $this->pass('lettertypemap voor facturen')
-            : $this->bad("De map {$directory} is niet beschrijfbaar; facturen renderen dan niet.");
+            ? $this->pass('font directory for invoices')
+            : $this->bad("The directory {$directory} is not writable; invoices then do not render.");
     }
 
     /**
@@ -832,7 +832,7 @@ class TenancyDoctor extends Command
         $total = @disk_total_space(storage_path());
 
         if ($free === false || $total === false || $total <= 0) {
-            $this->skip('vrije schijfruimte niet op te vragen');
+            $this->skip('free disk space cannot be read');
 
             return;
         }
@@ -841,10 +841,10 @@ class TenancyDoctor extends Command
         $percentage = round($free / $total * 100);
 
         match (true) {
-            $percentage < 5 => $this->bad("nog {$gigabytes} GB vrij ({$percentage}%). Bij een volle"
-                . ' schijf mislukken uploads en schrijft de database niet meer.'),
-            $percentage < 15 => $this->skip("nog {$gigabytes} GB vrij ({$percentage}%) -- houd het in de gaten"),
-            default => $this->pass("schijfruimte: {$gigabytes} GB vrij ({$percentage}%)"),
+            $percentage < 5 => $this->bad("{$gigabytes} GB free ({$percentage}%) left. With a full"
+                . ' disk uploads fail and the database stops writing.'),
+            $percentage < 15 => $this->skip("{$gigabytes} GB free ({$percentage}%) left -- keep an eye on it"),
+            default => $this->pass("disk space: {$gigabytes} GB free ({$percentage}%)"),
         };
     }
 
@@ -860,7 +860,7 @@ class TenancyDoctor extends Command
         $megabytes = (int) round($size / (1024 ** 2));
 
         if ($megabytes < 100) {
-            $this->pass('logboek heeft een werkbare omvang' . ($megabytes > 0 ? " ({$megabytes} MB)" : ''));
+            $this->pass('log file is a workable size' . ($megabytes > 0 ? " ({$megabytes} MB)" : ''));
 
             return;
         }
@@ -869,11 +869,10 @@ class TenancyDoctor extends Command
             || in_array('daily', (array) config('logging.channels.stack.channels', []), true);
 
         $daily
-            ? $this->skip("Het logboek is {$megabytes} MB. Er wordt wel geroteerd; de oude bestanden"
-                . ' mogen weg.')
-            : $this->bad("Het logboek is {$megabytes} MB en groeit door: LOG_CHANNEL rouleert niet."
-                . " Zet LOG_STACK=daily in .env en herstart php.\n"
-                . "         Nu opruimen: truncate -s 0 {$log}");
+            ? $this->skip("The log file is {$megabytes} MB. It does rotate; the old files may go.")
+            : $this->bad("The log file is {$megabytes} MB and keeps growing: LOG_CHANNEL does not"
+                . " rotate. Set LOG_STACK=daily in .env and restart php.\n"
+                . "         Clear it now: truncate -s 0 {$log}");
     }
 
     /**
@@ -891,9 +890,9 @@ class TenancyDoctor extends Command
             ->reject(fn ($key) => filled($issuer[$key] ?? null));
 
         $missing->isEmpty()
-            ? $this->pass('eigen bedrijfsgegevens voor op de factuur')
-            : $this->bad('facturatiegegevens ontbreken: ' . $missing->implode(', ')
-                . ' -- vul ze in bij Catalogus > Facturatie');
+            ? $this->pass('own company details for the invoice')
+            : $this->bad('invoicing details missing: ' . $missing->implode(', ')
+                . ' -- fill them in under Catalogus > Facturatie');
     }
 
     /**
@@ -918,7 +917,7 @@ class TenancyDoctor extends Command
      */
     private function checkPrivileges(): void
     {
-        $this->line('Rechten');
+        $this->line('Permissions');
 
         $advice = 'Draai: sudo scripts/tenancy/verify-mysql.sh (gebeurt ook bij elke deploy).';
         $file = storage_path('app/tenancy-privileges.json');
@@ -928,8 +927,8 @@ class TenancyDoctor extends Command
             : null;
 
         if (!is_array($outcome) || !isset($outcome['checked_at'])) {
-            $this->skip('De rechten van de databaseaccounts zijn hier nog nooit nagekeken.'
-                . ' Dat is wat de scheiding tussen de accounts bewijst. ' . $advice);
+            $this->skip('The rights of the database accounts have never been checked here.'
+                . ' That is what proves the separation between the accounts. ' . $advice);
 
             return;
         }
@@ -938,21 +937,21 @@ class TenancyDoctor extends Command
         $moment = $when->diffForHumans();
 
         if (($outcome['failed'] ?? 0) > 0) {
-            $this->bad("Bij de laatste controle ({$moment}) waren er {$outcome['failed']} probleem(en)"
-                . ' met de rechten van de databaseaccounts. ' . $advice);
+            $this->bad("At the last check ({$moment}) there were {$outcome['failed']} problem(s)"
+                . ' with the rights of the database accounts. ' . $advice);
 
             return;
         }
 
         if (($outcome['skipped'] ?? 0) > 0) {
-            $this->skip("De laatste controle ({$moment}) kon {$outcome['skipped']} punt(en) niet nakijken"
-                . ' en bewijst dus niets. ' . $advice);
+            $this->skip("The last check ({$moment}) could not verify {$outcome['skipped']} point(s)"
+                . ' and therefore proves nothing. ' . $advice);
 
             return;
         }
 
         if ($when->isBefore(now()->subDays(self::PRIVILEGES_STALE_AFTER_DAYS))) {
-            $this->skip("De rechten zijn voor het laatst nagekeken {$moment}. " . $advice);
+            $this->skip("The rights were last checked {$moment}. " . $advice);
 
             return;
         }
@@ -965,8 +964,8 @@ class TenancyDoctor extends Command
          */
         $pending = (int) ($outcome['not_applicable'] ?? 0);
 
-        $this->pass("rechten van de databaseaccounts nagekeken ({$moment})"
-            . ($pending > 0 ? ", op {$pending} punt(en) na die toen nog niet bestonden" : ''));
+        $this->pass("rights of the database accounts checked ({$moment})"
+            . ($pending > 0 ? ", except {$pending} point(s) that did not exist then" : ''));
     }
 
     /**
@@ -998,14 +997,14 @@ class TenancyDoctor extends Command
         $stuck = $requests->filter(fn ($request) => $request->created_at?->lt(now()->subMinutes(15)));
 
         if ($stuck->isNotEmpty()) {
-            $this->bad($stuck->count() . ' aanvraag(en) staan langer dan een kwartier stil. Draait'
-                . ' "php artisan queue:work --queue=provisioning" als lavoro_provisioner?');
+            $this->bad($stuck->count() . ' request(s) have been stuck for over fifteen minutes. Is'
+                . ' "php artisan queue:work --queue=provisioning" running as lavoro_provisioner?');
 
             return;
         }
 
         if ($requests->isNotEmpty()) {
-            $this->pass($requests->count() . ' aanvraag(en) onderweg.');
+            $this->pass($requests->count() . ' request(s) on their way.');
 
             return;
         }
@@ -1016,9 +1015,9 @@ class TenancyDoctor extends Command
          * not fine.
          */
         TenantProvisioningRequest::on('central')->where('status', 'done')->exists()
-            ? $this->pass('Geen aanvragen in de wacht; de worker heeft eerder werk afgerond.')
-            : $this->skip('Geen aanvragen in de wacht, en er is er nog nooit een afgerond -- of de'
-                . ' worker draait is hiermee niet vast te stellen.');
+            ? $this->pass('No requests waiting; the worker has finished work before.')
+            : $this->skip('No requests waiting, and none has ever been finished -- whether the worker'
+                . ' runs cannot be established from this.');
     }
 
     /**
@@ -1032,19 +1031,19 @@ class TenancyDoctor extends Command
             ->where('status', 'failed')->orderByDesc('id')->get();
 
         if ($failed->isEmpty()) {
-            $this->pass('Geen mislukte aanvragen.');
+            $this->pass('No failed requests.');
 
             return;
         }
 
-        $this->bad($failed->count() . ' mislukte aanvraag(en):');
+        $this->bad($failed->count() . ' failed request(s):');
 
         foreach ($failed as $request) {
             $this->line("         {$request->action} '{$request->name}': "
                 . Str::limit((string) $request->error, 300));
         }
 
-        $this->line('       Opgelost? Haal ze weg in het beheerpaneel en probeer het opnieuw.');
+        $this->line('       Solved? Remove them in the admin panel and try again.');
     }
 
     /**
@@ -1069,10 +1068,10 @@ class TenancyDoctor extends Command
         }
 
         if ($reachable) {
-            $this->pass("MySQL-account {$who} bestaat en werkt");
+            $this->pass("MySQL account {$who} exists and works");
         } elseif ($password !== '') {
-            $this->bad("MySQL-account {$username} logt niet in met het wachtwoord uit de .env."
-                . ' Bestaat het account wel, en klopt DB_PROVISIONER_PASSWORD?');
+            $this->bad("MySQL account {$username} does not log in with the password from .env."
+                . ' Does the account exist, and is DB_PROVISIONER_PASSWORD right?');
         } else {
             /**
              * Not being able to log in proves nothing. An account that hangs on
@@ -1083,8 +1082,8 @@ class TenancyDoctor extends Command
         }
 
         if ($password !== '') {
-            $this->bad("Het wachtwoord van {$username} staat in de .env. Wie dat bestand kan lezen --"
-                . ' de webserver ook -- kan daarmee de database van elke klant weggooien.');
+            $this->bad("The password of {$username} is in .env. Whoever can read that file -- the"
+                . ' web server too -- can drop every customer database with it.');
         }
 
         $this->checkGrantProcedure($username);
@@ -1109,16 +1108,16 @@ class TenancyDoctor extends Command
     private function checkElevation(string $username): void
     {
         if (ProvisionerConnection::linuxUser() === $username) {
-            $this->pass("draait al als {$username}; verheffen is niet nodig");
+            $this->pass("already running as {$username}; elevating is not needed");
 
             return;
         }
 
         ProvisionerConnection::canElevate()
-            ? $this->pass("kan zonder wachtwoord {$username} worden; commando's verheffen zichzelf")
-            : $this->skip("Kan niet zonder wachtwoord {$username} worden. Tenant-commando's moeten dan"
-                . " met 'sudo -u {$username} php artisan ...' getypt worden. Wil je dat niet, draai"
-                . ' dan: sudo scripts/tenancy/setup-sudoers.sh');
+            ? $this->pass("can become {$username} without a password; commands elevate themselves")
+            : $this->skip("Cannot become {$username} without a password. Tenant commands then have to"
+                . " be typed with 'sudo -u {$username} php artisan ...'. If you would rather not, run:"
+                . ' sudo scripts/tenancy/setup-sudoers.sh');
     }
 
     /**
@@ -1146,8 +1145,8 @@ class TenancyDoctor extends Command
         $account = $this->webAccount();
 
         if ($account === null) {
-            $this->skip('Als wie de webserver draait is nog niet te zien: er zijn geen gecompileerde'
-                . ' sjablonen. Open een pagina en draai dit opnieuw.');
+            $this->skip('Which account the web server runs as cannot be seen yet: there are no'
+                . ' compiled templates. Open a page and run this again.');
 
             return;
         }
@@ -1155,20 +1154,20 @@ class TenancyDoctor extends Command
         $log = storage_path('logs/laravel.log');
 
         if (!file_exists($log)) {
-            $this->skip('Niet na te gaan als wie de webserver draait.');
+            $this->skip('Cannot establish which account the web server runs as.');
 
             return;
         }
 
         if ($this->userCanWrite($account, $log)) {
-            $this->pass("webserver draait als {$account} en kan zijn fouten opschrijven");
+            $this->pass("web server runs as {$account} and can write its errors down");
 
             return;
         }
 
-        $this->bad("De webserver draait als {$account}, maar dat account kan niet schrijven in"
-            . " {$log} (dat is van " . ($this->ownerOf($log) ?? '?') . ').'
-            . ' Elke fout uit een webverzoek verdwijnt dan zonder spoor. Herstellen met:' . "\n"
+        $this->bad("The web server runs as {$account}, but that account cannot write in"
+            . " {$log} (which belongs to " . ($this->ownerOf($log) ?? '?') . ').'
+            . ' Every error from a web request then disappears without a trace. Repair with:' . "\n"
             . "         sudo setfacl -R -m u:{$account}:rwX storage bootstrap/cache\n"
             . "         sudo setfacl -R -d -m u:{$account}:rwX storage bootstrap/cache");
     }
@@ -1268,8 +1267,8 @@ class TenancyDoctor extends Command
     private function checkProvisionerCanWriteStorage(string $username): void
     {
         if (!ProvisionerConnection::canElevate()) {
-            $this->skip("Of {$username} in storage/ mag schrijven is hiervandaan niet te zien."
-                . ' Zonder dat recht mislukt de eerste upload van een nieuwe klant.');
+            $this->skip("Whether {$username} may write in storage/ cannot be seen from here."
+                . ' Without that right the first upload of a new customer fails.');
 
             return;
         }
@@ -1290,14 +1289,14 @@ class TenancyDoctor extends Command
         );
 
         if ($status === 0) {
-            $this->pass("{$username} mag schrijven in storage/");
+            $this->pass("{$username} may write in storage/");
 
             return;
         }
 
         if ($status === 2) {
-            $this->bad("{$username} komt niet eens bij {$path}; een map erboven laat hem er niet"
-                . ' door. Geef hem alleen doorgang, niet meer dan dat:' . "\n"
+            $this->bad("{$username} does not even reach {$path}; a directory above it does not let"
+                . ' them through. Give them passage only, no more than that:' . "\n"
                 . collect($this->unreachableAncestors($path))
                     ->map(fn (string $directory) => "         sudo setfacl -m u:{$username}:x {$directory}")
                     ->implode("\n") . $this->setfaclHint());
@@ -1305,8 +1304,8 @@ class TenancyDoctor extends Command
             return;
         }
 
-        $this->bad("{$username} mag niet schrijven in {$path}; de mappen van een nieuwe klant"
-            . " kunnen dan niet aangemaakt worden. Geef schrijfrecht met:\n"
+        $this->bad("{$username} may not write in {$path}; the folders of a new customer cannot be"
+            . " created then. Grant write access with:\n"
             . "         sudo setfacl -R -m u:{$username}:rwX {$path}\n"
             . "         sudo setfacl -R -d -m u:{$username}:rwX {$path}" . $this->setfaclHint());
     }
@@ -1320,7 +1319,7 @@ class TenancyDoctor extends Command
     {
         $found = trim((string) shell_exec('command -v setfacl 2>/dev/null'));
 
-        return $found === '' ? "\n" . '         (setfacl zit in het pakket acl: apt install acl)' : '';
+        return $found === '' ? "\n" . '         (setfacl lives in the acl package: apt install acl)' : '';
     }
 
     /**
@@ -1358,8 +1357,8 @@ class TenancyDoctor extends Command
     private function checkProvisionerAccountByElevating(string $username): void
     {
         if (!ProvisionerConnection::canElevate()) {
-            $this->skip("Of het MySQL-account {$username} bestaat is hiervandaan niet te zien."
-                . " Draai 'sudo -u {$username} php artisan tenancy:doctor' om het te controleren.");
+            $this->skip("Whether the MySQL account {$username} exists cannot be seen from here."
+                . " Run 'sudo -u {$username} php artisan tenancy:doctor' to check it.");
 
             return;
         }
@@ -1368,8 +1367,8 @@ class TenancyDoctor extends Command
         $database = (string) config('database.connections.provisioner.database');
 
         if ($socket === '') {
-            $this->bad("DB_PROVISIONER_SOCKET staat leeg, dus {$username} zou over TCP verbinden,"
-                . ' en dit account komt alleen via de socket binnen. Zet in .env:' . "\n"
+            $this->bad("DB_PROVISIONER_SOCKET is empty, so {$username} would connect over TCP,"
+                . ' and this account only comes in through the socket. Put in .env:' . "\n"
                 . '         DB_PROVISIONER_SOCKET=' . $this->serverSocket());
 
             return;
@@ -1380,10 +1379,10 @@ class TenancyDoctor extends Command
         );
 
         $status === 0
-            ? $this->pass("MySQL-account {$username} bestaat en komt via de socket binnen")
-            : $this->bad("MySQL-account {$username} komt niet binnen via {$socket}. Bestaat het account,"
-                . ' en hangt het aan de Linux-gebruiker met dezelfde naam?'
-                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh');
+            ? $this->pass("MySQL account {$username} exists and comes in through the socket")
+            : $this->bad("MySQL account {$username} does not come in through {$socket}. Does the"
+                . ' account exist, and does it hang on the Linux user of the same name?'
+                . ' Repair: sudo scripts/tenancy/setup-mysql.sh');
     }
 
     /** Php opening a connection as the provisioner; leaves $pdo behind. */
@@ -1410,8 +1409,8 @@ class TenancyDoctor extends Command
         [$schema, $name] = array_pad(explode('.', $procedure, 2), 2, '');
 
         if ($schema === '' || $name === '') {
-            $this->bad("tenancy.database.grant_procedure hoort 'database.procedure' te zijn,"
-                . " niet '{$procedure}'.");
+            $this->bad("tenancy.database.grant_procedure should be 'database.procedure',"
+                . " not '{$procedure}'.");
 
             return;
         }
@@ -1438,20 +1437,20 @@ class TenancyDoctor extends Command
                 . ' exit(2); } catch (Throwable $e) { exit((string) $e->getCode() === "45000" ? 0 : 3); }'
             );
         } else {
-            $this->skip("Of {$procedure} bestaat en nog steeds weigert wat hij hoort te weigeren is"
-                . ' hiervandaan niet te zien.');
+            $this->skip("Whether {$procedure} exists and still refuses what it should refuse cannot"
+                . ' be seen from here.');
 
             return;
         }
 
         match ($status) {
-            0 => $this->pass("{$procedure} bestaat en weigert alles buiten de klantnaamruimte"),
-            2 => $this->bad("{$procedure} deelde rechten uit op {$forbidden}. Hij hoort alles buiten"
-                . ' de klantnaamruimte te weigeren; zo kan de provisioner overal rechten op geven.'
-                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh'),
-            default => $this->bad("{$procedure} is niet aan te roepen. Zonder die procedure komt een"
-                . ' nieuwe klant tot en met de database en strandt het daarna.'
-                . ' Herstellen: sudo scripts/tenancy/setup-mysql.sh'),
+            0 => $this->pass("{$procedure} exists and refuses everything outside the customer namespace"),
+            2 => $this->bad("{$procedure} handed out rights on {$forbidden}. It should refuse"
+                . ' everything outside the customer namespace; as it is, the provisioner can grant'
+                . ' rights on anything. Repair: sudo scripts/tenancy/setup-mysql.sh'),
+            default => $this->bad("{$procedure} cannot be called. Without that procedure a new customer"
+                . ' gets as far as the database and strands after that.'
+                . ' Repair: sudo scripts/tenancy/setup-mysql.sh'),
         };
     }
 
@@ -1473,36 +1472,36 @@ class TenancyDoctor extends Command
     private function checkProvisionerLinuxUser(string $username, string $password): void
     {
         if (!function_exists('posix_getpwnam')) {
-            $this->skip("Kan niet nakijken of de Linux-gebruiker {$username} bestaat (posix ontbreekt).");
+            $this->skip("Cannot check whether the Linux user {$username} exists (posix is missing).");
 
             return;
         }
 
         if (posix_getpwnam($username) !== false) {
-            $this->pass("Linux-gebruiker {$username} bestaat");
+            $this->pass("Linux user {$username} exists");
 
             return;
         }
 
         $password === ''
-            ? $this->bad("Linux-gebruiker {$username} bestaat niet, terwijl er geen wachtwoord is ingesteld."
-                . ' Zo kan niemand inloggen en kan er geen klant aangemaakt worden.')
-            : $this->bad("Linux-gebruiker {$username} bestaat niet. Maak hem aan en koppel het"
-                . ' MySQL-account eraan, dan kan het wachtwoord uit de .env weg. Dat doet:'
+            ? $this->bad("Linux user {$username} does not exist, while no password is set. Nobody"
+                . ' can log in that way and no customer can be created.')
+            : $this->bad("Linux user {$username} does not exist. Create them and attach the MySQL"
+                . ' account to it, then the password can go out of .env. This does that:'
                 . ' sudo scripts/tenancy/setup-mysql.sh --write-env');
     }
 
     private function checkOrphans(): void
     {
-        $this->line('Wezen');
+        $this->line('Orphans');
 
         $ids = Tenant::on('central')->pluck('id');
 
         $stale = DB::connection('central')->table('user_tenant_lookups')
             ->whereNotIn('tenant_id', $ids)->count();
 
-        $stale === 0 ? $this->pass('geen verwijzingen naar verdwenen tenants')
-            : $this->bad("{$stale} rij(en) in user_tenant_lookups wijzen naar een tenant die niet meer bestaat");
+        $stale === 0 ? $this->pass('no references to vanished tenants')
+            : $this->bad("{$stale} row(s) in user_tenant_lookups point at a tenant that no longer exists");
 
         $prefix = config('tenancy.database.prefix');
 
@@ -1513,8 +1512,8 @@ class TenancyDoctor extends Command
         $known = Tenant::on('central')->get()->map(fn ($t) => $t->getInternal('db_name'));
         $unknown = $databases->diff($known);
 
-        $unknown->isEmpty() ? $this->pass('geen databases zonder tenant')
-            : $this->bad('database zonder tenant: ' . $unknown->implode(', '));
+        $unknown->isEmpty() ? $this->pass('no databases without a tenant')
+            : $this->bad('database without a tenant: ' . $unknown->implode(', '));
 
         /**
          * A customer's folders are left behind when the cleanup got stuck
@@ -1531,7 +1530,7 @@ class TenancyDoctor extends Command
             ->reject(fn (string $name) => empty(File::allFiles(storage_path($name))));
 
         if ($folders->isEmpty()) {
-            $this->pass('geen mappen zonder tenant');
+            $this->pass('no folders without a tenant');
 
             return;
         }
@@ -1552,10 +1551,10 @@ class TenancyDoctor extends Command
             $size = $files->sum(fn ($file) => $file->getSize());
 
             $this->bad(sprintf(
-                "map zonder tenant: %s -- %d bestand(en), %s.\n"
-                . '         Er staat geen klant met dit id meer in de registratie, maar de inhoud'
-                . " kan van een klant zijn die opnieuw is aangemaakt.\n"
-                . '         Kijk er eerst in (%s), en ruim hem daarna op met:'
+                "folder without a tenant: %s -- %d file(s), %s.\n"
+                . '         No customer with this id is in the registry any more, but the contents'
+                . " may belong to a customer that was created again.\n"
+                . '         Look inside first (%s), then clear it with:'
                 . "\n         php artisan tenancy:prune-storage %s",
                 $folder,
                 $files->count(),

@@ -44,7 +44,7 @@ class ApiAuthenticationDoctorTest extends TestCase
         config(['app.url' => 'http://localhost']);
         $this->app['env'] = 'production';
 
-        $this->assertStringContainsString('APP_URL wijst naar localhost', $this->doctorOutput());
+        $this->assertStringContainsString('APP_URL points at localhost', $this->doctorOutput());
     }
 
     public function test_it_complains_when_api_requests_lose_their_tenant(): void
@@ -60,8 +60,8 @@ class ApiAuthenticationDoctorTest extends TestCase
 
         $output = $this->doctorOutput();
 
-        $this->assertStringContainsString('lavoro.example telt als eigen voorkant', $output);
-        $this->assertStringContainsString('api-verzoeken krijgen hun klant mee', $output);
-        $this->assertStringContainsString('api-verzoeken mogen de sessie gebruiken', $output);
+        $this->assertStringContainsString('lavoro.example counts as its own front end', $output);
+        $this->assertStringContainsString('api requests carry their customer', $output);
+        $this->assertStringContainsString('api requests may use the session', $output);
     }
 }

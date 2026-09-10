@@ -63,11 +63,11 @@ final class WorkerProcesses
     /** @param array{pid: int, user: string, seconds: int, directory: string} $worker */
     public static function describe(array $worker): string
     {
-        return sprintf('pid %d, als %s, al %s aan het draaien, in %s',
+        return sprintf('pid %d, as %s, running for %s, in %s',
             $worker['pid'],
             $worker['user'],
             self::humanDuration($worker['seconds']),
-            $worker['directory'] !== '' ? $worker['directory'] : 'onbekende map',
+            $worker['directory'] !== '' ? $worker['directory'] : 'an unknown directory',
         );
     }
 
@@ -116,13 +116,13 @@ final class WorkerProcesses
     private static function humanDuration(int $seconds): string
     {
         if ($seconds < 60) {
-            return $seconds . ' seconden';
+            return $seconds . ' seconds';
         }
 
         if ($seconds < 3600) {
-            return intdiv($seconds, 60) . ' minuten';
+            return intdiv($seconds, 60) . ' minutes';
         }
 
-        return intdiv($seconds, 3600) . ' uur';
+        return intdiv($seconds, 3600) . ' hours';
     }
 }

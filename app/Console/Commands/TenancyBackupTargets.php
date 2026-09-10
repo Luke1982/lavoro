@@ -21,7 +21,7 @@ class TenancyBackupTargets extends Command
 {
     protected $signature = 'tenancy:backup-targets';
 
-    protected $description = 'Somt de databases op die geback-upt moeten worden, met hun inloggegevens';
+    protected $description = 'Lists the databases that have to be backed up, with their credentials';
 
     public function handle(): int
     {

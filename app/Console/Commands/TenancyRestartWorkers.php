@@ -33,8 +33,8 @@ class TenancyRestartWorkers extends Command
     {
         if (!$this->restartUnits()) {
             $this->call('queue:restart');
-            $this->line('  Let op: workers alleen een sein gegeven. Draai scripts/tenancy/setup-sudoers.sh'
-                . ' als root, dan mag de uitrol ze zelf herstarten.');
+            $this->line('  Note: the workers were only signalled. Run scripts/tenancy/setup-sudoers.sh'
+                . ' as root and the deploy may restart them itself.');
         }
 
         if ($this->reportingIn()) {
@@ -49,7 +49,7 @@ class TenancyRestartWorkers extends Command
             }
         }
 
-        $this->warn('  De workers draaien niet op de code die er nu staat; zie hierboven.');
+        $this->warn('  The workers do not run the code that is checked out; see above.');
 
         return self::FAILURE;
     }
@@ -60,7 +60,7 @@ class TenancyRestartWorkers extends Command
             . ' 2>/dev/null', $output, $status);
 
         if ($status === 0) {
-            $this->line('  workers herstart');
+            $this->line('  workers restarted');
         }
 
         return $status === 0;
@@ -82,7 +82,7 @@ class TenancyRestartWorkers extends Command
             return false;
         }
 
-        $this->line('  Deze draaiden al voor de herstart en horen dus niet bij de units:');
+        $this->line('  These were running before the restart and so do not belong to the units:');
 
         $stopped = false;
 
@@ -91,7 +91,7 @@ class TenancyRestartWorkers extends Command
             $stopped = $stopped || $went;
 
             $this->line('    ' . WorkerProcesses::describe($stray)
-                . ($went ? ' -- omgelegd' : ' -- niet te stoppen vanaf dit account'));
+                . ($went ? ' -- stopped' : ' -- cannot be stopped from this account'));
         }
 
         return $stopped;

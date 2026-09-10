@@ -17,7 +17,7 @@ class CreateTenant extends Command
         {--package=starter}
         {--modules= : Kommagescheiden}';
 
-    protected $description = 'Maakt een nieuwe tenant met een eigen database, MySQL-login en beheerder';
+    protected $description = 'Creates a new tenant with its own database, MySQL login and admin';
 
     public function handle(TenantProvisioner $provisioner): int
     {
@@ -44,10 +44,10 @@ class CreateTenant extends Command
             return self::FAILURE;
         }
 
-        $this->info("Tenant aangemaakt: {$tenant->id}");
-        $this->line('  database:  ' . $tenant->getInternal('db_name'));
-        $this->line('  beheerder: ' . $this->argument('email'));
-        $this->line('  wachtwoord: ' . $password);
+        $this->info("Tenant created: {$tenant->id}");
+        $this->line('  database: ' . $tenant->getInternal('db_name'));
+        $this->line('  admin:    ' . $this->argument('email'));
+        $this->line('  password: ' . $password);
 
         return self::SUCCESS;
     }

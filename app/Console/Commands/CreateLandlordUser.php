@@ -10,7 +10,7 @@ class CreateLandlordUser extends Command
 {
     protected $signature = 'landlord:user {email} {--name=Beheer} {--password=}';
 
-    protected $description = 'Maakt een beheerder voor het landlord-paneel';
+    protected $description = 'Creates an administrator for the landlord panel';
 
     public function handle(): int
     {
@@ -21,8 +21,8 @@ class CreateLandlordUser extends Command
             ['name' => $this->option('name'), 'password' => $password],
         );
 
-        $this->info("Landlord-beheerder: {$user->email}");
-        $this->line("  wachtwoord: {$password}");
+        $this->info("Landlord administrator: {$user->email}");
+        $this->line("  password: {$password}");
 
         return self::SUCCESS;
     }
