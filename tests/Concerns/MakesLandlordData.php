@@ -7,9 +7,10 @@ use App\Models\Tenant;
 use Illuminate\Support\Str;
 
 /**
- * De twee rijen die elke test van het beheerpaneel nodig heeft.
+ * The two rows every admin panel test needs.
  *
- * Ze stonden in elk testbestand opnieuw, elke keer net anders opgeschreven.
+ * They sat in every test file again, written down slightly differently each
+ * time.
  */
 trait MakesLandlordData
 {
@@ -24,10 +25,10 @@ trait MakesLandlordData
     }
 
     /**
-     * Alleen de rij, zonder de gebeurtenissen eromheen: een klant aanmaken zet
-     * normaal een database en een login klaar, en daar gaan deze tests niet
-     * over. Met die gebeurtenissen erbij struikelen ze bovendien over de
-     * database van een vorige ronde.
+     * Only the row, without the events around it: creating a customer normally
+     * puts a database and a login in place, and these tests are not about that.
+     * With those events they would also trip over the database of a previous
+     * round.
      */
     protected function tenantRow(array $attributes = []): Tenant
     {

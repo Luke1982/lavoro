@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * De rol 'technisch beheer' en het recht dat eraan hing verdwijnen. Wat
-     * erachter zat -- de koppelingen van een klant instellen -- hoort bij
-     * MajorLabel zelf, en daar is nu de superbeheerder voor. Dat is een rol
-     * die de klant niet kan zien, aanmaken of toekennen.
+     * The role 'technisch beheer' and the permission that hung on it go away.
+     * What sat behind it -- configuring a customer's integrations -- belongs to
+     * MajorLabel itself, and the super admin is there for that now. That is a
+     * role the customer cannot see, create or grant.
      *
-     * Wie de oude rol had verliest dus toegang tot Technisch beheer. Dat is de
-     * bedoeling: het waren onze eigen accounts.
+     * So whoever had the old role loses access to Technisch beheer. That is the
+     * intention: they were our own accounts.
      */
     public function up(): void
     {
@@ -38,9 +38,9 @@ return new class extends Migration
     }
 
     /**
-     * Zet de rol en het recht terug, leeg. Wie hem had krijgt hem niet terug;
-     * dat is niet vast te leggen zonder de oude koppelingen te bewaren, en het
-     * gaat om een handvol accounts van onszelf.
+     * Puts the role and the permission back, empty. Whoever had it does not get
+     * it back; that cannot be recorded without keeping the old links, and it is
+     * about a handful of our own accounts.
      */
     public function down(): void
     {

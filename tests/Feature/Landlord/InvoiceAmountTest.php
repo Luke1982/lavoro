@@ -6,13 +6,12 @@ use App\Models\Central\Invoice;
 use Tests\TestCase;
 
 /**
- * Wat er na het aanmaken op het scherm komt te staan, moet het bedrag zijn dat
- * de klant betaalt.
+ * What appears on screen after creating has to be the amount the customer pays.
  *
- * De factuur kent drie bedragen: subtotal_cents (voor korting), total_cents
- * (netto, zonder btw) en gross_cents (met btw, en dat is wat er geincasseerd
- * wordt). De melding toonde total_cents -- 21% lager dan wat eronder in de lijst
- * stond, en 21% lager dan wat er van de rekening gaat.
+ * The invoice knows three amounts: subtotal_cents (before discount),
+ * total_cents (net, without VAT) and gross_cents (with VAT, and that is what
+ * gets collected). The message showed total_cents -- 21% lower than what stood
+ * below it in the list, and 21% lower than what leaves the account.
  */
 class InvoiceAmountTest extends TestCase
 {
@@ -33,7 +32,7 @@ class InvoiceAmountTest extends TestCase
         );
     }
 
-    /** De melding na het aanmaken hoort het te betalen bedrag te noemen. */
+    /** The message after creating should name the amount to be paid. */
     public function test_the_controller_reports_the_gross_amount(): void
     {
         $source = file_get_contents(base_path('app/Http/Controllers/Landlord/InvoiceController.php'));

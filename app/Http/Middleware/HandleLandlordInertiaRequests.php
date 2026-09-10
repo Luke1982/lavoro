@@ -6,11 +6,11 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 /**
- * Inertia voor het beheerpaneel.
+ * Inertia for the admin panel.
  *
- * Een eigen middleware en niet die van de klant-app: die deelt gebruiker,
- * rechten, menu en tenantgegevens, en dat bestaat hier allemaal niet. Het
- * paneel draait centraal en heeft nooit een tenant.
+ * A middleware of its own and not the customer app's: that one shares user,
+ * permissions, menu and tenant data, and none of that exists here. The panel
+ * runs centrally and never has a tenant.
  */
 class HandleLandlordInertiaRequests extends Middleware
 {
@@ -27,14 +27,14 @@ class HandleLandlordInertiaRequests extends Middleware
                 'email' => $request->user('landlord')?->email,
             ],
             /**
-             * Alle drie de sleutels. 'message' hoort erbij omdat de afhandeling
-             * van een verlopen pagina zijn uitleg daar neerzet; zonder dat kwam
-             * die melding nergens in beeld en leek een formulier stil te falen.
+             * All three keys. 'message' belongs among them because the handling
+             * of an expired page puts its explanation there; without it that
+             * message appeared nowhere and a form seemed to fail silently.
              */
             /**
-             * Voor het ene formulier dat niet over Inertia kan: het
-             * incassobestand komt als download terug, en een download kan
-             * alleen uit een gewone formulierverzending komen.
+             * For the one form that cannot go over Inertia: the collection file
+             * comes back as a download, and a download can only come from an
+             * ordinary form submission.
              */
             'csrf_token' => fn () => csrf_token(),
             'flash' => [

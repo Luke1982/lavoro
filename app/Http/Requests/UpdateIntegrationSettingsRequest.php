@@ -18,9 +18,10 @@ class UpdateIntegrationSettingsRequest extends FormRequest
         return [
             'mail_transport' => ['required', 'in:graph,smtp'],
             /**
-             * Verplicht, en niet omdat het veld niet leeg mag: zonder eigen
-             * afzender valt de mail terug op het adres uit de .env, en dat is
-             * het adres van wie er toevallig als eerste is opgeleverd.
+             * Required, and not because the field may not be empty: without a
+             * sender of their own the mail falls back on the address from .env,
+             * and that is the address of whoever happened to be delivered
+             * first.
              */
             'mail_from_address' => ['required', 'email', 'max:255'],
             'mail_from_name' => ['nullable', 'string', 'max:255'],
@@ -42,8 +43,8 @@ class UpdateIntegrationSettingsRequest extends FormRequest
     }
 
     /**
-     * Half ingevuld is erger dan leeg: dan lijkt de koppeling te staan en
-     * mislukt elke verzending pas op het moment dat er echt post uit moet.
+     * Half filled in is worse than empty: then the integration looks like it is
+     * there and every send fails only at the moment post really has to go out.
      */
     public function withValidator(Validator $validator): void
     {
@@ -85,8 +86,8 @@ class UpdateIntegrationSettingsRequest extends FormRequest
     }
 
     /**
-     * Een geheim dat al is opgeslagen wordt niet teruggestuurd naar het scherm,
-     * dus een leeg veld betekent "ongewijzigd" en niet "leeg".
+     * A secret that is already stored is not sent back to the screen, so an
+     * empty field means "unchanged" and not "empty".
      */
     private function secret_is_stored(string $key): bool
     {

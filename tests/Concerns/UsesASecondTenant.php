@@ -7,15 +7,15 @@ use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Een tweede klant naast de vaste testklant, om te bewijzen dat ze elkaar niet
- * zien.
+ * A second customer next to the fixed test customer, to prove they do not see
+ * each other.
  *
- * De gewone opzet zet elke test in een transactie, maar dat werkt hier niet:
- * van tenant wisselen gooit de verbinding weg en daarmee de transactie
- * (gemeten: transactieniveau 1 wordt 0 na een wissel). Deze tweede database
- * wordt daarom niet teruggedraaid maar leeggemaakt aan het begin van elke test
- * die hem gebruikt. Dat is traag genoeg om niet standaard te doen en snel
- * genoeg voor de handvol tests die over afscherming gaan.
+ * The ordinary setup puts every test in a transaction, but that does not work
+ * here: switching tenant throws the connection away and the transaction with it
+ * (measured: transaction level 1 becomes 0 after a switch). This second database
+ * is therefore not rolled back but emptied at the start of every test that uses
+ * it. That is slow enough not to do by default and fast enough for the handful
+ * of tests about separation.
  */
 trait UsesASecondTenant
 {
@@ -39,7 +39,7 @@ trait UsesASecondTenant
         return $tenant;
     }
 
-    /** De vaste testklant, waar de rest van de suite ook in draait. */
+    /** The fixed test customer, the one the rest of the suite runs in as well. */
     protected function firstTenant(): Tenant
     {
         return Tenant::on('central')->findOrFail(tenancy()->tenant->getTenantKey());
@@ -81,9 +81,9 @@ trait UsesASecondTenant
     }
 
     /**
-     * Alleen de tabellen waar de afschermingstests iets in zetten. Alles
-     * leeghalen zou de gezaaide rollen en fases ook weggooien, en die zijn
-     * nodig om een gebruiker te kunnen maken.
+     * Only the tables the separation tests put something in. Emptying
+     * everything would throw the seeded roles and stages away too, and those
+     * are needed to be able to create a user.
      */
     private function emptySecondTenant(Tenant $tenant): void
     {

@@ -6,12 +6,12 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * De titelbalk hoort "Lavoro - <klant> - <onderdeel>" te zijn.
+ * The title bar should read "Lavoro - <customer> - <part>".
  *
- * Er stond "Laravel", en dat was geen slordigheid maar een val: app.blade.php
- * gebruikte env(), en zodra config:cache heeft gedraaid geeft env() buiten de
- * configuratiebestanden zijn standaardwaarde terug -- letterlijk 'Laravel'. In
- * ontwikkeling viel dat nooit op, in productie stond het in elke tab.
+ * It said "Laravel", and that was not sloppiness but a trap: app.blade.php used
+ * env(), and once config:cache has run env() outside the configuration files
+ * returns its default value -- literally 'Laravel'. In development it never
+ * showed, in production it was in every tab.
  */
 class PageTitleTest extends TestCase
 {
@@ -29,8 +29,8 @@ class PageTitleTest extends TestCase
     }
 
     /**
-     * Ook met een gecachete configuratie, want dat is precies het geval waarin
-     * het misging: env() valt dan terug op zijn standaardwaarde.
+     * With a cached configuration too, because that is precisely the case where
+     * it went wrong: env() then falls back on its default value.
      */
     public function test_it_survives_a_cached_configuration(): void
     {

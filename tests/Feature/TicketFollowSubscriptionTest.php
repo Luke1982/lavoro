@@ -17,12 +17,13 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * Een abonnement op één storing naast het abonnement op een soort.
+ * A subscription to one incident next to the subscription to a kind.
  *
- * De twee worden anders afgerekend en dat is het hele punt: op een soort teken je
- * in als je alles van dat soort mag lezen, op één record als je dat record mag
- * zien. Wie een werkbon uitvoert ziet de storingen erop, en moet die dus kunnen
- * volgen zonder het brede ticket.read te hebben.
+ * The two are settled differently and that is the whole point: you subscribe to
+ * a kind when you may read everything of that kind, to one record when you may
+ * see that record. Whoever carries out a service order sees the incidents on
+ * it, and so has to be able to follow those without holding the broad
+ * ticket.read.
  */
 class TicketFollowSubscriptionTest extends TestCase
 {
@@ -171,8 +172,8 @@ class TicketFollowSubscriptionTest extends TestCase
     }
 
     /**
-     * De hele ronde zoals de knop hem loopt: kijken, aanzetten, weer kijken,
-     * uitzetten, weer kijken. Elke stap moet de volgende mogelijk maken.
+     * The whole round as the button walks it: look, switch on, look again,
+     * switch off, look again. Every step has to make the next one possible.
      */
     public function test_the_bell_can_be_switched_on_and_off_again(): void
     {

@@ -48,7 +48,7 @@ class UserController extends Controller
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
-            /** Een superbeheerder bezet geen plaats; die keuze hoort hij niet te zien. */
+            /** A super admin occupies no seat; they should not see that choice. */
             'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
@@ -59,8 +59,8 @@ class UserController extends Controller
     }
 
     /**
-     * Hoeveel plaatsen er per soort zijn en hoeveel er nog vrij zijn. Het
-     * formulier laat dat zien; de validatie bewaakt het.
+     * How many seats there are per kind and how many are still free. The form
+     * shows it; the validation guards it.
      */
     private function seats(): array
     {
@@ -144,7 +144,7 @@ class UserController extends Controller
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
-            /** Een superbeheerder bezet geen plaats; die keuze hoort hij niet te zien. */
+            /** A super admin occupies no seat; they should not see that choice. */
             'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')

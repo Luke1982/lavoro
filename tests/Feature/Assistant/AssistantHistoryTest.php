@@ -299,10 +299,10 @@ class AssistantHistoryTest extends TestCase
         $scheduled = collect(app(Schedule::class)->events())
             ->map(fn ($event) => $event->command ?? $event->description ?? '')
             /**
-             * Sinds tenancy is het geen artisan-aanroep meer maar een closure
-             * die per tenant een job klaarzet; het schema-item heet
-             * assistant-prune-questions. Beide spellingen tellen, zodat de
-             * test over het "dat het gebeurt" gaat en niet over de vorm.
+             * Since tenancy it is no longer an artisan call but a closure that
+             * queues a job per tenant; the schedule item is called
+             * assistant-prune-questions. Both spellings count, so the test is
+             * about it happening and not about the form.
              */
             ->filter(fn (string $command) => str_contains($command, 'assistant:prune')
                 || str_contains($command, 'assistant-prune'));

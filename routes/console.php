@@ -17,14 +17,15 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /**
- * Elke tik doet per tenant één ding: kijken of zijn database opengaat, en dan
- * één rij in de centrale jobs-tabel. Geen delete, geen query waarvan de kosten
- * meegroeien met hoeveel data een klant heeft. Het werk zelf gebeurt in de
- * job, die door QueueTenancyBootstrapper de juiste tenant meekrijgt.
+ * Every tick does one thing per tenant: check whether its database opens, and
+ * then write one row in the central jobs table. No delete, no query whose cost
+ * grows with how much data a customer has. The work itself happens in the job,
+ * which gets the right tenant through QueueTenancyBootstrapper.
  *
- * Die ene controle vooraf staat er omdat een klant met een verdwenen database
- * anders elke taak laat omvallen: op productie leverde dat 1313 mislukte taken
- * op, allemaal van dezelfde klant, met alles wat er echt mis was ertussen.
+ * That one check up front is there because a customer with a vanished database
+ * otherwise makes every task fall over: on production that produced 1313 failed
+ * jobs, all from the same customer, with everything that was really wrong among
+ * them.
  */
 $forEachTenant = fn (callable $dispatch) => Tenancy::forEachReachable($dispatch);
 
@@ -50,16 +51,16 @@ Schedule::call(fn () => $forEachTenant(fn () => ReconcileStorageUsageJob::dispat
     ->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();
 
 /**
- * Uurlijks en niet dagelijks: een klant die op de 12e begon hoort op de 12e
- * zijn factuur te krijgen, en met één ronde per dag verschuift dat naar het
- * uur waarop de cron toevallig staat. De ronde slaat over wat al een factuur
- * heeft, dus 24 tikken per dag kosten 23 keer niets.
+ * Hourly and not daily: a customer who started on the 12th should get their
+ * invoice on the 12th, and with one round a day that shifts to whatever hour
+ * the cron happens to sit at. The round skips whatever already has an invoice,
+ * so 24 ticks a day cost nothing 23 times.
  *
- * Alleen aanmaken, niet versturen: er hoort eerst iemand naar te kijken.
+ * Only creating, not sending: someone should look at it first.
  */
 Schedule::command('invoices:issue')
     ->hourly()->name('invoices-issue')->withoutOverlapping();
 
-/** De cron kan niet vanuit PHP gecontroleerd worden; de planner bewijst het zelf. */
+/** The cron cannot be checked from PHP; the scheduler proves it itself. */
 Schedule::call(fn () => cache()->forever('scheduler_heartbeat', now()->timestamp))
     ->everyFiveMinutes()->name('scheduler-heartbeat');

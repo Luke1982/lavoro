@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * De applicatie is Nederlands, dus de meldingen van Laravel zelf ook.
+ * The application is Dutch, so Laravel's own messages are too.
  *
- * Zonder APP_LOCALE=nl valt Laravel terug op het Engels en staat er "The collect
- * on field is required" midden in een Nederlands formulier. De vertalingen zijn
- * er wel; alleen de instelling ontbrak, en setup-env.sh zette hem niet.
+ * Without APP_LOCALE=nl Laravel falls back on English and "The collect on field
+ * is required" sits in the middle of a Dutch form. The translations are there;
+ * only the setting was missing, and setup-env.sh did not write it.
  */
 class DutchMessagesTest extends TestCase
 {
@@ -22,7 +22,7 @@ class DutchMessagesTest extends TestCase
             __('validation.required', ['attribute' => 'incassodatum']));
     }
 
-    /** Het installatiescript hoort de taal te zetten, niet de installateur. */
+    /** The install script should set the language, not the installer. */
     public function test_the_setup_script_sets_the_language(): void
     {
         $this->assertStringContainsString('set_key APP_LOCALE nl',

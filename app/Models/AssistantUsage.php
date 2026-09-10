@@ -16,9 +16,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AssistantUsage extends Model
 {
     /**
-     * Centraal en niet in de database van de klant. Het tegoed wordt hier
-     * afgemeten en het beheer telt hem over alle klanten heen op; dat kan niet
-     * uit een tabel die per klant apart staat. De klant zelf komt er niet bij.
+     * Central and not in the customer's database. The allowance is measured off
+     * here and management adds it up across all customers; that cannot come
+     * from a table that sits separately per customer. The customer does not
+     * reach it.
      */
     protected $connection = 'central';
 
@@ -50,8 +51,8 @@ class AssistantUsage extends Model
     protected static function booted(): void
     {
         /**
-         * De klant erbij zetten en er ook weer op filteren, zodat geen enkele
-         * telling per ongeluk over het verbruik van een ander bedrijf gaat.
+         * Adding the customer and filtering on it as well, so that no count
+         * ever accidentally covers another company's usage.
          */
         static::creating(function (self $usage) {
             $usage->tenant_id ??= static::tenantKey();
@@ -67,7 +68,7 @@ class AssistantUsage extends Model
         return (string) (tenancy()->initialized ? tenancy()->tenant->getTenantKey() : '');
     }
 
-    /** De gebruiker staat in de database van de klant, het verbruik centraal. */
+    /** The user lives in the customer's database, the usage centrally. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * De accounts waarmee MajorLabel zelf in de database van een klant kan.
+ * The accounts MajorLabel itself can enter a customer's database with.
  *
- * Alleen vanuit het beheerpaneel: de applicatie van de klant kent de rol niet
- * in zijn rollenscherm, kan hem niet aanmaken en niet toekennen. Vraagt geen
- * provisioner-rechten -- er wordt alleen in bestaande tabellen geschreven,
- * geen database aangemaakt.
+ * Only from the admin panel: the customer's application does not know the role
+ * in its roles screen, cannot create it and cannot grant it. Needs no
+ * provisioner rights -- it only writes in existing tables, it creates no
+ * database.
  */
 class TenantSuperAdmins
 {
@@ -25,7 +25,7 @@ class TenantSuperAdmins
     {
         $password = $password ?: Str::password(16);
 
-        /** Een adres wijst bij het inloggen één tenant aan. */
+        /** An address points at one tenant when logging in. */
         $lookup = DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->first();
 
         if ($lookup && $lookup->tenant_id !== $tenant->id) {
@@ -61,10 +61,10 @@ class TenantSuperAdmins
             $role = Role::where('name', Role::SUPERADMIN)->first();
 
             /**
-             * Zonder de globale scope: die verbergt deze accounts voor de
-             * klant, en het beheerpaneel is juist de plek waar ze beheerd
-             * worden. Het paneel draait bovendien op de landlord-guard, dus de
-             * uitzondering voor "ik ben zelf superbeheerder" gaat hier niet op.
+             * Without the global scope: it hides these accounts from the
+             * customer, and the admin panel is precisely where they are
+             * managed. The panel also runs on the landlord guard, so the
+             * exception for "I am a super admin myself" does not apply here.
              */
             if (!$role) {
                 return [];

@@ -9,10 +9,10 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * Een attribuut dat wél gevalideerd wordt maar niet in $fillable staat, wordt
- * door create() stil weggelaten. Het formulier lijkt te werken, de melding is
- * groen, en de waarde is weg. Zo verdween seat_type: iedereen werd
- * binnendienst en de buitendienstplekken raakten nooit vol.
+ * An attribute that is validated but is not in $fillable is silently dropped by
+ * create(). The form looks like it works, the message is green, and the value is
+ * gone. That is how seat_type disappeared: everyone became office staff and the
+ * field seats never filled up.
  */
 class SilentlyDroppedAttributesTest extends TestCase
 {
@@ -31,13 +31,12 @@ class SilentlyDroppedAttributesTest extends TestCase
     }
 
     /**
-     * Elk veld dat het aanmaakformulier valideert moet ook echt opgeslagen
-     * kunnen worden. Zonder deze controle is het volgende vergeten veld weer
-     * onzichtbaar.
+     * Every field the create form validates has to be storable as well. Without
+     * this check the next forgotten field is invisible again.
      */
     public function test_every_validated_user_field_is_fillable_or_handled(): void
     {
-        /** rules() vraagt de ingelogde gebruiker om rechten, dus die moet er zijn. */
+        /** rules() asks the logged in user for permissions, so there has to be one. */
         $admin = $this->admin();
 
         $request = new UserStoreRequest;

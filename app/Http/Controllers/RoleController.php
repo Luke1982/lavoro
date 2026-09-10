@@ -12,7 +12,7 @@ class RoleController extends Controller
     public function index()
     {
         return inertia('Roles/IndexPage', [
-            /** Onze eigen rol hoort niet in het rollenscherm van een klant. */
+            /** Our own role does not belong in a customer's roles screen. */
             'roles' => Role::assignable()
                 ->with(['users:id,name,email', 'permissions:id'])
                 ->orderBy('name')
@@ -27,9 +27,9 @@ class RoleController extends Controller
     {
         $data = $request->validate([
             /**
-             * De naam van onze eigen rol is verboden. Zonder dit maakt een
-             * beheerder van een klant zelf een rol 'superadmin' aan en heeft
-             * daarmee alles, want de gate kijkt naar de naam.
+             * The name of our own role is forbidden. Without this a customer's
+             * admin creates a role 'superadmin' themselves and has everything,
+             * because the gate looks at the name.
              */
             'name' => ['required', 'string', 'max:255', 'unique:roles,name', 'not_in:' . Role::SUPERADMIN],
         ]);
@@ -43,7 +43,7 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
-        /** Wie hem niet mag zien, mag hem ook niet vullen met gebruikers. */
+        /** Whoever may not see it may not fill it with users either. */
         abort_if($role->name === Role::SUPERADMIN, 404);
 
         $data = $request->validate([

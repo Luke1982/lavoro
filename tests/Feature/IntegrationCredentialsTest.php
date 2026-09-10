@@ -15,9 +15,9 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De regel achter taak 32: sleutels zijn per tenant of ze zijn er niet. Er is
- * geen terugval op de .env, want post uit andermans mailbox of boekingen in
- * andermans administratie zijn erger dan een nette weigering.
+ * The rule behind task 32: keys are per tenant or they are not there. There is
+ * no falling back to .env, because post from someone else's mailbox or bookings
+ * in someone else's ledger are worse than a polite refusal.
  */
 class IntegrationCredentialsTest extends TestCase
 {
@@ -50,7 +50,7 @@ class IntegrationCredentialsTest extends TestCase
         GeneralSetting::set('graph_client_secret', 'geheim');
         config(['services.graph.user_id' => 'mailbox@van-een-ander.nl']);
 
-        /** De mailbox ontbreekt; die van een ander lenen is precies de fout. */
+        /** The mailbox is missing; borrowing someone else's is exactly the mistake. */
         $this->expectException(GraphNotConfigured::class);
 
         app(TenantMailTransport::class)->make();
@@ -71,7 +71,7 @@ class IntegrationCredentialsTest extends TestCase
         GeneralSetting::set('graph_client_secret', 'geheim-dat-niet-mag-lekken');
         GeneralSetting::set('mail_smtp_password', 'wachtwoord-dat-niet-mag-lekken');
 
-        /** De pagina is van de superbeheerder; beheerder zijn is bewust niet genoeg. */
+        /** The page belongs to the super admin; being an admin is deliberately not enough. */
         $super = User::factory()->create();
         $super->roles()->attach(Role::firstOrCreate(['name' => Role::SUPERADMIN])->id);
 

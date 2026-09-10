@@ -10,11 +10,12 @@ use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
- * De knop om een klant te verwijderen.
+ * The button for deleting a customer.
  *
- * Het pad erachter bestond al maanden; alleen stond er nergens een knop, dus
- * viel er niets te verwijderen. Deze test kijkt naar allebei: dat de knop op het
- * scherm staat, en dat hij alleen werkt als de naam letterlijk is overgetikt.
+ * The path behind it had existed for months; there was simply no button
+ * anywhere, so there was nothing to delete. This test looks at both: that the
+ * button is on the screen, and that it only works when the name is typed over
+ * literally.
  */
 class DeleteTenantTest extends TestCase
 {
@@ -27,10 +28,9 @@ class DeleteTenantTest extends TestCase
     }
 
     /**
-     * Alleen de rij, zonder de gebeurtenissen eromheen: het aanmaken van een
-     * tenant zet normaal een database en een login klaar, en daar gaat deze test
-     * niet over. Met die gebeurtenissen erbij struikelt hij bovendien over de
-     * database van een vorige run.
+     * Only the row, without the events around it: creating a tenant normally
+     * puts a database and a login in place, and this test is not about that.
+     * With those events it would also trip over the database of a previous run.
      */
     private function tenant(): Tenant
     {
@@ -66,10 +66,10 @@ class DeleteTenantTest extends TestCase
     }
 
     /**
-     * De wachtrij wordt hier stilgezet. Anders voert de test het verwijderen
-     * echt uit, en dat zet onderweg de databaseverbinding om -- waarmee de
-     * transactie van de test sneuvelt en de rij die net geschreven is weer weg
-     * is. Deze test gaat over de knop, niet over de provisioner.
+     * The queue is held still here. Otherwise the test really carries the
+     * deletion out, and that switches the database connection along the way --
+     * which kills the test's transaction and takes the row just written with
+     * it. This test is about the button, not about the provisioner.
      */
     public function test_the_exact_name_queues_the_deletion(): void
     {

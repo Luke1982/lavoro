@@ -6,30 +6,30 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Een abonnement mag voortaan één record aanwijzen.
+ * A subscription may now point at a single record.
  *
- * Zonder record blijft het wat het was: dit soort nieuws, waar het ook vandaan
- * komt. Mét record gaat het over dat ene ding, en dan mag het soort leeg blijven
- * — dat is "vertel me alles wat hierover te melden valt".
+ * Without a record it stays what it was: this kind of news, wherever it comes
+ * from. With a record it is about that one thing, and then the kind may stay
+ * empty -- that is "tell me everything there is to report about this".
  *
- * De unieke sleutel neemt de twee kolommen mee, maar draagt de last niet alleen:
- * MySQL rekent NULL's onderling als verschillend, dus twee identieke rijen zonder
- * record glippen erlangs. De Form Request schrijft de vergelijking daarom uit met
- * whereNull erbij; dit is het vangnet, niet de regel.
+ * The unique key takes both columns in, but does not carry the load alone:
+ * MySQL counts NULLs as different from each other, so two identical rows
+ * without a record slip past it. The Form Request therefore writes the
+ * comparison out with whereNull; this is the safety net, not the rule.
  *
- * De volgorde hieronder is niet vrij. De oude sleutel op (user_id, type) is de
- * enige index die user_id dekt, en daar hangt de foreign key aan: hem eerst
- * weghalen levert MySQL-fout 1553 op. De nieuwe sleutel begint óók met user_id,
- * dus zodra die er staat mag de oude weg. Op SQLite valt dat niet op, want daar
- * mag het wel — precies het soort verschil waar een migratie op stukloopt zodra
- * hij ergens anders dan in de tests draait.
+ * The order below is not free. The old key on (user_id, type) is the only index
+ * covering user_id, and the foreign key hangs on it: removing it first produces
+ * MySQL error 1553. The new key also starts with user_id, so once it is there
+ * the old one may go. On SQLite none of this shows, because there it is
+ * allowed -- exactly the kind of difference a migration breaks on as soon as it
+ * runs somewhere other than in the tests.
  */
 return new class extends Migration
 {
     /**
-     * Met de hand benoemd. De naam die Laravel zou verzinnen luidt
-     * notification_subscriptions_subscribable_type_subscribable_id_index en is met
-     * 66 tekens twee over wat MySQL aan een indexnaam toestaat.
+     * Named by hand. The name Laravel would invent reads
+     * notification_subscriptions_subscribable_type_subscribable_id_index and at
+     * 66 characters is two over what MySQL allows for an index name.
      */
     private const SUBSCRIBABLE_INDEX = 'notification_subscriptions_subscribable_index';
 
@@ -60,9 +60,10 @@ return new class extends Migration
     }
 
     /**
-     * Terug kan alleen als er niets meer staat dat er vóór deze migratie niet kon
-     * staan: een abonnement op één record, of een abonnement zonder soort. Die
-     * rijen bestaan bij de gratie van deze migratie, dus die gaan met hem mee.
+     * Going back is only possible when nothing is left that could not exist
+     * before this migration: a subscription to one record, or a subscription
+     * without a kind. Those rows exist by the grace of this migration, so they
+     * go with it.
      */
     public function down(): void
     {

@@ -21,6 +21,7 @@ use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventTypeController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\FreeformMaterialController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GlobalSearchController;
@@ -78,9 +79,9 @@ Route::group(
     ['middleware' => 'auth'],
     function () {
 
-        Route::get('files/images/{image}', [\App\Http\Controllers\FileController::class, 'image'])->name('files.image');
-        Route::get('files/avatars/{user}', [\App\Http\Controllers\FileController::class, 'avatar'])->name('files.avatar');
-        Route::get('files/companies/{company}/logo/{variant?}', [\App\Http\Controllers\FileController::class, 'companyLogo'])->name('files.companyLogo');
+        Route::get('files/images/{image}', [FileController::class, 'image'])->name('files.image');
+        Route::get('files/avatars/{user}', [FileController::class, 'avatar'])->name('files.avatar');
+        Route::get('files/companies/{company}/logo/{variant?}', [FileController::class, 'companyLogo'])->name('files.companyLogo');
 
         Route::get('/', DashboardController::class);
 
@@ -449,8 +450,8 @@ Route::group(
             ->except(['show', 'create', 'edit']);
         Route::resource('internalannouncements', InternalAnnouncementController::class)
             ->except(['create', 'edit']);
-        // Buiten de resource om, want bevestigen vraagt geen recht op de
-        // aankondiging: iedereen die hem kreeg mag het, en niemand anders.
+        // Outside the resource, because acknowledging asks no right on the
+        // announcement: everyone who got it may, and nobody else.
         Route::post(
             'internalannouncements/{internalannouncement}/acknowledge',
             [InternalAnnouncementController::class, 'acknowledge']
@@ -588,8 +589,8 @@ Route::get('download/lavoro.apk', function () {
 })->name('app.download');
 
 /**
- * De aanleverpagina voor klanten. Geen inlog: de link uit de mail is de sleutel,
- * en de middleware wisselt hem in voor het token voordat er iets gebeurt.
+ * The upload page for customers. No login: the link from the mail is the key,
+ * and the middleware exchanges it for the token before anything happens.
  */
 Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->group(function () {
     Route::get('storing/informatie/{token}', [CustomerUploadController::class, 'show'])
