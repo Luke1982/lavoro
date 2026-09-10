@@ -139,7 +139,7 @@ sudo scripts/tenancy/verify-mysql.sh
 
 It records its result where the doctor can read it, so from then on the doctor
 reports what came out and when. Only a complete run counts: without `sudo` it
-skips most checks and leaves the previous result alone. `deploy.sh` runs it
+skips most checks and leaves the previous result alone. `scripts/deploy.sh` runs it
 every time.
 
 ## 4. Configure the application
@@ -303,7 +303,7 @@ sudo systemctl restart lavoro-worker lavoro-provisioning
 ```
 
 The same applies to code: after a `git pull` a worker keeps running the version
-it started with. `deploy.sh` handles this for you; a manual pull does not.
+it started with. `scripts/deploy.sh` handles this for you; a manual pull does not.
 
 The doctor compares both the settings and the code a worker started with
 against what is on disk now, and says so when they differ.

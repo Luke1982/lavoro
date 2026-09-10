@@ -95,7 +95,7 @@ komt daarmee langs het aanmaken, de rechten en de scheiding tussen klanten.
 Loopt elke tenant af en controleert onder andere: staan de tabellen er, draait
 de cron, kan het applicatieaccount géén klantdatabases weggooien, bestaat het
 provisioner-account, staan er geen databases zonder tenant. Geeft exitcode 1
-bij een probleem, dus `deploy.sh` breekt erop af.
+bij een probleem, dus `scripts/deploy.sh` breekt erop af.
 
 ## De drie MySQL-accounts
 
@@ -163,7 +163,7 @@ opnieuw gestart zodra ze weg zijn.
 Een worker leest `.env` en de code één keer, bij het opstarten, en houdt dat
 vast. Na een `git pull` of een wijziging in `.env` draait hij dus door op wat
 hij had, terwijl de hartslag gewoon blijft komen en alles er gezond uitziet.
-`deploy.sh` doet dit vanzelf; een handmatige pull niet. De doctor vergelijkt
+`scripts/deploy.sh` doet dit vanzelf; een handmatige pull niet. De doctor vergelijkt
 waar de worker mee is opgestart met wat er nu staat en zegt het als dat
 verschilt.
 
@@ -313,7 +313,7 @@ php artisan tenants:migrate        # elke klant
 Nieuwe migraties horen in `database/migrations/tenant/`, tenzij ze
 `protected $connection = 'central'` zetten. Vergeet je `tenants:migrate`, dan
 blijft elke klant achter en breekt de applicatie pas bij het eerste verzoek dat
-de nieuwe kolom aanraakt. `deploy.sh` doet allebei.
+de nieuwe kolom aanraakt. `scripts/deploy.sh` doet allebei.
 
 ## Uitrollen
 

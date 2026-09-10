@@ -6394,9 +6394,9 @@ git commit -m "feat(tenancy): landlord admin sub-app for licensing management"
 
 A third, narrower problem bites exactly once: `migrate` runs **before** `composer install`. On the first deploy that introduces tenancy, `config/tenancy.php` references `Stancl\Tenancy\*` classes that are not installed yet, so booting Artisan fails before any migration runs.
 
-**Files:** `deploy.sh`
+**Files:** `scripts/deploy.sh`
 
-### Task 38, Step 1: Rewrite `deploy.sh`
+### Task 38, Step 1: Rewrite the deploy script (`scripts/deploy.sh`)
 
 Changes from the current script: dependencies install before migrations; the backup enumerates every tenant database and dumps each one; backups rotate as timestamped *sets* rather than individual files; tenant migrations run after central ones. Tenant dumps use the provisioner over the socket, so no password is read from `.env` for them.
 
@@ -6504,7 +6504,7 @@ application would report the change.
 ### Task 38, Step 3: Verify against a real run
 
 ```bash
-./deploy.sh
+bash scripts/deploy.sh
 ls -la storage/backups/db/*/
 ```
 
@@ -6523,7 +6523,7 @@ php artisan tenants:migrate --dry-run 2>/dev/null || php artisan tenants:list
 ### Task 38, Step 4: Commit
 
 ```bash
-git add deploy.sh
+git add scripts/deploy.sh
 git commit -m "chore(deploy): back up and migrate every tenant database"
 ```
 

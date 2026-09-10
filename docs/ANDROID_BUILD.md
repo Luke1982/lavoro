@@ -75,7 +75,7 @@ adb shell dumpsys activity services nl.lavoro.fsm | grep -A2 LocationForegroundS
 
 # Releasing an update (the in-app warning)
 
-Deploying the Laravel app (`deploy.sh`) does **NOT** ship a new APK. The APK is
+Deploying the Laravel app (`scripts/deploy.sh`) does **NOT** ship a new APK. The APK is
 a separate binary. To push an update that technicians get prompted to install:
 
 ### 1. Bump the native version
@@ -113,7 +113,7 @@ Route::get('app/version', fn() => response()->json([
 
 ### 5. Deploy the Laravel change
 
-Push + run `deploy.sh` on the server.
+Push + run `scripts/deploy.sh` on the server.
 
 ### What the user sees
 

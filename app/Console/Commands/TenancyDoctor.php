@@ -903,7 +903,7 @@ class TenancyDoctor extends Command
      * allowed names, and as the application one that should be refused -- more
      * thoroughly than is possible from here, because that needs root. Only the
      * reference here; writing the same check twice produces two answers that
-     * drift apart. deploy.sh runs it along.
+     * drift apart. scripts/deploy.sh runs it along.
      */
     private const PRIVILEGES_STALE_AFTER_DAYS = 30;
 
